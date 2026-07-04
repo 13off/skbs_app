@@ -1,0 +1,43 @@
+name: skbs_app
+description: "Приложение СКБС для сотрудников, задач, табеля и актов."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  excel: ^4.0.6
+  universal_html: ^2.3.0
+  archive: ^3.6.1
+
+  supabase_flutter: ^2.8.3
+  shared_preferences: ^2.3.3
+  intl: ^0.19.0
+  docx_template: ^0.4.0
+  file_saver: ^0.2.14
+  mime_type: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+  - assets/templates/act_template.docx
+  - assets/templates/timesheet_template.xlsx
+  - assets/templates/hr/employment_contract_template.docx
+  - assets/templates/hr/personal_data_consent_template.docx
+  - assets/templates/hr/employment_application_template.docx
+  - assets/templates/hr/salary_application_template.docx
+  - assets/templates/hr/dismissal_application_template.docx
