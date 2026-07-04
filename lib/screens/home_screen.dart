@@ -7,7 +7,16 @@ import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
-import '../widgets/home_card.dart';
+
+const Color _bg = Color(0xFFF7F8FA);
+const Color _card = Color(0xFFFFFFFF);
+const Color _softCard = Color(0xFFF2F3F5);
+const Color _line = Color(0xFFE6E8EB);
+const Color _text = Color(0xFF1F2328);
+const Color _muted = Color(0xFF6B7075);
+const Color _accent = Color(0xFF8F9499);
+const Color _success = Color(0xFF22C55E);
+const Color _warning = Color(0xFF8F9499);
 
 class HomeScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -21,14 +30,14 @@ class HomeScreen extends StatelessWidget {
     required this.onObjectChanged,
   });
 
-  String _todayText(DateTime date) {
+  String _dateText(DateTime date) {
     final months = [
       'января',
       'февраля',
       'марта',
       'апреля',
       'мая',
-      'июля',
+      'июня',
       'июля',
       'августа',
       'сентября',
@@ -37,7 +46,7 @@ class HomeScreen extends StatelessWidget {
       'декабря',
     ];
 
-    return 'Сегодня, ${date.day} ${months[date.month - 1]}';
+    return '${date.day} ${months[date.month - 1]}';
   }
 
   String get objectTitle {
@@ -68,14 +77,14 @@ class HomeScreen extends StatelessWidget {
             value: '__all__',
             title: 'Все объекты',
             subtitle: 'Сводка по всем объектам',
-            icon: Icons.all_inbox_outlined,
+            icon: Icons.apartment_outlined,
           ),
           ...objects.map(
             (objectName) => _ObjectPickerItem(
               value: objectName,
               title: objectName,
-              subtitle: 'Данные только по объекту',
-              icon: Icons.apartment_outlined,
+              subtitle: 'Данные только по этому объекту',
+              icon: Icons.business_outlined,
             ),
           ),
         ];
@@ -85,8 +94,16 @@ class HomeScreen extends StatelessWidget {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: _card,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: _line),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -95,19 +112,18 @@ class HomeScreen extends StatelessWidget {
                   width: 44,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
+                    color: const Color(0xFFD4CCC2),
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
                 Row(
                   children: [
                     const Expanded(
                       child: Text(
                         'Выберите объект',
                         style: TextStyle(
+                          color: _text,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                         ),
@@ -121,40 +137,31 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 10),
-
                 ...items.map((item) {
                   final isSelected = item.value == selectedValue;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(20),
                       onTap: () {
                         Navigator.pop(context, item.value);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(18),
+                          color: isSelected ? _softCard : _card,
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.transparent,
-                            width: 1.5,
+                            color: isSelected ? _accent : _line,
                           ),
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              item.icon,
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.shade700,
+                            _IconBox(
+                              icon: item.icon,
+                              color: isSelected ? _accent : _text,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -164,6 +171,7 @@ class HomeScreen extends StatelessWidget {
                                   Text(
                                     item.title,
                                     style: const TextStyle(
+                                      color: _text,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 16,
                                     ),
@@ -171,8 +179,8 @@ class HomeScreen extends StatelessWidget {
                                   const SizedBox(height: 2),
                                   Text(
                                     item.subtitle,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
+                                    style: const TextStyle(
+                                      color: _muted,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -180,10 +188,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                             if (isSelected)
-                              Icon(
-                                Icons.check_circle,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                              const Icon(Icons.check_circle, color: _accent),
                           ],
                         ),
                       ),
@@ -209,28 +214,10 @@ class HomeScreen extends StatelessWidget {
 
   Widget buildObjectSelector(BuildContext context) {
     if (!profile.isAdmin) {
-      return Container(
-        constraints: const BoxConstraints(maxWidth: 230),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock_outline, size: 18),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                objectTitle,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ],
-        ),
+      return _ObjectSelectorShell(
+        icon: Icons.lock_outline,
+        title: objectTitle,
+        onTap: null,
       );
     }
 
@@ -239,82 +226,178 @@ class HomeScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final objects = snapshot.data ?? EmployeeRepository.baseObjects;
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(18),
+        return _ObjectSelectorShell(
+          icon: Icons.apartment_outlined,
+          title: objectTitle,
           onTap: () {
             showObjectPicker(context, objects);
           },
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 250),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.apartment_outlined,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    objectTitle,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
   }
 
   Widget buildHeader(BuildContext context, DateTime today) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'СКБС',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _todayText(today),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'AppСтрой',
                 style: TextStyle(
-                  color: Colors.grey.shade700,
-                  fontWeight: FontWeight.w600,
+                  color: _text,
+                  fontFamily: 'Georgia',
+                  fontSize: 36,
+                  height: 1,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1.0,
                 ),
               ),
-            ],
-          ),
+            ),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _line),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.025),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  const Center(
+                    child: Icon(
+                      Icons.notifications_none_outlined,
+                      color: _text,
+                      size: 25,
+                    ),
+                  ),
+                  Positioned(
+                    right: 13,
+                    top: 12,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: _warning,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
+        const SizedBox(height: 26),
+        Row(
+          children: [
+            const Icon(Icons.calendar_month_outlined, color: _muted, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              'Сегодня, ${_dateText(today)}',
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         buildObjectSelector(context),
       ],
+    );
+  }
+
+  Widget buildDashboard({
+    required BuildContext context,
+    required DateTime today,
+    required List<Employee> employees,
+    required Set<String> workedEmployeeIds,
+    required List<TaskItemData> tasks,
+    required bool isLoading,
+    required bool hasError,
+  }) {
+    final totalEmployees = employees.length;
+    final workedEmployees = workedEmployeeIds.length;
+
+    final totalTasks = tasks.length;
+    final doneTasks = tasks.where((task) => task.status == 'Выполнено').length;
+
+    final employeesProgress = totalEmployees == 0
+        ? 0.0
+        : workedEmployees / totalEmployees;
+
+    final tasksProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
+
+    final employeesValue = isLoading ? '...' : workedEmployees.toString();
+    final employeesPlan = isLoading ? '...' : totalEmployees.toString();
+
+    final tasksValue = isLoading ? '...' : totalTasks.toString();
+    final tasksDone = isLoading ? '...' : doneTasks.toString();
+
+    return Container(
+      color: _bg,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildHeader(context, today),
+                    if (hasError) ...[
+                      const SizedBox(height: 14),
+                      const _SystemMessage(
+                        icon: Icons.error_outline,
+                        title: 'Есть ошибка загрузки',
+                        text:
+                            'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    _DashboardMetricCard(
+                      icon: Icons.person_outline,
+                      title: 'Сотрудники на объекте',
+                      value: employeesValue,
+                      secondaryValue: 'из $employeesPlan',
+                      progress: employeesProgress,
+                      bottomDotColor: _success,
+                      bottomLabel: 'На объекте',
+                      bottomValue: employeesValue,
+                    ),
+                    const SizedBox(height: 14),
+                    _DashboardMetricCard(
+                      icon: Icons.assignment_turned_in_outlined,
+                      title: 'Задачи на сегодня',
+                      value: tasksValue,
+                      secondaryValue: 'всего',
+                      progress: tasksProgress,
+                      showRing: true,
+                      ringLabel: '${(tasksProgress * 100).round()}%',
+                      bottomDotColor: _accent,
+                      bottomLabel: 'Выполнено',
+                      bottomValue: tasksDone,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -322,117 +405,423 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = AppState.today;
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          buildHeader(context, today),
+    return StreamBuilder<List<Employee>>(
+      stream: EmployeeRepository.watchEmployees(objectName: selectedObjectName),
+      builder: (context, employeesSnapshot) {
+        final employees = employeesSnapshot.data ?? <Employee>[];
 
-          const SizedBox(height: 22),
-
-          StreamBuilder<List<Employee>>(
-            stream: EmployeeRepository.watchEmployees(
-              objectName: selectedObjectName,
-            ),
-            builder: (context, employeesSnapshot) {
-              final employees = employeesSnapshot.data ?? [];
-
-              return FutureBuilder<Set<String>>(
-                future: AttendanceRepository.fetchWorkedEmployeeIds(
-                  today,
-                  objectName: selectedObjectName,
-                ),
-                builder: (context, attendanceSnapshot) {
-                  final workedEmployeeIds = attendanceSnapshot.data ?? {};
-
-                  if (employeesSnapshot.connectionState ==
-                          ConnectionState.waiting ||
-                      attendanceSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                    return HomeCard(
-                      title: 'Сотрудники',
-                      value: '...',
-                      text: 'загрузка сотрудников',
-                      details: ['объект: $objectTitle'],
-                      icon: Icons.groups,
-                      onTap: () {},
-                    );
-                  }
-
-                  if (employeesSnapshot.hasError ||
-                      attendanceSnapshot.hasError) {
-                    return HomeCard(
-                      title: 'Сотрудники',
-                      value: '!',
-                      text: 'ошибка загрузки',
-                      details: ['не удалось получить данные'],
-                      icon: Icons.groups,
-                      onTap: () {},
-                    );
-                  }
-
-                  return HomeCard(
-                    title: 'Сотрудники',
-                    value: employees.length.toString(),
-                    text: 'человек на объекте',
-                    details: [
-                      '${workedEmployeeIds.length} вышли на работу',
-                      'объект: $objectTitle',
-                    ],
-                    icon: Icons.groups,
-                    onTap: () {},
-                  );
-                },
-              );
-            },
+        return FutureBuilder<Set<String>>(
+          future: AttendanceRepository.fetchWorkedEmployeeIds(
+            today,
+            objectName: selectedObjectName,
           ),
+          builder: (context, attendanceSnapshot) {
+            final workedEmployeeIds = attendanceSnapshot.data ?? <String>{};
 
-          const SizedBox(height: 18),
+            return StreamBuilder<List<TaskItemData>>(
+              stream: TaskRepository.watchTasksForDate(
+                today,
+                objectName: selectedObjectName,
+              ),
+              builder: (context, tasksSnapshot) {
+                final tasks = tasksSnapshot.data ?? <TaskItemData>[];
 
-          StreamBuilder<List<TaskItemData>>(
-            stream: TaskRepository.watchTasksForDate(
-              today,
-              objectName: selectedObjectName,
+                final isLoading =
+                    (employeesSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        !employeesSnapshot.hasData) ||
+                    (attendanceSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        !attendanceSnapshot.hasData) ||
+                    (tasksSnapshot.connectionState == ConnectionState.waiting &&
+                        !tasksSnapshot.hasData);
+
+                final hasError =
+                    employeesSnapshot.hasError ||
+                    attendanceSnapshot.hasError ||
+                    tasksSnapshot.hasError;
+
+                return buildDashboard(
+                  context: context,
+                  today: today,
+                  employees: employees,
+                  workedEmployeeIds: workedEmployeeIds,
+                  tasks: tasks,
+                  isLoading: isLoading,
+                  hasError: hasError,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ObjectSelectorShell extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback? onTap;
+
+  const _ObjectSelectorShell({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _line),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.035),
+              blurRadius: 18,
+              offset: const Offset(0, 9),
             ),
-            builder: (context, snapshot) {
-              final tasks = snapshot.data ?? [];
+          ],
+        ),
+        child: Row(
+          children: [
+            _IconBox(icon: icon, color: _text),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (onTap != null)
+              const Icon(Icons.keyboard_arrow_down, color: _text),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              final totalTasks = tasks.length;
-              final doneTasks = tasks
-                  .where((task) => task.status == 'Выполнено')
-                  .length;
+class _DashboardMetricCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String secondaryValue;
+  final double progress;
+  final bool showRing;
+  final String? ringLabel;
+  final Color bottomDotColor;
+  final String bottomLabel;
+  final String bottomValue;
 
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return HomeCard(
-                  title: 'Задачи',
-                  value: '...',
-                  text: 'загрузка задач',
-                  details: ['объект: $objectTitle'],
-                  icon: Icons.task_alt,
-                  onTap: () {},
-                );
-              }
+  const _DashboardMetricCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.secondaryValue,
+    required this.progress,
+    this.showRing = false,
+    this.ringLabel,
+    required this.bottomDotColor,
+    required this.bottomLabel,
+    required this.bottomValue,
+  });
 
-              if (snapshot.hasError) {
-                return HomeCard(
-                  title: 'Задачи',
-                  value: '!',
-                  text: 'ошибка загрузки',
-                  details: ['не удалось получить задачи'],
-                  icon: Icons.task_alt,
-                  onTap: () {},
-                );
-              }
+  @override
+  Widget build(BuildContext context) {
+    final safeProgress = progress.clamp(0.0, 1.0).toDouble();
 
-              return HomeCard(
-                title: 'Задачи',
-                value: totalTasks.toString(),
-                text: 'задач на сегодня',
-                details: ['$doneTasks выполнено', 'объект: $objectTitle'],
-                icon: Icons.task_alt,
-                onTap: () {},
-              );
-            },
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _line),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.040),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _IconBox(icon: icon, color: _accent),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _text,
+                    fontSize: 18,
+                    height: 1.18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (showRing)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: _ValueBlock(
+                          value: value,
+                          secondaryValue: secondaryValue,
+                        ),
+                      ),
+                      _RingProgress(
+                        progress: safeProgress,
+                        label: ringLabel ?? '${(safeProgress * 100).round()}%',
+                        size: 74,
+                        stroke: 6,
+                      ),
+                    ],
+                  )
+                else
+                  _ValueBlock(value: value, secondaryValue: secondaryValue),
+                const SizedBox(height: 16),
+                if (!showRing)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 5,
+                      value: safeProgress,
+                      backgroundColor: const Color(0xFFE8E2DB),
+                      valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+                    ),
+                  ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _softCard,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: bottomDotColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          bottomLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        bottomValue,
+                        style: const TextStyle(
+                          color: _text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right, color: _muted, size: 20),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ValueBlock extends StatelessWidget {
+  final String value;
+  final String secondaryValue;
+
+  const _ValueBlock({required this.value, required this.secondaryValue});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _text,
+              fontSize: 46,
+              height: 0.95,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.2,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            secondaryValue,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RingProgress extends StatelessWidget {
+  final double progress;
+  final String label;
+  final double size;
+  final double stroke;
+
+  const _RingProgress({
+    required this.progress,
+    required this.label,
+    required this.size,
+    required this.stroke,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeProgress = progress.clamp(0.0, 1.0).toDouble();
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: size,
+            height: size,
+            child: CircularProgressIndicator(
+              value: safeProgress,
+              strokeWidth: stroke,
+              backgroundColor: const Color(0xFFE8E2DB),
+              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _text,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBox extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _IconBox({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: _softCard,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Icon(icon, color: color, size: 27),
+    );
+  }
+}
+
+class _SystemMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String text;
+
+  const _SystemMessage({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.red.withOpacity(0.16)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.red.shade700),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.red.shade800,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  style: TextStyle(
+                    color: Colors.red.shade800,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

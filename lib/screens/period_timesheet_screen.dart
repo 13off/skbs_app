@@ -778,7 +778,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   Widget buildFiredToggleCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: includeFiredEmployees
             ? Theme.of(context).colorScheme.primaryContainer
@@ -790,24 +790,26 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
               : Colors.grey.shade200,
         ),
       ),
-      child: CheckboxListTile(
-        contentPadding: EdgeInsets.zero,
-        value: includeFiredEmployees,
-        onChanged: isLoading || isExporting
-            ? null
-            : (value) {
-                toggleIncludeFired(value ?? false);
-              },
-        controlAffinity: ListTileControlAffinity.leading,
-        title: const Text(
-          'Учитывать уволенных сотрудников',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          includeFiredEmployees
-              ? 'В отчёт и Excel попадут активные и уволенные сотрудники.'
-              : 'В отчёте и Excel только активные сотрудники.',
-        ),
+      child: Row(
+        children: [
+          Checkbox(
+            value: includeFiredEmployees,
+            onChanged: isLoading || isExporting
+                ? null
+                : (value) {
+                    toggleIncludeFired(value ?? false);
+                  },
+          ),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              'Учитывать уволенных',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -987,113 +989,98 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            Row(
+    final pageContent = <Widget>[
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Табель',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('Месячный табель сотрудников'),
-                      Text(
-                        'Объект: $objectTitle',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
+                const Text(
+                  'Табель',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: isLoading || isExporting
-                      ? null
-                      : () {
-                          openAddPaymentScreen();
-                        },
-                  icon: const Icon(Icons.payments_outlined),
-                  label: const Text('Выплата'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: isLoading || isExporting
-                      ? null
-                      : () {
-                          downloadAllEmployeesExcel();
-                        },
-                  icon: isExporting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.download),
-                  label: const Text('Все'),
+                const SizedBox(height: 4),
+                const Text('Месячный табель сотрудников'),
+                Text(
+                  'Объект: $objectTitle',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
-
-            const SizedBox(height: 18),
-
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: isLoading || isExporting ? null : pickMonth,
-                icon: const Icon(Icons.calendar_month),
-                label: Text('Месяц: $monthTitle'),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            buildFiredToggleCard(),
-
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: searchController,
-              enabled: !isExporting,
-              onChanged: (_) {
-                setState(() {});
-              },
-              decoration: InputDecoration(
-                labelText: 'Поиск сотрудника',
-                hintText: 'ФИО, должность или объект',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        onPressed: () {
-                          searchController.clear();
-                          setState(() {});
-                        },
-                        icon: const Icon(Icons.close),
-                      ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            buildSummaryCard(),
-
-            const SizedBox(height: 14),
-
-            Expanded(child: buildTable()),
-          ],
+          ),
+          FilledButton.tonalIcon(
+            onPressed: isLoading || isExporting
+                ? null
+                : () {
+                    openAddPaymentScreen();
+                  },
+            icon: const Icon(Icons.payments_outlined),
+            label: const Text('Выплата'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: isLoading || isExporting
+                ? null
+                : () {
+                    downloadAllEmployeesExcel();
+                  },
+            icon: isExporting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download),
+            label: const Text('Все'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+      SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: OutlinedButton.icon(
+          onPressed: isLoading || isExporting ? null : pickMonth,
+          icon: const Icon(Icons.calendar_month),
+          label: Text('Месяц: $monthTitle'),
         ),
+      ),
+      const SizedBox(height: 10),
+      buildFiredToggleCard(),
+      const SizedBox(height: 10),
+      TextField(
+        controller: searchController,
+        enabled: !isExporting,
+        onChanged: (_) {
+          setState(() {});
+        },
+        decoration: InputDecoration(
+          labelText: 'Поиск сотрудника',
+          hintText: 'ФИО, должность или объект',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.close),
+                ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      const SizedBox(height: 14),
+      buildSummaryCard(),
+      const SizedBox(height: 14),
+      SizedBox(height: 460, child: buildTable()),
+    ];
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+        children: pageContent,
       ),
     );
   }

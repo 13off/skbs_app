@@ -269,7 +269,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   }) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFFFEEE7),
+      color: const Color(0xFFF7F8FA),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
         minVerticalPadding: 14,
@@ -330,117 +330,174 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
     final isFired = !employee.isActive;
     final comment = employee.comment.trim();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              CircleAvatar(
-                radius: 58,
-                backgroundColor: isFired
-                    ? Colors.grey.shade300
-                    : const Color(0xFFFFD5C4),
-                child: Text(
-                  firstLetter(employee.name),
-                  style: TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w500,
-                    color: isFired
-                        ? Colors.grey.shade700
-                        : const Color(0xFF8B3F16),
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 620;
+
+        final avatarBlock = Column(
+          children: [
+            CircleAvatar(
+              radius: isMobile ? 58 : 66,
+              backgroundColor: isFired
+                  ? Colors.grey.shade300
+                  : const Color(0xFFF2F3F5),
+              child: Text(
+                firstLetter(employee.name),
+                style: TextStyle(
+                  fontSize: isMobile ? 42 : 48,
+                  fontWeight: FontWeight.w500,
+                  color: isFired
+                      ? Colors.grey.shade700
+                      : const Color(0xFF6B7075),
                 ),
               ),
-              const SizedBox(height: 12),
-              buildStatusBadge(),
-            ],
+            ),
+            const SizedBox(height: 12),
+            buildStatusBadge(),
+          ],
+        );
+
+        final actionButtons = Wrap(
+          alignment: WrapAlignment.end,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _roundHeaderButton(
+              tooltip: 'Редактировать',
+              icon: Icons.edit_outlined,
+              onPressed: isChangingStatus ? null : openEditEmployee,
+            ),
+            _roundHeaderButton(
+              tooltip: 'Добавить выплату',
+              icon: Icons.add_card_outlined,
+              onPressed: isChangingStatus ? null : openAddPayment,
+            ),
+            _roundHeaderButton(
+              tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
+              icon: isFired ? Icons.undo : Icons.person_off_outlined,
+              onPressed: isChangingStatus ? null : toggleFiredStatus,
+              child: isChangingStatus
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+            ),
+          ],
+        );
+
+        final infoBlock = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              employee.name,
+              maxLines: isMobile ? 3 : 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              style: TextStyle(
+                fontSize: isMobile ? 28 : 32,
+                height: 1.12,
+                fontWeight: FontWeight.w900,
+                color: isFired ? Colors.grey.shade700 : Colors.black87,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            buildHeaderInfoLine(
+              icon: Icons.badge_outlined,
+              title: 'Должность',
+              value: employee.position,
+            ),
+            buildHeaderInfoLine(
+              icon: Icons.apartment_outlined,
+              title: 'Объект',
+              value: employee.objectName,
+            ),
+            buildHeaderInfoLine(
+              icon: Icons.phone_outlined,
+              title: 'Телефон',
+              value: employee.phone.isEmpty ? 'Не указан' : employee.phone,
+            ),
+            buildHeaderInfoLine(
+              icon: Icons.payments_outlined,
+              title: 'Ставка',
+              value: formatMoney(employee.dailyRate),
+            ),
+            buildHeaderInfoLine(
+              icon: Icons.notes_outlined,
+              title: 'Комментарий',
+              value: comment.isEmpty ? 'Нет комментария' : comment,
+            ),
+          ],
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: isMobile
+              ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        employee.name,
-                        style: TextStyle(
-                          fontSize: 27,
-                          fontWeight: FontWeight.w900,
-                          color: isFired
-                              ? Colors.grey.shade700
-                              : Colors.black87,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        avatarBlock,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: actionButtons,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      tooltip: 'Редактировать',
-                      onPressed: isChangingStatus ? null : openEditEmployee,
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton.filledTonal(
-                      tooltip: 'Добавить выплату',
-                      onPressed: isChangingStatus ? null : openAddPayment,
-                      icon: const Icon(Icons.add_card_outlined),
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton.filledTonal(
-                      tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
-                      onPressed: isChangingStatus ? null : toggleFiredStatus,
-                      icon: isChangingStatus
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              isFired ? Icons.undo : Icons.person_off_outlined,
-                            ),
-                    ),
+                    const SizedBox(height: 22),
+                    infoBlock,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    avatarBlock,
+                    const SizedBox(width: 24),
+                    Expanded(child: infoBlock),
+                    const SizedBox(width: 12),
+                    actionButtons,
                   ],
                 ),
-                const SizedBox(height: 14),
-                buildHeaderInfoLine(
-                  icon: Icons.badge_outlined,
-                  title: 'Должность',
-                  value: employee.position,
-                ),
-                buildHeaderInfoLine(
-                  icon: Icons.apartment_outlined,
-                  title: 'Объект',
-                  value: employee.objectName,
-                ),
-                buildHeaderInfoLine(
-                  icon: Icons.phone_outlined,
-                  title: 'Телефон',
-                  value: employee.phone.isEmpty ? 'Не указан' : employee.phone,
-                ),
-                buildHeaderInfoLine(
-                  icon: Icons.payments_outlined,
-                  title: 'Ставка',
-                  value: formatMoney(employee.dailyRate),
-                ),
-                buildHeaderInfoLine(
-                  icon: Icons.notes_outlined,
-                  title: 'Комментарий',
-                  value: comment.isEmpty ? 'Нет комментария' : comment,
-                ),
-              ],
+        );
+      },
+    );
+  }
+
+  Widget _roundHeaderButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    Widget? child,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: const Color(0xFFF2F3F5),
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(999),
+          child: SizedBox(
+            width: 52,
+            height: 52,
+            child: Center(
+              child: child ?? Icon(icon, color: const Color(0xFF8F9499)),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
