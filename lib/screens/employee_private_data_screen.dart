@@ -50,13 +50,19 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
 
   bool isLoading = true;
   bool isSaving = false;
+  bool isGeneratingDocument = false;
+  bool isFillingControllers = false;
+  bool hasUnsavedChanges = false;
   String? errorText;
+  EmployeePrivateData? savedData;
+  int loadGeneration = 0;
 
   String get employeeId => widget.employee.id ?? '';
 
   @override
   void initState() {
     super.initState();
+    attachChangeListeners();
     loadData();
   }
 
@@ -95,7 +101,80 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     super.dispose();
   }
 
+  List<TextEditingController> get allControllers {
+    return [
+      birthDateController,
+      birthPlaceController,
+      phoneController,
+      passportSeriesController,
+      passportNumberController,
+      passportIssuedByController,
+      passportIssuedDateController,
+      passportDepartmentCodeController,
+      snilsController,
+      innController,
+      registrationAddressController,
+      livingAddressController,
+      clothesSizeController,
+      shoeSizeController,
+      bankNameController,
+      bankCardController,
+      bankAccountController,
+      bankBikController,
+      bankCorrAccountController,
+      bankInnController,
+      bankKppController,
+      bankOkpoController,
+      bankOgrnController,
+      bankSwiftController,
+      bankAddressController,
+      bankOfficeAddressController,
+      contractNumberController,
+      employmentStartDateController,
+      dismissalDateController,
+      commentController,
+    ];
+  }
+
+  void attachChangeListeners() {
+    for (final controller in allControllers) {
+      controller.addListener(markUnsavedChanges);
+    }
+  }
+
+  void markUnsavedChanges() {
+    if (isFillingControllers || hasUnsavedChanges || isLoading) return;
+    if (!mounted) return;
+
+    setState(() {
+      hasUnsavedChanges = true;
+    });
+  }
+
+  bool isSamePrivateData(
+    EmployeePrivateData first,
+    EmployeePrivateData second,
+  ) {
+    final firstMap = Map<String, dynamic>.from(first.toSupabaseMap())
+      ..remove('updated_at');
+    final secondMap = Map<String, dynamic>.from(second.toSupabaseMap())
+      ..remove('updated_at');
+
+    if (firstMap.length != secondMap.length) return false;
+
+    for (final entry in firstMap.entries) {
+      final firstValue = entry.value?.toString().trim() ?? '';
+      final secondValue = secondMap[entry.key]?.toString().trim() ?? '';
+
+      if (firstValue != secondValue) return false;
+    }
+
+    return true;
+  }
+
   Future<void> loadData() async {
+    final currentGeneration = ++loadGeneration;
+
     if (employeeId.isEmpty) {
       setState(() {
         isLoading = false;
@@ -108,17 +187,22 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       final data = await EmployeePrivateDataRepository.fetchByEmployeeId(
         employeeId,
       );
+      final loadedData = data ?? EmployeePrivateData.empty(employeeId);
 
-      fillControllers(data ?? EmployeePrivateData.empty(employeeId));
+      if (!mounted || currentGeneration != loadGeneration) return;
 
-      if (!mounted) return;
+      fillControllers(loadedData);
+
+      if (!mounted || currentGeneration != loadGeneration) return;
 
       setState(() {
+        savedData = loadedData;
+        hasUnsavedChanges = false;
         isLoading = false;
         errorText = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || currentGeneration != loadGeneration) return;
 
       setState(() {
         isLoading = false;
@@ -128,6 +212,7 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
   }
 
   void fillControllers(EmployeePrivateData data) {
+    isFillingControllers = true;
     birthDateController.text = data.birthDate;
     birthPlaceController.text = data.birthPlace;
     phoneController.text = data.phone.trim().isEmpty
@@ -160,6 +245,8 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     employmentStartDateController.text = data.employmentStartDate;
     dismissalDateController.text = data.dismissalDate;
     commentController.text = data.comment;
+
+    isFillingControllers = false;
   }
 
   EmployeePrivateData dataFromControllers() {
@@ -297,7 +384,7 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
   }
 
   Future<EmployeePrivateData?> saveData({bool showMessage = true}) async {
-    if (employeeId.isEmpty) return null;
+    if (employeeId.isEmpty || isSaving) return null;
 
     final formatError = validateFormats();
 
@@ -309,6 +396,23 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     }
 
     final data = dataFromControllers();
+    final oldSavedData = savedData;
+
+    if (oldSavedData != null && isSamePrivateData(oldSavedData, data)) {
+      if (hasUnsavedChanges && mounted) {
+        setState(() {
+          hasUnsavedChanges = false;
+        });
+      }
+
+      if (showMessage && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Изменений нет')));
+      }
+
+      return data;
+    }
 
     setState(() {
       isSaving = true;
@@ -318,6 +422,11 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       await EmployeePrivateDataRepository.upsert(data);
 
       if (!mounted) return data;
+
+      setState(() {
+        savedData = data;
+        hasUnsavedChanges = false;
+      });
 
       if (showMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -344,8 +453,16 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
   }
 
   Future<void> downloadDocument(HrDocumentTemplate template) async {
+    if (isSaving || isGeneratingDocument) return;
+
     final data = await saveData(showMessage: false);
     if (data == null) return;
+
+    if (!mounted) return;
+
+    setState(() {
+      isGeneratingDocument = true;
+    });
 
     try {
       await HrDocumentGenerator.downloadDocument(
@@ -365,6 +482,12 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Ошибка документа: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGeneratingDocument = false;
+        });
+      }
     }
   }
 
@@ -407,7 +530,9 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: FilledButton.tonalIcon(
-        onPressed: isSaving ? null : () => downloadDocument(template),
+        onPressed: isSaving || isGeneratingDocument
+            ? null
+            : () => downloadDocument(template),
         icon: const Icon(Icons.description_outlined),
         label: Text(template.title),
       ),

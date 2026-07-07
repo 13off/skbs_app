@@ -19,6 +19,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
   bool isLoading = false;
   String? errorText;
+  int _loadSerial = 0;
 
   @override
   void initState() {
@@ -97,15 +98,17 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return payments.fold<double>(0, (sum, payment) => sum + payment.amount);
   }
 
-  Future<void> loadHistory() async {
+  Future<void> loadHistory({bool forceRefresh = false}) async {
     final employeeId = widget.employee.id;
 
-    if (employeeId == null) {
+    if (employeeId == null || employeeId.trim().isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
       return;
     }
+
+    final serial = ++_loadSerial;
 
     setState(() {
       isLoading = true;
@@ -115,21 +118,22 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     try {
       final result = await PaymentRepository.fetchPaymentsForEmployee(
         employeeId,
+        forceRefresh: forceRefresh,
       );
 
-      if (!mounted) return;
+      if (!mounted || serial != _loadSerial) return;
 
       setState(() {
         payments = result;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || serial != _loadSerial) return;
 
       setState(() {
         errorText = 'Ошибка загрузки истории выплат: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && serial == _loadSerial) {
         setState(() {
           isLoading = false;
         });
@@ -183,7 +187,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     });
 
     try {
-      await PaymentRepository.deletePayment(payment.id);
+      await PaymentRepository.deletePayment(
+        payment.id,
+        employeeId: payment.employeeId,
+      );
 
       if (!mounted) return;
 
@@ -347,7 +354,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('История выплат')),
       body: RefreshIndicator(
-        onRefresh: loadHistory,
+        onRefresh: () => loadHistory(forceRefresh: true),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

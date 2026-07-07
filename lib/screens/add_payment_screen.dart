@@ -38,6 +38,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     'fine': 'Штраф',
   };
 
+  List<Employee> employees = [];
+
+  bool isLoadingEmployees = true;
   bool isSaving = false;
   String? errorText;
 
@@ -46,6 +49,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     super.initState();
 
     selectedEmployeeId = widget.initialEmployeeId;
+    loadEmployees();
   }
 
   @override
@@ -67,7 +71,52 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     return double.tryParse(text);
   }
 
-  Employee? findSelectedEmployee(List<Employee> employees) {
+  Future<void> loadEmployees() async {
+    setState(() {
+      isLoadingEmployees = true;
+      errorText = null;
+    });
+
+    try {
+      final loadedEmployees = await EmployeeRepository.fetchEmployees(
+        includeFired: true,
+      );
+
+      final employeesWithId = loadedEmployees
+          .where((employee) => employee.id != null)
+          .toList();
+
+      if (!mounted) return;
+
+      final selectedIdExists = employeesWithId.any(
+        (employee) => employee.id == selectedEmployeeId,
+      );
+
+      setState(() {
+        employees = employeesWithId;
+
+        if (employeesWithId.isEmpty) {
+          selectedEmployeeId = null;
+        } else if (selectedEmployeeId == null || !selectedIdExists) {
+          selectedEmployeeId = employeesWithId.first.id;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorText = 'Ошибка загрузки сотрудников: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingEmployees = false;
+        });
+      }
+    }
+  }
+
+  Employee? findSelectedEmployee() {
     if (selectedEmployeeId == null) return null;
 
     for (final employee in employees) {
@@ -97,8 +146,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     });
   }
 
-  Future<void> savePayment(List<Employee> employees) async {
-    final selectedEmployee = findSelectedEmployee(employees);
+  Future<void> savePayment() async {
+    final selectedEmployee = findSelectedEmployee();
     final amount = parseAmount();
 
     if (selectedEmployee == null || selectedEmployee.id == null) {
@@ -149,176 +198,175 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     }
   }
 
+  Widget buildLoadingState() {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  Widget buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              errorText ?? 'Ошибка загрузки сотрудников',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: loadEmployees,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Повторить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildEmptyState() {
+    return const Center(child: Text('Нет сотрудников для выплаты'));
+  }
+
   @override
   Widget build(BuildContext context) {
+    Widget body;
+
+    if (isLoadingEmployees) {
+      body = buildLoadingState();
+    } else if (employees.isEmpty && errorText != null) {
+      body = buildErrorState();
+    } else if (employees.isEmpty) {
+      body = buildEmptyState();
+    } else {
+      body = ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Период выплаты',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(widget.periodTitle, style: const TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          DropdownButtonFormField<String>(
+            value: selectedEmployeeId,
+            items: employees.map((employee) {
+              return DropdownMenuItem<String>(
+                value: employee.id,
+                child: Text(employee.name),
+              );
+            }).toList(),
+            onChanged: isSaving
+                ? null
+                : (employeeId) {
+                    setState(() {
+                      selectedEmployeeId = employeeId;
+                    });
+                  },
+            decoration: const InputDecoration(
+              labelText: 'Сотрудник',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          OutlinedButton.icon(
+            onPressed: isSaving ? null : pickPaymentDate,
+            icon: const Icon(Icons.calendar_month),
+            label: Text('Дата выплаты: ${formatDate(paymentDate)}'),
+          ),
+
+          const SizedBox(height: 14),
+
+          DropdownButtonFormField<String>(
+            value: selectedPaymentType,
+            items: paymentTypeLabels.entries.map((entry) {
+              return DropdownMenuItem<String>(
+                value: entry.key,
+                child: Text(entry.value),
+              );
+            }).toList(),
+            onChanged: isSaving
+                ? null
+                : (value) {
+                    if (value == null) return;
+
+                    setState(() {
+                      selectedPaymentType = value;
+                    });
+                  },
+            decoration: const InputDecoration(
+              labelText: 'Тип выплаты',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Сумма выплаты',
+              hintText: 'Например: 10000',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          TextField(
+            controller: commentController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Комментарий',
+              hintText: 'Например: аванс, зарплата, штраф за прогул',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          if (errorText != null) ...[
+            const SizedBox(height: 14),
+            Text(errorText!, style: const TextStyle(color: Colors.red)),
+          ],
+
+          const SizedBox(height: 20),
+
+          SizedBox(
+            height: 54,
+            child: FilledButton.icon(
+              onPressed: isSaving ? null : savePayment,
+              icon: const Icon(Icons.save),
+              label: Text(isSaving ? 'Сохраняем...' : 'Сохранить выплату'),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Добавить выплату')),
-      body: StreamBuilder<List<Employee>>(
-        stream: EmployeeRepository.watchEmployees(includeFired: true),
-        builder: (context, snapshot) {
-          final employees = snapshot.data ?? [];
-          final employeesWithId = employees
-              .where((employee) => employee.id != null)
-              .toList();
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Ошибка загрузки сотрудников: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
-
-          if (employeesWithId.isEmpty) {
-            return const Center(child: Text('Нет сотрудников для выплаты'));
-          }
-
-          final selectedIdExists = employeesWithId.any(
-            (employee) => employee.id == selectedEmployeeId,
-          );
-
-          if (selectedEmployeeId == null || !selectedIdExists) {
-            selectedEmployeeId = employeesWithId.first.id;
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Период выплаты',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.periodTitle,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              DropdownButtonFormField<String>(
-                value: selectedEmployeeId,
-                items: employeesWithId.map((employee) {
-                  return DropdownMenuItem<String>(
-                    value: employee.id,
-                    child: Text(employee.name),
-                  );
-                }).toList(),
-                onChanged: isSaving
-                    ? null
-                    : (employeeId) {
-                        setState(() {
-                          selectedEmployeeId = employeeId;
-                        });
-                      },
-                decoration: const InputDecoration(
-                  labelText: 'Сотрудник',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              OutlinedButton.icon(
-                onPressed: isSaving ? null : pickPaymentDate,
-                icon: const Icon(Icons.calendar_month),
-                label: Text('Дата выплаты: ${formatDate(paymentDate)}'),
-              ),
-
-              const SizedBox(height: 14),
-
-              DropdownButtonFormField<String>(
-                value: selectedPaymentType,
-                items: paymentTypeLabels.entries.map((entry) {
-                  return DropdownMenuItem<String>(
-                    value: entry.key,
-                    child: Text(entry.value),
-                  );
-                }).toList(),
-                onChanged: isSaving
-                    ? null
-                    : (value) {
-                        if (value == null) return;
-
-                        setState(() {
-                          selectedPaymentType = value;
-                        });
-                      },
-                decoration: const InputDecoration(
-                  labelText: 'Тип выплаты',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Сумма выплаты',
-                  hintText: 'Например: 10000',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              TextField(
-                controller: commentController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Комментарий',
-                  hintText: 'Например: аванс, зарплата, штраф за прогул',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              if (errorText != null) ...[
-                const SizedBox(height: 14),
-                Text(errorText!, style: const TextStyle(color: Colors.red)),
-              ],
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: isSaving
-                      ? null
-                      : () {
-                          savePayment(employeesWithId);
-                        },
-                  icon: const Icon(Icons.save),
-                  label: Text(isSaving ? 'Сохраняем...' : 'Сохранить выплату'),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: body,
     );
   }
 }

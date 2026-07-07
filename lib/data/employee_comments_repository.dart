@@ -43,14 +43,26 @@ class EmployeeCommentsRepository {
     }).toList();
   }
 
-  static Future<void> addComment({
+  static Future<EmployeeComment> addComment({
     required String employeeId,
     required String text,
   }) async {
-    await _client.from('employee_comments').insert({
-      'employee_id': employeeId,
-      'comment_text': text.trim(),
-      'created_by': 'Илья',
-    });
+    final cleanText = text.trim();
+
+    if (cleanText.isEmpty) {
+      throw Exception('Комментарий пустой');
+    }
+
+    final row = await _client
+        .from('employee_comments')
+        .insert({
+          'employee_id': employeeId,
+          'comment_text': cleanText,
+          'created_by': 'Илья',
+        })
+        .select('id, employee_id, comment_text, created_by, created_at')
+        .single();
+
+    return EmployeeComment.fromSupabase(row);
   }
 }

@@ -25,8 +25,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   List<Employee> employees = [];
   final Set<String> selectedAssigneeIds = {};
+  final Set<String> originalAssigneeIds = {};
   List<TaskPhotoData> photos = [];
   final Map<String, Future<String>> signedUrlFutures = {};
+  int _loadToken = 0;
 
   bool isLoading = false;
   bool isSaving = false;
@@ -98,6 +100,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       return;
     }
 
+    final token = ++_loadToken;
+
     setState(() {
       isLoading = true;
       errorText = null;
@@ -110,10 +114,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         TaskRepository.fetchTaskPhotos(taskId),
       ]);
 
-      if (!mounted) return;
+      if (!mounted || token != _loadToken) return;
 
       final loadedEmployees = result[0] as List<Employee>;
-      final loadedAssigneeIds = result[1] as List<String>;
+      final loadedAssigneeIds = TaskRepository.cleanAssigneeIdSet(
+        result[1] as List<String>,
+      );
       final loadedPhotos = result[2] as List<TaskPhotoData>;
 
       setState(() {
@@ -123,21 +129,21 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         selectedAssigneeIds
           ..clear()
           ..addAll(loadedAssigneeIds);
+        originalAssigneeIds
+          ..clear()
+          ..addAll(loadedAssigneeIds);
         photos = loadedPhotos;
         signedUrlFutures.clear();
+        isLoading = false;
+        errorText = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || token != _loadToken) return;
 
       setState(() {
+        isLoading = false;
         errorText = 'Ошибка загрузки задачи: $e';
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
 
@@ -310,18 +316,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
       if (pickedPhotos.isEmpty) return;
 
-      await TaskRepository.uploadPhotosForTask(
+      final uploadedPhotos = await TaskRepository.uploadPhotosForTask(
         taskId: taskId,
         photos: pickedPhotos,
       );
 
-      final updatedPhotos = await TaskRepository.fetchTaskPhotos(taskId);
-
       if (!mounted) return;
 
       setState(() {
-        photos = updatedPhotos;
-        signedUrlFutures.clear();
+        photos = [...uploadedPhotos, ...photos];
       });
 
       ScaffoldMessenger.of(
@@ -405,16 +408,19 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         notDoneComment: selectedStatus == 'Выполнено' ? '' : notDoneComment,
       );
 
-      await TaskRepository.updateTask(updatedTask);
-
-      await TaskRepository.saveTaskAssignees(
+      await TaskRepository.saveTaskAssigneesIfChanged(
         taskId: taskId,
-        assigneeIds: selectedAssigneeIds.toList(),
+        previousAssigneeIds: originalAssigneeIds,
+        nextAssigneeIds: selectedAssigneeIds,
       );
 
       if (!mounted) return;
 
-      Navigator.pop(context, true);
+      originalAssigneeIds
+        ..clear()
+        ..addAll(selectedAssigneeIds);
+
+      Navigator.pop(context, updatedTask);
     } catch (e) {
       if (!mounted) return;
 

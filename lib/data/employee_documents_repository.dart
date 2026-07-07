@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
+import 'image_compression_service.dart';
+
 class EmployeeDocument {
   final String name;
   final String path;
@@ -50,8 +52,12 @@ class EmployeeDocumentsRepository {
   static String safeStorageFileName({
     required String originalName,
     required int index,
+    String? forcedExtension,
   }) {
-    final extension = extensionFromFileName(originalName);
+    final extension =
+        (forcedExtension == null || forcedExtension.trim().isEmpty)
+        ? extensionFromFileName(originalName)
+        : forcedExtension.trim().toLowerCase();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
 
     if (extension.isEmpty) {
@@ -96,7 +102,9 @@ class EmployeeDocumentsRepository {
     return documents;
   }
 
-  static Future<void> pickAndUploadDocuments(String employeeId) async {
+  static Future<List<EmployeeDocument>> pickAndUploadDocuments(
+    String employeeId,
+  ) async {
     final input = html.FileUploadInputElement()
       ..multiple = true
       ..accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt';
@@ -107,7 +115,9 @@ class EmployeeDocumentsRepository {
 
     final files = input.files;
 
-    if (files == null || files.isEmpty) return;
+    if (files == null || files.isEmpty) return <EmployeeDocument>[];
+
+    final uploadedDocuments = <EmployeeDocument>[];
 
     for (var i = 0; i < files.length; i++) {
       final file = files[i];
@@ -124,10 +134,32 @@ class EmployeeDocumentsRepository {
 
       await reader.onLoad.first;
 
-      final bytes = bytesFromReaderResult(reader.result);
+      final originalBytes = bytesFromReaderResult(reader.result);
+      var uploadBytes = originalBytes;
+      var uploadExtension = extension;
+      String? contentType = file.type.isEmpty ? null : file.type;
+
+      if (ImageCompressionService.isSupportedImageExtension(extension)) {
+        final compressedDocument =
+            await ImageCompressionService.compressHtmlImageFile(
+              file: file,
+              originalBytes: originalBytes,
+              originalName: file.name,
+              maxDimension: 1600,
+              jpegQuality: 0.82,
+            );
+
+        uploadBytes = compressedDocument.bytes;
+        uploadExtension = compressedDocument.extension.isEmpty
+            ? extension
+            : compressedDocument.extension;
+        contentType = compressedDocument.contentType;
+      }
+
       final fileName = safeStorageFileName(
         originalName: file.name,
         index: i + 1,
+        forcedExtension: uploadExtension,
       );
       final path = '$employeeId/$fileName';
 
@@ -135,13 +167,16 @@ class EmployeeDocumentsRepository {
           .from(bucketName)
           .uploadBinary(
             path,
-            bytes,
-            fileOptions: FileOptions(
-              contentType: file.type.isEmpty ? null : file.type,
-              upsert: false,
-            ),
+            uploadBytes,
+            fileOptions: FileOptions(contentType: contentType, upsert: false),
           );
+
+      uploadedDocuments.add(
+        EmployeeDocument(name: fileName, path: path, updatedAt: DateTime.now()),
+      );
     }
+
+    return uploadedDocuments;
   }
 
   static Future<void> openDocument(EmployeeDocument document) async {

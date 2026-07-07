@@ -18,7 +18,7 @@ const Color _accent = Color(0xFF8F9499);
 const Color _success = Color(0xFF22C55E);
 const Color _warning = Color(0xFF8F9499);
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final AppUserProfile profile;
   final String? selectedObjectName;
   final ValueChanged<String?> onObjectChanged;
@@ -30,7 +30,53 @@ class HomeScreen extends StatelessWidget {
     required this.onObjectChanged,
   });
 
-  String _dateText(DateTime date) {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<_HomeDashboardData>? dashboardFuture;
+  Future<List<String>>? objectNamesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    dashboardFuture = loadDashboardData();
+    objectNamesFuture = EmployeeRepository.fetchObjectNames();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedObjectName != widget.selectedObjectName) {
+      dashboardFuture = loadDashboardData();
+    }
+  }
+
+  Future<_HomeDashboardData> loadDashboardData() async {
+    final today = AppState.today;
+
+    final results = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(objectName: widget.selectedObjectName),
+      AttendanceRepository.fetchWorkedEmployeeIds(
+        today,
+        objectName: widget.selectedObjectName,
+      ),
+      TaskRepository.fetchTasksForDate(
+        today,
+        objectName: widget.selectedObjectName,
+      ),
+    ]);
+
+    return _HomeDashboardData(
+      employees: results[0] as List<Employee>,
+      workedEmployeeIds: results[1] as Set<String>,
+      tasks: results[2] as List<TaskItemData>,
+    );
+  }
+
+  String dateText(DateTime date) {
     final months = [
       'января',
       'февраля',
@@ -50,7 +96,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   String get objectTitle {
-    final objectName = selectedObjectName?.trim();
+    final objectName = widget.selectedObjectName?.trim();
 
     if (objectName == null || objectName.isEmpty) {
       return 'Все объекты';
@@ -63,9 +109,9 @@ class HomeScreen extends StatelessWidget {
     BuildContext context,
     List<String> objects,
   ) async {
-    if (!profile.isAdmin) return;
+    if (!widget.profile.isAdmin) return;
 
-    final selectedValue = selectedObjectName ?? '__all__';
+    final selectedValue = widget.selectedObjectName ?? '__all__';
 
     final pickedValue = await showModalBottomSheet<String>(
       context: context,
@@ -205,15 +251,15 @@ class HomeScreen extends StatelessWidget {
     if (pickedValue == null) return;
 
     if (pickedValue == '__all__') {
-      onObjectChanged(null);
+      widget.onObjectChanged(null);
       return;
     }
 
-    onObjectChanged(pickedValue);
+    widget.onObjectChanged(pickedValue);
   }
 
   Widget buildObjectSelector(BuildContext context) {
-    if (!profile.isAdmin) {
+    if (!widget.profile.isAdmin) {
       return _ObjectSelectorShell(
         icon: Icons.lock_outline,
         title: objectTitle,
@@ -222,7 +268,7 @@ class HomeScreen extends StatelessWidget {
     }
 
     return FutureBuilder<List<String>>(
-      future: EmployeeRepository.fetchObjectNames(),
+      future: objectNamesFuture,
       builder: (context, snapshot) {
         final objects = snapshot.data ?? EmployeeRepository.baseObjects;
 
@@ -303,7 +349,7 @@ class HomeScreen extends StatelessWidget {
             const Icon(Icons.calendar_month_outlined, color: _muted, size: 22),
             const SizedBox(width: 12),
             Text(
-              'Сегодня, ${_dateText(today)}',
+              'Сегодня, ${dateText(today)}',
               style: const TextStyle(
                 color: _muted,
                 fontSize: 17,
@@ -405,58 +451,44 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = AppState.today;
 
-    return StreamBuilder<List<Employee>>(
-      stream: EmployeeRepository.watchEmployees(objectName: selectedObjectName),
-      builder: (context, employeesSnapshot) {
-        final employees = employeesSnapshot.data ?? <Employee>[];
+    return FutureBuilder<_HomeDashboardData>(
+      future: dashboardFuture,
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? _HomeDashboardData.empty;
+        final isLoading =
+            snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData;
 
-        return FutureBuilder<Set<String>>(
-          future: AttendanceRepository.fetchWorkedEmployeeIds(
-            today,
-            objectName: selectedObjectName,
-          ),
-          builder: (context, attendanceSnapshot) {
-            final workedEmployeeIds = attendanceSnapshot.data ?? <String>{};
-
-            return StreamBuilder<List<TaskItemData>>(
-              stream: TaskRepository.watchTasksForDate(
-                today,
-                objectName: selectedObjectName,
-              ),
-              builder: (context, tasksSnapshot) {
-                final tasks = tasksSnapshot.data ?? <TaskItemData>[];
-
-                final isLoading =
-                    (employeesSnapshot.connectionState ==
-                            ConnectionState.waiting &&
-                        !employeesSnapshot.hasData) ||
-                    (attendanceSnapshot.connectionState ==
-                            ConnectionState.waiting &&
-                        !attendanceSnapshot.hasData) ||
-                    (tasksSnapshot.connectionState == ConnectionState.waiting &&
-                        !tasksSnapshot.hasData);
-
-                final hasError =
-                    employeesSnapshot.hasError ||
-                    attendanceSnapshot.hasError ||
-                    tasksSnapshot.hasError;
-
-                return buildDashboard(
-                  context: context,
-                  today: today,
-                  employees: employees,
-                  workedEmployeeIds: workedEmployeeIds,
-                  tasks: tasks,
-                  isLoading: isLoading,
-                  hasError: hasError,
-                );
-              },
-            );
-          },
+        return buildDashboard(
+          context: context,
+          today: today,
+          employees: data.employees,
+          workedEmployeeIds: data.workedEmployeeIds,
+          tasks: data.tasks,
+          isLoading: isLoading,
+          hasError: snapshot.hasError,
         );
       },
     );
   }
+}
+
+class _HomeDashboardData {
+  final List<Employee> employees;
+  final Set<String> workedEmployeeIds;
+  final List<TaskItemData> tasks;
+
+  const _HomeDashboardData({
+    required this.employees,
+    required this.workedEmployeeIds,
+    required this.tasks,
+  });
+
+  static const empty = _HomeDashboardData(
+    employees: <Employee>[],
+    workedEmployeeIds: <String>{},
+    tasks: <TaskItemData>[],
+  );
 }
 
 class _ObjectSelectorShell extends StatelessWidget {

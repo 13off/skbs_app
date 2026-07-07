@@ -22,6 +22,8 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
   bool isSaving = false;
   String? errorText;
 
+  int _loadToken = 0;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +33,7 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
 
   @override
   void dispose() {
+    _loadToken++;
     commentController.dispose();
     super.dispose();
   }
@@ -39,37 +42,45 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
     return DateFormat('dd.MM.yyyy HH:mm').format(date);
   }
 
-  Future<void> loadComments() async {
+  Future<void> loadComments({bool showLoader = true}) async {
     final employeeId = widget.employee.id;
 
-    if (employeeId == null) {
+    if (employeeId == null || employeeId.isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
       return;
     }
 
-    setState(() {
-      isLoading = true;
-      errorText = null;
-    });
+    final requestToken = ++_loadToken;
+
+    if (showLoader) {
+      setState(() {
+        isLoading = true;
+        errorText = null;
+      });
+    } else {
+      setState(() {
+        errorText = null;
+      });
+    }
 
     try {
       final result = await EmployeeCommentsRepository.fetchComments(employeeId);
 
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadToken) return;
 
       setState(() {
         comments = result;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadToken) return;
 
       setState(() {
         errorText = 'Ошибка загрузки комментариев: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && requestToken == _loadToken && showLoader) {
         setState(() {
           isLoading = false;
         });
@@ -81,7 +92,7 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
     final employeeId = widget.employee.id;
     final text = commentController.text.trim();
 
-    if (employeeId == null) {
+    if (employeeId == null || employeeId.isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
@@ -96,14 +107,18 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
     });
 
     try {
-      await EmployeeCommentsRepository.addComment(
+      final createdComment = await EmployeeCommentsRepository.addComment(
         employeeId: employeeId,
         text: text,
       );
 
+      if (!mounted) return;
+
       commentController.clear();
 
-      await loadComments();
+      setState(() {
+        comments = [createdComment, ...comments];
+      });
     } catch (e) {
       if (!mounted) return;
 
@@ -194,29 +209,32 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Комментарии')),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          Text(
-            widget.employee.name,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text('${widget.employee.position} • ${widget.employee.objectName}'),
+      body: RefreshIndicator(
+        onRefresh: () => loadComments(showLoader: false),
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Text(
+              widget.employee.name,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text('${widget.employee.position} • ${widget.employee.objectName}'),
 
-          const SizedBox(height: 18),
+            const SizedBox(height: 18),
 
-          buildAddCard(),
+            buildAddCard(),
 
-          if (errorText != null) ...[
-            const SizedBox(height: 12),
-            Text(errorText!, style: const TextStyle(color: Colors.red)),
+            if (errorText != null) ...[
+              const SizedBox(height: 12),
+              Text(errorText!, style: const TextStyle(color: Colors.red)),
+            ],
+
+            const SizedBox(height: 18),
+
+            buildCommentsList(),
           ],
-
-          const SizedBox(height: 18),
-
-          buildCommentsList(),
-        ],
+        ),
       ),
     );
   }

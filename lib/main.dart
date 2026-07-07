@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'data/app_state.dart';
 import 'screens/auth_gate.dart';
 
 const String supabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
@@ -15,8 +14,6 @@ Future<void> main() async {
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
-
-  await AppState.load();
 
   runApp(const SkbsApp());
 }

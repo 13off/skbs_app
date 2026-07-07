@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../models/task_item_data.dart';
+import 'image_compression_service.dart';
 
 class TaskAssigneeData {
   final String employeeId;
@@ -75,6 +76,9 @@ class TaskPhotoFile {
 class TaskRepository {
   static final _client = Supabase.instance.client;
   static const taskPhotosBucket = 'task-photos';
+  static const Duration _tasksCacheTtl = Duration(seconds: 15);
+
+  static final Map<String, _TaskListCacheEntry> _tasksCache = {};
 
   static String _dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -90,6 +94,27 @@ class TaskRepository {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  static void clearTaskListCache() {
+    _tasksCache.clear();
+  }
+
+  static String _tasksCacheKey({
+    required DateTime date,
+    required String? objectName,
+  }) {
+    final objectPart = cleanObjectName(objectName) ?? '__all__';
+
+    return '${_dateKey(date)}::$objectPart';
+  }
+
+  static bool _isTasksCacheFresh(_TaskListCacheEntry entry) {
+    return DateTime.now().difference(entry.createdAt) < _tasksCacheTtl;
+  }
+
+  static List<TaskItemData> _copyTasks(List<TaskItemData> tasks) {
+    return List<TaskItemData>.from(tasks);
   }
 
   static String extensionFromFileName(String name) {
@@ -159,12 +184,24 @@ class TaskRepository {
 
       await reader.onLoad.first;
 
+      final originalBytes = bytesFromReaderResult(reader.result);
+      final compressedPhoto =
+          await ImageCompressionService.compressHtmlImageFile(
+            file: file,
+            originalBytes: originalBytes,
+            originalName: file.name,
+            maxDimension: 1600,
+            jpegQuality: 0.82,
+          );
+
       photos.add(
         TaskPhotoFile(
           originalName: file.name,
-          contentType: file.type.isEmpty ? 'image/$extension' : file.type,
-          extension: extension,
-          bytes: bytesFromReaderResult(reader.result),
+          contentType: compressedPhoto.contentType,
+          extension: compressedPhoto.extension.isEmpty
+              ? extension
+              : compressedPhoto.extension,
+          bytes: compressedPhoto.bytes,
         ),
       );
     }
@@ -175,8 +212,15 @@ class TaskRepository {
   static Future<List<TaskItemData>> fetchTasksForDate(
     DateTime date, {
     String? objectName,
+    bool forceRefresh = false,
   }) async {
     final cleanObject = cleanObjectName(objectName);
+    final cacheKey = _tasksCacheKey(date: date, objectName: cleanObject);
+    final cached = _tasksCache[cacheKey];
+
+    if (!forceRefresh && cached != null && _isTasksCacheFresh(cached)) {
+      return _copyTasks(cached.tasks);
+    }
 
     final rows = cleanObject == null
         ? await _client
@@ -195,9 +239,16 @@ class TaskRepository {
               .eq('object_name', cleanObject)
               .order('created_at', ascending: true);
 
-    return rows
+    final tasks = rows
         .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
         .toList();
+
+    _tasksCache[cacheKey] = _TaskListCacheEntry(
+      tasks: _copyTasks(tasks),
+      createdAt: DateTime.now(),
+    );
+
+    return _copyTasks(tasks);
   }
 
   static Stream<List<TaskItemData>> watchTasksForDate(
@@ -246,6 +297,8 @@ class TaskRepository {
         )
         .single();
 
+    clearTaskListCache();
+
     return TaskItemData.fromSupabase(row);
   }
 
@@ -286,12 +339,16 @@ class TaskRepository {
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', task.id!);
+
+    clearTaskListCache();
   }
 
   static Future<void> deleteTask(TaskItemData task) async {
     if (task.id == null) return;
 
     await _client.from('tasks').delete().eq('id', task.id!);
+
+    clearTaskListCache();
   }
 
   static Future<List<TaskAssigneeData>> fetchTaskAssignees(
@@ -320,13 +377,32 @@ class TaskRepository {
         .toList();
   }
 
+  static Set<String> cleanAssigneeIdSet(Iterable<String> assigneeIds) {
+    return assigneeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+  }
+
+  static bool sameAssigneeIds(
+    Iterable<String> firstIds,
+    Iterable<String> secondIds,
+  ) {
+    final first = cleanAssigneeIdSet(firstIds);
+    final second = cleanAssigneeIdSet(secondIds);
+
+    if (first.length != second.length) return false;
+
+    return first.every(second.contains);
+  }
+
   static Future<void> saveTaskAssignees({
     required String taskId,
     required List<String> assigneeIds,
   }) async {
     await _client.from('task_assignees').delete().eq('task_id', taskId);
 
-    final cleanIds = assigneeIds.toSet().where((id) => id.trim().isNotEmpty);
+    final cleanIds = cleanAssigneeIdSet(assigneeIds);
 
     if (cleanIds.isEmpty) return;
 
@@ -335,6 +411,19 @@ class TaskRepository {
     }).toList();
 
     await _client.from('task_assignees').insert(rows);
+  }
+
+  static Future<void> saveTaskAssigneesIfChanged({
+    required String taskId,
+    required Iterable<String> previousAssigneeIds,
+    required Iterable<String> nextAssigneeIds,
+  }) async {
+    if (sameAssigneeIds(previousAssigneeIds, nextAssigneeIds)) return;
+
+    await saveTaskAssignees(
+      taskId: taskId,
+      assigneeIds: cleanAssigneeIdSet(nextAssigneeIds).toList(),
+    );
   }
 
   static Future<List<TaskPhotoData>> fetchTaskPhotos(String taskId) async {
@@ -349,10 +438,14 @@ class TaskRepository {
     }).toList();
   }
 
-  static Future<void> uploadPhotosForTask({
+  static Future<List<TaskPhotoData>> uploadPhotosForTask({
     required String taskId,
     required List<TaskPhotoFile> photos,
   }) async {
+    if (photos.isEmpty) return <TaskPhotoData>[];
+
+    final rowsToInsert = <Map<String, String>>[];
+
     for (var i = 0; i < photos.length; i++) {
       final photo = photos[i];
       final path = safePhotoStoragePath(
@@ -372,12 +465,21 @@ class TaskRepository {
             ),
           );
 
-      await _client.from('task_photos').insert({
+      rowsToInsert.add({
         'task_id': taskId,
         'storage_path': path,
         'original_name': photo.originalName,
       });
     }
+
+    final rows = await _client
+        .from('task_photos')
+        .insert(rowsToInsert)
+        .select('id, task_id, storage_path, original_name, created_at');
+
+    return rows.map<TaskPhotoData>((row) {
+      return TaskPhotoData.fromSupabase(row);
+    }).toList();
   }
 
   static Future<String> createTaskPhotoSignedUrl(TaskPhotoData photo) async {
@@ -391,4 +493,11 @@ class TaskRepository {
 
     html.window.open(url, '_blank');
   }
+}
+
+class _TaskListCacheEntry {
+  final List<TaskItemData> tasks;
+  final DateTime createdAt;
+
+  const _TaskListCacheEntry({required this.tasks, required this.createdAt});
 }

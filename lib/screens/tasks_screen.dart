@@ -27,6 +27,26 @@ class TasksScreen extends StatefulWidget {
 
 class _TasksScreenState extends State<TasksScreen> {
   DateTime selectedDate = AppState.today;
+  List<TaskItemData> tasks = <TaskItemData>[];
+  bool isLoading = true;
+  String? loadError;
+  int _loadToken = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadTasks();
+  }
+
+  @override
+  void didUpdateWidget(covariant TasksScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (cleanObjectName(oldWidget.selectedObjectName) !=
+        cleanObjectName(widget.selectedObjectName)) {
+      loadTasks();
+    }
+  }
 
   String shortDate(DateTime date) {
     return DateFormat('dd.MM.yyyy').format(date);
@@ -46,20 +66,81 @@ class _TasksScreenState extends State<TasksScreen> {
     return names[date.weekday - 1];
   }
 
-  String get objectTitle {
-    final objectName = widget.selectedObjectName?.trim();
+  String? cleanObjectName(String? value) {
+    final clean = value?.trim();
 
-    if (objectName == null || objectName.isEmpty) {
+    if (clean == null || clean.isEmpty) return null;
+
+    return clean;
+  }
+
+  String get objectTitle {
+    final objectName = cleanObjectName(widget.selectedObjectName);
+
+    if (objectName == null) {
       return 'Все объекты';
     }
 
     return objectName;
   }
 
+  bool isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  bool taskFitsCurrentFilter(TaskItemData task) {
+    if (!isSameDate(task.date, selectedDate)) return false;
+
+    final selectedObject = cleanObjectName(widget.selectedObjectName);
+    if (selectedObject == null) return true;
+
+    return cleanObjectName(task.objectName) == selectedObject;
+  }
+
+  Future<void> loadTasks({bool silent = false}) async {
+    final token = ++_loadToken;
+
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+        loadError = null;
+        tasks = <TaskItemData>[];
+      });
+    }
+
+    try {
+      final rows = await TaskRepository.fetchTasksForDate(
+        selectedDate,
+        objectName: widget.selectedObjectName,
+      );
+
+      if (!mounted || token != _loadToken) return;
+
+      setState(() {
+        tasks = rows;
+        isLoading = false;
+        loadError = null;
+      });
+    } catch (error) {
+      if (!mounted || token != _loadToken) return;
+
+      setState(() {
+        isLoading = false;
+        loadError = error.toString();
+      });
+    }
+  }
+
   void changeDate(DateTime newDate) {
+    final cleanDate = DateTime(newDate.year, newDate.month, newDate.day);
+
+    if (isSameDate(cleanDate, selectedDate)) return;
+
     setState(() {
-      selectedDate = DateTime(newDate.year, newDate.month, newDate.day);
+      selectedDate = cleanDate;
     });
+
+    loadTasks();
   }
 
   Future<void> pickDate() async {
@@ -79,9 +160,9 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Future<void> openAddTaskScreen() async {
-    final objectName = widget.selectedObjectName?.trim();
+    final objectName = cleanObjectName(widget.selectedObjectName);
 
-    if (objectName == null || objectName.isEmpty) {
+    if (objectName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -102,14 +183,37 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (draft == null) return;
 
-    await TaskRepository.addTaskWithDetails(
+    final createdTask = await TaskRepository.addTaskWithDetails(
       draft.task,
       objectName: objectName,
       assigneeIds: draft.assigneeIds,
       photos: draft.photos,
     );
 
-    changeDate(draft.task.date);
+    if (!mounted) return;
+
+    final draftDate = DateTime(
+      draft.task.date.year,
+      draft.task.date.month,
+      draft.task.date.day,
+    );
+
+    if (!isSameDate(draftDate, selectedDate)) {
+      setState(() {
+        selectedDate = draftDate;
+      });
+      await loadTasks();
+      return;
+    }
+
+    if (taskFitsCurrentFilter(createdTask)) {
+      setState(() {
+        tasks = [...tasks, createdTask];
+      });
+      return;
+    }
+
+    await loadTasks(silent: true);
   }
 
   Future<void> openTaskDetails(TaskItemData task) async {
@@ -122,11 +226,41 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (result == 'delete') {
       await TaskRepository.deleteTask(task);
+
+      if (!mounted) return;
+
+      setState(() {
+        tasks = tasks.where((item) => item.id != task.id).toList();
+      });
       return;
     }
 
     if (result is TaskItemData) {
       await TaskRepository.updateTask(result);
+
+      if (!mounted) return;
+
+      setState(() {
+        final nextTasks = <TaskItemData>[];
+        var wasUpdated = false;
+
+        for (final item in tasks) {
+          if (item.id == result.id) {
+            wasUpdated = true;
+            if (taskFitsCurrentFilter(result)) {
+              nextTasks.add(result);
+            }
+          } else {
+            nextTasks.add(item);
+          }
+        }
+
+        if (!wasUpdated && taskFitsCurrentFilter(result)) {
+          nextTasks.add(result);
+        }
+
+        tasks = nextTasks;
+      });
     }
   }
 
@@ -272,75 +406,64 @@ class _TasksScreenState extends State<TasksScreen> {
     return AppPage(
       title: 'Задачи',
       subtitle: 'Работы по осям за выбранную дату',
-      child: StreamBuilder<List<TaskItemData>>(
-        stream: TaskRepository.watchTasksForDate(
-          selectedDate,
-          objectName: widget.selectedObjectName,
-        ),
-        builder: (context, snapshot) {
-          final isLoading = snapshot.connectionState == ConnectionState.waiting;
-          final tasks = snapshot.data ?? [];
+      child: Column(
+        children: [
+          buildDatePanel(),
 
-          return Column(
-            children: [
-              buildDatePanel(),
+          const SizedBox(height: 14),
 
-              const SizedBox(height: 14),
+          buildTasksCounter(tasks),
 
-              buildTasksCounter(tasks),
+          const SizedBox(height: 14),
 
-              const SizedBox(height: 14),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(),
+            ),
 
-              if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: CircularProgressIndicator(),
-                ),
-
-              if (snapshot.hasError)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    'Ошибка загрузки задач: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-
-              if (!isLoading && !snapshot.hasError && tasks.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    'На эту дату задач нет',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-
-              if (!snapshot.hasError)
-                ...tasks.map((task) {
-                  return TaskTile(
-                    task: task,
-                    onTap: () {
-                      openTaskDetails(task);
-                    },
-                  );
-                }),
-
-              const SizedBox(height: 14),
-
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: openAddTaskScreen,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Добавить задачу'),
-                ),
+          if (loadError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'Ошибка загрузки задач: $loadError',
+                style: const TextStyle(color: Colors.red),
               ),
+            ),
 
-              buildActButton(tasks),
-            ],
-          );
-        },
+          if (!isLoading && loadError == null && tasks.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'На эту дату задач нет',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+
+          if (loadError == null)
+            ...tasks.map((task) {
+              return TaskTile(
+                task: task,
+                onTap: () {
+                  openTaskDetails(task);
+                },
+              );
+            }),
+
+          const SizedBox(height: 14),
+
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: FilledButton.icon(
+              onPressed: openAddTaskScreen,
+              icon: const Icon(Icons.add),
+              label: const Text('Добавить задачу'),
+            ),
+          ),
+
+          buildActButton(tasks),
+        ],
       ),
     );
   }

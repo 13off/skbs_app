@@ -15,23 +15,29 @@ class ActPreviewScreen extends StatefulWidget {
 }
 
 class _ActPreviewScreenState extends State<ActPreviewScreen> {
+  late final List<TaskItemData> completedTasks;
+  late final String formattedDate;
+
   bool isDownloading = false;
   String? errorText;
 
-  List<TaskItemData> get completedTasks {
-    return List<TaskItemData>.from(
-      widget.tasks.where((task) => task.status == 'Выполнено'),
-    );
-  }
+  @override
+  void initState() {
+    super.initState();
 
-  String formatDate(DateTime date) {
-    return DateFormat('dd.MM.yyyy').format(date);
+    completedTasks = widget.tasks
+        .where((task) {
+          return task.status == 'Выполнено';
+        })
+        .toList(growable: false);
+
+    formattedDate = DateFormat('dd.MM.yyyy').format(widget.date);
   }
 
   Future<void> downloadAct() async {
-    final tasksForAct = List<TaskItemData>.from(completedTasks);
+    if (isDownloading) return;
 
-    if (tasksForAct.isEmpty) {
+    if (completedTasks.isEmpty) {
       setState(() {
         errorText = 'Нет выполненных задач для акта';
       });
@@ -44,7 +50,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
     });
 
     try {
-      await ActGenerator.downloadAct(tasks: tasksForAct, date: widget.date);
+      await ActGenerator.downloadAct(tasks: completedTasks, date: widget.date);
 
       if (!mounted) return;
 
@@ -69,7 +75,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
   Widget buildTaskCard(TaskItemData task) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFFFEEE7),
+      color: const Color(0xFFF7F8FA),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -90,8 +96,6 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = completedTasks;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Черновик акта')),
       body: ListView(
@@ -103,7 +107,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            formatDate(widget.date),
+            formattedDate,
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
@@ -118,13 +122,13 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
 
           const SizedBox(height: 22),
 
-          if (tasks.isEmpty)
+          if (completedTasks.isEmpty)
             const Text(
               'Нет выполненных задач для акта',
               style: TextStyle(fontSize: 16),
             )
           else
-            ...tasks.map(buildTaskCard),
+            ...completedTasks.map(buildTaskCard),
 
           if (errorText != null) ...[
             const SizedBox(height: 16),
@@ -142,7 +146,9 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
           SizedBox(
             height: 54,
             child: FilledButton.icon(
-              onPressed: isDownloading || tasks.isEmpty ? null : downloadAct,
+              onPressed: isDownloading || completedTasks.isEmpty
+                  ? null
+                  : downloadAct,
               icon: isDownloading
                   ? const SizedBox(
                       width: 18,

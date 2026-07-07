@@ -25,6 +25,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   bool isExporting = false;
   bool includeFiredEmployees = false;
   String? errorText;
+  int _loadRequestId = 0;
 
   @override
   void initState() {
@@ -90,40 +91,22 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         .replaceAll('\\', '_');
   }
 
-  List<MonthlyTimesheetRow> get filteredRows {
+  List<MonthlyTimesheetRow> buildFilteredRows() {
     final query = searchController.text.trim().toLowerCase();
 
     if (query.isEmpty) return rows;
 
-    return rows.where((row) {
-      final name = row.employee.name.toLowerCase();
-      final position = row.employee.position.toLowerCase();
-      final objectName = row.employee.objectName.toLowerCase();
+    return rows
+        .where((row) {
+          final name = row.employee.name.toLowerCase();
+          final position = row.employee.position.toLowerCase();
+          final objectName = row.employee.objectName.toLowerCase();
 
-      return name.contains(query) ||
-          position.contains(query) ||
-          objectName.contains(query);
-    }).toList();
-  }
-
-  double get totalAccrued {
-    return filteredRows.fold<double>(0.0, (sum, row) => sum + row.accrued);
-  }
-
-  double get totalPaid {
-    return filteredRows.fold<double>(0.0, (sum, row) => sum + row.paid);
-  }
-
-  double get totalBalance {
-    return filteredRows.fold<double>(0.0, (sum, row) => sum + row.balance);
-  }
-
-  int get activeRowsCount {
-    return filteredRows.where((row) => row.employee.isActive).length;
-  }
-
-  int get firedRowsCount {
-    return filteredRows.where((row) => !row.employee.isActive).length;
+          return name.contains(query) ||
+              position.contains(query) ||
+              objectName.contains(query);
+        })
+        .toList(growable: false);
   }
 
   String formatShift(double value) {
@@ -177,6 +160,11 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   }
 
   Future<void> loadReport() async {
+    final requestId = ++_loadRequestId;
+    final month = selectedMonth;
+    final selectedObjectName = widget.selectedObjectName;
+    final includeFired = includeFiredEmployees;
+
     setState(() {
       isLoading = true;
       errorText = null;
@@ -184,29 +172,25 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
     try {
       final result = await AttendanceRepository.fetchMonthlyTimesheet(
-        year: selectedMonth.year,
-        month: selectedMonth.month,
-        objectName: widget.selectedObjectName,
-        includeFired: includeFiredEmployees,
+        year: month.year,
+        month: month.month,
+        objectName: selectedObjectName,
+        includeFired: includeFired,
       );
 
-      if (!mounted) return;
+      if (!mounted || requestId != _loadRequestId) return;
 
       setState(() {
         rows = result;
+        isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _loadRequestId) return;
 
       setState(() {
         errorText = 'Ошибка загрузки табеля: $e';
+        isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
 
@@ -395,8 +379,12 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
     if (pickedMonth == null) return;
 
+    final cleanPickedMonth = cleanMonth(pickedMonth);
+
+    if (isSameMonth(cleanPickedMonth, selectedMonth)) return;
+
     setState(() {
-      selectedMonth = pickedMonth;
+      selectedMonth = cleanPickedMonth;
     });
 
     await loadReport();
@@ -654,20 +642,28 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     final rowsByMonth = <List<MonthlyTimesheetRow>>[];
 
     for (final month in months) {
-      final monthRows = await AttendanceRepository.fetchMonthlyTimesheet(
-        year: month.year,
-        month: month.month,
-        objectName: widget.selectedObjectName,
-        includeFired: includeFiredEmployees,
-      );
+      List<MonthlyTimesheetRow> monthRows;
+
+      if (isSameMonth(month, selectedMonth) && errorText == null) {
+        monthRows = rows;
+      } else {
+        monthRows = await AttendanceRepository.fetchMonthlyTimesheet(
+          year: month.year,
+          month: month.month,
+          objectName: widget.selectedObjectName,
+          includeFired: includeFiredEmployees,
+        );
+      }
 
       if (employeeRow == null) {
         rowsByMonth.add(monthRows);
       } else {
         rowsByMonth.add(
-          monthRows.where((row) {
-            return isSameEmployee(row, employeeRow);
-          }).toList(),
+          monthRows
+              .where((row) {
+                return isSameEmployee(row, employeeRow);
+              })
+              .toList(growable: false),
         );
       }
     }
@@ -680,6 +676,8 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     required String fileNamePrefix,
     MonthlyTimesheetRow? employeeRow,
   }) async {
+    if (isExporting) return;
+
     setState(() {
       isExporting = true;
     });
@@ -768,6 +766,8 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   }
 
   Future<void> toggleIncludeFired(bool value) async {
+    if (includeFiredEmployees == value) return;
+
     setState(() {
       includeFiredEmployees = value;
     });
@@ -814,7 +814,25 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     );
   }
 
-  Widget buildSummaryCard() {
+  Widget buildSummaryCard(List<MonthlyTimesheetRow> visibleRows) {
+    var totalAccrued = 0.0;
+    var totalPaid = 0.0;
+    var totalBalance = 0.0;
+    var activeRowsCount = 0;
+    var firedRowsCount = 0;
+
+    for (final row in visibleRows) {
+      totalAccrued += row.accrued;
+      totalPaid += row.paid;
+      totalBalance += row.balance;
+
+      if (row.employee.isActive) {
+        activeRowsCount++;
+      } else {
+        firedRowsCount++;
+      }
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -832,7 +850,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
           const SizedBox(height: 10),
           Text('Месяц: $monthTitle'),
           Text('Объект: $objectTitle'),
-          Text('Сотрудников: ${filteredRows.length}'),
+          Text('Сотрудников: ${visibleRows.length}'),
           Text('Активных: $activeRowsCount'),
           if (includeFiredEmployees) Text('Уволенных: $firedRowsCount'),
           Text('Начислено: ${formatMoney(totalAccrued)}'),
@@ -955,7 +973,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     );
   }
 
-  Widget buildTable() {
+  Widget buildTable(List<MonthlyTimesheetRow> visibleRows) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -965,8 +983,6 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         child: Text(errorText!, style: const TextStyle(color: Colors.red)),
       );
     }
-
-    final visibleRows = filteredRows;
 
     if (visibleRows.isEmpty) {
       return const Center(child: Text('Нет сотрудников по этому поиску'));
@@ -989,6 +1005,8 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final visibleRows = buildFilteredRows();
+
     final pageContent = <Widget>[
       Row(
         children: [
@@ -1072,9 +1090,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         ),
       ),
       const SizedBox(height: 14),
-      buildSummaryCard(),
+      buildSummaryCard(visibleRows),
       const SizedBox(height: 14),
-      SizedBox(height: 460, child: buildTable()),
+      SizedBox(height: 460, child: buildTable(visibleRows)),
     ];
 
     return SafeArea(

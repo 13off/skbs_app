@@ -25,7 +25,10 @@ class TimesheetScreen extends StatefulWidget {
 class _TimesheetScreenState extends State<TimesheetScreen> {
   DateTime selectedDate = AppState.today;
 
+  Future<List<Employee>>? employeesFuture;
+
   Map<String, double> shiftValuesByEmployeeId = {};
+  Map<String, double> originalShiftValuesByEmployeeId = {};
 
   bool isAttendanceLoading = false;
   bool isSaving = false;
@@ -45,13 +48,30 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   @override
   void initState() {
     super.initState();
+    reloadEmployees();
     loadAttendance();
+  }
+
+  @override
+  void didUpdateWidget(covariant TimesheetScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedObjectName != widget.selectedObjectName) {
+      reloadEmployees();
+      loadAttendance();
+    }
   }
 
   @override
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  void reloadEmployees() {
+    employeesFuture = EmployeeRepository.fetchEmployees(
+      objectName: widget.selectedObjectName,
+    );
   }
 
   String formatShift(double value) {
@@ -92,6 +112,10 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     final employeeId = employee.id;
 
     if (employeeId == null) return;
+
+    final currentValue = shiftValuesByEmployeeId[employeeId] ?? 0.0;
+
+    if (currentValue == value) return;
 
     setState(() {
       shiftValuesByEmployeeId[employeeId] = value;
@@ -137,7 +161,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
       if (!mounted) return;
 
       setState(() {
-        shiftValuesByEmployeeId = values;
+        shiftValuesByEmployeeId = Map<String, double>.from(values);
+        originalShiftValuesByEmployeeId = Map<String, double>.from(values);
         hasUnsavedChanges = false;
       });
     } catch (e) {
@@ -159,6 +184,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     setState(() {
       selectedDate = DateTime(newDate.year, newDate.month, newDate.day);
       shiftValuesByEmployeeId = {};
+      originalShiftValuesByEmployeeId = {};
       hasUnsavedChanges = false;
     });
 
@@ -185,15 +211,27 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     required List<Employee> employees,
     required double value,
   }) {
+    var changed = false;
+
+    final nextValues = Map<String, double>.from(shiftValuesByEmployeeId);
+
+    for (final employee in employees) {
+      final employeeId = employee.id;
+
+      if (employeeId == null) continue;
+
+      final currentValue = nextValues[employeeId] ?? 0.0;
+
+      if (currentValue == value) continue;
+
+      nextValues[employeeId] = value;
+      changed = true;
+    }
+
+    if (!changed) return;
+
     setState(() {
-      for (final employee in employees) {
-        final employeeId = employee.id;
-
-        if (employeeId == null) continue;
-
-        shiftValuesByEmployeeId[employeeId] = value;
-      }
-
+      shiftValuesByEmployeeId = nextValues;
       hasUnsavedChanges = true;
     });
   }
@@ -305,11 +343,15 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
         date: selectedDate,
         employees: allEmployees,
         shiftValuesByEmployeeId: shiftValuesByEmployeeId,
+        originalShiftValuesByEmployeeId: originalShiftValuesByEmployeeId,
       );
 
       if (!mounted) return;
 
       setState(() {
+        originalShiftValuesByEmployeeId = Map<String, double>.from(
+          shiftValuesByEmployeeId,
+        );
         hasUnsavedChanges = false;
       });
 
@@ -599,10 +641,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
             ),
         ],
       ),
-      body: StreamBuilder<List<Employee>>(
-        stream: EmployeeRepository.watchEmployees(
-          objectName: widget.selectedObjectName,
-        ),
+      body: FutureBuilder<List<Employee>>(
+        future: employeesFuture,
         builder: (context, employeesSnapshot) {
           final allEmployees = employeesSnapshot.data ?? [];
           final visibleEmployees = filterEmployees(allEmployees);

@@ -1,7 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'attendance_repository.dart';
+
 class PaymentRepository {
   static final _client = Supabase.instance.client;
+
+  static const Duration _employeePaymentsCacheTtl = Duration(seconds: 30);
+
+  static final Map<String, _EmployeePaymentsCacheEntry> _employeePaymentsCache =
+      {};
 
   static String dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -9,6 +16,27 @@ class PaymentRepository {
     final day = cleanDate.day.toString().padLeft(2, '0');
 
     return '${cleanDate.year}-$month-$day';
+  }
+
+  static void clearCache() {
+    _employeePaymentsCache.clear();
+  }
+
+  static void clearEmployeePaymentsCache(String employeeId) {
+    final cleanEmployeeId = employeeId.trim();
+
+    if (cleanEmployeeId.isEmpty) return;
+
+    _employeePaymentsCache.remove(cleanEmployeeId);
+  }
+
+  static bool _isEmployeePaymentsCacheFresh(_EmployeePaymentsCacheEntry entry) {
+    return DateTime.now().difference(entry.createdAt) <
+        _employeePaymentsCacheTtl;
+  }
+
+  static List<PaymentRecord> _copyPayments(List<PaymentRecord> payments) {
+    return List<PaymentRecord>.from(payments);
   }
 
   static double _toDouble(dynamic value) {
@@ -53,27 +81,63 @@ class PaymentRepository {
       'comment': comment,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     });
+
+    clearEmployeePaymentsCache(employeeId);
+    AttendanceRepository.clearCache();
   }
 
   static Future<List<PaymentRecord>> fetchPaymentsForEmployee(
-    String employeeId,
-  ) async {
+    String employeeId, {
+    bool forceRefresh = false,
+  }) async {
+    final cleanEmployeeId = employeeId.trim();
+
+    if (cleanEmployeeId.isEmpty) return <PaymentRecord>[];
+
+    final cached = _employeePaymentsCache[cleanEmployeeId];
+
+    if (!forceRefresh &&
+        cached != null &&
+        _isEmployeePaymentsCacheFresh(cached)) {
+      return _copyPayments(cached.payments);
+    }
+
     final rows = await _client
         .from('payments')
         .select(
           'id, employee_id, period_year, period_month, payment_date, amount, payment_type, comment, updated_at',
         )
-        .eq('employee_id', employeeId)
+        .eq('employee_id', cleanEmployeeId)
         .order('payment_date', ascending: false)
         .order('updated_at', ascending: false);
 
-    return rows.map<PaymentRecord>((row) {
+    final payments = rows.map<PaymentRecord>((row) {
       return PaymentRecord.fromMap(row);
     }).toList();
+
+    _employeePaymentsCache[cleanEmployeeId] = _EmployeePaymentsCacheEntry(
+      payments: _copyPayments(payments),
+      createdAt: DateTime.now(),
+    );
+
+    return _copyPayments(payments);
   }
 
-  static Future<void> deletePayment(String paymentId) async {
+  static Future<void> deletePayment(
+    String paymentId, {
+    String? employeeId,
+  }) async {
     await _client.from('payments').delete().eq('id', paymentId);
+
+    final cleanEmployeeId = employeeId?.trim();
+
+    if (cleanEmployeeId != null && cleanEmployeeId.isNotEmpty) {
+      clearEmployeePaymentsCache(cleanEmployeeId);
+    } else {
+      clearCache();
+    }
+
+    AttendanceRepository.clearCache();
   }
 }
 
@@ -113,4 +177,14 @@ class PaymentRecord {
       updatedAt: PaymentRepository._toDate(map['updated_at']),
     );
   }
+}
+
+class _EmployeePaymentsCacheEntry {
+  final List<PaymentRecord> payments;
+  final DateTime createdAt;
+
+  const _EmployeePaymentsCacheEntry({
+    required this.payments,
+    required this.createdAt,
+  });
 }

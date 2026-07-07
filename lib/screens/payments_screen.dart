@@ -21,6 +21,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   bool isLoading = false;
   String? errorText;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -99,6 +100,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Future<void> loadPaymentsData() async {
+    final generation = ++_loadGeneration;
+
     setState(() {
       isLoading = true;
       errorText = null;
@@ -110,19 +113,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         month: selectedMonth.month,
       );
 
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
 
       setState(() {
         rows = result;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
 
       setState(() {
         errorText = 'Ошибка загрузки выплат: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && generation == _loadGeneration) {
         setState(() {
           isLoading = false;
         });

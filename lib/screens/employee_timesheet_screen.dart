@@ -23,6 +23,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
   bool isLoading = false;
   bool isExporting = false;
   String? errorText;
+  int _loadToken = 0;
 
   @override
   void initState() {
@@ -88,56 +89,35 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     return '$formatted ₽';
   }
 
-  bool isSameEmployee(MonthlyTimesheetRow row) {
-    final employeeId = widget.employee.id;
-
-    if (employeeId != null && row.employee.id != null) {
-      return employeeId == row.employee.id;
-    }
-
-    return row.employee.name == widget.employee.name;
-  }
-
   Future<void> loadReport() async {
+    final currentToken = ++_loadToken;
+
     setState(() {
       isLoading = true;
       errorText = null;
     });
 
     try {
-      final rows = await AttendanceRepository.fetchMonthlyTimesheet(
-        year: selectedMonth.year,
-        month: selectedMonth.month,
-        objectName: widget.employee.objectName,
-        includeFired: true,
-      );
+      final loadedRow =
+          await AttendanceRepository.fetchMonthlyTimesheetForEmployee(
+            employee: widget.employee,
+            year: selectedMonth.year,
+            month: selectedMonth.month,
+          );
 
-      MonthlyTimesheetRow? foundRow;
-
-      for (final item in rows) {
-        if (isSameEmployee(item)) {
-          foundRow = item;
-          break;
-        }
-      }
-
-      if (!mounted) return;
+      if (!mounted || currentToken != _loadToken) return;
 
       setState(() {
-        row = foundRow;
+        row = loadedRow;
+        isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || currentToken != _loadToken) return;
 
       setState(() {
         errorText = 'Ошибка загрузки табеля: $e';
+        isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
 
@@ -281,6 +261,11 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     );
 
     if (pickedMonth == null) return;
+
+    if (pickedMonth.year == selectedMonth.year &&
+        pickedMonth.month == selectedMonth.month) {
+      return;
+    }
 
     setState(() {
       selectedMonth = pickedMonth;

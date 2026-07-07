@@ -21,6 +21,9 @@ class HrDocumentTemplate {
 }
 
 class HrDocumentGenerator {
+  static final Map<String, Uint8List> _templateBytesCache =
+      <String, Uint8List>{};
+
   static const employmentContract = HrDocumentTemplate(
     title: 'Трудовой договор',
     assetPath: 'assets/templates/hr/employment_contract_template.docx',
@@ -82,10 +85,7 @@ class HrDocumentGenerator {
     required Employee employee,
     required EmployeePrivateData privateData,
   }) async {
-    final templateData = await rootBundle.load(template.assetPath);
-    final templateBytes = Uint8List.fromList(
-      List<int>.from(templateData.buffer.asUint8List(), growable: true),
-    );
+    final templateBytes = await _loadTemplateBytes(template.assetPath);
 
     final inputArchive = ZipDecoder().decodeBytes(
       List<int>.from(templateBytes, growable: true),
@@ -123,6 +123,25 @@ class HrDocumentGenerator {
     }
 
     return Uint8List.fromList(List<int>.from(zipped, growable: true));
+  }
+
+  static Future<Uint8List> _loadTemplateBytes(String assetPath) async {
+    final cachedBytes = _templateBytesCache[assetPath];
+
+    if (cachedBytes != null) {
+      return Uint8List.fromList(cachedBytes);
+    }
+
+    final data = await rootBundle.load(assetPath);
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
+    final safeBytes = Uint8List.fromList(bytes);
+
+    _templateBytesCache[assetPath] = safeBytes;
+
+    return Uint8List.fromList(safeBytes);
   }
 
   static bool _shouldProcessXml(String fileName) {

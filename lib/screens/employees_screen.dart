@@ -35,6 +35,11 @@ class EmployeesScreen extends StatefulWidget {
 class _EmployeesScreenState extends State<EmployeesScreen> {
   final TextEditingController searchController = TextEditingController();
 
+  List<Employee> employees = [];
+  bool isLoadingEmployees = true;
+  String? loadErrorText;
+  int loadGeneration = 0;
+
   String? get concreteObjectName {
     final objectName = widget.selectedObjectName?.trim();
 
@@ -44,29 +49,89 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    loadEmployees(showLoading: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant EmployeesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedObjectName != widget.selectedObjectName) {
+      loadEmployees(showLoading: true);
+    }
+  }
+
+  @override
   void dispose() {
     searchController.dispose();
     super.dispose();
   }
 
+  Future<void> loadEmployees({bool showLoading = false}) async {
+    final currentGeneration = ++loadGeneration;
+
+    if (showLoading || employees.isEmpty) {
+      setState(() {
+        isLoadingEmployees = true;
+        loadErrorText = null;
+      });
+    }
+
+    try {
+      final loadedEmployees = await EmployeeRepository.fetchEmployees(
+        objectName: widget.selectedObjectName,
+        includeFired: true,
+      );
+
+      if (!mounted || currentGeneration != loadGeneration) return;
+
+      setState(() {
+        employees = loadedEmployees;
+        isLoadingEmployees = false;
+        loadErrorText = null;
+      });
+    } catch (e) {
+      if (!mounted || currentGeneration != loadGeneration) return;
+
+      setState(() {
+        isLoadingEmployees = false;
+        loadErrorText = e.toString();
+      });
+    }
+  }
+
   Future<void> openAddEmployee(BuildContext context) async {
-    await Navigator.push<bool>(
+    final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) =>
             AddEmployeeScreen(initialObjectName: concreteObjectName),
       ),
     );
+
+    if (!mounted || saved != true) return;
+
+    await loadEmployees();
   }
 
-  void openEmployeeDetails(BuildContext context, Employee employee) {
-    Navigator.push(
+  Future<void> openEmployeeDetails(
+    BuildContext context,
+    Employee employee,
+  ) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) =>
             EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),
     );
+
+    if (!mounted) return;
+
+    await loadEmployees();
   }
 
   void openPayments(BuildContext context) {
@@ -78,14 +143,25 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
   Future<void> downloadPrivateSummary() async {
     try {
-      final employees = await EmployeeRepository.fetchEmployees(
-        objectName: widget.selectedObjectName,
-        includeFired: true,
-      );
-      final privateData = await EmployeePrivateDataRepository.fetchAllMap();
+      final employeesForSummary = employees.isNotEmpty
+          ? List<Employee>.from(employees)
+          : await EmployeeRepository.fetchEmployees(
+              objectName: widget.selectedObjectName,
+              includeFired: true,
+            );
+
+      final employeeIds = employeesForSummary
+          .map((employee) => employee.id ?? '')
+          .where((id) => id.trim().isNotEmpty)
+          .toList();
+
+      final privateData =
+          await EmployeePrivateDataRepository.fetchMapByEmployeeIds(
+            employeeIds,
+          );
 
       await EmployeePrivateSummaryExporter.downloadSummary(
-        employees: employees,
+        employees: employeesForSummary,
         privateDataByEmployeeId: privateData,
         objectName: widget.selectedObjectName,
       );
@@ -121,12 +197,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     return '$text ₽';
   }
 
-  List<Employee> filterEmployees(List<Employee> employees) {
+  List<Employee> filterEmployees(List<Employee> sourceEmployees) {
     final query = searchController.text.trim().toLowerCase();
 
-    if (query.isEmpty) return employees;
+    if (query.isEmpty) return sourceEmployees;
 
-    return employees.where((employee) {
+    return sourceEmployees.where((employee) {
       return employee.name.toLowerCase().contains(query) ||
           employee.position.toLowerCase().contains(query) ||
           employee.phone.toLowerCase().contains(query) ||
@@ -387,7 +463,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     if (activeEmployees.isEmpty && firedEmployees.isEmpty) {
       return [
         const SizedBox(height: 40),
-        Center(
+        const Center(
           child: Text(
             'Сотрудники не найдены',
             style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
@@ -432,70 +508,61 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Employee>>(
-      stream: EmployeeRepository.watchEmployees(
-        objectName: widget.selectedObjectName,
-        includeFired: true,
-      ),
-      builder: (context, snapshot) {
-        final employees = snapshot.data ?? [];
-        final visibleEmployees = filterEmployees(employees);
+    final visibleEmployees = filterEmployees(employees);
 
-        final activeEmployees = visibleEmployees.where((employee) {
-          return employee.isActive;
-        }).toList();
+    final activeEmployees = visibleEmployees.where((employee) {
+      return employee.isActive;
+    }).toList();
 
-        final firedEmployees = visibleEmployees.where((employee) {
-          return !employee.isActive;
-        }).toList();
+    final firedEmployees = visibleEmployees.where((employee) {
+      return !employee.isActive;
+    }).toList();
 
-        final content = <Widget>[
-          buildHeader(),
-          const SizedBox(height: 14),
-          buildSearchField(),
-          const SizedBox(height: 16),
-        ];
+    final content = <Widget>[
+      buildHeader(),
+      const SizedBox(height: 14),
+      buildSearchField(),
+      const SizedBox(height: 16),
+    ];
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          content.addAll([
-            const SizedBox(height: 60),
-            const Center(child: CircularProgressIndicator()),
-          ]);
-        } else if (snapshot.hasError) {
-          content.addAll([
-            const SizedBox(height: 40),
-            Center(
-              child: Text(
-                'Ошибка загрузки сотрудников: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ]);
-        } else if (employees.isEmpty) {
-          content.addAll([
-            const SizedBox(height: 40),
-            const Center(child: Text('Сотрудников пока нет')),
-          ]);
-        } else {
-          content.addAll(
-            buildEmployeesWidgets(
-              activeEmployees: activeEmployees,
-              firedEmployees: firedEmployees,
-              totalEmployees: employees.length,
-            ),
-          );
-        }
-
-        return Container(
-          color: _bg,
-          child: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-              children: content,
-            ),
+    if (isLoadingEmployees && employees.isEmpty) {
+      content.addAll([
+        const SizedBox(height: 60),
+        const Center(child: CircularProgressIndicator()),
+      ]);
+    } else if (loadErrorText != null && employees.isEmpty) {
+      content.addAll([
+        const SizedBox(height: 40),
+        Center(
+          child: Text(
+            'Ошибка загрузки сотрудников: $loadErrorText',
+            style: const TextStyle(color: Colors.red),
           ),
-        );
-      },
+        ),
+      ]);
+    } else if (employees.isEmpty) {
+      content.addAll([
+        const SizedBox(height: 40),
+        const Center(child: Text('Сотрудников пока нет')),
+      ]);
+    } else {
+      content.addAll(
+        buildEmployeesWidgets(
+          activeEmployees: activeEmployees,
+          firedEmployees: firedEmployees,
+          totalEmployees: employees.length,
+        ),
+      );
+    }
+
+    return Container(
+      color: _bg,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          children: content,
+        ),
+      ),
     );
   }
 }

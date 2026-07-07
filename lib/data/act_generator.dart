@@ -10,14 +10,17 @@ import '../models/task_item_data.dart';
 class ActGenerator {
   static const String templatePath = 'assets/templates/act_template.docx';
 
+  static Future<List<_TemplateFile>>? _templateFilesFuture;
+
   static Future<void> downloadAct({
     required List<TaskItemData> tasks,
     required DateTime date,
   }) async {
-    final completedTasks = List<TaskItemData>.from(
-      tasks.where((task) => task.status == 'Выполнено'),
-      growable: true,
-    );
+    final completedTasks = tasks
+        .where((task) {
+          return task.status == 'Выполнено';
+        })
+        .toList(growable: false);
 
     if (completedTasks.isEmpty) {
       throw Exception('Нет выполненных задач для акта');
@@ -35,28 +38,16 @@ class ActGenerator {
     required List<TaskItemData> tasks,
     required DateTime date,
   }) async {
-    final templateData = await rootBundle.load(templatePath);
-
-    final templateBytes = Uint8List.fromList(
-      List<int>.from(templateData.buffer.asUint8List(), growable: true),
-    );
-
-    final inputArchive = ZipDecoder().decodeBytes(
-      List<int>.from(templateBytes, growable: true),
-    );
-
+    final templateFiles = await _loadTemplateFiles();
     final outputArchive = Archive();
 
-    for (final file in List<ArchiveFile>.from(inputArchive.files)) {
-      if (!file.isFile) continue;
-
-      final fileName = file.name;
-      final originalBytes = _bytesFromArchiveFile(file);
+    for (final templateFile in templateFiles) {
+      final fileName = templateFile.name;
+      final originalBytes = templateFile.bytes;
 
       if (fileName == 'word/document.xml') {
         final xml = utf8.decode(originalBytes);
         final newXml = _fillDocumentXml(xml: xml, tasks: tasks, date: date);
-
         final newBytes = utf8.encode(newXml);
 
         outputArchive.addFile(ArchiveFile(fileName, newBytes.length, newBytes));
@@ -73,7 +64,39 @@ class ActGenerator {
       throw Exception('Не удалось собрать DOCX');
     }
 
-    return Uint8List.fromList(List<int>.from(zipped, growable: true));
+    return Uint8List.fromList(zipped);
+  }
+
+  static Future<List<_TemplateFile>> _loadTemplateFiles() {
+    _templateFilesFuture ??= _readTemplateFilesFromAssets();
+    return _templateFilesFuture!;
+  }
+
+  static Future<List<_TemplateFile>> _readTemplateFilesFromAssets() async {
+    final templateData = await rootBundle.load(templatePath);
+    final templateBytes = Uint8List.fromList(
+      templateData.buffer.asUint8List(
+        templateData.offsetInBytes,
+        templateData.lengthInBytes,
+      ),
+    );
+
+    final inputArchive = ZipDecoder().decodeBytes(templateBytes);
+    final files = <_TemplateFile>[];
+
+    for (final file in inputArchive.files) {
+      if (!file.isFile) continue;
+
+      files.add(
+        _TemplateFile(name: file.name, bytes: _bytesFromArchiveFile(file)),
+      );
+    }
+
+    if (files.isEmpty) {
+      throw Exception('Шаблон акта пустой или повреждён');
+    }
+
+    return List<_TemplateFile>.unmodifiable(files);
   }
 
   static String _fillDocumentXml({
@@ -86,26 +109,34 @@ class ActGenerator {
     final dateValue = _dateText(date);
     final worksXml = _buildWorksXml(tasks);
 
-    // В твоём шаблоне date и tasks сделаны как элементы управления Word:
+    // В шаблоне date и tasks могут быть элементами управления Word:
     // <w:sdt> с alias="date" и alias="tasks".
-    // У обоих tag="text", поэтому по tag заменять нельзя — сломается DOCX.
+    // Сначала меняем их. Если alias найден, тяжёлый запасной поиск по абзацам не гоняем.
+    final beforeDateAlias = result;
     result = _replaceContentControlByAlias(
       xml: result,
       alias: 'date',
       replacementXml: _run(dateValue),
     );
+    final dateAliasWasUsed = result != beforeDateAlias;
 
+    final beforeTasksAlias = result;
     result = _replaceContentControlByAlias(
       xml: result,
       alias: 'tasks',
       replacementXml: worksXml,
     );
+    final tasksAliasWasUsed = result != beforeTasksAlias;
 
-    // Запасной вариант, если когда-нибудь в шаблоне будут не элементы Word,
-    // а просто обычный текст date/tasks.
-    result = _replacePlainDateInTextNodes(xml: result, dateValue: dateValue);
+    // Запасной вариант, если в шаблоне будут не элементы Word,
+    // а обычный текст date/tasks.
+    if (!dateAliasWasUsed) {
+      result = _replacePlainDateInTextNodes(xml: result, dateValue: dateValue);
+    }
 
-    result = _replacePlainTasksParagraph(xml: result, worksXml: worksXml);
+    if (!tasksAliasWasUsed) {
+      result = _replacePlainTasksParagraph(xml: result, worksXml: worksXml);
+    }
 
     return result;
   }
@@ -211,7 +242,7 @@ class ActGenerator {
   static Map<String, List<String>> _groupWorksByAxes(List<TaskItemData> tasks) {
     final grouped = <String, List<String>>{};
 
-    for (final task in List<TaskItemData>.from(tasks, growable: true)) {
+    for (final task in tasks) {
       final axes = task.axes.trim();
       final workLines = _splitWorkLines(task.work);
 
@@ -228,7 +259,7 @@ class ActGenerator {
         .split(RegExp(r'\r?\n'))
         .map(_cleanWorkText)
         .where((line) => line.isNotEmpty)
-        .toList();
+        .toList(growable: false);
   }
 
   static String _cleanWorkText(String value) {
@@ -447,11 +478,11 @@ class ActGenerator {
     final content = file.content;
 
     if (content is Uint8List) {
-      return Uint8List.fromList(List<int>.from(content, growable: true));
+      return Uint8List.fromList(content);
     }
 
     if (content is List<int>) {
-      return Uint8List.fromList(List<int>.from(content, growable: true));
+      return Uint8List.fromList(content);
     }
 
     throw Exception('Не удалось прочитать файл из шаблона: ${file.name}');
@@ -510,10 +541,8 @@ class ActGenerator {
     required Uint8List bytes,
     required String fileName,
   }) {
-    final safeBytes = Uint8List.fromList(List<int>.from(bytes, growable: true));
-
     final blob = html.Blob(
-      [safeBytes],
+      [bytes],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     );
     final url = html.Url.createObjectUrlFromBlob(blob);
@@ -528,4 +557,11 @@ class ActGenerator {
 
     html.Url.revokeObjectUrl(url);
   }
+}
+
+class _TemplateFile {
+  final String name;
+  final Uint8List bytes;
+
+  const _TemplateFile({required this.name, required this.bytes});
 }

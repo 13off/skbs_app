@@ -21,11 +21,19 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
   bool isUploading = false;
   String? errorText;
 
+  int _loadToken = 0;
+
   @override
   void initState() {
     super.initState();
 
     loadDocuments();
+  }
+
+  @override
+  void dispose() {
+    _loadToken++;
+    super.dispose();
   }
 
   String formatDate(DateTime? date) {
@@ -34,39 +42,56 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
     return DateFormat('dd.MM.yyyy HH:mm').format(date);
   }
 
-  Future<void> loadDocuments() async {
+  void sortDocuments() {
+    documents.sort((a, b) {
+      final aDate = a.updatedAt ?? DateTime(1970);
+      final bDate = b.updatedAt ?? DateTime(1970);
+
+      return bDate.compareTo(aDate);
+    });
+  }
+
+  Future<void> loadDocuments({bool showLoader = true}) async {
     final employeeId = widget.employee.id;
 
-    if (employeeId == null) {
+    if (employeeId == null || employeeId.isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
       return;
     }
 
-    setState(() {
-      isLoading = true;
-      errorText = null;
-    });
+    final requestToken = ++_loadToken;
+
+    if (showLoader) {
+      setState(() {
+        isLoading = true;
+        errorText = null;
+      });
+    } else {
+      setState(() {
+        errorText = null;
+      });
+    }
 
     try {
       final result = await EmployeeDocumentsRepository.listDocuments(
         employeeId,
       );
 
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadToken) return;
 
       setState(() {
         documents = result;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadToken) return;
 
       setState(() {
         errorText = 'Ошибка загрузки документов: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && requestToken == _loadToken && showLoader) {
         setState(() {
           isLoading = false;
         });
@@ -77,7 +102,7 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
   Future<void> uploadDocuments() async {
     final employeeId = widget.employee.id;
 
-    if (employeeId == null) {
+    if (employeeId == null || employeeId.isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
@@ -90,11 +115,22 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
     });
 
     try {
-      await EmployeeDocumentsRepository.pickAndUploadDocuments(employeeId);
-
-      await loadDocuments();
+      final uploadedDocuments =
+          await EmployeeDocumentsRepository.pickAndUploadDocuments(employeeId);
 
       if (!mounted) return;
+
+      if (uploadedDocuments.isEmpty) {
+        setState(() {
+          isUploading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        documents = [...uploadedDocuments, ...documents];
+        sortDocuments();
+      });
 
       ScaffoldMessenger.of(
         context,
@@ -164,65 +200,68 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Документы')),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          Text(
-            widget.employee.name,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text('${widget.employee.position} • ${widget.employee.objectName}'),
-
-          const SizedBox(height: 18),
-
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.grey.shade200),
+      body: RefreshIndicator(
+        onRefresh: () => loadDocuments(showLoader: false),
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Text(
+              widget.employee.name,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Загрузка файлов',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Можно загрузить PDF, Word, Excel, JPG, PNG, WEBP, TXT.',
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton.icon(
-                    onPressed: isUploading ? null : uploadDocuments,
-                    icon: isUploading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.upload_file),
-                    label: const Text('Загрузить документы'),
+            const SizedBox(height: 4),
+            Text('${widget.employee.position} • ${widget.employee.objectName}'),
+
+            const SizedBox(height: 18),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Загрузка файлов',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Можно загрузить PDF, Word, Excel, JPG, PNG, WEBP, TXT.',
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: isUploading ? null : uploadDocuments,
+                      icon: isUploading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.upload_file),
+                      label: const Text('Загрузить документы'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          if (errorText != null) ...[
-            const SizedBox(height: 12),
-            Text(errorText!, style: const TextStyle(color: Colors.red)),
+            if (errorText != null) ...[
+              const SizedBox(height: 12),
+              Text(errorText!, style: const TextStyle(color: Colors.red)),
+            ],
+
+            const SizedBox(height: 18),
+
+            buildDocumentsList(),
           ],
-
-          const SizedBox(height: 18),
-
-          buildDocumentsList(),
-        ],
+        ),
       ),
     );
   }

@@ -24,6 +24,8 @@ class TimesheetExcelExporter {
   // AO — комментарий
   static final List<String> _templateColumns = _generateColumns(41);
 
+  static _XlsxTemplate? _cachedTemplate;
+
   static String monthName(int month) {
     const monthNames = [
       'Январь',
@@ -176,9 +178,10 @@ class TimesheetExcelExporter {
     html.Url.revokeObjectUrl(url);
   }
 
-  static Future<Uint8List> _buildXlsxFromTemplate(
-    List<_MonthRows> monthRows,
-  ) async {
+  static Future<_XlsxTemplate> _loadTemplate() async {
+    final cached = _cachedTemplate;
+    if (cached != null) return cached;
+
     final templateData = await rootBundle.load(_templatePath);
     final templateBytes = templateData.buffer.asUint8List(
       templateData.offsetInBytes,
@@ -187,7 +190,6 @@ class TimesheetExcelExporter {
 
     final sourceArchive = ZipDecoder().decodeBytes(templateBytes);
     final files = <String, List<int>>{};
-
     String? templateSheetXml;
 
     for (final file in sourceArchive.files) {
@@ -210,6 +212,23 @@ class TimesheetExcelExporter {
     if (templateSheetXml == null) {
       throw Exception('В шаблоне не найден лист xl/worksheets/sheet1.xml');
     }
+
+    final template = _XlsxTemplate(
+      baseFiles: files,
+      templateSheetXml: templateSheetXml,
+    );
+
+    _cachedTemplate = template;
+
+    return template;
+  }
+
+  static Future<Uint8List> _buildXlsxFromTemplate(
+    List<_MonthRows> monthRows,
+  ) async {
+    final template = await _loadTemplate();
+    final files = template.copyFiles();
+    final templateSheetXml = template.templateSheetXml;
 
     for (var index = 0; index < monthRows.length; index++) {
       final item = monthRows[index];
@@ -474,6 +493,26 @@ class TimesheetExcelExporter {
     }
 
     return chars.join();
+  }
+}
+
+class _XlsxTemplate {
+  const _XlsxTemplate({
+    required this.baseFiles,
+    required this.templateSheetXml,
+  });
+
+  final Map<String, List<int>> baseFiles;
+  final String templateSheetXml;
+
+  Map<String, List<int>> copyFiles() {
+    final result = <String, List<int>>{};
+
+    for (final entry in baseFiles.entries) {
+      result[entry.key] = List<int>.from(entry.value);
+    }
+
+    return result;
   }
 }
 

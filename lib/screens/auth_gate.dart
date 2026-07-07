@@ -23,33 +23,53 @@ class _AuthGateState extends State<AuthGate> {
   bool isLoading = true;
   String? errorText;
 
+  int _loadToken = 0;
+  String? _lastLoadedUserId;
+
   @override
   void initState() {
     super.initState();
 
-    loadCurrentUser();
+    loadCurrentUser(showLoading: true);
 
     authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
       _,
     ) {
-      loadCurrentUser();
+      final currentUserId = UserRepository.currentUser?.id;
+
+      if (currentUserId != null &&
+          currentUserId == _lastLoadedUserId &&
+          profile != null &&
+          errorText == null) {
+        return;
+      }
+
+      loadCurrentUser(showLoading: profile == null);
     });
   }
 
   @override
   void dispose() {
+    _loadToken++;
     authSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> loadCurrentUser() async {
+  Future<void> loadCurrentUser({
+    bool forceRefresh = false,
+    bool showLoading = false,
+  }) async {
+    final token = ++_loadToken;
     final session = UserRepository.currentSession;
 
     if (session == null) {
-      if (!mounted) return;
+      UserRepository.clearProfileCache();
+
+      if (!mounted || token != _loadToken) return;
 
       setState(() {
         profile = null;
+        _lastLoadedUserId = null;
         isLoading = false;
         errorText = null;
       });
@@ -57,27 +77,59 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-      errorText = null;
-    });
+    final currentUserId = UserRepository.currentUser?.id;
+
+    if (!forceRefresh &&
+        currentUserId != null &&
+        currentUserId == _lastLoadedUserId &&
+        profile != null &&
+        errorText == null) {
+      if (!mounted || token != _loadToken) return;
+
+      if (isLoading) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+
+      return;
+    }
+
+    if (showLoading || profile == null) {
+      if (!mounted || token != _loadToken) return;
+
+      setState(() {
+        isLoading = true;
+        errorText = null;
+      });
+    } else {
+      if (!mounted || token != _loadToken) return;
+
+      setState(() {
+        errorText = null;
+      });
+    }
 
     try {
-      final loadedProfile = await UserRepository.fetchCurrentProfile();
+      final loadedProfile = await UserRepository.fetchCurrentProfile(
+        forceRefresh: forceRefresh,
+      );
 
-      if (!mounted) return;
+      if (!mounted || token != _loadToken) return;
 
       setState(() {
         profile = loadedProfile;
+        _lastLoadedUserId = currentUserId;
+        errorText = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || token != _loadToken) return;
 
       setState(() {
         errorText = 'Ошибка загрузки профиля: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && token == _loadToken) {
         setState(() {
           isLoading = false;
         });
@@ -86,6 +138,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> signOut() async {
+    UserRepository.clearProfileCache();
     await UserRepository.signOut();
   }
 
@@ -107,9 +160,13 @@ class _AuthGateState extends State<AuthGate> {
         message: errorText!,
         icon: Icons.error_outline,
         actionText: 'Повторить',
-        onAction: loadCurrentUser,
+        onAction: () {
+          loadCurrentUser(forceRefresh: true, showLoading: true);
+        },
         secondActionText: 'Выйти',
-        onSecondAction: signOut,
+        onSecondAction: () {
+          signOut();
+        },
       );
     }
 
@@ -122,9 +179,13 @@ class _AuthGateState extends State<AuthGate> {
             'Пользователь вошёл, но для него нет записи в таблице user_profiles. Добавь профиль в Supabase.',
         icon: Icons.person_off_outlined,
         actionText: 'Обновить',
-        onAction: loadCurrentUser,
+        onAction: () {
+          loadCurrentUser(forceRefresh: true, showLoading: true);
+        },
         secondActionText: 'Выйти',
-        onSecondAction: signOut,
+        onSecondAction: () {
+          signOut();
+        },
       );
     }
 
@@ -134,7 +195,9 @@ class _AuthGateState extends State<AuthGate> {
         message: 'Этот пользователь отключён администратором.',
         icon: Icons.lock_outline,
         actionText: 'Выйти',
-        onAction: signOut,
+        onAction: () {
+          signOut();
+        },
       );
     }
 
@@ -180,26 +243,30 @@ class _AuthMessageScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 48),
+                    Icon(icon, size: 48, color: const Color(0xFF7B8087)),
                     const SizedBox(height: 16),
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1F2328),
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: const TextStyle(
+                        color: Color(0xFF6F747A),
+                        height: 1.35,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 48,
                       child: FilledButton(
                         onPressed: onAction,
                         child: Text(actionText),
@@ -209,7 +276,7 @@ class _AuthMessageScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
-                        height: 52,
+                        height: 48,
                         child: OutlinedButton(
                           onPressed: onSecondAction,
                           child: Text(secondActionText!),

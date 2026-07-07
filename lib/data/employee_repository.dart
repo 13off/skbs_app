@@ -6,6 +6,10 @@ class EmployeeRepository {
   static final _client = Supabase.instance.client;
 
   static const List<String> baseObjects = ['Мурманск', 'Москва'];
+  static const Duration _employeesCacheTtl = Duration(seconds: 25);
+
+  static List<String>? _cachedObjectNames;
+  static final Map<String, _EmployeesCacheEntry> _employeesCache = {};
 
   static String? cleanObjectName(String? objectName) {
     final clean = objectName?.trim();
@@ -13,6 +17,29 @@ class EmployeeRepository {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  static void clearCache() {
+    _cachedObjectNames = null;
+    _employeesCache.clear();
+  }
+
+  static String _employeesCacheKey({
+    required String? objectName,
+    required bool includeFired,
+  }) {
+    final objectPart = cleanObjectName(objectName) ?? '__all__';
+    final firedPart = includeFired ? 'with_fired' : 'active_only';
+
+    return '$objectPart::$firedPart';
+  }
+
+  static bool _isEmployeesCacheFresh(_EmployeesCacheEntry entry) {
+    return DateTime.now().difference(entry.createdAt) < _employeesCacheTtl;
+  }
+
+  static List<Employee> _copyEmployees(List<Employee> employees) {
+    return List<Employee>.from(employees);
   }
 
   static List<Employee> _sortEmployees(List<Employee> employees) {
@@ -52,36 +79,76 @@ class EmployeeRepository {
   static Future<List<Employee>> fetchEmployees({
     String? objectName,
     bool includeFired = false,
+    bool forceRefresh = false,
   }) async {
     final cleanObject = cleanObjectName(objectName);
+    final cacheKey = _employeesCacheKey(
+      objectName: cleanObject,
+      includeFired: includeFired,
+    );
 
-    var rows = cleanObject == null
-        ? await _client
-              .from('employees')
-              .select(
-                'id, fio, position, phone, object_name, daily_rate, is_active, comment',
-              )
-        : await _client
-              .from('employees')
-              .select(
-                'id, fio, position, phone, object_name, daily_rate, is_active, comment',
-              )
-              .eq('object_name', cleanObject);
+    final cached = _employeesCache[cacheKey];
 
-    if (!includeFired) {
-      rows = rows.where((row) {
-        return row['is_active'] as bool? ?? true;
-      }).toList();
+    if (!forceRefresh && cached != null && _isEmployeesCacheFresh(cached)) {
+      return _copyEmployees(cached.employees);
     }
 
+    const fields =
+        'id, fio, position, phone, object_name, daily_rate, is_active, comment';
+
+    late final List<dynamic> rows;
+
+    if (cleanObject == null && includeFired) {
+      rows = await _client
+          .from('employees')
+          .select(fields)
+          .order('fio', ascending: true);
+    } else if (cleanObject == null && !includeFired) {
+      rows = await _client
+          .from('employees')
+          .select(fields)
+          .eq('is_active', true)
+          .order('fio', ascending: true);
+    } else if (cleanObject != null && includeFired) {
+      rows = await _client
+          .from('employees')
+          .select(fields)
+          .eq('object_name', cleanObject)
+          .order('fio', ascending: true);
+    } else {
+      rows = await _client
+          .from('employees')
+          .select(fields)
+          .eq('object_name', cleanObject!)
+          .eq('is_active', true)
+          .order('fio', ascending: true);
+    }
+
+    final employees = _employeesFromRows(rows);
+
+    _employeesCache[cacheKey] = _EmployeesCacheEntry(
+      employees: _copyEmployees(employees),
+      createdAt: DateTime.now(),
+    );
+
+    return _copyEmployees(employees);
+  }
+
+  static List<Employee> _employeesFromRows(List<dynamic> rows) {
     final employees = rows.map<Employee>((row) {
-      return Employee.fromSupabase(row);
+      return Employee.fromSupabase(row as Map<String, dynamic>);
     }).toList();
 
     return _sortEmployees(employees);
   }
 
-  static Future<List<String>> fetchObjectNames() async {
+  static Future<List<String>> fetchObjectNames({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && _cachedObjectNames != null) {
+      return List<String>.from(_cachedObjectNames!);
+    }
+
     final rows = await _client
         .from('employees')
         .select('object_name')
@@ -100,7 +167,9 @@ class EmployeeRepository {
     final result = objects.toList();
     result.sort();
 
-    return result;
+    _cachedObjectNames = result;
+
+    return List<String>.from(result);
   }
 
   static Future<String?> addEmployee({
@@ -127,6 +196,8 @@ class EmployeeRepository {
         })
         .select('id')
         .single();
+
+    clearCache();
 
     final employeeId = row['id']?.toString();
 
@@ -163,6 +234,8 @@ class EmployeeRepository {
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', employeeId);
+
+    clearCache();
 
     await syncEmployeePhoneToPrivateData(employeeId: employeeId, phone: phone);
   }
@@ -216,5 +289,17 @@ class EmployeeRepository {
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', employeeId);
+
+    clearCache();
   }
+}
+
+class _EmployeesCacheEntry {
+  final List<Employee> employees;
+  final DateTime createdAt;
+
+  const _EmployeesCacheEntry({
+    required this.employees,
+    required this.createdAt,
+  });
 }
