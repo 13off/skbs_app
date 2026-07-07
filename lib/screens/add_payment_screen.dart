@@ -267,7 +267,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           const SizedBox(height: 18),
 
           DropdownButtonFormField<String>(
-            value: selectedEmployeeId,
+            initialValue: selectedEmployeeId,
             items: employees.map((employee) {
               return DropdownMenuItem<String>(
                 value: employee.id,
@@ -298,7 +298,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           const SizedBox(height: 14),
 
           DropdownButtonFormField<String>(
-            value: selectedPaymentType,
+            initialValue: selectedPaymentType,
             items: paymentTypeLabels.entries.map((entry) {
               return DropdownMenuItem<String>(
                 value: entry.key,

@@ -786,7 +786,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: includeFiredEmployees
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.35)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.35)
               : Colors.grey.shade200,
         ),
       ),

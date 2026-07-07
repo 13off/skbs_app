@@ -1,47 +1,161 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"></script>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
 
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <!-- iOS meta tags & icons -->
+  <meta name="description" content="AppСтрой — управление сотрудниками, табелем, задачами, выплатами и документами на строительном объекте.">
+  <meta name="theme-color" content="#26282B">
+  <meta name="color-scheme" content="light">
+
+  <!-- iOS / Android PWA -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="skbs_app">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AppСтрой">
+  <meta name="application-name" content="AppСтрой">
+
+  <!-- Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>skbs_app</title>
+  <title>AppСтрой</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: #f3f1ec;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    #app-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.92) 0, rgba(255, 255, 255, 0.0) 42%),
+        linear-gradient(145deg, #f7f5ef 0%, #ebe7dd 100%);
+      color: #24262a;
+      transition: opacity 260ms ease, visibility 260ms ease;
+    }
+
+    #app-loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-card {
+      width: min(78vw, 320px);
+      padding: 28px 24px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(36, 38, 42, 0.08);
+      box-shadow: 0 22px 60px rgba(20, 22, 25, 0.12);
+      text-align: center;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .loader-logo {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #26282b;
+      color: #f7f5ef;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      font-size: 24px;
+      box-shadow: 0 12px 26px rgba(38, 40, 43, 0.24);
+    }
+
+    .loader-title {
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .loader-subtitle {
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(36, 38, 42, 0.62);
+    }
+
+    .loader-line {
+      overflow: hidden;
+      position: relative;
+      height: 4px;
+      margin: 22px auto 0;
+      width: 132px;
+      border-radius: 999px;
+      background: rgba(36, 38, 42, 0.10);
+    }
+
+    .loader-line::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -42%;
+      width: 42%;
+      border-radius: inherit;
+      background: #26282b;
+      animation: loaderMove 1.15s ease-in-out infinite;
+    }
+
+    @keyframes loaderMove {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(340%); }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div id="app-loader" aria-label="Загрузка AppСтрой">
+    <div class="loader-card">
+      <div class="loader-logo">АС</div>
+      <div class="loader-title">AppСтрой</div>
+      <div class="loader-subtitle">загрузка объекта, табеля и задач</div>
+      <div class="loader-line"></div>
+    </div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <script>
+    (function () {
+      var loader = document.getElementById('app-loader');
+      var hideLoader = function () {
+        if (!loader) return;
+        loader.classList.add('hidden');
+        window.setTimeout(function () {
+          if (loader && loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 320);
+      };
+
+      window.addEventListener('flutter-first-frame', hideLoader);
+      window.setTimeout(hideLoader, 9000);
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

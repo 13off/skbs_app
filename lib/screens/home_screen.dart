@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: _line),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
+                  color: Colors.black.withValues(alpha: 0.10),
                   blurRadius: 28,
                   offset: const Offset(0, 14),
                 ),
@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: _line),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.025),
+                    color: Colors.black.withValues(alpha: 0.025),
                     blurRadius: 14,
                     offset: const Offset(0, 8),
                   ),
@@ -516,7 +516,7 @@ class _ObjectSelectorShell extends StatelessWidget {
           border: Border.all(color: _line),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.035),
+              color: Colors.black.withValues(alpha: 0.035),
               blurRadius: 18,
               offset: const Offset(0, 9),
             ),
@@ -583,7 +583,7 @@ class _DashboardMetricCard extends StatelessWidget {
         border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.040),
+            color: Colors.black.withValues(alpha: 0.040),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -825,9 +825,9 @@ class _SystemMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.06),
+        color: Colors.red.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.red.withOpacity(0.16)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.16)),
       ),
       child: Row(
         children: [

@@ -164,7 +164,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
 
   Widget buildObjectSelector() {
     return DropdownButtonFormField<String>(
-      value: selectedObjectName,
+      initialValue: selectedObjectName,
       decoration: const InputDecoration(
         labelText: 'Объект',
         border: OutlineInputBorder(),

@@ -63,7 +63,7 @@ class _PageHeader extends StatelessWidget {
         border: Border.all(color: _appLine),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.028),
+            color: Colors.black.withValues(alpha: 0.028),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

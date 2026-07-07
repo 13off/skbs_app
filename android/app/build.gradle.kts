@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.skbs_app"
+    namespace = "ru.appstroy.skbs"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,10 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.skbs_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "ru.appstroy.skbs"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -27,8 +24,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Быстрая MVP-сборка для личной установки на телефон.
+            // Для Google Play позже сделаем отдельный keystore и нормальную подпись.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

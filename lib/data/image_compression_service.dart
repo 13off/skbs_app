@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:universal_html/html.dart' as html;
@@ -84,24 +83,33 @@ class ImageCompressionService {
 
     try {
       final image = await _loadImage(objectUrl);
-      final sourceWidth = image.naturalWidth;
-      final sourceHeight = image.naturalHeight;
+
+      final int sourceWidth = _safeDimension(image.naturalWidth);
+      final int sourceHeight = _safeDimension(image.naturalHeight);
 
       if (sourceWidth <= 0 || sourceHeight <= 0) {
         return fallback;
       }
 
-      final longestSide = math.max(sourceWidth, sourceHeight);
-      final scale = longestSide > maxDimension
+      final int longestSide = sourceWidth >= sourceHeight
+          ? sourceWidth
+          : sourceHeight;
+
+      final double scale = longestSide > maxDimension
           ? maxDimension / longestSide
           : 1.0;
-      final targetWidth = math.max(1, (sourceWidth * scale).round());
-      final targetHeight = math.max(1, (sourceHeight * scale).round());
+
+      final int calculatedWidth = (sourceWidth * scale).round();
+      final int calculatedHeight = (sourceHeight * scale).round();
+
+      final int targetWidth = calculatedWidth < 1 ? 1 : calculatedWidth;
+      final int targetHeight = calculatedHeight < 1 ? 1 : calculatedHeight;
 
       final canvas = html.CanvasElement(
         width: targetWidth,
         height: targetHeight,
       );
+
       final context = canvas.context2D;
 
       context.fillStyle = '#FFFFFF';
@@ -138,6 +146,14 @@ class ImageCompressionService {
     } finally {
       html.Url.revokeObjectUrl(objectUrl);
     }
+  }
+
+  static int _safeDimension(int? value) {
+    if (value == null) {
+      return 0;
+    }
+
+    return value;
   }
 
   static Future<html.ImageElement> _loadImage(String objectUrl) {

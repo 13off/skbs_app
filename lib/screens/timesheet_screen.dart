@@ -281,7 +281,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                         physics: const FixedExtentScrollPhysics(),
                         controller: FixedExtentScrollController(
                           initialItem:
-                              allShiftOptions.indexOf(currentValue) == -1
+                              !allShiftOptions.contains(currentValue)
                               ? 0
                               : allShiftOptions.indexOf(currentValue),
                         ),

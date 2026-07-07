@@ -147,9 +147,7 @@ class ActGenerator {
     required String replacementXml,
   }) {
     final regex = RegExp(
-      '<w:sdt\\b[\\s\\S]*?<w:alias[^>]*w:val="' +
-          RegExp.escape(alias) +
-          '"[^>]*/>[\\s\\S]*?</w:sdt>',
+      '<w:sdt\\b[\\s\\S]*?<w:alias[^>]*w:val="${RegExp.escape(alias)}"[^>]*/>[\\s\\S]*?</w:sdt>',
       multiLine: true,
     );
 

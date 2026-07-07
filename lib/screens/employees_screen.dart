@@ -220,7 +220,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.030),
+            color: Colors.black.withValues(alpha: 0.030),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -341,7 +341,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         border: Border.all(color: isFired ? const Color(0xFFD3CAC0) : _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.028),
+            color: Colors.black.withValues(alpha: 0.028),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),

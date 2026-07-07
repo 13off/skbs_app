@@ -142,7 +142,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.35),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -158,7 +158,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: selectedObjectName,
+            initialValue: selectedObjectName,
             decoration: const InputDecoration(
               labelText: 'Выберите объект',
               border: OutlineInputBorder(),

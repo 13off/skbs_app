@@ -161,9 +161,9 @@ class HrDocumentGenerator {
       final value = _escapeXml(_oneLine(entry.value));
 
       result = result
-          .replaceAll('{{' + key + '}}', value)
-          .replaceAll('{' + key + '}', value)
-          .replaceAll('[' + key + ']', value);
+          .replaceAll('{{$key}}', value)
+          .replaceAll('{$key}', value)
+          .replaceAll('[$key]', value);
     }
 
     return result;
