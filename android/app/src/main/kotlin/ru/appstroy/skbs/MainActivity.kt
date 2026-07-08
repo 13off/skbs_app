@@ -1,4 +1,4 @@
-package com.example.skbs_app
+package ru.appstroy.skbs
 
 import io.flutter.embedding.android.FlutterActivity
 
