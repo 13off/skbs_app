@@ -1,0 +1,13 @@
+function prompt {
+    if ($global:__terminal_ready_beep_initialized) {
+        if ($?) {
+            [console]::Beep(1000, 250)
+        } else {
+            [console]::Beep(350, 600)
+        }
+    }
+
+    $global:__terminal_ready_beep_initialized = $true
+
+    "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+}
