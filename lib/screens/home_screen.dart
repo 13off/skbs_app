@@ -901,7 +901,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       _FinanceSummaryCard(
                         title: 'Выплаты ${financePeriod.title()}',
                         objectTitle: objectTitle,
-                        periodText: financePeriod.pickerTitle(),
                         finance: isLoading ? FinanceSummaryData.empty : finance,
                         isLoading: isLoading,
                         onPeriodTap: () {
@@ -1170,7 +1169,6 @@ class _DashboardMetricCard extends StatelessWidget {
 class _FinanceSummaryCard extends StatelessWidget {
   final String title;
   final String objectTitle;
-  final String periodText;
   final FinanceSummaryData finance;
   final bool isLoading;
   final VoidCallback onPeriodTap;
@@ -1178,7 +1176,6 @@ class _FinanceSummaryCard extends StatelessWidget {
   const _FinanceSummaryCard({
     required this.title,
     required this.objectTitle,
-    required this.periodText,
     required this.finance,
     required this.isLoading,
     required this.onPeriodTap,
@@ -1263,35 +1260,6 @@ class _FinanceSummaryCard extends StatelessWidget {
                 label: const Text('Период'),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: isLoading ? null : onPeriodTap,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-              decoration: BoxDecoration(
-                color: _softCard,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_month_outlined, color: _muted),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      periodText,
-                      style: const TextStyle(
-                        color: _text,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.keyboard_arrow_down, color: _text),
-                ],
-              ),
-            ),
           ),
           const SizedBox(height: 18),
           _FinanceLine(
