@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'attendance_repository.dart';
+import 'payment_receipt_repository.dart';
 
 class PaymentRepository {
   static final _client = Supabase.instance.client;
@@ -62,7 +63,7 @@ class PaymentRepository {
     return DateTime.tryParse(value.toString()) ?? DateTime.now();
   }
 
-  static Future<void> addPayment({
+  static Future<String?> addPayment({
     required String employeeId,
     required int periodYear,
     required int periodMonth,
@@ -70,20 +71,37 @@ class PaymentRepository {
     required double amount,
     required String paymentType,
     required String comment,
+    List<PickedPaymentReceiptFile> receiptFiles = const [],
   }) async {
-    await _client.from('payments').insert({
-      'employee_id': employeeId,
-      'period_year': periodYear,
-      'period_month': periodMonth,
-      'payment_date': dateKey(paymentDate),
-      'amount': amount,
-      'payment_type': paymentType,
-      'comment': comment,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    });
+    final row = await _client
+        .from('payments')
+        .insert({
+          'employee_id': employeeId,
+          'period_year': periodYear,
+          'period_month': periodMonth,
+          'payment_date': dateKey(paymentDate),
+          'amount': amount,
+          'payment_type': paymentType,
+          'comment': comment,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .select('id')
+        .single();
+
+    final paymentId = row['id']?.toString();
+
+    if (paymentId != null && paymentId.isNotEmpty && receiptFiles.isNotEmpty) {
+      await PaymentReceiptRepository.uploadReceiptFiles(
+        paymentId: paymentId,
+        employeeId: employeeId,
+        files: receiptFiles,
+      );
+    }
 
     clearEmployeePaymentsCache(employeeId);
     AttendanceRepository.clearCache();
+
+    return paymentId;
   }
 
   static Future<List<PaymentRecord>> fetchPaymentsForEmployee(
@@ -115,18 +133,47 @@ class PaymentRepository {
       return PaymentRecord.fromMap(row);
     }).toList();
 
+    final receiptsByPaymentId =
+        await PaymentReceiptRepository.fetchReceiptsForPaymentIds(
+          payments.map((payment) => payment.id).toList(),
+        );
+
+    final paymentsWithReceipts = payments.map((payment) {
+      return payment.copyWith(
+        receipts: receiptsByPaymentId[payment.id] ?? <PaymentReceipt>[],
+      );
+    }).toList();
+
     _employeePaymentsCache[cleanEmployeeId] = _EmployeePaymentsCacheEntry(
-      payments: _copyPayments(payments),
+      payments: _copyPayments(paymentsWithReceipts),
       createdAt: DateTime.now(),
     );
 
-    return _copyPayments(payments);
+    return _copyPayments(paymentsWithReceipts);
+  }
+
+  static Future<List<PaymentReceipt>> addReceiptsToPayment({
+    required String paymentId,
+    required String employeeId,
+    required List<PickedPaymentReceiptFile> receiptFiles,
+  }) async {
+    final uploadedReceipts = await PaymentReceiptRepository.uploadReceiptFiles(
+      paymentId: paymentId,
+      employeeId: employeeId,
+      files: receiptFiles,
+    );
+
+    clearEmployeePaymentsCache(employeeId);
+
+    return uploadedReceipts;
   }
 
   static Future<void> deletePayment(
     String paymentId, {
     String? employeeId,
   }) async {
+    await PaymentReceiptRepository.deleteReceiptsForPayment(paymentId);
+
     await _client.from('payments').delete().eq('id', paymentId);
 
     final cleanEmployeeId = employeeId?.trim();
@@ -151,6 +198,7 @@ class PaymentRecord {
   final String paymentType;
   final String comment;
   final DateTime updatedAt;
+  final List<PaymentReceipt> receipts;
 
   const PaymentRecord({
     required this.id,
@@ -162,9 +210,13 @@ class PaymentRecord {
     required this.paymentType,
     required this.comment,
     required this.updatedAt,
+    this.receipts = const [],
   });
 
-  factory PaymentRecord.fromMap(Map<String, dynamic> map) {
+  factory PaymentRecord.fromMap(
+    Map<String, dynamic> map, {
+    List<PaymentReceipt> receipts = const [],
+  }) {
     return PaymentRecord(
       id: map['id']?.toString() ?? '',
       employeeId: map['employee_id']?.toString() ?? '',
@@ -175,6 +227,22 @@ class PaymentRecord {
       paymentType: map['payment_type']?.toString() ?? 'other',
       comment: map['comment']?.toString() ?? '',
       updatedAt: PaymentRepository._toDate(map['updated_at']),
+      receipts: receipts,
+    );
+  }
+
+  PaymentRecord copyWith({List<PaymentReceipt>? receipts}) {
+    return PaymentRecord(
+      id: id,
+      employeeId: employeeId,
+      periodYear: periodYear,
+      periodMonth: periodMonth,
+      paymentDate: paymentDate,
+      amount: amount,
+      paymentType: paymentType,
+      comment: comment,
+      updatedAt: updatedAt,
+      receipts: receipts ?? this.receipts,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
 
@@ -16,6 +17,7 @@ class PaymentHistoryScreen extends StatefulWidget {
 class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   List<PaymentRecord> payments = [];
   final Set<String> deletingPaymentIds = {};
+  final Set<String> addingReceiptPaymentIds = {};
 
   bool isLoading = false;
   String? errorText;
@@ -148,7 +150,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
         return AlertDialog(
           title: const Text('Удалить выплату?'),
           content: Text(
-            '${paymentTypeLabel(payment.paymentType)} на сумму ${formatMoney(payment.amount)} от ${formatDate(payment.paymentDate)} будет удалена.',
+            '${paymentTypeLabel(payment.paymentType)} на сумму ${formatMoney(payment.amount)} от ${formatDate(payment.paymentDate)} будет удалена. Чеки этой выплаты тоже удалятся.',
           ),
           actions: [
             TextButton(
@@ -216,6 +218,74 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     }
   }
 
+  Future<void> addReceiptsToPayment(PaymentRecord payment) async {
+    if (payment.id.isEmpty || payment.employeeId.isEmpty) {
+      setState(() {
+        errorText = 'Не удалось добавить чек: нет ID выплаты или сотрудника';
+      });
+      return;
+    }
+
+    if (addingReceiptPaymentIds.contains(payment.id)) return;
+
+    setState(() {
+      addingReceiptPaymentIds.add(payment.id);
+      errorText = null;
+    });
+
+    try {
+      final pickedFiles = await PaymentReceiptRepository.pickReceiptFiles();
+
+      if (pickedFiles.isEmpty) return;
+
+      final uploadedReceipts = await PaymentRepository.addReceiptsToPayment(
+        paymentId: payment.id,
+        employeeId: payment.employeeId,
+        receiptFiles: pickedFiles,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        payments = payments.map((item) {
+          if (item.id != payment.id) return item;
+
+          return item.copyWith(
+            receipts: [...item.receipts, ...uploadedReceipts],
+          );
+        }).toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Чеки добавлены: ${uploadedReceipts.length}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorText = 'Ошибка добавления чека: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          addingReceiptPaymentIds.remove(payment.id);
+        });
+      }
+    }
+  }
+
+  Future<void> openReceipt(PaymentReceipt receipt) async {
+    try {
+      await PaymentReceiptRepository.openReceipt(receipt);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorText = 'Ошибка открытия чека: $e';
+      });
+    }
+  }
+
   Widget buildEmployeeHeader() {
     return Container(
       width: double.infinity,
@@ -256,6 +326,73 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget buildReceiptsBlock(PaymentRecord payment) {
+    final receipts = payment.receipts;
+    final isAdding = addingReceiptPaymentIds.contains(payment.id);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (receipts.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.receipt_long_outlined, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'Чеки: ${receipts.length}',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: receipts.map((receipt) {
+              final fileName = receipt.fileName.trim().isEmpty
+                  ? 'Чек'
+                  : receipt.fileName.trim();
+
+              return OutlinedButton.icon(
+                onPressed: () {
+                  openReceipt(receipt);
+                },
+                icon: const Icon(Icons.open_in_new, size: 17),
+                label: Text(fileName, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: isLoading || isAdding
+                ? null
+                : () {
+                    addReceiptsToPayment(payment);
+                  },
+            icon: isAdding
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.attach_file, size: 18),
+            label: Text(
+              isAdding
+                  ? 'Загрузка...'
+                  : receipts.isEmpty
+                  ? 'Добавить чек'
+                  : 'Добавить ещё чек',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -344,6 +481,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               ),
             ),
           ],
+          buildReceiptsBlock(payment),
         ],
       ),
     );

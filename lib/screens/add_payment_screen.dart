@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
+import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
 
@@ -39,9 +40,11 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   };
 
   List<Employee> employees = [];
+  List<PickedPaymentReceiptFile> receiptFiles = [];
 
   bool isLoadingEmployees = true;
   bool isSaving = false;
+  bool isPickingReceipts = false;
   String? errorText;
 
   @override
@@ -146,6 +149,47 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     });
   }
 
+  Future<void> pickReceipts() async {
+    if (isSaving || isPickingReceipts) return;
+
+    setState(() {
+      isPickingReceipts = true;
+      errorText = null;
+    });
+
+    try {
+      final pickedFiles = await PaymentReceiptRepository.pickReceiptFiles();
+
+      if (!mounted || pickedFiles.isEmpty) return;
+
+      setState(() {
+        receiptFiles.addAll(pickedFiles);
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorText = 'Ошибка выбора чека: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isPickingReceipts = false;
+        });
+      }
+    }
+  }
+
+  void removeReceiptFile(int index) {
+    if (isSaving) return;
+
+    if (index < 0 || index >= receiptFiles.length) return;
+
+    setState(() {
+      receiptFiles.removeAt(index);
+    });
+  }
+
   Future<void> savePayment() async {
     final selectedEmployee = findSelectedEmployee();
     final amount = parseAmount();
@@ -178,6 +222,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         amount: amount,
         paymentType: selectedPaymentType,
         comment: commentController.text.trim(),
+        receiptFiles: receiptFiles,
       );
 
       if (!mounted) return;
@@ -228,6 +273,98 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
   Widget buildEmptyState() {
     return const Center(child: Text('Нет сотрудников для выплаты'));
+  }
+
+  Widget buildReceiptSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Чеки',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            receiptFiles.isEmpty
+                ? 'Можно прикрепить фото или PDF чека.'
+                : 'Прикреплено: ${receiptFiles.length}',
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (receiptFiles.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...receiptFiles.asMap().entries.map((entry) {
+              final index = entry.key;
+              final file = entry.value;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long_outlined, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${file.originalName} • ${PaymentReceiptRepository.formatFileSize(file.sizeBytes)}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Убрать чек',
+                      onPressed: isSaving
+                          ? null
+                          : () {
+                              removeReceiptFile(index);
+                            },
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: isSaving || isPickingReceipts ? null : pickReceipts,
+              icon: isPickingReceipts
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.attach_file),
+              label: Text(
+                isPickingReceipts
+                    ? 'Выбираем...'
+                    : receiptFiles.isEmpty
+                    ? 'Добавить чек'
+                    : 'Добавить ещё чек',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -344,6 +481,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               border: OutlineInputBorder(),
             ),
           ),
+
+          const SizedBox(height: 14),
+
+          buildReceiptSection(),
 
           if (errorText != null) ...[
             const SizedBox(height: 14),

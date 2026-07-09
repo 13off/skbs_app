@@ -23,6 +23,7 @@ dependencies:
   docx_template: ^0.4.0
   file_saver: ^0.2.14
   mime_type: ^1.0.0
+  file_selector: ^1.0.4
 
 dev_dependencies:
   flutter_test:
