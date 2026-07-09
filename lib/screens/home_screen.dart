@@ -7,6 +7,7 @@ import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
+import '../models/monthly_timesheet_row.dart';
 import '../models/task_item_data.dart';
 
 const Color _bg = Color(0xFFF7F8FA);
@@ -68,12 +69,21 @@ class _HomeScreenState extends State<HomeScreen> {
         today,
         objectName: widget.selectedObjectName,
       ),
+      AttendanceRepository.fetchMonthlyTimesheet(
+        year: today.year,
+        month: today.month,
+        objectName: widget.selectedObjectName,
+        includeFired: true,
+      ),
     ]);
+
+    final financeRows = results[3] as List<MonthlyTimesheetRow>;
 
     return _HomeDashboardData(
       employees: results[0] as List<Employee>,
       workedEmployeeIds: results[1] as Set<String>,
       tasks: results[2] as List<TaskItemData>,
+      finance: _FinanceSummary.fromRows(financeRows),
     );
   }
 
@@ -94,6 +104,25 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return '${date.day} ${months[date.month - 1]}';
+  }
+
+  String monthText(DateTime date) {
+    final months = [
+      'январь',
+      'февраль',
+      'март',
+      'апрель',
+      'май',
+      'июнь',
+      'июль',
+      'август',
+      'сентябрь',
+      'октябрь',
+      'ноябрь',
+      'декабрь',
+    ];
+
+    return months[date.month - 1];
   }
 
   String get objectTitle {
@@ -447,71 +476,71 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Flexible(
-                  child: ListView(
+                  child: ListView.builder(
                     shrinkWrap: true,
-                    children: [
-                      ...items.map((item) {
-                        final isSelected = item.value == selectedValue;
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isSelected = item.value == selectedValue;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () {
-                              Navigator.pop(context, item.value);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isSelected ? _softCard : _card,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected ? _accent : _line,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  _IconBox(
-                                    icon: item.icon,
-                                    color: isSelected ? _accent : _text,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.title,
-                                          style: const TextStyle(
-                                            color: _text,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          item.subtitle,
-                                          style: const TextStyle(
-                                            color: _muted,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: _accent,
-                                    ),
-                                ],
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            Navigator.pop(context, item.value);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isSelected ? _softCard : _card,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected ? _accent : _line,
                               ),
                             ),
+                            child: Row(
+                              children: [
+                                _IconBox(
+                                  icon: item.icon,
+                                  color: isSelected ? _accent : _text,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.title,
+                                        style: const TextStyle(
+                                          color: _text,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.subtitle,
+                                        style: const TextStyle(
+                                          color: _muted,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: _accent,
+                                  ),
+                              ],
+                            ),
                           ),
-                        );
-                      }),
-                    ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -660,6 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Employee> employees,
     required Set<String> workedEmployeeIds,
     required List<TaskItemData> tasks,
+    required _FinanceSummary finance,
     required bool isLoading,
     required bool hasError,
   }) {
@@ -727,6 +757,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       bottomLabel: 'Выполнено',
                       bottomValue: tasksDone,
                     ),
+                    if (widget.profile.isAdmin) ...[
+                      const SizedBox(height: 14),
+                      _FinanceSummaryCard(
+                        title: 'Выплаты за ${monthText(today)}',
+                        objectTitle: objectTitle,
+                        finance: isLoading ? _FinanceSummary.empty : finance,
+                        isLoading: isLoading,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -755,6 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
           employees: data.employees,
           workedEmployeeIds: data.workedEmployeeIds,
           tasks: data.tasks,
+          finance: data.finance,
           isLoading: isLoading,
           hasError: snapshot.hasError,
         );
@@ -767,18 +807,50 @@ class _HomeDashboardData {
   final List<Employee> employees;
   final Set<String> workedEmployeeIds;
   final List<TaskItemData> tasks;
+  final _FinanceSummary finance;
 
   const _HomeDashboardData({
     required this.employees,
     required this.workedEmployeeIds,
     required this.tasks,
+    required this.finance,
   });
 
   static const empty = _HomeDashboardData(
     employees: <Employee>[],
     workedEmployeeIds: <String>{},
     tasks: <TaskItemData>[],
+    finance: _FinanceSummary.empty,
   );
+}
+
+class _FinanceSummary {
+  final double accrued;
+  final double paid;
+
+  const _FinanceSummary({required this.accrued, required this.paid});
+
+  static const empty = _FinanceSummary(accrued: 0, paid: 0);
+
+  double get balance => accrued - paid;
+
+  double get paidProgress {
+    if (accrued <= 0) return 0.0;
+
+    return (paid / accrued).clamp(0.0, 1.0).toDouble();
+  }
+
+  factory _FinanceSummary.fromRows(List<MonthlyTimesheetRow> rows) {
+    double accrued = 0;
+    double paid = 0;
+
+    for (final row in rows) {
+      accrued += row.accrued;
+      paid += row.paid;
+    }
+
+    return _FinanceSummary(accrued: accrued, paid: paid);
+  }
 }
 
 class _ObjectSelectorShell extends StatelessWidget {
@@ -956,26 +1028,19 @@ class _DashboardMetricCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           bottomLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: _text,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            color: _muted,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Text(
                         bottomValue,
                         style: const TextStyle(
                           color: _text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right, color: _muted, size: 20),
                     ],
                   ),
                 ),
@@ -984,6 +1049,204 @@ class _DashboardMetricCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FinanceSummaryCard extends StatelessWidget {
+  final String title;
+  final String objectTitle;
+  final _FinanceSummary finance;
+  final bool isLoading;
+
+  const _FinanceSummaryCard({
+    required this.title,
+    required this.objectTitle,
+    required this.finance,
+    required this.isLoading,
+  });
+
+  String formatMoney(double value) {
+    final sign = value < 0 ? '-' : '';
+    final rounded = value.abs().round().toString();
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < rounded.length; i++) {
+      final indexFromEnd = rounded.length - i;
+
+      buffer.write(rounded[i]);
+
+      if (indexFromEnd > 1 && indexFromEnd % 3 == 1) {
+        buffer.write(' ');
+      }
+    }
+
+    return '$sign${buffer.toString()} ₽';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final balance = finance.balance;
+    final isOverpaid = balance < 0;
+    final balanceTitle = isOverpaid ? 'Переплата' : 'Осталось';
+    final balanceValue = isOverpaid ? balance.abs() : balance;
+    final progressPercent = (finance.paidProgress * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _line),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.040),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _IconBox(icon: Icons.payments_outlined, color: _accent),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _text,
+                        fontSize: 18,
+                        height: 1.18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      objectTitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _FinanceLine(
+            label: 'Надо выплатить',
+            value: isLoading ? '...' : formatMoney(finance.accrued),
+            isMain: true,
+          ),
+          const SizedBox(height: 10),
+          _FinanceLine(
+            label: 'Выплачено',
+            value: isLoading ? '...' : formatMoney(finance.paid),
+          ),
+          const SizedBox(height: 10),
+          _FinanceLine(
+            label: balanceTitle,
+            value: isLoading ? '...' : formatMoney(balanceValue),
+            isMain: true,
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: isLoading ? 0 : finance.paidProgress,
+              backgroundColor: const Color(0xFFE8E2DB),
+              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color: _softCard,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(
+                    color: _accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 9),
+                const Expanded(
+                  child: Text(
+                    'Закрыто выплатами',
+                    style: TextStyle(
+                      color: _muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  isLoading ? '...' : '$progressPercent%',
+                  style: const TextStyle(
+                    color: _text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinanceLine extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isMain;
+
+  const _FinanceLine({
+    required this.label,
+    required this.value,
+    this.isMain = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isMain ? _text : _muted,
+              fontSize: isMain ? 16 : 15,
+              fontWeight: isMain ? FontWeight.w900 : FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          value,
+          style: TextStyle(
+            color: _text,
+            fontSize: isMain ? 20 : 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -999,18 +1262,14 @@ class _ValueBlock extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Flexible(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 46,
-              height: 0.95,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.2,
-            ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: _text,
+            fontSize: 42,
+            height: 0.95,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.2,
           ),
         ),
         const SizedBox(width: 8),
@@ -1018,12 +1277,10 @@ class _ValueBlock extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             secondaryValue,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: _muted,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -1047,8 +1304,6 @@ class _RingProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeProgress = progress.clamp(0.0, 1.0).toDouble();
-
     return SizedBox(
       width: size,
       height: size,
@@ -1059,7 +1314,7 @@ class _RingProgress extends StatelessWidget {
             width: size,
             height: size,
             child: CircularProgressIndicator(
-              value: safeProgress,
+              value: progress.clamp(0.0, 1.0).toDouble(),
               strokeWidth: stroke,
               backgroundColor: const Color(0xFFE8E2DB),
               valueColor: const AlwaysStoppedAnimation<Color>(_accent),
@@ -1070,7 +1325,7 @@ class _RingProgress extends StatelessWidget {
             style: const TextStyle(
               color: _text,
               fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -1088,13 +1343,13 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         color: _softCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(icon, color: color, size: 27),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }
@@ -1113,15 +1368,17 @@ class _SystemMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.06),
+        color: _softCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.16)),
+        border: Border.all(color: _line),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.red.shade700),
+          Icon(icon, color: _text),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1129,17 +1386,18 @@ class _SystemMessage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: Colors.red.shade800,
+                  style: const TextStyle(
+                    color: _text,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   text,
-                  style: TextStyle(
-                    color: Colors.red.shade800,
+                  style: const TextStyle(
+                    color: _muted,
                     fontWeight: FontWeight.w600,
+                    height: 1.25,
                   ),
                 ),
               ],
