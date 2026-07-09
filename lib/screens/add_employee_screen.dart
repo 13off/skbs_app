@@ -22,6 +22,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final commentController = TextEditingController();
 
   late String selectedObjectName;
+  Future<List<String>>? objectNamesFuture;
 
   bool isSaving = false;
   String? errorText;
@@ -37,6 +38,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     } else {
       selectedObjectName = EmployeeRepository.baseObjects.first;
     }
+
+    objectNamesFuture = EmployeeRepository.fetchObjectNames();
   }
 
   @override
@@ -49,9 +52,10 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     super.dispose();
   }
 
-  List<String> get objectItems {
+  List<String> objectItems(List<String>? loadedObjects) {
     final objects = <String>{
       ...EmployeeRepository.baseObjects,
+      ...?loadedObjects,
       selectedObjectName,
     }.toList();
 
@@ -135,61 +139,72 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   }
 
   Widget buildObjectSelector() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Объект',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: selectedObjectName,
-            decoration: const InputDecoration(
-              labelText: 'Выберите объект',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.apartment_outlined),
-            ),
-            items: objectItems.map((objectName) {
-              return DropdownMenuItem<String>(
-                value: objectName,
-                child: Text(objectName),
-              );
-            }).toList(),
-            onChanged: isSaving
-                ? null
-                : (value) {
-                    if (value == null) return;
+    return FutureBuilder<List<String>>(
+      future: objectNamesFuture,
+      builder: (context, snapshot) {
+        final objects = objectItems(snapshot.data);
 
-                    setState(() {
-                      selectedObjectName = value;
-                    });
-                  },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Сотрудник будет добавлен в выбранный объект.',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w700,
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.35),
             ),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Объект',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: selectedObjectName,
+                decoration: const InputDecoration(
+                  labelText: 'Выберите объект',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.apartment_outlined),
+                ),
+                items: objects.map((objectName) {
+                  return DropdownMenuItem<String>(
+                    value: objectName,
+                    child: Text(objectName),
+                  );
+                }).toList(),
+                onChanged: isSaving
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+
+                        setState(() {
+                          selectedObjectName = value;
+                        });
+                      },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                snapshot.connectionState == ConnectionState.waiting
+                    ? 'Загружаем список объектов...'
+                    : 'Сотрудник будет добавлен в выбранный объект.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

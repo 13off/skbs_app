@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee.dart';
+import 'object_repository.dart';
 
 class EmployeeRepository {
   static final _client = Supabase.instance.client;
@@ -22,6 +23,7 @@ class EmployeeRepository {
   static void clearCache() {
     _cachedObjectNames = null;
     _employeesCache.clear();
+    ObjectRepository.clearCache();
   }
 
   static String _employeesCacheKey({
@@ -149,12 +151,18 @@ class EmployeeRepository {
       return List<String>.from(_cachedObjectNames!);
     }
 
+    final objects = <String>{...baseObjects};
+
+    final savedObjectNames = await ObjectRepository.fetchObjectNames(
+      forceRefresh: forceRefresh,
+    );
+
+    objects.addAll(savedObjectNames);
+
     final rows = await _client
         .from('employees')
         .select('object_name')
         .eq('is_active', true);
-
-    final objects = <String>{...baseObjects};
 
     for (final row in rows) {
       final objectName = row['object_name']?.toString().trim();
@@ -180,15 +188,19 @@ class EmployeeRepository {
     required int dailyRate,
     required String comment,
   }) async {
+    final cleanObjectName = objectName.trim().isEmpty
+        ? 'Мурманск'
+        : objectName.trim();
+
+    await ObjectRepository.ensureObjectNameExists(cleanObjectName);
+
     final row = await _client
         .from('employees')
         .insert({
           'fio': fio.trim(),
           'position': position.trim(),
           'phone': phone.trim(),
-          'object_name': objectName.trim().isEmpty
-              ? 'Мурманск'
-              : objectName.trim(),
+          'object_name': cleanObjectName,
           'daily_rate': dailyRate,
           'is_active': true,
           'comment': comment.trim(),
@@ -220,15 +232,19 @@ class EmployeeRepository {
     required int dailyRate,
     required String comment,
   }) async {
+    final cleanObjectName = objectName.trim().isEmpty
+        ? 'Мурманск'
+        : objectName.trim();
+
+    await ObjectRepository.ensureObjectNameExists(cleanObjectName);
+
     await _client
         .from('employees')
         .update({
           'fio': fio.trim(),
           'position': position.trim(),
           'phone': phone.trim(),
-          'object_name': objectName.trim().isEmpty
-              ? 'Мурманск'
-              : objectName.trim(),
+          'object_name': cleanObjectName,
           'daily_rate': dailyRate,
           'comment': comment.trim(),
           'updated_at': DateTime.now().toUtc().toIso8601String(),

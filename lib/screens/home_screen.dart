@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
+import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
@@ -105,6 +106,216 @@ class _HomeScreenState extends State<HomeScreen> {
     return objectName;
   }
 
+  Future<String?> showAddObjectSheet(BuildContext context) async {
+    if (!widget.profile.isAdmin) return null;
+
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final addressController = TextEditingController();
+    final commentController = TextEditingController();
+
+    var isSaving = false;
+    String? errorText;
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> saveObject() async {
+              final isValid = formKey.currentState?.validate() ?? false;
+
+              if (!isValid || isSaving) return;
+
+              setModalState(() {
+                isSaving = true;
+                errorText = null;
+              });
+
+              try {
+                final createdName = await ObjectRepository.addObject(
+                  name: nameController.text,
+                  address: addressController.text,
+                  comment: commentController.text,
+                );
+
+                if (!context.mounted) return;
+
+                Navigator.pop(context, createdName);
+              } catch (error) {
+                if (!context.mounted) return;
+
+                setModalState(() {
+                  isSaving = false;
+                  errorText = error.toString();
+                });
+              }
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  bottom: 12 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: _card,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: _line),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 28,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 44,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4CCC2),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Новый объект',
+                                  style: TextStyle(
+                                    color: _text,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: isSaving
+                                    ? null
+                                    : () {
+                                        Navigator.pop(context);
+                                      },
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: nameController,
+                            enabled: !isSaving,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Название объекта',
+                              hintText: 'Например: Талнах',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.business_outlined),
+                            ),
+                            validator: (value) {
+                              final text = value?.trim() ?? '';
+
+                              if (text.isEmpty) {
+                                return 'Введите название объекта';
+                              }
+
+                              if (text.length < 2) {
+                                return 'Название слишком короткое';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: addressController,
+                            enabled: !isSaving,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: const InputDecoration(
+                              labelText: 'Город / адрес',
+                              hintText: 'Необязательно',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.place_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: commentController,
+                            enabled: !isSaving,
+                            minLines: 2,
+                            maxLines: 4,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: const InputDecoration(
+                              labelText: 'Комментарий',
+                              hintText: 'Необязательно',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.notes_outlined),
+                            ),
+                          ),
+                          if (errorText != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              errorText!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: FilledButton.icon(
+                              onPressed: isSaving ? null : saveObject,
+                              icon: isSaving
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.add_business_outlined),
+                              label: Text(
+                                isSaving ? 'Сохраняем...' : 'Сохранить объект',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+    addressController.dispose();
+    commentController.dispose();
+
+    return result;
+  }
+
   Future<void> showObjectPicker(
     BuildContext context,
     List<String> objects,
@@ -139,6 +350,9 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(18),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.82,
+            ),
             decoration: BoxDecoration(
               color: _card,
               borderRadius: BorderRadius.circular(28),
@@ -184,63 +398,122 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                ...items.map((item) {
-                  final isSelected = item.value == selectedValue;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: InkWell(
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    Navigator.pop(context, '__add_object__');
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _softCard,
                       borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        Navigator.pop(context, item.value);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isSelected ? _softCard : _card,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected ? _accent : _line,
+                      border: Border.all(color: _accent),
+                    ),
+                    child: const Row(
+                      children: [
+                        _IconBox(
+                          icon: Icons.add_business_outlined,
+                          color: _accent,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '+ Добавить объект',
+                                style: TextStyle(
+                                  color: _text,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Создать новый объект в базе',
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            _IconBox(
-                              icon: item.icon,
-                              color: isSelected ? _accent : _text,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        Icon(Icons.chevron_right, color: _text),
+                      ],
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ...items.map((item) {
+                        final isSelected = item.value == selectedValue;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              Navigator.pop(context, item.value);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isSelected ? _softCard : _card,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? _accent : _line,
+                                ),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    item.title,
-                                    style: const TextStyle(
-                                      color: _text,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 16,
+                                  _IconBox(
+                                    icon: item.icon,
+                                    color: isSelected ? _accent : _text,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: const TextStyle(
+                                            color: _text,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          item.subtitle,
+                                          style: const TextStyle(
+                                            color: _muted,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    item.subtitle,
-                                    style: const TextStyle(
-                                      color: _muted,
-                                      fontWeight: FontWeight.w600,
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: _accent,
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
-                            if (isSelected)
-                              const Icon(Icons.check_circle, color: _accent),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -249,6 +522,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (pickedValue == null) return;
+
+    if (pickedValue == '__add_object__') {
+      final createdObjectName = await showAddObjectSheet(context);
+
+      if (createdObjectName == null || createdObjectName.trim().isEmpty) {
+        return;
+      }
+
+      setState(() {
+        objectNamesFuture = EmployeeRepository.fetchObjectNames(
+          forceRefresh: true,
+        );
+      });
+
+      widget.onObjectChanged(createdObjectName);
+      return;
+    }
 
     if (pickedValue == '__all__') {
       widget.onObjectChanged(null);
