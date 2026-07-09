@@ -5,6 +5,7 @@ import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../models/period_timesheet_row.dart';
 import 'employee_repository.dart';
+import 'notification_repository.dart';
 
 class AttendanceRepository {
   static final _client = Supabase.instance.client;
@@ -28,6 +29,14 @@ class AttendanceRepository {
     final day = cleanDate.day.toString().padLeft(2, '0');
 
     return '${cleanDate.year}-$month-$day';
+  }
+
+  static String formatNotificationDate(DateTime date) {
+    final cleanDate = DateTime(date.year, date.month, date.day);
+    final day = cleanDate.day.toString().padLeft(2, '0');
+    final month = cleanDate.month.toString().padLeft(2, '0');
+
+    return '$day.$month.${cleanDate.year}';
   }
 
   static String? cleanObjectName(String? objectName) {
@@ -224,6 +233,25 @@ class AttendanceRepository {
         .upsert(rows, onConflict: 'work_date,employee_id');
 
     clearCache();
+
+    final objectNames = rows
+        .map((row) => row['object_name']?.toString().trim() ?? '')
+        .where((objectName) => objectName.isNotEmpty)
+        .toSet();
+    final notificationObjectName = objectNames.length == 1
+        ? objectNames.first
+        : null;
+    final workedRowsCount = rows
+        .where((row) => _toDouble(row['shifts']) > 0)
+        .length;
+
+    await NotificationRepository.add(
+      title: 'Табель заполнен на ${formatNotificationDate(date)}',
+      body: 'Изменено строк: ${rows.length} • Отработали: $workedRowsCount',
+      objectName: notificationObjectName,
+      entityType: 'attendance',
+      entityId: workDate,
+    );
   }
 
   static Future<List<AttendanceReportRow>> fetchReportForPeriod({
