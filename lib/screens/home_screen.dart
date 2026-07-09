@@ -9,6 +9,7 @@ import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
+import '../widgets/notification_bell.dart';
 
 const Color _bg = Color(0xFFF7F8FA);
 const Color _card = Color(0xFFFFFFFF);
@@ -760,45 +761,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _line),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.025),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(
-                      Icons.notifications_none_outlined,
-                      color: _text,
-                      size: 25,
-                    ),
-                  ),
-                  Positioned(
-                    right: 13,
-                    top: 12,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: _warning,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            NotificationBell(selectedObjectName: widget.selectedObjectName),
           ],
         ),
         const SizedBox(height: 26),
