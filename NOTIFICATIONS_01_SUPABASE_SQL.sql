@@ -36,6 +36,71 @@ create policy "app_notifications_insert_authenticated"
   to authenticated
   with check (true);
 
+create table if not exists public.app_notification_reads (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  notification_id uuid not null references public.app_notifications(id) on delete cascade,
+  read_at timestamptz not null default now(),
+  primary key (user_id, notification_id)
+);
+
+create index if not exists app_notification_reads_notification_idx
+  on public.app_notification_reads (notification_id);
+
+alter table public.app_notification_reads enable row level security;
+
+drop policy if exists "app_notification_reads_select_own" on public.app_notification_reads;
+create policy "app_notification_reads_select_own"
+  on public.app_notification_reads
+  for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "app_notification_reads_insert_own" on public.app_notification_reads;
+create policy "app_notification_reads_insert_own"
+  on public.app_notification_reads
+  for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "app_notification_reads_update_own" on public.app_notification_reads;
+create policy "app_notification_reads_update_own"
+  on public.app_notification_reads
+  for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create table if not exists public.app_notification_clears (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  object_name text not null default '',
+  cleared_at timestamptz not null default now(),
+  primary key (user_id, object_name)
+);
+
+alter table public.app_notification_clears enable row level security;
+
+drop policy if exists "app_notification_clears_select_own" on public.app_notification_clears;
+create policy "app_notification_clears_select_own"
+  on public.app_notification_clears
+  for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "app_notification_clears_insert_own" on public.app_notification_clears;
+create policy "app_notification_clears_insert_own"
+  on public.app_notification_clears
+  for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "app_notification_clears_update_own" on public.app_notification_clears;
+create policy "app_notification_clears_update_own"
+  on public.app_notification_clears
+  for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 create or replace function public.app_notify_change()
 returns trigger
 language plpgsql
