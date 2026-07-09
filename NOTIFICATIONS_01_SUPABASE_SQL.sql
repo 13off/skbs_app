@@ -114,22 +114,6 @@ begin
 
     v_body := concat_ws(' • ', nullif(v_employee_name, ''), nullif(v_object_name, ''));
 
-  elsif TG_TABLE_NAME = 'attendance' then
-    if TG_OP = 'INSERT' then
-      v_title := 'Добавлен табель';
-    elsif TG_OP = 'UPDATE' then
-      v_title := 'Изменён табель';
-    else
-      v_title := 'Удалён табель';
-    end if;
-
-    v_body := concat_ws(
-      ' • ',
-      nullif(v_employee_name, ''),
-      'Дата: ' || coalesce(v_row ->> 'work_date', ''),
-      'Смены: ' || coalesce(v_row ->> 'shifts', '0')
-    );
-
   elsif TG_TABLE_NAME = 'tasks' then
     if TG_OP = 'INSERT' then
       v_title := 'Добавлена задача';
@@ -259,6 +243,16 @@ begin
 end;
 $$;
 
+-- Табель больше не пишется построчно через SQL-триггер.
+-- Одно общее уведомление создаёт приложение после сохранения табеля.
+do $$
+begin
+  if to_regclass('public.attendance') is not null then
+    drop trigger if exists app_notify_attendance on public.attendance;
+  end if;
+end;
+$$;
+
 -- Подключение триггеров только к существующим таблицам.
 do $$
 declare
@@ -267,7 +261,6 @@ declare
 begin
   foreach v_table_name in array array[
     'employees',
-    'attendance',
     'tasks',
     'task_assignees',
     'task_photos',
