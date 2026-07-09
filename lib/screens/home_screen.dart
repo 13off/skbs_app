@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
+import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
-import '../models/monthly_timesheet_row.dart';
 import '../models/task_item_data.dart';
 
 const Color _bg = Color(0xFFF7F8FA);
@@ -39,6 +39,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
+  FinancePeriod financePeriod = FinancePeriod.current(AppState.today);
 
   @override
   void initState() {
@@ -58,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<_HomeDashboardData> loadDashboardData() async {
     final today = AppState.today;
+    final period = financePeriod;
 
     final results = await Future.wait<dynamic>([
       EmployeeRepository.fetchEmployees(objectName: widget.selectedObjectName),
@@ -69,21 +71,17 @@ class _HomeScreenState extends State<HomeScreen> {
         today,
         objectName: widget.selectedObjectName,
       ),
-      AttendanceRepository.fetchMonthlyTimesheet(
-        year: today.year,
-        month: today.month,
+      FinanceSummaryRepository.fetchSummary(
+        period: period,
         objectName: widget.selectedObjectName,
-        includeFired: true,
       ),
     ]);
-
-    final financeRows = results[3] as List<MonthlyTimesheetRow>;
 
     return _HomeDashboardData(
       employees: results[0] as List<Employee>,
       workedEmployeeIds: results[1] as Set<String>,
       tasks: results[2] as List<TaskItemData>,
-      finance: _FinanceSummary.fromRows(financeRows),
+      finance: results[3] as FinanceSummaryData,
     );
   }
 
@@ -106,25 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${date.day} ${months[date.month - 1]}';
   }
 
-  String monthText(DateTime date) {
-    final months = [
-      'январь',
-      'февраль',
-      'март',
-      'апрель',
-      'май',
-      'июнь',
-      'июль',
-      'август',
-      'сентябрь',
-      'октябрь',
-      'ноябрь',
-      'декабрь',
-    ];
-
-    return months[date.month - 1];
-  }
-
   String get objectTitle {
     final objectName = widget.selectedObjectName?.trim();
 
@@ -133,6 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return objectName;
+  }
+
+  bool isSameFinancePeriod(FinancePeriod a, FinancePeriod b) {
+    return a.year == b.year && a.month == b.month;
   }
 
   Future<String?> showAddObjectSheet(BuildContext context) async {
@@ -577,6 +560,162 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.onObjectChanged(pickedValue);
   }
 
+  Future<void> showFinancePeriodPicker(BuildContext context) async {
+    if (!widget.profile.isAdmin) return;
+
+    final periods = <FinancePeriod>[
+      const FinancePeriod.allTime(),
+      ...FinancePeriod.recentMonths(AppState.today, count: 18),
+    ];
+
+    final pickedPeriod = await showModalBottomSheet<FinancePeriod>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(18),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.82,
+            ),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: _line),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4CCC2),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Период выплат',
+                        style: TextStyle(
+                          color: _text,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: periods.length,
+                    itemBuilder: (context, index) {
+                      final period = periods[index];
+                      final isSelected = isSameFinancePeriod(
+                        period,
+                        financePeriod,
+                      );
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            Navigator.pop(context, period);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isSelected ? _softCard : _card,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected ? _accent : _line,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                _IconBox(
+                                  icon: period.isAllTime
+                                      ? Icons.all_inclusive
+                                      : Icons.calendar_month_outlined,
+                                  color: isSelected ? _accent : _text,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        period.pickerTitle(),
+                                        style: const TextStyle(
+                                          color: _text,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        period.isAllTime
+                                            ? 'Вся история табеля и выплат'
+                                            : 'Начисления и выплаты за месяц',
+                                        style: const TextStyle(
+                                          color: _muted,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: _accent,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (pickedPeriod == null) return;
+    if (isSameFinancePeriod(pickedPeriod, financePeriod)) return;
+
+    setState(() {
+      financePeriod = pickedPeriod;
+      dashboardFuture = loadDashboardData();
+    });
+  }
+
   Widget buildObjectSelector(BuildContext context) {
     if (!widget.profile.isAdmin) {
       return _ObjectSelectorShell(
@@ -689,7 +828,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Employee> employees,
     required Set<String> workedEmployeeIds,
     required List<TaskItemData> tasks,
-    required _FinanceSummary finance,
+    required FinanceSummaryData finance,
     required bool isLoading,
     required bool hasError,
   }) {
@@ -760,10 +899,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (widget.profile.isAdmin) ...[
                       const SizedBox(height: 14),
                       _FinanceSummaryCard(
-                        title: 'Выплаты за ${monthText(today)}',
+                        title: 'Выплаты ${financePeriod.title()}',
                         objectTitle: objectTitle,
-                        finance: isLoading ? _FinanceSummary.empty : finance,
+                        periodText: financePeriod.pickerTitle(),
+                        finance: isLoading ? FinanceSummaryData.empty : finance,
                         isLoading: isLoading,
+                        onPeriodTap: () {
+                          showFinancePeriodPicker(context);
+                        },
                       ),
                     ],
                   ],
@@ -807,7 +950,7 @@ class _HomeDashboardData {
   final List<Employee> employees;
   final Set<String> workedEmployeeIds;
   final List<TaskItemData> tasks;
-  final _FinanceSummary finance;
+  final FinanceSummaryData finance;
 
   const _HomeDashboardData({
     required this.employees,
@@ -820,37 +963,8 @@ class _HomeDashboardData {
     employees: <Employee>[],
     workedEmployeeIds: <String>{},
     tasks: <TaskItemData>[],
-    finance: _FinanceSummary.empty,
+    finance: FinanceSummaryData.empty,
   );
-}
-
-class _FinanceSummary {
-  final double accrued;
-  final double paid;
-
-  const _FinanceSummary({required this.accrued, required this.paid});
-
-  static const empty = _FinanceSummary(accrued: 0, paid: 0);
-
-  double get balance => accrued - paid;
-
-  double get paidProgress {
-    if (accrued <= 0) return 0.0;
-
-    return (paid / accrued).clamp(0.0, 1.0).toDouble();
-  }
-
-  factory _FinanceSummary.fromRows(List<MonthlyTimesheetRow> rows) {
-    double accrued = 0;
-    double paid = 0;
-
-    for (final row in rows) {
-      accrued += row.accrued;
-      paid += row.paid;
-    }
-
-    return _FinanceSummary(accrued: accrued, paid: paid);
-  }
 }
 
 class _ObjectSelectorShell extends StatelessWidget {
@@ -1056,14 +1170,18 @@ class _DashboardMetricCard extends StatelessWidget {
 class _FinanceSummaryCard extends StatelessWidget {
   final String title;
   final String objectTitle;
-  final _FinanceSummary finance;
+  final String periodText;
+  final FinanceSummaryData finance;
   final bool isLoading;
+  final VoidCallback onPeriodTap;
 
   const _FinanceSummaryCard({
     required this.title,
     required this.objectTitle,
+    required this.periodText,
     required this.finance,
     required this.isLoading,
+    required this.onPeriodTap,
   });
 
   String formatMoney(double value) {
@@ -1139,7 +1257,41 @@ class _FinanceSummaryCard extends StatelessWidget {
                   ],
                 ),
               ),
+              TextButton.icon(
+                onPressed: isLoading ? null : onPeriodTap,
+                icon: const Icon(Icons.tune, size: 18),
+                label: const Text('Период'),
+              ),
             ],
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: isLoading ? null : onPeriodTap,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              decoration: BoxDecoration(
+                color: _softCard,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_outlined, color: _muted),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      periodText,
+                      style: const TextStyle(
+                        color: _text,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down, color: _text),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 18),
           _FinanceLine(
