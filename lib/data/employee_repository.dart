@@ -256,6 +256,125 @@ class EmployeeRepository {
     await syncEmployeePhoneToPrivateData(employeeId: employeeId, phone: phone);
   }
 
+  static Future<Employee> copyEmployeeToObject({
+    required Employee employee,
+    required String targetObjectName,
+  }) async {
+    final sourceEmployeeId = employee.id?.trim() ?? '';
+    final cleanTargetObjectName = cleanObjectName(targetObjectName);
+
+    if (sourceEmployeeId.isEmpty) {
+      throw Exception('Не найден ID сотрудника');
+    }
+
+    if (cleanTargetObjectName == null) {
+      throw Exception('Выберите объект');
+    }
+
+    final sourceObjectName = employee.objectName.trim();
+
+    if (sourceObjectName == cleanTargetObjectName) {
+      throw Exception('Сотрудник уже находится на этом объекте');
+    }
+
+    const fields =
+        'id, fio, position, phone, object_name, daily_rate, is_active, comment';
+
+    final sourceRow = await _client
+        .from('employees')
+        .select(fields)
+        .eq('id', sourceEmployeeId)
+        .single();
+
+    final fio = sourceRow['fio']?.toString().trim() ?? employee.name.trim();
+
+    final existingDuplicate = await _client
+        .from('employees')
+        .select('id')
+        .eq('fio', fio)
+        .eq('object_name', cleanTargetObjectName)
+        .maybeSingle();
+
+    if (existingDuplicate != null) {
+      throw Exception('На объекте "$cleanTargetObjectName" уже есть "$fio"');
+    }
+
+    await ObjectRepository.ensureObjectNameExists(cleanTargetObjectName);
+
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final createdRow = await _client
+        .from('employees')
+        .insert({
+          'fio': fio,
+          'position':
+              sourceRow['position']?.toString().trim() ??
+              employee.position.trim(),
+          'phone':
+              sourceRow['phone']?.toString().trim() ?? employee.phone.trim(),
+          'object_name': cleanTargetObjectName,
+          'daily_rate': sourceRow['daily_rate'] as int? ?? employee.dailyRate,
+          'is_active': true,
+          'comment':
+              sourceRow['comment']?.toString().trim() ??
+              employee.comment.trim(),
+          'updated_at': now,
+        })
+        .select(fields)
+        .single();
+
+    final newEmployee = Employee.fromSupabase(createdRow);
+    final newEmployeeId = newEmployee.id?.trim() ?? '';
+
+    if (newEmployeeId.isEmpty) {
+      clearCache();
+      return newEmployee;
+    }
+
+    await copyPrivateDataToEmployee(
+      sourceEmployeeId: sourceEmployeeId,
+      targetEmployeeId: newEmployeeId,
+      fallbackPhone: newEmployee.phone,
+    );
+
+    clearCache();
+
+    return newEmployee;
+  }
+
+  static Future<void> copyPrivateDataToEmployee({
+    required String sourceEmployeeId,
+    required String targetEmployeeId,
+    required String fallbackPhone,
+  }) async {
+    final sourcePrivateData = await _client
+        .from('employee_private_data')
+        .select()
+        .eq('employee_id', sourceEmployeeId)
+        .maybeSingle();
+
+    if (sourcePrivateData == null) {
+      await syncEmployeePhoneToPrivateData(
+        employeeId: targetEmployeeId,
+        phone: fallbackPhone,
+      );
+      return;
+    }
+
+    final privateDataForInsert = Map<String, dynamic>.from(sourcePrivateData);
+
+    privateDataForInsert.remove('id');
+    privateDataForInsert.remove('created_at');
+    privateDataForInsert.remove('updated_at');
+
+    privateDataForInsert['employee_id'] = targetEmployeeId;
+    privateDataForInsert['updated_at'] = DateTime.now()
+        .toUtc()
+        .toIso8601String();
+
+    await _client.from('employee_private_data').insert(privateDataForInsert);
+  }
+
   static Future<void> syncEmployeePhoneToPrivateData({
     required String employeeId,
     required String phone,

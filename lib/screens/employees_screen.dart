@@ -210,6 +210,100 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     }).toList();
   }
 
+  String employeeDuplicateKey(Employee employee) {
+    final name = employee.name.trim().toLowerCase();
+
+    final phone = employee.phone
+        .replaceAll(RegExp(r'[^0-9+]'), '')
+        .trim()
+        .toLowerCase();
+
+    final position = employee.position.trim().toLowerCase();
+
+    if (phone.isNotEmpty) {
+      return '$name::$phone';
+    }
+
+    return '$name::$position';
+  }
+
+  List<Employee> collapseDuplicateEmployeesForAllObjects(
+    List<Employee> sourceEmployees,
+  ) {
+    if (concreteObjectName != null) return sourceEmployees;
+
+    final groupedEmployees = <String, List<Employee>>{};
+
+    for (final employee in sourceEmployees) {
+      final key = employeeDuplicateKey(employee);
+
+      groupedEmployees.putIfAbsent(key, () => <Employee>[]).add(employee);
+    }
+
+    final result = <Employee>[];
+
+    for (final group in groupedEmployees.values) {
+      if (group.length == 1) {
+        result.add(group.first);
+        continue;
+      }
+
+      group.sort((a, b) {
+        final activeCompare = b.isActive.toString().compareTo(
+          a.isActive.toString(),
+        );
+
+        if (activeCompare != 0) return activeCompare;
+
+        final objectCompare = a.objectName.compareTo(b.objectName);
+
+        if (objectCompare != 0) return objectCompare;
+
+        return a.name.compareTo(b.name);
+      });
+
+      final mainEmployee = group.first;
+
+      final objectNames = group
+          .map((employee) => employee.objectName.trim())
+          .where((objectName) => objectName.isNotEmpty)
+          .toSet()
+          .toList();
+
+      objectNames.sort();
+
+      final visibleObjectName = objectNames.isEmpty
+          ? mainEmployee.objectName
+          : objectNames.join(', ');
+
+      result.add(
+        Employee(
+          mainEmployee.name,
+          mainEmployee.position,
+          mainEmployee.status,
+          id: mainEmployee.id,
+          phone: mainEmployee.phone,
+          objectName: visibleObjectName,
+          dailyRate: mainEmployee.dailyRate,
+          isActive: group.any((employee) => employee.isActive),
+          comment: mainEmployee.comment,
+        ),
+      );
+    }
+
+    result.sort((a, b) {
+      final activeCompare = b.isActive.toString().compareTo(
+        a.isActive.toString(),
+      );
+
+      if (activeCompare != 0) return activeCompare;
+
+      return a.name.compareTo(b.name);
+    });
+
+    return result;
+  }
+
   Widget buildHeader() {
     return Container(
       width: double.infinity,
@@ -412,7 +506,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               if (employee.objectName.isNotEmpty)
                 Text(
                   employee.objectName,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               Text('Ставка: ${formatMoney(employee.dailyRate)}'),
@@ -458,7 +552,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   List<Widget> buildEmployeesWidgets({
     required List<Employee> activeEmployees,
     required List<Employee> firedEmployees,
-    required int totalEmployees,
   }) {
     if (activeEmployees.isEmpty && firedEmployees.isEmpty) {
       return [
@@ -508,7 +601,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleEmployees = filterEmployees(employees);
+    final visibleEmployees = collapseDuplicateEmployeesForAllObjects(
+      filterEmployees(employees),
+    );
 
     final activeEmployees = visibleEmployees.where((employee) {
       return employee.isActive;
@@ -550,7 +645,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         buildEmployeesWidgets(
           activeEmployees: activeEmployees,
           firedEmployees: firedEmployees,
-          totalEmployees: employees.length,
         ),
       );
     }
