@@ -54,7 +54,6 @@ declare
   v_entity_type text := TG_TABLE_NAME;
   v_employee_id text := '';
   v_employee_name text := '';
-  v_operation text := TG_OP;
 begin
   if TG_OP = 'DELETE' then
     v_row := to_jsonb(OLD);
@@ -263,9 +262,10 @@ $$;
 -- Подключение триггеров только к существующим таблицам.
 do $$
 declare
-  table_name text;
+  v_table_name text;
+  v_trigger_name text;
 begin
-  foreach table_name in array array[
+  foreach v_table_name in array array[
     'employees',
     'attendance',
     'tasks',
@@ -278,12 +278,19 @@ begin
     'user_profiles'
   ]
   loop
-    if to_regclass('public.' || table_name) is not null then
-      execute format('drop trigger if exists app_notify_%I on public.%I', table_name, table_name);
+    if to_regclass('public.' || v_table_name) is not null then
+      v_trigger_name := 'app_notify_' || v_table_name;
+
       execute format(
-        'create trigger app_notify_%I after insert or update or delete on public.%I for each row execute function public.app_notify_change()',
-        table_name,
-        table_name
+        'drop trigger if exists %I on public.%I',
+        v_trigger_name,
+        v_table_name
+      );
+
+      execute format(
+        'create trigger %I after insert or update or delete on public.%I for each row execute function public.app_notify_change()',
+        v_trigger_name,
+        v_table_name
       );
     end if;
   end loop;
