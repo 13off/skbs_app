@@ -11,6 +11,9 @@ class EmployeeRepository {
 
   static List<String>? _cachedObjectNames;
   static final Map<String, _EmployeesCacheEntry> _employeesCache = {};
+  static final Map<String, Future<List<Employee>>> _employeeRequests = {};
+  static Future<List<String>>? _objectNamesRequest;
+  static int _cacheGeneration = 0;
 
   static String? cleanObjectName(String? objectName) {
     final clean = objectName?.trim();
@@ -23,7 +26,9 @@ class EmployeeRepository {
   static void clearCache() {
     _cachedObjectNames = null;
     _employeesCache.clear();
-    ObjectRepository.clearCache();
+    _employeeRequests.clear();
+    _objectNamesRequest = null;
+    _cacheGeneration++;
   }
 
   static String _employeesCacheKey({
@@ -95,45 +100,74 @@ class EmployeeRepository {
       return _copyEmployees(cached.employees);
     }
 
+    final runningRequest = _employeeRequests[cacheKey];
+
+    if (!forceRefresh && runningRequest != null) {
+      final employees = await runningRequest;
+      return _copyEmployees(employees);
+    }
+
+    final generation = _cacheGeneration;
+    final request = _loadEmployees(
+      objectName: cleanObject,
+      includeFired: includeFired,
+    );
+    _employeeRequests[cacheKey] = request;
+
+    try {
+      final employees = await request;
+
+      if (generation == _cacheGeneration) {
+        _employeesCache[cacheKey] = _EmployeesCacheEntry(
+          employees: _copyEmployees(employees),
+          createdAt: DateTime.now(),
+        );
+      }
+
+      return _copyEmployees(employees);
+    } finally {
+      if (identical(_employeeRequests[cacheKey], request)) {
+        _employeeRequests.remove(cacheKey);
+      }
+    }
+  }
+
+  static Future<List<Employee>> _loadEmployees({
+    required String? objectName,
+    required bool includeFired,
+  }) async {
     const fields =
         'id, fio, position, phone, object_name, daily_rate, is_active, comment';
 
     late final List<dynamic> rows;
 
-    if (cleanObject == null && includeFired) {
+    if (objectName == null && includeFired) {
       rows = await _client
           .from('employees')
           .select(fields)
           .order('fio', ascending: true);
-    } else if (cleanObject == null && !includeFired) {
+    } else if (objectName == null && !includeFired) {
       rows = await _client
           .from('employees')
           .select(fields)
           .eq('is_active', true)
           .order('fio', ascending: true);
-    } else if (cleanObject != null && includeFired) {
+    } else if (objectName != null && includeFired) {
       rows = await _client
           .from('employees')
           .select(fields)
-          .eq('object_name', cleanObject)
+          .eq('object_name', objectName)
           .order('fio', ascending: true);
     } else {
       rows = await _client
           .from('employees')
           .select(fields)
-          .eq('object_name', cleanObject!)
+          .eq('object_name', objectName!)
           .eq('is_active', true)
           .order('fio', ascending: true);
     }
 
-    final employees = _employeesFromRows(rows);
-
-    _employeesCache[cacheKey] = _EmployeesCacheEntry(
-      employees: _copyEmployees(employees),
-      createdAt: DateTime.now(),
-    );
-
-    return _copyEmployees(employees);
+    return _employeesFromRows(rows);
   }
 
   static List<Employee> _employeesFromRows(List<dynamic> rows) {
@@ -151,13 +185,31 @@ class EmployeeRepository {
       return List<String>.from(_cachedObjectNames!);
     }
 
-    final result = await ObjectRepository.fetchObjectNames(
+    final runningRequest = _objectNamesRequest;
+
+    if (!forceRefresh && runningRequest != null) {
+      return List<String>.from(await runningRequest);
+    }
+
+    final generation = _cacheGeneration;
+    final request = ObjectRepository.fetchObjectNames(
       forceRefresh: forceRefresh,
     );
+    _objectNamesRequest = request;
 
-    _cachedObjectNames = List<String>.from(result);
+    try {
+      final result = await request;
 
-    return List<String>.from(result);
+      if (generation == _cacheGeneration) {
+        _cachedObjectNames = List<String>.from(result);
+      }
+
+      return List<String>.from(result);
+    } finally {
+      if (identical(_objectNamesRequest, request)) {
+        _objectNamesRequest = null;
+      }
+    }
   }
 
   static Future<String?> addEmployee({
