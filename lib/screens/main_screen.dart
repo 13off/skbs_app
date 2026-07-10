@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_theme.dart';
 import '../models/app_user_profile.dart';
 import 'employees_screen.dart';
 import 'home_screen.dart';
@@ -139,6 +140,54 @@ class _MainScreenState extends State<MainScreen> {
     return pages;
   }
 
+  Widget buildAnimatedPages({
+    required int activeIndex,
+    required List<Widget> pages,
+  }) {
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = animationsDisabled ? Duration.zero : AppMotion.tab;
+
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: List<Widget>.generate(pages.length, (index) {
+          final isActive = index == activeIndex;
+          final horizontalOffset = isActive
+              ? 0.0
+              : index < activeIndex
+              ? -0.018
+              : 0.018;
+
+          return Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !isActive,
+              child: ExcludeSemantics(
+                excluding: !isActive,
+                child: AnimatedOpacity(
+                  opacity: isActive ? 1 : 0,
+                  duration: duration,
+                  curve: isActive
+                      ? AppMotion.enterCurve
+                      : AppMotion.exitCurve,
+                  child: AnimatedSlide(
+                    offset: Offset(horizontalOffset, 0),
+                    duration: duration,
+                    curve: AppMotion.emphasizedCurve,
+                    child: TickerMode(
+                      enabled: isActive,
+                      child: RepaintBoundary(child: pages[index]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
   List<NavigationDestination> buildDestinations() {
     if (widget.profile.isAdmin) {
       return const [
@@ -197,6 +246,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final activeIndex = safeCurrentIndex;
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     _visitedIndexes.add(activeIndex);
 
@@ -204,8 +255,9 @@ class _MainScreenState extends State<MainScreen> {
     final destinations = buildDestinations();
 
     return Scaffold(
-      body: IndexedStack(index: activeIndex, children: pages),
+      body: buildAnimatedPages(activeIndex: activeIndex, pages: pages),
       bottomNavigationBar: NavigationBar(
+        animationDuration: animationsDisabled ? Duration.zero : AppMotion.tab,
         selectedIndex: activeIndex,
         onDestinationSelected: (index) {
           if (index == activeIndex) return;
