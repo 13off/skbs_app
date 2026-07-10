@@ -54,6 +54,13 @@ class AppNotification {
 class NotificationRepository {
   static final _client = Supabase.instance.client;
 
+  static const List<String> foremanAllowedEntityTypes = [
+    'attendance',
+    'tasks',
+    'task_assignees',
+    'task_photos',
+  ];
+
   static String? cleanObjectName(String? objectName) {
     final clean = objectName?.trim();
 
@@ -220,14 +227,22 @@ class NotificationRepository {
     final cleanObject = cleanObjectName(objectName);
 
     try {
-      final clearDate = await _fetchClearDate(cleanObject);
+      final profile = await UserRepository.fetchCurrentProfile();
+      final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
+      final profileObject = cleanObjectName(profile?.objectName);
+      final visibleObject = isForeman ? cleanObject ?? profileObject : cleanObject;
+      final clearDate = await _fetchClearDate(visibleObject);
 
       dynamic query = _client.from('app_notifications').select(
             'id, title, body, actor_user_id, actor_name, actor_email, object_name, entity_type, entity_id, created_at',
           );
 
-      if (cleanObject != null) {
-        query = query.eq('object_name', cleanObject);
+      if (visibleObject != null) {
+        query = query.eq('object_name', visibleObject);
+      }
+
+      if (isForeman) {
+        query = query.inFilter('entity_type', foremanAllowedEntityTypes);
       }
 
       if (clearDate != null) {
