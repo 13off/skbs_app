@@ -2,6 +2,8 @@ name: One-off object menu fix
 
 on:
   workflow_dispatch:
+  issues:
+    types: [opened]
   push:
     branches:
       - main
