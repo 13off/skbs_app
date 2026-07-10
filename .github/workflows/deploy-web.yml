@@ -42,6 +42,13 @@ jobs:
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
 
+      - name: Add web cache busting
+        shell: bash
+        run: |
+          BUILD_ID="${GITHUB_SHA::12}"
+          sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
+          sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
+
       - name: Checkout web repository
         uses: actions/checkout@v4
         with:
