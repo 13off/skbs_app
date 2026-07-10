@@ -103,6 +103,95 @@ jobs:
 
           echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
 
+      - name: Apply iOS and Telegram navigation polish
+        shell: bash
+        run: |
+          if [ ! -f skbs_app/tool/apply_ios_telegram_motion.marker ]; then
+            echo "No pending iOS route patch"
+            exit 0
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('skbs_app')
+          route_file = root / 'lib/navigation/app_page_route.dart'
+          route_file.parent.mkdir(parents=True, exist_ok=True)
+          route_file.write_text(
+              """import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
+
+class AppPageRoute<T> extends CupertinoPageRoute<T> {
+  AppPageRoute({
+    required super.builder,
+    super.settings,
+    super.title,
+    super.fullscreenDialog = false,
+    super.maintainState = true,
+  });
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 270);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 230);
+}
+""",
+              encoding='utf-8',
+          )
+
+          package_import = "import 'package:skbs_app/navigation/app_page_route.dart';\n"
+          changed = [route_file.as_posix()]
+
+          for path in (root / 'lib').rglob('*.dart'):
+              if path == route_file:
+                  continue
+
+              text = path.read_text(encoding='utf-8')
+              if 'CupertinoPageRoute' not in text and 'MaterialPageRoute' not in text:
+                  continue
+
+              updated = text.replace(
+                  "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n",
+                  '',
+              )
+              updated = updated.replace('CupertinoPageRoute', 'AppPageRoute')
+              updated = updated.replace('MaterialPageRoute', 'AppPageRoute')
+
+              if package_import not in updated:
+                  material_import = "import 'package:flutter/material.dart';\n"
+                  if material_import in updated:
+                      updated = updated.replace(
+                          material_import,
+                          material_import + package_import,
+                          1,
+                      )
+                  else:
+                      updated = package_import + updated
+
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(path.as_posix())
+
+          employees_file = root / 'lib/screens/employees_screen.dart'
+          employees_text = employees_file.read_text(encoding='utf-8')
+          employees_updated = employees_text.replace(
+              'if (showLoading || employees.isEmpty) {',
+              'if (showLoading) {',
+          )
+          if employees_updated != employees_text:
+              employees_file.write_text(employees_updated, encoding='utf-8')
+              changed.append(employees_file.as_posix())
+
+          marker = root / 'tool/apply_ios_telegram_motion.marker'
+          marker.unlink()
+
+          print(f'Updated iOS navigation files: {len(set(changed))}')
+          PY
+
+          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
+          echo "SOURCE_COMMIT_MESSAGE=добавлена единая iOS навигация без повторной загрузки" >> "$GITHUB_ENV"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -141,7 +230,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "добавлен интерактивный свайп назад"
+          git commit -m "${SOURCE_COMMIT_MESSAGE:-добавлен интерактивный свайп назад}"
           git push
 
       - name: Add web cache busting and GitHub Pages fallback
