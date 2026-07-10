@@ -175,10 +175,13 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
   List<MonthlyTimesheetRow> buildFilteredRows() {
     final query = searchController.text.trim().toLowerCase();
+    final workedRows = rows
+        .where((row) => row.totalShifts > 0)
+        .toList(growable: false);
 
-    if (query.isEmpty) return rows;
+    if (query.isEmpty) return workedRows;
 
-    return rows.where((row) {
+    return workedRows.where((row) {
       final employee = row.employee;
 
       return employee.name.toLowerCase().contains(query) ||
@@ -197,7 +200,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
             includeFired: includeFiredEmployees,
           );
 
-    return collapseDuplicateRows(sourceRows);
+    return collapseDuplicateRows(sourceRows)
+        .where((row) => row.totalShifts > 0)
+        .toList(growable: false);
   }
 
   Future<void> loadReport() async {
@@ -955,7 +960,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     }
 
     if (visibleRows.isEmpty) {
-      return const Center(child: Text('Нет сотрудников по этому поиску'));
+      return const Center(child: Text('Нет сотрудников со сменами за этот месяц'));
     }
 
     return Scrollbar(
