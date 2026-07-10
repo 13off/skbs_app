@@ -9,6 +9,8 @@ class ObjectRepository {
 
   static List<ConstructionObject>? _cachedObjects;
   static DateTime? _cachedObjectsAt;
+  static Future<List<ConstructionObject>>? _objectsInFlight;
+  static int _cacheGeneration = 0;
 
   static String? cleanObjectName(String? value) {
     final clean = value?.trim();
@@ -25,6 +27,8 @@ class ObjectRepository {
   static void clearCache() {
     _cachedObjects = null;
     _cachedObjectsAt = null;
+    _objectsInFlight = null;
+    _cacheGeneration++;
   }
 
   static bool get _isObjectsCacheFresh {
@@ -68,41 +72,31 @@ class ObjectRepository {
   }
 
   static Future<bool> _objectNameExistsAnywhere(String objectName) async {
-    if (await _hasObjectRow(objectName)) return true;
+    final results = await Future.wait<bool>([
+      _hasObjectRow(objectName),
+      _hasObjectNameInTable(
+        table: 'employees',
+        selectColumn: 'id',
+        objectName: objectName,
+      ),
+      _hasObjectNameInTable(
+        table: 'attendance',
+        selectColumn: 'employee_id',
+        objectName: objectName,
+      ),
+      _hasObjectNameInTable(
+        table: 'tasks',
+        selectColumn: 'id',
+        objectName: objectName,
+      ),
+      _hasObjectNameInTable(
+        table: 'user_profiles',
+        selectColumn: 'id',
+        objectName: objectName,
+      ),
+    ]);
 
-    if (await _hasObjectNameInTable(
-      table: 'employees',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      return true;
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'attendance',
-      selectColumn: 'employee_id',
-      objectName: objectName,
-    )) {
-      return true;
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'tasks',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      return true;
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'user_profiles',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      return true;
-    }
-
-    return false;
+    return results.any((exists) => exists);
   }
 
   static Future<List<ConstructionObject>> fetchObjects({
@@ -112,6 +106,34 @@ class ObjectRepository {
       return List<ConstructionObject>.from(_cachedObjects!);
     }
 
+    final runningRequest = _objectsInFlight;
+
+    if (!forceRefresh && runningRequest != null) {
+      final objects = await runningRequest;
+      return List<ConstructionObject>.from(objects);
+    }
+
+    final generation = _cacheGeneration;
+    final request = _loadObjects();
+    _objectsInFlight = request;
+
+    try {
+      final objects = await request;
+
+      if (generation == _cacheGeneration) {
+        _cachedObjects = List<ConstructionObject>.from(objects);
+        _cachedObjectsAt = DateTime.now();
+      }
+
+      return List<ConstructionObject>.from(objects);
+    } finally {
+      if (identical(_objectsInFlight, request)) {
+        _objectsInFlight = null;
+      }
+    }
+  }
+
+  static Future<List<ConstructionObject>> _loadObjects() async {
     try {
       final rows = await _client
           .from('objects')
@@ -119,17 +141,12 @@ class ObjectRepository {
           .eq('is_active', true)
           .order('name', ascending: true);
 
-      final objects = rows
+      return rows
           .map<ConstructionObject>((row) {
             return ConstructionObject.fromSupabase(row);
           })
           .where((object) => object.name.trim().isNotEmpty)
           .toList();
-
-      _cachedObjects = List<ConstructionObject>.from(objects);
-      _cachedObjectsAt = DateTime.now();
-
-      return List<ConstructionObject>.from(objects);
     } catch (error) {
       if (_isMissingObjectsTableError(error)) {
         return <ConstructionObject>[];
@@ -266,25 +283,24 @@ class ObjectRepository {
       await addObject(name: cleanNewName);
     }
 
-    await _client
-        .from('employees')
-        .update({'object_name': cleanNewName, 'updated_at': now})
-        .eq('object_name', cleanOldName);
-
-    await _client
-        .from('attendance')
-        .update({'object_name': cleanNewName, 'updated_at': now})
-        .eq('object_name', cleanOldName);
-
-    await _client
-        .from('tasks')
-        .update({'object_name': cleanNewName, 'updated_at': now})
-        .eq('object_name', cleanOldName);
-
-    await _client
-        .from('user_profiles')
-        .update({'object_name': cleanNewName})
-        .eq('object_name', cleanOldName);
+    await Future.wait<void>([
+      _client
+          .from('employees')
+          .update({'object_name': cleanNewName, 'updated_at': now})
+          .eq('object_name', cleanOldName),
+      _client
+          .from('attendance')
+          .update({'object_name': cleanNewName, 'updated_at': now})
+          .eq('object_name', cleanOldName),
+      _client
+          .from('tasks')
+          .update({'object_name': cleanNewName, 'updated_at': now})
+          .eq('object_name', cleanOldName),
+      _client
+          .from('user_profiles')
+          .update({'object_name': cleanNewName})
+          .eq('object_name', cleanOldName),
+    ]);
 
     clearCache();
 
@@ -321,6 +337,16 @@ class ObjectRepository {
     final cleanName = cleanObjectName(objectName);
 
     if (cleanName == null) return;
+
+    final normalizedName = _normalizedName(cleanName);
+    final cachedObjects = _cachedObjects;
+
+    if (cachedObjects != null &&
+        cachedObjects.any(
+          (object) => _normalizedName(object.name) == normalizedName,
+        )) {
+      return;
+    }
 
     try {
       final existing = await _client
