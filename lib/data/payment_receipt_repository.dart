@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
+import 'image_compression_service.dart';
+
 class PaymentReceipt {
   final String id;
   final String paymentId;
@@ -63,14 +65,15 @@ class PaymentReceiptRepository {
   static final _client = Supabase.instance.client;
 
   static const bucketName = 'payment-receipts';
+  static const int maxFileSizeBytes = 20 * 1024 * 1024;
 
+  /// Совпадает с форматами, разрешёнными в Supabase Storage.
   static const List<String> allowedExtensions = [
     'pdf',
     'jpg',
     'jpeg',
     'png',
     'webp',
-    'txt',
   ];
 
   static String extensionFromFileName(String name) {
@@ -93,7 +96,6 @@ class PaymentReceiptRepository {
     if (clean == 'jpg' || clean == 'jpeg') return 'image/jpeg';
     if (clean == 'png') return 'image/png';
     if (clean == 'webp') return 'image/webp';
-    if (clean == 'txt') return 'text/plain';
 
     return 'application/octet-stream';
   }
@@ -145,6 +147,17 @@ class PaymentReceiptRepository {
     return '${mb.toStringAsFixed(1)} МБ';
   }
 
+  static void validateFileSize({
+    required String fileName,
+    required int sizeBytes,
+  }) {
+    if (sizeBytes <= maxFileSizeBytes) return;
+
+    throw Exception(
+      'Файл "$fileName" слишком большой: ${formatFileSize(sizeBytes)}. Максимум 20 МБ.',
+    );
+  }
+
   static Future<List<PickedPaymentReceiptFile>> pickReceiptFiles() async {
     if (kIsWeb) {
       return pickReceiptFilesWeb();
@@ -181,6 +194,8 @@ class PaymentReceiptRepository {
       if (bytes.isEmpty) {
         throw Exception('Не удалось прочитать файл: $originalName');
       }
+
+      validateFileSize(fileName: originalName, sizeBytes: bytes.length);
 
       final storageFileName = safeStorageFileName(
         originalName: originalName,
@@ -226,33 +241,58 @@ class PaymentReceiptRepository {
               ? 'receipt_${i + 1}'
               : file.name.trim();
 
-          final extension = extensionFromFileName(originalName);
+          final originalExtension = extensionFromFileName(originalName);
 
-          if (!isAllowedExtension(extension)) {
+          if (!isAllowedExtension(originalExtension)) {
             throw Exception('Неподдерживаемый формат файла: $originalName');
           }
 
-          final bytes = await readWebFileAsBytes(file);
+          final originalBytes = await readWebFileAsBytes(file);
 
-          if (bytes.isEmpty) {
+          if (originalBytes.isEmpty) {
             throw Exception('Не удалось прочитать файл: $originalName');
           }
+
+          var finalBytes = originalBytes;
+          var finalExtension = originalExtension;
+          var finalContentType = file.type.trim().isEmpty
+              ? contentTypeFromExtension(originalExtension)
+              : file.type.trim();
+
+          if (ImageCompressionService.isSupportedImageExtension(
+            originalExtension,
+          )) {
+            final compressed =
+                await ImageCompressionService.compressHtmlImageFile(
+                  file: file,
+                  originalBytes: originalBytes,
+                  originalName: originalName,
+                  maxDimension: 1800,
+                  jpegQuality: 0.82,
+                );
+
+            finalBytes = compressed.bytes;
+            finalExtension = compressed.extension.isEmpty
+                ? originalExtension
+                : compressed.extension;
+            finalContentType = compressed.contentType;
+          }
+
+          validateFileSize(fileName: originalName, sizeBytes: finalBytes.length);
 
           final storageFileName = safeStorageFileName(
             originalName: originalName,
             index: i + 1,
-            extension: extension,
+            extension: finalExtension,
           );
 
           pickedFiles.add(
             PickedPaymentReceiptFile(
               originalName: originalName,
               storageFileName: storageFileName,
-              extension: extension,
-              contentType: file.type.trim().isEmpty
-                  ? contentTypeFromExtension(extension)
-                  : file.type.trim(),
-              bytes: bytes,
+              extension: finalExtension,
+              contentType: finalContentType,
+              bytes: finalBytes,
             ),
           );
         }
@@ -318,6 +358,8 @@ class PaymentReceiptRepository {
     final uploadedReceipts = <PaymentReceipt>[];
 
     for (final file in files) {
+      validateFileSize(fileName: file.originalName, sizeBytes: file.sizeBytes);
+
       final path = '$cleanEmployeeId/$cleanPaymentId/${file.storageFileName}';
 
       await _client.storage
