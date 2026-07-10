@@ -1,4 +1,4 @@
-name: Deploy Flutter Web to GitHub Pages
+name: Build and publish web
 
 on:
   push:
@@ -6,22 +6,19 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: pages
+  group: app-stroy-web
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source app
         uses: actions/checkout@v4
+        with:
+          path: skbs_app
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -30,24 +27,39 @@ jobs:
           cache: true
 
       - name: Flutter pub get
+        working-directory: skbs_app
         run: flutter pub get
 
-      - name: Build web
-        run: flutter build web --release --base-href /skbs_app/
+      - name: Build Flutter Web
+        working-directory: skbs_app
+        run: flutter build web --release --base-href /app-stroy_web/
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Checkout web repository
+        uses: actions/checkout@v4
         with:
-          path: build/web
+          repository: 13off/app-stroy_web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: app-stroy_web
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
+      - name: Replace web files
+        shell: bash
+        run: |
+          find app-stroy_web -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -R skbs_app/build/web/. app-stroy_web/
+          touch app-stroy_web/.nojekyll
 
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit and push web build
+        working-directory: app-stroy_web
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No web changes to publish"
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "обновлена веб версия"
+          git push
