@@ -10,13 +10,17 @@ abstract final class AppColors {
 }
 
 abstract final class AppMotion {
-  static const fast = Duration(milliseconds: 180);
-  static const regular = Duration(milliseconds: 280);
-  static const page = Duration(milliseconds: 340);
-  static const tab = Duration(milliseconds: 300);
+  static const fast = Duration(milliseconds: 160);
+  static const regular = Duration(milliseconds: 240);
+  static const page = Duration(milliseconds: 260);
+  static const tab = Duration(milliseconds: 260);
 
   static const Curve enterCurve = Curves.easeOutCubic;
-  static const Curve exitCurve = Curves.easeInCubic;
+
+  /// Выход должен начинаться сразу, иначе после нажатия «Назад» первые
+  /// миллисекунды почти ничего не менялось и кнопка казалась нерабочей.
+  static const Curve exitCurve = Curves.easeOutCubic;
+
   static const Curve emphasizedCurve = Curves.easeInOutCubicEmphasized;
 }
 
@@ -38,23 +42,22 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
       return child;
     }
 
+    final isPopping = animation.status == AnimationStatus.reverse;
     final curvedAnimation = CurvedAnimation(
       parent: animation,
       curve: AppMotion.enterCurve,
       reverseCurve: AppMotion.exitCurve,
     );
 
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0, end: 1).animate(curvedAnimation),
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0.025, 0),
-          end: Offset.zero,
-        ).animate(curvedAnimation),
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.992, end: 1).animate(curvedAnimation),
-          child: child,
-        ),
+    final slideAnimation = Tween<Offset>(
+      begin: Offset(isPopping ? 0.055 : 0.035, 0),
+      end: Offset.zero,
+    ).animate(curvedAnimation);
+
+    return RepaintBoundary(
+      child: FadeTransition(
+        opacity: Tween<double>(begin: 0, end: 1).animate(curvedAnimation),
+        child: SlideTransition(position: slideAnimation, child: child),
       ),
     );
   }
