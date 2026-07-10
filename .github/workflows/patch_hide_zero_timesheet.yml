@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/patch_hide_zero_timesheet.yml'
+      - '.github/patch_hide_zero_timesheet.trigger'
 
 permissions:
   contents: write
