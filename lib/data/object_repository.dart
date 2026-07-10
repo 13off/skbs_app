@@ -283,7 +283,7 @@ class ObjectRepository {
       await addObject(name: cleanNewName);
     }
 
-    await Future.wait<void>([
+    await Future.wait<dynamic>([
       _client
           .from('employees')
           .update({'object_name': cleanNewName, 'updated_at': now})
