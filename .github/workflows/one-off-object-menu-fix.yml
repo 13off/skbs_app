@@ -1,0 +1,333 @@
+name: One-off object menu fix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/one-off-object-menu-fix.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch object navigation
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              if old not in text:
+                  raise SystemExit(f'Не найден блок: {label}')
+              return text.replace(old, new, 1)
+
+          main_path = Path('lib/screens/main_screen.dart')
+          main = main_path.read_text(encoding='utf-8')
+
+          main = replace_once(
+              main,
+              "import 'object_management_screen.dart';\n",
+              '',
+              'import object management',
+          )
+          main = replace_once(
+              main,
+              '    return widget.profile.isAdmin ? 6 : 4;',
+              '    return widget.profile.isAdmin ? 5 : 4;',
+              'admin page count',
+          )
+
+          old_admin_pages = '''    if (widget.profile.isAdmin) {
+      switch (index) {
+        case 0:
+          return HomeScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+          );
+        case 1:
+          return ObjectManagementScreen(
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+          );
+        case 2:
+          return EmployeesScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 3:
+          return TimesheetScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 4:
+          return TasksScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 5:
+          return ProfileScreen(profile: widget.profile);
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+'''
+          new_admin_pages = '''    if (widget.profile.isAdmin) {
+      switch (index) {
+        case 0:
+          return HomeScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+          );
+        case 1:
+          return EmployeesScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 2:
+          return TimesheetScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 3:
+          return TasksScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 4:
+          return ProfileScreen(profile: widget.profile);
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+'''
+          main = replace_once(main, old_admin_pages, new_admin_pages, 'admin pages')
+
+          old_object_destination = '''        NavigationDestination(
+          icon: Icon(Icons.business_outlined),
+          selectedIcon: Icon(Icons.business),
+          label: 'Объекты',
+        ),
+'''
+          main = replace_once(
+              main,
+              old_object_destination,
+              '',
+              'objects navigation destination',
+          )
+          main_path.write_text(main, encoding='utf-8')
+
+          home_path = Path('lib/screens/home_screen.dart')
+          home = home_path.read_text(encoding='utf-8')
+
+          home = replace_once(
+              home,
+              "  static const String _editObjectPrefix = '__edit_object__::';\n",
+              "  static const String _editObjectPrefix = '__edit_object__::';\n  static const String _deleteObjectPrefix = '__delete_object__::';\n",
+              'delete prefix',
+          )
+
+          rename_block = '''  Future<void> handleRenameObject(String oldName) async {
+    final newName = await showObjectNameSheet(currentName: oldName);
+
+    if (newName == null || newName.trim().isEmpty) return;
+
+    refreshObjectsAndDashboard();
+
+    if (isSameObject(widget.selectedObjectName, oldName)) {
+      widget.onObjectChanged(newName);
+    }
+  }
+'''
+          delete_method = '''  Future<void> handleRenameObject(String oldName) async {
+    final newName = await showObjectNameSheet(currentName: oldName);
+
+    if (newName == null || newName.trim().isEmpty) return;
+
+    refreshObjectsAndDashboard();
+
+    if (isSameObject(widget.selectedObjectName, oldName)) {
+      widget.onObjectChanged(newName);
+    }
+  }
+
+  Future<void> handleDeleteObject(String objectName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Удалить объект?'),
+          content: Text(
+            'Объект "$objectName" будет удалён из списка. Если к нему привязаны сотрудники, табель, задачи или пользователь, удаление будет запрещено.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final wasSelected = isSameObject(widget.selectedObjectName, objectName);
+
+      await ObjectRepository.deleteObject(name: objectName);
+
+      if (wasSelected) {
+        widget.onObjectChanged(null);
+      }
+
+      refreshObjectsAndDashboard();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Объект "$objectName" удалён')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
+  }
+'''
+          home = replace_once(home, rename_block, delete_method, 'delete handler')
+
+          old_tile_actions = '''                          onEdit: () {
+                            Navigator.pop(
+                              context,
+                              '$_editObjectPrefix$objectName',
+                            );
+                          },
+'''
+          new_tile_actions = '''                          onEdit: () {
+                            Navigator.pop(
+                              context,
+                              '$_editObjectPrefix$objectName',
+                            );
+                          },
+                          onDelete: () {
+                            Navigator.pop(
+                              context,
+                              '$_deleteObjectPrefix$objectName',
+                            );
+                          },
+'''
+          home = replace_once(home, old_tile_actions, new_tile_actions, 'tile delete action')
+
+          old_picker_handling = '''    if (pickedValue.startsWith(_editObjectPrefix)) {
+      final objectName = pickedValue.substring(_editObjectPrefix.length);
+      await handleRenameObject(objectName);
+      return;
+    }
+
+    if (pickedValue == _allObjectsValue) {
+'''
+          new_picker_handling = '''    if (pickedValue.startsWith(_editObjectPrefix)) {
+      final objectName = pickedValue.substring(_editObjectPrefix.length);
+      await handleRenameObject(objectName);
+      return;
+    }
+
+    if (pickedValue.startsWith(_deleteObjectPrefix)) {
+      final objectName = pickedValue.substring(_deleteObjectPrefix.length);
+      await handleDeleteObject(objectName);
+      return;
+    }
+
+    if (pickedValue == _allObjectsValue) {
+'''
+          home = replace_once(home, old_picker_handling, new_picker_handling, 'picker delete handling')
+
+          old_fields = '''  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback? onEdit;
+'''
+          new_fields = '''  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+'''
+          home = replace_once(home, old_fields, new_fields, 'tile delete field')
+
+          old_constructor = '''    required this.isSelected,
+    required this.onTap,
+    this.onEdit,
+  });
+'''
+          new_constructor = '''    required this.isSelected,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
+'''
+          home = replace_once(home, old_constructor, new_constructor, 'tile delete constructor')
+
+          old_edit_button = '''              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Редактировать объект',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
+              if (isSelected)
+'''
+          new_edit_button = '''              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Редактировать объект',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
+              if (onDelete != null)
+                IconButton(
+                  tooltip: 'Удалить объект',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                ),
+              if (isSelected)
+'''
+          home = replace_once(home, old_edit_button, new_edit_button, 'delete icon button')
+
+          home_path.write_text(home, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          rm -f .github/workflows/one-off-object-menu-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "убраны объекты из меню и добавлено удаление"
+          git push
+
+      - name: Start web deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-web.yml --ref main
