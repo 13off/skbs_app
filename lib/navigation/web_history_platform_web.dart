@@ -9,8 +9,6 @@ class WebHistoryPlatform {
 
   static bool _initialized = false;
   static bool _handlingBrowserBack = false;
-  static bool _ignoreNextPop = false;
-  static int _depth = 0;
 
   static void initialize(BrowserBackCallback onBack) {
     _onBack = onBack;
@@ -18,11 +16,10 @@ class WebHistoryPlatform {
     if (_initialized) return;
 
     _initialized = true;
-    _depth = 0;
 
     try {
       html.window.history.replaceState(
-        <String, Object>{'appstroy': true, 'depth': 0},
+        <String, Object>{'appstroy': true, 'base': true},
         html.document.title,
         html.window.location.href,
       );
@@ -41,55 +38,31 @@ class WebHistoryPlatform {
     _onBack = null;
     _initialized = false;
     _handlingBrowserBack = false;
-    _ignoreNextPop = false;
-    _depth = 0;
   }
 
   static void pushRoute() {
-    if (!_initialized || _handlingBrowserBack) return;
-
-    _depth++;
-    _pushRouteState();
+    // Не пишем каждый экран Flutter в browser history.
+    // На мобильном свайп назад может проскочить сразу несколько history entries.
+    // Поэтому держим только один защитный слой и делаем ровно один Navigator.pop().
   }
 
   static void appRoutePopped() {
-    if (!_initialized || _handlingBrowserBack || _depth <= 0) return;
-
-    _depth--;
-    _ignoreNextPop = true;
-
-    try {
-      html.window.history.back();
-    } catch (_) {
-      _ignoreNextPop = false;
-    }
+    // Обычная стрелка назад внутри Flutter не должна двигать browser history.
   }
 
   static void _handlePopState(html.PopStateEvent event) {
-    if (_ignoreNextPop) {
-      _ignoreNextPop = false;
-      return;
-    }
-
-    if (_depth <= 0) {
-      _pushGuardState();
-      return;
-    }
+    if (_handlingBrowserBack) return;
 
     _handlingBrowserBack = true;
-    _depth--;
 
     Future<bool>.sync(() async {
       final callback = _onBack;
       if (callback == null) return false;
 
       return await callback();
-    }).then((didPop) {
-      if (didPop) return;
-
-      _depth++;
-      _pushRouteState();
     }).whenComplete(() {
+      _pushGuardState();
+
       scheduleMicrotask(() {
         _handlingBrowserBack = false;
       });
@@ -99,17 +72,7 @@ class WebHistoryPlatform {
   static void _pushGuardState() {
     try {
       html.window.history.pushState(
-        <String, Object>{'appstroy': true, 'guard': true, 'depth': _depth},
-        html.document.title,
-        html.window.location.href,
-      );
-    } catch (_) {}
-  }
-
-  static void _pushRouteState() {
-    try {
-      html.window.history.pushState(
-        <String, Object>{'appstroy': true, 'route': true, 'depth': _depth},
+        <String, Object>{'appstroy': true, 'guard': true},
         html.document.title,
         html.window.location.href,
       );
