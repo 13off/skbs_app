@@ -1,0 +1,1 @@
+replace MaterialPageRoute with CupertinoPageRoute after analysis and web build
