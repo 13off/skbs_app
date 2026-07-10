@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/attendance_repository.dart';
 import '../data/timesheet_excel_exporter.dart';
+import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import 'add_payment_screen.dart';
 
@@ -15,7 +16,7 @@ class PeriodTimesheetScreen extends StatefulWidget {
 }
 
 class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
-  final searchController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   late DateTime selectedMonth;
 
@@ -51,6 +52,11 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     return List.generate(daysInMonth, (index) => index + 1);
   }
 
+  bool get isAllObjects {
+    final objectName = widget.selectedObjectName?.trim();
+    return objectName == null || objectName.isEmpty;
+  }
+
   String monthName(int month) {
     const monthNames = [
       'Январь',
@@ -77,9 +83,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   String get objectTitle {
     final objectName = widget.selectedObjectName?.trim();
 
-    if (objectName == null || objectName.isEmpty) {
-      return 'Все объекты';
-    }
+    if (objectName == null || objectName.isEmpty) return 'Все объекты';
 
     return objectName;
   }
@@ -91,35 +95,14 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         .replaceAll('\\', '_');
   }
 
-  List<MonthlyTimesheetRow> buildFilteredRows() {
-    final query = searchController.text.trim().toLowerCase();
-
-    if (query.isEmpty) return rows;
-
-    return rows
-        .where((row) {
-          final name = row.employee.name.toLowerCase();
-          final position = row.employee.position.toLowerCase();
-          final objectName = row.employee.objectName.toLowerCase();
-
-          return name.contains(query) ||
-              position.contains(query) ||
-              objectName.contains(query);
-        })
-        .toList(growable: false);
-  }
-
   String formatShift(double value) {
-    if (value % 1 == 0) {
-      return value.toInt().toString();
-    }
+    if (value % 1 == 0) return value.toInt().toString();
 
     return value.toStringAsFixed(1).replaceAll('.', ',');
   }
 
   String formatMoney(num value) {
     final text = value.round().toString();
-
     final formatted = text.replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
       (_) => ' ',
@@ -128,12 +111,12 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     return '$formatted ₽';
   }
 
-  bool isSameMonth(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month;
-  }
-
   DateTime cleanMonth(DateTime month) {
     return DateTime(month.year, month.month, 1);
+  }
+
+  bool isSameMonth(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month;
   }
 
   List<DateTime> sortMonths(Iterable<DateTime> months) {
@@ -148,15 +131,73 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     return result;
   }
 
-  bool isSameEmployee(MonthlyTimesheetRow a, MonthlyTimesheetRow b) {
-    final aId = a.employee.id;
-    final bId = b.employee.id;
+  String normalizedEmployeeKey(Employee employee) {
+    final cleanName = employee.name
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replaceAll(RegExp(r'\s+'), ' ');
 
-    if (aId != null && bId != null) {
-      return aId == bId;
+    if (cleanName.isNotEmpty) return cleanName;
+
+    final cleanId = employee.id?.trim();
+    if (cleanId != null && cleanId.isNotEmpty) return cleanId;
+
+    return '${employee.position}_${employee.objectName}'.toLowerCase();
+  }
+
+  List<MonthlyTimesheetRow> collapseDuplicateRows(
+    List<MonthlyTimesheetRow> sourceRows,
+  ) {
+    if (!isAllObjects) return sourceRows;
+
+    final drafts = <String, _TimesheetDisplayDraft>{};
+
+    for (final row in sourceRows) {
+      final key = normalizedEmployeeKey(row.employee);
+      final draft = drafts.putIfAbsent(
+        key,
+        () => _TimesheetDisplayDraft(row.employee),
+      );
+
+      draft.add(row);
     }
 
-    return a.employee.name == b.employee.name;
+    final result = drafts.values
+        .map((draft) => draft.toRow())
+        .where((row) => row.employee.name.trim().isNotEmpty)
+        .toList();
+
+    result.sort((a, b) => a.employee.name.compareTo(b.employee.name));
+
+    return result;
+  }
+
+  List<MonthlyTimesheetRow> buildFilteredRows() {
+    final query = searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) return rows;
+
+    return rows.where((row) {
+      final employee = row.employee;
+
+      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query);
+    }).toList(growable: false);
+  }
+
+  Future<List<MonthlyTimesheetRow>> fetchRowsForMonth(DateTime month) async {
+    final sourceRows = isSameMonth(month, selectedMonth) && errorText == null
+        ? rows
+        : await AttendanceRepository.fetchMonthlyTimesheet(
+            year: month.year,
+            month: month.month,
+            objectName: widget.selectedObjectName,
+            includeFired: includeFiredEmployees,
+          );
+
+    return collapseDuplicateRows(sourceRows);
   }
 
   Future<void> loadReport() async {
@@ -181,7 +222,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
       if (!mounted || requestId != _loadRequestId) return;
 
       setState(() {
-        rows = result;
+        rows = collapseDuplicateRows(result);
         isLoading = false;
       });
     } catch (e) {
@@ -223,9 +264,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
-
                     const SizedBox(height: 18),
-
                     Row(
                       children: [
                         const Expanded(
@@ -238,16 +277,12 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => Navigator.pop(context),
                           icon: const Icon(Icons.close),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
-
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -289,9 +324,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -305,7 +338,6 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           ),
                       itemBuilder: (context, index) {
                         final month = index + 1;
-
                         final isSelected =
                             selectedMonth.year == tempYear &&
                             selectedMonth.month == month;
@@ -313,18 +345,13 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
                           onTap: () {
-                            Navigator.pop(
-                              context,
-                              DateTime(tempYear, month, 1),
-                            );
+                            Navigator.pop(context, DateTime(tempYear, month, 1));
                           },
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer
+                                  ? Theme.of(context).colorScheme.primaryContainer
                                   : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
@@ -349,20 +376,14 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         );
                       },
                     ),
-
                     const SizedBox(height: 14),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: OutlinedButton.icon(
                         onPressed: () {
                           final now = DateTime.now();
-
-                          Navigator.pop(
-                            context,
-                            DateTime(now.year, now.month, 1),
-                          );
+                          Navigator.pop(context, DateTime(now.year, now.month, 1));
                         },
                         icon: const Icon(Icons.today),
                         label: const Text('Текущий месяц'),
@@ -380,11 +401,11 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     if (pickedMonth == null) return;
 
     final cleanPickedMonth = cleanMonth(pickedMonth);
-
     if (isSameMonth(cleanPickedMonth, selectedMonth)) return;
 
     setState(() {
       selectedMonth = cleanPickedMonth;
+      rows = [];
     });
 
     await loadReport();
@@ -429,9 +450,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 18),
-
                       Row(
                         children: [
                           Expanded(
@@ -459,16 +478,12 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
+                            onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.close),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 14),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -510,9 +525,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -527,7 +540,6 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         itemBuilder: (context, index) {
                           final month = index + 1;
                           final monthDate = DateTime(tempYear, month, 1);
-
                           final isSelected = selectedMonths.any((item) {
                             return isSameMonth(item, monthDate);
                           });
@@ -549,9 +561,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer
+                                    ? Theme.of(context).colorScheme.primaryContainer
                                     : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
@@ -568,9 +578,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                                     Icon(
                                       Icons.check_circle,
                                       size: 18,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                     const SizedBox(width: 5),
                                   ],
@@ -583,9 +591,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                                             ? FontWeight.w900
                                             : FontWeight.w600,
                                         color: isSelected
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
+                                            ? Theme.of(context).colorScheme.primary
                                             : Colors.black87,
                                       ),
                                     ),
@@ -596,9 +602,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           );
                         },
                       ),
-
                       const SizedBox(height: 14),
-
                       Text(
                         picked.isEmpty
                             ? 'Месяцы не выбраны'
@@ -608,18 +612,14 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-
                       const SizedBox(height: 14),
-
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: FilledButton.icon(
                           onPressed: picked.isEmpty
                               ? null
-                              : () {
-                                  Navigator.pop(context, picked);
-                                },
+                              : () => Navigator.pop(context, picked),
                           icon: const Icon(Icons.download),
                           label: const Text('Скачать Excel'),
                         ),
@@ -635,42 +635,6 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     );
   }
 
-  Future<List<List<MonthlyTimesheetRow>>> fetchRowsForMonths({
-    required List<DateTime> months,
-    MonthlyTimesheetRow? employeeRow,
-  }) async {
-    final rowsByMonth = <List<MonthlyTimesheetRow>>[];
-
-    for (final month in months) {
-      List<MonthlyTimesheetRow> monthRows;
-
-      if (isSameMonth(month, selectedMonth) && errorText == null) {
-        monthRows = rows;
-      } else {
-        monthRows = await AttendanceRepository.fetchMonthlyTimesheet(
-          year: month.year,
-          month: month.month,
-          objectName: widget.selectedObjectName,
-          includeFired: includeFiredEmployees,
-        );
-      }
-
-      if (employeeRow == null) {
-        rowsByMonth.add(monthRows);
-      } else {
-        rowsByMonth.add(
-          monthRows
-              .where((row) {
-                return isSameEmployee(row, employeeRow);
-              })
-              .toList(growable: false),
-        );
-      }
-    }
-
-    return rowsByMonth;
-  }
-
   Future<void> exportExcel({
     required List<DateTime> months,
     required String fileNamePrefix,
@@ -683,10 +647,22 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     });
 
     try {
-      final rowsByMonth = await fetchRowsForMonths(
-        months: months,
-        employeeRow: employeeRow,
-      );
+      final rowsByMonth = <List<MonthlyTimesheetRow>>[];
+      final employeeKey = employeeRow == null
+          ? null
+          : normalizedEmployeeKey(employeeRow.employee);
+
+      for (final month in months) {
+        var monthRows = await fetchRowsForMonth(month);
+
+        if (employeeKey != null) {
+          monthRows = monthRows.where((row) {
+            return normalizedEmployeeKey(row.employee) == employeeKey;
+          }).toList(growable: false);
+        }
+
+        rowsByMonth.add(monthRows);
+      }
 
       await TimesheetExcelExporter.downloadMonthlyTimesheets(
         months: months,
@@ -796,9 +772,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
             value: includeFiredEmployees,
             onChanged: isLoading || isExporting
                 ? null
-                : (value) {
-                    toggleIncludeFired(value ?? false);
-                  },
+                : (value) => toggleIncludeFired(value ?? false),
           ),
           const SizedBox(width: 6),
           const Expanded(
@@ -916,9 +890,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                 IconButton(
                   onPressed: isLoading || isExporting
                       ? null
-                      : () {
-                          downloadEmployeeExcel(row);
-                        },
+                      : () => downloadEmployeeExcel(row),
                   icon: const Icon(Icons.download, size: 20),
                   tooltip: 'Скачать индивидуальный табель',
                 ),
@@ -927,7 +899,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
           ),
         ),
         DataCell(SizedBox(width: 130, child: Text(row.employee.position))),
-        DataCell(SizedBox(width: 110, child: Text(row.employee.objectName))),
+        DataCell(SizedBox(width: 140, child: Text(row.employee.objectName))),
         DataCell(Text(formatMoney(row.employee.dailyRate))),
         ...days.map((day) {
           final shift = row.shiftForDay(day);
@@ -974,9 +946,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   }
 
   Widget buildTable(List<MonthlyTimesheetRow> visibleRows) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (isLoading) return const Center(child: CircularProgressIndicator());
 
     if (errorText != null) {
       return Center(
@@ -994,9 +964,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         child: SingleChildScrollView(
           child: DataTable(
             columns: buildColumns(),
-            rows: visibleRows.map((row) {
-              return buildDataRow(row);
-            }).toList(),
+            rows: visibleRows.map(buildDataRow).toList(),
           ),
         ),
       ),
@@ -1028,21 +996,13 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
             ),
           ),
           FilledButton.tonalIcon(
-            onPressed: isLoading || isExporting
-                ? null
-                : () {
-                    openAddPaymentScreen();
-                  },
+            onPressed: isLoading || isExporting ? null : openAddPaymentScreen,
             icon: const Icon(Icons.payments_outlined),
             label: const Text('Выплата'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: isLoading || isExporting
-                ? null
-                : () {
-                    downloadAllEmployeesExcel();
-                  },
+            onPressed: isLoading || isExporting ? null : downloadAllEmployeesExcel,
             icon: isExporting
                 ? const SizedBox(
                     width: 18,
@@ -1070,9 +1030,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
       TextField(
         controller: searchController,
         enabled: !isExporting,
-        onChanged: (_) {
-          setState(() {});
-        },
+        onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
           labelText: 'Поиск сотрудника',
           hintText: 'ФИО, должность или объект',
@@ -1100,6 +1058,60 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
         children: pageContent,
       ),
+    );
+  }
+}
+
+class _TimesheetDisplayDraft {
+  final Employee firstEmployee;
+  final Map<int, double> shiftsByDay = {};
+  final Set<String> objectNames = {};
+  double paid = 0;
+  bool hasActiveEmployee = false;
+
+  _TimesheetDisplayDraft(this.firstEmployee);
+
+  void add(MonthlyTimesheetRow row) {
+    final employee = row.employee;
+    final objectName = employee.objectName.trim();
+
+    if (objectName.isNotEmpty) objectNames.add(objectName);
+
+    if (employee.isActive) hasActiveEmployee = true;
+
+    row.shiftsByDay.forEach((day, shifts) {
+      shiftsByDay[day] = (shiftsByDay[day] ?? 0.0) + shifts;
+    });
+
+    paid += row.paid;
+  }
+
+  String get objectTitle {
+    final objects = objectNames.toList()..sort();
+
+    if (objects.isEmpty) return firstEmployee.objectName;
+    if (objects.length == 1) return objects.first;
+
+    return objects.join(', ');
+  }
+
+  MonthlyTimesheetRow toRow() {
+    final employee = Employee(
+      firstEmployee.name,
+      firstEmployee.position,
+      firstEmployee.status,
+      id: firstEmployee.id,
+      phone: firstEmployee.phone,
+      objectName: objectTitle,
+      dailyRate: firstEmployee.dailyRate,
+      isActive: hasActiveEmployee,
+      comment: firstEmployee.comment,
+    );
+
+    return MonthlyTimesheetRow(
+      employee: employee,
+      shiftsByDay: Map<int, double>.from(shiftsByDay),
+      paid: paid,
     );
   }
 }
