@@ -6,6 +6,7 @@ class ObjectRepository {
   static final _client = Supabase.instance.client;
 
   static const Duration _objectsCacheTtl = Duration(seconds: 60);
+  static const Set<String> _baseObjectNames = {'Мурманск', 'Москва'};
 
   static List<ConstructionObject>? _cachedObjects;
   static DateTime? _cachedObjectsAt;
@@ -16,6 +17,16 @@ class ObjectRepository {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  static String _normalizedName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  static bool _isBaseObjectName(String value) {
+    final normalized = _normalizedName(value);
+
+    return _baseObjectNames.any((name) => _normalizedName(name) == normalized);
   }
 
   static void clearCache() {
@@ -37,6 +48,102 @@ class ObjectRepository {
     return text.contains('42p01') ||
         text.contains('relation') && text.contains('objects') ||
         text.contains('schema cache') && text.contains('objects');
+  }
+
+  static Future<bool> _hasObjectRow(String objectName) async {
+    final rows = await _client
+        .from('objects')
+        .select('id')
+        .eq('name', objectName)
+        .limit(1);
+
+    return rows.isNotEmpty;
+  }
+
+  static Future<bool> _hasObjectNameInTable({
+    required String table,
+    required String selectColumn,
+    required String objectName,
+  }) async {
+    final rows = await _client
+        .from(table)
+        .select(selectColumn)
+        .eq('object_name', objectName)
+        .limit(1);
+
+    return rows.isNotEmpty;
+  }
+
+  static Future<bool> _objectNameExistsAnywhere(String objectName) async {
+    if (await _hasObjectRow(objectName)) return true;
+
+    if (await _hasObjectNameInTable(
+      table: 'employees',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      return true;
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'attendance',
+      selectColumn: 'employee_id',
+      objectName: objectName,
+    )) {
+      return true;
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'tasks',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      return true;
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'user_profiles',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      return true;
+    }
+
+    return false;
+  }
+
+  static Future<void> _ensureNoObjectReferencesForDelete(String objectName) async {
+    if (await _hasObjectNameInTable(
+      table: 'employees',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      throw Exception('Нельзя удалить объект: к нему привязаны сотрудники');
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'attendance',
+      selectColumn: 'employee_id',
+      objectName: objectName,
+    )) {
+      throw Exception('Нельзя удалить объект: по нему есть табель');
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'tasks',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      throw Exception('Нельзя удалить объект: по нему есть задачи');
+    }
+
+    if (await _hasObjectNameInTable(
+      table: 'user_profiles',
+      selectColumn: 'id',
+      objectName: objectName,
+    )) {
+      throw Exception('Нельзя удалить объект: к нему привязан пользователь');
+    }
   }
 
   static Future<List<ConstructionObject>> fetchObjects({
@@ -141,6 +248,104 @@ class ObjectRepository {
 
       rethrow;
     }
+  }
+
+  static Future<String> renameObject({
+    required String oldName,
+    required String newName,
+  }) async {
+    final cleanOldName = cleanObjectName(oldName);
+    final cleanNewName = cleanObjectName(newName);
+
+    if (cleanOldName == null) {
+      throw Exception('Не найден старый объект');
+    }
+
+    if (cleanNewName == null) {
+      throw Exception('Введите новое название объекта');
+    }
+
+    if (_normalizedName(cleanOldName) == _normalizedName(cleanNewName)) {
+      return cleanOldName;
+    }
+
+    if (_isBaseObjectName(cleanOldName)) {
+      throw Exception('Базовые объекты Мурманск и Москва нельзя переименовать');
+    }
+
+    if (await _objectNameExistsAnywhere(cleanNewName)) {
+      throw Exception('Объект "$cleanNewName" уже существует или используется');
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    final hasObjectRow = await _hasObjectRow(cleanOldName);
+
+    if (hasObjectRow) {
+      await _client
+          .from('objects')
+          .update({
+            'name': cleanNewName,
+            'is_active': true,
+            'updated_at': now,
+          })
+          .eq('name', cleanOldName);
+    } else {
+      await addObject(name: cleanNewName);
+    }
+
+    await _client
+        .from('employees')
+        .update({'object_name': cleanNewName, 'updated_at': now})
+        .eq('object_name', cleanOldName);
+
+    await _client
+        .from('attendance')
+        .update({'object_name': cleanNewName, 'updated_at': now})
+        .eq('object_name', cleanOldName);
+
+    await _client
+        .from('tasks')
+        .update({'object_name': cleanNewName, 'updated_at': now})
+        .eq('object_name', cleanOldName);
+
+    await _client
+        .from('user_profiles')
+        .update({'object_name': cleanNewName})
+        .eq('object_name', cleanOldName);
+
+    clearCache();
+
+    return cleanNewName;
+  }
+
+  static Future<void> deleteObject({required String name}) async {
+    final cleanName = cleanObjectName(name);
+
+    if (cleanName == null) {
+      throw Exception('Не найден объект');
+    }
+
+    if (_isBaseObjectName(cleanName)) {
+      throw Exception('Базовые объекты Мурманск и Москва нельзя удалить');
+    }
+
+    await _ensureNoObjectReferencesForDelete(cleanName);
+
+    final hasObjectRow = await _hasObjectRow(cleanName);
+
+    if (!hasObjectRow) {
+      throw Exception('Объект "$cleanName" не найден в базе объектов');
+    }
+
+    await _client
+        .from('objects')
+        .update({
+          'is_active': false,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('name', cleanName);
+
+    clearCache();
   }
 
   static Future<void> ensureObjectNameExists(String objectName) async {
