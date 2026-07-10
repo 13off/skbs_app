@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/attendance_repository.dart';
-import '../data/employee_repository.dart';
-import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import 'employees_screen.dart';
 import 'home_screen.dart';
@@ -23,18 +20,12 @@ class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
   String? selectedObjectName;
 
-  /// Какие вкладки уже открывали.
+  /// Вкладка создаётся только при первом открытии и затем сохраняет состояние.
   ///
-  /// Вкладка создаётся только при первом открытии и дальше хранит своё состояние.
+  /// Главная уже загружает сотрудников, табель, задачи и финансовую сводку.
+  /// Отдельный фоновый прогрев дублировал эти же запросы во время запуска,
+  /// поэтому он удалён: данные из репозиториев всё равно попадают в общий кэш.
   final Set<int> _visitedIndexes = <int>{0};
-
-  /// Фоновый прогрев кэша.
-  ///
-  /// Это не меняет внешний вид приложения. Просто после первого кадра приложение
-  /// заранее подгружает основные данные выбранного объекта, чтобы переходы на
-  /// вкладки «Сотрудники», «Табель» и «Задачи» ощущались быстрее.
-  int _warmUpSerial = 0;
-  String? _lastWarmUpObjectKey;
 
   @override
   void initState() {
@@ -43,8 +34,6 @@ class _MainScreenState extends State<MainScreen> {
     selectedObjectName = widget.profile.isAdmin
         ? null
         : _cleanObjectName(widget.profile.objectName);
-
-    _scheduleWarmUp();
   }
 
   String? _cleanObjectName(String? value) {
@@ -53,47 +42,6 @@ class _MainScreenState extends State<MainScreen> {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
-  }
-
-  String _warmUpKey(String? objectName) {
-    return _cleanObjectName(objectName) ?? '__all__';
-  }
-
-  void _scheduleWarmUp() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      _warmUpCurrentObject();
-    });
-  }
-
-  Future<void> _warmUpCurrentObject() async {
-    final objectName = _cleanObjectName(selectedObjectName);
-    final warmUpKey = _warmUpKey(objectName);
-
-    if (_lastWarmUpObjectKey == warmUpKey) return;
-
-    _lastWarmUpObjectKey = warmUpKey;
-
-    final serial = ++_warmUpSerial;
-    final today = DateTime.now();
-
-    try {
-      await Future.wait<dynamic>([
-        EmployeeRepository.fetchObjectNames(),
-        EmployeeRepository.fetchEmployees(objectName: objectName),
-        AttendanceRepository.fetchShiftValuesForDate(
-          today,
-          objectName: objectName,
-        ),
-        TaskRepository.fetchTasksForDate(today, objectName: objectName),
-      ]);
-    } catch (_) {
-      // Фоновый прогрев не должен мешать работе приложения.
-      // Если сеть не ответила — экран сам загрузит данные штатно при открытии.
-    }
-
-    if (!mounted || serial != _warmUpSerial) return;
   }
 
   void changeSelectedObject(String? objectName) {
@@ -106,8 +54,6 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       selectedObjectName = nextObjectName;
     });
-
-    _scheduleWarmUp();
   }
 
   int get pageCount {
