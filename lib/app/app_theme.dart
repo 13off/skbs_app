@@ -13,17 +13,17 @@ abstract final class AppColors {
 }
 
 abstract final class AppMotion {
-  static const fast = Duration(milliseconds: 150);
-  static const regular = Duration(milliseconds: 260);
-  static const page = Duration(milliseconds: 360);
-  static const tab = Duration(milliseconds: 340);
-  static const pressIn = Duration(milliseconds: 80);
-  static const pressOut = Duration(milliseconds: 240);
+  static const fast = Duration(milliseconds: 110);
+  static const regular = Duration(milliseconds: 190);
+  static const page = Duration(milliseconds: 260);
+  static const tab = Duration(milliseconds: 220);
+  static const pressIn = Duration(milliseconds: 55);
+  static const pressOut = Duration(milliseconds: 150);
 
-  static const Curve enterCurve = Curves.easeOutQuart;
-  static const Curve exitCurve = Curves.easeOutCubic;
-  static const Curve emphasizedCurve = Curves.easeInOutCubicEmphasized;
-  static const Curve springCurve = Curves.easeOutBack;
+  static const Curve enterCurve = Curves.easeOutCubic;
+  static const Curve exitCurve = Curves.easeInCubic;
+  static const Curve emphasizedCurve = Curves.easeInOutCubic;
+  static const Curve springCurve = Curves.easeOutCubic;
 }
 
 class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
@@ -57,21 +57,15 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
 
     return SlideTransition(
       position: Tween<Offset>(
-        begin: Offset.zero,
-        end: const Offset(-0.012, 0),
-      ).animate(secondary),
-      child: FadeTransition(
-        opacity: Tween<double>(begin: 0.18, end: 1).animate(primary),
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.018, 0.012),
-            end: Offset.zero,
-          ).animate(primary),
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.988, end: 1).animate(primary),
-            child: child,
-          ),
-        ),
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(primary),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(-0.075, 0),
+        ).animate(secondary),
+        child: child,
       ),
     );
   }
@@ -113,7 +107,10 @@ abstract final class AppTheme {
       titleMedium: GoogleFonts.manrope(fontWeight: FontWeight.w700),
       labelLarge: GoogleFonts.manrope(fontWeight: FontWeight.w800),
       bodyLarge: GoogleFonts.manrope(fontWeight: FontWeight.w500, height: 1.35),
-      bodyMedium: GoogleFonts.manrope(fontWeight: FontWeight.w500, height: 1.35),
+      bodyMedium: GoogleFonts.manrope(
+        fontWeight: FontWeight.w500,
+        height: 1.35,
+      ),
     );
 
     WidgetStateProperty<Color?> subtleOverlay() {
@@ -172,6 +169,8 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
           animationDuration: AppMotion.regular,
+          minimumSize: const WidgetStatePropertyAll(Size(0, 46)),
+          tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: const WidgetStatePropertyAll(Colors.white),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
@@ -206,6 +205,8 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
           animationDuration: AppMotion.regular,
+          minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
+          tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
@@ -234,6 +235,8 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
           animationDuration: AppMotion.regular,
+          minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+          tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
@@ -250,15 +253,26 @@ abstract final class AppTheme {
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
           animationDuration: AppMotion.fast,
+          minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+          tapTargetSize: MaterialTapTargetSize.padded,
+          padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
           foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return AppColors.accent.withValues(alpha: 0.08);
+              return AppColors.accent.withValues(alpha: 0.10);
             }
             if (states.contains(WidgetState.hovered)) {
-              return AppColors.accent.withValues(alpha: 0.045);
+              return Colors.white;
             }
             return Colors.transparent;
+          }),
+          shadowColor: WidgetStatePropertyAll(
+            AppColors.accent.withValues(alpha: 0.18),
+          ),
+          elevation: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.hovered)) return 7;
+            if (states.contains(WidgetState.pressed)) return 1;
+            return 0;
           }),
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           shape: const WidgetStatePropertyAll(CircleBorder()),
@@ -273,7 +287,10 @@ abstract final class AppTheme {
         ),
         prefixIconColor: AppColors.textMuted,
         suffixIconColor: AppColors.textMuted,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 17,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: AppColors.border),

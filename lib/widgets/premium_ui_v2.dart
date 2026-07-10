@@ -53,8 +53,18 @@ class _PremiumPressableState extends State<PremiumPressable> {
     final scale = isPressed
         ? widget.pressedScale
         : isHovered && isEnabled
-        ? 1.006
+        ? 1.003
         : 1.0;
+
+    final hoverShadow = isHovered && isEnabled && !isPressed
+        ? <BoxShadow>[
+            BoxShadow(
+              color: const Color(0xFF17191C).withValues(alpha: 0.14),
+              blurRadius: 20,
+              offset: const Offset(0, 9),
+            ),
+          ]
+        : const <BoxShadow>[];
 
     return MouseRegion(
       cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
@@ -78,12 +88,20 @@ class _PremiumPressableState extends State<PremiumPressable> {
           scale: scale,
           duration: isPressed ? AppMotion.pressIn : AppMotion.pressOut,
           curve: isPressed ? Curves.easeOut : AppMotion.springCurve,
-          child: AnimatedOpacity(
-            opacity: isEnabled ? (isPressed ? 0.92 : 1) : 0.46,
-            duration: AppMotion.fast,
-            child: ClipRRect(
+          child: AnimatedContainer(
+            duration: AppMotion.regular,
+            curve: AppMotion.enterCurve,
+            decoration: BoxDecoration(
               borderRadius: widget.borderRadius,
-              child: widget.child,
+              boxShadow: hoverShadow,
+            ),
+            child: AnimatedOpacity(
+              opacity: isEnabled ? (isPressed ? 0.94 : 1) : 0.46,
+              duration: AppMotion.fast,
+              child: ClipRRect(
+                borderRadius: widget.borderRadius,
+                child: widget.child,
+              ),
             ),
           ),
         ),
@@ -291,9 +309,9 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF17191C).withValues(
-              alpha: widget.light ? 0.26 : 0.15,
-            ),
+            color: const Color(
+              0xFF17191C,
+            ).withValues(alpha: widget.light ? 0.26 : 0.15),
             blurRadius: widget.size * 0.42,
             offset: Offset(0, widget.size * 0.20),
           ),
@@ -313,9 +331,10 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
                   final brick = bricks[index];
                   final start = index * 0.075;
                   final end = math.min(1.0, start + 0.46);
-                  final normalized = ((controller.value - start) / (end - start))
-                      .clamp(0.0, 1.0)
-                      .toDouble();
+                  final normalized =
+                      ((controller.value - start) / (end - start))
+                          .clamp(0.0, 1.0)
+                          .toDouble();
                   final progress = Curves.easeOutBack.transform(normalized);
                   final opacity = progress.clamp(0.0, 1.0).toDouble();
 

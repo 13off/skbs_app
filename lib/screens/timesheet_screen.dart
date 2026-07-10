@@ -280,8 +280,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                         itemExtent: 48,
                         physics: const FixedExtentScrollPhysics(),
                         controller: FixedExtentScrollController(
-                          initialItem:
-                              !allShiftOptions.contains(currentValue)
+                          initialItem: !allShiftOptions.contains(currentValue)
                               ? 0
                               : allShiftOptions.indexOf(currentValue),
                         ),
@@ -701,43 +700,52 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                         ),
                       )
                     else
-                      ...visibleEmployees.map(buildEmployeeRow),
+                      ...visibleEmployees.map(
+                        (employee) =>
+                            RepaintBoundary(child: buildEmployeeRow(employee)),
+                      ),
                   ],
                 ),
               ),
               SafeArea(
                 top: false,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
                     border: Border(
                       top: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: FilledButton.icon(
-                      onPressed:
-                          allEmployees.isEmpty ||
-                              isAttendanceLoading ||
-                              isSaving
-                          ? null
-                          : () {
-                              saveTimesheet(allEmployees);
-                            },
-                      icon: isSaving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save),
-                      label: Text(
-                        hasUnsavedChanges
-                            ? 'Сохранить изменения'
-                            : 'Сохранить табель',
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton.icon(
+                          onPressed:
+                              allEmployees.isEmpty ||
+                                  isAttendanceLoading ||
+                                  isSaving
+                              ? null
+                              : () {
+                                  saveTimesheet(allEmployees);
+                                },
+                          icon: isSaving
+                              ? const SizedBox(
+                                  width: 17,
+                                  height: 17,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.save_outlined, size: 19),
+                          label: Text(
+                            hasUnsavedChanges
+                                ? 'Сохранить изменения'
+                                : 'Сохранить табель',
+                          ),
+                        ),
                       ),
                     ),
                   ),

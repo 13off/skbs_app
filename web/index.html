@@ -33,10 +33,6 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    :root {
-      --app-height: 100dvh;
-    }
-
     html,
     body {
       margin: 0;
@@ -44,7 +40,6 @@
       width: 100%;
       height: 100%;
       min-height: 100%;
-      max-height: 100%;
       overflow: hidden;
       background: #f3f1ec;
       font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -55,32 +50,19 @@
     }
 
     body {
-      position: fixed;
-      inset: 0;
-      height: var(--app-height);
+      position: relative;
+      min-height: 100dvh;
     }
 
     flutter-view,
     flt-glass-pane {
-      position: fixed !important;
+      position: absolute !important;
       inset: 0 !important;
-      width: 100vw !important;
-      height: var(--app-height) !important;
-      max-width: 100vw !important;
-      max-height: var(--app-height) !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
       overflow: hidden !important;
-    }
-
-    #left-edge-swipe-zone {
-      position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 26px;
-      z-index: 2147483647;
-      background: transparent;
-      pointer-events: auto;
-      touch-action: none;
     }
 
     #app-loader {
@@ -90,7 +72,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: var(--app-height);
+      min-height: 100dvh;
       overflow: hidden;
       background:
         radial-gradient(circle at 75% 18%, rgba(255,255,255,.96) 0, rgba(255,255,255,0) 34%),
@@ -249,27 +231,9 @@
     </div>
   </div>
 
-  <div id="left-edge-swipe-zone" aria-hidden="true"></div>
-
   <script>
     (function () {
-      var root = document.documentElement;
       var loader = document.getElementById('app-loader');
-      var leftEdgeSwipeZone = document.getElementById('left-edge-swipe-zone');
-      var startX = 0;
-      var startY = 0;
-      var lastX = 0;
-      var lastY = 0;
-      var isTrackingSwipe = false;
-      var minSwipeDistance = 64;
-
-      var updateAppHeight = function () {
-        var height = window.visualViewport && window.visualViewport.height
-          ? window.visualViewport.height
-          : window.innerHeight;
-
-        root.style.setProperty('--app-height', height + 'px');
-      };
 
       var hideLoader = function () {
         if (!loader) return;
@@ -280,76 +244,6 @@
           }
         }, 480);
       };
-
-      var preventBrowserSwipe = function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      };
-
-      var dispatchSwipeBack = function () {
-        window.dispatchEvent(new CustomEvent('appstroy-swipe-back'));
-      };
-
-      var getPoint = function (event) {
-        if (event.touches && event.touches.length > 0) return event.touches[0];
-        if (event.changedTouches && event.changedTouches.length > 0) return event.changedTouches[0];
-        return event;
-      };
-
-      var handleSwipeStart = function (event) {
-        var point = getPoint(event);
-        startX = point.clientX || 0;
-        startY = point.clientY || 0;
-        lastX = startX;
-        lastY = startY;
-        isTrackingSwipe = true;
-        preventBrowserSwipe(event);
-      };
-
-      var handleSwipeMove = function (event) {
-        if (!isTrackingSwipe) return;
-        var point = getPoint(event);
-        lastX = point.clientX || lastX;
-        lastY = point.clientY || lastY;
-        preventBrowserSwipe(event);
-      };
-
-      var handleSwipeEnd = function (event) {
-        if (!isTrackingSwipe) return;
-        preventBrowserSwipe(event);
-
-        var dx = lastX - startX;
-        var dy = Math.abs(lastY - startY);
-
-        isTrackingSwipe = false;
-
-        if (dx >= minSwipeDistance && Math.abs(dx) > dy * 1.35) {
-          dispatchSwipeBack();
-        }
-      };
-
-      updateAppHeight();
-
-      if (leftEdgeSwipeZone) {
-        leftEdgeSwipeZone.addEventListener('touchstart', handleSwipeStart, { passive: false });
-        leftEdgeSwipeZone.addEventListener('touchmove', handleSwipeMove, { passive: false });
-        leftEdgeSwipeZone.addEventListener('touchend', handleSwipeEnd, { passive: false });
-        leftEdgeSwipeZone.addEventListener('touchcancel', handleSwipeEnd, { passive: false });
-        leftEdgeSwipeZone.addEventListener('pointerdown', handleSwipeStart, { passive: false });
-        leftEdgeSwipeZone.addEventListener('pointermove', handleSwipeMove, { passive: false });
-        leftEdgeSwipeZone.addEventListener('pointerup', handleSwipeEnd, { passive: false });
-        leftEdgeSwipeZone.addEventListener('pointercancel', handleSwipeEnd, { passive: false });
-      }
-
-      window.addEventListener('resize', updateAppHeight);
-      window.addEventListener('orientationchange', function () {
-        window.setTimeout(updateAppHeight, 250);
-      });
-
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateAppHeight);
-        window.visualViewport.addEventListener('scroll', updateAppHeight);
-      }
 
       window.addEventListener('flutter-first-frame', hideLoader);
       window.setTimeout(hideLoader, 9000);
