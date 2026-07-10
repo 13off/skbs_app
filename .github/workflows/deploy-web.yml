@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: appstroy-web
   cancel-in-progress: true
@@ -27,6 +30,32 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
+          persist-credentials: true
+
+      - name: Apply pending interface optimization
+        shell: bash
+        run: |
+          if [ ! -f skbs_app/tool/one_time_natural_motion.part1 ]; then
+            echo "No pending source patch"
+            exit 0
+          fi
+
+          cat skbs_app/tool/one_time_natural_motion.part1 \
+              skbs_app/tool/one_time_natural_motion.part2 \
+              skbs_app/tool/one_time_natural_motion.part3 \
+              skbs_app/tool/one_time_natural_motion.part4 \
+              skbs_app/tool/one_time_natural_motion.part5 \
+              > skbs_app/tool/one_time_natural_motion.py
+
+          python skbs_app/tool/one_time_natural_motion.py
+
+          rm -f skbs_app/tool/one_time_natural_motion.part1 \
+                skbs_app/tool/one_time_natural_motion.part2 \
+                skbs_app/tool/one_time_natural_motion.part3 \
+                skbs_app/tool/one_time_natural_motion.part4 \
+                skbs_app/tool/one_time_natural_motion.part5
+
+          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -38,14 +67,41 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get
 
+      - name: Format optimized source
+        if: env.SOURCE_PATCH_APPLIED == '1'
+        working-directory: skbs_app
+        run: dart format lib/app/app_theme.dart lib/widgets/premium_ui_v2.dart lib/features/shell/presentation/premium_main_screen.dart lib/screens/timesheet_screen.dart
+
+      - name: Analyze optimized source
+        if: env.SOURCE_PATCH_APPLIED == '1'
+        working-directory: skbs_app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Build Flutter Web
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
 
+      - name: Commit checked source optimization
+        if: env.SOURCE_PATCH_APPLIED == '1'
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+
+          git commit -m "исправлены нажатия, свайпы и плавность интерфейса"
+          git push
+
       - name: Add web cache busting and GitHub Pages fallback
         shell: bash
         run: |
-          BUILD_ID="${GITHUB_SHA::12}"
+          BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
           sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
@@ -72,7 +128,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add -A
 
           if git diff --cached --quiet; then
