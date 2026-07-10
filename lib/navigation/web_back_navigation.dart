@@ -5,9 +5,17 @@ import 'web_edge_swipe_platform_stub.dart'
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
+typedef AppBackHandler = Future<bool> Function();
+
+AppBackHandler? _activeBackHandler;
+
+void setActiveAppBackHandler(AppBackHandler? handler) {
+  _activeBackHandler = handler;
+}
+
 class AppWebHistoryObserver extends NavigatorObserver {
-  // Browser history больше не трогаем.
-  // Свайп назад приходит из web/index.html отдельным событием.
+  // Историей браузера управляет оболочка приложения.
+  // Свайп с левого края приходит из web/index.html отдельным событием.
 }
 
 class AppBrowserBackBridge extends StatefulWidget {
@@ -32,7 +40,13 @@ class _AppBrowserBackBridgeState extends State<AppBrowserBackBridge> {
     super.dispose();
   }
 
-  void _popOneScreen() {
+  Future<void> _popOneScreen() async {
+    final handler = _activeBackHandler;
+
+    if (handler != null && await handler()) {
+      return;
+    }
+
     final navigator = appNavigatorKey.currentState;
 
     if (navigator == null || !navigator.canPop()) return;
