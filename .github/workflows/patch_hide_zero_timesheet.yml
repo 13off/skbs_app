@@ -1,0 +1,94 @@
+name: Patch hide zero-shift timesheet rows
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch_hide_zero_timesheet.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch timesheet filters
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          period_path = Path('lib/screens/period_timesheet_screen.dart')
+          text = period_path.read_text(encoding='utf-8')
+
+          old_filter = '''  List<MonthlyTimesheetRow> buildFilteredRows() {
+    final query = searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) return rows;
+
+    return rows.where((row) {
+      final employee = row.employee;
+
+      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query);
+    }).toList(growable: false);
+  }
+'''
+          new_filter = '''  List<MonthlyTimesheetRow> buildFilteredRows() {
+    final query = searchController.text.trim().toLowerCase();
+    final workedRows = rows
+        .where((row) => row.totalShifts > 0)
+        .toList(growable: false);
+
+    if (query.isEmpty) return workedRows;
+
+    return workedRows.where((row) {
+      final employee = row.employee;
+
+      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query);
+    }).toList(growable: false);
+  }
+'''
+          if old_filter not in text:
+              raise SystemExit('buildFilteredRows block not found')
+          text = text.replace(old_filter, new_filter, 1)
+
+          old_return = '''    return collapseDuplicateRows(sourceRows);
+'''
+          new_return = '''    return collapseDuplicateRows(sourceRows)
+        .where((row) => row.totalShifts > 0)
+        .toList(growable: false);
+'''
+          if old_return not in text:
+              raise SystemExit('fetchRowsForMonth return not found')
+          text = text.replace(old_return, new_return, 1)
+          period_path.write_text(text, encoding='utf-8')
+
+          exporter_path = Path('lib/data/timesheet_excel_exporter.dart')
+          exporter = exporter_path.read_text(encoding='utf-8')
+          old_rows = '''          rows: rowsByMonth[index],
+'''
+          new_rows = '''          rows: rowsByMonth[index]
+              .where((row) => row.totalShifts > 0)
+              .toList(growable: false),
+'''
+          if old_rows not in exporter:
+              raise SystemExit('exporter rows block not found')
+          exporter = exporter.replace(old_rows, new_rows, 1)
+          exporter_path.write_text(exporter, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/period_timesheet_screen.dart lib/data/timesheet_excel_exporter.dart
+          git commit -m "скрыты сотрудники без смен в месячном табеле"
+          git push origin main
