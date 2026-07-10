@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AppСтрой">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#36393d"/>
+      <stop offset="1" stop-color="#17191c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4e7c7"/>
+      <stop offset="0.48" stop-color="#c9a86a"/>
+      <stop offset="1" stop-color="#8a6530"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#d9cbb1"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.2" cy="0.12" r="0.78">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <rect x="18" y="18" width="476" height="476" rx="126" fill="url(#bg)"/>
+  <rect x="26" y="26" width="460" height="460" rx="118" fill="none" stroke="url(#gold)" stroke-width="10"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#shine)"/>
+  <g filter="url(#shadow)">
+    <!-- Golden-ratio grid: 316 : 196 and 196 : 121 -->
+    <path d="M118 344V214h78v130H118z" fill="url(#stone)" stroke="url(#gold)" stroke-width="7"/>
+    <path d="M118 204v-74h78v74h-78z" fill="url(#stone)" stroke="url(#gold)" stroke-width="7"/>
+    <path d="M206 344V118h101v226H206z" fill="url(#stone)" stroke="url(#gold)" stroke-width="7"/>
+    <path d="M317 344V180h77v164h-77z" fill="url(#stone)" stroke="url(#gold)" stroke-width="7"/>
+    <path d="M147 344L256 140l109 204h-74l-35-70-36 70h-73z" fill="url(#gold)"/>
+    <path d="M229 344h54v-58h-54v58z" fill="#1b1d20" stroke="#e3c98d" stroke-width="5"/>
+    <path d="M110 356h292" stroke="url(#gold)" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
