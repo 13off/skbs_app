@@ -37,6 +37,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   final TextEditingController searchController = TextEditingController();
 
   List<Employee> employees = [];
+  Employee? openedEmployee;
   bool isLoadingEmployees = true;
   String? loadErrorText;
   int loadGeneration = 0;
@@ -61,6 +62,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
+      openedEmployee = null;
       loadEmployees(showLoading: true);
     }
   }
@@ -118,21 +120,22 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     await loadEmployees();
   }
 
-  Future<void> openEmployeeDetails(
-    BuildContext context,
-    Employee employee,
-  ) async {
-    await Navigator.push(
-      context,
-      AppPageRoute(
-        builder: (_) =>
-            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
-      ),
-    );
+  void openEmployeeDetails(BuildContext context, Employee employee) {
+    if (openedEmployee != null) return;
 
-    if (!mounted) return;
+    setState(() {
+      openedEmployee = employee;
+    });
+  }
 
-    await loadEmployees();
+  void closeEmployeeDetails() {
+    if (!mounted || openedEmployee == null) return;
+
+    setState(() {
+      openedEmployee = null;
+    });
+
+    loadEmployees();
   }
 
   void openPayments(BuildContext context) {
@@ -600,8 +603,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildEmployeeList() {
     final visibleEmployees = collapseDuplicateEmployeesForAllObjects(
       filterEmployees(employees),
     );
@@ -659,6 +661,111 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final employee = openedEmployee;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RepaintBoundary(child: buildEmployeeList()),
+        if (employee != null)
+          _EmployeeDetailsOverlay(
+            key: ValueKey(employee.id ?? employee.name),
+            profile: widget.profile,
+            employee: employee,
+            onClosed: closeEmployeeDetails,
+          ),
+      ],
+    );
+  }
+}
+
+class _EmployeeDetailsOverlay extends StatefulWidget {
+  final AppUserProfile profile;
+  final Employee employee;
+  final VoidCallback onClosed;
+
+  const _EmployeeDetailsOverlay({
+    super.key,
+    required this.profile,
+    required this.employee,
+    required this.onClosed,
+  });
+
+  @override
+  State<_EmployeeDetailsOverlay> createState() =>
+      _EmployeeDetailsOverlayState();
+}
+
+class _EmployeeDetailsOverlayState extends State<_EmployeeDetailsOverlay> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  bool closeScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      navigatorKey.currentState?.push<void>(
+        AppPageRoute<void>(
+          settings: const RouteSettings(name: 'employee-details-overlay'),
+          builder: (_) => EmployeeDetailsScreen(
+            profile: widget.profile,
+            employee: widget.employee,
+          ),
+        ),
+      );
+    });
+  }
+
+  void scheduleClose() {
+    if (closeScheduled) return;
+    closeScheduled = true;
+
+    Future<void>.delayed(const Duration(milliseconds: 235), () {
+      if (!mounted) return;
+      widget.onClosed();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Navigator(
+        key: navigatorKey,
+        observers: [_EmployeeOverlayObserver(onDetailsPopped: scheduleClose)],
+        onGenerateRoute: (_) {
+          return PageRouteBuilder<void>(
+            opaque: false,
+            maintainState: true,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            pageBuilder: (_, __, ___) => const SizedBox.expand(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmployeeOverlayObserver extends NavigatorObserver {
+  final VoidCallback onDetailsPopped;
+
+  _EmployeeOverlayObserver({required this.onDetailsPopped});
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+
+    if (route.settings.name == 'employee-details-overlay') {
+      onDetailsPopped();
+    }
   }
 }
 
