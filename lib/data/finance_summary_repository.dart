@@ -1,7 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee.dart';
-import 'attendance_repository.dart';
 import 'employee_repository.dart';
 import 'object_repository.dart';
 
@@ -100,6 +101,14 @@ class FinanceSummaryData {
 class FinanceSummaryRepository {
   static final _client = Supabase.instance.client;
 
+  static const int _employeeChunkSize = 80;
+
+  /// Одновременные одинаковые запросы используют один Future.
+  ///
+  /// Постоянный кэш здесь намеренно не хранится, чтобы после изменения табеля
+  /// или выплаты главная всегда показывала свежую сумму.
+  static final Map<String, Future<FinanceSummaryData>> _inFlight = {};
+
   static double _toDouble(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value.toDouble();
@@ -115,6 +124,25 @@ class FinanceSummaryRepository {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  static String _dateKey(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '${date.year}-$month-$day';
+  }
+
+  static String _requestKey({
+    required FinancePeriod period,
+    required String? objectName,
+  }) {
+    final periodPart = period.isAllTime
+        ? 'all'
+        : '${period.year}-${period.month}';
+    final objectPart = _cleanObjectName(objectName) ?? '__all__';
+
+    return '$periodPart::$objectPart';
   }
 
   static DateTime _firstDateOfMonth(FinancePeriod period) {
@@ -142,15 +170,44 @@ class FinanceSummaryRepository {
   static Future<FinanceSummaryData> fetchSummary({
     required FinancePeriod period,
     String? objectName,
+  }) {
+    final key = _requestKey(period: period, objectName: objectName);
+    final running = _inFlight[key];
+
+    if (running != null) return running;
+
+    final future = _loadSummary(period: period, objectName: objectName);
+    _inFlight[key] = future;
+
+    future.whenComplete(() {
+      if (identical(_inFlight[key], future)) {
+        _inFlight.remove(key);
+      }
+    });
+
+    return future;
+  }
+
+  static Future<FinanceSummaryData> _loadSummary({
+    required FinancePeriod period,
+    String? objectName,
   }) async {
     final cleanObject = _cleanObjectName(objectName);
-    final allEmployees = await EmployeeRepository.fetchEmployees(
-      objectName: cleanObject,
-      includeFired: true,
-    );
 
+    final initialResults = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(
+        objectName: cleanObject,
+        includeFired: true,
+      ),
+      if (cleanObject == null)
+        ObjectRepository.fetchObjectNames()
+      else
+        Future<List<String>>.value(const <String>[]),
+    ]);
+
+    final allEmployees = initialResults[0] as List<Employee>;
     final activeObjectNames = cleanObject == null
-        ? (await ObjectRepository.fetchObjectNames()).toSet()
+        ? (initialResults[1] as List<String>).toSet()
         : null;
 
     final employees = activeObjectNames == null
@@ -166,23 +223,22 @@ class FinanceSummaryRepository {
 
     if (employeesById.isEmpty) return FinanceSummaryData.empty;
 
-    final employeeIds = employeesById.keys.toSet();
+    final employeeIds = employeesById.keys.toList();
 
-    final attendanceRows = await _fetchAttendanceRows(
-      period: period,
-      objectName: cleanObject,
-    );
-    final paymentRows = await _fetchPaymentRows(period: period);
+    final dataResults = await Future.wait<List<dynamic>>([
+      _fetchAttendanceRows(period: period, employeeIds: employeeIds),
+      _fetchPaymentRows(period: period, employeeIds: employeeIds),
+    ]);
+
+    final attendanceRows = dataResults[0];
+    final paymentRows = dataResults[1];
 
     double accrued = 0;
     double paid = 0;
 
     for (final row in attendanceRows) {
       final employeeId = row['employee_id']?.toString();
-
-      if (employeeId == null || !employeeIds.contains(employeeId)) continue;
-
-      final employee = employeesById[employeeId];
+      final employee = employeeId == null ? null : employeesById[employeeId];
 
       if (employee == null) continue;
 
@@ -192,7 +248,9 @@ class FinanceSummaryRepository {
     for (final row in paymentRows) {
       final employeeId = row['employee_id']?.toString();
 
-      if (employeeId == null || !employeeIds.contains(employeeId)) continue;
+      if (employeeId == null || !employeesById.containsKey(employeeId)) {
+        continue;
+      }
 
       paid += _toDouble(row['amount']);
     }
@@ -202,48 +260,77 @@ class FinanceSummaryRepository {
 
   static Future<List<dynamic>> _fetchAttendanceRows({
     required FinancePeriod period,
-    required String? objectName,
+    required List<String> employeeIds,
+  }) async {
+    final requests = <Future<List<dynamic>>>[];
+
+    for (var start = 0; start < employeeIds.length; start += _employeeChunkSize) {
+      final end = math.min(start + _employeeChunkSize, employeeIds.length);
+      final chunk = employeeIds.sublist(start, end);
+
+      requests.add(_fetchAttendanceChunk(period: period, employeeIds: chunk));
+    }
+
+    final chunks = await Future.wait<List<dynamic>>(requests);
+
+    return chunks.expand((rows) => rows).toList();
+  }
+
+  static Future<List<dynamic>> _fetchAttendanceChunk({
+    required FinancePeriod period,
+    required List<String> employeeIds,
   }) async {
     if (period.isAllTime) {
-      if (objectName == null) {
-        return await _client.from('attendance').select('employee_id, shifts');
-      }
-
       return await _client
           .from('attendance')
           .select('employee_id, shifts')
-          .eq('object_name', objectName);
+          .inFilter('employee_id', employeeIds);
     }
 
     final firstDate = _firstDateOfMonth(period);
     final lastDate = _lastDateOfMonth(period);
 
-    if (objectName == null) {
-      return await _client
-          .from('attendance')
-          .select('employee_id, shifts')
-          .gte('work_date', AttendanceRepository.dateKey(firstDate))
-          .lte('work_date', AttendanceRepository.dateKey(lastDate));
-    }
-
     return await _client
         .from('attendance')
         .select('employee_id, shifts')
-        .gte('work_date', AttendanceRepository.dateKey(firstDate))
-        .lte('work_date', AttendanceRepository.dateKey(lastDate))
-        .eq('object_name', objectName);
+        .inFilter('employee_id', employeeIds)
+        .gte('work_date', _dateKey(firstDate))
+        .lte('work_date', _dateKey(lastDate));
   }
 
   static Future<List<dynamic>> _fetchPaymentRows({
     required FinancePeriod period,
+    required List<String> employeeIds,
+  }) async {
+    final requests = <Future<List<dynamic>>>[];
+
+    for (var start = 0; start < employeeIds.length; start += _employeeChunkSize) {
+      final end = math.min(start + _employeeChunkSize, employeeIds.length);
+      final chunk = employeeIds.sublist(start, end);
+
+      requests.add(_fetchPaymentChunk(period: period, employeeIds: chunk));
+    }
+
+    final chunks = await Future.wait<List<dynamic>>(requests);
+
+    return chunks.expand((rows) => rows).toList();
+  }
+
+  static Future<List<dynamic>> _fetchPaymentChunk({
+    required FinancePeriod period,
+    required List<String> employeeIds,
   }) async {
     if (period.isAllTime) {
-      return await _client.from('payments').select('employee_id, amount');
+      return await _client
+          .from('payments')
+          .select('employee_id, amount')
+          .inFilter('employee_id', employeeIds);
     }
 
     return await _client
         .from('payments')
         .select('employee_id, amount')
+        .inFilter('employee_id', employeeIds)
         .eq('period_year', period.year!)
         .eq('period_month', period.month!);
   }
