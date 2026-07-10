@@ -7,10 +7,11 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
     super.title,
     super.fullscreenDialog = false,
     super.maintainState = true,
+    super.allowSnapshotting = false,
   });
 
   @override
-  bool get allowSnapshotting => true;
+  bool get opaque => false;
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 270);
