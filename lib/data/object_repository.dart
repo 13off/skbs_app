@@ -6,7 +6,6 @@ class ObjectRepository {
   static final _client = Supabase.instance.client;
 
   static const Duration _objectsCacheTtl = Duration(seconds: 60);
-  static const Set<String> _baseObjectNames = {'Мурманск', 'Москва'};
 
   static List<ConstructionObject>? _cachedObjects;
   static DateTime? _cachedObjectsAt;
@@ -21,12 +20,6 @@ class ObjectRepository {
 
   static String _normalizedName(String value) {
     return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-  }
-
-  static bool _isBaseObjectName(String value) {
-    final normalized = _normalizedName(value);
-
-    return _baseObjectNames.any((name) => _normalizedName(name) == normalized);
   }
 
   static void clearCache() {
@@ -112,40 +105,6 @@ class ObjectRepository {
     return false;
   }
 
-  static Future<void> _ensureNoObjectReferencesForDelete(String objectName) async {
-    if (await _hasObjectNameInTable(
-      table: 'employees',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      throw Exception('Нельзя удалить объект: к нему привязаны сотрудники');
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'attendance',
-      selectColumn: 'employee_id',
-      objectName: objectName,
-    )) {
-      throw Exception('Нельзя удалить объект: по нему есть табель');
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'tasks',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      throw Exception('Нельзя удалить объект: по нему есть задачи');
-    }
-
-    if (await _hasObjectNameInTable(
-      table: 'user_profiles',
-      selectColumn: 'id',
-      objectName: objectName,
-    )) {
-      throw Exception('Нельзя удалить объект: к нему привязан пользователь');
-    }
-  }
-
   static Future<List<ConstructionObject>> fetchObjects({
     bool forceRefresh = false,
   }) async {
@@ -196,6 +155,21 @@ class ObjectRepository {
     return names;
   }
 
+  static Future<List<String>> fetchArchivedObjectNames({
+    bool forceRefresh = false,
+  }) async {
+    final rows = await _client
+        .from('objects')
+        .select('name')
+        .eq('is_active', false)
+        .order('name', ascending: true);
+
+    return rows
+        .map<String>((row) => row['name']?.toString().trim() ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
+
   static Future<String> addObject({
     required String name,
     String address = '',
@@ -213,13 +187,16 @@ class ObjectRepository {
     try {
       final existing = await _client
           .from('objects')
-          .select('name')
+          .select('name, is_active')
           .eq('name', cleanName)
           .maybeSingle();
 
       if (existing != null) {
-        clearCache();
+        if (existing['is_active'] != true) {
+          await restoreObject(name: cleanName);
+        }
 
+        clearCache();
         return existing['name']?.toString() ?? cleanName;
       }
 
@@ -269,10 +246,6 @@ class ObjectRepository {
       return cleanOldName;
     }
 
-    if (_isBaseObjectName(cleanOldName)) {
-      throw Exception('Базовые объекты Мурманск и Москва нельзя переименовать');
-    }
-
     if (await _objectNameExistsAnywhere(cleanNewName)) {
       throw Exception('Объект "$cleanNewName" уже существует или используется');
     }
@@ -318,33 +291,29 @@ class ObjectRepository {
     return cleanNewName;
   }
 
-  static Future<void> deleteObject({required String name}) async {
+  static Future<void> archiveObject({required String name}) async {
     final cleanName = cleanObjectName(name);
 
     if (cleanName == null) {
       throw Exception('Не найден объект');
     }
 
-    if (_isBaseObjectName(cleanName)) {
-      throw Exception('Базовые объекты Мурманск и Москва нельзя удалить');
+    await _client.rpc('archive_object', params: {'p_name': cleanName});
+    clearCache();
+  }
+
+  static Future<void> deleteObject({required String name}) async {
+    await archiveObject(name: name);
+  }
+
+  static Future<void> restoreObject({required String name}) async {
+    final cleanName = cleanObjectName(name);
+
+    if (cleanName == null) {
+      throw Exception('Не найден объект');
     }
 
-    await _ensureNoObjectReferencesForDelete(cleanName);
-
-    final hasObjectRow = await _hasObjectRow(cleanName);
-
-    if (!hasObjectRow) {
-      throw Exception('Объект "$cleanName" не найден в базе объектов');
-    }
-
-    await _client
-        .from('objects')
-        .update({
-          'is_active': false,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('name', cleanName);
-
+    await _client.rpc('restore_object', params: {'p_name': cleanName});
     clearCache();
   }
 
@@ -356,11 +325,16 @@ class ObjectRepository {
     try {
       final existing = await _client
           .from('objects')
-          .select('name')
+          .select('name, is_active')
           .eq('name', cleanName)
           .maybeSingle();
 
-      if (existing != null) return;
+      if (existing != null) {
+        if (existing['is_active'] != true) {
+          await restoreObject(name: cleanName);
+        }
+        return;
+      }
 
       await addObject(name: cleanName);
     } catch (error) {
