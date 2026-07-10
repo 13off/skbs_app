@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app/app_theme.dart';
 import '../data/user_repository.dart';
 import '../models/app_user_profile.dart';
 import 'login_screen.dart';
@@ -146,17 +147,22 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final session = UserRepository.currentSession;
+    final currentProfile = profile;
+
+    late final String screenKey;
+    late final Widget screen;
 
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (session == null) {
-      return const LoginScreen();
-    }
-
-    if (errorText != null) {
-      return _AuthMessageScreen(
+      screenKey = 'loading';
+      screen = const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    } else if (session == null) {
+      screenKey = 'login';
+      screen = const LoginScreen();
+    } else if (errorText != null) {
+      screenKey = 'error';
+      screen = _AuthMessageScreen(
         title: 'Ошибка входа',
         message: errorText!,
         icon: Icons.error_outline,
@@ -169,12 +175,9 @@ class _AuthGateState extends State<AuthGate> {
           signOut();
         },
       );
-    }
-
-    final currentProfile = profile;
-
-    if (currentProfile == null) {
-      return _AuthMessageScreen(
+    } else if (currentProfile == null) {
+      screenKey = 'missing-profile';
+      screen = _AuthMessageScreen(
         title: 'Профиль не найден',
         message:
             'Пользователь вошёл, но для него нет записи в таблице user_profiles. Добавь профиль в Supabase.',
@@ -188,10 +191,9 @@ class _AuthGateState extends State<AuthGate> {
           signOut();
         },
       );
-    }
-
-    if (!currentProfile.isActive) {
-      return _AuthMessageScreen(
+    } else if (!currentProfile.isActive) {
+      screenKey = 'inactive:${currentProfile.id}';
+      screen = _AuthMessageScreen(
         title: 'Доступ отключён',
         message: 'Этот пользователь отключён администратором.',
         icon: Icons.lock_outline,
@@ -200,13 +202,12 @@ class _AuthGateState extends State<AuthGate> {
           signOut();
         },
       );
-    }
+    } else {
+      final importRequested = Uri.base.queryParameters['privateImport'] == '1';
 
-    final importRequested = Uri.base.queryParameters['privateImport'] == '1';
-
-    if (importRequested) {
-      if (!currentProfile.isAdmin) {
-        return _AuthMessageScreen(
+      if (importRequested && !currentProfile.isAdmin) {
+        screenKey = 'import-denied:${currentProfile.id}';
+        screen = _AuthMessageScreen(
           title: 'Нет доступа',
           message: 'Импорт личных данных доступен только администратору.',
           icon: Icons.admin_panel_settings_outlined,
@@ -215,12 +216,50 @@ class _AuthGateState extends State<AuthGate> {
             Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
           },
         );
+      } else if (importRequested) {
+        screenKey = 'private-import:${currentProfile.id}';
+        screen = PrivateDataImportScreen(profile: currentProfile);
+      } else {
+        screenKey = 'main:${currentProfile.id}';
+        screen = MainScreen(profile: currentProfile);
       }
-
-      return PrivateDataImportScreen(profile: currentProfile);
     }
 
-    return MainScreen(profile: currentProfile);
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = animationsDisabled ? Duration.zero : AppMotion.page;
+
+    return AnimatedSwitcher(
+      duration: duration,
+      reverseDuration: duration,
+      switchInCurve: AppMotion.enterCurve,
+      switchOutCurve: AppMotion.exitCurve,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      transitionBuilder: (child, animation) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: AppMotion.enterCurve,
+          reverseCurve: AppMotion.exitCurve,
+        );
+
+        return FadeTransition(
+          opacity: curvedAnimation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.994, end: 1).animate(curvedAnimation),
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(key: ValueKey<String>(screenKey), child: screen),
+    );
   }
 }
 
