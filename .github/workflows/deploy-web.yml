@@ -15,6 +15,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check deploy token
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
+            echo "::error::Не найден secret WEB_DEPLOY_TOKEN. Добавь его в skbs_app -> Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
       - name: Checkout source app
         uses: actions/checkout@v4
         with:
@@ -40,6 +48,7 @@ jobs:
           repository: 13off/app-stroy_web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: app-stroy_web
+          persist-credentials: true
 
       - name: Replace web files
         shell: bash
@@ -55,11 +64,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet && git diff --cached --quiet; then
+          git add -A
+
+          if git diff --cached --quiet; then
             echo "No web changes to publish"
             exit 0
           fi
 
-          git add -A
           git commit -m "обновлена веб версия"
           git push
