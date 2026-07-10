@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_theme.dart';
@@ -17,6 +18,17 @@ Future<void> main() async {
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
+
+  try {
+    await GoogleFonts.pendingFonts([
+      GoogleFonts.manrope(),
+      GoogleFonts.manrope(fontWeight: FontWeight.w600),
+      GoogleFonts.manrope(fontWeight: FontWeight.w700),
+      GoogleFonts.manrope(fontWeight: FontWeight.w800),
+    ]).timeout(const Duration(seconds: 3));
+  } catch (_) {
+    // При недоступности сервиса шрифтов приложение использует системный fallback.
+  }
 
   runApp(const SkbsApp());
 }
