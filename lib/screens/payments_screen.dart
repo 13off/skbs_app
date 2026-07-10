@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/attendance_repository.dart';
+import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import 'add_payment_screen.dart';
 import 'payment_history_screen.dart';
@@ -17,7 +18,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   late DateTime selectedMonth;
 
-  List<MonthlyTimesheetRow> rows = [];
+  List<_PaymentDisplayRow> rows = [];
 
   bool isLoading = false;
   String? errorText;
@@ -73,7 +74,45 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return '$formatted ₽';
   }
 
-  List<MonthlyTimesheetRow> get filteredRows {
+  String normalizedEmployeeKey(Employee employee) {
+    final cleanName = employee.name.trim().toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
+
+    if (cleanName.isNotEmpty) return cleanName;
+
+    final cleanId = employee.id?.trim();
+
+    if (cleanId != null && cleanId.isNotEmpty) return cleanId;
+
+    return '${employee.position}_${employee.objectName}'.toLowerCase();
+  }
+
+  List<_PaymentDisplayRow> buildPaymentRows(List<MonthlyTimesheetRow> source) {
+    final drafts = <String, _PaymentDisplayDraft>{};
+
+    for (final row in source) {
+      final key = normalizedEmployeeKey(row.employee);
+      final draft = drafts.putIfAbsent(
+        key,
+        () => _PaymentDisplayDraft(row.employee),
+      );
+
+      draft.add(row);
+    }
+
+    final result = drafts.values
+        .map((draft) => draft.toRow())
+        .where((row) => row.employee.name.trim().isNotEmpty)
+        .toList();
+
+    result.sort((a, b) => a.employee.name.compareTo(b.employee.name));
+
+    return result;
+  }
+
+  List<_PaymentDisplayRow> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
 
     if (query.isEmpty) return rows;
@@ -83,7 +122,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
       return employee.name.toLowerCase().contains(query) ||
           employee.position.toLowerCase().contains(query) ||
-          employee.objectName.toLowerCase().contains(query);
+          row.objectTitle.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -116,7 +155,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       if (!mounted || generation != _loadGeneration) return;
 
       setState(() {
-        rows = result;
+        rows = buildPaymentRows(result);
       });
     } catch (e) {
       if (!mounted || generation != _loadGeneration) return;
@@ -164,11 +203,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     }
   }
 
-  Future<void> openPaymentHistory(MonthlyTimesheetRow row) async {
+  Future<void> openPaymentHistory(_PaymentDisplayRow row) async {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => PaymentHistoryScreen(employee: row.employee),
+        builder: (_) => PaymentHistoryScreen(
+          employee: row.employee,
+          employeeIds: row.employeeIds,
+        ),
       ),
     );
 
@@ -259,7 +301,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          _MoneySummaryItem(title: 'Остаток', value: formatMoney(totalBalance)),
+          _MoneySummaryItem(
+            title: totalBalance >= 0 ? 'Остаток' : 'Переплата',
+            value: formatMoney(totalBalance.abs()),
+          ),
         ],
       ),
     );
@@ -288,7 +333,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  Widget buildPaymentCard(MonthlyTimesheetRow row) {
+  Widget buildPaymentCard(_PaymentDisplayRow row) {
     final employee = row.employee;
     final balance = row.balance;
 
@@ -323,7 +368,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${employee.position} • ${employee.objectName}',
+            '${employee.position} • ${row.objectTitle}',
             style: TextStyle(
               color: Colors.grey.shade700,
               fontWeight: FontWeight.w600,
@@ -357,7 +402,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: employee.id == null || isLoading
+              onPressed: row.employeeIds.isEmpty || isLoading
                   ? null
                   : () {
                       openPaymentHistory(row);
@@ -435,6 +480,84 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PaymentDisplayRow {
+  final Employee employee;
+  final String objectTitle;
+  final List<String> employeeIds;
+  final double accrued;
+  final double paid;
+
+  const _PaymentDisplayRow({
+    required this.employee,
+    required this.objectTitle,
+    required this.employeeIds,
+    required this.accrued,
+    required this.paid,
+  });
+
+  double get balance => accrued - paid;
+}
+
+class _PaymentDisplayDraft {
+  final Employee firstEmployee;
+  final Set<String> employeeIds = {};
+  final Set<String> objectNames = {};
+  double accrued = 0;
+  double paid = 0;
+
+  _PaymentDisplayDraft(this.firstEmployee);
+
+  void add(MonthlyTimesheetRow row) {
+    final employee = row.employee;
+    final employeeId = employee.id?.trim();
+    final objectName = employee.objectName.trim();
+
+    if (employeeId != null && employeeId.isNotEmpty) {
+      employeeIds.add(employeeId);
+    }
+
+    if (objectName.isNotEmpty) {
+      objectNames.add(objectName);
+    }
+
+    accrued += row.accrued;
+    paid += row.paid;
+  }
+
+  String get objectTitle {
+    final objects = objectNames.toList()..sort();
+
+    if (objects.isEmpty) return 'Все объекты';
+    if (objects.length == 1) return objects.first;
+
+    return objects.join(', ');
+  }
+
+  _PaymentDisplayRow toRow() {
+    final title = objectTitle;
+
+    final employee = Employee(
+      firstEmployee.name,
+      firstEmployee.position,
+      firstEmployee.status,
+      id: employeeIds.isEmpty ? firstEmployee.id : employeeIds.first,
+      phone: firstEmployee.phone,
+      objectName: title,
+      dailyRate: firstEmployee.dailyRate,
+      isActive: firstEmployee.isActive,
+      comment: firstEmployee.comment,
+    );
+
+    return _PaymentDisplayRow(
+      employee: employee,
+      objectTitle: title,
+      employeeIds: employeeIds.toList(),
+      accrued: accrued,
+      paid: paid,
     );
   }
 }
