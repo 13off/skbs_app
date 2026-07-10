@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app/app_theme.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 
@@ -29,26 +30,7 @@ class SkbsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: appNavigatorKey,
       navigatorObservers: [AppWebHistoryObserver()],
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8F9499),
-          brightness: Brightness.light,
-        ),
-        fontFamily: 'Inter',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF7F8FA),
-          foregroundColor: Color(0xFF1F2328),
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: Color(0xFF1F2328),
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      theme: AppTheme.light,
       home: const AppBrowserBackBridge(child: AuthGate()),
     );
   }
