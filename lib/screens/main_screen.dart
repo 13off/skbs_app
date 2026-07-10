@@ -6,6 +6,7 @@ import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import 'employees_screen.dart';
 import 'home_screen.dart';
+import 'object_management_screen.dart';
 import 'profile_screen.dart';
 import 'tasks_screen.dart';
 import 'timesheet_screen.dart';
@@ -111,7 +112,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   int get pageCount {
-    return widget.profile.isAdmin ? 5 : 4;
+    return widget.profile.isAdmin ? 6 : 4;
   }
 
   int get safeCurrentIndex {
@@ -131,21 +132,26 @@ class _MainScreenState extends State<MainScreen> {
             onObjectChanged: changeSelectedObject,
           );
         case 1:
+          return ObjectManagementScreen(
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+          );
+        case 2:
           return EmployeesScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
           );
-        case 2:
+        case 3:
           return TimesheetScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
           );
-        case 3:
+        case 4:
           return TasksScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
           );
-        case 4:
+        case 5:
           return ProfileScreen(profile: widget.profile);
         default:
           return const SizedBox.shrink();
@@ -200,6 +206,11 @@ class _MainScreenState extends State<MainScreen> {
           icon: Icon(Icons.home_outlined),
           selectedIcon: Icon(Icons.home),
           label: 'Главная',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.business_outlined),
+          selectedIcon: Icon(Icons.business),
+          label: 'Объекты',
         ),
         NavigationDestination(
           icon: Icon(Icons.groups_outlined),
