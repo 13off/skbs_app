@@ -6,7 +6,7 @@ import 'object_repository.dart';
 class EmployeeRepository {
   static final _client = Supabase.instance.client;
 
-  static const List<String> baseObjects = ['Мурманск', 'Москва'];
+  static const List<String> baseObjects = <String>[];
   static const Duration _employeesCacheTtl = Duration(seconds: 25);
 
   static List<String>? _cachedObjectNames;
@@ -151,31 +151,11 @@ class EmployeeRepository {
       return List<String>.from(_cachedObjectNames!);
     }
 
-    final objects = <String>{...baseObjects};
-
-    final savedObjectNames = await ObjectRepository.fetchObjectNames(
+    final result = await ObjectRepository.fetchObjectNames(
       forceRefresh: forceRefresh,
     );
 
-    objects.addAll(savedObjectNames);
-
-    final rows = await _client
-        .from('employees')
-        .select('object_name')
-        .eq('is_active', true);
-
-    for (final row in rows) {
-      final objectName = row['object_name']?.toString().trim();
-
-      if (objectName == null || objectName.isEmpty) continue;
-
-      objects.add(objectName);
-    }
-
-    final result = objects.toList();
-    result.sort();
-
-    _cachedObjectNames = result;
+    _cachedObjectNames = List<String>.from(result);
 
     return List<String>.from(result);
   }
@@ -188,9 +168,11 @@ class EmployeeRepository {
     required int dailyRate,
     required String comment,
   }) async {
-    final cleanObjectName = objectName.trim().isEmpty
-        ? 'Мурманск'
-        : objectName.trim();
+    final cleanObjectName = objectName.trim();
+
+    if (cleanObjectName.isEmpty) {
+      throw Exception('Выберите объект');
+    }
 
     await ObjectRepository.ensureObjectNameExists(cleanObjectName);
 
@@ -232,9 +214,11 @@ class EmployeeRepository {
     required int dailyRate,
     required String comment,
   }) async {
-    final cleanObjectName = objectName.trim().isEmpty
-        ? 'Мурманск'
-        : objectName.trim();
+    final cleanObjectName = objectName.trim();
+
+    if (cleanObjectName.isEmpty) {
+      throw Exception('Выберите объект');
+    }
 
     await ObjectRepository.ensureObjectNameExists(cleanObjectName);
 
