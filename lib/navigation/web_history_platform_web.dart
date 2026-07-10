@@ -21,7 +21,6 @@ class WebHistoryPlatform {
     _depth = 0;
 
     try {
-      html.window.history.scrollRestoration = 'manual';
       html.window.history.replaceState(
         <String, Object>{'appstroy': true, 'depth': 0},
         html.document.title,
