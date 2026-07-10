@@ -1,21 +1,44 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
-class AppPageRoute<T> extends CupertinoPageRoute<T> {
+class AppPageRoute<T> extends PageRouteBuilder<T> {
   AppPageRoute({
-    required super.builder,
+    required WidgetBuilder builder,
     super.settings,
-    super.title,
     super.fullscreenDialog = false,
     super.maintainState = true,
-    super.allowSnapshotting = false,
-  });
+  }) : super(
+         opaque: true,
+         transitionDuration: const Duration(milliseconds: 260),
+         reverseTransitionDuration: const Duration(milliseconds: 220),
+         pageBuilder: (context, animation, secondaryAnimation) =>
+             builder(context),
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           final enter = CurvedAnimation(
+             parent: animation,
+             curve: const Cubic(0.22, 1, 0.36, 1),
+             reverseCurve: const Cubic(0.4, 0, 1, 1),
+           );
+           final exit = CurvedAnimation(
+             parent: secondaryAnimation,
+             curve: const Cubic(0.22, 1, 0.36, 1),
+           );
 
-  @override
-  bool get opaque => false;
-
-  @override
-  Duration get transitionDuration => const Duration(milliseconds: 270);
-
-  @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 230);
+           return SlideTransition(
+             position: Tween<Offset>(
+               begin: const Offset(0.045, 0),
+               end: Offset.zero,
+             ).animate(enter),
+             child: FadeTransition(
+               opacity: Tween<double>(begin: 0.96, end: 1).animate(enter),
+               child: SlideTransition(
+                 position: Tween<Offset>(
+                   begin: Offset.zero,
+                   end: const Offset(-0.018, 0),
+                 ).animate(exit),
+                 child: child,
+               ),
+             ),
+           );
+         },
+       );
 }
