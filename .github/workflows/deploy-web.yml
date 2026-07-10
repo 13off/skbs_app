@@ -57,6 +57,52 @@ jobs:
 
           echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
 
+      - name: Enable interactive back routes
+        shell: bash
+        run: |
+          if [ ! -f skbs_app/tool/enable_interactive_back_routes.marker ]; then
+            echo "No pending route patch"
+            exit 0
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('skbs_app')
+          import_line = "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n"
+          changed = []
+
+          for path in (root / 'lib').rglob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              if 'MaterialPageRoute' not in text:
+                  continue
+
+              updated = text.replace('MaterialPageRoute', 'CupertinoPageRoute')
+
+              if 'package:flutter/cupertino.dart' not in updated:
+                  material_import = "import 'package:flutter/material.dart';\n"
+                  if material_import in updated:
+                      updated = updated.replace(
+                          material_import,
+                          material_import + import_line,
+                          1,
+                      )
+                  else:
+                      updated = import_line + updated
+
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(path.as_posix())
+
+          if not changed:
+              raise RuntimeError('MaterialPageRoute не найден ни в одном файле')
+
+          (root / 'tool/enable_interactive_back_routes.marker').unlink()
+          print(f'Updated route files: {len(changed)}')
+          PY
+
+          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -70,7 +116,7 @@ jobs:
       - name: Format optimized source
         if: env.SOURCE_PATCH_APPLIED == '1'
         working-directory: skbs_app
-        run: dart format lib/app/app_theme.dart lib/widgets/premium_ui_v2.dart lib/features/shell/presentation/premium_main_screen.dart lib/screens/timesheet_screen.dart
+        run: dart format lib
 
       - name: Analyze optimized source
         if: env.SOURCE_PATCH_APPLIED == '1'
@@ -95,7 +141,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "исправлены нажатия, свайпы и плавность интерфейса"
+          git commit -m "добавлен интерактивный свайп назад"
           git push
 
       - name: Add web cache busting and GitHub Pages fallback
