@@ -1,8 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import 'web_edge_swipe_platform_stub.dart'
-    if (dart.library.html) 'web_edge_swipe_platform_web.dart';
-
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 typedef AppBackHandler = Future<bool> Function();
@@ -15,7 +12,6 @@ void setActiveAppBackHandler(AppBackHandler? handler) {
 
 class AppWebHistoryObserver extends NavigatorObserver {
   // Историей браузера управляет оболочка приложения.
-  // Свайп с левого края приходит из web/index.html отдельным событием.
 }
 
 class AppBrowserBackBridge extends StatefulWidget {
@@ -28,19 +24,7 @@ class AppBrowserBackBridge extends StatefulWidget {
 }
 
 class _AppBrowserBackBridgeState extends State<AppBrowserBackBridge> {
-  @override
-  void initState() {
-    super.initState();
-    WebEdgeSwipePlatform.initialize(_popOneScreen);
-  }
-
-  @override
-  void dispose() {
-    WebEdgeSwipePlatform.dispose();
-    super.dispose();
-  }
-
-  Future<void> _popOneScreen() async {
+  Future<void> popOneScreen() async {
     final handler = _activeBackHandler;
 
     if (handler != null && await handler()) {
