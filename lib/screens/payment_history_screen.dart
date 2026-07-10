@@ -7,8 +7,13 @@ import '../models/employee.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   final Employee employee;
+  final List<String> employeeIds;
 
-  const PaymentHistoryScreen({super.key, required this.employee});
+  const PaymentHistoryScreen({
+    super.key,
+    required this.employee,
+    this.employeeIds = const [],
+  });
 
   @override
   State<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
@@ -100,10 +105,26 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return payments.fold<double>(0, (sum, payment) => sum + payment.amount);
   }
 
-  Future<void> loadHistory({bool forceRefresh = false}) async {
-    final employeeId = widget.employee.id;
+  List<String> get historyEmployeeIds {
+    final ids = widget.employeeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
 
-    if (employeeId == null || employeeId.trim().isEmpty) {
+    if (ids.isNotEmpty) return ids;
+
+    final employeeId = widget.employee.id?.trim();
+
+    if (employeeId == null || employeeId.isEmpty) return <String>[];
+
+    return <String>[employeeId];
+  }
+
+  Future<void> loadHistory({bool forceRefresh = false}) async {
+    final employeeIds = historyEmployeeIds;
+
+    if (employeeIds.isEmpty) {
       setState(() {
         errorText = 'У сотрудника нет ID';
       });
@@ -118,8 +139,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     });
 
     try {
-      final result = await PaymentRepository.fetchPaymentsForEmployee(
-        employeeId,
+      final result = await PaymentRepository.fetchPaymentsForEmployees(
+        employeeIds,
         forceRefresh: forceRefresh,
       );
 
