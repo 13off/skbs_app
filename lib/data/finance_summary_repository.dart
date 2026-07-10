@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/employee.dart';
 import 'attendance_repository.dart';
 import 'employee_repository.dart';
+import 'object_repository.dart';
 
 class FinancePeriod {
   final int? year;
@@ -143,10 +144,24 @@ class FinanceSummaryRepository {
     String? objectName,
   }) async {
     final cleanObject = _cleanObjectName(objectName);
-    final employees = await EmployeeRepository.fetchEmployees(
+    final allEmployees = await EmployeeRepository.fetchEmployees(
       objectName: cleanObject,
       includeFired: true,
     );
+
+    final activeObjectNames = cleanObject == null
+        ? (await ObjectRepository.fetchObjectNames()).toSet()
+        : null;
+
+    final employees = activeObjectNames == null
+        ? allEmployees
+        : allEmployees
+              .where(
+                (employee) =>
+                    activeObjectNames.contains(employee.objectName.trim()),
+              )
+              .toList();
+
     final employeesById = _employeesById(employees);
 
     if (employeesById.isEmpty) return FinanceSummaryData.empty;
