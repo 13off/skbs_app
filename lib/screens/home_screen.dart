@@ -39,8 +39,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static const String _allObjectsValue = '__all__';
   static const String _addObjectValue = '__add_object__';
+  static const String _archiveListValue = '__archive_list__';
   static const String _editObjectPrefix = '__edit_object__::';
-  static const String _deleteObjectPrefix = '__delete_object__::';
+  static const String _archiveObjectPrefix = '__archive_object__::';
 
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
@@ -68,6 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
+  }
+
+  String normalizeName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   String get objectTitle {
@@ -103,41 +108,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<_HomeDashboardData> loadDashboardData() async {
     final today = AppState.today;
+    final selectedObject = cleanObjectName(widget.selectedObjectName);
 
     final results = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(objectName: widget.selectedObjectName),
+      EmployeeRepository.fetchEmployees(objectName: selectedObject),
       AttendanceRepository.fetchWorkedEmployeeIds(
         today,
-        objectName: widget.selectedObjectName,
+        objectName: selectedObject,
       ),
       TaskRepository.fetchTasksForDate(
         today,
-        objectName: widget.selectedObjectName,
+        objectName: selectedObject,
       ),
       FinanceSummaryRepository.fetchSummary(
         period: financePeriod,
-        objectName: widget.selectedObjectName,
+        objectName: selectedObject,
       ),
+      if (selectedObject == null) ObjectRepository.fetchObjectNames(),
     ]);
 
+    final employees = results[0] as List<Employee>;
+    final workedEmployeeIds = results[1] as Set<String>;
+    var tasks = results[2] as List<TaskItemData>;
+
+    if (selectedObject == null) {
+      final activeObjectNames = (results[4] as List<String>).toSet();
+      tasks = tasks
+          .where((task) => activeObjectNames.contains(task.objectName.trim()))
+          .toList();
+    }
+
     return _HomeDashboardData(
-      employees: results[0] as List<Employee>,
-      workedEmployeeIds: results[1] as Set<String>,
-      tasks: results[2] as List<TaskItemData>,
+      employees: employees,
+      workedEmployeeIds: workedEmployeeIds,
+      tasks: tasks,
       finance: results[3] as FinanceSummaryData,
     );
-  }
-
-  Future<void> reloadDashboard() async {
-    if (!mounted) return;
-
-    final nextFuture = loadDashboardData();
-
-    setState(() {
-      dashboardFuture = nextFuture;
-    });
-
-    await nextFuture;
   }
 
   void refreshObjectsAndDashboard() {
@@ -162,7 +168,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final isEdit = currentName != null;
     final formKey = GlobalKey<FormState>();
     final controller = TextEditingController(text: currentName ?? '');
-
     var isSaving = false;
     String? errorText;
 
@@ -191,11 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       )
                     : await ObjectRepository.addObject(name: controller.text);
 
-                if (!context.mounted) return;
-
-                Navigator.pop(context, savedName);
+                if (!sheetContext.mounted) return;
+                Navigator.pop(sheetContext, savedName);
               } catch (error) {
-                if (!context.mounted) return;
+                if (!sheetContext.mounted) return;
 
                 setModalState(() {
                   isSaving = false;
@@ -247,7 +251,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                isEdit ? 'Редактировать объект' : 'Новый объект',
+                                isEdit
+                                    ? 'Редактировать объект'
+                                    : 'Новый объект',
                                 style: const TextStyle(
                                   color: _text,
                                   fontSize: 22,
@@ -258,9 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             IconButton(
                               onPressed: isSaving
                                   ? null
-                                  : () {
-                                      Navigator.pop(context);
-                                    },
+                                  : () => Navigator.pop(sheetContext),
                               icon: const Icon(Icons.close),
                             ),
                           ],
@@ -290,9 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return null;
                           },
-                          onFieldSubmitted: (_) {
-                            saveObject();
-                          },
+                          onFieldSubmitted: (_) => saveObject(),
                         ),
                         if (errorText != null) ...[
                           const SizedBox(height: 12),
@@ -319,7 +321,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   )
                                 : Icon(
-                                    isEdit ? Icons.save_outlined : Icons.add,
+                                    isEdit
+                                        ? Icons.save_outlined
+                                        : Icons.add_business_outlined,
                                   ),
                             label: Text(
                               isSaving
@@ -342,7 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     controller.dispose();
-
     return result;
   }
 
@@ -367,28 +370,24 @@ class _HomeScreenState extends State<HomeScreen> {
     refreshObjectsAndDashboard();
   }
 
-  Future<void> handleDeleteObject(String objectName) async {
+  Future<void> handleArchiveObject(String objectName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Удалить объект?'),
+          title: const Text('Архивировать объект?'),
           content: Text(
-            'Объект "$objectName" будет удалён из списка. Если к нему привязаны сотрудники, табель, задачи или пользователь, удаление будет запрещено.',
+            'Объект "$objectName" исчезнет из рабочего списка. Табели, задачи, выплаты и документы сохранятся. Сотрудники на этом объекте будут отмечены как уволенные.',
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Отмена'),
             ),
             FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Удалить'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.archive_outlined),
+              label: const Text('В архив'),
             ),
           ],
         );
@@ -400,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final wasSelected = isSameObject(widget.selectedObjectName, objectName);
 
-      await ObjectRepository.deleteObject(name: objectName);
+      await ObjectRepository.archiveObject(name: objectName);
 
       if (wasSelected) {
         widget.onObjectChanged(null);
@@ -411,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Объект "$objectName" удалён')),
+        SnackBar(content: Text('Объект "$objectName" перемещён в архив')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -420,6 +419,165 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text(error.toString())),
       );
     }
+  }
+
+  Future<void> showArchivedObjectsSheet(BuildContext context) async {
+    List<String> archivedObjects;
+
+    try {
+      archivedObjects = await ObjectRepository.fetchArchivedObjectNames(
+        forceRefresh: true,
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(18),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: _line),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Архив объектов',
+                        style: TextStyle(
+                          color: _text,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (archivedObjects.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 42,
+                          color: _muted,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Архив пуст',
+                          style: TextStyle(
+                            color: _muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: archivedObjects.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final objectName = archivedObjects[index];
+
+                        return Container(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                          decoration: BoxDecoration(
+                            color: _softCard,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: _line),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.inventory_2_outlined),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  objectName,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _text,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  try {
+                                    await ObjectRepository.restoreObject(
+                                      name: objectName,
+                                    );
+
+                                    if (!sheetContext.mounted) return;
+                                    Navigator.pop(sheetContext);
+                                    refreshObjectsAndDashboard();
+
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Объект "$objectName" восстановлен',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (error) {
+                                    if (!sheetContext.mounted) return;
+
+                                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                      SnackBar(content: Text(error.toString())),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.restore, size: 18),
+                                label: const Text('Вернуть'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> showObjectPicker(
@@ -434,13 +592,13 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Container(
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(18),
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.82,
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.82,
             ),
             decoration: BoxDecoration(
               color: _card,
@@ -478,18 +636,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
+                    IconButton(
+                      tooltip: 'Архив объектов',
+                      onPressed: () {
+                        Navigator.pop(sheetContext, _archiveListValue);
+                      },
+                      icon: const Icon(Icons.inventory_2_outlined),
+                    ),
                     FilledButton.tonalIcon(
                       onPressed: () {
-                        Navigator.pop(context, _addObjectValue);
+                        Navigator.pop(sheetContext, _addObjectValue);
                       },
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Объект'),
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(sheetContext),
                       icon: const Icon(Icons.close),
                     ),
                   ],
@@ -501,11 +664,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       _ObjectPickerTile(
                         title: 'Все объекты',
-                        subtitle: 'Сводка по всем объектам',
+                        subtitle: 'Сводка по всем активным объектам',
                         icon: Icons.apartment_outlined,
                         isSelected: selectedValue == _allObjectsValue,
                         onTap: () {
-                          Navigator.pop(context, _allObjectsValue);
+                          Navigator.pop(sheetContext, _allObjectsValue);
                         },
                       ),
                       ...objects.map((objectName) {
@@ -515,18 +678,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: Icons.business_outlined,
                           isSelected: objectName == selectedValue,
                           onTap: () {
-                            Navigator.pop(context, objectName);
+                            Navigator.pop(sheetContext, objectName);
                           },
                           onEdit: () {
                             Navigator.pop(
-                              context,
+                              sheetContext,
                               '$_editObjectPrefix$objectName',
                             );
                           },
-                          onDelete: () {
+                          onArchive: () {
                             Navigator.pop(
-                              context,
-                              '$_deleteObjectPrefix$objectName',
+                              sheetContext,
+                              '$_archiveObjectPrefix$objectName',
                             );
                           },
                         );
@@ -543,6 +706,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (pickedValue == null) return;
 
+    if (pickedValue == _archiveListValue) {
+      await showArchivedObjectsSheet(context);
+      return;
+    }
+
     if (pickedValue == _addObjectValue) {
       await handleAddObject();
       return;
@@ -554,9 +722,9 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (pickedValue.startsWith(_deleteObjectPrefix)) {
-      final objectName = pickedValue.substring(_deleteObjectPrefix.length);
-      await handleDeleteObject(objectName);
+    if (pickedValue.startsWith(_archiveObjectPrefix)) {
+      final objectName = pickedValue.substring(_archiveObjectPrefix.length);
+      await handleArchiveObject(objectName);
       return;
     }
 
@@ -580,13 +748,13 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Container(
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(18),
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.82,
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.82,
             ),
             decoration: BoxDecoration(
               color: _card,
@@ -609,9 +777,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(sheetContext),
                       icon: const Icon(Icons.close),
                     ),
                   ],
@@ -629,37 +795,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(
-                              color: isSelected ? _accent : _line,
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () => Navigator.pop(sheetContext, period),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isSelected ? _softCard : _card,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: isSelected ? _accent : _line,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  period.isAllTime
+                                      ? Icons.all_inclusive
+                                      : Icons.calendar_month_outlined,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    period.pickerTitle(),
+                                    style: const TextStyle(
+                                      color: _text,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: _accent,
+                                  ),
+                              ],
                             ),
                           ),
-                          tileColor: isSelected ? _softCard : _card,
-                          leading: Icon(
-                            period.isAllTime
-                                ? Icons.all_inclusive
-                                : Icons.calendar_month_outlined,
-                          ),
-                          title: Text(
-                            period.pickerTitle(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          subtitle: Text(
-                            period.isAllTime
-                                ? 'Вся история табеля и выплат'
-                                : 'Начисления и выплаты за месяц',
-                          ),
-                          trailing: isSelected
-                              ? const Icon(Icons.check_circle, color: _accent)
-                              : null,
-                          onTap: () {
-                            Navigator.pop(context, period);
-                          },
                         ),
                       );
                     },
@@ -680,27 +853,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  String employeeKey(Employee employee) {
-    final name = employee.name.trim().toLowerCase().replaceAll(
-      RegExp(r'\s+'),
-      ' ',
-    );
-
-    if (name.isNotEmpty) return name;
-
-    return employee.id?.trim() ?? employee.objectName.trim().toLowerCase();
-  }
-
-  List<List<Employee>> groupEmployees(List<Employee> employees) {
-    final groups = <String, List<Employee>>{};
-
-    for (final employee in employees) {
-      groups.putIfAbsent(employeeKey(employee), () => <Employee>[]).add(employee);
-    }
-
-    return groups.values.toList(growable: false);
-  }
-
   Widget buildObjectSelector(BuildContext context) {
     if (!widget.profile.isAdmin) {
       return _ObjectSelectorShell(
@@ -713,151 +865,166 @@ class _HomeScreenState extends State<HomeScreen> {
     return FutureBuilder<List<String>>(
       future: objectNamesFuture,
       builder: (context, snapshot) {
-        final objects = snapshot.data ?? EmployeeRepository.baseObjects;
+        final objects = snapshot.data ?? const <String>[];
 
         return _ObjectSelectorShell(
           icon: Icons.apartment_outlined,
           title: objectTitle,
-          onTap: () {
-            showObjectPicker(context, objects);
-          },
+          onTap: () => showObjectPicker(context, objects),
         );
       },
     );
   }
 
-  Widget buildDashboard(
-    BuildContext context,
-    DateTime today,
-    _HomeDashboardData data, {
+  Widget buildHeader(BuildContext context, DateTime today) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'AppСтрой',
+                style: TextStyle(
+                  color: _text,
+                  fontFamily: 'Georgia',
+                  fontSize: 36,
+                  height: 1,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1.0,
+                ),
+              ),
+            ),
+            NotificationBell(selectedObjectName: widget.selectedObjectName),
+          ],
+        ),
+        const SizedBox(height: 26),
+        Row(
+          children: [
+            const Icon(Icons.calendar_month_outlined, color: _muted, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              'Сегодня, ${dateText(today)}',
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        buildObjectSelector(context),
+      ],
+    );
+  }
+
+  Widget buildDashboard({
+    required BuildContext context,
+    required DateTime today,
+    required List<Employee> employees,
+    required Set<String> workedEmployeeIds,
+    required List<TaskItemData> tasks,
+    required FinanceSummaryData finance,
     required bool isLoading,
     required bool hasError,
   }) {
-    final employeeGroups = groupEmployees(data.employees);
-    final totalEmployees = employeeGroups.length;
-    final workedEmployees = employeeGroups.where((group) {
-      return group.any((employee) {
-        final id = employee.id;
-        return id != null && data.workedEmployeeIds.contains(id);
-      });
-    }).length;
+    final employeeById = <String, Employee>{};
+    final activeEmployeeNames = <String>{};
 
-    final totalTasks = data.tasks.length;
-    final doneTasks = data.tasks
-        .where((task) => task.status == 'Выполнено')
-        .length;
+    for (final employee in employees) {
+      final id = employee.id?.trim();
 
-    final employeeProgress = totalEmployees == 0
+      if (id != null && id.isNotEmpty) {
+        employeeById[id] = employee;
+      }
+
+      activeEmployeeNames.add(normalizeName(employee.name));
+    }
+
+    final workedEmployeeNames = <String>{};
+
+    for (final employeeId in workedEmployeeIds) {
+      final employee = employeeById[employeeId];
+
+      if (employee != null) {
+        workedEmployeeNames.add(normalizeName(employee.name));
+      }
+    }
+
+    final totalEmployees = activeEmployeeNames.length;
+    final workedEmployees = workedEmployeeNames.length;
+    final totalTasks = tasks.length;
+    final doneTasks = tasks.where((task) => task.status == 'Выполнено').length;
+    final employeesProgress = totalEmployees == 0
         ? 0.0
         : workedEmployees / totalEmployees;
-    final taskProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
+    final tasksProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
 
     return Container(
       color: _bg,
       child: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: reloadDashboard,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'AppСтрой',
-                              style: TextStyle(
-                                color: _text,
-                                fontFamily: 'Georgia',
-                                fontSize: 36,
-                                height: 1,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: -1,
-                              ),
-                            ),
-                          ),
-                          NotificationBell(
-                            selectedObjectName: widget.selectedObjectName,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_month_outlined,
-                            color: _muted,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Сегодня, ${dateText(today)}',
-                            style: const TextStyle(
-                              color: _muted,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      buildObjectSelector(context),
-                      if (hasError) ...[
-                        const SizedBox(height: 14),
-                        const _SystemMessage(
-                          icon: Icons.error_outline,
-                          title: 'Есть ошибка загрузки',
-                          text:
-                              'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
-                        ),
-                      ],
-                      const SizedBox(height: 22),
-                      _DashboardMetricCard(
-                        icon: Icons.person_outline,
-                        title: 'Сотрудники на объекте',
-                        value: isLoading ? '...' : '$workedEmployees',
-                        secondaryValue: isLoading ? '...' : 'из $totalEmployees',
-                        progress: employeeProgress,
-                        footerTitle: 'На объекте',
-                        footerValue: isLoading ? '...' : '$workedEmployees',
-                        footerColor: _success,
-                      ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildHeader(context, today),
+                    if (hasError) ...[
                       const SizedBox(height: 14),
-                      _DashboardMetricCard(
-                        icon: Icons.assignment_turned_in_outlined,
-                        title: 'Задачи на сегодня',
-                        value: isLoading ? '...' : '$totalTasks',
-                        secondaryValue: 'всего',
-                        progress: taskProgress,
-                        footerTitle: 'Выполнено',
-                        footerValue: isLoading ? '...' : '$doneTasks',
-                        footerColor: _accent,
+                      const _SystemMessage(
+                        icon: Icons.error_outline,
+                        title: 'Есть ошибка загрузки',
+                        text:
+                            'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
                       ),
-                      if (widget.profile.isAdmin) ...[
-                        const SizedBox(height: 14),
-                        _FinanceSummaryCard(
-                          title: 'Выплаты ${financePeriod.title()}',
-                          objectTitle: objectTitle,
-                          finance: isLoading
-                              ? FinanceSummaryData.empty
-                              : data.finance,
-                          isLoading: isLoading,
-                          onPeriodTap: () {
-                            showFinancePeriodPicker(context);
-                          },
-                        ),
-                      ],
                     ],
-                  ),
+                    const SizedBox(height: 24),
+                    _DashboardMetricCard(
+                      icon: Icons.person_outline,
+                      title: 'Сотрудники на объекте',
+                      value: isLoading ? '...' : workedEmployees.toString(),
+                      secondaryValue:
+                          isLoading ? '...' : 'из $totalEmployees',
+                      progress: employeesProgress,
+                      footerTitle: 'На объекте',
+                      footerValue: isLoading
+                          ? '...'
+                          : workedEmployees.toString(),
+                      footerColor: _success,
+                    ),
+                    const SizedBox(height: 14),
+                    _DashboardMetricCard(
+                      icon: Icons.assignment_turned_in_outlined,
+                      title: 'Задачи на сегодня',
+                      value: isLoading ? '...' : totalTasks.toString(),
+                      secondaryValue: 'всего',
+                      progress: tasksProgress,
+                      footerTitle: 'Выполнено',
+                      footerValue: isLoading ? '...' : doneTasks.toString(),
+                      footerColor: _accent,
+                    ),
+                    if (widget.profile.isAdmin) ...[
+                      const SizedBox(height: 14),
+                      _FinanceSummaryCard(
+                        title: 'Выплаты ${financePeriod.title()}',
+                        objectTitle: objectTitle,
+                        finance: isLoading
+                            ? FinanceSummaryData.empty
+                            : finance,
+                        isLoading: isLoading,
+                        onPeriodTap: () => showFinancePeriodPicker(context),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -876,9 +1043,12 @@ class _HomeScreenState extends State<HomeScreen> {
             !snapshot.hasData;
 
         return buildDashboard(
-          context,
-          today,
-          data,
+          context: context,
+          today: today,
+          employees: data.employees,
+          workedEmployeeIds: data.workedEmployeeIds,
+          tasks: data.tasks,
+          finance: data.finance,
           isLoading: isLoading,
           hasError: snapshot.hasError,
         );
@@ -970,7 +1140,7 @@ class _ObjectPickerTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
+  final VoidCallback? onArchive;
 
   const _ObjectPickerTile({
     required this.title,
@@ -979,7 +1149,7 @@ class _ObjectPickerTile extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.onEdit,
-    this.onDelete,
+    this.onArchive,
   });
 
   @override
@@ -1032,12 +1202,12 @@ class _ObjectPickerTile extends StatelessWidget {
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 20),
                 ),
-              if (onDelete != null)
+              if (onArchive != null)
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Удалить объект',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: 'Архивировать объект',
+                  onPressed: onArchive,
+                  icon: const Icon(Icons.archive_outlined, size: 20),
                 ),
               if (isSelected)
                 const Padding(
