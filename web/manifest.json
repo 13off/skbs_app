@@ -6,11 +6,17 @@
     "start_url": "/appstroy-web/?source=pwa",
     "scope": "/appstroy-web/",
     "display": "standalone",
-    "background_color": "#F3F1EC",
-    "theme_color": "#26282B",
+    "background_color": "#25282C",
+    "theme_color": "#25282C",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
+        {
+            "src": "icons/app_icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
