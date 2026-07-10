@@ -19,7 +19,6 @@ const Color _text = Color(0xFF1F2328);
 const Color _muted = Color(0xFF6B7075);
 const Color _accent = Color(0xFF8F9499);
 const Color _success = Color(0xFF22C55E);
-const Color _warning = Color(0xFF8F9499);
 
 class HomeScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -38,6 +37,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const String _allObjectsValue = '__all__';
+  static const String _addObjectValue = '__add_object__';
+  static const String _editObjectPrefix = '__edit_object__::';
+
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
   FinancePeriod financePeriod = FinancePeriod.current(AppState.today);
@@ -105,27 +108,46 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${date.day} ${months[date.month - 1]}';
   }
 
+  String? cleanObjectName(String? value) {
+    final clean = value?.trim();
+
+    if (clean == null || clean.isEmpty) return null;
+
+    return clean;
+  }
+
   String get objectTitle {
-    final objectName = widget.selectedObjectName?.trim();
-
-    if (objectName == null || objectName.isEmpty) {
-      return 'Все объекты';
-    }
-
-    return objectName;
+    return cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
   }
 
   bool isSameFinancePeriod(FinancePeriod a, FinancePeriod b) {
     return a.year == b.year && a.month == b.month;
   }
 
-  Future<String?> showAddObjectSheet(BuildContext context) async {
+  bool isSameObject(String? a, String? b) {
+    return cleanObjectName(a) == cleanObjectName(b);
+  }
+
+  void refreshObjectsAndDashboard() {
+    ObjectRepository.clearCache();
+    EmployeeRepository.clearCache();
+    AttendanceRepository.clearCache();
+    TaskRepository.clearTaskListCache();
+
+    setState(() {
+      objectNamesFuture = EmployeeRepository.fetchObjectNames(
+        forceRefresh: true,
+      );
+      dashboardFuture = loadDashboardData();
+    });
+  }
+
+  Future<String?> showObjectNameSheet({String? currentName}) async {
     if (!widget.profile.isAdmin) return null;
 
+    final isEdit = currentName != null;
     final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    final commentController = TextEditingController();
+    final nameController = TextEditingController(text: currentName ?? '');
 
     var isSaving = false;
     String? errorText;
@@ -148,15 +170,16 @@ class _HomeScreenState extends State<HomeScreen> {
               });
 
               try {
-                final createdName = await ObjectRepository.addObject(
-                  name: nameController.text,
-                  address: addressController.text,
-                  comment: commentController.text,
-                );
+                final savedName = isEdit
+                    ? await ObjectRepository.renameObject(
+                        oldName: currentName,
+                        newName: nameController.text,
+                      )
+                    : await ObjectRepository.addObject(name: nameController.text);
 
                 if (!context.mounted) return;
 
-                Navigator.pop(context, createdName);
+                Navigator.pop(context, savedName);
               } catch (error) {
                 if (!context.mounted) return;
 
@@ -191,127 +214,107 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Form(
                     key: formKey,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 44,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD4CCC2),
-                                borderRadius: BorderRadius.circular(100),
-                              ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4CCC2),
+                              borderRadius: BorderRadius.circular(100),
                             ),
                           ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Новый объект',
-                                  style: TextStyle(
-                                    color: _text,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                isEdit ? 'Редактировать объект' : 'Новый объект',
+                                style: const TextStyle(
+                                  color: _text,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              IconButton(
-                                onPressed: isSaving
-                                    ? null
-                                    : () {
-                                        Navigator.pop(context);
-                                      },
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: nameController,
-                            enabled: !isSaving,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              labelText: 'Название объекта',
-                              hintText: 'Например: Талнах',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.business_outlined),
                             ),
-                            validator: (value) {
-                              final text = value?.trim() ?? '';
-
-                              if (text.isEmpty) {
-                                return 'Введите название объекта';
-                              }
-
-                              if (text.length < 2) {
-                                return 'Название слишком короткое';
-                              }
-
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: addressController,
-                            enabled: !isSaving,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: const InputDecoration(
-                              labelText: 'Город / адрес',
-                              hintText: 'Необязательно',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.place_outlined),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: commentController,
-                            enabled: !isSaving,
-                            minLines: 2,
-                            maxLines: 4,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: const InputDecoration(
-                              labelText: 'Комментарий',
-                              hintText: 'Необязательно',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.notes_outlined),
-                            ),
-                          ),
-                          if (errorText != null) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              errorText!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            IconButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () {
+                                      Navigator.pop(context);
+                                    },
+                              icon: const Icon(Icons.close),
                             ),
                           ],
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: FilledButton.icon(
-                              onPressed: isSaving ? null : saveObject,
-                              icon: isSaving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.add_business_outlined),
-                              label: Text(
-                                isSaving ? 'Сохраняем...' : 'Сохранить объект',
-                              ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: nameController,
+                          enabled: !isSaving,
+                          autofocus: true,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: InputDecoration(
+                            labelText: 'Название объекта',
+                            hintText: isEdit ? currentName : 'Например: Талнах',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.business_outlined),
+                          ),
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+
+                            if (text.isEmpty) {
+                              return 'Введите название объекта';
+                            }
+
+                            if (text.length < 2) {
+                              return 'Название слишком короткое';
+                            }
+
+                            return null;
+                          },
+                          onFieldSubmitted: (_) {
+                            saveObject();
+                          },
+                        ),
+                        if (errorText != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            errorText!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
-                      ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: FilledButton.icon(
+                            onPressed: isSaving ? null : saveObject,
+                            icon: isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(isEdit ? Icons.save_outlined : Icons.add),
+                            label: Text(
+                              isSaving
+                                  ? 'Сохраняем...'
+                                  : isEdit
+                                  ? 'Сохранить'
+                                  : 'Создать',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -323,10 +326,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     nameController.dispose();
-    addressController.dispose();
-    commentController.dispose();
 
     return result;
+  }
+
+  Future<void> handleAddObject() async {
+    final createdObjectName = await showObjectNameSheet();
+
+    if (createdObjectName == null || createdObjectName.trim().isEmpty) return;
+
+    refreshObjectsAndDashboard();
+    widget.onObjectChanged(createdObjectName);
+  }
+
+  Future<void> handleRenameObject(String oldName) async {
+    final newName = await showObjectNameSheet(currentName: oldName);
+
+    if (newName == null || newName.trim().isEmpty) return;
+
+    refreshObjectsAndDashboard();
+
+    if (isSameObject(widget.selectedObjectName, oldName)) {
+      widget.onObjectChanged(newName);
+    }
   }
 
   Future<void> showObjectPicker(
@@ -335,30 +357,13 @@ class _HomeScreenState extends State<HomeScreen> {
   ) async {
     if (!widget.profile.isAdmin) return;
 
-    final selectedValue = widget.selectedObjectName ?? '__all__';
+    final selectedValue = widget.selectedObjectName ?? _allObjectsValue;
 
     final pickedValue = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        final items = [
-          _ObjectPickerItem(
-            value: '__all__',
-            title: 'Все объекты',
-            subtitle: 'Сводка по всем объектам',
-            icon: Icons.apartment_outlined,
-          ),
-          ...objects.map(
-            (objectName) => _ObjectPickerItem(
-              value: objectName,
-              title: objectName,
-              subtitle: 'Данные только по этому объекту',
-              icon: Icons.business_outlined,
-            ),
-          ),
-        ];
-
         return SafeArea(
           child: Container(
             margin: const EdgeInsets.all(12),
@@ -402,6 +407,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.pop(context, _addObjectValue);
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Объект'),
+                    ),
+                    const SizedBox(width: 6),
                     IconButton(
                       onPressed: () {
                         Navigator.pop(context);
@@ -411,120 +424,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    Navigator.pop(context, '__add_object__');
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _softCard,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _accent),
-                    ),
-                    child: const Row(
-                      children: [
-                        _IconBox(
-                          icon: Icons.add_business_outlined,
-                          color: _accent,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '+ Добавить объект',
-                                style: TextStyle(
-                                  color: _text,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Создать новый объект в базе',
-                                style: TextStyle(
-                                  color: _muted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: _text),
-                      ],
-                    ),
-                  ),
-                ),
                 Flexible(
-                  child: ListView.builder(
+                  child: ListView(
                     shrinkWrap: true,
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final isSelected = item.value == selectedValue;
+                    children: [
+                      _ObjectPickerTile(
+                        value: _allObjectsValue,
+                        title: 'Все объекты',
+                        subtitle: 'Сводка по всем объектам',
+                        icon: Icons.apartment_outlined,
+                        isSelected: selectedValue == _allObjectsValue,
+                        onTap: () {
+                          Navigator.pop(context, _allObjectsValue);
+                        },
+                      ),
+                      ...objects.map((objectName) {
+                        final isSelected = objectName == selectedValue;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
+                        return _ObjectPickerTile(
+                          value: objectName,
+                          title: objectName,
+                          subtitle: 'Данные только по этому объекту',
+                          icon: Icons.business_outlined,
+                          isSelected: isSelected,
                           onTap: () {
-                            Navigator.pop(context, item.value);
+                            Navigator.pop(context, objectName);
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: isSelected ? _softCard : _card,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected ? _accent : _line,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                _IconBox(
-                                  icon: item.icon,
-                                  color: isSelected ? _accent : _text,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.title,
-                                        style: const TextStyle(
-                                          color: _text,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        item.subtitle,
-                                        style: const TextStyle(
-                                          color: _muted,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: _accent,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                          onEdit: () {
+                            Navigator.pop(
+                              context,
+                              '$_editObjectPrefix$objectName',
+                            );
+                          },
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ],
@@ -536,24 +470,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (pickedValue == null) return;
 
-    if (pickedValue == '__add_object__') {
-      final createdObjectName = await showAddObjectSheet(context);
-
-      if (createdObjectName == null || createdObjectName.trim().isEmpty) {
-        return;
-      }
-
-      setState(() {
-        objectNamesFuture = EmployeeRepository.fetchObjectNames(
-          forceRefresh: true,
-        );
-      });
-
-      widget.onObjectChanged(createdObjectName);
+    if (pickedValue == _addObjectValue) {
+      await handleAddObject();
       return;
     }
 
-    if (pickedValue == '__all__') {
+    if (pickedValue.startsWith(_editObjectPrefix)) {
+      final objectName = pickedValue.substring(_editObjectPrefix.length);
+      await handleRenameObject(objectName);
+      return;
+    }
+
+    if (pickedValue == _allObjectsValue) {
       widget.onObjectChanged(null);
       return;
     }
@@ -984,6 +912,84 @@ class _ObjectSelectorShell extends StatelessWidget {
   }
 }
 
+class _ObjectPickerTile extends StatelessWidget {
+  final String value;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback? onEdit;
+
+  const _ObjectPickerTile({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+    this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isSelected ? _softCard : _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isSelected ? _accent : _line),
+          ),
+          child: Row(
+            children: [
+              _IconBox(icon: icon, color: isSelected ? _accent : _text),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onEdit != null)
+                IconButton(
+                  tooltip: 'Редактировать объект',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
+              if (isSelected)
+                const Icon(Icons.check_circle, color: _accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DashboardMetricCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1201,14 +1207,12 @@ class _FinanceSummaryCard extends StatelessWidget {
                       style: const TextStyle(
                         color: _text,
                         fontSize: 18,
-                        height: 1.18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       objectTitle,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _muted,
                         fontWeight: FontWeight.w700,
@@ -1217,119 +1221,39 @@ class _FinanceSummaryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              TextButton.icon(
+              TextButton(
                 onPressed: isLoading ? null : onPeriodTap,
-                icon: const Icon(Icons.tune, size: 18),
-                label: const Text('Период'),
+                child: const Text('Период'),
               ),
             ],
           ),
           const SizedBox(height: 18),
-          _FinanceLine(
-            label: 'Надо выплатить',
-            value: isLoading ? '...' : formatMoney(finance.accrued),
-            isMain: true,
-          ),
-          const SizedBox(height: 10),
-          _FinanceLine(
-            label: 'Выплачено',
-            value: isLoading ? '...' : formatMoney(finance.paid),
-          ),
-          const SizedBox(height: 10),
-          _FinanceLine(
-            label: balanceTitle,
-            value: isLoading ? '...' : formatMoney(balanceValue),
-            isMain: true,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _MoneyPill(title: 'Начислено', value: formatMoney(finance.accrued)),
+              _MoneyPill(title: 'Выплачено', value: formatMoney(finance.paid)),
+              _MoneyPill(title: balanceTitle, value: formatMoney(balanceValue)),
+            ],
           ),
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              minHeight: 6,
-              value: isLoading ? 0 : finance.paidProgress,
+              minHeight: 5,
+              value: finance.paidProgress,
               backgroundColor: const Color(0xFFE8E2DB),
               valueColor: const AlwaysStoppedAnimation<Color>(_accent),
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            decoration: BoxDecoration(
-              color: _softCard,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 9,
-                  height: 9,
-                  decoration: const BoxDecoration(
-                    color: _accent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                const Expanded(
-                  child: Text(
-                    'Закрыто выплатами',
-                    style: TextStyle(
-                      color: _muted,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Text(
-                  isLoading ? '...' : '$progressPercent%',
-                  style: const TextStyle(
-                    color: _text,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 8),
+          Text(
+            'Закрыто выплатами: $progressPercent%',
+            style: const TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _FinanceLine extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isMain;
-
-  const _FinanceLine({
-    required this.label,
-    required this.value,
-    this.isMain = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isMain ? _text : _muted,
-              fontSize: isMain ? 16 : 15,
-              fontWeight: isMain ? FontWeight.w900 : FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          value,
-          style: TextStyle(
-            color: _text,
-            fontSize: isMain ? 20 : 16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1345,14 +1269,17 @@ class _ValueBlock extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: _text,
-            fontSize: 42,
-            height: 0.95,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1.2,
+        Flexible(
+          child: Text(
+            value,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _text,
+              fontSize: 46,
+              height: 0.95,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.6,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -1362,7 +1289,7 @@ class _ValueBlock extends StatelessWidget {
             secondaryValue,
             style: const TextStyle(
               color: _muted,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1393,21 +1320,58 @@ class _RingProgress extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          SizedBox(
-            width: size,
-            height: size,
-            child: CircularProgressIndicator(
-              value: progress.clamp(0.0, 1.0).toDouble(),
-              strokeWidth: stroke,
-              backgroundColor: const Color(0xFFE8E2DB),
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
-            ),
+          CircularProgressIndicator(
+            value: progress,
+            strokeWidth: stroke,
+            backgroundColor: const Color(0xFFE8E2DB),
+            valueColor: const AlwaysStoppedAnimation<Color>(_accent),
           ),
           Text(
             label,
             style: const TextStyle(
               color: _text,
-              fontSize: 16,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoneyPill extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _MoneyPill({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: _softCard,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: _text,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -1426,8 +1390,8 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
         color: _softCard,
         borderRadius: BorderRadius.circular(16),
@@ -1454,15 +1418,14 @@ class _SystemMessage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _softCard,
+        color: _card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _line),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: _text),
-          const SizedBox(width: 10),
+          Icon(icon, color: _muted),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1474,13 +1437,12 @@ class _SystemMessage extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   text,
                   style: const TextStyle(
                     color: _muted,
                     fontWeight: FontWeight.w600,
-                    height: 1.25,
                   ),
                 ),
               ],
@@ -1490,18 +1452,4 @@ class _SystemMessage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ObjectPickerItem {
-  final String value;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  const _ObjectPickerItem({
-    required this.value,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
 }
