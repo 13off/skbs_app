@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 
 const String supabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
@@ -26,6 +27,8 @@ class SkbsApp extends StatelessWidget {
     return MaterialApp(
       title: 'AppСтрой',
       debugShowCheckedModeBanner: false,
+      navigatorKey: appNavigatorKey,
+      navigatorObservers: [AppWebHistoryObserver()],
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
@@ -46,7 +49,7 @@ class SkbsApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthGate(),
+      home: const AppBrowserBackBridge(child: AuthGate()),
     );
   }
 }
