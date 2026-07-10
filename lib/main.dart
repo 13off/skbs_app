@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_theme.dart';
+import 'app/premium_scroll_behavior.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 
@@ -30,6 +31,7 @@ class SkbsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: appNavigatorKey,
       navigatorObservers: [AppWebHistoryObserver()],
+      scrollBehavior: const PremiumScrollBehavior(),
       theme: AppTheme.light,
       home: const AppBrowserBackBridge(child: AuthGate()),
     );
