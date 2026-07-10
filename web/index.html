@@ -183,6 +183,37 @@
         root.style.setProperty('--app-height', height + 'px');
       };
 
+      var installFirstSwipeGuard = function () {
+        try {
+          if (!window.history || !window.history.pushState) return;
+
+          if (!history.state || history.state.appstroySwipeGuard !== true) {
+            history.replaceState(
+              { appstroy: true, appstroyBase: true },
+              document.title,
+              window.location.href
+            );
+            history.pushState(
+              { appstroy: true, appstroySwipeGuard: true },
+              document.title,
+              window.location.href
+            );
+          }
+
+          window.addEventListener('popstate', function () {
+            window.setTimeout(function () {
+              try {
+                history.pushState(
+                  { appstroy: true, appstroySwipeGuard: true },
+                  document.title,
+                  window.location.href
+                );
+              } catch (_) {}
+            }, 0);
+          });
+        } catch (_) {}
+      };
+
       var hideLoader = function () {
         if (!loader) return;
         loader.classList.add('hidden');
@@ -194,6 +225,7 @@
       };
 
       updateAppHeight();
+      installFirstSwipeGuard();
 
       window.addEventListener('resize', updateAppHeight);
       window.addEventListener('orientationchange', function () {
