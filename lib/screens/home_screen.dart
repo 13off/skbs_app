@@ -40,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const String _allObjectsValue = '__all__';
   static const String _addObjectValue = '__add_object__';
   static const String _editObjectPrefix = '__edit_object__::';
+  static const String _deleteObjectPrefix = '__delete_object__::';
 
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
@@ -61,36 +62,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<_HomeDashboardData> loadDashboardData() async {
-    final today = AppState.today;
-    final period = financePeriod;
+  String? cleanObjectName(String? value) {
+    final clean = value?.trim();
 
-    final results = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(objectName: widget.selectedObjectName),
-      AttendanceRepository.fetchWorkedEmployeeIds(
-        today,
-        objectName: widget.selectedObjectName,
-      ),
-      TaskRepository.fetchTasksForDate(
-        today,
-        objectName: widget.selectedObjectName,
-      ),
-      FinanceSummaryRepository.fetchSummary(
-        period: period,
-        objectName: widget.selectedObjectName,
-      ),
-    ]);
+    if (clean == null || clean.isEmpty) return null;
 
-    return _HomeDashboardData(
-      employees: results[0] as List<Employee>,
-      workedEmployeeIds: results[1] as Set<String>,
-      tasks: results[2] as List<TaskItemData>,
-      finance: results[3] as FinanceSummaryData,
-    );
+    return clean;
+  }
+
+  String get objectTitle {
+    return cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
   }
 
   String dateText(DateTime date) {
-    final months = [
+    const months = [
       'января',
       'февраля',
       'марта',
@@ -108,24 +93,51 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${date.day} ${months[date.month - 1]}';
   }
 
-  String? cleanObjectName(String? value) {
-    final clean = value?.trim();
-
-    if (clean == null || clean.isEmpty) return null;
-
-    return clean;
+  bool isSameObject(String? first, String? second) {
+    return cleanObjectName(first) == cleanObjectName(second);
   }
 
-  String get objectTitle {
-    return cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
+  bool isSameFinancePeriod(FinancePeriod first, FinancePeriod second) {
+    return first.year == second.year && first.month == second.month;
   }
 
-  bool isSameFinancePeriod(FinancePeriod a, FinancePeriod b) {
-    return a.year == b.year && a.month == b.month;
+  Future<_HomeDashboardData> loadDashboardData() async {
+    final today = AppState.today;
+
+    final results = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(objectName: widget.selectedObjectName),
+      AttendanceRepository.fetchWorkedEmployeeIds(
+        today,
+        objectName: widget.selectedObjectName,
+      ),
+      TaskRepository.fetchTasksForDate(
+        today,
+        objectName: widget.selectedObjectName,
+      ),
+      FinanceSummaryRepository.fetchSummary(
+        period: financePeriod,
+        objectName: widget.selectedObjectName,
+      ),
+    ]);
+
+    return _HomeDashboardData(
+      employees: results[0] as List<Employee>,
+      workedEmployeeIds: results[1] as Set<String>,
+      tasks: results[2] as List<TaskItemData>,
+      finance: results[3] as FinanceSummaryData,
+    );
   }
 
-  bool isSameObject(String? a, String? b) {
-    return cleanObjectName(a) == cleanObjectName(b);
+  Future<void> reloadDashboard() async {
+    if (!mounted) return;
+
+    final nextFuture = loadDashboardData();
+
+    setState(() {
+      dashboardFuture = nextFuture;
+    });
+
+    await nextFuture;
   }
 
   void refreshObjectsAndDashboard() {
@@ -133,6 +145,8 @@ class _HomeScreenState extends State<HomeScreen> {
     EmployeeRepository.clearCache();
     AttendanceRepository.clearCache();
     TaskRepository.clearTaskListCache();
+
+    if (!mounted) return;
 
     setState(() {
       objectNamesFuture = EmployeeRepository.fetchObjectNames(
@@ -147,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isEdit = currentName != null;
     final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: currentName ?? '');
+    final controller = TextEditingController(text: currentName ?? '');
 
     var isSaving = false;
     String? errorText;
@@ -173,9 +187,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 final savedName = isEdit
                     ? await ObjectRepository.renameObject(
                         oldName: currentName,
-                        newName: nameController.text,
+                        newName: controller.text,
                       )
-                    : await ObjectRepository.addObject(name: nameController.text);
+                    : await ObjectRepository.addObject(name: controller.text);
 
                 if (!context.mounted) return;
 
@@ -253,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
-                          controller: nameController,
+                          controller: controller,
                           enabled: !isSaving,
                           autofocus: true,
                           textCapitalization: TextCapitalization.words,
@@ -293,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          height: 54,
+                          height: 52,
                           child: FilledButton.icon(
                             onPressed: isSaving ? null : saveObject,
                             icon: isSaving
@@ -304,7 +318,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : Icon(isEdit ? Icons.save_outlined : Icons.add),
+                                : Icon(
+                                    isEdit ? Icons.save_outlined : Icons.add,
+                                  ),
                             label: Text(
                               isSaving
                                   ? 'Сохраняем...'
@@ -325,18 +341,18 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    nameController.dispose();
+    controller.dispose();
 
     return result;
   }
 
   Future<void> handleAddObject() async {
-    final createdObjectName = await showObjectNameSheet();
+    final createdName = await showObjectNameSheet();
 
-    if (createdObjectName == null || createdObjectName.trim().isEmpty) return;
+    if (createdName == null || createdName.trim().isEmpty) return;
 
+    widget.onObjectChanged(createdName);
     refreshObjectsAndDashboard();
-    widget.onObjectChanged(createdObjectName);
   }
 
   Future<void> handleRenameObject(String oldName) async {
@@ -344,10 +360,65 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (newName == null || newName.trim().isEmpty) return;
 
-    refreshObjectsAndDashboard();
-
     if (isSameObject(widget.selectedObjectName, oldName)) {
       widget.onObjectChanged(newName);
+    }
+
+    refreshObjectsAndDashboard();
+  }
+
+  Future<void> handleDeleteObject(String objectName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Удалить объект?'),
+          content: Text(
+            'Объект "$objectName" будет удалён из списка. Если к нему привязаны сотрудники, табель, задачи или пользователь, удаление будет запрещено.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final wasSelected = isSameObject(widget.selectedObjectName, objectName);
+
+      await ObjectRepository.deleteObject(name: objectName);
+
+      if (wasSelected) {
+        widget.onObjectChanged(null);
+      }
+
+      refreshObjectsAndDashboard();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Объект "$objectName" удалён')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
     }
   }
 
@@ -414,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Объект'),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     IconButton(
                       onPressed: () {
                         Navigator.pop(context);
@@ -429,7 +500,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     shrinkWrap: true,
                     children: [
                       _ObjectPickerTile(
-                        value: _allObjectsValue,
                         title: 'Все объекты',
                         subtitle: 'Сводка по всем объектам',
                         icon: Icons.apartment_outlined,
@@ -439,14 +509,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                       ...objects.map((objectName) {
-                        final isSelected = objectName == selectedValue;
-
                         return _ObjectPickerTile(
-                          value: objectName,
                           title: objectName,
                           subtitle: 'Данные только по этому объекту',
                           icon: Icons.business_outlined,
-                          isSelected: isSelected,
+                          isSelected: objectName == selectedValue,
                           onTap: () {
                             Navigator.pop(context, objectName);
                           },
@@ -454,6 +521,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.pop(
                               context,
                               '$_editObjectPrefix$objectName',
+                            );
+                          },
+                          onDelete: () {
+                            Navigator.pop(
+                              context,
+                              '$_deleteObjectPrefix$objectName',
                             );
                           },
                         );
@@ -481,6 +554,12 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    if (pickedValue.startsWith(_deleteObjectPrefix)) {
+      final objectName = pickedValue.substring(_deleteObjectPrefix.length);
+      await handleDeleteObject(objectName);
+      return;
+    }
+
     if (pickedValue == _allObjectsValue) {
       widget.onObjectChanged(null);
       return;
@@ -497,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ...FinancePeriod.recentMonths(AppState.today, count: 18),
     ];
 
-    final pickedPeriod = await showModalBottomSheet<FinancePeriod>(
+    final picked = await showModalBottomSheet<FinancePeriod>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -513,26 +592,10 @@ class _HomeScreenState extends State<HomeScreen> {
               color: _card,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: _line),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 28,
-                  offset: const Offset(0, 14),
-                ),
-              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4CCC2),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-                const SizedBox(height: 18),
                 Row(
                   children: [
                     const Expanded(
@@ -566,64 +629,37 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            side: BorderSide(
+                              color: isSelected ? _accent : _line,
+                            ),
+                          ),
+                          tileColor: isSelected ? _softCard : _card,
+                          leading: Icon(
+                            period.isAllTime
+                                ? Icons.all_inclusive
+                                : Icons.calendar_month_outlined,
+                          ),
+                          title: Text(
+                            period.pickerTitle(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          subtitle: Text(
+                            period.isAllTime
+                                ? 'Вся история табеля и выплат'
+                                : 'Начисления и выплаты за месяц',
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle, color: _accent)
+                              : null,
                           onTap: () {
                             Navigator.pop(context, period);
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: isSelected ? _softCard : _card,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected ? _accent : _line,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                _IconBox(
-                                  icon: period.isAllTime
-                                      ? Icons.all_inclusive
-                                      : Icons.calendar_month_outlined,
-                                  color: isSelected ? _accent : _text,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        period.pickerTitle(),
-                                        style: const TextStyle(
-                                          color: _text,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        period.isAllTime
-                                            ? 'Вся история табеля и выплат'
-                                            : 'Начисления и выплаты за месяц',
-                                        style: const TextStyle(
-                                          color: _muted,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: _accent,
-                                  ),
-                              ],
-                            ),
-                          ),
                         ),
                       );
                     },
@@ -636,13 +672,33 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    if (pickedPeriod == null) return;
-    if (isSameFinancePeriod(pickedPeriod, financePeriod)) return;
+    if (picked == null || isSameFinancePeriod(picked, financePeriod)) return;
 
     setState(() {
-      financePeriod = pickedPeriod;
+      financePeriod = picked;
       dashboardFuture = loadDashboardData();
     });
+  }
+
+  String employeeKey(Employee employee) {
+    final name = employee.name.trim().toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
+
+    if (name.isNotEmpty) return name;
+
+    return employee.id?.trim() ?? employee.objectName.trim().toLowerCase();
+  }
+
+  List<List<Employee>> groupEmployees(List<Employee> employees) {
+    final groups = <String, List<Employee>>{};
+
+    for (final employee in employees) {
+      groups.putIfAbsent(employeeKey(employee), () => <Employee>[]).add(employee);
+    }
+
+    return groups.values.toList(growable: false);
   }
 
   Widget buildObjectSelector(BuildContext context) {
@@ -670,140 +726,138 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildHeader(BuildContext context, DateTime today) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'AppСтрой',
-                style: TextStyle(
-                  color: _text,
-                  fontFamily: 'Georgia',
-                  fontSize: 36,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -1.0,
-                ),
-              ),
-            ),
-            NotificationBell(selectedObjectName: widget.selectedObjectName),
-          ],
-        ),
-        const SizedBox(height: 26),
-        Row(
-          children: [
-            const Icon(Icons.calendar_month_outlined, color: _muted, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              'Сегодня, ${dateText(today)}',
-              style: const TextStyle(
-                color: _muted,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        buildObjectSelector(context),
-      ],
-    );
-  }
-
-  Widget buildDashboard({
-    required BuildContext context,
-    required DateTime today,
-    required List<Employee> employees,
-    required Set<String> workedEmployeeIds,
-    required List<TaskItemData> tasks,
-    required FinanceSummaryData finance,
+  Widget buildDashboard(
+    BuildContext context,
+    DateTime today,
+    _HomeDashboardData data, {
     required bool isLoading,
     required bool hasError,
   }) {
-    final totalEmployees = employees.length;
-    final workedEmployees = workedEmployeeIds.length;
+    final employeeGroups = groupEmployees(data.employees);
+    final totalEmployees = employeeGroups.length;
+    final workedEmployees = employeeGroups.where((group) {
+      return group.any((employee) {
+        final id = employee.id;
+        return id != null && data.workedEmployeeIds.contains(id);
+      });
+    }).length;
 
-    final totalTasks = tasks.length;
-    final doneTasks = tasks.where((task) => task.status == 'Выполнено').length;
+    final totalTasks = data.tasks.length;
+    final doneTasks = data.tasks
+        .where((task) => task.status == 'Выполнено')
+        .length;
 
-    final employeesProgress = totalEmployees == 0
+    final employeeProgress = totalEmployees == 0
         ? 0.0
         : workedEmployees / totalEmployees;
-
-    final tasksProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
-
-    final employeesValue = isLoading ? '...' : workedEmployees.toString();
-    final employeesPlan = isLoading ? '...' : totalEmployees.toString();
-
-    final tasksValue = isLoading ? '...' : totalTasks.toString();
-    final tasksDone = isLoading ? '...' : doneTasks.toString();
+    final taskProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
 
     return Container(
       color: _bg,
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 620),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    buildHeader(context, today),
-                    if (hasError) ...[
-                      const SizedBox(height: 14),
-                      const _SystemMessage(
-                        icon: Icons.error_outline,
-                        title: 'Есть ошибка загрузки',
-                        text:
-                            'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
+        child: RefreshIndicator(
+          onRefresh: reloadDashboard,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'AppСтрой',
+                              style: TextStyle(
+                                color: _text,
+                                fontFamily: 'Georgia',
+                                fontSize: 36,
+                                height: 1,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                          ),
+                          NotificationBell(
+                            selectedObjectName: widget.selectedObjectName,
+                          ),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: 24),
-                    _DashboardMetricCard(
-                      icon: Icons.person_outline,
-                      title: 'Сотрудники на объекте',
-                      value: employeesValue,
-                      secondaryValue: 'из $employeesPlan',
-                      progress: employeesProgress,
-                      bottomDotColor: _success,
-                      bottomLabel: 'На объекте',
-                      bottomValue: employeesValue,
-                    ),
-                    const SizedBox(height: 14),
-                    _DashboardMetricCard(
-                      icon: Icons.assignment_turned_in_outlined,
-                      title: 'Задачи на сегодня',
-                      value: tasksValue,
-                      secondaryValue: 'всего',
-                      progress: tasksProgress,
-                      showRing: true,
-                      ringLabel: '${(tasksProgress * 100).round()}%',
-                      bottomDotColor: _accent,
-                      bottomLabel: 'Выполнено',
-                      bottomValue: tasksDone,
-                    ),
-                    if (widget.profile.isAdmin) ...[
-                      const SizedBox(height: 14),
-                      _FinanceSummaryCard(
-                        title: 'Выплаты ${financePeriod.title()}',
-                        objectTitle: objectTitle,
-                        finance: isLoading ? FinanceSummaryData.empty : finance,
-                        isLoading: isLoading,
-                        onPeriodTap: () {
-                          showFinancePeriodPicker(context);
-                        },
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_month_outlined,
+                            color: _muted,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Сегодня, ${dateText(today)}',
+                            style: const TextStyle(
+                              color: _muted,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 16),
+                      buildObjectSelector(context),
+                      if (hasError) ...[
+                        const SizedBox(height: 14),
+                        const _SystemMessage(
+                          icon: Icons.error_outline,
+                          title: 'Есть ошибка загрузки',
+                          text:
+                              'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
+                        ),
+                      ],
+                      const SizedBox(height: 22),
+                      _DashboardMetricCard(
+                        icon: Icons.person_outline,
+                        title: 'Сотрудники на объекте',
+                        value: isLoading ? '...' : '$workedEmployees',
+                        secondaryValue: isLoading ? '...' : 'из $totalEmployees',
+                        progress: employeeProgress,
+                        footerTitle: 'На объекте',
+                        footerValue: isLoading ? '...' : '$workedEmployees',
+                        footerColor: _success,
+                      ),
+                      const SizedBox(height: 14),
+                      _DashboardMetricCard(
+                        icon: Icons.assignment_turned_in_outlined,
+                        title: 'Задачи на сегодня',
+                        value: isLoading ? '...' : '$totalTasks',
+                        secondaryValue: 'всего',
+                        progress: taskProgress,
+                        footerTitle: 'Выполнено',
+                        footerValue: isLoading ? '...' : '$doneTasks',
+                        footerColor: _accent,
+                      ),
+                      if (widget.profile.isAdmin) ...[
+                        const SizedBox(height: 14),
+                        _FinanceSummaryCard(
+                          title: 'Выплаты ${financePeriod.title()}',
+                          objectTitle: objectTitle,
+                          finance: isLoading
+                              ? FinanceSummaryData.empty
+                              : data.finance,
+                          isLoading: isLoading,
+                          onPeriodTap: () {
+                            showFinancePeriodPicker(context);
+                          },
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -822,12 +876,9 @@ class _HomeScreenState extends State<HomeScreen> {
             !snapshot.hasData;
 
         return buildDashboard(
-          context: context,
-          today: today,
-          employees: data.employees,
-          workedEmployeeIds: data.workedEmployeeIds,
-          tasks: data.tasks,
-          finance: data.finance,
+          context,
+          today,
+          data,
           isLoading: isLoading,
           hasError: snapshot.hasError,
         );
@@ -913,22 +964,22 @@ class _ObjectSelectorShell extends StatelessWidget {
 }
 
 class _ObjectPickerTile extends StatelessWidget {
-  final String value;
   final String title;
   final String subtitle;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _ObjectPickerTile({
-    required this.value,
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.isSelected,
     required this.onTap,
     this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -939,7 +990,7 @@ class _ObjectPickerTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
           decoration: BoxDecoration(
             color: isSelected ? _softCard : _card,
             borderRadius: BorderRadius.circular(20),
@@ -958,8 +1009,8 @@ class _ObjectPickerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _text,
-                        fontWeight: FontWeight.w900,
                         fontSize: 16,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -976,12 +1027,23 @@ class _ObjectPickerTile extends StatelessWidget {
               ),
               if (onEdit != null)
                 IconButton(
+                  visualDensity: VisualDensity.compact,
                   tooltip: 'Редактировать объект',
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 20),
                 ),
+              if (onDelete != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Удалить объект',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                ),
               if (isSelected)
-                const Icon(Icons.check_circle, color: _accent),
+                const Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: Icon(Icons.check_circle, color: _accent),
+                ),
             ],
           ),
         ),
@@ -996,11 +1058,9 @@ class _DashboardMetricCard extends StatelessWidget {
   final String value;
   final String secondaryValue;
   final double progress;
-  final bool showRing;
-  final String? ringLabel;
-  final Color bottomDotColor;
-  final String bottomLabel;
-  final String bottomValue;
+  final String footerTitle;
+  final String footerValue;
+  final Color footerColor;
 
   const _DashboardMetricCard({
     required this.icon,
@@ -1008,11 +1068,9 @@ class _DashboardMetricCard extends StatelessWidget {
     required this.value,
     required this.secondaryValue,
     required this.progress,
-    this.showRing = false,
-    this.ringLabel,
-    required this.bottomDotColor,
-    required this.bottomLabel,
-    required this.bottomValue,
+    required this.footerTitle,
+    required this.footerValue,
+    required this.footerColor,
   });
 
   @override
@@ -1027,7 +1085,7 @@ class _DashboardMetricCard extends StatelessWidget {
         border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.040),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1044,53 +1102,54 @@ class _DashboardMetricCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _text,
                     fontSize: 18,
-                    height: 1.18,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 20),
-                if (showRing)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _ValueBlock(
-                          value: value,
-                          secondaryValue: secondaryValue,
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: _text,
+                        fontSize: 44,
+                        height: 0.95,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        secondaryValue,
+                        style: const TextStyle(
+                          color: _muted,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      _RingProgress(
-                        progress: safeProgress,
-                        label: ringLabel ?? '${(safeProgress * 100).round()}%',
-                        size: 74,
-                        stroke: 6,
-                      ),
-                    ],
-                  )
-                else
-                  _ValueBlock(value: value, secondaryValue: secondaryValue),
-                const SizedBox(height: 16),
-                if (!showRing)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      minHeight: 5,
-                      value: safeProgress,
-                      backgroundColor: const Color(0xFFE8E2DB),
-                      valueColor: const AlwaysStoppedAnimation<Color>(_accent),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 5,
+                    value: safeProgress,
+                    backgroundColor: const Color(0xFFE8E2DB),
+                    valueColor: const AlwaysStoppedAnimation<Color>(_accent),
                   ),
-                const SizedBox(height: 18),
+                ),
+                const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 11,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: _softCard,
@@ -1102,14 +1161,14 @@ class _DashboardMetricCard extends StatelessWidget {
                         width: 9,
                         height: 9,
                         decoration: BoxDecoration(
-                          color: bottomDotColor,
+                          color: footerColor,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 9),
                       Expanded(
                         child: Text(
-                          bottomLabel,
+                          footerTitle,
                           style: const TextStyle(
                             color: _muted,
                             fontWeight: FontWeight.w700,
@@ -1117,7 +1176,7 @@ class _DashboardMetricCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        bottomValue,
+                        footerValue,
                         style: const TextStyle(
                           color: _text,
                           fontWeight: FontWeight.w900,
@@ -1152,28 +1211,19 @@ class _FinanceSummaryCard extends StatelessWidget {
 
   String formatMoney(double value) {
     final sign = value < 0 ? '-' : '';
-    final rounded = value.abs().round().toString();
-    final buffer = StringBuffer();
+    final text = value.abs().round().toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ' ',
+    );
 
-    for (var i = 0; i < rounded.length; i++) {
-      final indexFromEnd = rounded.length - i;
-
-      buffer.write(rounded[i]);
-
-      if (indexFromEnd > 1 && indexFromEnd % 3 == 1) {
-        buffer.write(' ');
-      }
-    }
-
-    return '$sign${buffer.toString()} ₽';
+    return '$sign$text ₽';
   }
 
   @override
   Widget build(BuildContext context) {
     final balance = finance.balance;
-    final isOverpaid = balance < 0;
-    final balanceTitle = isOverpaid ? 'Переплата' : 'Осталось';
-    final balanceValue = isOverpaid ? balance.abs() : balance;
+    final balanceTitle = balance < 0 ? 'Переплата' : 'Осталось';
+    final balanceValue = balance < 0 ? balance.abs() : balance;
     final progressPercent = (finance.paidProgress * 100).round();
 
     return Container(
@@ -1184,7 +1234,7 @@ class _FinanceSummaryCard extends StatelessWidget {
         border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.040),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1194,10 +1244,9 @@ class _FinanceSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _IconBox(icon: Icons.payments_outlined, color: _accent),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1210,7 +1259,6 @@ class _FinanceSummaryCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       objectTitle,
                       style: const TextStyle(
@@ -1227,14 +1275,23 @@ class _FinanceSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              _MoneyPill(title: 'Начислено', value: formatMoney(finance.accrued)),
-              _MoneyPill(title: 'Выплачено', value: formatMoney(finance.paid)),
-              _MoneyPill(title: balanceTitle, value: formatMoney(balanceValue)),
+              _MoneyPill(
+                title: 'Начислено',
+                value: formatMoney(finance.accrued),
+              ),
+              _MoneyPill(
+                title: 'Выплачено',
+                value: formatMoney(finance.paid),
+              ),
+              _MoneyPill(
+                title: balanceTitle,
+                value: formatMoney(balanceValue),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1250,88 +1307,9 @@ class _FinanceSummaryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Закрыто выплатами: $progressPercent%',
-            style: const TextStyle(color: _muted, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ValueBlock extends StatelessWidget {
-  final String value;
-  final String secondaryValue;
-
-  const _ValueBlock({required this.value, required this.secondaryValue});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Flexible(
-          child: Text(
-            value,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 46,
-              height: 0.95,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.6,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            secondaryValue,
             style: const TextStyle(
               color: _muted,
-              fontSize: 15,
               fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RingProgress extends StatelessWidget {
-  final double progress;
-  final String label;
-  final double size;
-  final double stroke;
-
-  const _RingProgress({
-    required this.progress,
-    required this.label,
-    required this.size,
-    required this.stroke,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CircularProgressIndicator(
-            value: progress,
-            strokeWidth: stroke,
-            backgroundColor: const Color(0xFFE8E2DB),
-            valueColor: const AlwaysStoppedAnimation<Color>(_accent),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
             ),
           ),
         ],
