@@ -10,6 +10,9 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
   });
 
   @override
+  bool get allowSnapshotting => true;
+
+  @override
   Duration get transitionDuration => const Duration(milliseconds: 270);
 
   @override
