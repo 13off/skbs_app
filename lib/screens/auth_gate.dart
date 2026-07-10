@@ -7,6 +7,7 @@ import '../data/user_repository.dart';
 import '../models/app_user_profile.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
+import 'private_data_import_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -199,6 +200,24 @@ class _AuthGateState extends State<AuthGate> {
           signOut();
         },
       );
+    }
+
+    final importRequested = Uri.base.queryParameters['privateImport'] == '1';
+
+    if (importRequested) {
+      if (!currentProfile.isAdmin) {
+        return _AuthMessageScreen(
+          title: 'Нет доступа',
+          message: 'Импорт личных данных доступен только администратору.',
+          icon: Icons.admin_panel_settings_outlined,
+          actionText: 'Вернуться',
+          onAction: () {
+            Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+          },
+        );
+      }
+
+      return PrivateDataImportScreen(profile: currentProfile);
     }
 
     return MainScreen(profile: currentProfile);
