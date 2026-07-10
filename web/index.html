@@ -47,7 +47,6 @@
       background: #f3f1ec;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       overscroll-behavior: none;
-      overscroll-behavior-x: none;
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
       -webkit-tap-highlight-color: transparent;
@@ -68,18 +67,6 @@
       max-width: 100vw !important;
       max-height: var(--app-height) !important;
       overflow: hidden !important;
-    }
-
-    #right-edge-swipe-blocker {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 28px;
-      z-index: 2147483647;
-      background: transparent;
-      pointer-events: auto;
-      touch-action: none;
     }
 
     #app-loader {
@@ -183,13 +170,10 @@
     </div>
   </div>
 
-  <div id="right-edge-swipe-blocker" aria-hidden="true"></div>
-
   <script>
     (function () {
       var root = document.documentElement;
       var loader = document.getElementById('app-loader');
-      var rightEdgeBlocker = document.getElementById('right-edge-swipe-blocker');
 
       var updateAppHeight = function () {
         var height = window.visualViewport && window.visualViewport.height
@@ -209,21 +193,7 @@
         }, 320);
       };
 
-      var stopRightEdgeSwipe = function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      };
-
       updateAppHeight();
-
-      if (rightEdgeBlocker) {
-        rightEdgeBlocker.addEventListener('touchstart', stopRightEdgeSwipe, { passive: false });
-        rightEdgeBlocker.addEventListener('touchmove', stopRightEdgeSwipe, { passive: false });
-        rightEdgeBlocker.addEventListener('touchend', stopRightEdgeSwipe, { passive: false });
-        rightEdgeBlocker.addEventListener('pointerdown', stopRightEdgeSwipe, { passive: false });
-        rightEdgeBlocker.addEventListener('pointermove', stopRightEdgeSwipe, { passive: false });
-        rightEdgeBlocker.addEventListener('pointerup', stopRightEdgeSwipe, { passive: false });
-      }
 
       window.addEventListener('resize', updateAppHeight);
       window.addEventListener('orientationchange', function () {
