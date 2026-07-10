@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
+import 'package:skbs_app/navigation/app_page_route.dart';
 
 import '../data/employee_private_data_repository.dart';
 import '../data/employee_private_summary_exporter.dart';
@@ -74,7 +74,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   Future<void> loadEmployees({bool showLoading = false}) async {
     final currentGeneration = ++loadGeneration;
 
-    if (showLoading || employees.isEmpty) {
+    if (showLoading && employees.isEmpty) {
       setState(() {
         isLoadingEmployees = true;
         loadErrorText = null;
@@ -107,7 +107,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   Future<void> openAddEmployee(BuildContext context) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) =>
             AddEmployeeScreen(initialObjectName: concreteObjectName),
       ),
@@ -124,7 +124,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   ) async {
     await Navigator.push(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) =>
             EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),
@@ -138,7 +138,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   void openPayments(BuildContext context) {
     Navigator.push(
       context,
-      CupertinoPageRoute(builder: (_) => const PaymentsScreen()),
+      AppPageRoute(builder: (_) => const PaymentsScreen()),
     );
   }
 
