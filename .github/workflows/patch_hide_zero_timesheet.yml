@@ -1,16 +1,16 @@
 name: Patch hide zero-shift timesheet rows
 
 on:
-  push:
-    paths:
-      - '.github/workflows/patch_hide_zero_timesheet.yml'
-      - '.github/patch_hide_zero_timesheet.trigger'
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   patch:
+    if: github.event.issue.title == '[patch] hide zero-shift timesheet rows'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,3 +93,15 @@ jobs:
           git add lib/screens/period_timesheet_screen.dart lib/data/timesheet_excel_exporter.dart
           git commit -m "скрыты сотрудники без смен в месячном табеле"
           git push origin main
+
+      - name: Close trigger issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'completed'
+            })
