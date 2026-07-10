@@ -81,7 +81,7 @@ class EmployeePrivateSummaryExporter {
       sheet.setColumnWidth(column, column < 5 ? 22 : 28);
     }
 
-    final bytes = excel.save();
+    final bytes = excel.encode();
 
     if (bytes == null) {
       throw Exception('Не удалось сформировать сводку');
@@ -133,6 +133,9 @@ class EmployeePrivateSummaryExporter {
     anchor.click();
     anchor.remove();
 
-    html.Url.revokeObjectUrl(url);
+    Future<void>.delayed(
+      const Duration(seconds: 1),
+      () => html.Url.revokeObjectUrl(url),
+    );
   }
 }
