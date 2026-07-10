@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:html' as html;
 
-import 'web_history_platform_stub.dart';
+typedef BrowserBackCallback = FutureOr<bool> Function();
 
 class WebHistoryPlatform {
   static BrowserBackCallback? _onBack;
