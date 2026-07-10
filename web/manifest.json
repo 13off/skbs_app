@@ -1,8 +1,9 @@
 {
+    "id": "/appstroy-web/",
     "name": "AppСтрой",
     "short_name": "AppСтрой",
     "description": "AppСтрой — сотрудники, табель, задачи, выплаты и документы строительного объекта.",
-    "start_url": "/appstroy-web/",
+    "start_url": "/appstroy-web/?source=pwa",
     "scope": "/appstroy-web/",
     "display": "standalone",
     "background_color": "#F3F1EC",
