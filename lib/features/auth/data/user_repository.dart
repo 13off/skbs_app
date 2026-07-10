@@ -25,10 +25,14 @@ class UserRepository {
   }) async {
     clearProfileCache();
 
-    await _client.auth.signInWithPassword(
+    final response = await _client.auth.signInWithPassword(
       email: email.trim(),
       password: password,
     );
+
+    if (response.session == null || response.user == null) {
+      throw const AuthException('Не удалось создать сессию пользователя');
+    }
   }
 
   static Future<void> signOut() async {
