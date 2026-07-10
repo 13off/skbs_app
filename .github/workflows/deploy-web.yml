@@ -32,6 +32,71 @@ jobs:
           path: skbs_app
           persist-credentials: true
 
+      - name: Apply premium panel hover polish
+        shell: bash
+        run: |
+          if [ ! -f skbs_app/tool/premium_hover_polish.marker ]; then
+            echo "No pending hover polish"
+            exit 0
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('skbs_app/lib/widgets/premium_ui_v2.dart')
+          text = path.read_text(encoding='utf-8')
+
+          old = """    final scale = isPressed
+        ? widget.pressedScale
+        : isHovered && isEnabled
+        ? 1.003
+        : 1.0;
+
+    final hoverShadow = isHovered && isEnabled && !isPressed
+        ? <BoxShadow>[
+            BoxShadow(
+              color: const Color(0xFF17191C).withValues(alpha: 0.14),
+              blurRadius: 20,
+              offset: const Offset(0, 9),
+            ),
+          ]
+        : const <BoxShadow>[];
+"""
+
+          new = """    final scale = isPressed
+        ? widget.pressedScale
+        : isHovered && isEnabled
+        ? 1.0015
+        : 1.0;
+
+    final hoverShadow = isHovered && isEnabled && !isPressed
+        ? <BoxShadow>[
+            BoxShadow(
+              color: const Color(0xFF17191C).withValues(alpha: 0.055),
+              blurRadius: 18,
+              spreadRadius: -4,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.78),
+              blurRadius: 0,
+              spreadRadius: 0.7,
+              offset: const Offset(0, -0.4),
+            ),
+          ]
+        : const <BoxShadow>[];
+"""
+
+          if old not in text:
+              raise RuntimeError('Не найден старый hover-эффект PremiumPressable')
+
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          Path('skbs_app/tool/premium_hover_polish.marker').unlink()
+          PY
+
+          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
+          echo "SOURCE_COMMIT_MESSAGE=сделано премиальное наведение нижней панели" >> "$GITHUB_ENV"
+
       - name: Apply iOS Telegram navigation fix
         shell: bash
         run: |
@@ -160,7 +225,7 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "добавлена iOS Telegram навигация без загрузки при свайпе"
+          git commit -m "${SOURCE_COMMIT_MESSAGE:-обновлен интерфейс приложения}"
           git push
 
       - name: Add cache busting
