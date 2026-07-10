@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../app/app_theme.dart';
 import '../data/user_repository.dart';
+import '../widgets/premium_ui.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +15,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final emailFocusNode = FocusNode();
+  final passwordFocusNode = FocusNode();
 
   bool isLoading = false;
   bool isPasswordVisible = false;
@@ -21,10 +26,14 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> signIn() async {
+    if (isLoading) return;
+
     final email = emailController.text.trim();
     final password = passwordController.text;
 
@@ -34,6 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+
+    FocusScope.of(context).unfocus();
 
     setState(() {
       isLoading = true;
@@ -45,8 +56,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      HapticFeedback.mediumImpact();
       setState(() {
-        errorText = 'Ошибка входа: $e';
+        errorText = 'Не удалось войти. Проверьте логин и пароль';
       });
     } finally {
       if (mounted) {
@@ -60,129 +72,239 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 430),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              elevation: 0,
-              color: Colors.grey.shade100,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: AutofillGroup(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 62,
-                        height: 62,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(Icons.apartment, size: 34),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'СКБС',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Вход в систему',
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: emailController,
-                        enabled: !isLoading,
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                        onSubmitted: (_) {
-                          signIn();
+      body: PremiumBackdrop(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 48,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 448),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 720),
+                        curve: AppMotion.enterCurve,
+                        builder: (context, progress, child) {
+                          return Opacity(
+                            opacity: progress,
+                            child: Transform.translate(
+                              offset: Offset(0, 18 * (1 - progress)),
+                              child: child,
+                            ),
+                          );
                         },
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: passwordController,
-                        enabled: !isLoading,
-                        obscureText: !isPasswordVisible,
-                        autofillHints: const [AutofillHints.password],
-                        decoration: InputDecoration(
-                          labelText: 'Пароль',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                isPasswordVisible = !isPasswordVisible;
-                              });
-                            },
-                            icon: Icon(
-                              isPasswordVisible
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(26, 28, 26, 24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.80),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.92),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF17191C,
+                                ).withValues(alpha: 0.12),
+                                blurRadius: 52,
+                                offset: const Offset(0, 24),
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: AutofillGroup(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const PremiumBrandMark(size: 86),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'AppСтрой',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 31,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -1.2,
+                                      ),
+                                ),
+                                const SizedBox(height: 7),
+                                Text(
+                                  'Управление строительным объектом',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: AppColors.textMuted,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const SizedBox(height: 30),
+                                TextField(
+                                  controller: emailController,
+                                  focusNode: emailFocusNode,
+                                  enabled: !isLoading,
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  autofillHints: const [
+                                    AutofillHints.username,
+                                    AutofillHints.email,
+                                  ],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Email',
+                                    hintText: 'name@company.ru',
+                                    prefixIcon: Icon(Icons.alternate_email_rounded),
+                                  ),
+                                  onSubmitted: (_) {
+                                    passwordFocusNode.requestFocus();
+                                  },
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: passwordController,
+                                  focusNode: passwordFocusNode,
+                                  enabled: !isLoading,
+                                  obscureText: !isPasswordVisible,
+                                  textInputAction: TextInputAction.done,
+                                  autofillHints: const [AutofillHints.password],
+                                  decoration: InputDecoration(
+                                    labelText: 'Пароль',
+                                    prefixIcon: const Icon(
+                                      Icons.lock_outline_rounded,
+                                    ),
+                                    suffixIcon: IconButton(
+                                      tooltip: isPasswordVisible
+                                          ? 'Скрыть пароль'
+                                          : 'Показать пароль',
+                                      onPressed: isLoading
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                isPasswordVisible =
+                                                    !isPasswordVisible;
+                                              });
+                                            },
+                                      icon: AnimatedSwitcher(
+                                        duration: AppMotion.fast,
+                                        child: Icon(
+                                          isPasswordVisible
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          key: ValueKey(isPasswordVisible),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  onSubmitted: (_) {
+                                    signIn();
+                                  },
+                                ),
+                                AnimatedSize(
+                                  duration: AppMotion.regular,
+                                  curve: AppMotion.enterCurve,
+                                  child: errorText == null
+                                      ? const SizedBox.shrink()
+                                      : Padding(
+                                          padding: const EdgeInsets.only(top: 14),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFFF2F1),
+                                              borderRadius: BorderRadius.circular(
+                                                15,
+                                              ),
+                                              border: Border.all(
+                                                color: const Color(0xFFF0D2CF),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.info_outline_rounded,
+                                                  size: 19,
+                                                  color: Color(0xFFA64F49),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    errorText!,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: const Color(
+                                                            0xFF874540,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(height: 20),
+                                PremiumActionButton(
+                                  label: 'Войти в систему',
+                                  icon: Icons.arrow_forward_rounded,
+                                  isLoading: isLoading,
+                                  onPressed: signIn,
+                                ),
+                                const SizedBox(height: 18),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF3A8B61),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Защищённый доступ СКБС',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w650,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        onSubmitted: (_) {
-                          signIn();
-                        },
                       ),
-                      if (errorText != null) ...[
-                        const SizedBox(height: 14),
-                        Text(
-                          errorText!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: FilledButton.icon(
-                          onPressed: isLoading ? null : signIn,
-                          icon: isLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.login),
-                          label: Text(isLoading ? 'Входим...' : 'Войти'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Логины создаёт администратор',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
