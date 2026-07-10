@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
+import '../features/archive/presentation/archive_management_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import 'template_documents_screen.dart';
@@ -49,6 +50,15 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void openArchive(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ArchiveManagementScreen(profile: profile),
+      ),
+    );
+  }
+
   Widget buildInfoTile({
     required IconData icon,
     required String title,
@@ -73,10 +83,11 @@ class ProfileScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? color,
   }) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFFFEEE7),
+      color: color ?? const Color(0xFFFFEEE7),
       child: ListTile(
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -119,6 +130,17 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           if (profile.isAdmin) ...[
+            buildActionTile(
+              icon: Icons.inventory_2_outlined,
+              title: 'Архив и удаление',
+              subtitle:
+                  'Сотрудники и объекты: архивировать, восстановить или удалить навсегда',
+              color: const Color(0xFFF0EFEB),
+              onTap: () {
+                openArchive(context);
+              },
+            ),
+            const SizedBox(height: 10),
             buildActionTile(
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
