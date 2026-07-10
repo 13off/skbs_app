@@ -46,6 +46,7 @@ jobs:
         shell: bash
         run: |
           BUILD_ID="${GITHUB_SHA::12}"
+          sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
