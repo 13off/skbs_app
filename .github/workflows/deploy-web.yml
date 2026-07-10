@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
-            echo "::error::Не найден secret WEB_DEPLOY_TOKEN. Добавь его в skbs_app -> Settings -> Secrets and variables -> Actions."
+            echo "::error::Не найден secret WEB_DEPLOY_TOKEN"
             exit 1
           fi
 
@@ -32,82 +32,11 @@ jobs:
           path: skbs_app
           persist-credentials: true
 
-      - name: Apply pending interface optimization
+      - name: Apply iOS Telegram navigation fix
         shell: bash
         run: |
-          if [ ! -f skbs_app/tool/one_time_natural_motion.part1 ]; then
-            echo "No pending source patch"
-            exit 0
-          fi
-
-          cat skbs_app/tool/one_time_natural_motion.part1 \
-              skbs_app/tool/one_time_natural_motion.part2 \
-              skbs_app/tool/one_time_natural_motion.part3 \
-              skbs_app/tool/one_time_natural_motion.part4 \
-              skbs_app/tool/one_time_natural_motion.part5 \
-              > skbs_app/tool/one_time_natural_motion.py
-
-          python skbs_app/tool/one_time_natural_motion.py
-
-          rm -f skbs_app/tool/one_time_natural_motion.part1 \
-                skbs_app/tool/one_time_natural_motion.part2 \
-                skbs_app/tool/one_time_natural_motion.part3 \
-                skbs_app/tool/one_time_natural_motion.part4 \
-                skbs_app/tool/one_time_natural_motion.part5
-
-          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
-
-      - name: Enable interactive back routes
-        shell: bash
-        run: |
-          if [ ! -f skbs_app/tool/enable_interactive_back_routes.marker ]; then
-            echo "No pending route patch"
-            exit 0
-          fi
-
-          python - <<'PY'
-          from pathlib import Path
-
-          root = Path('skbs_app')
-          import_line = "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n"
-          changed = []
-
-          for path in (root / 'lib').rglob('*.dart'):
-              text = path.read_text(encoding='utf-8')
-              if 'MaterialPageRoute' not in text:
-                  continue
-
-              updated = text.replace('MaterialPageRoute', 'CupertinoPageRoute')
-
-              if 'package:flutter/cupertino.dart' not in updated:
-                  material_import = "import 'package:flutter/material.dart';\n"
-                  if material_import in updated:
-                      updated = updated.replace(
-                          material_import,
-                          material_import + import_line,
-                          1,
-                      )
-                  else:
-                      updated = import_line + updated
-
-              if updated != text:
-                  path.write_text(updated, encoding='utf-8')
-                  changed.append(path.as_posix())
-
-          if not changed:
-              raise RuntimeError('MaterialPageRoute не найден ни в одном файле')
-
-          (root / 'tool/enable_interactive_back_routes.marker').unlink()
-          print(f'Updated route files: {len(changed)}')
-          PY
-
-          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
-
-      - name: Apply iOS and Telegram navigation polish
-        shell: bash
-        run: |
-          if [ ! -f skbs_app/tool/apply_ios_telegram_motion.marker ]; then
-            echo "No pending iOS route patch"
+          if [ ! -f skbs_app/tool/fix_ios_swipe_loading.marker ]; then
+            echo "No pending navigation fix"
             exit 0
           fi
 
@@ -117,9 +46,7 @@ jobs:
           root = Path('skbs_app')
           route_file = root / 'lib/navigation/app_page_route.dart'
           route_file.parent.mkdir(parents=True, exist_ok=True)
-          route_file.write_text(
-              """import 'package:flutter/cupertino.dart';
-import 'package:flutter/widgets.dart';
+          route_file.write_text("""import 'package:flutter/cupertino.dart';
 
 class AppPageRoute<T> extends CupertinoPageRoute<T> {
   AppPageRoute({
@@ -136,17 +63,14 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
   @override
   Duration get reverseTransitionDuration => const Duration(milliseconds: 230);
 }
-""",
-              encoding='utf-8',
-          )
+""", encoding='utf-8')
 
           package_import = "import 'package:skbs_app/navigation/app_page_route.dart';\n"
-          changed = [route_file.as_posix()]
+          changed = [route_file]
 
           for path in (root / 'lib').rglob('*.dart'):
               if path == route_file:
                   continue
-
               text = path.read_text(encoding='utf-8')
               if 'CupertinoPageRoute' not in text and 'MaterialPageRoute' not in text:
                   continue
@@ -171,26 +95,35 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
 
               if updated != text:
                   path.write_text(updated, encoding='utf-8')
-                  changed.append(path.as_posix())
+                  changed.append(path)
 
-          employees_file = root / 'lib/screens/employees_screen.dart'
-          employees_text = employees_file.read_text(encoding='utf-8')
-          employees_updated = employees_text.replace(
+          employees = root / 'lib/screens/employees_screen.dart'
+          text = employees.read_text(encoding='utf-8')
+          updated = text.replace(
               'if (showLoading || employees.isEmpty) {',
-              'if (showLoading) {',
+              'if (showLoading && employees.isEmpty) {',
           )
-          if employees_updated != employees_text:
-              employees_file.write_text(employees_updated, encoding='utf-8')
-              changed.append(employees_file.as_posix())
+          if updated != text:
+              employees.write_text(updated, encoding='utf-8')
+              changed.append(employees)
 
-          marker = root / 'tool/apply_ios_telegram_motion.marker'
-          marker.unlink()
+          for marker_name in (
+              'fix_ios_swipe_loading.marker',
+              'apply_ios_telegram_motion.marker',
+              'enable_interactive_back_routes.marker',
+          ):
+              marker = root / 'tool' / marker_name
+              if marker.exists():
+                  marker.unlink()
 
-          print(f'Updated iOS navigation files: {len(set(changed))}')
+          trigger = root / 'tool/trigger_ios_navigation_build.txt'
+          if trigger.exists():
+              trigger.unlink()
+
+          print(f'Updated files: {len(set(changed))}')
           PY
 
           echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
-          echo "SOURCE_COMMIT_MESSAGE=добавлена единая iOS навигация без повторной загрузки" >> "$GITHUB_ENV"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -202,12 +135,12 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
         working-directory: skbs_app
         run: flutter pub get
 
-      - name: Format optimized source
+      - name: Format source
         if: env.SOURCE_PATCH_APPLIED == '1'
         working-directory: skbs_app
         run: dart format lib
 
-      - name: Analyze optimized source
+      - name: Analyze source
         if: env.SOURCE_PATCH_APPLIED == '1'
         working-directory: skbs_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -216,7 +149,7 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
 
-      - name: Commit checked source optimization
+      - name: Commit checked source changes
         if: env.SOURCE_PATCH_APPLIED == '1'
         working-directory: skbs_app
         shell: bash
@@ -224,16 +157,13 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-
           if git diff --cached --quiet; then
-            echo "No source changes to commit"
             exit 0
           fi
-
-          git commit -m "${SOURCE_COMMIT_MESSAGE:-добавлен интерактивный свайп назад}"
+          git commit -m "добавлена iOS Telegram навигация без загрузки при свайпе"
           git push
 
-      - name: Add web cache busting and GitHub Pages fallback
+      - name: Add cache busting
         shell: bash
         run: |
           BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
@@ -264,11 +194,8 @@ class AppPageRoute<T> extends CupertinoPageRoute<T> {
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-
           if git diff --cached --quiet; then
-            echo "No web changes to publish"
             exit 0
           fi
-
           git commit -m "обновлена веб версия"
           git push
