@@ -1,0 +1,75 @@
+name: Build and publish web
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: appstroy-web
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check deploy token
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
+            echo "::error::Не найден secret WEB_DEPLOY_TOKEN. Добавь его в skbs_app -> Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Checkout source app
+        uses: actions/checkout@v4
+        with:
+          path: skbs_app
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        working-directory: skbs_app
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        working-directory: skbs_app
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Checkout web repository
+        uses: actions/checkout@v4
+        with:
+          repository: 13off/appstroy-web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web
+          persist-credentials: true
+
+      - name: Replace web files
+        shell: bash
+        run: |
+          find appstroy-web -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -R skbs_app/build/web/. appstroy-web/
+          touch appstroy-web/.nojekyll
+
+      - name: Commit and push web build
+        working-directory: appstroy-web
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No web changes to publish"
+            exit 0
+          fi
+
+          git commit -m "обновлена веб версия"
+          git push
