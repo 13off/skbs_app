@@ -116,10 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
         today,
         objectName: selectedObject,
       ),
-      TaskRepository.fetchTasksForDate(
-        today,
-        objectName: selectedObject,
-      ),
+      TaskRepository.fetchTasksForDate(today, objectName: selectedObject),
       FinanceSummaryRepository.fetchSummary(
         period: financePeriod,
         objectName: selectedObject,
@@ -415,9 +412,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -431,9 +428,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
       return;
     }
 
@@ -548,7 +545,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     refreshObjectsAndDashboard();
 
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           'Объект "$objectName" восстановлен',
@@ -558,7 +557,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   } catch (error) {
                                     if (!sheetContext.mounted) return;
 
-                                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      sheetContext,
+                                    ).showSnackBar(
                                       SnackBar(content: Text(error.toString())),
                                     );
                                   }
@@ -988,8 +989,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.person_outline,
                       title: 'Сотрудники на объекте',
                       value: isLoading ? '...' : workedEmployees.toString(),
-                      secondaryValue:
-                          isLoading ? '...' : 'из $totalEmployees',
+                      secondaryValue: isLoading ? '...' : 'из $totalEmployees',
                       progress: employeesProgress,
                       footerTitle: 'На объекте',
                       footerValue: isLoading
@@ -1013,9 +1013,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _FinanceSummaryCard(
                         title: 'Выплаты ${financePeriod.title()}',
                         objectTitle: objectTitle,
-                        finance: isLoading
-                            ? FinanceSummaryData.empty
-                            : finance,
+                        finance: isLoading ? FinanceSummaryData.empty : finance,
                         isLoading: isLoading,
                         onPeriodTap: () => showFinancePeriodPicker(context),
                       ),
@@ -1454,14 +1452,8 @@ class _FinanceSummaryCard extends StatelessWidget {
                 title: 'Начислено',
                 value: formatMoney(finance.accrued),
               ),
-              _MoneyPill(
-                title: 'Выплачено',
-                value: formatMoney(finance.paid),
-              ),
-              _MoneyPill(
-                title: balanceTitle,
-                value: formatMoney(balanceValue),
-              ),
+              _MoneyPill(title: 'Выплачено', value: formatMoney(finance.paid)),
+              _MoneyPill(title: balanceTitle, value: formatMoney(balanceValue)),
             ],
           ),
           const SizedBox(height: 16),
@@ -1477,10 +1469,7 @@ class _FinanceSummaryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Закрыто выплатами: $progressPercent%',
-            style: const TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
         ],
       ),

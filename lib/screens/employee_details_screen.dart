@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
@@ -57,7 +58,9 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openEditEmployee() async {
     final updatedEmployee = await Navigator.push<Employee>(
       context,
-      MaterialPageRoute(builder: (_) => EditEmployeeScreen(employee: employee)),
+      CupertinoPageRoute(
+        builder: (_) => EditEmployeeScreen(employee: employee),
+      ),
     );
 
     if (updatedEmployee == null) return;
@@ -76,7 +79,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openTimesheet() async {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => EmployeeTimesheetScreen(employee: employee),
       ),
     );
@@ -85,7 +88,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openDocuments() async {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => EmployeeDocumentsScreen(employee: employee),
       ),
     );
@@ -94,7 +97,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openPrivateData() async {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => EmployeePrivateDataScreen(employee: employee),
       ),
     );
@@ -135,7 +138,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
 
     final saved = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: now.year,
           periodMonth: now.month,
@@ -155,7 +158,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openPayments() async {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => PaymentHistoryScreen(employee: employee),
       ),
     );
@@ -164,7 +167,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> openComments() async {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => EmployeeCommentsScreen(employee: employee),
       ),
     );

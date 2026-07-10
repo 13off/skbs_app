@@ -24,10 +24,7 @@ class PaymentReportRequest {
   final DateTime? month;
   final String? employeeKey;
 
-  const PaymentReportRequest({
-    required this.month,
-    required this.employeeKey,
-  });
+  const PaymentReportRequest({required this.month, required this.employeeKey});
 
   bool get isAllTime => month == null;
 }
@@ -212,9 +209,7 @@ class PaymentReportExporter {
             .eq('period_month', month.month);
       }
 
-      result.addAll(
-        rows.map((row) => Map<String, dynamic>.from(row as Map)),
-      );
+      result.addAll(rows.map((row) => Map<String, dynamic>.from(row as Map)));
     }
 
     return result;

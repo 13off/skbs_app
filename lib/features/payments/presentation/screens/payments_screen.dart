@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../../../../data/attendance_repository.dart';
 import '../../../../models/employee.dart';
@@ -142,11 +143,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }) async {
     final generation = ++_loadGeneration;
     final requestedMonth = month ?? selectedMonth;
-    final targetMonth = DateTime(
-      requestedMonth.year,
-      requestedMonth.month,
-      1,
-    );
+    final targetMonth = DateTime(requestedMonth.year, requestedMonth.month, 1);
 
     setState(() {
       isLoading = true;
@@ -194,7 +191,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> openAddPayment({String? employeeId}) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,
@@ -211,7 +208,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> openPaymentHistory(_PaymentDisplayRow row) async {
     await Navigator.push<void>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => PaymentHistoryScreen(
           employee: row.employee,
           employeeIds: row.employeeIds,
@@ -271,9 +268,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           ? 'Таблица скачана. Выплат за выбранный период нет'
           : 'Отчёт скачан. Строк выплат: $exportedRows';
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(text)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
     } catch (e) {
       if (!mounted) return;
 
@@ -686,11 +681,7 @@ class _MoneySummaryItem extends StatelessWidget {
 }
 
 class _MoneyLine extends StatelessWidget {
-  const _MoneyLine({
-    required this.title,
-    required this.value,
-    this.valueColor,
-  });
+  const _MoneyLine({required this.title, required this.value, this.valueColor});
 
   final String title;
   final String value;

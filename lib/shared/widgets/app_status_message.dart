@@ -4,15 +4,11 @@ class AppStatusMessage extends StatelessWidget {
   final String text;
   final bool isError;
 
-  const AppStatusMessage.success({
-    super.key,
-    required this.text,
-  }) : isError = false;
+  const AppStatusMessage.success({super.key, required this.text})
+    : isError = false;
 
-  const AppStatusMessage.error({
-    super.key,
-    required this.text,
-  }) : isError = true;
+  const AppStatusMessage.error({super.key, required this.text})
+    : isError = true;
 
   @override
   Widget build(BuildContext context) {

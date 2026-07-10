@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../data/app_state.dart';
@@ -138,7 +139,7 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
   Future<void> openAddPaymentScreen() async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,

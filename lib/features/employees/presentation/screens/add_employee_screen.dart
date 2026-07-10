@@ -48,12 +48,13 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     final loaded = await EmployeeRepository.fetchObjectNames(
       forceRefresh: forceRefresh,
     );
-    final objects = loaded
-        .map((name) => name.trim())
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final objects =
+        loaded
+            .map((name) => name.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
 
     final initialObject = widget.initialObjectName?.trim();
     if (initialObject != null &&
@@ -63,9 +64,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       objects.sort();
     }
 
-    if (mounted &&
-        selectedObjectName.isEmpty &&
-        objects.isNotEmpty) {
+    if (mounted && selectedObjectName.isEmpty && objects.isNotEmpty) {
       setState(() {
         selectedObjectName = objects.first;
       });
@@ -134,10 +133,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     }
   }
 
-  Widget buildSection({
-    required String title,
-    required List<Widget> children,
-  }) {
+  Widget buildSection({required String title, required List<Widget> children}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -397,9 +393,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save),
-                label: Text(
-                  isSaving ? 'Сохраняем...' : 'Сохранить сотрудника',
-                ),
+                label: Text(isSaving ? 'Сохраняем...' : 'Сохранить сотрудника'),
               ),
             ),
           ],

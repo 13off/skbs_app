@@ -92,7 +92,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
 
   void showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String cleanError(Object error) {
@@ -415,7 +417,10 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
               child: FilterChip(
                 selected: !showArchived,
                 label: const Text('Активные'),
-                avatar: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                avatar: const Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 18,
+                ),
                 onSelected: (_) => setState(() => showArchived = false),
               ),
             ),
@@ -496,7 +501,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
               ),
               IconButton.filledTonal(
                 tooltip: 'Удалить навсегда',
-                onPressed: isBusy ? null : () => deleteEmployeeForever(employee),
+                onPressed: isBusy
+                    ? null
+                    : () => deleteEmployeeForever(employee),
                 icon: isBusy
                     ? const _SmallLoader()
                     : const Icon(Icons.delete_forever_outlined),
@@ -509,9 +516,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
     final isBusy = busyKey == 'object:$objectName';
 
     return _ArchiveCard(
-      icon: showArchived
-          ? Icons.inventory_2_outlined
-          : Icons.apartment_rounded,
+      icon: showArchived ? Icons.inventory_2_outlined : Icons.apartment_rounded,
       title: objectName,
       subtitle: showArchived
           ? 'Объект находится в архиве'
@@ -527,7 +532,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
               ),
               IconButton.filledTonal(
                 tooltip: 'Удалить навсегда',
-                onPressed: isBusy ? null : () => deleteObjectForever(objectName),
+                onPressed: isBusy
+                    ? null
+                    : () => deleteObjectForever(objectName),
                 icon: isBusy
                     ? const _SmallLoader()
                     : const Icon(Icons.delete_forever_outlined),

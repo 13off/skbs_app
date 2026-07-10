@@ -49,7 +49,9 @@ class EmployeePrivateDataImporter {
       extensions: <String>['json'],
     );
 
-    final file = await openFile(acceptedTypeGroups: const <XTypeGroup>[typeGroup]);
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[typeGroup],
+    );
     if (file == null) return null;
 
     final bytes = await file.readAsBytes();
@@ -67,7 +69,8 @@ class EmployeePrivateDataImporter {
 
     if (decoded is List<dynamic>) {
       sourceRows = decoded;
-    } else if (decoded is Map<String, dynamic> && decoded['employees'] is List) {
+    } else if (decoded is Map<String, dynamic> &&
+        decoded['employees'] is List) {
       sourceRows = List<dynamic>.from(decoded['employees'] as List);
     } else {
       throw Exception('Неверный формат JSON: не найден список employees');
@@ -126,7 +129,8 @@ class EmployeePrivateDataImporter {
         final employeeId = employee.id?.trim() ?? '';
         if (employeeId.isEmpty) continue;
 
-        final current = privateDataByEmployeeId[employeeId] ??
+        final current =
+            privateDataByEmployeeId[employeeId] ??
             EmployeePrivateData.empty(employeeId);
 
         final next = EmployeePrivateData(
@@ -166,11 +170,7 @@ class EmployeePrivateDataImporter {
             'registration_address',
             current.registrationAddress,
           ),
-          livingAddress: _merged(
-            row,
-            'living_address',
-            current.livingAddress,
-          ),
+          livingAddress: _merged(row, 'living_address', current.livingAddress),
           clothesSize: _merged(row, 'clothes_size', current.clothesSize),
           shoeSize: _merged(row, 'shoe_size', current.shoeSize),
           bankName: _merged(row, 'bank_name', current.bankName),
@@ -203,11 +203,7 @@ class EmployeePrivateDataImporter {
             'employment_start_date',
             current.employmentStartDate,
           ),
-          dismissalDate: _merged(
-            row,
-            'dismissal_date',
-            current.dismissalDate,
-          ),
+          dismissalDate: _merged(row, 'dismissal_date', current.dismissalDate),
           comment: _merged(row, 'comment', current.comment),
         );
 

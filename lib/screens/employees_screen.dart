@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/employee_private_data_repository.dart';
 import '../data/employee_private_summary_exporter.dart';
@@ -106,7 +107,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   Future<void> openAddEmployee(BuildContext context) async {
     final saved = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) =>
             AddEmployeeScreen(initialObjectName: concreteObjectName),
       ),
@@ -123,7 +124,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   ) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) =>
             EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),
@@ -137,7 +138,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   void openPayments(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+      CupertinoPageRoute(builder: (_) => const PaymentsScreen()),
     );
   }
 

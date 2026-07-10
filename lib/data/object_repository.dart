@@ -273,11 +273,7 @@ class ObjectRepository {
     if (hasObjectRow) {
       await _client
           .from('objects')
-          .update({
-            'name': cleanNewName,
-            'is_active': true,
-            'updated_at': now,
-          })
+          .update({'name': cleanNewName, 'is_active': true, 'updated_at': now})
           .eq('name', cleanOldName);
     } else {
       await addObject(name: cleanNewName);

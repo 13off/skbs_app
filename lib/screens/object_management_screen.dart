@@ -181,7 +181,9 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                isEdit ? 'Редактировать объект' : 'Новый объект',
+                                isEdit
+                                    ? 'Редактировать объект'
+                                    : 'Новый объект',
                                 style: const TextStyle(
                                   color: _text,
                                   fontSize: 22,
@@ -289,9 +291,9 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Объект "$createdName" создан')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Объект "$createdName" создан')));
   }
 
   Future<void> renameObject(String oldName) async {
@@ -308,9 +310,9 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Объект переименован: $newName')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Объект переименован: $newName')));
   }
 
   Future<void> deleteObject(String objectName) async {
@@ -360,15 +362,15 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Объект "$objectName" удалён')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Объект "$objectName" удалён')));
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {

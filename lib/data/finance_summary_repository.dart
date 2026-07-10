@@ -264,7 +264,11 @@ class FinanceSummaryRepository {
   }) async {
     final requests = <Future<List<dynamic>>>[];
 
-    for (var start = 0; start < employeeIds.length; start += _employeeChunkSize) {
+    for (
+      var start = 0;
+      start < employeeIds.length;
+      start += _employeeChunkSize
+    ) {
       final end = math.min(start + _employeeChunkSize, employeeIds.length);
       final chunk = employeeIds.sublist(start, end);
 
@@ -304,7 +308,11 @@ class FinanceSummaryRepository {
   }) async {
     final requests = <Future<List<dynamic>>>[];
 
-    for (var start = 0; start < employeeIds.length; start += _employeeChunkSize) {
+    for (
+      var start = 0;
+      start < employeeIds.length;
+      start += _employeeChunkSize
+    ) {
       final end = math.min(start + _employeeChunkSize, employeeIds.length);
       final chunk = employeeIds.sublist(start, end);
 

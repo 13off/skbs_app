@@ -63,16 +63,14 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
 
-    final shouldRefresh = state.event == AuthChangeEvent.signedIn ||
+    final shouldRefresh =
+        state.event == AuthChangeEvent.signedIn ||
         currentUserId != lastLoadedUserId ||
         profile == null;
 
     if (!shouldRefresh && errorText == null) return;
 
-    loadCurrentUser(
-      forceRefresh: shouldRefresh,
-      showLoading: profile == null,
-    );
+    loadCurrentUser(forceRefresh: shouldRefresh, showLoading: profile == null);
   }
 
   Future<void> loadCurrentUser({
@@ -321,17 +319,17 @@ class _AuthMessageScreen extends StatelessWidget {
                         title,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Text(
                         message,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textMuted,
-                            ),
+                          color: AppColors.textMuted,
+                        ),
                       ),
                       const SizedBox(height: 22),
                       PremiumActionButton(
@@ -339,7 +337,8 @@ class _AuthMessageScreen extends StatelessWidget {
                         icon: Icons.arrow_forward_rounded,
                         onPressed: onAction,
                       ),
-                      if (secondActionText != null && onSecondAction != null) ...[
+                      if (secondActionText != null &&
+                          onSecondAction != null) ...[
                         const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,

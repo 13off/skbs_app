@@ -278,7 +278,10 @@ class PaymentReceiptRepository {
             finalContentType = compressed.contentType;
           }
 
-          validateFileSize(fileName: originalName, sizeBytes: finalBytes.length);
+          validateFileSize(
+            fileName: originalName,
+            sizeBytes: finalBytes.length,
+          );
 
           final storageFileName = safeStorageFileName(
             originalName: originalName,

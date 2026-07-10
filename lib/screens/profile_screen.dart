@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/user_repository.dart';
 import '../features/archive/presentation/archive_management_screen.dart';
@@ -46,14 +47,14 @@ class ProfileScreen extends StatelessWidget {
   void openTemplateDocuments(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TemplateDocumentsScreen()),
+      CupertinoPageRoute(builder: (_) => const TemplateDocumentsScreen()),
     );
   }
 
   void openArchive(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => ArchiveManagementScreen(profile: profile),
       ),
     );

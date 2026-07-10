@@ -117,19 +117,17 @@ class NotificationRepository {
       final profile = await UserRepository.fetchCurrentProfile();
       final user = UserRepository.currentUser;
 
-      final actorName =
-          profile?.fullName.trim().isNotEmpty == true
-              ? profile!.fullName.trim()
-              : profile?.email.trim().isNotEmpty == true
-              ? profile!.email.trim()
-              : user?.email?.trim().isNotEmpty == true
-              ? user!.email!.trim()
-              : 'Пользователь';
+      final actorName = profile?.fullName.trim().isNotEmpty == true
+          ? profile!.fullName.trim()
+          : profile?.email.trim().isNotEmpty == true
+          ? profile!.email.trim()
+          : user?.email?.trim().isNotEmpty == true
+          ? user!.email!.trim()
+          : 'Пользователь';
 
-      final actorEmail =
-          profile?.email.trim().isNotEmpty == true
-              ? profile!.email.trim()
-              : user?.email?.trim() ?? '';
+      final actorEmail = profile?.email.trim().isNotEmpty == true
+          ? profile!.email.trim()
+          : user?.email?.trim() ?? '';
 
       await _client.from('app_notifications').insert({
         'title': title.trim(),
@@ -230,10 +228,14 @@ class NotificationRepository {
       final profile = await UserRepository.fetchCurrentProfile();
       final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
       final profileObject = cleanObjectName(profile?.objectName);
-      final visibleObject = isForeman ? cleanObject ?? profileObject : cleanObject;
+      final visibleObject = isForeman
+          ? cleanObject ?? profileObject
+          : cleanObject;
       final clearDate = await _fetchClearDate(visibleObject);
 
-      dynamic query = _client.from('app_notifications').select(
+      dynamic query = _client
+          .from('app_notifications')
+          .select(
             'id, title, body, actor_user_id, actor_name, actor_email, object_name, entity_type, entity_id, created_at',
           );
 
@@ -296,11 +298,7 @@ class NotificationRepository {
 
     final now = DateTime.now().toUtc().toIso8601String();
     final rows = ids.map((id) {
-      return {
-        'user_id': userId,
-        'notification_id': id,
-        'read_at': now,
-      };
+      return {'user_id': userId, 'notification_id': id, 'read_at': now};
     }).toList();
 
     try {
@@ -322,14 +320,11 @@ class NotificationRepository {
     final cleanObject = cleanObjectName(objectName) ?? '';
 
     try {
-      await _client.from('app_notification_clears').upsert(
-        {
-          'user_id': userId,
-          'object_name': cleanObject,
-          'cleared_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'user_id,object_name',
-      );
+      await _client.from('app_notification_clears').upsert({
+        'user_id': userId,
+        'object_name': cleanObject,
+        'cleared_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id,object_name');
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
 

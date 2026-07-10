@@ -102,7 +102,10 @@ class _LoginScreenState extends State<LoginScreen> {
               return SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: minimumHeight),
                   child: Center(
@@ -166,9 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Text(
                                   'Управление строительным объектом',
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         color: AppColors.textMuted,
                                         fontWeight: FontWeight.w600,
@@ -188,7 +189,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   decoration: const InputDecoration(
                                     labelText: 'Email',
                                     hintText: 'name@company.ru',
-                                    prefixIcon: Icon(Icons.alternate_email_rounded),
+                                    prefixIcon: Icon(
+                                      Icons.alternate_email_rounded,
+                                    ),
                                   ),
                                   onSubmitted: (_) {
                                     passwordFocusNode.requestFocus();
@@ -238,7 +241,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: errorText == null
                                       ? const SizedBox.shrink()
                                       : Padding(
-                                          padding: const EdgeInsets.only(top: 14),
+                                          padding: const EdgeInsets.only(
+                                            top: 14,
+                                          ),
                                           child: Container(
                                             width: double.infinity,
                                             padding: const EdgeInsets.symmetric(

@@ -59,18 +59,12 @@ class PrivateDataImportCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Text(
             'Личные данные сотрудников',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           const Text(
             'Выбери объект и подготовленный JSON-файл. Заполнятся паспорт, дата рождения, прописка, СНИЛС, ИНН и найденные банковские реквизиты. Пустые значения не затрут уже заполненные данные.',
-            style: TextStyle(
-              color: AppColors.textMuted,
-              height: 1.45,
-            ),
+            style: TextStyle(color: AppColors.textMuted, height: 1.45),
           ),
           const SizedBox(height: 20),
           if (isLoadingObjects)

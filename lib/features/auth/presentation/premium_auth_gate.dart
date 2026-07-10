@@ -33,7 +33,9 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
 
     loadCurrentUser(showLoading: true);
-    authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+    authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      _,
+    ) {
       final currentUserId = UserRepository.currentUser?.id;
 
       if (currentUserId != null &&
@@ -319,7 +321,8 @@ class _AuthMessageScreen extends StatelessWidget {
                         icon: Icons.arrow_forward_rounded,
                         onPressed: onAction,
                       ),
-                      if (secondActionText != null && onSecondAction != null) ...[
+                      if (secondActionText != null &&
+                          onSecondAction != null) ...[
                         const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../data/app_state.dart';
@@ -175,7 +176,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) =>
             AddTaskScreen(initialDate: selectedDate, objectName: objectName),
       ),
@@ -219,7 +220,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> openTaskDetails(TaskItemData task) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TaskDetailsScreen(task: task)),
+      CupertinoPageRoute(builder: (_) => TaskDetailsScreen(task: task)),
     );
 
     if (result == null) return;
@@ -387,7 +388,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 : () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      CupertinoPageRoute(
                         builder: (_) =>
                             ActPreviewScreen(tasks: tasks, date: selectedDate),
                       ),

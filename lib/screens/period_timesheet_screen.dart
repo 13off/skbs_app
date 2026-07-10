@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/attendance_repository.dart';
 import '../data/timesheet_excel_exporter.dart';
@@ -181,13 +182,15 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
     if (query.isEmpty) return workedRows;
 
-    return workedRows.where((row) {
-      final employee = row.employee;
+    return workedRows
+        .where((row) {
+          final employee = row.employee;
 
-      return employee.name.toLowerCase().contains(query) ||
-          employee.position.toLowerCase().contains(query) ||
-          employee.objectName.toLowerCase().contains(query);
-    }).toList(growable: false);
+          return employee.name.toLowerCase().contains(query) ||
+              employee.position.toLowerCase().contains(query) ||
+              employee.objectName.toLowerCase().contains(query);
+        })
+        .toList(growable: false);
   }
 
   Future<List<MonthlyTimesheetRow>> fetchRowsForMonth(DateTime month) async {
@@ -200,9 +203,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
             includeFired: includeFiredEmployees,
           );
 
-    return collapseDuplicateRows(sourceRows)
-        .where((row) => row.totalShifts > 0)
-        .toList(growable: false);
+    return collapseDuplicateRows(
+      sourceRows,
+    ).where((row) => row.totalShifts > 0).toList(growable: false);
   }
 
   Future<void> loadReport() async {
@@ -350,13 +353,18 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
                           onTap: () {
-                            Navigator.pop(context, DateTime(tempYear, month, 1));
+                            Navigator.pop(
+                              context,
+                              DateTime(tempYear, month, 1),
+                            );
                           },
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer
                                   : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
@@ -388,7 +396,10 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           final now = DateTime.now();
-                          Navigator.pop(context, DateTime(now.year, now.month, 1));
+                          Navigator.pop(
+                            context,
+                            DateTime(now.year, now.month, 1),
+                          );
                         },
                         icon: const Icon(Icons.today),
                         label: const Text('Текущий месяц'),
@@ -566,7 +577,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Theme.of(context).colorScheme.primaryContainer
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer
                                     : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
@@ -583,7 +596,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                                     Icon(
                                       Icons.check_circle,
                                       size: 18,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                     const SizedBox(width: 5),
                                   ],
@@ -596,7 +611,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
                                             ? FontWeight.w900
                                             : FontWeight.w600,
                                         color: isSelected
-                                            ? Theme.of(context).colorScheme.primary
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.primary
                                             : Colors.black87,
                                       ),
                                     ),
@@ -661,9 +678,11 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
         var monthRows = await fetchRowsForMonth(month);
 
         if (employeeKey != null) {
-          monthRows = monthRows.where((row) {
-            return normalizedEmployeeKey(row.employee) == employeeKey;
-          }).toList(growable: false);
+          monthRows = monthRows
+              .where((row) {
+                return normalizedEmployeeKey(row.employee) == employeeKey;
+              })
+              .toList(growable: false);
         }
 
         rowsByMonth.add(monthRows);
@@ -726,7 +745,7 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
 
   Future<void> openAddPaymentScreen() async {
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,
@@ -960,7 +979,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
     }
 
     if (visibleRows.isEmpty) {
-      return const Center(child: Text('Нет сотрудников со сменами за этот месяц'));
+      return const Center(
+        child: Text('Нет сотрудников со сменами за этот месяц'),
+      );
     }
 
     return Scrollbar(
@@ -1007,7 +1028,9 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: isLoading || isExporting ? null : downloadAllEmployeesExcel,
+            onPressed: isLoading || isExporting
+                ? null
+                : downloadAllEmployeesExcel,
             icon: isExporting
                 ? const SizedBox(
                     width: 18,

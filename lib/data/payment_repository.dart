@@ -165,7 +165,10 @@ class PaymentRepository {
     if (cleanIds.isEmpty) return <PaymentRecord>[];
 
     if (cleanIds.length == 1) {
-      return fetchPaymentsForEmployee(cleanIds.first, forceRefresh: forceRefresh);
+      return fetchPaymentsForEmployee(
+        cleanIds.first,
+        forceRefresh: forceRefresh,
+      );
     }
 
     final rows = await _client

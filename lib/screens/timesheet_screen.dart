@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../data/app_state.dart';
@@ -627,7 +628,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
               child: FilledButton.tonalIcon(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                       builder: (_) => _TimesheetReportRoute(
                         selectedObjectName: widget.selectedObjectName,
                       ),
