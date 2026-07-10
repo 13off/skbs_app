@@ -1,0 +1,263 @@
+    await Future<void>.delayed(const Duration(milliseconds: 750));
+
+    if (!mounted || token != warmUpToken) return;
+
+    final objectName = selectedObjectNameNotifier.value;
+    final today = AppState.today;
+
+    try {
+      await Future.wait<dynamic>([
+        EmployeeRepository.fetchEmployees(
+          objectName: objectName,
+          includeFired: true,
+        ),
+        AttendanceRepository.fetchShiftValuesForDate(
+          today,
+          objectName: objectName,
+        ),
+        TaskRepository.fetchTasksForDate(today, objectName: objectName),
+        ObjectRepository.fetchObjects(),
+      ]).timeout(const Duration(seconds: 7));
+    } catch (_) {
+      // Фоновый прогрев не должен мешать работе приложения.
+    }
+  }
+
+  void changeSelectedObject(String? objectName) {
+    if (!widget.profile.isAdmin) return;
+
+    final nextObjectName = cleanObjectName(objectName);
+
+    if (cleanObjectName(selectedObjectNameNotifier.value) == nextObjectName) {
+      return;
+    }
+
+    selectedObjectNameNotifier.value = nextObjectName;
+    warmUpVisibleData();
+  }
+
+  Widget buildRootPage(int index, String? selectedObjectName) {
+    if (widget.profile.isAdmin) {
+      switch (index) {
+        case 0:
+          return HomeScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+          );
+        case 1:
+          return EmployeesScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 2:
+          return TimesheetScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 3:
+          return TasksScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+          );
+        case 4:
+          return ProfileScreen(profile: widget.profile);
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+
+    switch (index) {
+      case 0:
+        return HomeScreen(
+          profile: widget.profile,
+          selectedObjectName: selectedObjectName,
+          onObjectChanged: changeSelectedObject,
+        );
+      case 1:
+        return TasksScreen(
+          profile: widget.profile,
+          selectedObjectName: selectedObjectName,
+        );
+      case 2:
+        return TimesheetScreen(
+          profile: widget.profile,
+          selectedObjectName: selectedObjectName,
+        );
+      case 3:
+        return ProfileScreen(profile: widget.profile);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget buildTabNavigator(int index) {
+    return _KeepAliveTab(
+      key: ValueKey<String>('tab-$index'),
+      child: Navigator(
+        key: navigatorKeys[index],
+        onGenerateRoute: (settings) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) {
+              return ValueListenableBuilder<String?>(
+                valueListenable: selectedObjectNameNotifier,
+                builder: (context, selectedObjectName, _) {
+                  return buildRootPage(index, selectedObjectName);
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  List<_TabItem> buildTabItems() {
+    if (widget.profile.isAdmin) {
+      return const [
+        _TabItem(
+          label: 'Главная',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home_rounded,
+        ),
+        _TabItem(
+          label: 'Люди',
+          icon: Icons.groups_outlined,
+          selectedIcon: Icons.groups_rounded,
+        ),
+        _TabItem(
+          label: 'Табель',
+          icon: Icons.calendar_today_outlined,
+          selectedIcon: Icons.calendar_month_rounded,
+        ),
+        _TabItem(
+          label: 'Задачи',
+          icon: Icons.assignment_outlined,
+          selectedIcon: Icons.assignment_rounded,
+        ),
+        _TabItem(
+          label: 'Профиль',
+          icon: Icons.person_outline_rounded,
+          selectedIcon: Icons.person_rounded,
+        ),
+      ];
+    }
+
+    return const [
+      _TabItem(
+        label: 'Главная',
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home_rounded,
+      ),
+      _TabItem(
+        label: 'Задачи',
+        icon: Icons.assignment_outlined,
+        selectedIcon: Icons.assignment_rounded,
+      ),
+      _TabItem(
+        label: 'Табель',
+        icon: Icons.calendar_today_outlined,
+        selectedIcon: Icons.calendar_month_rounded,
+      ),
+      _TabItem(
+        label: 'Профиль',
+        icon: Icons.person_outline_rounded,
+        selectedIcon: Icons.person_rounded,
+      ),
+    ];
+  }
+
+  bool canSwipeBetweenTabs() {
+    final navigator = navigatorKeys[safeCurrentIndex].currentState;
+    return navigator == null || !navigator.canPop();
+  }
+
+  Future<void> selectTab(int index) async {
+    if (index < 0 || index >= pageCount) return;
+
+    if (index == safeCurrentIndex) {
+      final navigator = navigatorKeys[index].currentState;
+
+      if (navigator != null && navigator.canPop()) {
+        navigator.popUntil((route) => route.isFirst);
+      } else {
+        scrollActiveRouteToTop();
+      }
+      return;
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      HapticFeedback.selectionClick();
+    }
+
+    await pageController.animateToPage(
+      index,
+      duration: AppMotion.tab,
+      curve: AppMotion.enterCurve,
+    );
+  }
+
+  void handlePageChanged(int index) {
+    if (!mounted || currentIndex == index) return;
+
+    setState(() {
+      currentIndex = index;
+    });
+  }
+
+  Future<bool> handleBackRequest() async {
+    final navigator = navigatorKeys[safeCurrentIndex].currentState;
+
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop();
+      return true;
+    }
+
+    if (safeCurrentIndex != 0) {
+      await selectTab(0);
+      return true;
+    }
+
+    return false;
+  }
+
+  void handlePointerDown(PointerDownEvent event) {
+    final paddingTop = MediaQuery.paddingOf(context).top;
+    final topZone = paddingTop + 28 < 48 ? 48.0 : paddingTop + 28;
+
+    topTapStart = event.position.dy <= topZone ? event.position : null;
+  }
+
+  void handlePointerUp(PointerUpEvent event) {
+    final start = topTapStart;
+    topTapStart = null;
+
+    if (start == null) return;
+
+    final movement = (event.position - start).distance;
+    if (movement > 12) return;
+
+    scrollActiveRouteToTop();
+  }
+
+  void scrollActiveRouteToTop() {
+    final rootContext = navigatorKeys[safeCurrentIndex].currentContext;
+
+    if (rootContext is! Element) return;
+
+    final candidates = <ScrollableState>[];
+
+    void visit(Element element, bool hidden) {
+      final widget = element.widget;
+      var nextHidden = hidden;
+
+      if (widget is Offstage && widget.offstage) {
+        nextHidden = true;
+      }
+      if (widget is Visibility && !widget.visible) {
+        nextHidden = true;
+      }
+
+      if (!nextHidden &&
+          element is StatefulElement &&
