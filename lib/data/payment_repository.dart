@@ -152,6 +152,47 @@ class PaymentRepository {
     return _copyPayments(paymentsWithReceipts);
   }
 
+  static Future<List<PaymentRecord>> fetchPaymentsForEmployees(
+    List<String> employeeIds, {
+    bool forceRefresh = false,
+  }) async {
+    final cleanIds = employeeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (cleanIds.isEmpty) return <PaymentRecord>[];
+
+    if (cleanIds.length == 1) {
+      return fetchPaymentsForEmployee(cleanIds.first, forceRefresh: forceRefresh);
+    }
+
+    final rows = await _client
+        .from('payments')
+        .select(
+          'id, employee_id, period_year, period_month, payment_date, amount, payment_type, comment, updated_at',
+        )
+        .inFilter('employee_id', cleanIds)
+        .order('payment_date', ascending: false)
+        .order('updated_at', ascending: false);
+
+    final payments = rows.map<PaymentRecord>((row) {
+      return PaymentRecord.fromMap(row);
+    }).toList();
+
+    final receiptsByPaymentId =
+        await PaymentReceiptRepository.fetchReceiptsForPaymentIds(
+          payments.map((payment) => payment.id).toList(),
+        );
+
+    return payments.map((payment) {
+      return payment.copyWith(
+        receipts: receiptsByPaymentId[payment.id] ?? <PaymentReceipt>[],
+      );
+    }).toList();
+  }
+
   static Future<List<PaymentReceipt>> addReceiptsToPayment({
     required String paymentId,
     required String employeeId,
