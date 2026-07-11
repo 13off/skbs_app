@@ -32,121 +32,57 @@ jobs:
           path: skbs_app
           persist-credentials: true
 
-      - name: Apply task layout and employee close fix
+      - name: Match employee card animation to timesheet
         shell: bash
         run: |
-          if [ ! -f skbs_app/tool/fix_task_layout_and_employee_close.marker ]; then
-            echo "No pending UI fix"
+          if [ ! -f skbs_app/tool/match_employee_close_to_timesheet.marker ]; then
+            echo "No pending employee animation fix"
             exit 0
           fi
 
           python - <<'PY'
           from pathlib import Path
 
-          root = Path('skbs_app')
+          path = Path('skbs_app/lib/screens/employees_screen.dart')
+          text = path.read_text(encoding='utf-8')
 
-          task_path = root / 'lib/screens/task_details_screen.dart'
-          task_text = task_path.read_text(encoding='utf-8')
+          import_line = "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n"
+          material_line = "import 'package:flutter/material.dart';\n"
+          if import_line not in text:
+              text = text.replace(material_line, material_line + import_line, 1)
 
-          old_axes = """          TextField(
-            controller: axesController,
-            enabled: !isSaving,
-            decoration: InputDecoration(
-              labelText: 'Оси',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-"""
-          new_axes = """          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Оси',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF6B7075),
-              ),
-            ),
-          ),
-          TextField(
-            controller: axesController,
-            enabled: !isSaving,
-            decoration: InputDecoration(
-              hintText: 'Укажи оси',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-"""
+          old = """  void openEmployeeDetails(BuildContext context, Employee employee) {
+    if (openedEmployee != null) return;
 
-          old_work = """          TextField(
-            controller: workController,
-            enabled: !isSaving,
-            minLines: 3,
-            maxLines: 7,
-            decoration: InputDecoration(
-              labelText: 'Вид работ',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-"""
-          new_work = """          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Вид работ',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF6B7075),
-              ),
-            ),
-          ),
-          TextField(
-            controller: workController,
-            enabled: !isSaving,
-            minLines: 3,
-            maxLines: 7,
-            decoration: InputDecoration(
-              hintText: 'Опиши выполненные работы',
-              alignLabelWithHint: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-"""
-
-          if old_axes not in task_text or old_work not in task_text:
-              raise RuntimeError('Не найдены поля задачи для исправления')
-
-          task_text = task_text.replace(old_axes, new_axes, 1)
-          task_text = task_text.replace(old_work, new_work, 1)
-          task_path.write_text(task_text, encoding='utf-8')
-
-          employee_path = root / 'lib/screens/employees_screen.dart'
-          employee_text = employee_path.read_text(encoding='utf-8')
-          old_delay = """    Future<void>.delayed(const Duration(milliseconds: 235), () {
-      if (!mounted) return;
-      widget.onClosed();
+    setState(() {
+      openedEmployee = employee;
     });
+  }
 """
-          new_delay = """    widget.onClosed();
+          new = """  Future<void> openEmployeeDetails(
+    BuildContext context,
+    Employee employee,
+  ) async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => EmployeeDetailsScreen(
+          profile: widget.profile,
+          employee: employee,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    loadEmployees();
+  }
 """
 
-          if old_delay not in employee_text:
-              raise RuntimeError('Не найдена задержка возврата сотрудника')
+          if old not in text:
+              raise RuntimeError('Не найдено открытие карточки сотрудника')
 
-          employee_path.write_text(
-              employee_text.replace(old_delay, new_delay, 1),
-              encoding='utf-8',
-          )
-
-          (root / 'tool/fix_task_layout_and_employee_close.marker').unlink()
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          Path('skbs_app/tool/match_employee_close_to_timesheet.marker').unlink()
           PY
 
           echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
@@ -175,7 +111,7 @@ jobs:
       - name: Format patched source
         if: env.SOURCE_PATCH_APPLIED == '1'
         working-directory: skbs_app
-        run: dart format lib/screens/task_details_screen.dart lib/screens/employees_screen.dart
+        run: dart format lib/screens/employees_screen.dart
 
       - name: Analyze source
         working-directory: skbs_app
@@ -189,7 +125,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "исправлена форма задачи и возврат из сотрудника"
+          git commit -m "анимация карточки сотрудника сделана как у табеля"
           git push
 
       - name: Build Flutter Web
