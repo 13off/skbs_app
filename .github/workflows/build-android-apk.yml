@@ -70,9 +70,25 @@ jobs:
       - name: Build release APK
         id: apk_build
         shell: bash
+        env:
+          SUPABASE_PROXY_URL: ${{ secrets.SUPABASE_PROXY_URL }}
+          SUPABASE_PROXY_KEY: ${{ secrets.SUPABASE_PROXY_KEY }}
         run: |
           set +e
-          flutter build apk --release 2>&1 | tee apk-build.log
+          BUILD_ARGS=()
+
+          if [ -n "$SUPABASE_PROXY_URL" ]; then
+            BUILD_ARGS+=("--dart-define=SUPABASE_URL=$SUPABASE_PROXY_URL")
+            echo "APK build uses Supabase proxy"
+          else
+            echo "APK build uses default Supabase URL"
+          fi
+
+          if [ -n "$SUPABASE_PROXY_KEY" ]; then
+            BUILD_ARGS+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PROXY_KEY")
+          fi
+
+          flutter build apk --release "${BUILD_ARGS[@]}" 2>&1 | tee apk-build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
           exit 0
