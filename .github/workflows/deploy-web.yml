@@ -37,6 +37,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install icon renderer
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+
+      - name: Generate web icons from matte logo
+        shell: bash
+        run: |
+          mkdir -p skbs_app/web/icons
+          rsvg-convert -w 192 -h 192 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-192-v2.png
+          rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
+          rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
+
       - name: Flutter pub get
         working-directory: skbs_app
         run: flutter pub get
