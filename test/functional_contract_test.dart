@@ -228,6 +228,14 @@ void main() {
           "'active_company_id'",
         ],
       );
+      _containsAll(
+        'supabase/functions/invite-company-member/index.ts',
+        const [
+          'inviteUserByEmail',
+          'resetPasswordForEmail',
+          '"password_setup_resent"',
+        ],
+      );
     });
 
     test('приглашённый пользователь обязательно задаёт пароль', () {
