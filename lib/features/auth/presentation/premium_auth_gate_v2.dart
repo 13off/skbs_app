@@ -10,6 +10,8 @@ import '../../../screens/login_screen.dart';
 import '../../../screens/main_screen.dart';
 import '../../../screens/private_data_import_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../company/presentation/company_onboarding_screen.dart';
+import 'set_invitation_password_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -65,6 +67,7 @@ class _AuthGateState extends State<AuthGate> {
 
     final shouldRefresh =
         state.event == AuthChangeEvent.signedIn ||
+        state.event == AuthChangeEvent.tokenRefreshed ||
         currentUserId != lastLoadedUserId ||
         profile == null;
 
@@ -173,17 +176,10 @@ class _AuthGateState extends State<AuthGate> {
       );
     } else if (currentProfile == null) {
       screenKey = 'missing-profile';
-      screen = _AuthMessageScreen(
-        title: 'Профиль не найден',
-        message:
-            'Пользователь вошёл, но для него нет записи в таблице user_profiles.',
-        icon: Icons.person_off_outlined,
-        actionText: 'Обновить',
-        onAction: () {
-          loadCurrentUser(forceRefresh: true, showLoading: true);
+      screen = CompanyOnboardingScreen(
+        onCompleted: () {
+          return loadCurrentUser(forceRefresh: true, showLoading: true);
         },
-        secondActionText: 'Выйти',
-        onSecondAction: signOut,
       );
     } else if (!currentProfile.isActive) {
       screenKey = 'inactive:${currentProfile.id}';
@@ -193,6 +189,13 @@ class _AuthGateState extends State<AuthGate> {
         icon: Icons.lock_outline_rounded,
         actionText: 'Выйти',
         onAction: signOut,
+      );
+    } else if (UserRepository.mustSetPassword) {
+      screenKey = 'invitation-password:${currentProfile.id}';
+      screen = SetInvitationPasswordScreen(
+        onCompleted: () {
+          return loadCurrentUser(forceRefresh: true, showLoading: true);
+        },
       );
     } else {
       final importRequested = Uri.base.queryParameters['privateImport'] == '1';
@@ -212,7 +215,8 @@ class _AuthGateState extends State<AuthGate> {
         screenKey = 'private-import:${currentProfile.id}';
         screen = PrivateDataImportScreen(profile: currentProfile);
       } else {
-        screenKey = 'main:${currentProfile.id}';
+        screenKey =
+            'main:${currentProfile.id}:${currentProfile.activeCompanyId}:${currentProfile.role}';
         screen = MainScreen(profile: currentProfile);
       }
     }
