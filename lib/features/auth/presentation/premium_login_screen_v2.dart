@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/app_theme.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
+import 'company_signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final Future<void> Function()? onSignedIn;
@@ -86,6 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  Future<void> openCompanyRegistration() async {
+    final signedIn = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CompanySignupScreen()),
+    );
+    if (signedIn == true) await widget.onSignedIn?.call();
   }
 
   InputDecoration fieldDecoration({
@@ -332,6 +341,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   isLoading: isLoading,
                                   onPressed: signIn,
                                 ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: OutlinedButton.icon(
+                                    onPressed: isLoading
+                                        ? null
+                                        : openCompanyRegistration,
+                                    icon: const Icon(Icons.add_business_rounded),
+                                    label: const Text('Создать компанию'),
+                                  ),
+                                ),
                                 const SizedBox(height: 18),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -346,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Защищённый доступ СКБС',
+                                      'Защищённый доступ AppСтрой',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall
