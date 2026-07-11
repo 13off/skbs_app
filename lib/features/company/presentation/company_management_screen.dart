@@ -1,0 +1,520 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../app/app_theme.dart';
+import '../data/company_repository.dart';
+
+class CompanyManagementScreen extends StatefulWidget {
+  final String companyId;
+
+  const CompanyManagementScreen({
+    super.key,
+    required this.companyId,
+  });
+
+  @override
+  State<CompanyManagementScreen> createState() =>
+      _CompanyManagementScreenState();
+}
+
+class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
+  late Future<CompanyDashboard> dashboardFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    dashboardFuture = CompanyRepository.fetchDashboard(widget.companyId);
+  }
+
+  Future<void> refresh() async {
+    final future = CompanyRepository.fetchDashboard(widget.companyId);
+    setState(() => dashboardFuture = future);
+    await future;
+  }
+
+  Future<void> openInvite(CompanyDashboard dashboard) async {
+    final result = await Navigator.push<String>(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => CompanyMemberEditorScreen(
+          companyId: widget.companyId,
+          objects: dashboard.objects,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
+    await refresh();
+  }
+
+  Future<void> editMember(
+    CompanyDashboard dashboard,
+    CompanyMember member,
+  ) async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (member.isOwner || member.userId == currentUserId) return;
+
+    final result = await Navigator.push<String>(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => CompanyMemberEditorScreen(
+          companyId: widget.companyId,
+          objects: dashboard.objects,
+          member: member,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
+    await refresh();
+  }
+
+  String planTitle(CompanySummary company) {
+    switch (company.planCode) {
+      case 'internal':
+        return 'Внутренний тариф';
+      case 'starter':
+        return 'Старт';
+      case 'business':
+        return 'Бизнес';
+      case 'enterprise':
+        return 'Корпоративный';
+      default:
+        final end = company.trialEndsAt;
+        if (end == null) return 'Пробный период';
+        return 'Пробный период до ${end.day.toString().padLeft(2, '0')}.${end.month.toString().padLeft(2, '0')}.${end.year}';
+    }
+  }
+
+  Widget companyCard(CompanyDashboard dashboard) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF0F1F3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.apartment_rounded),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dashboard.company.name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      planTitle(dashboard.company),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _Metric(
+                  value: '${dashboard.members.length}',
+                  label: 'пользователей',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _Metric(
+                  value: '${dashboard.objects.length}',
+                  label: 'объектов',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget memberTile(CompanyDashboard dashboard, CompanyMember member) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final editable = !member.isOwner && member.userId != currentUserId;
+    final subtitle = <String>[
+      member.roleTitle,
+      if (member.objectName.isNotEmpty) member.objectName,
+      if (!member.isActive) 'Доступ отключён',
+    ].join(' • ');
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 9),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFFE5E6E8)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFFF0F1F3),
+          foregroundColor: AppColors.textPrimary,
+          child: Text(
+            (member.fullName.isNotEmpty ? member.fullName : member.email)
+                .characters
+                .first
+                .toUpperCase(),
+          ),
+        ),
+        title: Text(
+          member.fullName.isEmpty ? member.email : member.fullName,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          member.email == member.fullName
+              ? subtitle
+              : '${member.email}\n$subtitle',
+        ),
+        isThreeLine: member.email != member.fullName,
+        trailing: editable ? const Icon(Icons.chevron_right_rounded) : null,
+        onTap: editable ? () => editMember(dashboard, member) : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Компания и пользователи'),
+        actions: [
+          IconButton(
+            tooltip: 'Обновить',
+            onPressed: refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: FutureBuilder<CompanyDashboard>(
+        future: dashboardFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, size: 44),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Не удалось загрузить компанию: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final dashboard = snapshot.data!;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            children: [
+                companyCard(dashboard),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => openInvite(dashboard),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  label: const Text('Пригласить пользователя'),
+                ),
+                if (dashboard.objects.isEmpty) ...[
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Чтобы пригласить прораба, сначала добавьте объект на вкладке «Главная».',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  'Команда',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...dashboard.members.map(
+                  (member) => memberTile(dashboard, member),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class CompanyMemberEditorScreen extends StatefulWidget {
+  final String companyId;
+  final List<CompanyObject> objects;
+  final CompanyMember? member;
+
+  const CompanyMemberEditorScreen({
+    super.key,
+    required this.companyId,
+    required this.objects,
+    this.member,
+  });
+
+  @override
+  State<CompanyMemberEditorScreen> createState() =>
+      _CompanyMemberEditorScreenState();
+}
+
+class _CompanyMemberEditorScreenState
+    extends State<CompanyMemberEditorScreen> {
+  late final TextEditingController fullNameController;
+  late final TextEditingController emailController;
+  late String role;
+  String? objectId;
+  bool isSaving = false;
+  String? errorText;
+
+  bool get isEditing => widget.member != null;
+
+  @override
+  void initState() {
+    super.initState();
+    fullNameController = TextEditingController(text: widget.member?.fullName ?? '');
+    emailController = TextEditingController(text: widget.member?.email ?? '');
+    role = widget.member?.role == 'admin' ? 'admin' : 'foreman';
+    objectId = widget.member?.objectId.isNotEmpty == true
+        ? widget.member!.objectId
+        : (widget.objects.isEmpty ? null : widget.objects.first.id);
+  }
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> save() async {
+    if (isSaving) return;
+    final fullName = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    if (!isEditing && (fullName.length < 2 || !email.contains('@'))) {
+      setState(() => errorText = 'Укажите имя и корректный email');
+      return;
+    }
+    if (role == 'foreman' && (objectId == null || objectId!.isEmpty)) {
+      setState(() => errorText = 'Для прораба нужно выбрать объект');
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+      errorText = null;
+    });
+    try {
+      if (isEditing) {
+        await CompanyRepository.updateMemberAccess(
+          companyId: widget.companyId,
+          member: widget.member!,
+          role: role,
+          objectId: role == 'foreman' ? objectId : null,
+        );
+        if (mounted) Navigator.pop(context, 'Права пользователя обновлены');
+      } else {
+        final result = await CompanyRepository.inviteMember(
+          companyId: widget.companyId,
+          fullName: fullName,
+          email: email,
+          role: role,
+          objectId: role == 'foreman' ? objectId : null,
+        );
+        if (!mounted) return;
+        Navigator.pop(
+          context,
+          result.existingUser
+              ? 'Доступ добавлен существующему пользователю'
+              : 'Приглашение отправлено на email',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => errorText = error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? 'Права пользователя' : 'Пригласить пользователя'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          if (!isEditing) ...[
+            TextField(
+              controller: fullNameController,
+              enabled: !isSaving,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Имя и фамилия',
+                prefixIcon: Icon(Icons.person_outline_rounded),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailController,
+              enabled: !isSaving,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.alternate_email_rounded),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ] else ...[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+              title: Text(widget.member!.fullName),
+              subtitle: Text(widget.member!.email),
+            ),
+            const SizedBox(height: 8),
+          ],
+          DropdownButtonFormField<String>(
+            initialValue: role,
+            decoration: const InputDecoration(
+              labelText: 'Роль',
+              prefixIcon: Icon(Icons.admin_panel_settings_outlined),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
+              DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+            ],
+            onChanged: isSaving
+                ? null
+                : (value) => setState(() => role = value ?? 'foreman'),
+          ),
+          if (role == 'foreman') ...[
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: widget.objects.any((item) => item.id == objectId)
+                  ? objectId
+                  : null,
+              decoration: const InputDecoration(
+                labelText: 'Объект',
+                prefixIcon: Icon(Icons.location_city_outlined),
+              ),
+              items: widget.objects
+                  .map(
+                    (object) => DropdownMenuItem(
+                      value: object.id,
+                      child: Text(object.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: isSaving ? null : (value) => setState(() => objectId = value),
+            ),
+          ],
+          if (errorText != null) ...[
+            const SizedBox(height: 14),
+            Text(
+              errorText!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF874540),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 22),
+          FilledButton.icon(
+            onPressed: isSaving ? null : save,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(isEditing ? Icons.save_outlined : Icons.send_outlined),
+            label: Text(isEditing ? 'Сохранить права' : 'Отправить приглашение'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _Metric({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
+          Text(label, style: const TextStyle(color: AppColors.textMuted)),
+        ],
+      ),
+    );
+  }
+}
