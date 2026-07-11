@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - lib/**
+      - assets/**
+      - web/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .fvmrc
+      - .github/workflows/deploy-web.yml
   workflow_dispatch:
 
 permissions:
@@ -34,7 +42,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version-file: skbs_app/.fvmrc
           cache: true
 
       - name: Install icon renderer
@@ -48,9 +56,13 @@ jobs:
           rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
           rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
 
-      - name: Flutter pub get
+      - name: Install locked dependencies
         working-directory: skbs_app
-        run: flutter pub get
+        run: dart pub get --enforce-lockfile
+
+      - name: Run regression tests
+        working-directory: skbs_app
+        run: flutter test
 
       - name: Analyze source
         working-directory: skbs_app
