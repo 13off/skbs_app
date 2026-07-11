@@ -316,9 +316,10 @@ class _MainScreenState extends State<MainScreen> {
 
   void handlePointerDown(PointerDownEvent event) {
     final paddingTop = MediaQuery.paddingOf(context).top;
-    final topZone = paddingTop + 28 < 48 ? 48.0 : paddingTop + 28;
 
-    topTapStart = event.position.dy <= topZone ? event.position : null;
+    topTapStart = paddingTop > 0 && event.position.dy <= paddingTop
+        ? event.position
+        : null;
   }
 
   void handlePointerUp(PointerUpEvent event) {
