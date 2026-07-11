@@ -14,6 +14,11 @@ class UserRepository {
 
   static AppUserProfile? get cachedProfile => _cachedProfile;
 
+  static bool get mustSetPassword {
+    final value = currentUser?.userMetadata?['must_set_password'];
+    return value == true || value?.toString().toLowerCase() == 'true';
+  }
+
   static void clearProfileCache() {
     _cachedProfile = null;
     _cachedProfileUserId = null;
@@ -33,6 +38,69 @@ class UserRepository {
     if (response.session == null || response.user == null) {
       throw const AuthException('Не удалось создать сессию пользователя');
     }
+  }
+
+  static Future<bool> signUpCompany({
+    required String companyName,
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    clearProfileCache();
+
+    final response = await _client.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: <String, dynamic>{
+        'company_name': companyName.trim(),
+        'full_name': fullName.trim(),
+        'must_set_password': false,
+      },
+    );
+
+    if (response.user == null) {
+      throw const AuthException('Не удалось зарегистрировать пользователя');
+    }
+
+    if (response.session == null) return false;
+
+    await createCompanyProfile(
+      companyName: companyName,
+      fullName: fullName,
+    );
+    return true;
+  }
+
+  static Future<void> createCompanyProfile({
+    required String companyName,
+    required String fullName,
+  }) async {
+    await _client.rpc(
+      'create_company_for_current_user',
+      params: <String, dynamic>{
+        'p_company_name': companyName.trim(),
+        'p_full_name': fullName.trim(),
+      },
+    );
+    clearProfileCache();
+  }
+
+  static Future<void> setInvitationPassword(String password) async {
+    await _client.auth.updateUser(
+      UserAttributes(
+        password: password,
+        data: const <String, dynamic>{'must_set_password': false},
+      ),
+    );
+  }
+
+  static Future<void> setActiveCompany(String companyId) async {
+    await _client.rpc(
+      'set_active_company',
+      params: <String, dynamic>{'p_company_id': companyId.trim()},
+    );
+    clearProfileCache();
+    await _client.auth.refreshSession();
   }
 
   static Future<void> signOut() async {
@@ -58,7 +126,9 @@ class UserRepository {
 
     final row = await _client
         .from('user_profiles')
-        .select('id, email, full_name, role, object_name, is_active')
+        .select(
+          'id, email, full_name, role, object_name, is_active, active_company_id',
+        )
         .eq('id', user.id)
         .maybeSingle();
 
