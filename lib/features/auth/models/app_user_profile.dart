@@ -4,6 +4,7 @@ class AppUserProfile {
   final String fullName;
   final String role;
   final String objectName;
+  final String activeCompanyId;
   final bool isActive;
 
   const AppUserProfile({
@@ -12,6 +13,7 @@ class AppUserProfile {
     required this.fullName,
     required this.role,
     required this.objectName,
+    required this.activeCompanyId,
     required this.isActive,
   });
 
@@ -37,6 +39,7 @@ class AppUserProfile {
       fullName: map['full_name']?.toString() ?? '',
       role: map['role']?.toString() ?? 'foreman',
       objectName: map['object_name']?.toString() ?? '',
+      activeCompanyId: map['active_company_id']?.toString() ?? '',
       isActive: map['is_active'] == true,
     );
   }
