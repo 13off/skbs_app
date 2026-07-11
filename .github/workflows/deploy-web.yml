@@ -56,27 +56,12 @@ jobs:
         working-directory: skbs_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build Flutter Web
+      - name: Build Flutter Web through proxy
         working-directory: skbs_app
-        shell: bash
-        env:
-          SUPABASE_PROXY_URL: ${{ secrets.SUPABASE_PROXY_URL }}
-          SUPABASE_PROXY_KEY: ${{ secrets.SUPABASE_PROXY_KEY }}
         run: |
-          BUILD_ARGS=()
-
-          if [ -n "$SUPABASE_PROXY_URL" ]; then
-            BUILD_ARGS+=("--dart-define=SUPABASE_URL=$SUPABASE_PROXY_URL")
-            echo "Web build uses Supabase proxy"
-          else
-            echo "Web build uses default Supabase URL"
-          fi
-
-          if [ -n "$SUPABASE_PROXY_KEY" ]; then
-            BUILD_ARGS+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PROXY_KEY")
-          fi
-
-          flutter build web --release --base-href /appstroy-web/ "${BUILD_ARGS[@]}"
+          flutter build web --release \
+            --base-href /appstroy-web/ \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
 
       - name: Bust cache
         shell: bash
@@ -112,5 +97,5 @@ jobs:
             echo "No web changes to publish"
             exit 0
           fi
-          git commit -m "обновлена веб версия"
+          git commit -m "обновлена веб версия через российский прокси"
           git push
