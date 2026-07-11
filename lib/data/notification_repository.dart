@@ -285,7 +285,6 @@ class NotificationRepository {
 
   static Future<void> markAsRead(List<String> notificationIds) async {
     final userId = _currentUserId;
-
     if (userId == null || userId.isEmpty) return;
 
     final ids = notificationIds
@@ -320,11 +319,10 @@ class NotificationRepository {
     final cleanObject = cleanObjectName(objectName) ?? '';
 
     try {
-      await _client.from('app_notification_clears').upsert({
-        'user_id': userId,
-        'object_name': cleanObject,
-        'cleared_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id,object_name');
+      await _client.rpc(
+        'clear_current_company_notifications',
+        params: <String, dynamic>{'p_object_name': cleanObject},
+      );
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
 
