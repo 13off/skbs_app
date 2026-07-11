@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/user_repository.dart';
-import '../features/archive/presentation/archive_management_screen.dart';
+import '../features/archive/presentation/archive_management_screen_v2.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import 'template_documents_screen.dart';
@@ -55,7 +55,7 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (_) => ArchiveManagementScreen(profile: profile),
+        builder: (_) => ArchiveManagementScreenV2(profile: profile),
       ),
     );
   }
@@ -135,7 +135,7 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
-                  'Сотрудники и объекты: архивировать, восстановить или удалить навсегда',
+                  'Сотрудники и объекты: выбрать несколько, архивировать, восстановить или удалить навсегда',
               color: const Color(0xFFF0EFEB),
               onTap: () {
                 openArchive(context);
