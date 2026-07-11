@@ -171,5 +171,82 @@ void main() {
         ],
       );
     });
+
+
+    test('компании можно регистрировать и настраивать самостоятельно', () {
+      _containsAll(
+        'lib/features/auth/presentation/premium_login_screen_v2.dart',
+        const [
+          "'Создать компанию'",
+          'CompanySignupScreen',
+        ],
+      );
+      _containsAll(
+        'lib/features/auth/presentation/company_signup_screen.dart',
+        const [
+          "'Название компании'",
+          "'Ваше имя'",
+          "'Первые 14 дней — пробный период.",
+          'UserRepository.signUpCompany',
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_onboarding_screen.dart',
+        const [
+          "'Создать рабочее пространство'",
+          'UserRepository.createCompanyProfile',
+        ],
+      );
+    });
+
+    test('администратор управляет приглашениями, ролями и объектами', () {
+      _containsAll(
+        'lib/screens/profile_screen.dart',
+        const [
+          "'Компания и пользователи'",
+          "'Сменить компанию'",
+          'CompanyManagementScreen',
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_management_screen.dart',
+        const [
+          "'Пригласить пользователя'",
+          "'Прораб'",
+          "'Администратор'",
+          "'Для прораба нужно выбрать объект'",
+          'CompanyRepository.inviteMember',
+          'CompanyRepository.updateMemberAccess',
+        ],
+      );
+      _containsAll(
+        'lib/features/company/data/company_repository.dart',
+        const [
+          "'invite-company-member'",
+          "'company_memberships'",
+          "'object_memberships'",
+          "'set_active_company'",
+        ],
+      );
+    });
+
+    test('приглашённый пользователь обязательно задаёт пароль', () {
+      _containsAll(
+        'lib/features/auth/presentation/premium_auth_gate_v2.dart',
+        const [
+          'UserRepository.mustSetPassword',
+          'SetInvitationPasswordScreen',
+          'CompanyOnboardingScreen',
+        ],
+      );
+      _containsAll(
+        'lib/features/auth/presentation/set_invitation_password_screen.dart',
+        const [
+          "'Придумайте пароль'",
+          "'Сохранить пароль'",
+          'UserRepository.setInvitationPassword',
+        ],
+      );
+    });
   });
 }
