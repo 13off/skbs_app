@@ -114,6 +114,7 @@ jobs:
             exit 0
           fi
           git commit -m "обновлена веб версия через российский прокси"
+          git pull --rebase
           git push
 
       - name: Publish web build status
