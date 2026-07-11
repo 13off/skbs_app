@@ -44,24 +44,26 @@ jobs:
           from pathlib import Path
 
           root = Path('skbs_app')
-
           details = root / 'lib/screens/employee_details_screen.dart'
           text = details.read_text(encoding='utf-8')
 
-          archive_import = "import '../data/employee_archive_repository.dart';\n"
-          employee_import = "import '../data/employee_repository.dart';\n"
-          if archive_import not in text:
-              text = text.replace(employee_import, archive_import + employee_import, 1)
+          if "import '../data/employee_archive_repository.dart';" not in text:
+              text = text.replace(
+                  "import '../data/employee_repository.dart';",
+                  "import '../data/employee_archive_repository.dart';\nimport '../data/employee_repository.dart';",
+                  1,
+              )
 
-          text = text.replace(
-              "  bool isChangingStatus = false;\n  bool isCopyingEmployee = false;\n",
-              "  bool isChangingStatus = false;\n  bool isCopyingEmployee = false;\n  bool isArchivingEmployee = false;\n",
-              1,
-          )
+          if 'bool isArchivingEmployee = false;' not in text:
+              text = text.replace(
+                  '  bool isCopyingEmployee = false;',
+                  '  bool isCopyingEmployee = false;\n  bool isArchivingEmployee = false;',
+                  1,
+              )
 
           start = text.index('  Future<void> toggleFiredStatus() async {')
           end = text.index('  Widget buildActionTile({', start)
-          new_block = '''  Future<void> archiveCurrentEmployee() async {
+          replacement = r'''  Future<void> archiveCurrentEmployee() async {
     final employeeId = employee.id?.trim() ?? '';
     if (employeeId.isEmpty || isArchivingEmployee) return;
 
@@ -107,45 +109,42 @@ jobs:
     final employeeId = employee.id;
 
     if (employeeId == null || employeeId.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Не найден ID сотрудника')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не найден ID сотрудника')),
+      );
       return;
     }
 
     final willFire = employee.isActive;
-
     final action = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(willFire ? 'Отметить уволенным?' : 'Вернуть сотрудника?'),
-          content: Text(
-            willFire
-                ? '${employee.name} будет перенесён вниз списка в раздел «Уволенные». Можно сразу убрать его в архив.'
-                : '${employee.name} снова появится в активных сотрудниках.',
+      builder: (context) => AlertDialog(
+        title: Text(willFire ? 'Отметить уволенным?' : 'Вернуть сотрудника?'),
+        content: Text(
+          willFire
+              ? '${employee.name} будет перенесён в раздел «Уволенные». Можно сразу убрать его в архив.'
+              : '${employee.name} снова появится в активных сотрудниках.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
+          if (willFire)
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context, 'archive'),
+              icon: const Icon(Icons.archive_outlined),
+              label: const Text('Уволить и архивировать'),
             ),
-            if (willFire)
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pop(context, 'archive'),
-                icon: const Icon(Icons.archive_outlined),
-                label: const Text('Уволить и архивировать'),
-              ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                willFire ? 'fire' : 'restore',
-              ),
-              child: Text(willFire ? 'Уволить' : 'Вернуть'),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              context,
+              willFire ? 'fire' : 'restore',
             ),
-          ],
-        );
-      },
+            child: Text(willFire ? 'Уволить' : 'Вернуть'),
+          ),
+        ],
+      ),
     );
 
     if (action == null) return;
@@ -167,18 +166,15 @@ jobs:
       return;
     }
 
-    setState(() {
-      isChangingStatus = true;
-    });
-
+    setState(() => isChangingStatus = true);
     try {
+      final restored = action == 'restore';
       await EmployeeRepository.setEmployeeActive(
         employeeId: employeeId,
-        isActive: action == 'restore',
+        isActive: restored,
       );
 
       if (!mounted) return;
-
       setState(() {
         employee = Employee(
           employee.name,
@@ -188,7 +184,7 @@ jobs:
           phone: employee.phone,
           objectName: employee.objectName,
           dailyRate: employee.dailyRate,
-          isActive: action == 'restore',
+          isActive: restored,
           comment: employee.comment,
         );
       });
@@ -196,60 +192,37 @@ jobs:
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            action == 'fire'
-                ? 'Сотрудник отмечен как уволенный'
-                : 'Сотрудник возвращён в активные',
+            restored
+                ? 'Сотрудник возвращён в активные'
+                : 'Сотрудник отмечен как уволенный',
           ),
         ),
       );
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка изменения статуса: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка изменения статуса: $error')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          isChangingStatus = false;
-        });
-      }
+      if (mounted) setState(() => isChangingStatus = false);
     }
   }
 
 '''
-          text = text[:start] + new_block + text[end:]
+          text = text[:start] + replacement + text[end:]
 
-          old_actions = '''            _roundHeaderButton(
+          anchor = """            _roundHeaderButton(
               tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
               icon: isFired ? Icons.undo : Icons.person_off_outlined,
-              onPressed: isChangingStatus || isCopyingEmployee
-                  ? null
-                  : toggleFiredStatus,
-              child: isChangingStatus
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
-            ),
-'''
-          new_actions = '''            _roundHeaderButton(
-              tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
-              icon: isFired ? Icons.undo : Icons.person_off_outlined,
-              onPressed:
-                  isChangingStatus || isCopyingEmployee || isArchivingEmployee
-                  ? null
-                  : toggleFiredStatus,
-              child: isChangingStatus
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
-            ),
+"""
+          button_start = text.index(anchor)
+          button_end = text.index('            ),', button_start) + len('            ),')
+          status_button = text[button_start:button_end]
+          status_button = status_button.replace(
+              'isChangingStatus || isCopyingEmployee',
+              'isChangingStatus || isCopyingEmployee || isArchivingEmployee',
+          )
+          extra_button = r'''
             if (widget.profile.isAdmin && isFired)
               _roundHeaderButton(
                 tooltip: 'Архивировать',
@@ -265,21 +238,20 @@ jobs:
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : null,
-              ),
-'''
-          if old_actions not in text:
-              raise RuntimeError('Не найден блок кнопок статуса сотрудника')
-          text = text.replace(old_actions, new_actions, 1)
+              ),'''
+          text = text[:button_start] + status_button + extra_button + text[button_end:]
           details.write_text(text, encoding='utf-8')
 
           employees = root / 'lib/screens/employees_screen.dart'
           text = employees.read_text(encoding='utf-8')
-          archive_import = "import '../data/employee_archive_repository.dart';\n"
-          private_import = "import '../data/employee_private_data_repository.dart';\n"
-          if archive_import not in text:
-              text = text.replace(private_import, archive_import + private_import, 1)
+          if "import '../data/employee_archive_repository.dart';" not in text:
+              text = text.replace(
+                  "import '../data/employee_private_data_repository.dart';",
+                  "import '../data/employee_archive_repository.dart';\nimport '../data/employee_private_data_repository.dart';",
+                  1,
+              )
 
-          old_load = '''      final loadedEmployees = await EmployeeRepository.fetchEmployees(
+          old = r'''      final loadedEmployees = await EmployeeRepository.fetchEmployees(
         objectName: widget.selectedObjectName,
         includeFired: true,
       );
@@ -289,7 +261,7 @@ jobs:
       setState(() {
         employees = loadedEmployees;
 '''
-          new_load = '''      final result = await Future.wait<dynamic>([
+          new = r'''      final result = await Future.wait<dynamic>([
         EmployeeRepository.fetchEmployees(
           objectName: widget.selectedObjectName,
           includeFired: true,
@@ -308,10 +280,9 @@ jobs:
       setState(() {
         employees = visibleEmployees;
 '''
-          if old_load not in text:
-              raise RuntimeError('Не найдено получение списка сотрудников')
-          text = text.replace(old_load, new_load, 1)
-          employees.write_text(text, encoding='utf-8')
+          if old not in text:
+              raise RuntimeError('Не найден блок загрузки сотрудников')
+          employees.write_text(text.replace(old, new, 1), encoding='utf-8')
 
           (root / 'tool/apply_employee_archive_flow.marker').unlink()
           PY
