@@ -247,6 +247,13 @@ void main() {
           'UserRepository.setInvitationPassword',
         ],
       );
+      _containsAll(
+        'lib/features/auth/data/user_repository.dart',
+        const [
+          "'must_set_password': false",
+          "'accept_current_company_invitation'",
+        ],
+      );
     });
   });
 }
