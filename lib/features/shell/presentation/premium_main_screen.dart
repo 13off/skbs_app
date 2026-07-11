@@ -65,9 +65,6 @@ class _MainScreenState extends State<MainScreen> {
 
     setActiveAppBackHandler(handleBackRequest);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      warmUpVisibleData();
-    });
   }
 
   @override
@@ -90,7 +87,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> warmUpVisibleData() async {
     final token = ++warmUpToken;
 
-    await Future<void>.delayed(const Duration(milliseconds: 750));
+    await Future<void>.delayed(const Duration(milliseconds: 80));
 
     if (!mounted || token != warmUpToken) return;
 
