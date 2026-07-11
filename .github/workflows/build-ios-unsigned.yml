@@ -1,0 +1,130 @@
+name: Build iOS unsigned
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-ios-unsigned
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check publish token
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
+            echo "::error::Не найден secret WEB_DEPLOY_TOKEN"
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Checkout download repository
+        uses: actions/checkout@v4
+        with:
+          repository: 13off/appstroy-web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web
+
+      - name: Publish building status
+        shell: bash
+        run: |
+          mkdir -p appstroy-web/downloads
+          printf 'building\n' > appstroy-web/downloads/ios-build-status.txt
+          printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/ios-source-commit.txt
+          cd appstroy-web
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/ios-build-status.txt downloads/ios-source-commit.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "запущена проверочная сборка iOS"
+            git push
+          fi
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build unsigned iOS app
+        id: ios_build
+        shell: bash
+        run: |
+          set +e
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            2>&1 | tee ios-build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Package unsigned app
+        if: steps.ios_build.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          SHORT_SHA="$(git rev-parse --short=12 HEAD)"
+          mkdir -p ios-output
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app "ios-output/AppStroy-iOS-${SHORT_SHA}-unsigned.zip"
+          printf '%s\n' "$SOURCE_SHA" > ios-output/source-commit.txt
+          shasum -a 256 ios-output/AppStroy-iOS-*-unsigned.zip > ios-output/AppStroy-iOS-unsigned.sha256
+
+      - name: Upload unsigned iOS artifact
+        if: steps.ios_build.outputs.exit_code == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppStroy-iOS-unsigned
+          path: ios-output/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish final build result
+        if: always()
+        shell: bash
+        run: |
+          cd appstroy-web
+          git pull --rebase
+          cd ..
+
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          mkdir -p appstroy-web/downloads
+          cp ios-build.log appstroy-web/downloads/ios-build.log || true
+          printf '%s\n' "$SOURCE_SHA" > appstroy-web/downloads/ios-source-commit.txt
+
+          if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
+            cp ios-output/AppStroy-iOS-unsigned.sha256 appstroy-web/downloads/
+            printf 'success\n' > appstroy-web/downloads/ios-build-status.txt
+          else
+            printf 'failure\n' > appstroy-web/downloads/ios-build-status.txt
+          fi
+
+          cd appstroy-web
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads
+          if ! git diff --cached --quiet; then
+            if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
+              git commit -m "проверочная сборка iOS успешна"
+            else
+              git commit -m "сохранена ошибка сборки iOS"
+            fi
+            git push
+          fi
+
+      - name: Fail workflow when iOS build failed
+        if: steps.ios_build.outputs.exit_code != '0'
+        run: exit 1
