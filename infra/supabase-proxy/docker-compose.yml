@@ -1,0 +1,20 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: appstroy-supabase-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      PROXY_DOMAIN: ${PROXY_DOMAIN}
+      SUPABASE_UPSTREAM: ${SUPABASE_UPSTREAM}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
