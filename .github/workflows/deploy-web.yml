@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: appstroy-web
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-publish:
@@ -32,262 +32,10 @@ jobs:
           path: skbs_app
           persist-credentials: true
 
-      - name: Apply employee archive flow once
+      - name: Finalize and audit recent changes
+        working-directory: skbs_app
         shell: bash
-        run: |
-          if [ ! -f skbs_app/tool/apply_employee_archive_flow.marker ]; then
-            echo "No pending employee archive patch"
-            exit 0
-          fi
-
-          python - <<'PY'
-          from pathlib import Path
-
-          root = Path('skbs_app')
-          details = root / 'lib/screens/employee_details_screen.dart'
-          text = details.read_text(encoding='utf-8')
-
-          if "import '../data/employee_archive_repository.dart';" not in text:
-              text = text.replace(
-                  "import '../data/employee_repository.dart';",
-                  "import '../data/employee_archive_repository.dart';\nimport '../data/employee_repository.dart';",
-                  1,
-              )
-
-          if 'bool isArchivingEmployee = false;' not in text:
-              text = text.replace(
-                  '  bool isCopyingEmployee = false;',
-                  '  bool isCopyingEmployee = false;\n  bool isArchivingEmployee = false;',
-                  1,
-              )
-
-          start = text.index('  Future<void> toggleFiredStatus() async {')
-          end = text.index('  Widget buildActionTile({', start)
-          replacement = r'''  Future<void> archiveCurrentEmployee() async {
-    final employeeId = employee.id?.trim() ?? '';
-    if (employeeId.isEmpty || isArchivingEmployee) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Архивировать сотрудника?'),
-        content: Text(
-          '${employee.name} исчезнет из рабочего списка. Табель, выплаты, документы и личные данные сохранятся.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.archive_outlined),
-            label: const Text('В архив'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    setState(() => isArchivingEmployee = true);
-    try {
-      await EmployeeArchiveRepository.archiveEmployee(employeeId);
-      if (!mounted) return;
-      Navigator.pop(context);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка архивирования: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => isArchivingEmployee = false);
-    }
-  }
-
-  Future<void> toggleFiredStatus() async {
-    final employeeId = employee.id;
-
-    if (employeeId == null || employeeId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не найден ID сотрудника')),
-      );
-      return;
-    }
-
-    final willFire = employee.isActive;
-    final action = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(willFire ? 'Отметить уволенным?' : 'Вернуть сотрудника?'),
-        content: Text(
-          willFire
-              ? '${employee.name} будет перенесён в раздел «Уволенные». Можно сразу убрать его в архив.'
-              : '${employee.name} снова появится в активных сотрудниках.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          if (willFire)
-            OutlinedButton.icon(
-              onPressed: () => Navigator.pop(context, 'archive'),
-              icon: const Icon(Icons.archive_outlined),
-              label: const Text('Уволить и архивировать'),
-            ),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              context,
-              willFire ? 'fire' : 'restore',
-            ),
-            child: Text(willFire ? 'Уволить' : 'Вернуть'),
-          ),
-        ],
-      ),
-    );
-
-    if (action == null) return;
-
-    if (action == 'archive') {
-      setState(() => isArchivingEmployee = true);
-      try {
-        await EmployeeArchiveRepository.archiveEmployee(employeeId);
-        if (!mounted) return;
-        Navigator.pop(context);
-      } catch (error) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка архивирования: $error')),
-        );
-      } finally {
-        if (mounted) setState(() => isArchivingEmployee = false);
-      }
-      return;
-    }
-
-    setState(() => isChangingStatus = true);
-    try {
-      final restored = action == 'restore';
-      await EmployeeRepository.setEmployeeActive(
-        employeeId: employeeId,
-        isActive: restored,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        employee = Employee(
-          employee.name,
-          employee.position,
-          employee.status,
-          id: employee.id,
-          phone: employee.phone,
-          objectName: employee.objectName,
-          dailyRate: employee.dailyRate,
-          isActive: restored,
-          comment: employee.comment,
-        );
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            restored
-                ? 'Сотрудник возвращён в активные'
-                : 'Сотрудник отмечен как уволенный',
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка изменения статуса: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => isChangingStatus = false);
-    }
-  }
-
-'''
-          text = text[:start] + replacement + text[end:]
-
-          anchor = """            _roundHeaderButton(
-              tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
-              icon: isFired ? Icons.undo : Icons.person_off_outlined,
-"""
-          button_start = text.index(anchor)
-          button_end = text.index('            ),', button_start) + len('            ),')
-          status_button = text[button_start:button_end]
-          status_button = status_button.replace(
-              'isChangingStatus || isCopyingEmployee',
-              'isChangingStatus || isCopyingEmployee || isArchivingEmployee',
-          )
-          extra_button = r'''
-            if (widget.profile.isAdmin && isFired)
-              _roundHeaderButton(
-                tooltip: 'Архивировать',
-                icon: Icons.archive_outlined,
-                onPressed:
-                    isChangingStatus || isCopyingEmployee || isArchivingEmployee
-                    ? null
-                    : archiveCurrentEmployee,
-                child: isArchivingEmployee
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-              ),'''
-          text = text[:button_start] + status_button + extra_button + text[button_end:]
-          details.write_text(text, encoding='utf-8')
-
-          employees = root / 'lib/screens/employees_screen.dart'
-          text = employees.read_text(encoding='utf-8')
-          if "import '../data/employee_archive_repository.dart';" not in text:
-              text = text.replace(
-                  "import '../data/employee_private_data_repository.dart';",
-                  "import '../data/employee_archive_repository.dart';\nimport '../data/employee_private_data_repository.dart';",
-                  1,
-              )
-
-          old = r'''      final loadedEmployees = await EmployeeRepository.fetchEmployees(
-        objectName: widget.selectedObjectName,
-        includeFired: true,
-      );
-
-      if (!mounted || currentGeneration != loadGeneration) return;
-
-      setState(() {
-        employees = loadedEmployees;
-'''
-          new = r'''      final result = await Future.wait<dynamic>([
-        EmployeeRepository.fetchEmployees(
-          objectName: widget.selectedObjectName,
-          includeFired: true,
-        ),
-        EmployeeArchiveRepository.fetchArchivedEmployeeIds(),
-      ]);
-      final loadedEmployees = result[0] as List<Employee>;
-      final archivedIds = result[1] as Set<String>;
-      final visibleEmployees = loadedEmployees.where((employee) {
-        final id = employee.id?.trim() ?? '';
-        return id.isEmpty || !archivedIds.contains(id);
-      }).toList();
-
-      if (!mounted || currentGeneration != loadGeneration) return;
-
-      setState(() {
-        employees = visibleEmployees;
-'''
-          if old not in text:
-              raise RuntimeError('Не найден блок загрузки сотрудников')
-          employees.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          (root / 'tool/apply_employee_archive_flow.marker').unlink()
-          PY
-
-          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
+        run: python tool/finalize_recent_changes.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -310,31 +58,40 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get
 
-      - name: Format patched source
-        if: env.SOURCE_PATCH_APPLIED == '1'
+      - name: Format changed source
         working-directory: skbs_app
-        run: dart format lib/screens/employee_details_screen.dart lib/screens/employees_screen.dart
+        run: |
+          dart format \
+            lib/data/employee_repository.dart \
+            lib/data/employee_archive_repository.dart \
+            lib/features/archive/presentation/archive_management_screen_v3.dart \
+            lib/screens/employee_details_screen.dart \
+            lib/screens/employees_screen.dart \
+            lib/screens/task_details_screen.dart
 
       - name: Analyze source
         working-directory: skbs_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Commit source patch
-        if: env.SOURCE_PATCH_APPLIED == '1'
+      - name: Build Flutter Web
+        working-directory: skbs_app
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit verified source changes
         working-directory: skbs_app
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "архив сотрудника отделен от увольнения"
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+          git commit -m "перепроверены и завершены последние изменения"
           git push
 
-      - name: Build Flutter Web
-        working-directory: skbs_app
-        run: flutter build web --release --base-href /appstroy-web/
-
-      - name: Keep loader and bust cache
+      - name: Keep brick loader and bust cache
         shell: bash
         run: |
           BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
