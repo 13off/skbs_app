@@ -1,6 +1,8 @@
 # Miscellaneous
 *.class
 *.lock
+# Flutter-приложение должно собираться с зафиксированными версиями пакетов.
+!pubspec.lock
 *.log
 *.pyc
 *.swp
