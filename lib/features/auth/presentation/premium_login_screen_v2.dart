@@ -88,8 +88,43 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  InputDecoration fieldDecoration({
+    required String label,
+    required IconData icon,
+    String? hint,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: const TextStyle(
+        color: AppColors.textMuted,
+        fontWeight: FontWeight.w600,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
+      ),
+      hintStyle: TextStyle(
+        color: AppColors.textMuted.withValues(alpha: 0.72),
+        fontWeight: FontWeight.w500,
+      ),
+      prefixIcon: Icon(icon, color: AppColors.textMuted),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.88),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const inputTextStyle = TextStyle(
+      color: AppColors.textPrimary,
+      fontSize: 16,
+      height: 1.25,
+      fontWeight: FontWeight.w700,
+    );
+
     return Scaffold(
       body: PremiumBackdrop(
         child: SafeArea(
@@ -182,16 +217,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   enabled: !isLoading,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
+                                  keyboardAppearance: Brightness.light,
+                                  cursorColor: AppColors.textPrimary,
+                                  style: inputTextStyle,
                                   autofillHints: const [
                                     AutofillHints.username,
                                     AutofillHints.email,
                                   ],
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email',
-                                    hintText: 'name@company.ru',
-                                    prefixIcon: Icon(
-                                      Icons.alternate_email_rounded,
-                                    ),
+                                  decoration: fieldDecoration(
+                                    label: 'Email',
+                                    hint: 'name@company.ru',
+                                    icon: Icons.alternate_email_rounded,
                                   ),
                                   onSubmitted: (_) {
                                     passwordFocusNode.requestFocus();
@@ -203,14 +239,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                   focusNode: passwordFocusNode,
                                   enabled: !isLoading,
                                   obscureText: !isPasswordVisible,
+                                  obscuringCharacter: '●',
                                   textInputAction: TextInputAction.done,
+                                  keyboardAppearance: Brightness.light,
+                                  cursorColor: AppColors.textPrimary,
+                                  style: inputTextStyle,
                                   autofillHints: const [AutofillHints.password],
-                                  decoration: InputDecoration(
-                                    labelText: 'Пароль',
-                                    prefixIcon: const Icon(
-                                      Icons.lock_outline_rounded,
-                                    ),
-                                    suffixIcon: IconButton(
+                                  decoration: fieldDecoration(
+                                    label: 'Пароль',
+                                    icon: Icons.lock_outline_rounded,
+                                    suffix: IconButton(
                                       tooltip: isPasswordVisible
                                           ? 'Скрыть пароль'
                                           : 'Показать пароль',
@@ -229,6 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ? Icons.visibility_off_outlined
                                               : Icons.visibility_outlined,
                                           key: ValueKey(isPasswordVisible),
+                                          color: AppColors.textMuted,
                                         ),
                                       ),
                                     ),
