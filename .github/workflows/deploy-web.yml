@@ -40,6 +40,13 @@ jobs:
         with:
           path: skbs_app
 
+      - name: Checkout web repository
+        uses: actions/checkout@v4
+        with:
+          repository: 13off/appstroy-web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -63,18 +70,21 @@ jobs:
 
       - name: Run regression tests
         working-directory: skbs_app
-        run: flutter test
+        shell: bash
+        run: flutter test 2>&1 | tee ../flutter-test.log
 
       - name: Analyze source
         working-directory: skbs_app
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: bash
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ../flutter-analyze.log
 
       - name: Build Flutter Web through proxy
         working-directory: skbs_app
         run: |
           flutter build web --release \
             --base-href /appstroy-web/ \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            2>&1 | tee ../flutter-web-build.log
 
       - name: Bust cache
         shell: bash
@@ -84,13 +94,6 @@ jobs:
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
-
-      - name: Checkout web repository
-        uses: actions/checkout@v4
-        with:
-          repository: 13off/appstroy-web
-          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
-          path: appstroy-web
 
       - name: Replace web files
         shell: bash
@@ -112,3 +115,25 @@ jobs:
           fi
           git commit -m "обновлена веб версия через российский прокси"
           git push
+
+      - name: Publish web build status
+        if: always()
+        working-directory: appstroy-web
+        shell: bash
+        run: |
+          git pull --rebase
+          mkdir -p downloads
+          printf '%s\n' "${{ job.status }}" > downloads/web-build-status.txt
+          printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
+          {
+            test -f ../flutter-test.log && cat ../flutter-test.log
+            test -f ../flutter-analyze.log && cat ../flutter-analyze.log
+            test -f ../flutter-web-build.log && cat ../flutter-web-build.log
+          } > downloads/web-build.log || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/web-build-status.txt downloads/web-source-commit.txt downloads/web-build.log
+          if ! git diff --cached --quiet; then
+            git commit -m "сохранён статус веб-сборки"
+            git push
+          fi
