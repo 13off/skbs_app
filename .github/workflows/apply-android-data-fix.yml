@@ -1,0 +1,155 @@
+name: Apply Android data loading fix
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-android-data-fix
+  cancel-in-progress: false
+
+jobs:
+  apply-fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          persist-credentials: true
+
+      - name: Apply safe Android loading
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          home_path = Path('lib/screens/home_screen.dart')
+          text = home_path.read_text(encoding='utf-8')
+
+          helper_anchor = """  bool isSameFinancePeriod(FinancePeriod first, FinancePeriod second) {
+    return first.year == second.year && first.month == second.month;
+  }
+
+"""
+          helper_replacement = """  bool isSameFinancePeriod(FinancePeriod first, FinancePeriod second) {
+    return first.year == second.year && first.month == second.month;
+  }
+
+  Future<T> loadWithFallback<T>(
+    Future<T> request,
+    T fallback, {
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    try {
+      return await request.timeout(timeout);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+"""
+          if helper_anchor not in text:
+              raise SystemExit('helper anchor not found')
+          text = text.replace(helper_anchor, helper_replacement, 1)
+
+          old_block = """    final results = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(objectName: selectedObject),
+      AttendanceRepository.fetchWorkedEmployeeIds(
+        today,
+        objectName: selectedObject,
+      ),
+      TaskRepository.fetchTasksForDate(today, objectName: selectedObject),
+      FinanceSummaryRepository.fetchSummary(
+        period: financePeriod,
+        objectName: selectedObject,
+      ),
+      if (selectedObject == null) ObjectRepository.fetchObjectNames(),
+    ]);
+"""
+          new_block = """    final results = await Future.wait<dynamic>([
+      loadWithFallback<List<Employee>>(
+        EmployeeRepository.fetchEmployees(objectName: selectedObject),
+        const <Employee>[],
+      ),
+      loadWithFallback<Set<String>>(
+        AttendanceRepository.fetchWorkedEmployeeIds(
+          today,
+          objectName: selectedObject,
+        ),
+        const <String>{},
+      ),
+      loadWithFallback<List<TaskItemData>>(
+        TaskRepository.fetchTasksForDate(today, objectName: selectedObject),
+        const <TaskItemData>[],
+      ),
+      loadWithFallback<FinanceSummaryData>(
+        FinanceSummaryRepository.fetchSummary(
+          period: financePeriod,
+          objectName: selectedObject,
+        ),
+        FinanceSummaryData.empty,
+        timeout: const Duration(seconds: 5),
+      ),
+      if (selectedObject == null)
+        loadWithFallback<List<String>>(
+          ObjectRepository.fetchObjectNames(),
+          const <String>[],
+        ),
+    ]);
+"""
+          if old_block not in text:
+              raise SystemExit('dashboard block not found')
+          text = text.replace(old_block, new_block, 1)
+          home_path.write_text(text, encoding='utf-8')
+
+          finance_path = Path('lib/data/finance_summary_repository.dart')
+          finance = finance_path.read_text(encoding='utf-8')
+          old_line = """    final future = _loadSummary(period: period, objectName: objectName);
+"""
+          new_line = """    final future = _loadSummary(
+      period: period,
+      objectName: objectName,
+    ).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => FinanceSummaryData.empty,
+    );
+"""
+          if old_line not in finance:
+              raise SystemExit('finance line not found')
+          finance = finance.replace(old_line, new_line, 1)
+          finance_path.write_text(finance, encoding='utf-8')
+
+          workflow_path = Path('.github/workflows/apply-android-data-fix.yml')
+          if workflow_path.exists():
+              workflow_path.unlink()
+          PY
+
+      - name: Format and analyze
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Verify source
+        shell: bash
+        run: |
+          flutter pub get
+          dart format lib/screens/home_screen.dart lib/data/finance_summary_repository.dart lib/app/premium_depth_theme.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "13off"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "исправлена загрузка данных и контраст Android"
+          git push
