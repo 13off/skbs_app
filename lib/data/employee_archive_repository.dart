@@ -56,7 +56,7 @@ class EmployeeArchiveRepository {
     await _client
         .from('employees')
         .update({
-          'is_active': true,
+          'is_active': false,
           'archived_at': null,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })

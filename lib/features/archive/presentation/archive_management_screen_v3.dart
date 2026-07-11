@@ -18,8 +18,7 @@ class ArchiveManagementScreenV3 extends StatefulWidget {
       _ArchiveManagementScreenV3State();
 }
 
-class _ArchiveManagementScreenV3State
-    extends State<ArchiveManagementScreenV3> {
+class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
   final TextEditingController searchController = TextEditingController();
 
   _ArchiveKind kind = _ArchiveKind.employees;
@@ -232,7 +231,7 @@ class _ArchiveManagementScreenV3State
     final confirmed = await confirm(
       title: 'Восстановить выбранное?',
       message: kind == _ArchiveKind.employees
-          ? 'Сотрудники снова появятся в рабочем списке как активные.'
+          ? 'Сотрудники вернутся в рабочий список в раздел «Уволенные».'
           : 'Объекты снова появятся в приложении.',
       action: 'Восстановить',
     );
@@ -253,14 +252,14 @@ class _ArchiveManagementScreenV3State
       clearSelection();
       await loadData(loader: false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выбранное восстановлено')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Выбранное восстановлено')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка восстановления: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка восстановления: $error')));
     } finally {
       if (mounted) setState(() => isBusy = false);
     }
@@ -290,9 +289,9 @@ class _ArchiveManagementScreenV3State
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка удаления: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $error')));
     } finally {
       if (mounted) setState(() => isBusy = false);
     }
@@ -349,9 +348,7 @@ class _ArchiveManagementScreenV3State
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           value: allVisibleSelected,
-          onChanged: isBusy
-              ? null
-              : (value) => selectAllVisible(value == true),
+          onChanged: isBusy ? null : (value) => selectAllVisible(value == true),
           title: const Text(
             'Выбрать все',
             style: TextStyle(fontWeight: FontWeight.w800),
@@ -424,9 +421,11 @@ class _ArchiveManagementScreenV3State
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             subtitle: Text(
-              [employee.position, employee.objectName, employee.phone]
-                  .where((value) => value.trim().isNotEmpty)
-                  .join(' • '),
+              [
+                employee.position,
+                employee.objectName,
+                employee.phone,
+              ].where((value) => value.trim().isNotEmpty).join(' • '),
             ),
             secondary: const Icon(Icons.inventory_2_outlined),
             controlAffinity: ListTileControlAffinity.leading,

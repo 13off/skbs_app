@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
+import '../data/employee_archive_repository.dart';
 import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
@@ -30,6 +31,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   late Employee employee;
   bool isChangingStatus = false;
   bool isCopyingEmployee = false;
+  bool isArchivingEmployee = false;
 
   @override
   void initState() {
@@ -366,10 +368,52 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
     }
   }
 
-  Future<void> toggleFiredStatus() async {
-    final employeeId = employee.id;
+  Future<void> archiveCurrentEmployee() async {
+    final employeeId = employee.id?.trim() ?? '';
+    if (employeeId.isEmpty || isArchivingEmployee) return;
 
-    if (employeeId == null || employeeId.isEmpty) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Архивировать сотрудника?'),
+        content: Text(
+          '${employee.name} исчезнет из рабочего списка. Табель, выплаты, документы и личные данные сохранятся.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.archive_outlined),
+            label: const Text('В архив'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => isArchivingEmployee = true);
+    try {
+      await EmployeeArchiveRepository.archiveEmployee(employeeId);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка архивирования: $error')));
+    } finally {
+      if (mounted) setState(() => isArchivingEmployee = false);
+    }
+  }
+
+  Future<void> toggleFiredStatus() async {
+    final employeeId = employee.id?.trim() ?? '';
+
+    if (employeeId.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Не найден ID сотрудника')));
@@ -377,49 +421,63 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
     }
 
     final willFire = employee.isActive;
-
-    final confirmed = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(willFire ? 'Отметить уволенным?' : 'Вернуть сотрудника?'),
-          content: Text(
-            willFire
-                ? '${employee.name} будет перенесён вниз списка в раздел «Уволенные».'
-                : '${employee.name} снова появится в активных сотрудниках.',
+      builder: (context) => AlertDialog(
+        title: Text(willFire ? 'Уволить сотрудника?' : 'Вернуть сотрудника?'),
+        content: Text(
+          willFire
+              ? '${employee.name} будет перенесён в раздел «Уволенные». При необходимости его можно сразу убрать в архив.'
+              : '${employee.name} снова появится в активных сотрудниках.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Отмена'),
+          if (willFire && widget.profile.isAdmin)
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context, 'archive'),
+              icon: const Icon(Icons.archive_outlined),
+              label: const Text('Уволить и архивировать'),
             ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: Text(willFire ? 'Уволен' : 'Вернуть'),
-            ),
-          ],
-        );
-      },
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(context, willFire ? 'fire' : 'restore'),
+            child: Text(willFire ? 'Уволить' : 'Вернуть'),
+          ),
+        ],
+      ),
     );
 
-    if (confirmed != true) return;
+    if (action == null || !mounted) return;
 
-    setState(() {
-      isChangingStatus = true;
-    });
+    if (action == 'archive') {
+      setState(() => isArchivingEmployee = true);
+      try {
+        await EmployeeArchiveRepository.archiveEmployee(employeeId);
+        if (!mounted) return;
+        Navigator.pop(context);
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка архивирования: $error')));
+      } finally {
+        if (mounted) setState(() => isArchivingEmployee = false);
+      }
+      return;
+    }
 
+    setState(() => isChangingStatus = true);
     try {
+      final restored = action == 'restore';
       await EmployeeRepository.setEmployeeActive(
         employeeId: employeeId,
-        isActive: !willFire,
+        isActive: restored,
       );
 
       if (!mounted) return;
-
       setState(() {
         employee = Employee(
           employee.name,
@@ -429,7 +487,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
           phone: employee.phone,
           objectName: employee.objectName,
           dailyRate: employee.dailyRate,
-          isActive: !willFire,
+          isActive: restored,
           comment: employee.comment,
         );
       });
@@ -437,24 +495,19 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            willFire
-                ? 'Сотрудник отмечен как уволенный'
-                : 'Сотрудник возвращён в активные',
+            restored
+                ? 'Сотрудник возвращён в активные'
+                : 'Сотрудник отмечен как уволенный',
           ),
         ),
       );
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка изменения статуса: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка изменения статуса: $error')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          isChangingStatus = false;
-        });
-      }
+      if (mounted) setState(() => isChangingStatus = false);
     }
   }
 
@@ -598,7 +651,8 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
             _roundHeaderButton(
               tooltip: isFired ? 'Вернуть в активные' : 'Уволить',
               icon: isFired ? Icons.undo : Icons.person_off_outlined,
-              onPressed: isChangingStatus || isCopyingEmployee
+              onPressed:
+                  isChangingStatus || isCopyingEmployee || isArchivingEmployee
                   ? null
                   : toggleFiredStatus,
               child: isChangingStatus
@@ -609,6 +663,22 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
                     )
                   : null,
             ),
+            if (widget.profile.isAdmin && isFired)
+              _roundHeaderButton(
+                tooltip: 'Архивировать',
+                icon: Icons.archive_outlined,
+                onPressed:
+                    isChangingStatus || isCopyingEmployee || isArchivingEmployee
+                    ? null
+                    : archiveCurrentEmployee,
+                child: isArchivingEmployee
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+              ),
           ],
         );
 

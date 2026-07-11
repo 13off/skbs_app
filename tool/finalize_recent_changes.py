@@ -440,7 +440,7 @@ def patch_employees_screen() -> None:
         )
 
     text = text.replace("  Employee? openedEmployee;\n", "")
-    text = text.replace("      openedEmployee = null;\n", "")
+    text = text.replace("      openedEmployee = null;\n", "", 1)
 
     old_open = """  void openEmployeeDetails(BuildContext context, Employee employee) {
     if (openedEmployee != null) return;

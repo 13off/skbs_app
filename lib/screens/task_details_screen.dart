@@ -705,11 +705,25 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 14),
 
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Оси',
+                style: TextStyle(
+                  color: Color(0xFF6B7075),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
           TextField(
             controller: axesController,
             enabled: !isSaving,
             decoration: InputDecoration(
-              labelText: 'Оси',
+              hintText: 'Укажите оси',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -718,13 +732,27 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 14),
 
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Вид работ',
+                style: TextStyle(
+                  color: Color(0xFF6B7075),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
           TextField(
             controller: workController,
             enabled: !isSaving,
             minLines: 3,
             maxLines: 7,
             decoration: InputDecoration(
-              labelText: 'Вид работ',
+              hintText: 'Опишите выполненные работы',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

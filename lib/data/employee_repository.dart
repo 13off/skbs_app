@@ -63,7 +63,9 @@ class EmployeeRepository {
     return _client.from('employees').stream(primaryKey: ['id']).map((rows) {
       final filteredRows = rows.where((row) {
         final isActive = row['is_active'] as bool? ?? true;
+        final archivedAt = row['archived_at'];
 
+        if (archivedAt != null) return false;
         if (!includeFired && !isActive) return false;
 
         if (cleanObject != null) {
@@ -137,7 +139,7 @@ class EmployeeRepository {
     required bool includeFired,
   }) async {
     const fields =
-        'id, fio, position, phone, object_name, daily_rate, is_active, comment';
+        'id, fio, position, phone, object_name, daily_rate, is_active, comment, archived_at';
 
     late final List<dynamic> rows;
 
@@ -145,23 +147,27 @@ class EmployeeRepository {
       rows = await _client
           .from('employees')
           .select(fields)
+          .isFilter('archived_at', null)
           .order('fio', ascending: true);
     } else if (objectName == null && !includeFired) {
       rows = await _client
           .from('employees')
           .select(fields)
+          .isFilter('archived_at', null)
           .eq('is_active', true)
           .order('fio', ascending: true);
     } else if (objectName != null && includeFired) {
       rows = await _client
           .from('employees')
           .select(fields)
+          .isFilter('archived_at', null)
           .eq('object_name', objectName)
           .order('fio', ascending: true);
     } else {
       rows = await _client
           .from('employees')
           .select(fields)
+          .isFilter('archived_at', null)
           .eq('object_name', objectName!)
           .eq('is_active', true)
           .order('fio', ascending: true);
