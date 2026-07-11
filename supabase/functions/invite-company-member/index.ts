@@ -135,6 +135,14 @@ Deno.serve(async (request: Request) => {
     let invitedUser = await findUserByEmail(adminClient, email);
     const existingUser = invitedUser !== null;
     const existingUserId = invitedUser?.id;
+    const mustSetPasswordValue =
+      invitedUser?.user_metadata?.must_set_password;
+    const requiresPasswordSetup =
+      existingUser &&
+      (
+        mustSetPasswordValue === true ||
+        String(mustSetPasswordValue).toLowerCase() === "true"
+      );
 
     let existingMembership: { user_id: string } | null = null;
     if (existingUserId) {
@@ -173,6 +181,10 @@ Deno.serve(async (request: Request) => {
         });
       if (inviteError) throw inviteError;
       invitedUser = inviteData.user;
+    } else if (requiresPasswordSetup) {
+      const { error: recoveryError } =
+        await adminClient.auth.resetPasswordForEmail(email);
+      if (recoveryError) throw recoveryError;
     }
 
     if (!invitedUser) {
@@ -265,8 +277,12 @@ Deno.serve(async (request: Request) => {
         object_id: role === "foreman" ? objectId : null,
         invited_by: actor.id,
         invited_user_id: invitedUser.id,
-        status: existingUser ? "accepted" : "pending",
-        accepted_at: existingUser ? new Date().toISOString() : null,
+        status: existingUser && !requiresPasswordSetup
+          ? "accepted"
+          : "pending",
+        accepted_at: existingUser && !requiresPasswordSetup
+          ? new Date().toISOString()
+          : null,
       });
     if (invitationLogError) throw invitationLogError;
 
@@ -274,7 +290,11 @@ Deno.serve(async (request: Request) => {
       ok: true,
       user_id: invitedUser.id,
       existing_user: existingUser,
-      delivery: existingUser ? "access_granted" : "email_invited",
+      delivery: !existingUser
+        ? "email_invited"
+        : requiresPasswordSetup
+        ? "password_setup_resent"
+        : "access_granted",
     });
   } catch (error) {
     console.error(error);
