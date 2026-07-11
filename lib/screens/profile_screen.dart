@@ -3,6 +3,9 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../data/user_repository.dart';
 import '../features/archive/presentation/archive_management_screen_v3.dart';
+import '../features/company/data/company_repository.dart';
+import '../features/company/presentation/company_management_screen.dart';
+import '../features/company/presentation/company_switcher_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import 'template_documents_screen.dart';
@@ -60,6 +63,29 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void openCompanyManagement(BuildContext context) {
+    if (profile.activeCompanyId.isEmpty) return;
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => CompanyManagementScreen(
+          companyId: profile.activeCompanyId,
+        ),
+      ),
+    );
+  }
+
+  void openCompanySwitcher(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => CompanySwitcherScreen(
+          activeCompanyId: profile.activeCompanyId,
+        ),
+      ),
+    );
+  }
+
   Widget buildInfoTile({
     required IconData icon,
     required String title,
@@ -88,7 +114,7 @@ class ProfileScreen extends StatelessWidget {
   }) {
     return Card(
       elevation: 0,
-      color: color ?? const Color(0xFFFFEEE7),
+      color: color ?? const Color(0xFFF0EFEB),
       child: ListTile(
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -107,6 +133,18 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (profile.activeCompanyId.isNotEmpty)
+            FutureBuilder<CompanySummary>(
+              future: CompanyRepository.fetchCompany(profile.activeCompanyId),
+              builder: (context, snapshot) {
+                return buildInfoTile(
+                  icon: Icons.apartment_rounded,
+                  title: 'Компания',
+                  value: snapshot.data?.name ??
+                      (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
+                );
+              },
+            ),
           buildInfoTile(
             icon: Icons.person_outline,
             title: 'ФИО',
@@ -132,6 +170,16 @@ class ProfileScreen extends StatelessWidget {
 
           if (profile.isAdmin) ...[
             buildActionTile(
+              icon: Icons.manage_accounts_outlined,
+              title: 'Компания и пользователи',
+              subtitle:
+                  'Приглашения, роли администраторов и назначение прорабов',
+              onTap: () {
+                openCompanyManagement(context);
+              },
+            ),
+            const SizedBox(height: 10),
+            buildActionTile(
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
@@ -153,6 +201,25 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 18),
           ],
+
+          FutureBuilder<List<CompanySummary>>(
+            future: CompanyRepository.fetchMyCompanies(),
+            builder: (context, snapshot) {
+              final companies = snapshot.data ?? const <CompanySummary>[];
+              if (companies.length < 2) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: buildActionTile(
+                  icon: Icons.swap_horiz_rounded,
+                  title: 'Сменить компанию',
+                  subtitle: 'Переключиться между доступными рабочими пространствами',
+                  onTap: () {
+                    openCompanySwitcher(context);
+                  },
+                ),
+              );
+            },
+          ),
 
           SizedBox(
             width: double.infinity,
