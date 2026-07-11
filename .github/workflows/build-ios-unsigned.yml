@@ -63,24 +63,25 @@ jobs:
       - name: Prepare iOS identity
         shell: bash
         run: |
-          sed -i '' 's/com\.example\.skbsApp/ru.appstroy.mobile/g' ios/Runner.xcodeproj/project.pbxproj
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path('ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text(encoding='utf-8')
+          text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
+          project.write_text(text, encoding='utf-8')
+          PY
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName AppСтрой" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleName AppStroy" ios/Runner/Info.plist
 
       - name: Build unsigned iOS app
-        id: ios_build
         shell: bash
         run: |
-          set +e
+          set -o pipefail
           flutter build ios --release --no-codesign \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
             2>&1 | tee ios-build.log
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
-          exit 0
 
       - name: Package IPA
-        if: steps.ios_build.outputs.exit_code == '0'
         shell: bash
         run: |
           SOURCE_SHA="$(git rev-parse HEAD)"
@@ -92,10 +93,9 @@ jobs:
           cp "AppStroy-${SHORT_SHA}.ipa" AppStroy-latest.ipa
           rm -rf Payload
           printf '%s\n' "$SOURCE_SHA" > source-commit.txt
-          shasum -a 256 AppStroy-latest.ipa > AppStroy-latest.sha256
+          shasum -a 256 AppStroy-latest.ipa > AppStroy-iOS-latest.sha256
 
       - name: Upload IPA artifact
-        if: steps.ios_build.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: AppStroy-iOS-IPA
@@ -103,41 +103,26 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Publish final build result
-        if: always()
+      - name: Publish IPA
         shell: bash
         run: |
           cd appstroy-web
           git pull --rebase
           cd ..
 
-          SOURCE_SHA="$(git rev-parse HEAD)"
           mkdir -p appstroy-web/downloads
-          cp ios-build.log appstroy-web/downloads/ios-build.log || true
-          printf '%s\n' "$SOURCE_SHA" > appstroy-web/downloads/ios-source-commit.txt
-
-          if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
-            rm -f appstroy-web/downloads/AppStroy-*.ipa
-            cp ios-output/AppStroy-*.ipa appstroy-web/downloads/
-            cp ios-output/AppStroy-latest.sha256 appstroy-web/downloads/
-            printf 'success\n' > appstroy-web/downloads/ios-build-status.txt
-          else
-            printf 'failure\n' > appstroy-web/downloads/ios-build-status.txt
-          fi
+          rm -f appstroy-web/downloads/AppStroy-*.ipa
+          cp ios-output/AppStroy-*.ipa appstroy-web/downloads/
+          cp ios-output/AppStroy-iOS-latest.sha256 appstroy-web/downloads/
+          cp ios-build.log appstroy-web/downloads/ios-build.log
+          printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/ios-source-commit.txt
+          printf 'success\n' > appstroy-web/downloads/ios-build-status.txt
 
           cd appstroy-web
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads
           if ! git diff --cached --quiet; then
-            if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
-              git commit -m "опубликована IPA для iPhone"
-            else
-              git commit -m "сохранена ошибка сборки IPA"
-            fi
+            git commit -m "опубликована IPA для iPhone"
             git push
           fi
-
-      - name: Fail workflow when iOS build failed
-        if: steps.ios_build.outputs.exit_code != '0'
-        run: exit 1
