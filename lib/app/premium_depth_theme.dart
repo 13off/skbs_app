@@ -4,11 +4,31 @@ import 'app_theme.dart';
 
 abstract final class PremiumDepthTheme {
   static ThemeData apply(ThemeData base) {
-    final textTheme = base.textTheme;
+    const primaryText = Color(0xFF1F2328);
+    const mutedText = Color(0xFF6B7075);
+    final textTheme = base.textTheme.apply(
+      bodyColor: primaryText,
+      displayColor: primaryText,
+    );
 
     return base.copyWith(
+      brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF2F0EB),
       canvasColor: const Color(0xFFF2F0EB),
+      colorScheme: base.colorScheme.copyWith(
+        brightness: Brightness.light,
+        onSurface: primaryText,
+        onSurfaceVariant: mutedText,
+        onPrimaryContainer: primaryText,
+        onSecondaryContainer: primaryText,
+      ),
+      textTheme: textTheme,
+      primaryTextTheme: textTheme,
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: primaryText,
+        selectionColor: Color(0x334A6F98),
+        selectionHandleColor: Color(0xFF4A6F98),
+      ),
       cardTheme: CardThemeData(
         color: Colors.white.withValues(alpha: 0.86),
         surfaceTintColor: Colors.transparent,
@@ -25,6 +45,7 @@ abstract final class PremiumDepthTheme {
       ),
       appBarTheme: base.appBarTheme.copyWith(
         backgroundColor: const Color(0xFFF5F3EE).withValues(alpha: 0.96),
+        foregroundColor: primaryText,
         surfaceTintColor: Colors.transparent,
         shadowColor: const Color(0xFF191B1F).withValues(alpha: 0.08),
         elevation: 0,
@@ -35,6 +56,11 @@ abstract final class PremiumDepthTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 18,
         shadowColor: const Color(0xFF181A1D).withValues(alpha: 0.16),
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: primaryText,
+          fontWeight: FontWeight.w800,
+        ),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: primaryText),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
           side: BorderSide(color: Colors.white.withValues(alpha: 0.95)),
@@ -43,6 +69,7 @@ abstract final class PremiumDepthTheme {
       popupMenuTheme: PopupMenuThemeData(
         color: Colors.white.withValues(alpha: 0.96),
         surfaceTintColor: Colors.transparent,
+        textStyle: textTheme.bodyMedium?.copyWith(color: primaryText),
         elevation: 12,
         shadowColor: const Color(0xFF17191C).withValues(alpha: 0.14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -57,7 +84,16 @@ abstract final class PremiumDepthTheme {
         ),
       ),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        fillColor: Colors.white.withValues(alpha: 0.82),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.88),
+        labelStyle: const TextStyle(color: mutedText),
+        floatingLabelStyle: const TextStyle(
+          color: primaryText,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: const TextStyle(color: Color(0xFF92979C)),
+        prefixIconColor: mutedText,
+        suffixIconColor: mutedText,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
@@ -70,8 +106,22 @@ abstract final class PremiumDepthTheme {
           borderSide: const BorderSide(color: AppColors.accent, width: 1.2),
         ),
       ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: textTheme.bodyLarge?.copyWith(color: primaryText),
+        inputDecorationTheme: base.inputDecorationTheme.copyWith(
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.88),
+          labelStyle: const TextStyle(color: mutedText),
+          hintStyle: const TextStyle(color: Color(0xFF92979C)),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        textColor: primaryText,
+        iconColor: mutedText,
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: base.filledButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
           shadowColor: WidgetStatePropertyAll(
             AppColors.accent.withValues(alpha: 0.18),
           ),
@@ -82,8 +132,14 @@ abstract final class PremiumDepthTheme {
           }),
         ),
       ),
+      textButtonTheme: TextButtonThemeData(
+        style: base.textButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(primaryText),
+        ),
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: base.outlinedButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(primaryText),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
               return Colors.white.withValues(alpha: 0.72);
@@ -112,6 +168,7 @@ abstract final class PremiumDepthTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: base.iconButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(primaryText),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
               return AppColors.accent.withValues(alpha: 0.09);
@@ -130,7 +187,6 @@ abstract final class PremiumDepthTheme {
           }),
         ),
       ),
-      textTheme: textTheme,
     );
   }
 }
