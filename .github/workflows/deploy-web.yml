@@ -35,7 +35,18 @@ jobs:
       - name: Finalize and audit recent changes
         working-directory: skbs_app
         shell: bash
-        run: python tool/finalize_recent_changes.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tool/finalize_recent_changes.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              'text = text.replace("      openedEmployee = null;\\n", "")',
+              'text = text.replace("      openedEmployee = null;\\n", "", 1)',
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+          python tool/finalize_recent_changes.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
