@@ -92,6 +92,7 @@ class UserRepository {
         data: const <String, dynamic>{'must_set_password': false},
       ),
     );
+    await _client.rpc('accept_current_company_invitation');
   }
 
   static Future<void> setActiveCompany(String companyId) async {
