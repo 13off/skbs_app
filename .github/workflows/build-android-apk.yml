@@ -49,9 +49,17 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
-        run: flutter build apk --release
+        id: apk_build
+        shell: bash
+        run: |
+          set +e
+          flutter build apk --release 2>&1 | tee apk-build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Prepare APK files
+        if: steps.apk_build.outputs.exit_code == '0'
         shell: bash
         run: |
           SOURCE_SHA="$(git rev-parse HEAD)"
@@ -63,6 +71,7 @@ jobs:
           sha256sum apk-output/AppStroy-latest.apk > apk-output/AppStroy-latest.sha256
 
       - name: Upload APK artifact
+        if: steps.apk_build.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: AppStroy-Android-APK
@@ -71,22 +80,34 @@ jobs:
           if-no-files-found: error
 
       - name: Checkout download repository
+        if: always()
         uses: actions/checkout@v4
         with:
           repository: 13off/appstroy-web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
 
-      - name: Publish APK for download
+      - name: Publish build result
+        if: always()
         shell: bash
         run: |
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          SHORT_SHA="$(git rev-parse --short=12 HEAD)"
           mkdir -p appstroy-web/downloads
-          rm -f appstroy-web/downloads/AppStroy-*.apk
-          cp apk-output/AppStroy-*.apk appstroy-web/downloads/
-          cp apk-output/source-commit.txt appstroy-web/downloads/
-          cp apk-output/AppStroy-latest.sha256 appstroy-web/downloads/
+          cp apk-build.log appstroy-web/downloads/apk-build.log || true
+          printf '%s\n' "$SOURCE_SHA" > appstroy-web/downloads/source-commit.txt
 
-      - name: Commit APK
+          if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
+            rm -f appstroy-web/downloads/AppStroy-*.apk
+            cp apk-output/AppStroy-*.apk appstroy-web/downloads/
+            cp apk-output/AppStroy-latest.sha256 appstroy-web/downloads/
+            printf 'success\n' > appstroy-web/downloads/apk-build-status.txt
+          else
+            printf 'failure\n' > appstroy-web/downloads/apk-build-status.txt
+          fi
+
+      - name: Commit build result
+        if: always()
         working-directory: appstroy-web
         shell: bash
         run: |
@@ -94,8 +115,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads
           if git diff --cached --quiet; then
-            echo "APK already published"
+            echo "Build result already published"
             exit 0
           fi
-          git commit -m "опубликован APK Android"
+          if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
+            git commit -m "опубликован APK Android"
+          else
+            git commit -m "сохранена ошибка сборки APK"
+          fi
           git push
+
+      - name: Fail workflow when APK build failed
+        if: steps.apk_build.outputs.exit_code != '0'
+        run: exit 1
