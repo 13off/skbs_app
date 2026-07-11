@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: appstroy-web
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-publish:
@@ -30,23 +30,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
-          persist-credentials: true
-
-      - name: Finalize and audit recent changes
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('tool/finalize_recent_changes.py')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace(
-              'text = text.replace("      openedEmployee = null;\\n", "")',
-              'text = text.replace("      openedEmployee = null;\\n", "", 1)',
-          )
-          path.write_text(text, encoding='utf-8')
-          PY
-          python tool/finalize_recent_changes.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -69,17 +52,6 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get
 
-      - name: Format changed source
-        working-directory: skbs_app
-        run: |
-          dart format \
-            lib/data/employee_repository.dart \
-            lib/data/employee_archive_repository.dart \
-            lib/features/archive/presentation/archive_management_screen_v3.dart \
-            lib/screens/employee_details_screen.dart \
-            lib/screens/employees_screen.dart \
-            lib/screens/task_details_screen.dart
-
       - name: Analyze source
         working-directory: skbs_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -87,20 +59,6 @@ jobs:
       - name: Build Flutter Web
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
-
-      - name: Commit verified source changes
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No source changes to commit"
-            exit 0
-          fi
-          git commit -m "перепроверены и завершены последние изменения"
-          git push
 
       - name: Keep brick loader and bust cache
         shell: bash
