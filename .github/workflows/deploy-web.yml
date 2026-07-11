@@ -124,7 +124,13 @@ jobs:
         run: |
           git pull --rebase
           mkdir -p downloads
-          printf '%s\n' "${{ job.status }}" > downloads/web-build-status.txt
+          BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
+          if grep -q "flutter_bootstrap.js?v=${BUILD_ID}" index.html; then
+            BUILD_STATUS="success"
+          else
+            BUILD_STATUS="failure"
+          fi
+          printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
           printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
           {
             test -f ../flutter-test.log && cat ../flutter-test.log
