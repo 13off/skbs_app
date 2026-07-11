@@ -60,15 +60,13 @@ jobs:
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
 
-      - name: Keep brick loader and bust cache
+      - name: Bust cache
         shell: bash
         run: |
           BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
           sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
-          sed -i "/window.addEventListener('flutter-first-frame', hideLoader);/d" skbs_app/build/web/index.html
-          sed -i "s/window.setTimeout(hideLoader, 9000);/window.setTimeout(hideLoader, 7000);/" skbs_app/build/web/index.html
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
 
       - name: Checkout web repository
