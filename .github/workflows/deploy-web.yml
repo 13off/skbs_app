@@ -30,62 +30,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
-          persist-credentials: true
-
-      - name: Match employee card animation to timesheet
-        shell: bash
-        run: |
-          if [ ! -f skbs_app/tool/match_employee_close_to_timesheet.marker ]; then
-            echo "No pending employee animation fix"
-            exit 0
-          fi
-
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('skbs_app/lib/screens/employees_screen.dart')
-          text = path.read_text(encoding='utf-8')
-
-          import_line = "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n"
-          material_line = "import 'package:flutter/material.dart';\n"
-          if import_line not in text:
-              text = text.replace(material_line, material_line + import_line, 1)
-
-          old = """  void openEmployeeDetails(BuildContext context, Employee employee) {
-    if (openedEmployee != null) return;
-
-    setState(() {
-      openedEmployee = employee;
-    });
-  }
-"""
-          new = """  Future<void> openEmployeeDetails(
-    BuildContext context,
-    Employee employee,
-  ) async {
-    await Navigator.push<void>(
-      context,
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeDetailsScreen(
-          profile: widget.profile,
-          employee: employee,
-        ),
-      ),
-    );
-
-    if (!mounted) return;
-    loadEmployees();
-  }
-"""
-
-          if old not in text:
-              raise RuntimeError('Не найдено открытие карточки сотрудника')
-
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          Path('skbs_app/tool/match_employee_close_to_timesheet.marker').unlink()
-          PY
-
-          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -96,7 +40,7 @@ jobs:
       - name: Install icon renderer
         run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
 
-      - name: Generate web icons from matte logo
+      - name: Generate web icons
         shell: bash
         run: |
           mkdir -p skbs_app/web/icons
@@ -108,31 +52,11 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get
 
-      - name: Format patched source
-        if: env.SOURCE_PATCH_APPLIED == '1'
-        working-directory: skbs_app
-        run: dart format lib/screens/employees_screen.dart
-
-      - name: Analyze source
-        working-directory: skbs_app
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Commit checked source changes
-        if: env.SOURCE_PATCH_APPLIED == '1'
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "анимация карточки сотрудника сделана как у табеля"
-          git push
-
       - name: Build Flutter Web
         working-directory: skbs_app
         run: flutter build web --release --base-href /appstroy-web/
 
-      - name: Keep brick loader during warmup and bust cache
+      - name: Keep loader and bust cache
         shell: bash
         run: |
           BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
