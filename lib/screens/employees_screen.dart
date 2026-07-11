@@ -1,24 +1,23 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
-import 'package:skbs_app/navigation/app_page_route.dart';
 
 import '../data/employee_private_data_repository.dart';
 import '../data/employee_private_summary_exporter.dart';
 import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
+import '../navigation/app_page_route.dart';
 import 'add_employee_screen.dart';
 import 'employee_details_screen.dart';
 import 'payments_screen.dart';
 
-const Color _bg = Color(0xFFF7F8FA);
-const Color _card = Color(0xFFFFFFFF);
-const Color _softCard = Color(0xFFF2F3F5);
-const Color _line = Color(0xFFE6E8EB);
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _accentDark = Color(0xFF8F9499);
-const Color _dangerSoft = Color(0xFFF1F2F4);
+const _bg = Color(0xFFF7F8FA);
+const _card = Colors.white;
+const _soft = Color(0xFFF2F3F5);
+const _line = Color(0xFFE6E8EB);
+const _text = Color(0xFF1F2328);
+const _muted = Color(0xFF6B7075);
+const _accent = Color(0xFF8F9499);
 
 class EmployeesScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -35,32 +34,28 @@ class EmployeesScreen extends StatefulWidget {
 }
 
 class _EmployeesScreenState extends State<EmployeesScreen> {
-  final TextEditingController searchController = TextEditingController();
+  final searchController = TextEditingController();
+  final scrollController = ScrollController();
 
-  List<Employee> employees = [];
-  bool isLoadingEmployees = true;
-  String? loadErrorText;
-  int loadGeneration = 0;
+  List<Employee> employees = const [];
+  bool loading = true;
+  String? error;
+  int requestId = 0;
 
-  String? get concreteObjectName {
-    final objectName = widget.selectedObjectName?.trim();
-
-    if (objectName == null || objectName.isEmpty) return null;
-
-    return objectName;
+  String? get objectName {
+    final value = widget.selectedObjectName?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   @override
   void initState() {
     super.initState();
-
     loadEmployees(showLoading: true);
   }
 
   @override
   void didUpdateWidget(covariant EmployeesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
       loadEmployees(showLoading: true);
     }
@@ -69,245 +64,249 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   void dispose() {
     searchController.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
   Future<void> loadEmployees({bool showLoading = false}) async {
-    final currentGeneration = ++loadGeneration;
-
+    final id = ++requestId;
     if (showLoading && employees.isEmpty) {
       setState(() {
-        isLoadingEmployees = true;
-        loadErrorText = null;
+        loading = true;
+        error = null;
       });
     }
-
     try {
-      final loadedEmployees = await EmployeeRepository.fetchEmployees(
+      final loaded = await EmployeeRepository.fetchEmployees(
         objectName: widget.selectedObjectName,
         includeFired: true,
       );
-
-      if (!mounted || currentGeneration != loadGeneration) return;
-
+      if (!mounted || id != requestId) return;
       setState(() {
-        employees = loadedEmployees;
-        isLoadingEmployees = false;
-        loadErrorText = null;
+        employees = loaded;
+        loading = false;
+        error = null;
       });
     } catch (e) {
-      if (!mounted || currentGeneration != loadGeneration) return;
-
+      if (!mounted || id != requestId) return;
       setState(() {
-        isLoadingEmployees = false;
-        loadErrorText = e.toString();
+        loading = false;
+        error = e.toString();
       });
     }
   }
 
-  Future<void> openAddEmployee(BuildContext context) async {
-    final saved = await Navigator.push<bool>(
-      context,
-      AppPageRoute(
-        builder: (_) =>
-            AddEmployeeScreen(initialObjectName: concreteObjectName),
-      ),
-    );
+  Future<void> openEmployee(Employee employee) async {
+    final savedOffset = scrollController.hasClients
+        ? scrollController.offset
+        : 0.0;
 
-    if (!mounted || saved != true) return;
-
-    await loadEmployees();
-  }
-
-  Future<void> openEmployeeDetails(
-    BuildContext context,
-    Employee employee,
-  ) async {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) =>
-            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
+        builder: (_) => EmployeeDetailsScreen(
+          profile: widget.profile,
+          employee: employee,
+        ),
       ),
     );
-
     if (!mounted) return;
-    loadEmployees();
+
+    await loadEmployees();
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !scrollController.hasClients) return;
+      final position = scrollController.position;
+      final target = savedOffset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((position.pixels - target).abs() > .5) {
+        scrollController.jumpTo(target);
+      }
+    });
   }
 
-  void openPayments(BuildContext context) {
+  Future<void> addEmployee() async {
+    final saved = await Navigator.push<bool>(
+      context,
+      AppPageRoute(
+        builder: (_) => AddEmployeeScreen(initialObjectName: objectName),
+      ),
+    );
+    if (mounted && saved == true) await loadEmployees();
+  }
+
+  void openPayments() {
     Navigator.push(
       context,
       AppPageRoute(builder: (_) => const PaymentsScreen()),
     );
   }
 
-  Future<void> downloadPrivateSummary() async {
+  Future<void> downloadSummary() async {
     try {
-      final employeesForSummary = employees.isNotEmpty
+      final source = employees.isNotEmpty
           ? List<Employee>.from(employees)
           : await EmployeeRepository.fetchEmployees(
               objectName: widget.selectedObjectName,
               includeFired: true,
             );
-
-      final employeeIds = employeesForSummary
+      final ids = source
           .map((employee) => employee.id ?? '')
           .where((id) => id.trim().isNotEmpty)
           .toList();
-
       final privateData =
-          await EmployeePrivateDataRepository.fetchMapByEmployeeIds(
-            employeeIds,
-          );
-
+          await EmployeePrivateDataRepository.fetchMapByEmployeeIds(ids);
       await EmployeePrivateSummaryExporter.downloadSummary(
-        employees: employeesForSummary,
+        employees: source,
         privateDataByEmployeeId: privateData,
         objectName: widget.selectedObjectName,
       );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Сводка скачана')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сводка скачана')),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка формирования сводки: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка формирования сводки: $e')),
+        );
+      }
     }
   }
 
-  String firstLetter(String text) {
-    final cleanText = text.trim();
-
-    if (cleanText.isEmpty) return '?';
-
-    return cleanText.characters.first;
-  }
-
-  String formatMoney(int value) {
-    final text = value.toString().replaceAllMapped(
+  String money(int value) {
+    final formatted = value.toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
       (_) => ' ',
     );
-
-    return '$text ₽';
+    return '$formatted ₽';
   }
 
-  List<Employee> filterEmployees(List<Employee> sourceEmployees) {
-    final query = searchController.text.trim().toLowerCase();
-
-    if (query.isEmpty) return sourceEmployees;
-
-    return sourceEmployees.where((employee) {
-      return employee.name.toLowerCase().contains(query) ||
-          employee.position.toLowerCase().contains(query) ||
-          employee.phone.toLowerCase().contains(query) ||
-          employee.objectName.toLowerCase().contains(query);
-    }).toList();
-  }
-
-  String employeeDuplicateKey(Employee employee) {
+  String duplicateKey(Employee employee) {
     final name = employee.name.trim().toLowerCase();
-
-    final phone = employee.phone
-        .replaceAll(RegExp(r'[^0-9+]'), '')
-        .trim()
-        .toLowerCase();
-
-    final position = employee.position.trim().toLowerCase();
-
-    if (phone.isNotEmpty) {
-      return '$name::$phone';
-    }
-
-    return '$name::$position';
+    final phone = employee.phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    return phone.isNotEmpty
+        ? '$name::$phone'
+        : '$name::${employee.position.trim().toLowerCase()}';
   }
 
-  List<Employee> collapseDuplicateEmployeesForAllObjects(
-    List<Employee> sourceEmployees,
-  ) {
-    if (concreteObjectName != null) return sourceEmployees;
+  List<Employee> visibleEmployees() {
+    final query = searchController.text.trim().toLowerCase();
+    var source = query.isEmpty
+        ? List<Employee>.from(employees)
+        : employees.where((employee) {
+            return employee.name.toLowerCase().contains(query) ||
+                employee.position.toLowerCase().contains(query) ||
+                employee.phone.toLowerCase().contains(query) ||
+                employee.objectName.toLowerCase().contains(query);
+          }).toList();
 
-    final groupedEmployees = <String, List<Employee>>{};
+    if (objectName != null) return source;
 
-    for (final employee in sourceEmployees) {
-      final key = employeeDuplicateKey(employee);
-
-      groupedEmployees.putIfAbsent(key, () => <Employee>[]).add(employee);
+    final groups = <String, List<Employee>>{};
+    for (final employee in source) {
+      groups.putIfAbsent(duplicateKey(employee), () => []).add(employee);
     }
 
-    final result = <Employee>[];
-
-    for (final group in groupedEmployees.values) {
-      if (group.length == 1) {
-        result.add(group.first);
-        continue;
-      }
-
+    source = groups.values.map((group) {
       group.sort((a, b) {
-        final activeCompare = b.isActive.toString().compareTo(
-          a.isActive.toString(),
-        );
-
-        if (activeCompare != 0) return activeCompare;
-
-        final objectCompare = a.objectName.compareTo(b.objectName);
-
-        if (objectCompare != 0) return objectCompare;
-
-        return a.name.compareTo(b.name);
+        if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
+        return a.objectName.compareTo(b.objectName);
       });
-
-      final mainEmployee = group.first;
-
-      final objectNames = group
+      final main = group.first;
+      final objects = group
           .map((employee) => employee.objectName.trim())
-          .where((objectName) => objectName.isNotEmpty)
+          .where((name) => name.isNotEmpty)
           .toSet()
-          .toList();
-
-      objectNames.sort();
-
-      final visibleObjectName = objectNames.isEmpty
-          ? mainEmployee.objectName
-          : objectNames.join(', ');
-
-      result.add(
-        Employee(
-          mainEmployee.name,
-          mainEmployee.position,
-          mainEmployee.status,
-          id: mainEmployee.id,
-          phone: mainEmployee.phone,
-          objectName: visibleObjectName,
-          dailyRate: mainEmployee.dailyRate,
-          isActive: group.any((employee) => employee.isActive),
-          comment: mainEmployee.comment,
-        ),
+          .toList()
+        ..sort();
+      return Employee(
+        main.name,
+        main.position,
+        main.status,
+        id: main.id,
+        phone: main.phone,
+        objectName: objects.isEmpty ? main.objectName : objects.join(', '),
+        dailyRate: main.dailyRate,
+        isActive: group.any((employee) => employee.isActive),
+        comment: main.comment,
       );
-    }
+    }).toList();
 
-    result.sort((a, b) {
-      final activeCompare = b.isActive.toString().compareTo(
-        a.isActive.toString(),
-      );
-
-      if (activeCompare != 0) return activeCompare;
-
+    source.sort((a, b) {
+      if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
       return a.name.compareTo(b.name);
     });
-
-    return result;
+    return source;
   }
 
-  Widget buildHeader() {
+  Widget actionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool primary = false,
+  }) {
+    final foreground = primary ? Colors.white : _accent;
+    final background = primary ? _accent : _soft;
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: primary ? _accent : _line),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 19, color: foreground),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget header() {
+    final actions = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        actionButton(
+          icon: Icons.payments_outlined,
+          label: 'Выплаты',
+          onTap: openPayments,
+        ),
+        actionButton(
+          icon: Icons.table_view_outlined,
+          label: 'Сводка',
+          onTap: downloadSummary,
+        ),
+        actionButton(
+          icon: Icons.person_add_alt_1,
+          label: 'Добавить',
+          onTap: addEmployee,
+          primary: true,
+        ),
+      ],
+    );
+
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: _card,
@@ -315,67 +314,34 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.030),
+            color: Colors.black.withValues(alpha: .03),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 720;
-
-          final title = const Text(
+        builder: (_, constraints) {
+          const title = Text(
             'Сотрудники',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: _text,
               fontSize: 34,
               height: 1.05,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.8,
+              letterSpacing: -.8,
             ),
           );
-
-          final actions = Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _HeaderActionButton(
-                icon: Icons.payments_outlined,
-                label: 'Выплаты',
-                onTap: () {
-                  openPayments(context);
-                },
-              ),
-              _HeaderActionButton(
-                icon: Icons.table_view_outlined,
-                label: 'Сводка',
-                onTap: downloadPrivateSummary,
-              ),
-              _HeaderActionButton(
-                icon: Icons.person_add_alt_1,
-                label: 'Добавить',
-                primary: true,
-                onTap: () {
-                  openAddEmployee(context);
-                },
-              ),
-            ],
-          );
-
-          if (isMobile) {
+          if (constraints.maxWidth < 720) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [title, const SizedBox(height: 16), actions],
             );
           }
-
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: title),
+              const Expanded(child: title),
               const SizedBox(width: 18),
               Flexible(child: actions),
             ],
@@ -385,12 +351,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     );
   }
 
-  Widget buildSearchField() {
+  Widget search() {
     return TextField(
       controller: searchController,
+      onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         hintText: 'Поиск по ФИО, должности, телефону...',
-        hintStyle: const TextStyle(color: _muted, fontWeight: FontWeight.w500),
         prefixIcon: const Icon(Icons.search),
         suffixIcon: searchController.text.isEmpty
             ? null
@@ -403,10 +369,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               ),
         filled: true,
         fillColor: _card,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 18,
-        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(22),
           borderSide: const BorderSide(color: _line),
@@ -417,26 +379,30 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(22),
-          borderSide: const BorderSide(color: _accentDark, width: 1.4),
+          borderSide: const BorderSide(color: _accent, width: 1.4),
         ),
       ),
-      onChanged: (_) {
-        setState(() {});
-      },
     );
   }
 
-  Widget buildEmployeeCard(BuildContext context, Employee employee) {
-    final isFired = !employee.isActive;
+  Widget employeeCard(Employee employee) {
+    final fired = !employee.isActive;
+    final subtitle = [
+      employee.position,
+      employee.phone,
+      employee.objectName,
+      'Ставка: ${money(employee.dailyRate)}',
+    ].where((value) => value.trim().isNotEmpty).join('\n');
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isFired ? _dangerSoft : _card,
+        color: fired ? const Color(0xFFF1F2F4) : _card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isFired ? const Color(0xFFD3CAC0) : _line),
+        border: Border.all(color: fired ? const Color(0xFFD3CAC0) : _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.028),
+            color: Colors.black.withValues(alpha: .028),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
@@ -448,10 +414,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           vertical: 10,
         ),
         leading: CircleAvatar(
-          backgroundColor: isFired ? const Color(0xFFD6CEC4) : _softCard,
+          backgroundColor: fired ? const Color(0xFFD6CEC4) : _soft,
           foregroundColor: _text,
           child: Text(
-            firstLetter(employee.name),
+            employee.name.trim().isEmpty
+                ? '?'
+                : employee.name.trim().characters.first,
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
@@ -460,17 +428,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             Expanded(
               child: Text(
                 employee.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
+                  color: fired ? Colors.grey.shade700 : _text,
                   fontWeight: FontWeight.w900,
-                  color: isFired ? Colors.grey.shade700 : _text,
                 ),
               ),
             ),
-            if (isFired)
+            if (fired)
               Container(
-                margin: const EdgeInsets.only(left: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD8D0C7),
@@ -478,242 +443,124 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 ),
                 child: const Text(
                   'Уволен',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: _text,
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                 ),
               ),
           ],
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (employee.position.isNotEmpty)
-                Text(
-                  employee.position,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              if (employee.phone.isNotEmpty)
-                Text(
-                  employee.phone,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              if (employee.objectName.isNotEmpty)
-                Text(
-                  employee.objectName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              Text('Ставка: ${formatMoney(employee.dailyRate)}'),
-            ],
-          ),
+          child: Text(subtitle),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          openEmployeeDetails(context, employee);
-        },
+        onTap: () => openEmployee(employee),
       ),
     );
   }
 
-  Widget buildSectionTitle({
-    required String title,
-    required int count,
-    bool isFired = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(top: isFired ? 22 : 0, bottom: 10),
-      child: Row(
-        children: [
-          Icon(
-            isFired ? Icons.archive_outlined : Icons.groups_outlined,
-            size: 20,
-            color: isFired ? Colors.grey.shade700 : _text,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$title: $count',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: isFired ? Colors.grey.shade700 : _text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> buildEmployeesWidgets({
-    required List<Employee> activeEmployees,
-    required List<Employee> firedEmployees,
-  }) {
-    if (activeEmployees.isEmpty && firedEmployees.isEmpty) {
-      return [
-        const SizedBox(height: 40),
-        const Center(
-          child: Text(
-            'Сотрудники не найдены',
-            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ];
-    }
-
-    return [
-      buildSectionTitle(title: 'Активные', count: activeEmployees.length),
-      if (activeEmployees.isEmpty)
+  Widget section(String title, List<Employee> items, {bool fired = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (fired) Divider(height: 30, color: Colors.grey.shade300),
         Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Text(
-            'Активных сотрудников нет',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        )
-      else
-        ...activeEmployees.map(
-          (employee) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: buildEmployeeCard(context, employee),
-          ),
-        ),
-      if (firedEmployees.isNotEmpty) ...[
-        Divider(height: 30, color: Colors.grey.shade300),
-        buildSectionTitle(
-          title: 'Уволенные',
-          count: firedEmployees.length,
-          isFired: true,
-        ),
-        ...firedEmployees.map(
-          (employee) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: buildEmployeeCard(context, employee),
-          ),
-        ),
-      ],
-    ];
-  }
-
-  Widget buildEmployeeList() {
-    final visibleEmployees = collapseDuplicateEmployeesForAllObjects(
-      filterEmployees(employees),
-    );
-
-    final activeEmployees = visibleEmployees.where((employee) {
-      return employee.isActive;
-    }).toList();
-
-    final firedEmployees = visibleEmployees.where((employee) {
-      return !employee.isActive;
-    }).toList();
-
-    final content = <Widget>[
-      buildHeader(),
-      const SizedBox(height: 14),
-      buildSearchField(),
-      const SizedBox(height: 16),
-    ];
-
-    if (isLoadingEmployees && employees.isEmpty) {
-      content.addAll([
-        const SizedBox(height: 60),
-        const Center(child: CircularProgressIndicator()),
-      ]);
-    } else if (loadErrorText != null && employees.isEmpty) {
-      content.addAll([
-        const SizedBox(height: 40),
-        Center(
-          child: Text(
-            'Ошибка загрузки сотрудников: $loadErrorText',
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
-      ]);
-    } else if (employees.isEmpty) {
-      content.addAll([
-        const SizedBox(height: 40),
-        const Center(child: Text('Сотрудников пока нет')),
-      ]);
-    } else {
-      content.addAll(
-        buildEmployeesWidgets(
-          activeEmployees: activeEmployees,
-          firedEmployees: firedEmployees,
-        ),
-      );
-    }
-
-    return Container(
-      color: _bg,
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-          children: content,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(child: buildEmployeeList());
-  }
-}
-
-class _HeaderActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool primary;
-
-  const _HeaderActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.primary = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = primary ? Colors.white : _accentDark;
-    final background = primary ? _accentDark : _softCard;
-    final border = primary ? _accentDark : _line;
-
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: border),
-          ),
+          padding: EdgeInsets.only(top: fired ? 22 : 0, bottom: 10),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 19, color: foreground),
+              Icon(
+                fired ? Icons.archive_outlined : Icons.groups_outlined,
+                size: 20,
+                color: fired ? Colors.grey.shade700 : _text,
+              ),
               const SizedBox(width: 8),
               Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                '$title: ${items.length}',
                 style: TextStyle(
-                  fontSize: 15,
-                  height: 1,
-                  fontWeight: FontWeight.w700,
-                  color: foreground,
+                  color: fired ? Colors.grey.shade700 : _text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
+          ),
+        ),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Text(
+              'Активных сотрудников нет',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          )
+        else
+          ...items.map(employeeCard),
+      ],
+    );
+  }
+
+  List<Widget> content() {
+    final visible = visibleEmployees();
+    final active = visible.where((employee) => employee.isActive).toList();
+    final fired = visible.where((employee) => !employee.isActive).toList();
+    final result = <Widget>[
+      header(),
+      const SizedBox(height: 14),
+      search(),
+      const SizedBox(height: 16),
+    ];
+
+    if (loading && employees.isEmpty) {
+      result.addAll([
+        const SizedBox(height: 60),
+        const Center(child: CircularProgressIndicator()),
+      ]);
+    } else if (error != null && employees.isEmpty) {
+      result.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: Text(
+            'Ошибка загрузки сотрудников: $error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    } else if (employees.isEmpty) {
+      result.add(
+        const Padding(
+          padding: EdgeInsets.only(top: 40),
+          child: Text('Сотрудников пока нет', textAlign: TextAlign.center),
+        ),
+      );
+    } else if (visible.isEmpty) {
+      result.add(
+        const Padding(
+          padding: EdgeInsets.only(top: 40),
+          child: Text('Сотрудники не найдены', textAlign: TextAlign.center),
+        ),
+      );
+    } else {
+      result.add(section('Активные', active));
+      if (fired.isNotEmpty) {
+        result.add(section('Уволенные', fired, fired: true));
+      }
+    }
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: ColoredBox(
+        color: _bg,
+        child: SafeArea(
+          child: ListView(
+            key: PageStorageKey(
+              'employees-${widget.selectedObjectName ?? 'all'}',
+            ),
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+            children: content(),
           ),
         ),
       ),
