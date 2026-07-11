@@ -31,6 +31,128 @@ jobs:
         with:
           path: skbs_app
 
+      - name: Apply employee scroll position once
+        shell: bash
+        run: |
+          if [ ! -f skbs_app/tool/apply_employee_scroll_position.marker ]; then
+            echo "No pending employee scroll patch"
+            exit 0
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('skbs_app/lib/screens/employees_screen.dart')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  "  final TextEditingController searchController = TextEditingController();\n",
+                  "  final TextEditingController searchController = TextEditingController();\n"
+                  "  final ScrollController employeesScrollController = ScrollController();\n",
+                  'search controller',
+              ),
+              (
+                  """  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+""",
+                  """  @override
+  void dispose() {
+    searchController.dispose();
+    employeesScrollController.dispose();
+    super.dispose();
+  }
+""",
+                  'dispose',
+              ),
+              (
+                  """  Future<void> openEmployeeDetails(
+    BuildContext context,
+    Employee employee,
+  ) async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) =>
+            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
+      ),
+    );
+
+    if (!mounted) return;
+    loadEmployees();
+  }
+""",
+                  """  Future<void> openEmployeeDetails(
+    BuildContext context,
+    Employee employee,
+  ) async {
+    final savedScrollOffset = employeesScrollController.hasClients
+        ? employeesScrollController.offset
+        : 0.0;
+
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) =>
+            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
+      ),
+    );
+
+    if (!mounted) return;
+
+    await loadEmployees();
+
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !employeesScrollController.hasClients) return;
+
+      final position = employeesScrollController.position;
+      final targetOffset = savedScrollOffset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+
+      if ((position.pixels - targetOffset).abs() > 0.5) {
+        employeesScrollController.jumpTo(targetOffset);
+      }
+    });
+  }
+""",
+                  'employee details method',
+              ),
+              (
+                  """        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          children: content,
+        ),
+""",
+                  """        child: ListView(
+          key: PageStorageKey<String>(
+            'employees-list-${widget.selectedObjectName ?? 'all'}',
+          ),
+          controller: employeesScrollController,
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          children: content,
+        ),
+""",
+                  'employees list',
+              ),
+          ]
+
+          for old, new, label in replacements:
+              if old not in text:
+                  raise SystemExit(f'Employee scroll patch anchor not found: {label}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          Path('skbs_app/tool/apply_employee_scroll_position.marker').unlink()
+          PY
+
+          echo "SOURCE_PATCH_APPLIED=1" >> "$GITHUB_ENV"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -52,9 +174,25 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get
 
+      - name: Format patched source
+        if: env.SOURCE_PATCH_APPLIED == '1'
+        working-directory: skbs_app
+        run: dart format lib/screens/employees_screen.dart
+
       - name: Analyze source
         working-directory: skbs_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit source patch
+        if: env.SOURCE_PATCH_APPLIED == '1'
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/employees_screen.dart tool/apply_employee_scroll_position.marker
+          git commit -m "позиция списка сотрудников сохраняется после возврата"
+          git push
 
       - name: Build Flutter Web
         working-directory: skbs_app
