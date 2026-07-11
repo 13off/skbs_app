@@ -47,7 +47,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/apk-build-status.txt downloads/source-commit.txt
           if ! git diff --cached --quiet; then
-            git commit -m "запущена сборка APK Android"
+            git commit -m "запущена сборка APK через российский прокси"
             git push
           fi
 
@@ -67,28 +67,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build release APK
+      - name: Build release APK through proxy
         id: apk_build
         shell: bash
-        env:
-          SUPABASE_PROXY_URL: ${{ secrets.SUPABASE_PROXY_URL }}
-          SUPABASE_PROXY_KEY: ${{ secrets.SUPABASE_PROXY_KEY }}
         run: |
           set +e
-          BUILD_ARGS=()
-
-          if [ -n "$SUPABASE_PROXY_URL" ]; then
-            BUILD_ARGS+=("--dart-define=SUPABASE_URL=$SUPABASE_PROXY_URL")
-            echo "APK build uses Supabase proxy"
-          else
-            echo "APK build uses default Supabase URL"
-          fi
-
-          if [ -n "$SUPABASE_PROXY_KEY" ]; then
-            BUILD_ARGS+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PROXY_KEY")
-          fi
-
-          flutter build apk --release "${BUILD_ARGS[@]}" 2>&1 | tee apk-build.log
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            2>&1 | tee apk-build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
           exit 0
@@ -142,7 +128,7 @@ jobs:
           git add downloads
           if ! git diff --cached --quiet; then
             if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
-              git commit -m "опубликован APK Android"
+              git commit -m "опубликован APK через российский прокси"
             else
               git commit -m "сохранена ошибка сборки APK"
             fi
