@@ -58,7 +58,25 @@ jobs:
 
       - name: Build Flutter Web
         working-directory: skbs_app
-        run: flutter build web --release --base-href /appstroy-web/
+        shell: bash
+        env:
+          SUPABASE_PROXY_URL: ${{ secrets.SUPABASE_PROXY_URL }}
+          SUPABASE_PROXY_KEY: ${{ secrets.SUPABASE_PROXY_KEY }}
+        run: |
+          BUILD_ARGS=()
+
+          if [ -n "$SUPABASE_PROXY_URL" ]; then
+            BUILD_ARGS+=("--dart-define=SUPABASE_URL=$SUPABASE_PROXY_URL")
+            echo "Web build uses Supabase proxy"
+          else
+            echo "Web build uses default Supabase URL"
+          fi
+
+          if [ -n "$SUPABASE_PROXY_KEY" ]; then
+            BUILD_ARGS+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PROXY_KEY")
+          fi
+
+          flutter build web --release --base-href /appstroy-web/ "${BUILD_ARGS[@]}"
 
       - name: Bust cache
         shell: bash
@@ -79,7 +97,7 @@ jobs:
       - name: Replace web files
         shell: bash
         run: |
-          find appstroy-web -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          find appstroy-web -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'downloads' -exec rm -rf {} +
           cp -R skbs_app/build/web/. appstroy-web/
           touch appstroy-web/.nojekyll
 
