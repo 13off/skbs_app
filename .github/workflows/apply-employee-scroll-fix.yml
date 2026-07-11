@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/apply-employee-scroll-fix.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
