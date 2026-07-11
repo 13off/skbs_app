@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - lib/**
+      - test/**
       - assets/**
       - web/**
       - pubspec.yaml
