@@ -225,7 +225,7 @@ void main() {
           "'invite-company-member'",
           "'company_memberships'",
           "'object_memberships'",
-          "'set_active_company'",
+          "'active_company_id'",
         ],
       );
     });
