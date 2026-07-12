@@ -434,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -508,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: archivedObjects.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final objectName = archivedObjects[index];
 
@@ -705,6 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
+    if (!context.mounted) return;
     if (pickedValue == null) return;
 
     if (pickedValue == _archiveListValue) {
