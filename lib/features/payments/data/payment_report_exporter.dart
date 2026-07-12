@@ -303,7 +303,7 @@ class PaymentReportExporter {
         ? '_${_safeFileName(selectedEmployees.first.name)}'
         : '';
 
-    return 'Отчет_по_выплатам_${period}$employee.xlsx';
+    return 'Отчет_по_выплатам_$period$employee.xlsx';
   }
 
   static String _safeFileName(String value) {
