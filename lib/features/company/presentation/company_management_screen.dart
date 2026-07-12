@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
 
 class CompanyManagementScreen extends StatefulWidget {
@@ -91,14 +92,14 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E4E7)),
+        border: Border.all(color: Colors.white),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -175,11 +176,11 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
 
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: Colors.white.withValues(alpha: 0.84),
       margin: const EdgeInsets.only(bottom: 9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5E6E8)),
+        side: const BorderSide(color: Colors.white),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
@@ -222,12 +223,15 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<CompanyDashboard>(
-        future: dashboardFuture,
-        builder: (context, snapshot) {
+      body: PremiumBackdrop(
+        child: FutureBuilder<CompanyDashboard>(
+          future: dashboardFuture,
+          builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: PremiumDots(color: AppColors.textPrimary),
+            );
           }
           if (snapshot.hasError) {
             return Center(
@@ -256,10 +260,10 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
             children: [
                 companyCard(dashboard),
                 const SizedBox(height: 20),
-                FilledButton.icon(
+                PremiumActionButton(
                   onPressed: () => openInvite(dashboard),
-                  icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: const Text('Пригласить пользователя'),
+                  icon: Icons.person_add_alt_1_rounded,
+                  label: 'Пригласить пользователя',
                 ),
                 if (dashboard.objects.isEmpty) ...[
                   const SizedBox(height: 10),
@@ -282,7 +286,8 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                 ),
             ],
           );
-        },
+          },
+        ),
       ),
     );
   }
@@ -393,9 +398,10 @@ class _CompanyMemberEditorScreenState
       appBar: AppBar(
         title: Text(isEditing ? 'Права пользователя' : 'Пригласить пользователя'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
+      body: PremiumBackdrop(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
           if (!isEditing) ...[
             TextField(
               controller: fullNameController,
@@ -474,18 +480,16 @@ class _CompanyMemberEditorScreenState
             ),
           ],
           const SizedBox(height: 22),
-          FilledButton.icon(
+          PremiumActionButton(
             onPressed: isSaving ? null : save,
-            icon: isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(isEditing ? Icons.save_outlined : Icons.send_outlined),
-            label: Text(isEditing ? 'Сохранить права' : 'Отправить приглашение'),
+            icon: isEditing ? Icons.save_outlined : Icons.send_outlined,
+            label: isEditing
+                ? 'Сохранить права'
+                : 'Отправить приглашение',
+            isLoading: isSaving,
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
