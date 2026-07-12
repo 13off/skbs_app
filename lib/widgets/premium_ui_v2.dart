@@ -252,11 +252,11 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
     super.initState();
     controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 1450),
       value: widget.animate ? 0 : 1,
     );
 
-    if (widget.animate) controller.repeat(reverse: true);
+    if (widget.animate) controller.forward();
   }
 
   @override
@@ -266,7 +266,7 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
     if (oldWidget.animate == widget.animate) return;
 
     if (widget.animate) {
-      controller.repeat(reverse: true);
+      controller.forward(from: 0);
     } else {
       controller.stop();
       controller.value = 1;
@@ -311,9 +311,14 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
         child: AnimatedBuilder(
           animation: controller,
           builder: (context, _) {
+            final disableAnimations =
+                MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
             return CustomPaint(
               painter: _AppStroyMarkPainter(
-                animation: widget.animate ? controller.value : 0.72,
+                animation: widget.animate && !disableAnimations
+                    ? controller.value
+                    : 1,
                 light: widget.light,
               ),
               child: const SizedBox.expand(),
@@ -350,7 +355,7 @@ class PremiumLoadingScreen extends StatelessWidget {
                     'AppСтрой',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w300,
                       letterSpacing: -1.1,
                     ),
                   ),
@@ -444,142 +449,134 @@ class _AppStroyMarkPainter extends CustomPainter {
     required this.light,
   });
 
+  static double _staggered(double value, double start, double end) {
+    final normalized = ((value - start) / (end - start))
+        .clamp(0.0, 1.0)
+        .toDouble();
+    return Curves.easeOutCubic.transform(normalized);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    const viewMin = 56.0;
-    const viewSize = 400.0;
+    const viewSize = 240.0;
     final scale = math.min(size.width, size.height) / viewSize;
     final horizontalInset = (size.width - viewSize * scale) / 2;
     final verticalInset = (size.height - viewSize * scale) / 2;
-    final pulse = (math.sin(animation * math.pi * 2) + 1) / 2;
 
     canvas
       ..save()
       ..translate(horizontalInset, verticalInset)
-      ..scale(scale)
-      ..translate(-viewMin, -viewMin);
+      ..scale(scale);
 
-    final guidePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = (light ? Colors.white : const Color(0xFF7C828A))
-          .withValues(alpha: light ? 0.15 : 0.19);
-    canvas
-      ..drawCircle(const Offset(256, 252), 176, guidePaint)
-      ..drawCircle(const Offset(314, 190), 108, guidePaint)
-      ..drawCircle(const Offset(358, 286), 68, guidePaint);
+    final leftTower = Path()
+      ..moveTo(38, 204)
+      ..lineTo(38, 146)
+      ..cubicTo(38, 130, 48, 119, 61, 114)
+      ..lineTo(72, 110)
+      ..cubicTo(79, 107, 86, 112, 86, 120)
+      ..lineTo(86, 204)
+      ..close();
 
-    final bounds = const Rect.fromLTWH(90, 86, 340, 324);
-    final navyPaint = Paint()
+    final centerTower = Path()
+      ..moveTo(96, 204)
+      ..lineTo(96, 82)
+      ..cubicTo(96, 61, 109, 45, 128, 39)
+      ..lineTo(139, 36)
+      ..cubicTo(146, 34, 153, 39, 153, 47)
+      ..lineTo(153, 204)
+      ..close();
+
+    final rightTower = Path()
+      ..moveTo(163, 204)
+      ..lineTo(163, 110)
+      ..cubicTo(163, 97, 174, 88, 187, 91)
+      ..cubicTo(211, 96, 225, 109, 225, 129)
+      ..lineTo(225, 204)
+      ..close();
+
+    final markBounds = const Rect.fromLTWH(34, 30, 196, 178);
+    final metalPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
+        stops: const [0, 0.47, 1],
         colors: light
-            ? [
-                Colors.white.withValues(alpha: 0.98),
-                Colors.white.withValues(alpha: 0.72),
+            ? const [
+                Color(0xFFFFFFFF),
+                Color(0xFFD8DDE1),
+                Color(0xFFAEB4BA),
               ]
-            : const [Color(0xFF101723), Color(0xFF253247)],
-      ).createShader(bounds);
-    final bluePaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: light
-            ? const [Color(0xFFDCEBFF), Color(0xFF93B9E5)]
-            : const [Color(0xFF255C9D), Color(0xFF123B70)],
-      ).createShader(bounds);
-    final goldPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFE4C98C), Color(0xFFA98545)],
-      ).createShader(bounds);
+            : const [
+                Color(0xFFD7D7D7),
+                Color(0xFFA3A4A6),
+                Color(0xFF77797C),
+              ],
+      ).createShader(markBounds);
 
-    canvas.drawPath(
-      Path()
-        ..moveTo(105, 386)
-        ..lineTo(245, 92)
-        ..lineTo(274, 92)
-        ..lineTo(187, 386)
-        ..close(),
-      navyPaint,
+    void drawTower(Path path, Rect bounds, double progress) {
+      if (progress <= 0) return;
+
+      canvas
+        ..save()
+        ..clipRect(
+          Rect.fromLTRB(
+            bounds.left - 3,
+            bounds.bottom - (bounds.height + 3) * progress,
+            bounds.right + 3,
+            bounds.bottom + 3,
+          ),
+        )
+        ..drawPath(path, metalPaint)
+        ..restore();
+    }
+
+    drawTower(
+      leftTower,
+      const Rect.fromLTWH(38, 107, 48, 97),
+      _staggered(animation, 0.04, 0.48),
     );
-    canvas.drawPath(
-      Path()
-        ..moveTo(205, 386)
-        ..lineTo(205, 244)
-        ..lineTo(253, 205)
-        ..lineTo(253, 386)
-        ..close(),
-      bluePaint,
+    drawTower(
+      centerTower,
+      const Rect.fromLTWH(96, 34, 57, 170),
+      _staggered(animation, 0.16, 0.64),
     );
-    canvas.drawPath(
-      Path()
-        ..moveTo(268, 386)
-        ..lineTo(268, 137)
-        ..lineTo(318, 174)
-        ..lineTo(318, 386)
-        ..close(),
-      navyPaint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(323, 386)
-        ..lineTo(323, 252)
-        ..lineTo(361, 281)
-        ..lineTo(361, 386)
-        ..close(),
-      bluePaint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(352, 386)
-        ..cubicTo(402, 350, 405, 286, 357, 245)
-        ..lineTo(383, 226)
-        ..cubicTo(450, 281, 442, 367, 390, 402)
-        ..lineTo(352, 402)
-        ..close(),
-      bluePaint,
+    drawTower(
+      rightTower,
+      const Rect.fromLTWH(163, 88, 62, 116),
+      _staggered(animation, 0.29, 0.77),
     );
 
-    final curvePaint = Paint()
-      ..shader = bluePaint.shader
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 15
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(
-      Path()
-        ..moveTo(151, 327)
-        ..cubicTo(123, 253, 154, 171, 224, 135),
-      curvePaint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(237, 226)
-        ..lineTo(267, 195)
-        ..lineTo(267, 229)
-        ..lineTo(245, 248)
-        ..close(),
-      goldPaint,
-    );
+    final shineProgress = _staggered(animation, 0.70, 1);
+    if (shineProgress > 0) {
+      final markPath = Path()
+        ..addPath(leftTower, Offset.zero)
+        ..addPath(centerTower, Offset.zero)
+        ..addPath(rightTower, Offset.zero);
+      final shineX = -58 + 344 * shineProgress;
+      final shineOpacity = math
+          .sin(shineProgress * math.pi)
+          .clamp(0.0, 1.0)
+          .toDouble();
+      final shinePath = Path()
+        ..moveTo(shineX - 34, 214)
+        ..lineTo(shineX + 12, 25)
+        ..lineTo(shineX + 38, 25)
+        ..lineTo(shineX - 8, 214)
+        ..close();
 
-    final glowPaint = Paint()
-      ..shader = goldPaint.shader
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + pulse * 2);
-    canvas.drawLine(const Offset(91, 404), const Offset(421, 404), glowPaint);
+      final shinePaint = Paint()
+        ..color = Colors.white.withValues(
+          alpha: (light ? 0.50 : 0.38) * shineOpacity,
+        );
 
-    final basePaint = Paint()
-      ..shader = goldPaint.shader
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round;
-    canvas
-      ..drawLine(const Offset(91, 404), const Offset(421, 404), basePaint)
-      ..restore();
+      canvas
+        ..save()
+        ..clipPath(markPath)
+        ..drawPath(shinePath, shinePaint)
+        ..restore();
+    }
+
+    canvas.restore();
   }
 
   @override
