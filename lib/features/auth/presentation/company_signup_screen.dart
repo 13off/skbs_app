@@ -173,6 +173,26 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                             'Вы станете владельцем компании и сможете создавать объекты и приглашать команду.',
                             textAlign: TextAlign.center,
                           ),
+                          const SizedBox(height: 16),
+                          const Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _SignupBenefit(
+                                icon: Icons.schedule_rounded,
+                                label: '14 дней',
+                              ),
+                              _SignupBenefit(
+                                icon: Icons.credit_card_off_rounded,
+                                label: 'Без карты',
+                              ),
+                              _SignupBenefit(
+                                icon: Icons.groups_2_outlined,
+                                label: 'Команда и объекты',
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 24),
                           TextField(
                             controller: companyController,
@@ -237,12 +257,37 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                           ),
                           if (errorText != null) ...[
                             const SizedBox(height: 14),
-                            Text(
-                              errorText!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Color(0xFF874540),
-                                fontWeight: FontWeight.w700,
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF2F1),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: const Color(0xFFF0D2CF),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 19,
+                                    color: Color(0xFFA64F49),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      errorText!,
+                                      style: const TextStyle(
+                                        color: Color(0xFF874540),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -276,3 +321,38 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   }
 }
 
+class _SignupBenefit extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SignupBenefit({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F2F3),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textPrimary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
