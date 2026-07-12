@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ?.copyWith(
                                         color: AppColors.textPrimary,
                                         fontSize: 31,
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w300,
                                         letterSpacing: -1.2,
                                       ),
                                 ),
