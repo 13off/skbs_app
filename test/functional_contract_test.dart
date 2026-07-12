@@ -263,13 +263,30 @@ void main() {
         ],
       );
     });
-    test('платформенные экраны сохраняют премиальный стиль и логотип №5', () {
+    test('платформенные экраны сохраняют премиальный стиль и финальный логотип', () {
       _containsAll('lib/widgets/premium_ui_v2.dart', const [
         'class _AppStroyMarkPainter',
-        'Color(0xFF255C9D)',
-        'Color(0xFFA98545)',
+        'final leftTower = Path()',
+        'final centerTower = Path()',
+        'final rightTower = Path()',
+        'Color(0xFF77797C)',
+        'controller.forward()',
         'class PremiumBackdrop',
       ]);
+      _containsAll('web/index.html', const [
+        'tower-shape tower-left',
+        'tower-shape tower-center',
+        'tower-shape tower-right',
+        'mark-sheen',
+      ]);
+      _containsAll(
+        'android/app/src/main/res/drawable/app_icon_foreground.xml',
+        const [
+          'android:fillColor="#B6B7B9"',
+          'android:fillColor="#8D8E90"',
+          'android:fillColor="#A2A3A5"',
+        ],
+      );
       _containsAll(
         'lib/features/auth/presentation/company_signup_screen.dart',
         const [
