@@ -288,6 +288,15 @@ void main() {
         ],
       );
       _containsAll(
+        'android/app/src/main/res/mipmap-anydpi/ic_launcher.xml',
+        const [
+          'android:fillColor="#F3F0E9"',
+          'android:fillColor="#B6B7B9"',
+          'android:fillColor="#8D8E90"',
+          'android:fillColor="#A2A3A5"',
+        ],
+      );
+      _containsAll(
         'lib/features/auth/presentation/company_signup_screen.dart',
         const [
           "'14 дней'",
