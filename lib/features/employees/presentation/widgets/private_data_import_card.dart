@@ -91,7 +91,7 @@ class PrivateDataImportCard extends StatelessWidget {
             )
           else
             DropdownButtonFormField<String>(
-              value: selectedObjectName,
+              initialValue: selectedObjectName,
               decoration: const InputDecoration(
                 labelText: 'Объект для импорта',
                 prefixIcon: Icon(Icons.apartment_outlined),
