@@ -16,7 +16,6 @@ const _card = Colors.white;
 const _soft = Color(0xFFF2F3F5);
 const _line = Color(0xFFE6E8EB);
 const _text = Color(0xFF1F2328);
-const _muted = Color(0xFF6B7075);
 const _accent = Color(0xFF8F9499);
 
 class EmployeesScreen extends StatefulWidget {
