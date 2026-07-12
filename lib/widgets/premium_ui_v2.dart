@@ -247,15 +247,6 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
     with SingleTickerProviderStateMixin {
   late final AnimationController controller;
 
-  static const bricks = <_BrickSpec>[
-    _BrickSpec(left: 0.08, top: 0.68, width: 0.38),
-    _BrickSpec(left: 0.54, top: 0.68, width: 0.38),
-    _BrickSpec(left: 0.00, top: 0.43, width: 0.46),
-    _BrickSpec(left: 0.54, top: 0.43, width: 0.46),
-    _BrickSpec(left: 0.08, top: 0.18, width: 0.38),
-    _BrickSpec(left: 0.54, top: 0.18, width: 0.38),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -290,89 +281,45 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
 
   @override
   Widget build(BuildContext context) {
-    final foreground = widget.light ? Colors.white : const Color(0xFF24272B);
     final background = widget.light
         ? Colors.white.withValues(alpha: 0.10)
         : Colors.white.withValues(alpha: 0.72);
 
-    return Container(
-      width: widget.size,
-      height: widget.size,
-      padding: EdgeInsets.all(widget.size * 0.17),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(widget.size * 0.30),
-        border: Border.all(
-          color: widget.light
-              ? Colors.white.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.90),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(
-              0xFF17191C,
-            ).withValues(alpha: widget.light ? 0.26 : 0.15),
-            blurRadius: widget.size * 0.42,
-            offset: Offset(0, widget.size * 0.20),
+    return RepaintBoundary(
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        padding: EdgeInsets.all(widget.size * 0.12),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(widget.size * 0.28),
+          border: Border.all(
+            color: widget.light
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.white.withValues(alpha: 0.90),
           ),
-        ],
-      ),
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final height = constraints.maxHeight;
-              final brickHeight = height * 0.17;
-
-              return Stack(
-                children: List<Widget>.generate(bricks.length, (index) {
-                  final brick = bricks[index];
-                  final start = index * 0.075;
-                  final end = math.min(1.0, start + 0.46);
-                  final normalized =
-                      ((controller.value - start) / (end - start))
-                          .clamp(0.0, 1.0)
-                          .toDouble();
-                  final progress = Curves.easeOutBack.transform(normalized);
-                  final opacity = progress.clamp(0.0, 1.0).toDouble();
-
-                  return Positioned(
-                    left: width * brick.left,
-                    top: height * brick.top,
-                    width: width * brick.width,
-                    height: brickHeight,
-                    child: Transform.translate(
-                      offset: Offset(0, (1 - progress) * height * 0.22),
-                      child: Transform.scale(
-                        scale: 0.78 + progress * 0.22,
-                        child: Opacity(
-                          opacity: opacity,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  foreground.withValues(alpha: 0.96),
-                                  foreground.withValues(alpha: 0.72),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                brickHeight * 0.34,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              );
-            },
-          );
-        },
+          boxShadow: [
+            BoxShadow(
+              color: const Color(
+                0xFF17191C,
+              ).withValues(alpha: widget.light ? 0.26 : 0.15),
+              blurRadius: widget.size * 0.42,
+              offset: Offset(0, widget.size * 0.20),
+            ),
+          ],
+        ),
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            return CustomPaint(
+              painter: _AppStroyMarkPainter(
+                animation: widget.animate ? controller.value : 0.72,
+                light: widget.light,
+              ),
+              child: const SizedBox.expand(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -488,16 +435,157 @@ class _PremiumDotsState extends State<PremiumDots>
   }
 }
 
-class _BrickSpec {
-  final double left;
-  final double top;
-  final double width;
+class _AppStroyMarkPainter extends CustomPainter {
+  final double animation;
+  final bool light;
 
-  const _BrickSpec({
-    required this.left,
-    required this.top,
-    required this.width,
+  const _AppStroyMarkPainter({
+    required this.animation,
+    required this.light,
   });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const viewMin = 56.0;
+    const viewSize = 400.0;
+    final scale = math.min(size.width, size.height) / viewSize;
+    final horizontalInset = (size.width - viewSize * scale) / 2;
+    final verticalInset = (size.height - viewSize * scale) / 2;
+    final pulse = (math.sin(animation * math.pi * 2) + 1) / 2;
+
+    canvas
+      ..save()
+      ..translate(horizontalInset, verticalInset)
+      ..scale(scale)
+      ..translate(-viewMin, -viewMin);
+
+    final guidePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = (light ? Colors.white : const Color(0xFF7C828A))
+          .withValues(alpha: light ? 0.15 : 0.19);
+    canvas
+      ..drawCircle(const Offset(256, 252), 176, guidePaint)
+      ..drawCircle(const Offset(314, 190), 108, guidePaint)
+      ..drawCircle(const Offset(358, 286), 68, guidePaint);
+
+    final bounds = const Rect.fromLTWH(90, 86, 340, 324);
+    final navyPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: light
+            ? [
+                Colors.white.withValues(alpha: 0.98),
+                Colors.white.withValues(alpha: 0.72),
+              ]
+            : const [Color(0xFF101723), Color(0xFF253247)],
+      ).createShader(bounds);
+    final bluePaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: light
+            ? const [Color(0xFFDCEBFF), Color(0xFF93B9E5)]
+            : const [Color(0xFF255C9D), Color(0xFF123B70)],
+      ).createShader(bounds);
+    final goldPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFE4C98C), Color(0xFFA98545)],
+      ).createShader(bounds);
+
+    canvas.drawPath(
+      Path()
+        ..moveTo(105, 386)
+        ..lineTo(245, 92)
+        ..lineTo(274, 92)
+        ..lineTo(187, 386)
+        ..close(),
+      navyPaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(205, 386)
+        ..lineTo(205, 244)
+        ..lineTo(253, 205)
+        ..lineTo(253, 386)
+        ..close(),
+      bluePaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(268, 386)
+        ..lineTo(268, 137)
+        ..lineTo(318, 174)
+        ..lineTo(318, 386)
+        ..close(),
+      navyPaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(323, 386)
+        ..lineTo(323, 252)
+        ..lineTo(361, 281)
+        ..lineTo(361, 386)
+        ..close(),
+      bluePaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(352, 386)
+        ..cubicTo(402, 350, 405, 286, 357, 245)
+        ..lineTo(383, 226)
+        ..cubicTo(450, 281, 442, 367, 390, 402)
+        ..lineTo(352, 402)
+        ..close(),
+      bluePaint,
+    );
+
+    final curvePaint = Paint()
+      ..shader = bluePaint.shader
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 15
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(
+      Path()
+        ..moveTo(151, 327)
+        ..cubicTo(123, 253, 154, 171, 224, 135),
+      curvePaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(237, 226)
+        ..lineTo(267, 195)
+        ..lineTo(267, 229)
+        ..lineTo(245, 248)
+        ..close(),
+      goldPaint,
+    );
+
+    final glowPaint = Paint()
+      ..shader = goldPaint.shader
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + pulse * 2);
+    canvas.drawLine(const Offset(91, 404), const Offset(421, 404), glowPaint);
+
+    final basePaint = Paint()
+      ..shader = goldPaint.shader
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round;
+    canvas
+      ..drawLine(const Offset(91, 404), const Offset(421, 404), basePaint)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _AppStroyMarkPainter oldDelegate) {
+    return animation != oldDelegate.animation || light != oldDelegate.light;
+  }
 }
 
 class _GridPainter extends CustomPainter {
