@@ -263,5 +263,40 @@ void main() {
         ],
       );
     });
+    test('платформенные экраны сохраняют премиальный стиль и логотип №5', () {
+      _containsAll('lib/widgets/premium_ui_v2.dart', const [
+        'class _AppStroyMarkPainter',
+        'Color(0xFF255C9D)',
+        'Color(0xFFA98545)',
+        'class PremiumBackdrop',
+      ]);
+      _containsAll(
+        'lib/features/auth/presentation/company_signup_screen.dart',
+        const [
+          "'14 дней'",
+          "'Без карты'",
+          "'Команда и объекты'",
+          "'Создать компанию'",
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_switcher_screen.dart',
+        const [
+          'PremiumBackdrop',
+          "'Выбрать компанию'",
+          "'Данные, объекты и сотрудники каждой компании полностью изолированы.'",
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_management_screen.dart',
+        const [
+          'PremiumBackdrop',
+          'PremiumActionButton',
+          "'Пригласить пользователя'",
+          "'Команда'",
+        ],
+      );
+    });
+
   });
 }
