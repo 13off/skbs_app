@@ -264,7 +264,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: objects.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final objectName = objects[index];
 
