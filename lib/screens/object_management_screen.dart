@@ -120,7 +120,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
               try {
                 final savedName = isEdit
                     ? await ObjectRepository.renameObject(
-                        oldName: currentName!,
+                        oldName: currentName,
                         newName: controller.text,
                       )
                     : await ObjectRepository.addObject(name: controller.text);
