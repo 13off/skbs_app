@@ -235,7 +235,7 @@ class _AuthGateState extends State<AuthGate> {
           fit: StackFit.expand,
           children: <Widget>[
             ...previousChildren,
-            if (currentChild != null) currentChild,
+            ?currentChild,
           ],
         );
       },
