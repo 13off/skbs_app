@@ -113,6 +113,39 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                         'Создайте рабочее пространство компании. Вы получите права владельца.',
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 13,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F2F3),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.verified_user_outlined,
+                              size: 17,
+                              color: AppColors.textPrimary,
+                            ),
+                            SizedBox(width: 7),
+                            Flexible(
+                              child: Text(
+                                'Отдельные данные, команда и объекты',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 22),
                       TextField(
                         controller: companyController,
@@ -136,12 +169,37 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                       ),
                       if (errorText != null) ...[
                         const SizedBox(height: 12),
-                        Text(
-                          errorText!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF874540),
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF2F1),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: const Color(0xFFF0D2CF),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                size: 19,
+                                color: Color(0xFFA64F49),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  errorText!,
+                                  style: const TextStyle(
+                                    color: Color(0xFF874540),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -168,4 +226,3 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
     );
   }
 }
-
