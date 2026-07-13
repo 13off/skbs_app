@@ -1,0 +1,73 @@
+name: Cleanup UI motion components
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tool/cleanup_ui_motion.marker
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Remove motion analyzer issues
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pressable_path = Path('lib/widgets/premium_pressable_v3.dart')
+          pressable = pressable_path.read_text(encoding='utf-8')
+          if 'void activate()' not in pressable:
+              raise RuntimeError('Не найден старый метод activate')
+          pressable = pressable.replace('void activate()', 'void invokeAction()', 1)
+          pressable = pressable.replace('              activate();', '              invokeAction();', 1)
+          pressable_path.write_text(pressable, encoding='utf-8')
+
+          legacy_path = Path('lib/widgets/premium_ui_v2.dart')
+          legacy = legacy_path.read_text(encoding='utf-8')
+          legacy = legacy.replace("import 'package:flutter/foundation.dart';\n", '', 1)
+          legacy = legacy.replace("import 'package:flutter/services.dart';\n", '', 1)
+          legacy_path.write_text(legacy, encoding='utf-8')
+          PY
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format files
+        run: dart format lib/widgets/premium_pressable_v3.dart lib/widgets/premium_ui_v2.dart
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          rm -f tool/cleanup_ui_motion.marker
+          rm -f .github/workflows/cleanup-ui-motion.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "очищены компоненты единой анимации"
+          git push
