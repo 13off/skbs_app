@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
+import 'premium_ui_v2.dart';
 
 const Color _card = Color(0xFFFFFFFF);
 const Color _softCard = Color(0xFFF2F3F5);
@@ -307,23 +308,32 @@ class _NotificationBellState extends State<NotificationBell> {
       builder: (context, snapshot) {
         final hasUnread = snapshot.data == true;
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(16),
+        return PremiumPressable(
           onTap: () {
             showNotificationsSheet(context);
           },
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: _card,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.96),
+                  Colors.white.withValues(alpha: 0.76),
+                ],
+              ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: hasUnread ? _accent : _line),
+              border: Border.all(
+                color: hasUnread ? _accent : Colors.white,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.025),
-                  blurRadius: 14,
-                  offset: const Offset(0, 8),
+                  color: const Color(0xFF17191C).withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 9),
                 ),
               ],
             ),
@@ -371,13 +381,10 @@ class _NotificationTile extends StatelessWidget {
     final actorEmail = notification.actorEmail.trim();
     final isUnread = !notification.isRead;
 
-    return Container(
+    return PremiumWorkCard(
+      radius: 20,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isUnread ? _card : _softCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isUnread ? _accent : _line),
-      ),
+      tint: isUnread ? _card : _softCard,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -517,14 +524,10 @@ class _NotificationMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return PremiumWorkCard(
+      radius: 20,
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _softCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _line),
-      ),
+      tint: _softCard,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
