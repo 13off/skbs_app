@@ -229,16 +229,19 @@ void main() {
       );
     });
 
-    test('платформенные экраны сохраняют премиальный стиль и финальный логотип', () {
-      _containsAll('lib/features/auth/presentation/premium_login_screen_v2.dart', const [
-        'PremiumWorkBackdrop',
-        'PremiumBrandMark',
-      ]);
-      _containsAll('lib/widgets/premium_ui_v2.dart', const [
-        'class PremiumBrandMark',
-        'app_icon_matte_v2.svg',
-      ]);
-    });
+    test(
+      'платформенные экраны сохраняют премиальный стиль и финальный логотип',
+      () {
+        _containsAll(
+          'lib/features/auth/presentation/premium_login_screen_v2.dart',
+          const ['PremiumWorkBackdrop', 'PremiumBrandMark'],
+        );
+        _containsAll('lib/widgets/premium_ui_v2.dart', const [
+          'class PremiumBrandMark',
+          'app_icon_matte_v2.svg',
+        ]);
+      },
+    );
 
     test('изменения данных сразу доходят до всех открытых экранов', () {
       _containsAll('lib/data/app_data_sync.dart', const [
