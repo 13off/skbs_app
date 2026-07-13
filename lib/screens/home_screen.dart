@@ -10,8 +10,8 @@ import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/premium_ui.dart';
 
-const Color _bg = Color(0xFFF7F8FA);
 const Color _card = Color(0xFFFFFFFF);
 const Color _softCard = Color(0xFFF2F3F5);
 const Color _line = Color(0xFFE6E8EB);
@@ -884,38 +884,54 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Row(
           children: [
+            const PremiumBrandMark(size: 52, animate: false),
+            const SizedBox(width: 14),
             const Expanded(
-              child: Text(
-                'AppСтрой',
-                style: TextStyle(
-                  color: _text,
-                  fontFamily: 'Georgia',
-                  fontSize: 36,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -1.0,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AppСтрой',
+                    style: TextStyle(
+                      color: _text,
+                      fontSize: 31,
+                      height: 1,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -1.1,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    'Рабочая сводка',
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
             ),
             NotificationBell(selectedObjectName: widget.selectedObjectName),
           ],
         ),
-        const SizedBox(height: 26),
+        const SizedBox(height: 22),
         Row(
           children: [
-            const Icon(Icons.calendar_month_outlined, color: _muted, size: 22),
-            const SizedBox(width: 12),
+            const Icon(Icons.calendar_month_outlined, color: _muted, size: 20),
+            const SizedBox(width: 10),
             Text(
               'Сегодня, ${dateText(today)}',
               style: const TextStyle(
                 color: _muted,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         buildObjectSelector(context),
       ],
     );
@@ -963,8 +979,7 @@ class _HomeScreenState extends State<HomeScreen> {
         : workedEmployees / totalEmployees;
     final tasksProgress = totalTasks == 0 ? 0.0 : doneTasks / totalTasks;
 
-    return Container(
-      color: _bg,
+    return PremiumWorkBackdrop(
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
@@ -1246,20 +1261,8 @@ class _DashboardMetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeProgress = progress.clamp(0.0, 1.0).toDouble();
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _line),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return PremiumWorkCard(
+      radius: 28,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1395,20 +1398,8 @@ class _FinanceSummaryCard extends StatelessWidget {
     final balanceValue = balance < 0 ? balance.abs() : balance;
     final progressPercent = (finance.paidProgress * 100).round();
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _line),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return PremiumWorkCard(
+      radius: 28,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
