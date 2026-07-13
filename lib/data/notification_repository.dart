@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../services/push_notification_service.dart';
 import 'app_data_sync.dart';
 import 'user_repository.dart';
 
@@ -130,16 +133,21 @@ class NotificationRepository {
           ? profile!.email.trim()
           : user?.email?.trim() ?? '';
 
-      await _client.from('app_notifications').insert({
-        'title': title.trim(),
-        'body': body.trim(),
-        'actor_user_id': user?.id,
-        'actor_name': actorName,
-        'actor_email': actorEmail,
-        'object_name': cleanObjectName(objectName) ?? '',
-        'entity_type': entityType.trim(),
-        'entity_id': entityId.trim(),
-      });
+      final inserted = await _client
+          .from('app_notifications')
+          .insert({
+            'title': title.trim(),
+            'body': body.trim(),
+            'actor_user_id': user?.id,
+            'actor_name': actorName,
+            'actor_email': actorEmail,
+            'object_name': cleanObjectName(objectName) ?? '',
+            'entity_type': entityType.trim(),
+            'entity_id': entityId.trim(),
+          })
+          .select('id')
+          .maybeSingle();
+
       AppDataSync.notifyLocal(
         const <AppDataDomain>{AppDataDomain.notifications},
         context: <String, dynamic>{
@@ -147,10 +155,17 @@ class NotificationRepository {
           'object_name': cleanObjectName(objectName),
         },
       );
+
+      final notificationId = inserted?['id']?.toString().trim() ?? '';
+      if (notificationId.isNotEmpty) {
+        unawaited(
+          PushNotificationService.dispatchNotification(notificationId),
+        );
+      }
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
 
-      // Уведомления не должны ломать сохранение табеля, выплат или сотрудников.
+      // Колокольчик и push не должны ломать табель, выплаты, задачи или сотрудников.
       return;
     }
   }

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../services/push_notification_service.dart';
 import '../models/app_user_profile.dart';
 
 class UserRepository {
@@ -38,6 +41,10 @@ class UserRepository {
     if (response.session == null || response.user == null) {
       throw const AuthException('Не удалось создать сессию пользователя');
     }
+
+    unawaited(
+      PushNotificationService.syncForCurrentSession(requestPermission: true),
+    );
   }
 
   static Future<bool> signUpCompany({
@@ -68,6 +75,9 @@ class UserRepository {
       companyName: companyName,
       fullName: fullName,
     );
+    unawaited(
+      PushNotificationService.syncForCurrentSession(requestPermission: true),
+    );
     return true;
   }
 
@@ -93,6 +103,9 @@ class UserRepository {
       ),
     );
     await _client.rpc('accept_current_company_invitation');
+    unawaited(
+      PushNotificationService.syncForCurrentSession(requestPermission: true),
+    );
   }
 
   static Future<void> setActiveCompany(String companyId) async {
@@ -102,9 +115,11 @@ class UserRepository {
     );
     clearProfileCache();
     await _client.auth.refreshSession();
+    unawaited(PushNotificationService.syncForCurrentSession());
   }
 
   static Future<void> signOut() async {
+    await PushNotificationService.unregisterCurrentDevice();
     clearProfileCache();
     await _client.auth.signOut();
   }

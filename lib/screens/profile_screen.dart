@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
+import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
 import '../features/archive/presentation/archive_management_screen_v3.dart';
@@ -9,6 +9,7 @@ import '../features/company/presentation/company_switcher_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
+import 'push_notification_settings_screen.dart';
 import 'template_documents_screen.dart';
 
 const Color _profileText = Color(0xFF1F2328);
@@ -24,33 +25,24 @@ class ProfileScreen extends StatelessWidget {
   Future<void> signOut(BuildContext context) async {
     final shouldExit = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Выйти из аккаунта?'),
-          content: const Text(
-            'После выхода нужно будет снова ввести логин и пароль.',
+      builder: (context) => AlertDialog(
+        title: const Text('Выйти из аккаунта?'),
+        content: const Text(
+          'После выхода нужно будет снова ввести логин и пароль.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Выйти'),
-            ),
-          ],
-        );
-      },
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Выйти'),
+          ),
+        ],
+      ),
     );
-
-    if (shouldExit != true) return;
-
-    await UserRepository.signOut();
+    if (shouldExit == true) await UserRepository.signOut();
   }
 
   void openTemplateDocuments(BuildContext context) {
@@ -92,16 +84,23 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void openPushSettings(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => const PushNotificationSettingsScreen(),
+      ),
+    );
+  }
+
   String get profileInitial {
     final words = profile.fullName
         .trim()
         .split(RegExp(r'\s+'))
         .where((word) => word.isNotEmpty)
         .toList();
-
     if (words.isEmpty) return 'A';
     if (words.length == 1) return words.first.substring(0, 1).toUpperCase();
-
     return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'
         .toUpperCase();
   }
@@ -136,7 +135,6 @@ class ProfileScreen extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -146,7 +144,9 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile.fullName.isEmpty ? 'Пользователь AppСтрой' : profile.fullName,
+                  profile.fullName.isEmpty
+                      ? 'Пользователь AppСтрой'
+                      : profile.fullName,
                   style: const TextStyle(
                     color: _profileText,
                     fontSize: 19,
@@ -209,16 +209,7 @@ class ProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: _profileSoft,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: _profileLine),
-              ),
-              child: Icon(icon, color: _profileText, size: 21),
-            ),
+            _TileIcon(icon: icon),
             const SizedBox(width: 13),
             Expanded(
               child: Column(
@@ -255,7 +246,6 @@ class ProfileScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    Color? color,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -265,19 +255,9 @@ class ProfileScreen extends StatelessWidget {
         child: PremiumWorkCard(
           radius: 22,
           padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-          tint: color,
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: _profileSoft,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: _profileLine),
-                ),
-                child: Icon(icon, color: _profileText, size: 22),
-              ),
+              _TileIcon(icon: icon),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
@@ -303,7 +283,6 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
               const Icon(Icons.chevron_right_rounded, color: _profileMuted),
             ],
           ),
@@ -314,9 +293,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget buildSignOutButton(BuildContext context) {
     return PremiumPressable(
-      onTap: () {
-        signOut(context);
-      },
+      onTap: () => signOut(context),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         height: 54,
@@ -358,15 +335,12 @@ class ProfileScreen extends StatelessWidget {
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
               future: CompanyRepository.fetchCompany(profile.activeCompanyId),
-              builder: (context, snapshot) {
-                return buildInfoTile(
-                  icon: Icons.apartment_rounded,
-                  title: 'Компания',
-                  value:
-                      snapshot.data?.name ??
-                      (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
-                );
-              },
+              builder: (context, snapshot) => buildInfoTile(
+                icon: Icons.apartment_rounded,
+                title: 'Компания',
+                value: snapshot.data?.name ??
+                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
+              ),
             ),
           buildInfoTile(
             icon: Icons.person_outline,
@@ -389,6 +363,15 @@ class ProfileScreen extends StatelessWidget {
             value: profile.objectName,
           ),
           const SizedBox(height: 8),
+          buildSectionTitle('Уведомления'),
+          buildActionTile(
+            icon: Icons.notifications_active_outlined,
+            title: 'Push-уведомления',
+            subtitle:
+                'Разрешение, регистрация телефона или браузера и отключение устройства',
+            onTap: () => openPushSettings(context),
+          ),
+          const SizedBox(height: 8),
           if (profile.isAdmin) ...[
             buildSectionTitle('Управление компанией'),
             buildActionTile(
@@ -396,26 +379,20 @@ class ProfileScreen extends StatelessWidget {
               title: 'Компания и пользователи',
               subtitle:
                   'Приглашения, роли администраторов и назначение прорабов',
-              onTap: () {
-                openCompanyManagement(context);
-              },
+              onTap: () => openCompanyManagement(context),
             ),
             buildActionTile(
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
                   'Архивированные сотрудники и объекты: восстановить или удалить навсегда',
-              onTap: () {
-                openArchive(context);
-              },
+              onTap: () => openArchive(context),
             ),
             buildActionTile(
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
               subtitle: 'Шаблоны договоров, КС-2, КС-3 и другие формы',
-              onTap: () {
-                openTemplateDocuments(context);
-              },
+              onTap: () => openTemplateDocuments(context),
             ),
             const SizedBox(height: 8),
           ],
@@ -424,7 +401,6 @@ class ProfileScreen extends StatelessWidget {
             builder: (context, snapshot) {
               final companies = snapshot.data ?? const <CompanySummary>[];
               if (companies.length < 2) return const SizedBox.shrink();
-
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -434,9 +410,7 @@ class ProfileScreen extends StatelessWidget {
                     title: 'Сменить компанию',
                     subtitle:
                         'Переключиться между доступными рабочими пространствами',
-                    onTap: () {
-                      openCompanySwitcher(context);
-                    },
+                    onTap: () => openCompanySwitcher(context),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -446,6 +420,26 @@ class ProfileScreen extends StatelessWidget {
           buildSignOutButton(context),
         ],
       ),
+    );
+  }
+}
+
+class _TileIcon extends StatelessWidget {
+  final IconData icon;
+
+  const _TileIcon({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: _profileSoft,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: _profileLine),
+      ),
+      child: Icon(icon, color: _profileText, size: 22),
     );
   }
 }

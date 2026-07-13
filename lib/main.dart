@@ -6,6 +6,8 @@ import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
+import 'screens/notifications_screen.dart';
+import 'services/push_notification_service.dart';
 
 const String _defaultSupabaseUrl =
     'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
@@ -35,14 +37,66 @@ Future<void> main() async {
     startupError = error;
   }
 
+  if (startupError == null) {
+    try {
+      await PushNotificationService.initialize().timeout(
+        const Duration(milliseconds: 4500),
+      );
+    } catch (_) {
+      // Push работает поверх приложения и не блокирует его запуск.
+    }
+  }
 
   runApp(SkbsApp(startupError: startupError));
 }
 
-class SkbsApp extends StatelessWidget {
+class SkbsApp extends StatefulWidget {
   final Object? startupError;
 
   const SkbsApp({super.key, this.startupError});
+
+  @override
+  State<SkbsApp> createState() => _SkbsAppState();
+}
+
+class _SkbsAppState extends State<SkbsApp> {
+  @override
+  void initState() {
+    super.initState();
+    PushNotificationService.navigationRequest.addListener(
+      _handlePushNavigation,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handlePushNavigation();
+    });
+  }
+
+  @override
+  void dispose() {
+    PushNotificationService.navigationRequest.removeListener(
+      _handlePushNavigation,
+    );
+    super.dispose();
+  }
+
+  void _handlePushNavigation() {
+    final request = PushNotificationService.takeNavigationRequest();
+    if (request == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = appNavigatorKey.currentContext;
+      if (context == null || Supabase.instance.client.auth.currentUser == null) {
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => NotificationsScreen(
+            focusNotificationId: request.notificationId,
+          ),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +107,9 @@ class SkbsApp extends StatelessWidget {
       navigatorObservers: [AppWebHistoryObserver()],
       scrollBehavior: const PremiumScrollBehavior(),
       theme: PremiumDepthTheme.apply(AppTheme.light),
-      home: startupError == null
+      home: widget.startupError == null
           ? const AppBrowserBackBridge(child: AuthGate())
-          : _StartupErrorScreen(error: startupError!),
+          : _StartupErrorScreen(error: widget.startupError!),
     );
   }
 }

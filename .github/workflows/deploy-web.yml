@@ -22,6 +22,18 @@ concurrency:
   group: appstroy-web
   cancel-in-progress: true
 
+env:
+  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
+  FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+  FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+  FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+  FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+  FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
+  FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+  FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+  FIREBASE_VAPID_KEY: ${{ vars.FIREBASE_VAPID_KEY }}
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -64,9 +76,33 @@ jobs:
           rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
           rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
 
-      - name: Resolve dependencies while lock refresh runs
+      - name: Configure public Firebase web values
         working-directory: skbs_app
-        run: flutter pub get
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('web/firebase-messaging-sw.js')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '__FIREBASE_API_KEY__': os.environ.get('FIREBASE_API_KEY', ''),
+              '__FIREBASE_AUTH_DOMAIN__': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+              '__FIREBASE_PROJECT_ID__': os.environ.get('FIREBASE_PROJECT_ID', ''),
+              '__FIREBASE_STORAGE_BUCKET__': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+              '__FIREBASE_MESSAGING_SENDER_ID__': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+              '__FIREBASE_WEB_APP_ID__': os.environ.get('FIREBASE_WEB_APP_ID', ''),
+              '__APP_PUBLIC_URL__': os.environ.get('APP_PUBLIC_URL', ''),
+          }
+          for marker, value in replacements.items():
+              text = text.replace(marker, value)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Install locked dependencies
+        working-directory: skbs_app
+        run: flutter pub get --enforce-lockfile
 
       - name: Run regression tests
         working-directory: skbs_app
@@ -84,6 +120,15 @@ jobs:
           flutter build web --release \
             --base-href /appstroy-web/ \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define=FIREBASE_AUTH_DOMAIN="$FIREBASE_AUTH_DOMAIN" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET" \
+            --dart-define=FIREBASE_WEB_APP_ID="$FIREBASE_WEB_APP_ID" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="$FIREBASE_ANDROID_APP_ID" \
+            --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
+            --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
             2>&1 | tee ../flutter-web-build.log
 
       - name: Bust cache
