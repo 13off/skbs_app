@@ -6,15 +6,7 @@ on:
       - ui/unified-motion-nav-v2
     paths:
       - tool/apply_unified_ui_v2.marker
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-    paths-ignore:
-      - tool/ui_v2_test_failure.log
+      - .github/workflows/apply-unified-ui-v2.yml
   workflow_dispatch:
 
 permissions:
@@ -22,7 +14,7 @@ permissions:
 
 concurrency:
   group: apply-unified-ui-v2
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply-test-build:
@@ -61,38 +53,63 @@ jobs:
             test/ui_motion_contract_test.dart \
             test/professional_bottom_navigation_test.dart
 
-      - name: Run all tests with diagnostics
-        shell: bash
-        run: |
-          set +e
-          flutter test -r expanded 2>&1 | tee tool/ui_v2_test_failure.log
-          status=${PIPESTATUS[0]}
-          exit "$status"
-
-      - name: Publish failed test diagnostics
-        if: failure()
+      - name: Commit generated UI draft before validation
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f tool/ui_v2_test_failure.log
-          git commit -m "сохранена диагностика UI-тестов" || exit 0
+          git add \
+            lib/widgets/premium_ui_v2.dart \
+            lib/widgets/premium_pressable_v3.dart \
+            lib/widgets/professional_bottom_navigation.dart \
+            lib/widgets/premium_ui.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/ui_motion_contract_test.dart \
+            test/professional_bottom_navigation_test.dart
+          git commit -m "применён проверяемый черновик единого интерфейса" || true
           git push origin HEAD:ui/unified-motion-nav-v2
 
+      - name: Run all tests with diagnostics
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          flutter test -r expanded 2>&1 | tee tool/ui_v2_test_failure.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Save failed test diagnostics
+        if: steps.tests.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          git pull --rebase origin ui/unified-motion-nav-v2
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tool/ui_v2_test_failure.log
+          git commit -m "сохранена диагностика UI-тестов" || true
+          git push origin HEAD:ui/unified-motion-nav-v2
+          exit 1
+
       - name: Analyze
+        if: steps.tests.outputs.exit_code == '0'
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build web release
+        if: steps.tests.outputs.exit_code == '0'
         run: flutter build web --release --base-href /appstroy-web/
 
       - name: Commit verified UI branch
-        if: success()
+        if: steps.tests.outputs.exit_code == '0'
         shell: bash
         run: |
+          git pull --rebase origin ui/unified-motion-nav-v2
           rm -f tool/apply_unified_ui_v2.py
           rm -f tool/apply_unified_ui_v2.marker
           rm -f tool/fix_ui_v2_layout.py
           rm -f tool/ui_v2_test_failure.log
+          rm -f tool/ui_v2_validation_started.txt
           rm -f .github/workflows/apply-unified-ui-v2.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
