@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Аварийный контракт: рабочая оболочка экранов должна публиковаться без UI-регрессий.
 void main() {
   test('published shell uses the last known-good visible structure', () {
     final source = File(
