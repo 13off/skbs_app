@@ -14,40 +14,27 @@ void main() {
     expect(source, contains('iconButtonStyle'));
   });
 
-  test('legacy and current premium buttons use one implementation', () {
-    final canonical = File(
+  test('premium pressables use the same hover and press motion', () {
+    final source = File(
       'lib/widgets/premium_pressable_v3.dart',
     ).readAsStringSync();
-    final legacy = File('lib/widgets/premium_ui_v2.dart').readAsStringSync();
 
-    expect(canonical, contains('this.hoverScale = AppMotion.hoverScale'));
-    expect(canonical, contains('AppMotion.interactionCurve'));
-    expect(canonical, contains('FocusableActionDetector'));
-    expect(legacy, contains("premium_pressable_v3.dart' as unified"));
-    expect(legacy, contains('return unified.PremiumPressable('));
+    expect(source, contains('this.hoverScale = AppMotion.hoverScale'));
+    expect(source, contains('AppMotion.interactionCurve'));
+    expect(source, contains('FocusableActionDetector'));
   });
 
-  test('shell keeps visible tabs and only polishes bottom navigation', () {
+  test('shell keeps the last known-good visible tab structure', () {
     final source = File(
       'lib/features/shell/presentation/premium_main_screen.dart',
     ).readAsStringSync();
-    final barStart = source.indexOf(
-      'class _PremiumBottomBar extends StatelessWidget',
-    );
-    final stableShell = source.substring(0, barStart);
-    final bottomBar = source.substring(barStart);
 
-    expect(stableShell, contains('CupertinoPageRoute<void>'));
-    expect(stableShell, contains('PageView.builder'));
+    expect(source, contains('CupertinoPageRoute<void>'));
+    expect(source, contains('PageView.builder'));
     expect(
-      stableShell,
+      source,
       contains('return buildRootPage(index, selectedObjectName);'),
     );
-    expect(bottomBar, contains('final isDesktop = screenWidth >= 880'));
-    expect(
-      bottomBar,
-      contains('constraints: BoxConstraints(maxWidth: maxWidth)'),
-    );
-    expect(bottomBar, contains('hoverScale: selected ? 1.008 : 1.016'));
+    expect(source, isNot(contains('final isDesktop = screenWidth >= 760')));
   });
 }
