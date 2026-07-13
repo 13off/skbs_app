@@ -18,10 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source app
+      - name: Checkout source app history
         uses: actions/checkout@v4
         with:
           path: skbs_app
+          fetch-depth: 0
 
       - name: Checkout published web app
         uses: actions/checkout@v4
@@ -29,29 +30,34 @@ jobs:
           repository: 13off/appstroy-web
           path: appstroy-web
 
-      - name: Compare source fingerprint with published build
+      - name: Compare relevant source changes with published build
         id: freshness
         shell: bash
         run: |
-          SOURCE_FINGERPRINT="$(
-            git -C skbs_app ls-files -s -- \
-              lib \
-              test \
-              assets \
-              web \
-              pubspec.yaml \
-              pubspec.lock \
-              .fvmrc \
-              .github/workflows/deploy-web.yml \
-              | sha256sum \
-              | awk '{print $1}'
-          )"
-          PUBLISHED_FINGERPRINT="$(cat appstroy-web/downloads/web-source-fingerprint.txt 2>/dev/null || true)"
+          PUBLISHED_COMMIT="$(cat appstroy-web/downloads/web-source-commit.txt 2>/dev/null || true)"
 
-          echo "source_fingerprint=${SOURCE_FINGERPRINT}"
-          echo "published_fingerprint=${PUBLISHED_FINGERPRINT:-missing}"
+          echo "published_commit=${PUBLISHED_COMMIT:-missing}"
+          echo "current_commit=$(git -C skbs_app rev-parse HEAD)"
 
-          if [ -n "${PUBLISHED_FINGERPRINT}" ] && [ "${SOURCE_FINGERPRINT}" = "${PUBLISHED_FINGERPRINT}" ]; then
+          if [ -z "${PUBLISHED_COMMIT}" ]; then
+            echo "needs_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git -C skbs_app cat-file -e "${PUBLISHED_COMMIT}^{commit}" 2>/dev/null; then
+            echo "needs_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git -C skbs_app diff --quiet "${PUBLISHED_COMMIT}" HEAD -- \
+            lib \
+            test \
+            assets \
+            web \
+            pubspec.yaml \
+            pubspec.lock \
+            .fvmrc \
+            .github/workflows/deploy-web.yml; then
             echo "needs_deploy=false" >> "$GITHUB_OUTPUT"
           else
             echo "needs_deploy=true" >> "$GITHUB_OUTPUT"
