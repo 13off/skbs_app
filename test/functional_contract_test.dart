@@ -315,7 +315,10 @@ void main() {
       );
       _containsNone('lib/widgets/premium_surfaces_v3.dart', const [
         'GoldenRatioBrandMark',
+        '_GoldenRatioLogoPainter',
         '0xFFD6B978',
+        '0xFFF3E4C0',
+        '0xFFB78C49',
       ]);
       _containsNone(
         'lib/features/payments/presentation/screens/payments_screen.dart',
