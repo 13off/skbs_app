@@ -1,0 +1,555 @@
+name: Apply safe UI unification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tool/apply_safe_ui_unification.marker
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-safe-ui-unification
+  cancel-in-progress: false
+
+jobs:
+  patch-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Unify pressables and polish bottom navigation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          marker = root / 'tool/apply_safe_ui_unification.marker'
+          if not marker.exists():
+              raise RuntimeError('Не найден маркер безопасной унификации')
+
+          # 1. Один канонический интерактивный компонент для всех экранов.
+          canonical_path = root / 'lib/widgets/premium_pressable_v3.dart'
+          canonical_path.write_text("""import 'package:flutter/foundation.dart';
+          import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+
+          import '../app/app_theme.dart';
+
+          class PremiumPressable extends StatefulWidget {
+            final Widget child;
+            final VoidCallback? onTap;
+            final BorderRadius borderRadius;
+            final double pressedScale;
+            final double hoverScale;
+            final bool enableHaptics;
+
+            const PremiumPressable({
+              super.key,
+              required this.child,
+              required this.onTap,
+              this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+              this.pressedScale = AppMotion.pressedScale,
+              this.hoverScale = AppMotion.hoverScale,
+              this.enableHaptics = true,
+            });
+
+            @override
+            State<PremiumPressable> createState() => _PremiumPressableState();
+          }
+
+          class _PremiumPressableState extends State<PremiumPressable> {
+            bool isPressed = false;
+            bool isHovered = false;
+            bool isFocused = false;
+
+            bool get isEnabled => widget.onTap != null;
+
+            bool get supportsHover {
+              return kIsWeb ||
+                  defaultTargetPlatform == TargetPlatform.windows ||
+                  defaultTargetPlatform == TargetPlatform.macOS ||
+                  defaultTargetPlatform == TargetPlatform.linux;
+            }
+
+            void updatePressed(bool value) {
+              if (!mounted || isPressed == value) return;
+              setState(() => isPressed = value);
+            }
+
+            void handleTapDown(TapDownDetails details) {
+              if (!isEnabled) return;
+              updatePressed(true);
+
+              if (widget.enableHaptics &&
+                  !kIsWeb &&
+                  defaultTargetPlatform == TargetPlatform.android) {
+                HapticFeedback.selectionClick();
+              }
+            }
+
+            void invokeAction() {
+              if (!isEnabled) return;
+              widget.onTap?.call();
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final activeHover =
+                  supportsHover && isHovered && isEnabled && !isPressed;
+              final showFocusRing = isFocused && isEnabled;
+              final scale = isPressed
+                  ? widget.pressedScale
+                  : activeHover
+                  ? widget.hoverScale
+                  : 1.0;
+              final duration = isPressed ? AppMotion.pressIn : AppMotion.hover;
+              final curve = isPressed ? Curves.easeOut : AppMotion.interactionCurve;
+
+              return Semantics(
+                button: true,
+                enabled: isEnabled,
+                child: FocusableActionDetector(
+                  enabled: isEnabled,
+                  mouseCursor: isEnabled
+                      ? SystemMouseCursors.click
+                      : SystemMouseCursors.basic,
+                  onShowHoverHighlight: (value) {
+                    if (!mounted || isHovered == value) return;
+                    setState(() => isHovered = value);
+                  },
+                  onShowFocusHighlight: (value) {
+                    if (!mounted || isFocused == value) return;
+                    setState(() => isFocused = value);
+                  },
+                  shortcuts: const <ShortcutActivator, Intent>{
+                    SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+                    SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+                  },
+                  actions: <Type, Action<Intent>>{
+                    ActivateIntent: CallbackAction<ActivateIntent>(
+                      onInvoke: (_) {
+                        invokeAction();
+                        return null;
+                      },
+                    ),
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: isEnabled ? handleTapDown : null,
+                    onTapCancel: isEnabled ? () => updatePressed(false) : null,
+                    onTapUp: isEnabled ? (_) => updatePressed(false) : null,
+                    onTap: widget.onTap,
+                    child: AnimatedSlide(
+                      offset: activeHover ? const Offset(0, -0.012) : Offset.zero,
+                      duration: duration,
+                      curve: curve,
+                      child: AnimatedScale(
+                        scale: scale,
+                        duration: duration,
+                        curve: curve,
+                        child: AnimatedContainer(
+                          duration: AppMotion.regular,
+                          curve: AppMotion.interactionCurve,
+                          decoration: BoxDecoration(
+                            borderRadius: widget.borderRadius,
+                            border: Border.all(
+                              color: showFocusRing
+                                  ? AppColors.accent.withValues(alpha: 0.38)
+                                  : Colors.transparent,
+                              width: 1,
+                            ),
+                            boxShadow: activeHover
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF17191C,
+                                      ).withValues(alpha: 0.12),
+                                      blurRadius: 24,
+                                      spreadRadius: -7,
+                                      offset: const Offset(0, 11),
+                                    ),
+                                  ]
+                                : const [],
+                          ),
+                          child: AnimatedOpacity(
+                            opacity: isEnabled ? (isPressed ? 0.94 : 1) : 0.46,
+                            duration: AppMotion.fast,
+                            child: ClipRRect(
+                              borderRadius: widget.borderRadius,
+                              child: widget.child,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+          """, encoding='utf-8')
+
+          # 2. Старый PremiumPressable из premium_ui_v2 теперь только делегирует
+          # каноническому компоненту. Все старые экраны получают ту же анимацию.
+          legacy_path = root / 'lib/widgets/premium_ui_v2.dart'
+          legacy = legacy_path.read_text(encoding='utf-8')
+          import_line = "import 'premium_pressable_v3.dart' as unified;\n"
+          if import_line not in legacy:
+              anchor = "import '../app/app_theme.dart';\n"
+              if anchor not in legacy:
+                  raise RuntimeError('Не найден импорт темы в premium_ui_v2')
+              legacy = legacy.replace(anchor, anchor + import_line, 1)
+
+          start = legacy.index('class PremiumPressable extends StatefulWidget {')
+          end = legacy.index('class PremiumActionButton extends StatelessWidget {', start)
+          wrapper = """class PremiumPressable extends StatelessWidget {
+            final Widget child;
+            final VoidCallback? onTap;
+            final BorderRadius borderRadius;
+            final double pressedScale;
+            final double hoverScale;
+            final bool enableHaptics;
+
+            const PremiumPressable({
+              super.key,
+              required this.child,
+              required this.onTap,
+              this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+              this.pressedScale = AppMotion.pressedScale,
+              this.hoverScale = AppMotion.hoverScale,
+              this.enableHaptics = true,
+            });
+
+            @override
+            Widget build(BuildContext context) {
+              return unified.PremiumPressable(
+                onTap: onTap,
+                borderRadius: borderRadius,
+                pressedScale: pressedScale,
+                hoverScale: hoverScale,
+                enableHaptics: enableHaptics,
+                child: child,
+              );
+            }
+          }
+
+          """
+          legacy = legacy[:start] + wrapper + legacy[end:]
+          legacy_path.write_text(legacy, encoding='utf-8')
+
+          # 3. Меняем только класс нижней панели. Вся рабочая оболочка экранов,
+          # Navigator, PageView и buildRootPage остаются побайтно неизменными.
+          shell_path = root / 'lib/features/shell/presentation/premium_main_screen.dart'
+          shell = shell_path.read_text(encoding='utf-8')
+          bar_start = shell.index('class _PremiumBottomBar extends StatelessWidget {')
+          tab_item_start = shell.index('class _TabItem {', bar_start)
+          stable_prefix = shell[:bar_start]
+          stable_suffix = shell[tab_item_start:]
+
+          professional_bar = """class _PremiumBottomBar extends StatelessWidget {
+            final List<_TabItem> items;
+            final int selectedIndex;
+            final ValueChanged<int> onSelected;
+
+            const _PremiumBottomBar({
+              required this.items,
+              required this.selectedIndex,
+              required this.onSelected,
+            });
+
+            Widget buildIcon(_TabItem item, bool selected, bool isDesktop) {
+              return AnimatedContainer(
+                duration: AppMotion.regular,
+                curve: AppMotion.interactionCurve,
+                width: isDesktop ? 36 : 34,
+                height: isDesktop ? 36 : 34,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.16),
+                            blurRadius: 15,
+                            spreadRadius: -5,
+                            offset: const Offset(0, 7),
+                          ),
+                        ]
+                      : const [],
+                ),
+                child: AnimatedSwitcher(
+                  duration: AppMotion.regular,
+                  switchInCurve: AppMotion.enterCurve,
+                  switchOutCurve: AppMotion.exitCurve,
+                  child: Icon(
+                    selected ? item.selectedIcon : item.icon,
+                    key: ValueKey('${item.label}-$selected'),
+                    size: isDesktop ? 20 : 19,
+                    color: selected ? Colors.white : AppColors.textMuted,
+                  ),
+                ),
+              );
+            }
+
+            Widget buildLabel(
+              BuildContext context,
+              _TabItem item,
+              bool selected,
+              bool isDesktop,
+            ) {
+              return AnimatedDefaultTextStyle(
+                duration: AppMotion.regular,
+                curve: AppMotion.interactionCurve,
+                style:
+                    Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: selected ? AppColors.textPrimary : AppColors.textMuted,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w650,
+                      fontSize: isDesktop ? 13 : 10.5,
+                      letterSpacing: isDesktop ? -0.1 : -0.2,
+                    ) ??
+                    const TextStyle(),
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                ),
+              );
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final animationsDisabled =
+                  MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+              final duration = animationsDisabled ? Duration.zero : AppMotion.regular;
+              final screenWidth = MediaQuery.sizeOf(context).width;
+              final isDesktop = screenWidth >= 880;
+              final maxWidth = items.length >= 5 ? 820.0 : 690.0;
+              final horizontalMargin = isDesktop ? 32.0 : 12.0;
+              final bottomMargin = isDesktop ? 18.0 : 10.0;
+
+              return Material(
+                color: AppColors.background,
+                child: SafeArea(
+                  top: false,
+                  minimum: EdgeInsets.fromLTRB(
+                    horizontalMargin,
+                    5,
+                    horizontalMargin,
+                    bottomMargin,
+                  ),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: Container(
+                        height: isDesktop ? 74 : 70,
+                        padding: EdgeInsets.all(isDesktop ? 8 : 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.97),
+                          borderRadius: BorderRadius.circular(isDesktop ? 23 : 26),
+                          border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.92),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF17191C,
+                              ).withValues(alpha: 0.10),
+                              blurRadius: isDesktop ? 32 : 24,
+                              spreadRadius: -9,
+                              offset: Offset(0, isDesktop ? 15 : 11),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: List<Widget>.generate(items.length, (index) {
+                            final item = items[index];
+                            final selected = index == selectedIndex;
+
+                            return Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isDesktop ? 3 : 2,
+                                ),
+                                child: PremiumPressable(
+                                  onTap: () => onSelected(index),
+                                  pressedScale: 0.968,
+                                  hoverScale: selected ? 1.008 : 1.016,
+                                  borderRadius: BorderRadius.circular(17),
+                                  child: AnimatedContainer(
+                                    duration: duration,
+                                    curve: AppMotion.interactionCurve,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isDesktop ? 13 : 4,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? AppColors.surfaceSoft
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(17),
+                                      border: selected
+                                          ? Border.all(
+                                              color: AppColors.border.withValues(
+                                                alpha: 0.90,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    child: isDesktop
+                                        ? Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              buildIcon(item, selected, true),
+                                              const SizedBox(width: 10),
+                                              Flexible(
+                                                child: buildLabel(
+                                                  context,
+                                                  item,
+                                                  selected,
+                                                  true,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              buildIcon(item, selected, false),
+                                              const SizedBox(height: 2),
+                                              buildLabel(
+                                                context,
+                                                item,
+                                                selected,
+                                                false,
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          """
+
+          updated_shell = stable_prefix + professional_bar + stable_suffix
+          if updated_shell[:bar_start] != stable_prefix:
+              raise RuntimeError('Рабочая структура экранов была изменена')
+          shell_path.write_text(updated_shell, encoding='utf-8')
+
+          # 4. Контрактные тесты фиксируют одну систему анимаций и запрещают
+          # изменение рабочей структуры вкладок.
+          test_path = root / 'test/ui_motion_contract_test.dart'
+          test_path.write_text("""import 'dart:io';
+
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('standard buttons use one motion surface', () {
+              final source = File('lib/app/app_theme.dart').readAsStringSync();
+
+              expect(source, contains('AppMotion.hoverScale'));
+              expect(source, contains('backgroundBuilder: buttonSurface('));
+              expect(source, contains('filledButtonStyle'));
+              expect(source, contains('outlinedButtonStyle'));
+              expect(source, contains('textButtonStyle'));
+              expect(source, contains('iconButtonStyle'));
+            });
+
+            test('all premium pressables delegate to one implementation', () {
+              final canonical = File(
+                'lib/widgets/premium_pressable_v3.dart',
+              ).readAsStringSync();
+              final legacy = File(
+                'lib/widgets/premium_ui_v2.dart',
+              ).readAsStringSync();
+
+              expect(canonical, contains('this.hoverScale = AppMotion.hoverScale'));
+              expect(canonical, contains('AppMotion.interactionCurve'));
+              expect(canonical, contains('FocusableActionDetector'));
+              expect(canonical, contains('void invokeAction()'));
+              expect(canonical, isNot(contains('void activate()')));
+              expect(legacy, contains("premium_pressable_v3.dart' as unified"));
+              expect(legacy, contains('return unified.PremiumPressable('));
+            });
+
+            test('shell keeps visible tabs and only polishes bottom navigation', () {
+              final source = File(
+                'lib/features/shell/presentation/premium_main_screen.dart',
+              ).readAsStringSync();
+              final barStart = source.indexOf(
+                'class _PremiumBottomBar extends StatelessWidget',
+              );
+              final stableShell = source.substring(0, barStart);
+              final bottomBar = source.substring(barStart);
+
+              expect(stableShell, contains('CupertinoPageRoute<void>'));
+              expect(stableShell, contains('PageView.builder'));
+              expect(
+                stableShell,
+                contains('return buildRootPage(index, selectedObjectName);'),
+              );
+              expect(bottomBar, contains('final isDesktop = screenWidth >= 880'));
+              expect(bottomBar, contains('constraints: BoxConstraints(maxWidth: maxWidth)'));
+              expect(bottomBar, contains('hoverScale: selected ? 1.008 : 1.016'));
+            });
+          }
+          """, encoding='utf-8')
+          PY
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed files
+        run: |
+          dart format \
+            lib/widgets/premium_pressable_v3.dart \
+            lib/widgets/premium_ui_v2.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/ui_motion_contract_test.dart
+
+      - name: Run all tests
+        run: flutter test
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit verified UI unification
+        shell: bash
+        run: |
+          rm -f tool/apply_safe_ui_unification.marker
+          rm -f .github/workflows/apply-safe-ui-unification.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "безопасно унифицированы анимации и нижняя панель"
+          git push
