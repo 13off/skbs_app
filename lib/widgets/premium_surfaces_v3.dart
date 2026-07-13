@@ -1,9 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
-import 'premium_ui_v2.dart' show PremiumDots;
+import 'premium_ui_v2.dart' show PremiumBrandMark, PremiumDots;
 
 class PremiumBackdrop extends StatelessWidget {
   final Widget child;
@@ -88,13 +86,13 @@ class PremiumLoadingScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const GoldenRatioBrandMark(size: 98),
+                  const PremiumBrandMark(size: 98),
                   const SizedBox(height: 24),
                   Text(
                     'AppСтрой',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w300,
                       letterSpacing: -1.1,
                     ),
                   ),
@@ -115,73 +113,6 @@ class PremiumLoadingScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class GoldenRatioBrandMark extends StatefulWidget {
-  final double size;
-
-  const GoldenRatioBrandMark({super.key, this.size = 88});
-
-  @override
-  State<GoldenRatioBrandMark> createState() => _GoldenRatioBrandMarkState();
-}
-
-class _GoldenRatioBrandMarkState extends State<GoldenRatioBrandMark>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final glow = 0.10 + math.sin(controller.value * math.pi) * 0.08;
-
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          padding: EdgeInsets.all(widget.size * 0.17),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF34373B), Color(0xFF17191C)],
-            ),
-            borderRadius: BorderRadius.circular(widget.size * 0.31),
-            border: Border.all(color: const Color(0xFFD6B978), width: 1.4),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF17191C).withValues(alpha: 0.25),
-                blurRadius: widget.size * 0.34,
-                spreadRadius: -widget.size * 0.10,
-                offset: Offset(0, widget.size * 0.18),
-              ),
-              BoxShadow(
-                color: const Color(0xFFE7C98C).withValues(alpha: glow),
-                blurRadius: widget.size * 0.26,
-              ),
-            ],
-          ),
-          child: CustomPaint(painter: const _GoldenRatioLogoPainter()),
-        );
-      },
     );
   }
 }
