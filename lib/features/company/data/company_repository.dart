@@ -7,6 +7,8 @@ class CompanySummary {
   final String planCode;
   final String billingStatus;
   final DateTime? trialEndsAt;
+  final int seatLimit;
+  final int objectLimit;
 
   const CompanySummary({
     required this.id,
@@ -15,6 +17,8 @@ class CompanySummary {
     required this.planCode,
     required this.billingStatus,
     required this.trialEndsAt,
+    this.seatLimit = 10,
+    this.objectLimit = 5,
   });
 
   bool get isAdmin => role == 'owner' || role == 'admin';
@@ -93,6 +97,55 @@ class CompanyInviteResult {
   const CompanyInviteResult({required this.existingUser});
 }
 
+class CompanyBillingPlan {
+  final String code;
+  final String name;
+  final String description;
+  final int? monthlyPriceRub;
+  final int seatLimit;
+  final int objectLimit;
+  final List<String> features;
+
+  const CompanyBillingPlan({
+    required this.code,
+    required this.name,
+    required this.description,
+    required this.monthlyPriceRub,
+    required this.seatLimit,
+    required this.objectLimit,
+    required this.features,
+  });
+}
+
+class CompanyPlanRequest {
+  final String id;
+  final String planCode;
+  final String status;
+  final DateTime? createdAt;
+
+  const CompanyPlanRequest({
+    required this.id,
+    required this.planCode,
+    required this.status,
+    required this.createdAt,
+  });
+
+  String get statusTitle {
+    switch (status) {
+      case 'contacted':
+        return 'Мы уже связались с вами';
+      case 'activated':
+        return 'Тариф подключён';
+      case 'declined':
+        return 'Заявка закрыта';
+      case 'canceled':
+        return 'Заявка отменена';
+      default:
+        return 'Заявка получена';
+    }
+  }
+}
+
 class CompanyRepository {
   static final _client = Supabase.instance.client;
 
@@ -107,6 +160,19 @@ class CompanyRepository {
     return const <String, dynamic>{};
   }
 
+  static int _integer(dynamic value, int fallback) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
   static Future<List<CompanySummary>> fetchMyCompanies() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return const <CompanySummary>[];
@@ -114,7 +180,7 @@ class CompanyRepository {
     final rows = await _client
         .from('company_memberships')
         .select(
-          'company_id, role, is_active, companies!inner(id, name, plan_code, billing_status, trial_ends_at)',
+          'company_id, role, is_active, companies!inner(id, name, plan_code, billing_status, trial_ends_at, seat_limit, object_limit)',
         )
         .eq('user_id', userId)
         .eq('is_active', true)
@@ -129,6 +195,8 @@ class CompanyRepository {
         planCode: company['plan_code']?.toString() ?? 'trial',
         billingStatus: company['billing_status']?.toString() ?? 'trialing',
         trialEndsAt: _date(company['trial_ends_at']),
+        seatLimit: _integer(company['seat_limit'], 10),
+        objectLimit: _integer(company['object_limit'], 5),
       );
     }).where((company) => company.id.isNotEmpty).toList();
   }
@@ -229,6 +297,77 @@ class CompanyRepository {
       objects: values[1] as List<CompanyObject>,
       members: values[2] as List<CompanyMember>,
     );
+  }
+
+  static Future<List<CompanyBillingPlan>> fetchBillingPlans() async {
+    final rows = await _client
+        .from('billing_plans')
+        .select(
+          'code, name, description, monthly_price_rub, seat_limit, object_limit, features, sort_order',
+        )
+        .eq('is_active', true)
+        .order('sort_order');
+
+    return rows.map<CompanyBillingPlan>((row) {
+      return CompanyBillingPlan(
+        code: row['code']?.toString() ?? '',
+        name: row['name']?.toString() ?? '',
+        description: row['description']?.toString() ?? '',
+        monthlyPriceRub: row['monthly_price_rub'] == null
+            ? null
+            : _integer(row['monthly_price_rub'], 0),
+        seatLimit: _integer(row['seat_limit'], 10),
+        objectLimit: _integer(row['object_limit'], 5),
+        features: _stringList(row['features']),
+      );
+    }).where((plan) => plan.code.isNotEmpty && plan.name.isNotEmpty).toList();
+  }
+
+  static Future<CompanyPlanRequest?> fetchOpenPlanRequest(
+    String companyId,
+  ) async {
+    final row = await _client
+        .from('company_plan_requests')
+        .select('id, requested_plan, status, created_at')
+        .eq('company_id', companyId)
+        .inFilter('status', const <String>['new', 'contacted'])
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (row == null) return null;
+
+    return CompanyPlanRequest(
+      id: row['id']?.toString() ?? '',
+      planCode: row['requested_plan']?.toString() ?? '',
+      status: row['status']?.toString() ?? 'new',
+      createdAt: _date(row['created_at']),
+    );
+  }
+
+  static Future<void> requestPlan({
+    required String companyId,
+    required String planCode,
+    required String contactName,
+    required String contactEmail,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Требуется вход в аккаунт');
+
+    try {
+      await _client.from('company_plan_requests').insert(<String, dynamic>{
+        'company_id': companyId,
+        'requested_plan': planCode,
+        'contact_name': contactName.trim(),
+        'contact_email': contactEmail.trim(),
+        'created_by': userId,
+      });
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        throw Exception('Заявка на тариф уже отправлена');
+      }
+      rethrow;
+    }
   }
 
   static Future<CompanyInviteResult> inviteMember({
