@@ -56,7 +56,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
     }
   }
 
-  void activate() {
+  void invokeAction() {
     if (!isEnabled) return;
     widget.onTap?.call();
   }
@@ -96,7 +96,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
-              activate();
+              invokeAction();
               return null;
             },
           ),
