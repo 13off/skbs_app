@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
+import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
@@ -37,6 +40,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   bool isSaving = false;
   bool hasUnsavedChanges = false;
   String? errorText;
+  bool hasPendingRemoteAttendance = false;
+  int attendanceLoadGeneration = 0;
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   final TextEditingController searchController = TextEditingController();
 
@@ -53,6 +59,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     super.initState();
     reloadEmployees();
     loadAttendance();
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
@@ -60,21 +67,86 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
-      reloadEmployees();
-      loadAttendance();
+      reloadEmployees(forceRefresh: true);
+      loadAttendance(forceRefresh: true);
     }
   }
 
   @override
   void dispose() {
+    dataChangeSubscription?.cancel();
     searchController.dispose();
     super.dispose();
   }
 
-  void reloadEmployees() {
+  void reloadEmployees({bool forceRefresh = false}) {
     employeesFuture = EmployeeRepository.fetchEmployees(
       objectName: widget.selectedObjectName,
+      forceRefresh: forceRefresh,
     );
+  }
+
+  String? cleanObjectName(String? value) {
+    final clean = value?.trim();
+    return clean == null || clean.isEmpty ? null : clean;
+  }
+
+  bool changeMatchesCurrentTimesheet(AppDataChange change) {
+    final workDate = change.contextValue('work_date');
+    if (workDate != null &&
+        workDate != AttendanceRepository.dateKey(selectedDate)) {
+      return false;
+    }
+
+    final selectedObject = cleanObjectName(widget.selectedObjectName);
+    final changedObject = cleanObjectName(change.contextValue('object_name'));
+
+    return selectedObject == null ||
+        changedObject == null ||
+        selectedObject == changedObject;
+  }
+
+  void handleDataChange(AppDataChange change) {
+    if (!mounted) return;
+
+    if (change.affectsAny(const <AppDataDomain>{
+      AppDataDomain.employees,
+      AppDataDomain.objects,
+    })) {
+      setState(() {
+        reloadEmployees(forceRefresh: true);
+      });
+    }
+
+    final attendanceChanged = change.affectsAny(const <AppDataDomain>{
+      AppDataDomain.attendance,
+      AppDataDomain.objects,
+    });
+
+    if (!attendanceChanged ||
+        !change.isRemote ||
+        !changeMatchesCurrentTimesheet(change)) {
+      return;
+    }
+
+    if (hasUnsavedChanges || isSaving || isAttendanceLoading) {
+      hasPendingRemoteAttendance = true;
+      return;
+    }
+
+    loadAttendance(forceRefresh: true);
+  }
+
+  void applyPendingRemoteAttendance() {
+    if (!mounted ||
+        !hasPendingRemoteAttendance ||
+        hasUnsavedChanges ||
+        isSaving ||
+        isAttendanceLoading) {
+      return;
+    }
+
+    loadAttendance(forceRefresh: true);
   }
 
   String formatShift(double value) {
@@ -149,7 +221,12 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     }).toList();
   }
 
-  Future<void> loadAttendance() async {
+  Future<void> loadAttendance({bool forceRefresh = false}) async {
+    final generation = ++attendanceLoadGeneration;
+    final requestedDate = selectedDate;
+    final requestedObject = widget.selectedObjectName;
+    hasPendingRemoteAttendance = false;
+
     setState(() {
       isAttendanceLoading = true;
       errorText = null;
@@ -157,11 +234,12 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
 
     try {
       final values = await AttendanceRepository.fetchShiftValuesForDate(
-        selectedDate,
-        objectName: widget.selectedObjectName,
+        requestedDate,
+        objectName: requestedObject,
+        forceRefresh: forceRefresh,
       );
 
-      if (!mounted) return;
+      if (!mounted || generation != attendanceLoadGeneration) return;
 
       setState(() {
         shiftValuesByEmployeeId = Map<String, double>.from(values);
@@ -169,16 +247,18 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
         hasUnsavedChanges = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || generation != attendanceLoadGeneration) return;
 
       setState(() {
         errorText = 'Ошибка загрузки табеля: $e';
       });
     } finally {
-      if (mounted) {
+      if (mounted && generation == attendanceLoadGeneration) {
         setState(() {
           isAttendanceLoading = false;
         });
+
+        scheduleMicrotask(applyPendingRemoteAttendance);
       }
     }
   }
@@ -189,6 +269,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
       shiftValuesByEmployeeId = {};
       originalShiftValuesByEmployeeId = {};
       hasUnsavedChanges = false;
+      hasPendingRemoteAttendance = false;
     });
 
     await loadAttendance();
@@ -378,6 +459,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
         setState(() {
           isSaving = false;
         });
+
+        scheduleMicrotask(applyPendingRemoteAttendance);
       }
     }
   }

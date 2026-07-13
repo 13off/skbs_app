@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_data_sync.dart';
 import 'attendance_repository.dart';
 import 'employee_repository.dart';
 import 'object_repository.dart';
@@ -114,6 +115,17 @@ class PermanentDeletionRepository {
     final warnings = await _cleanupStorage(manifest);
 
     _clearCaches();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{
+        AppDataDomain.employees,
+        AppDataDomain.attendance,
+        AppDataDomain.payments,
+      },
+      context: <String, dynamic>{
+        'table': 'employees',
+        'employee_id': cleanEmployeeId,
+      },
+    );
 
     return PermanentDeletionResult(cleanupWarnings: warnings);
   }
@@ -156,6 +168,19 @@ class PermanentDeletionRepository {
     final warnings = await _cleanupStorage(manifest);
 
     _clearCaches();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{
+        AppDataDomain.objects,
+        AppDataDomain.employees,
+        AppDataDomain.attendance,
+        AppDataDomain.payments,
+        AppDataDomain.tasks,
+      },
+      context: <String, dynamic>{
+        'table': 'objects',
+        'object_name': cleanName,
+      },
+    );
 
     return PermanentDeletionResult(cleanupWarnings: warnings);
   }

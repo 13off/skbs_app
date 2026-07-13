@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
@@ -46,12 +49,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
   FinancePeriod financePeriod = FinancePeriod.current(AppState.today);
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     dashboardFuture = loadDashboardData();
     objectNamesFuture = EmployeeRepository.fetchObjectNames();
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
@@ -61,6 +66,35 @@ class _HomeScreenState extends State<HomeScreen> {
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
       dashboardFuture = loadDashboardData();
     }
+  }
+
+  @override
+  void dispose() {
+    dataChangeSubscription?.cancel();
+    super.dispose();
+  }
+
+  void handleDataChange(AppDataChange change) {
+    const dashboardDomains = <AppDataDomain>{
+      AppDataDomain.attendance,
+      AppDataDomain.payments,
+      AppDataDomain.employees,
+      AppDataDomain.tasks,
+      AppDataDomain.objects,
+    };
+
+    if (!mounted || !change.affectsAny(dashboardDomains)) return;
+
+    final refreshObjects = change.affects(AppDataDomain.objects);
+
+    setState(() {
+      if (refreshObjects) {
+        objectNamesFuture = EmployeeRepository.fetchObjectNames(
+          forceRefresh: true,
+        );
+      }
+      dashboardFuture = loadDashboardData(forceRefresh: true);
+    });
   }
 
   String? cleanObjectName(String? value) {
@@ -106,22 +140,34 @@ class _HomeScreenState extends State<HomeScreen> {
     return first.year == second.year && first.month == second.month;
   }
 
-  Future<_HomeDashboardData> loadDashboardData() async {
+  Future<_HomeDashboardData> loadDashboardData({
+    bool forceRefresh = false,
+  }) async {
     final today = AppState.today;
     final selectedObject = cleanObjectName(widget.selectedObjectName);
 
     final results = await Future.wait<dynamic>([
-      EmployeeRepository.fetchEmployees(objectName: selectedObject),
+      EmployeeRepository.fetchEmployees(
+        objectName: selectedObject,
+        forceRefresh: forceRefresh,
+      ),
       AttendanceRepository.fetchWorkedEmployeeIds(
         today,
         objectName: selectedObject,
+        forceRefresh: forceRefresh,
       ),
-      TaskRepository.fetchTasksForDate(today, objectName: selectedObject),
+      TaskRepository.fetchTasksForDate(
+        today,
+        objectName: selectedObject,
+        forceRefresh: forceRefresh,
+      ),
       FinanceSummaryRepository.fetchSummary(
         period: financePeriod,
         objectName: selectedObject,
+        forceRefresh: forceRefresh,
       ),
-      if (selectedObject == null) ObjectRepository.fetchObjectNames(),
+      if (selectedObject == null)
+        ObjectRepository.fetchObjectNames(forceRefresh: forceRefresh),
     ]);
 
     final employees = results[0] as List<Employee>;
@@ -148,6 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
     EmployeeRepository.clearCache();
     AttendanceRepository.clearCache();
     TaskRepository.clearTaskListCache();
+    FinanceSummaryRepository.clearCache();
 
     if (!mounted) return;
 
@@ -155,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
       objectNamesFuture = EmployeeRepository.fetchObjectNames(
         forceRefresh: true,
       );
-      dashboardFuture = loadDashboardData();
+      dashboardFuture = loadDashboardData(forceRefresh: true);
     });
   }
 

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../data/app_data_sync.dart';
 import '../data/employee_private_data_repository.dart';
 import '../data/employee_private_summary_exporter.dart';
 import '../data/employee_repository.dart';
@@ -40,6 +43,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   bool loading = true;
   String? error;
   int requestId = 0;
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   String? get objectName {
     final value = widget.selectedObjectName?.trim();
@@ -50,24 +54,42 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   void initState() {
     super.initState();
     loadEmployees(showLoading: true);
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
   void didUpdateWidget(covariant EmployeesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
-      loadEmployees(showLoading: true);
+      loadEmployees(showLoading: true, forceRefresh: true);
     }
   }
 
   @override
   void dispose() {
+    dataChangeSubscription?.cancel();
     searchController.dispose();
     scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> loadEmployees({bool showLoading = false}) async {
+  void handleDataChange(AppDataChange change) {
+    if (!mounted) return;
+
+    if (!change.affectsAny(const <AppDataDomain>{
+      AppDataDomain.employees,
+      AppDataDomain.objects,
+    })) {
+      return;
+    }
+
+    loadEmployees(forceRefresh: true);
+  }
+
+  Future<void> loadEmployees({
+    bool showLoading = false,
+    bool forceRefresh = false,
+  }) async {
     final id = ++requestId;
     if (showLoading && employees.isEmpty) {
       setState(() {
@@ -79,6 +101,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       final loaded = await EmployeeRepository.fetchEmployees(
         objectName: widget.selectedObjectName,
         includeFired: true,
+        forceRefresh: forceRefresh,
       );
       if (!mounted || id != requestId) return;
       setState(() {

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../models/task_item_data.dart';
+import 'app_data_sync.dart';
 import 'image_compression_service.dart';
 
 class TaskAssigneeData {
@@ -98,6 +99,17 @@ class TaskRepository {
 
   static void clearTaskListCache() {
     _tasksCache.clear();
+  }
+
+  static void _notifyTasksChanged(TaskItemData task) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.tasks},
+      context: <String, dynamic>{
+        'table': 'tasks',
+        'task_date': _dateKey(task.date),
+        'object_name': task.objectName,
+      },
+    );
   }
 
   static String _tasksCacheKey({
@@ -298,8 +310,10 @@ class TaskRepository {
         .single();
 
     clearTaskListCache();
+    final createdTask = TaskItemData.fromSupabase(row);
+    _notifyTasksChanged(createdTask);
 
-    return TaskItemData.fromSupabase(row);
+    return createdTask;
   }
 
   static Future<TaskItemData> addTaskWithDetails(
@@ -341,6 +355,7 @@ class TaskRepository {
         .eq('id', task.id!);
 
     clearTaskListCache();
+    _notifyTasksChanged(task);
   }
 
   static Future<void> deleteTask(TaskItemData task) async {
@@ -349,6 +364,7 @@ class TaskRepository {
     await _client.from('tasks').delete().eq('id', task.id!);
 
     clearTaskListCache();
+    _notifyTasksChanged(task);
   }
 
   static Future<List<TaskAssigneeData>> fetchTaskAssignees(

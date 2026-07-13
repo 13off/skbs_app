@@ -109,6 +109,10 @@ class FinanceSummaryRepository {
   /// или выплаты главная всегда показывала свежую сумму.
   static final Map<String, Future<FinanceSummaryData>> _inFlight = {};
 
+  static void clearCache() {
+    _inFlight.clear();
+  }
+
   static double _toDouble(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value.toDouble();
@@ -170,8 +174,14 @@ class FinanceSummaryRepository {
   static Future<FinanceSummaryData> fetchSummary({
     required FinancePeriod period,
     String? objectName,
+    bool forceRefresh = false,
   }) {
     final key = _requestKey(period: period, objectName: objectName);
+
+    if (forceRefresh) {
+      _inFlight.remove(key);
+    }
+
     final running = _inFlight[key];
 
     if (running != null) return running;

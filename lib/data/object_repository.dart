@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/construction_object.dart';
+import 'app_data_sync.dart';
 
 class ObjectRepository {
   static final _client = Supabase.instance.client;
@@ -29,6 +30,16 @@ class ObjectRepository {
     _cachedObjectsAt = null;
     _objectsInFlight = null;
     _cacheGeneration++;
+  }
+
+  static void _notifyObjectsChanged({String? objectName}) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.objects},
+      context: <String, dynamic>{
+        'table': 'objects',
+        'object_name': objectName,
+      },
+    );
   }
 
   static bool get _isObjectsCacheFresh {
@@ -214,6 +225,7 @@ class ObjectRepository {
         }
 
         clearCache();
+        _notifyObjectsChanged(objectName: cleanName);
         return existing['name']?.toString() ?? cleanName;
       }
 
@@ -231,6 +243,7 @@ class ObjectRepository {
           .single();
 
       clearCache();
+      _notifyObjectsChanged(objectName: cleanName);
 
       return row['name']?.toString() ?? cleanName;
     } catch (error) {
@@ -299,6 +312,7 @@ class ObjectRepository {
     ]);
 
     clearCache();
+    _notifyObjectsChanged(objectName: cleanNewName);
 
     return cleanNewName;
   }
@@ -312,6 +326,7 @@ class ObjectRepository {
 
     await _client.rpc('archive_object', params: {'p_name': cleanName});
     clearCache();
+    _notifyObjectsChanged(objectName: cleanName);
   }
 
   static Future<void> deleteObject({required String name}) async {
@@ -327,6 +342,7 @@ class ObjectRepository {
 
     await _client.rpc('restore_object', params: {'p_name': cleanName});
     clearCache();
+    _notifyObjectsChanged(objectName: cleanName);
   }
 
   static Future<void> ensureObjectNameExists(String objectName) async {

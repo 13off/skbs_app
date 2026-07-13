@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_data_sync.dart';
 import 'attendance_repository.dart';
 import 'payment_receipt_repository.dart';
 
@@ -100,6 +101,15 @@ class PaymentRepository {
 
     clearEmployeePaymentsCache(employeeId);
     AttendanceRepository.clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.payments},
+      context: <String, dynamic>{
+        'table': 'payments',
+        'employee_id': employeeId,
+        'period_year': periodYear,
+        'period_month': periodMonth,
+      },
+    );
 
     return paymentId;
   }
@@ -208,6 +218,13 @@ class PaymentRepository {
     );
 
     clearEmployeePaymentsCache(employeeId);
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.payments},
+      context: <String, dynamic>{
+        'table': 'payment_receipts',
+        'employee_id': employeeId,
+      },
+    );
 
     return uploadedReceipts;
   }
@@ -229,6 +246,13 @@ class PaymentRepository {
     }
 
     AttendanceRepository.clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.payments},
+      context: <String, dynamic>{
+        'table': 'payments',
+        'employee_id': cleanEmployeeId,
+      },
+    );
   }
 }
 

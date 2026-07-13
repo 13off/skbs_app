@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../../../../app/app_theme.dart';
+import '../../../../data/app_data_sync.dart';
 import '../../../../data/attendance_repository.dart';
 import '../../../../models/employee.dart';
 import '../../../../models/monthly_timesheet_row.dart';
@@ -28,6 +31,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   bool isExportingReport = false;
   String? errorText;
   int _loadGeneration = 0;
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   @override
   void initState() {
@@ -36,12 +40,28 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month, 1);
     loadPaymentsData();
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
   void dispose() {
+    dataChangeSubscription?.cancel();
     searchController.dispose();
     super.dispose();
+  }
+
+  void handleDataChange(AppDataChange change) {
+    if (!mounted ||
+        !change.affectsAny(const <AppDataDomain>{
+          AppDataDomain.attendance,
+          AppDataDomain.payments,
+          AppDataDomain.employees,
+          AppDataDomain.objects,
+        })) {
+      return;
+    }
+
+    loadPaymentsData(forceRefresh: true);
   }
 
   String monthName(int month) {

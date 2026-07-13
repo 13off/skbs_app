@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
 
 const Color _card = Color(0xFFFFFFFF);
@@ -20,11 +23,13 @@ class NotificationBell extends StatefulWidget {
 
 class _NotificationBellState extends State<NotificationBell> {
   Future<bool>? hasUnreadFuture;
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     refreshHasUnread();
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
@@ -34,6 +39,27 @@ class _NotificationBellState extends State<NotificationBell> {
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
       refreshHasUnread();
     }
+  }
+
+  @override
+  void dispose() {
+    dataChangeSubscription?.cancel();
+    super.dispose();
+  }
+
+  void handleDataChange(AppDataChange change) {
+    if (!mounted || !change.affects(AppDataDomain.notifications)) return;
+
+    final selectedObject = widget.selectedObjectName?.trim() ?? '';
+    final changedObject = change.contextValue('object_name') ?? '';
+
+    if (selectedObject.isNotEmpty &&
+        changedObject.isNotEmpty &&
+        selectedObject != changedObject) {
+      return;
+    }
+
+    setState(refreshHasUnread);
   }
 
   void refreshHasUnread() {

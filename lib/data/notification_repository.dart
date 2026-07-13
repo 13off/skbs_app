@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_data_sync.dart';
 import 'user_repository.dart';
 
 class AppNotification {
@@ -139,6 +140,13 @@ class NotificationRepository {
         'entity_type': entityType.trim(),
         'entity_id': entityId.trim(),
       });
+      AppDataSync.notifyLocal(
+        const <AppDataDomain>{AppDataDomain.notifications},
+        context: <String, dynamic>{
+          'table': 'app_notifications',
+          'object_name': cleanObjectName(objectName),
+        },
+      );
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
 

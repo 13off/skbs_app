@@ -4,6 +4,7 @@ import '../models/attendance_report_row.dart';
 import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../models/period_timesheet_row.dart';
+import 'app_data_sync.dart';
 import 'employee_repository.dart';
 import 'notification_repository.dart';
 
@@ -178,8 +179,13 @@ class AttendanceRepository {
   static Future<Set<String>> fetchWorkedEmployeeIds(
     DateTime date, {
     String? objectName,
+    bool forceRefresh = false,
   }) async {
-    final values = await fetchShiftValuesForDate(date, objectName: objectName);
+    final values = await fetchShiftValuesForDate(
+      date,
+      objectName: objectName,
+      forceRefresh: forceRefresh,
+    );
 
     final ids = <String>{};
 
@@ -241,6 +247,14 @@ class AttendanceRepository {
     final notificationObjectName = objectNames.length == 1
         ? objectNames.first
         : null;
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.attendance},
+      context: <String, dynamic>{
+        'table': 'attendance',
+        'work_date': workDate,
+        'object_name': notificationObjectName,
+      },
+    );
     final workedRowsCount = rows
         .where((row) => _toDouble(row['shifts']) > 0)
         .length;

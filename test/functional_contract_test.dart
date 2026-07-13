@@ -380,5 +380,58 @@ void main() {
       );
     });
 
+    test('изменения данных сразу доходят до всех открытых экранов', () {
+      _containsAll('lib/data/app_data_sync.dart', const [
+        'StreamController<AppDataChange>.broadcast',
+        'RealtimeChannelConfig(private: true)',
+        "event: 'app_data_changed'",
+        '_coalesceDuration',
+        '_cacheInvalidator?.call(domains)',
+      ]);
+      _containsAll(
+        'lib/features/shell/presentation/premium_main_screen.dart',
+        const [
+          'AppDataSync.start(',
+          'invalidateDataCaches',
+          'FinanceSummaryRepository.clearCache()',
+          'AppDataSync.stop(',
+        ],
+      );
+      _containsAll('lib/screens/home_screen.dart', const [
+        'AppDataSync.changes.listen(handleDataChange)',
+        'loadDashboardData(forceRefresh: true)',
+      ]);
+      _containsAll('lib/screens/timesheet_screen.dart', const [
+        'hasPendingRemoteAttendance',
+        'change.isRemote',
+        'loadAttendance(forceRefresh: true)',
+      ]);
+      _containsAll(
+        'lib/features/payments/presentation/screens/payments_screen.dart',
+        const [
+          'AppDataSync.changes.listen(handleDataChange)',
+          'loadPaymentsData(forceRefresh: true)',
+        ],
+      );
+      _containsAll('lib/data/attendance_repository.dart', const [
+        'AppDataSync.notifyLocal(',
+        "'table': 'attendance'",
+      ]);
+      _containsAll('lib/data/payment_repository.dart', const [
+        'AppDataSync.notifyLocal(',
+        "'table': 'payments'",
+      ]);
+      _containsAll(
+        'supabase/migrations/20260713090000_add_company_data_broadcast.sql',
+        const [
+          'private.broadcast_app_data_change()',
+          'realtime.send(',
+          "'company:' || changed_company_id || ':data'",
+          'company members receive app data broadcasts',
+          '(select public.current_user_company_id())::text',
+        ],
+      );
+    });
+
   });
 }

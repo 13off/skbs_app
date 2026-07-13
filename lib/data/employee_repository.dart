@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee.dart';
+import 'app_data_sync.dart';
 import 'object_repository.dart';
 
 class EmployeeRepository {
@@ -29,6 +30,20 @@ class EmployeeRepository {
     _employeeRequests.clear();
     _objectNamesRequest = null;
     _cacheGeneration++;
+  }
+
+  static void _notifyEmployeesChanged({
+    String? employeeId,
+    String? objectName,
+  }) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.employees},
+      context: <String, dynamic>{
+        'table': 'employees',
+        'employee_id': employeeId,
+        'object_name': objectName,
+      },
+    );
   }
 
   static String _employeesCacheKey({
@@ -260,6 +275,11 @@ class EmployeeRepository {
       );
     }
 
+    _notifyEmployeesChanged(
+      employeeId: employeeId,
+      objectName: cleanObjectName,
+    );
+
     return employeeId;
   }
 
@@ -296,6 +316,10 @@ class EmployeeRepository {
     clearCache();
 
     await syncEmployeePhoneToPrivateData(employeeId: employeeId, phone: phone);
+    _notifyEmployeesChanged(
+      employeeId: employeeId,
+      objectName: cleanObjectName,
+    );
   }
 
   static Future<Employee> copyEmployeeToObject({
@@ -370,6 +394,7 @@ class EmployeeRepository {
 
     if (newEmployeeId.isEmpty) {
       clearCache();
+      _notifyEmployeesChanged(objectName: cleanTargetObjectName);
       return newEmployee;
     }
 
@@ -380,6 +405,10 @@ class EmployeeRepository {
     );
 
     clearCache();
+    _notifyEmployeesChanged(
+      employeeId: newEmployeeId,
+      objectName: cleanTargetObjectName,
+    );
 
     return newEmployee;
   }
@@ -468,6 +497,7 @@ class EmployeeRepository {
         .eq('id', employeeId);
 
     clearCache();
+    _notifyEmployeesChanged(employeeId: employeeId);
   }
 }
 

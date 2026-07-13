@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee.dart';
+import 'app_data_sync.dart';
 import 'employee_repository.dart';
 
 class EmployeeArchiveRepository {
@@ -47,6 +48,13 @@ class EmployeeArchiveRepository {
         .eq('id', id);
 
     EmployeeRepository.clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.employees},
+      context: <String, dynamic>{
+        'table': 'employees',
+        'employee_id': id,
+      },
+    );
   }
 
   static Future<void> restoreEmployee(String employeeId) async {
@@ -63,5 +71,12 @@ class EmployeeArchiveRepository {
         .eq('id', id);
 
     EmployeeRepository.clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.employees},
+      context: <String, dynamic>{
+        'table': 'employees',
+        'employee_id': id,
+      },
+    );
   }
 }

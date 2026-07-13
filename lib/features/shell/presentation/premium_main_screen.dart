@@ -4,10 +4,13 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/services.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
 import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
+import '../../../data/finance_summary_repository.dart';
 import '../../../data/object_repository.dart';
+import '../../../data/payment_repository.dart';
 import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/web_back_navigation.dart';
@@ -27,7 +30,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int currentIndex = 0;
   int warmUpToken = 0;
 
@@ -51,6 +54,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     selectedObjectNameNotifier = ValueNotifier<String?>(
       widget.profile.isAdmin
@@ -64,16 +68,65 @@ class _MainScreenState extends State<MainScreen> {
     pageController = PageController(initialPage: currentIndex);
 
     setActiveAppBackHandler(handleBackRequest);
+    startDataSync();
+  }
 
+  @override
+  void didUpdateWidget(covariant MainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
+      startDataSync();
+    }
   }
 
   @override
   void dispose() {
     warmUpToken++;
+    WidgetsBinding.instance.removeObserver(this);
     setActiveAppBackHandler(null);
+    AppDataSync.stop(companyId: widget.profile.activeCompanyId);
     pageController.dispose();
     selectedObjectNameNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppDataSync.refreshAll();
+    }
+  }
+
+  void startDataSync() {
+    AppDataSync.start(
+      companyId: widget.profile.activeCompanyId,
+      invalidateCaches: invalidateDataCaches,
+    );
+  }
+
+  void invalidateDataCaches(Set<AppDataDomain> domains) {
+    final objectsChanged = domains.contains(AppDataDomain.objects);
+    final employeesChanged =
+        objectsChanged || domains.contains(AppDataDomain.employees);
+    final attendanceChanged =
+        objectsChanged || domains.contains(AppDataDomain.attendance);
+    final paymentsChanged =
+        objectsChanged || domains.contains(AppDataDomain.payments);
+    final tasksChanged =
+        objectsChanged || domains.contains(AppDataDomain.tasks);
+
+    if (objectsChanged) ObjectRepository.clearCache();
+    if (employeesChanged) EmployeeRepository.clearCache();
+    if (attendanceChanged || paymentsChanged || employeesChanged) {
+      AttendanceRepository.clearCache();
+    }
+    if (paymentsChanged) PaymentRepository.clearCache();
+    if (tasksChanged) TaskRepository.clearTaskListCache();
+    if (attendanceChanged || paymentsChanged || employeesChanged) {
+      FinanceSummaryRepository.clearCache();
+    }
   }
 
   String? cleanObjectName(String? value) {

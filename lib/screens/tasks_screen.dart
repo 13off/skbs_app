@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
+import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
@@ -32,11 +35,13 @@ class _TasksScreenState extends State<TasksScreen> {
   bool isLoading = true;
   String? loadError;
   int _loadToken = 0;
+  StreamSubscription<AppDataChange>? dataChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     loadTasks();
+    dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
   }
 
   @override
@@ -45,8 +50,26 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (cleanObjectName(oldWidget.selectedObjectName) !=
         cleanObjectName(widget.selectedObjectName)) {
-      loadTasks();
+      loadTasks(forceRefresh: true);
     }
+  }
+
+  @override
+  void dispose() {
+    dataChangeSubscription?.cancel();
+    super.dispose();
+  }
+
+  void handleDataChange(AppDataChange change) {
+    if (!mounted ||
+        !change.affectsAny(const <AppDataDomain>{
+          AppDataDomain.tasks,
+          AppDataDomain.objects,
+        })) {
+      return;
+    }
+
+    loadTasks(silent: true, forceRefresh: true);
   }
 
   String shortDate(DateTime date) {
@@ -98,7 +121,10 @@ class _TasksScreenState extends State<TasksScreen> {
     return cleanObjectName(task.objectName) == selectedObject;
   }
 
-  Future<void> loadTasks({bool silent = false}) async {
+  Future<void> loadTasks({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
     final token = ++_loadToken;
 
     if (!silent) {
@@ -113,6 +139,7 @@ class _TasksScreenState extends State<TasksScreen> {
       final rows = await TaskRepository.fetchTasksForDate(
         selectedDate,
         objectName: widget.selectedObjectName,
+        forceRefresh: forceRefresh,
       );
 
       if (!mounted || token != _loadToken) return;
@@ -209,7 +236,10 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (taskFitsCurrentFilter(createdTask)) {
       setState(() {
-        tasks = [...tasks, createdTask];
+        tasks = [
+          ...tasks.where((task) => task.id != createdTask.id),
+          createdTask,
+        ];
       });
       return;
     }
