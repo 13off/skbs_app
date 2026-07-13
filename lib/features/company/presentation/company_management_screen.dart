@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/app_theme.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
+import 'company_plans_screen.dart';
 
 class CompanyManagementScreen extends StatefulWidget {
   final String companyId;
@@ -69,6 +70,15 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
     if (result == null || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
     await refresh();
+  }
+
+  void openPlans(CompanyDashboard dashboard) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => CompanyPlansScreen(dashboard: dashboard),
+      ),
+    );
   }
 
   String planTitle(CompanySummary company) {
@@ -140,6 +150,11 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                   ],
                 ),
               ),
+              TextButton.icon(
+                onPressed: () => openPlans(dashboard),
+                icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                label: const Text('Тарифы'),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -147,14 +162,16 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
             children: [
               Expanded(
                 child: _Metric(
-                  value: '${dashboard.members.length}',
+                  value:
+                      '${dashboard.members.length} / ${dashboard.company.seatLimit}',
                   label: 'пользователей',
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _Metric(
-                  value: '${dashboard.objects.length}',
+                  value:
+                      '${dashboard.objects.length} / ${dashboard.company.objectLimit}',
                   label: 'объектов',
                 ),
               ),
