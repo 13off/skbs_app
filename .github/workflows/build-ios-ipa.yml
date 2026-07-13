@@ -56,39 +56,60 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Run regression tests
-        run: flutter test
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
       - name: Prepare iOS app
+        id: ios_prepare
+        continue-on-error: true
         shell: bash
         run: |
-          python3 - <<'PY'
+          set -o pipefail
+          python3 - <<'PY' 2>&1 | tee ios-prepare.log
           from pathlib import Path
 
           project = Path('ios/Runner.xcodeproj/project.pbxproj')
           text = project.read_text(encoding='utf-8')
+          old_bundle_count = text.count('com.example.skbsApp')
           text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
 
           entitlement_line = 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;'
           if entitlement_line not in text:
+              info_line = 'INFOPLIST_FILE = Runner/Info.plist;'
+              info_count = text.count(info_line)
               text = text.replace(
-                  'INFOPLIST_FILE = Runner/Info.plist;',
-                  entitlement_line + '\n\t\t\t\tINFOPLIST_FILE = Runner/Info.plist;',
+                  info_line,
+                  entitlement_line + '\n\t\t\t\t' + info_line,
               )
+          else:
+              info_count = 0
 
-          if 'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;' not in text:
+          new_bundle_count = text.count(
+              'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;'
+          )
+          entitlement_count = text.count(entitlement_line)
+
+          print(f'Old bundle replacements: {old_bundle_count}')
+          print(f'New bundle settings: {new_bundle_count}')
+          print(f'Info.plist settings patched: {info_count}')
+          print(f'Entitlement settings: {entitlement_count}')
+
+          if new_bundle_count == 0:
               raise SystemExit('iOS bundle identifier was not updated')
-          if entitlement_line not in text:
+          if entitlement_count == 0:
               raise SystemExit('Runner.entitlements was not connected')
 
           project.write_text(text, encoding='utf-8')
           print('Prepared ru.appstroy.mobile with Runner.entitlements')
           PY
 
+      - name: Run regression tests
+        if: steps.ios_prepare.outcome == 'success'
+        run: flutter test
+
+      - name: Analyze source
+        if: steps.ios_prepare.outcome == 'success'
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Build unsigned app
+        if: steps.ios_prepare.outcome == 'success'
         id: ios_build
         continue-on-error: true
         shell: bash
@@ -108,7 +129,7 @@ jobs:
             2>&1 | tee ios-build.log
 
       - name: Create IPA
-        if: steps.ios_build.outcome == 'success'
+        if: steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
         shell: bash
         run: |
           SHORT_SHA="$(git rev-parse --short=12 HEAD)"
@@ -121,7 +142,7 @@ jobs:
           shasum -a 256 AppStroy-latest.ipa > AppStroy-iOS-latest.sha256
 
       - name: Upload IPA artifact
-        if: steps.ios_build.outcome == 'success'
+        if: steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: AppStroy-iOS-IPA
@@ -136,10 +157,14 @@ jobs:
           git pull --rebase
           cd ..
           mkdir -p appstroy-web/downloads
-          cp ios-build.log appstroy-web/downloads/ios-build.log || true
+          test -f ios-prepare.log || printf 'Prepare step did not produce a log\n' > ios-prepare.log
+          test -f ios-build.log || printf 'Xcode build was not started\n' > ios-build.log
+          cp ios-prepare.log appstroy-web/downloads/ios-prepare.log
+          cp ios-build.log appstroy-web/downloads/ios-build.log
           printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/ios-source-commit.txt
 
-          if [ "${{ steps.ios_build.outcome }}" = "success" ]; then
+          if [ "${{ steps.ios_prepare.outcome }}" = "success" ] && \
+             [ "${{ steps.ios_build.outcome }}" = "success" ]; then
             rm -f appstroy-web/downloads/AppStroy-*.ipa
             cp ios-output/AppStroy-*.ipa appstroy-web/downloads/
             cp ios-output/AppStroy-iOS-latest.sha256 appstroy-web/downloads/
@@ -153,7 +178,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads
           if ! git diff --cached --quiet; then
-            if [ "${{ steps.ios_build.outcome }}" = "success" ]; then
+            if [ "${{ steps.ios_prepare.outcome }}" = "success" ] && \
+               [ "${{ steps.ios_build.outcome }}" = "success" ]; then
               git commit -m "опубликована проверочная IPA для iPhone"
             else
               git commit -m "сохранена ошибка сборки iOS"
@@ -163,5 +189,5 @@ jobs:
           fi
 
       - name: Fail workflow when iOS build failed
-        if: steps.ios_build.outcome != 'success'
+        if: steps.ios_prepare.outcome != 'success' || steps.ios_build.outcome != 'success'
         run: exit 1
