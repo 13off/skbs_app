@@ -15,7 +15,7 @@ on:
       - .github/workflows/build-android-apk.yml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: appstroy-android-apk
@@ -172,3 +172,83 @@ jobs:
       - name: Fail workflow when APK build failed
         if: steps.apk_build.outputs.exit_code != '0'
         run: exit 1
+
+  validate-ui-v2-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout UI branch
+        uses: actions/checkout@v4
+        with:
+          ref: ui/unified-motion-nav-v2
+          persist-credentials: true
+
+      - name: Mark validation start
+        shell: bash
+        run: |
+          printf '%s\n' "${{ github.sha }}" > tool/ui_v2_validation_started.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tool/ui_v2_validation_started.txt
+          git commit -m "запущена проверка новой навигации" || true
+          git push origin HEAD:ui/unified-motion-nav-v2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Apply, test and build UI branch
+        id: ui_validation
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          {
+            python3 tool/apply_unified_ui_v2.py
+            dart format \
+              lib/widgets/premium_ui_v2.dart \
+              lib/widgets/premium_pressable_v3.dart \
+              lib/widgets/professional_bottom_navigation.dart \
+              lib/widgets/premium_ui.dart \
+              lib/features/shell/presentation/premium_main_screen.dart \
+              test/ui_motion_contract_test.dart \
+              test/professional_bottom_navigation_test.dart
+            flutter pub get --enforce-lockfile
+            flutter test
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            flutter build web --release --base-href /appstroy-web/
+          } 2>&1 | tee /tmp/ui-v2-validation.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit verified UI branch
+        if: steps.ui_validation.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          rm -f tool/apply_unified_ui_v2.py
+          rm -f tool/apply_unified_ui_v2.marker
+          rm -f tool/ui_v2_validation_started.txt
+          rm -f .github/workflows/apply-unified-ui-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "унифицирован интерфейс без изменения рабочих экранов"
+          git push origin HEAD:ui/unified-motion-nav-v2
+
+      - name: Save UI validation failure
+        if: steps.ui_validation.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cp /tmp/ui-v2-validation.log /tmp/ui-v2-validation.saved.log
+          git fetch origin ui/unified-motion-nav-v2
+          git reset --hard origin/ui/unified-motion-nav-v2
+          cp /tmp/ui-v2-validation.saved.log tool/ui_v2_validation_failure.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tool/ui_v2_validation_failure.log
+          git commit -m "сохранена ошибка проверки новой навигации"
+          git push origin HEAD:ui/unified-motion-nav-v2
+          exit 1
