@@ -533,110 +533,175 @@ class _PremiumBottomBar extends StatelessWidget {
     required this.onSelected,
   });
 
+  Widget buildIcon(_TabItem item, bool selected, bool isDesktop) {
+    return AnimatedContainer(
+      duration: AppMotion.regular,
+      curve: AppMotion.interactionCurve,
+      width: isDesktop ? 36 : 34,
+      height: isDesktop ? 36 : 34,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.accent : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: AppColors.accent.withValues(alpha: 0.16),
+                  blurRadius: 15,
+                  spreadRadius: -5,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : const [],
+      ),
+      child: AnimatedSwitcher(
+        duration: AppMotion.regular,
+        switchInCurve: AppMotion.enterCurve,
+        switchOutCurve: AppMotion.exitCurve,
+        child: Icon(
+          selected ? item.selectedIcon : item.icon,
+          key: ValueKey('${item.label}-$selected'),
+          size: isDesktop ? 20 : 19,
+          color: selected ? Colors.white : AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+
+  Widget buildLabel(
+    BuildContext context,
+    _TabItem item,
+    bool selected,
+    bool isDesktop,
+  ) {
+    return AnimatedDefaultTextStyle(
+      duration: AppMotion.regular,
+      curve: AppMotion.interactionCurve,
+      style:
+          Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: selected ? AppColors.textPrimary : AppColors.textMuted,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            fontSize: isDesktop ? 13 : 10.5,
+            letterSpacing: isDesktop ? -0.1 : -0.2,
+          ) ??
+          const TextStyle(),
+      child: Text(
+        item.label,
+        maxLines: 1,
+        overflow: TextOverflow.fade,
+        softWrap: false,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final duration = animationsDisabled ? Duration.zero : AppMotion.regular;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = screenWidth >= 880;
+    final maxWidth = items.length >= 5 ? 820.0 : 690.0;
+    final horizontalMargin = isDesktop ? 32.0 : 12.0;
+    final bottomMargin = isDesktop ? 18.0 : 10.0;
 
     return Material(
       color: AppColors.background,
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        child: Container(
-          height: 68,
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.97),
-            borderRadius: BorderRadius.circular(27),
-            border: Border.all(color: Colors.white),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF17191C).withValues(alpha: 0.11),
-                blurRadius: 24,
-                offset: const Offset(0, 11),
+        minimum: EdgeInsets.fromLTRB(
+          horizontalMargin,
+          5,
+          horizontalMargin,
+          bottomMargin,
+        ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Container(
+              height: isDesktop ? 74 : 70,
+              padding: EdgeInsets.all(isDesktop ? 8 : 7),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.97),
+                borderRadius: BorderRadius.circular(isDesktop ? 23 : 26),
+                border: Border.all(
+                  color: AppColors.border.withValues(alpha: 0.92),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF17191C).withValues(alpha: 0.10),
+                    blurRadius: isDesktop ? 32 : 24,
+                    spreadRadius: -9,
+                    offset: Offset(0, isDesktop ? 15 : 11),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: List<Widget>.generate(items.length, (index) {
-              final item = items[index];
-              final selected = index == selectedIndex;
+              child: Row(
+                children: List<Widget>.generate(items.length, (index) {
+                  final item = items[index];
+                  final selected = index == selectedIndex;
 
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: PremiumPressable(
-                    onTap: () => onSelected(index),
-                    pressedScale: 0.95,
-                    borderRadius: BorderRadius.circular(19),
-                    child: AnimatedContainer(
-                      duration: duration,
-                      curve: AppMotion.enterCurve,
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(19),
-                        boxShadow: selected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.accent.withValues(
-                                    alpha: 0.20,
-                                  ),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ]
-                            : const [],
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isDesktop ? 3 : 2,
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: duration,
-                            switchInCurve: AppMotion.enterCurve,
-                            switchOutCurve: AppMotion.exitCurve,
-                            child: Icon(
-                              selected ? item.selectedIcon : item.icon,
-                              key: ValueKey('$index-$selected'),
-                              size: 21,
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.textMuted,
-                            ),
+                      child: PremiumPressable(
+                        onTap: () => onSelected(index),
+                        pressedScale: 0.968,
+                        hoverScale: selected ? 1.008 : 1.016,
+                        borderRadius: BorderRadius.circular(17),
+                        child: AnimatedContainer(
+                          duration: duration,
+                          curve: AppMotion.interactionCurve,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 13 : 4,
+                            vertical: 6,
                           ),
-                          const SizedBox(height: 3),
-                          AnimatedDefaultTextStyle(
-                            duration: duration,
-                            curve: AppMotion.enterCurve,
-                            style:
-                                Theme.of(
-                                  context,
-                                ).textTheme.labelSmall?.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textMuted,
-                                  fontWeight: selected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  fontSize: 10.5,
-                                  letterSpacing: -0.2,
-                                ) ??
-                                const TextStyle(),
-                            child: Text(
-                              item.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                            ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.surfaceSoft
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(17),
+                            border: selected
+                                ? Border.all(
+                                    color: AppColors.border.withValues(
+                                      alpha: 0.90,
+                                    ),
+                                  )
+                                : null,
                           ),
-                        ],
+                          child: isDesktop
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    buildIcon(item, selected, true),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: buildLabel(
+                                        context,
+                                        item,
+                                        selected,
+                                        true,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    buildIcon(item, selected, false),
+                                    const SizedBox(height: 2),
+                                    buildLabel(context, item, selected, false),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            }),
+                  );
+                }),
+              ),
+            ),
           ),
         ),
       ),
