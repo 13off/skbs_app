@@ -1,5 +1,6 @@
 name: Publish UI v2 preview
 
+# Registered workflow trigger.
 on:
   push:
     branches:
