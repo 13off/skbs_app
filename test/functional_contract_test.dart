@@ -133,6 +133,7 @@ void main() {
       _containsAll('lib/screens/tasks_screen.dart', const [
         "'Все объекты'",
         "'Добавить задачу'",
+        "'Сформировать акт'",
       ]);
       _containsAll('lib/screens/add_task_screen.dart', const [
         "'Фото к задаче'",
@@ -289,6 +290,11 @@ void main() {
         'class PremiumWorkBackdrop',
         'class PremiumWorkCard',
       ]);
+      _containsAll('lib/widgets/app_page.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumBrandMark(size: 50, animate: false)',
+      ]);
       _containsAll('lib/screens/home_screen.dart', const [
         'PremiumWorkBackdrop',
         'PremiumBrandMark(size: 52, animate: false)',
@@ -311,6 +317,38 @@ void main() {
           'PremiumWorkBackdrop',
           'PremiumWorkCard',
           'AppColors.textPrimary',
+        ],
+      );
+      _containsAll('lib/screens/tasks_screen.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+        'PremiumActionButton',
+      ]);
+      _containsAll('lib/widgets/task_tile.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsNone('lib/widgets/task_tile.dart', const [
+        'Colors.orange',
+        'Colors.green',
+        'Colors.blue',
+      ]);
+      _containsAll('lib/screens/profile_screen.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+        "'Компания и пользователи'",
+        "'Сменить компанию'",
+      ]);
+      _containsAll('lib/widgets/notification_bell.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsAll(
+        'lib/features/archive/presentation/archive_management_screen_v3.dart',
+        const [
+          'PremiumWorkBackdrop',
+          'PremiumWorkCard',
+          "'Архив доступен только администратору'",
         ],
       );
       _containsNone('lib/widgets/premium_surfaces_v3.dart', const [
