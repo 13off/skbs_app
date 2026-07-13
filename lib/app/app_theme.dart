@@ -14,15 +14,20 @@ abstract final class AppColors {
 
 abstract final class AppMotion {
   static const fast = Duration(milliseconds: 110);
-  static const regular = Duration(milliseconds: 190);
-  static const page = Duration(milliseconds: 260);
-  static const tab = Duration(milliseconds: 220);
-  static const pressIn = Duration(milliseconds: 55);
-  static const pressOut = Duration(milliseconds: 150);
+  static const regular = Duration(milliseconds: 180);
+  static const hover = Duration(milliseconds: 180);
+  static const page = Duration(milliseconds: 240);
+  static const tab = Duration(milliseconds: 240);
+  static const pressIn = Duration(milliseconds: 65);
+  static const pressOut = Duration(milliseconds: 180);
+
+  static const double hoverScale = 1.018;
+  static const double pressedScale = 0.974;
 
   static const Curve enterCurve = Curves.easeOutCubic;
   static const Curve exitCurve = Curves.easeInCubic;
   static const Curve emphasizedCurve = Curves.easeInOutCubic;
+  static const Curve interactionCurve = Cubic(0.22, 1, 0.36, 1);
   static const Curve springCurve = Curves.easeOutCubic;
 }
 
@@ -113,17 +118,215 @@ abstract final class AppTheme {
       ),
     );
 
-    WidgetStateProperty<Color?> subtleOverlay() {
-      return WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.pressed)) {
-          return Colors.white.withValues(alpha: 0.10);
-        }
-        if (states.contains(WidgetState.hovered)) {
-          return Colors.white.withValues(alpha: 0.06);
-        }
-        return Colors.transparent;
-      });
+    ButtonLayerBuilder buttonSurface({
+      required Color background,
+      required Color hoveredBackground,
+      required Color pressedBackground,
+      required Color disabledBackground,
+      Color? borderColor,
+      Color? hoveredBorderColor,
+      Color? pressedBorderColor,
+      bool circular = false,
+      bool elevated = false,
+    }) {
+      return (_, states, child) {
+        final disabled = states.contains(WidgetState.disabled);
+        final pressed = states.contains(WidgetState.pressed);
+        final hovered = states.contains(WidgetState.hovered);
+        final focused = states.contains(WidgetState.focused);
+        final activeHover = !disabled && !pressed && (hovered || focused);
+
+        final color = disabled
+            ? disabledBackground
+            : pressed
+            ? pressedBackground
+            : activeHover
+            ? hoveredBackground
+            : background;
+        final resolvedBorder = disabled
+            ? borderColor?.withValues(alpha: 0.48)
+            : pressed
+            ? (pressedBorderColor ?? borderColor)
+            : activeHover
+            ? (hoveredBorderColor ?? borderColor)
+            : borderColor;
+        final scale = pressed
+            ? AppMotion.pressedScale
+            : activeHover
+            ? AppMotion.hoverScale
+            : 1.0;
+        final radius = pressed
+            ? 16.0
+            : activeHover
+            ? 20.0
+            : 18.0;
+
+        return AnimatedScale(
+          scale: scale,
+          duration: pressed ? AppMotion.pressIn : AppMotion.hover,
+          curve: pressed ? Curves.easeOut : AppMotion.interactionCurve,
+          child: AnimatedContainer(
+            duration: pressed ? AppMotion.pressIn : AppMotion.regular,
+            curve: AppMotion.interactionCurve,
+            decoration: BoxDecoration(
+              color: color,
+              shape: circular ? BoxShape.circle : BoxShape.rectangle,
+              borderRadius: circular ? null : BorderRadius.circular(radius),
+              border: resolvedBorder == null
+                  ? null
+                  : Border.all(color: resolvedBorder),
+              boxShadow: !elevated || disabled
+                  ? const <BoxShadow>[]
+                  : [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(
+                          alpha: pressed
+                              ? 0.07
+                              : activeHover
+                              ? 0.17
+                              : 0.10,
+                        ),
+                        blurRadius: pressed
+                            ? 8
+                            : activeHover
+                            ? 22
+                            : 12,
+                        spreadRadius: activeHover ? -4 : -6,
+                        offset: Offset(
+                          0,
+                          pressed
+                              ? 2
+                              : activeHover
+                              ? 10
+                              : 5,
+                        ),
+                      ),
+                    ],
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      };
     }
+
+    final filledButtonStyle = ButtonStyle(
+      animationDuration: AppMotion.regular,
+      minimumSize: const WidgetStatePropertyAll(Size(0, 46)),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return Colors.white.withValues(alpha: 0.68);
+        }
+        return Colors.white;
+      }),
+      backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      elevation: const WidgetStatePropertyAll(0),
+      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      ),
+      side: const WidgetStatePropertyAll(BorderSide.none),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
+      backgroundBuilder: buttonSurface(
+        background: AppColors.accent,
+        hoveredBackground: const Color(0xFF30343A),
+        pressedBackground: const Color(0xFF111316),
+        disabledBackground: AppColors.accent.withValues(alpha: 0.38),
+        elevated: true,
+      ),
+    );
+
+    final outlinedButtonStyle = ButtonStyle(
+      animationDuration: AppMotion.regular,
+      minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return AppColors.textMuted.withValues(alpha: 0.55);
+        }
+        return AppColors.textPrimary;
+      }),
+      backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      elevation: const WidgetStatePropertyAll(0),
+      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      ),
+      side: const WidgetStatePropertyAll(BorderSide.none),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
+      backgroundBuilder: buttonSurface(
+        background: Colors.white.withValues(alpha: 0.76),
+        hoveredBackground: Colors.white,
+        pressedBackground: AppColors.accentSoft,
+        disabledBackground: Colors.white.withValues(alpha: 0.42),
+        borderColor: AppColors.border,
+        hoveredBorderColor: AppColors.accent.withValues(alpha: 0.28),
+        pressedBorderColor: AppColors.accent.withValues(alpha: 0.44),
+      ),
+    );
+
+    final textButtonStyle = ButtonStyle(
+      animationDuration: AppMotion.regular,
+      minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return AppColors.textMuted.withValues(alpha: 0.50);
+        }
+        return AppColors.textPrimary;
+      }),
+      backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      ),
+      side: const WidgetStatePropertyAll(BorderSide.none),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
+      backgroundBuilder: buttonSurface(
+        background: Colors.transparent,
+        hoveredBackground: AppColors.accent.withValues(alpha: 0.055),
+        pressedBackground: AppColors.accent.withValues(alpha: 0.085),
+        disabledBackground: Colors.transparent,
+      ),
+    );
+
+    final iconButtonStyle = ButtonStyle(
+      animationDuration: AppMotion.regular,
+      minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return AppColors.textMuted.withValues(alpha: 0.48);
+        }
+        return AppColors.textPrimary;
+      }),
+      backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      elevation: const WidgetStatePropertyAll(0),
+      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+      shape: const WidgetStatePropertyAll(CircleBorder()),
+      backgroundBuilder: buttonSurface(
+        background: Colors.transparent,
+        hoveredBackground: Colors.white,
+        pressedBackground: AppColors.accentSoft,
+        disabledBackground: Colors.transparent,
+        circular: true,
+        elevated: true,
+      ),
+    );
 
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
@@ -166,118 +369,11 @@ abstract final class AppTheme {
           side: const BorderSide(color: AppColors.border),
         ),
       ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: ButtonStyle(
-          animationDuration: AppMotion.regular,
-          minimumSize: const WidgetStatePropertyAll(Size(0, 46)),
-          tapTargetSize: MaterialTapTargetSize.padded,
-          foregroundColor: const WidgetStatePropertyAll(Colors.white),
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.disabled)) {
-              return AppColors.accent.withValues(alpha: 0.38);
-            }
-            if (states.contains(WidgetState.pressed)) {
-              return const Color(0xFF111316);
-            }
-            return AppColors.accent;
-          }),
-          overlayColor: subtleOverlay(),
-          elevation: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) return 0;
-            if (states.contains(WidgetState.hovered)) return 5;
-            return 2;
-          }),
-          shadowColor: WidgetStatePropertyAll(
-            AppColors.accent.withValues(alpha: 0.24),
-          ),
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          ),
-          shape: WidgetStateProperty.resolveWith((states) {
-            final radius = states.contains(WidgetState.pressed) ? 15.0 : 18.0;
-            return RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(radius),
-            );
-          }),
-          textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: ButtonStyle(
-          animationDuration: AppMotion.regular,
-          minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
-          tapTargetSize: MaterialTapTargetSize.padded,
-          foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
-          overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return AppColors.accent.withValues(alpha: 0.07);
-            }
-            return Colors.transparent;
-          }),
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          ),
-          side: WidgetStateProperty.resolveWith((states) {
-            final color = states.contains(WidgetState.focused)
-                ? AppColors.accent
-                : AppColors.border;
-            return BorderSide(color: color);
-          }),
-          shape: WidgetStateProperty.resolveWith((states) {
-            final radius = states.contains(WidgetState.pressed) ? 15.0 : 18.0;
-            return RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(radius),
-            );
-          }),
-          textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: ButtonStyle(
-          animationDuration: AppMotion.regular,
-          minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
-          tapTargetSize: MaterialTapTargetSize.padded,
-          foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
-          overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return AppColors.accent.withValues(alpha: 0.06);
-            }
-            return Colors.transparent;
-          }),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
-        ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: ButtonStyle(
-          animationDuration: AppMotion.fast,
-          minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
-          tapTargetSize: MaterialTapTargetSize.padded,
-          padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
-          foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) {
-              return AppColors.accent.withValues(alpha: 0.10);
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.white;
-            }
-            return Colors.transparent;
-          }),
-          shadowColor: WidgetStatePropertyAll(
-            AppColors.accent.withValues(alpha: 0.18),
-          ),
-          elevation: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.hovered)) return 7;
-            if (states.contains(WidgetState.pressed)) return 1;
-            return 0;
-          }),
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          shape: const WidgetStatePropertyAll(CircleBorder()),
-        ),
-      ),
+      filledButtonTheme: FilledButtonThemeData(style: filledButtonStyle),
+      elevatedButtonTheme: ElevatedButtonThemeData(style: filledButtonStyle),
+      outlinedButtonTheme: OutlinedButtonThemeData(style: outlinedButtonStyle),
+      textButtonTheme: TextButtonThemeData(style: textButtonStyle),
+      iconButtonTheme: IconButtonThemeData(style: iconButtonStyle),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.84),

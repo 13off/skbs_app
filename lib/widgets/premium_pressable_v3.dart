@@ -9,6 +9,7 @@ class PremiumPressable extends StatefulWidget {
   final VoidCallback? onTap;
   final BorderRadius borderRadius;
   final double pressedScale;
+  final double hoverScale;
   final bool enableHaptics;
 
   const PremiumPressable({
@@ -16,7 +17,8 @@ class PremiumPressable extends StatefulWidget {
     required this.child,
     required this.onTap,
     this.borderRadius = const BorderRadius.all(Radius.circular(18)),
-    this.pressedScale = 0.972,
+    this.pressedScale = AppMotion.pressedScale,
+    this.hoverScale = AppMotion.hoverScale,
     this.enableHaptics = true,
   });
 
@@ -27,8 +29,16 @@ class PremiumPressable extends StatefulWidget {
 class _PremiumPressableState extends State<PremiumPressable> {
   bool isPressed = false;
   bool isHovered = false;
+  bool isFocused = false;
 
   bool get isEnabled => widget.onTap != null;
+
+  bool get supportsHover {
+    return kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux;
+  }
 
   void updatePressed(bool value) {
     if (!mounted || isPressed == value) return;
@@ -46,75 +56,103 @@ class _PremiumPressableState extends State<PremiumPressable> {
     }
   }
 
+  void activate() {
+    if (!isEnabled) return;
+    widget.onTap?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final activeHover = isHovered && isEnabled && !isPressed;
+    final activeHover =
+        supportsHover && (isHovered || isFocused) && isEnabled && !isPressed;
     final scale = isPressed
         ? widget.pressedScale
         : activeHover
-        ? 1.0015
+        ? widget.hoverScale
         : 1.0;
+    final duration = isPressed ? AppMotion.pressIn : AppMotion.hover;
+    final curve = isPressed ? Curves.easeOut : AppMotion.interactionCurve;
 
-    return MouseRegion(
-      cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onEnter: (_) {
-        if (isEnabled) setState(() => isHovered = true);
-      },
-      onExit: (_) {
-        if (!mounted) return;
-        setState(() {
-          isHovered = false;
-          isPressed = false;
-        });
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: isEnabled ? handleTapDown : null,
-        onTapCancel: isEnabled ? () => updatePressed(false) : null,
-        onTapUp: isEnabled ? (_) => updatePressed(false) : null,
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: scale,
-          duration: isPressed
-              ? AppMotion.pressIn
-              : const Duration(milliseconds: 220),
-          curve: isPressed
-              ? Curves.easeOut
-              : const Cubic(0.22, 1, 0.36, 1),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: const Cubic(0.22, 1, 0.36, 1),
-            decoration: BoxDecoration(
-              borderRadius: widget.borderRadius,
-              border: Border.all(
-                color: activeHover
-                    ? Colors.white.withValues(alpha: 0.82)
-                    : Colors.transparent,
-                width: 0.8,
-              ),
-              boxShadow: activeHover
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF111317).withValues(alpha: 0.055),
-                        blurRadius: 28,
-                        spreadRadius: -8,
-                        offset: const Offset(0, 14),
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.72),
-                        blurRadius: 10,
-                        spreadRadius: -5,
-                        offset: const Offset(0, -2),
-                      ),
-                    ]
-                  : const [],
-            ),
-            child: AnimatedOpacity(
-              opacity: isEnabled ? (isPressed ? 0.965 : 1) : 0.46,
-              duration: AppMotion.fast,
-              child: ClipRRect(
-                borderRadius: widget.borderRadius,
-                child: widget.child,
+    return Semantics(
+      button: true,
+      enabled: isEnabled,
+      child: FocusableActionDetector(
+        enabled: isEnabled,
+        mouseCursor: isEnabled
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
+        onShowHoverHighlight: (value) {
+          if (!mounted || isHovered == value) return;
+          setState(() => isHovered = value);
+        },
+        onShowFocusHighlight: (value) {
+          if (!mounted || isFocused == value) return;
+          setState(() => isFocused = value);
+        },
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              activate();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: isEnabled ? handleTapDown : null,
+          onTapCancel: isEnabled ? () => updatePressed(false) : null,
+          onTapUp: isEnabled ? (_) => updatePressed(false) : null,
+          onTap: widget.onTap,
+          child: AnimatedSlide(
+            offset: activeHover ? const Offset(0, -0.018) : Offset.zero,
+            duration: duration,
+            curve: curve,
+            child: AnimatedScale(
+              scale: scale,
+              duration: duration,
+              curve: curve,
+              child: AnimatedContainer(
+                duration: AppMotion.regular,
+                curve: AppMotion.interactionCurve,
+                decoration: BoxDecoration(
+                  borderRadius: widget.borderRadius,
+                  border: Border.all(
+                    color: activeHover || isFocused
+                        ? Colors.white.withValues(alpha: 0.88)
+                        : Colors.transparent,
+                    width: 0.8,
+                  ),
+                  boxShadow: activeHover
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF111317,
+                            ).withValues(alpha: 0.075),
+                            blurRadius: 30,
+                            spreadRadius: -9,
+                            offset: const Offset(0, 15),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.76),
+                            blurRadius: 12,
+                            spreadRadius: -6,
+                            offset: const Offset(0, -3),
+                          ),
+                        ]
+                      : const [],
+                ),
+                child: AnimatedOpacity(
+                  opacity: isEnabled ? (isPressed ? 0.96 : 1) : 0.46,
+                  duration: AppMotion.fast,
+                  child: ClipRRect(
+                    borderRadius: widget.borderRadius,
+                    child: widget.child,
+                  ),
+                ),
               ),
             ),
           ),
