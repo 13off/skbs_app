@@ -1,0 +1,65 @@
+name: Apply unified UI motion through PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/apply_unified_ui_motion.request
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-unified-ui-motion-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  patch-test-build:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+
+      - name: Apply interface patch
+        run: python tool/apply_unified_ui_motion.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format changed files
+        run: |
+          dart format \
+            lib/app/app_theme.dart \
+            lib/widgets/premium_pressable_v3.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/ui_motion_contract_test.dart
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit verified changes to pull request branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "унифицированы анимации и нижняя навигация"
+          git push origin HEAD:${{ github.head_ref }}
