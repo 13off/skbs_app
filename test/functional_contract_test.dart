@@ -16,6 +16,18 @@ void _containsAll(String path, Iterable<String> requiredFragments) {
   }
 }
 
+void _containsNone(String path, Iterable<String> forbiddenFragments) {
+  final contents = _source(path);
+
+  for (final fragment in forbiddenFragments) {
+    expect(
+      contents,
+      isNot(contains(fragment)),
+      reason: 'Запрещённый элемент "$fragment" вернулся в $path',
+    );
+  }
+}
+
 void main() {
   group('Функциональный контракт AppСтрой', () {
     test('роли сохраняют свои вкладки и навигацию без перезагрузки', () {
@@ -272,6 +284,47 @@ void main() {
         'Color(0xFF77797C)',
         'controller.forward()',
         'class PremiumBackdrop',
+      ]);
+      _containsAll('lib/widgets/premium_ui_v2.dart', const [
+        'class PremiumWorkBackdrop',
+        'class PremiumWorkCard',
+      ]);
+      _containsAll('lib/screens/home_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumBrandMark(size: 52, animate: false)',
+        "'Рабочая сводка'",
+        'PremiumWorkCard',
+      ]);
+      _containsAll('lib/screens/employees_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsAll('lib/screens/timesheet_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumActionButton',
+      ]);
+      _containsAll(
+        'lib/features/payments/presentation/screens/payments_screen.dart',
+        const [
+          'PremiumWorkBackdrop',
+          'PremiumWorkCard',
+          'AppColors.textPrimary',
+        ],
+      );
+      _containsNone('lib/widgets/premium_surfaces_v3.dart', const [
+        'GoldenRatioBrandMark',
+        '0xFFD6B978',
+      ]);
+      _containsNone(
+        'lib/features/payments/presentation/screens/payments_screen.dart',
+        const ['Colors.orange'],
+      );
+      _containsNone('lib/screens/employees_screen.dart', const [
+        '0xFFD3CAC0',
+        '0xFFD6CEC4',
+        '0xFFD8D0C7',
       ]);
       _containsAll('web/index.html', const [
         'tower-shape tower-left',
