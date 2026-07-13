@@ -9,7 +9,7 @@ Formatted 1 file (0 changed) in 0.02 seconds.
 ===== lib/screens/add_payment_screen.dart =====
 Warning: Package resolution error when reading "analysis_options.yaml" file:
 Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
-Formatted 1 file (0 changed) in 0.02 seconds.
+Formatted 1 file (0 changed) in 0.01 seconds.
 ===== lib/screens/home_screen.dart =====
 Warning: Package resolution error when reading "analysis_options.yaml" file:
 Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
@@ -25,8 +25,7 @@ Formatted 1 file (0 changed) in 0.03 seconds.
 ===== test/functional_contract_test.dart =====
 Warning: Package resolution error when reading "analysis_options.yaml" file:
 Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
-Formatted test/functional_contract_test.dart
-Formatted 1 file (1 changed) in 0.01 seconds.
+Formatted 1 file (0 changed) in 0.00 seconds.
 ===== test/archive_payment_page_contract_test.dart =====
 Warning: Package resolution error when reading "analysis_options.yaml" file:
 Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
