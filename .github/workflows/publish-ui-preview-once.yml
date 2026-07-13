@@ -1,5 +1,6 @@
 name: Publish UI preview once
 
+# Trigger registered preview workflow.
 on:
   push:
     branches:
