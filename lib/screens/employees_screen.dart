@@ -7,11 +7,11 @@ import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../navigation/app_page_route.dart';
+import '../widgets/premium_ui.dart';
 import 'add_employee_screen.dart';
 import 'employee_details_screen.dart';
 import 'payments_screen.dart';
 
-const _bg = Color(0xFFF7F8FA);
 const _card = Colors.white;
 const _soft = Color(0xFFF2F3F5);
 const _line = Color(0xFFE6E8EB);
@@ -250,38 +250,37 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   }) {
     final foreground = primary ? Colors.white : _accent;
     final background = primary ? _accent : _soft;
-    return Material(
-      color: background,
+
+    return PremiumPressable(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: primary ? _accent : _line),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 19, color: foreground),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: foreground,
-                  fontWeight: FontWeight.w700,
-                ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: primary ? _accent : _line),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 19, color: foreground),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontWeight: FontWeight.w800,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget header() {
+    final scopeTitle = objectName ?? 'Все объекты';
     final actions = Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -305,42 +304,56 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       ],
     );
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _line),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .03),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Сотрудники',
+          style: TextStyle(
+            color: _text,
+            fontSize: 31,
+            height: 1.05,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.8,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 7),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.apartment_outlined, size: 16, color: _accent),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                scopeTitle,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF6B7075),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return PremiumWorkCard(
+      radius: 28,
       child: LayoutBuilder(
         builder: (_, constraints) {
-          const title = Text(
-            'Сотрудники',
-            style: TextStyle(
-              color: _text,
-              fontSize: 34,
-              height: 1.05,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -.8,
-            ),
-          );
           if (constraints.maxWidth < 720) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [title, const SizedBox(height: 16), actions],
+              children: [titleBlock, const SizedBox(height: 16), actions],
             );
           }
+
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(child: title),
+              Expanded(child: titleBlock),
               const SizedBox(width: 18),
               Flexible(child: actions),
             ],
@@ -393,66 +406,83 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       'Ставка: ${money(employee.dailyRate)}',
     ].where((value) => value.trim().isNotEmpty).join('\n');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: fired ? const Color(0xFFF1F2F4) : _card,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumPressable(
+        onTap: () => openEmployee(employee),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: fired ? const Color(0xFFD3CAC0) : _line),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .028),
-            blurRadius: 14,
-            offset: const Offset(0, 7),
+        child: Container(
+          decoration: BoxDecoration(
+            color: fired
+                ? const Color(0xFFE9EAEB)
+                : Colors.white.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: fired ? const Color(0xFFD7D8DA) : _line,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.035),
+                blurRadius: 18,
+                spreadRadius: -8,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 10,
-        ),
-        leading: CircleAvatar(
-          backgroundColor: fired ? const Color(0xFFD6CEC4) : _soft,
-          foregroundColor: _text,
-          child: Text(
-            employee.name.trim().isEmpty
-                ? '?'
-                : employee.name.trim().characters.first,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
+            leading: CircleAvatar(
+              backgroundColor: fired ? const Color(0xFFD9DADC) : _soft,
+              foregroundColor: _text,
               child: Text(
-                employee.name,
-                style: TextStyle(
-                  color: fired ? Colors.grey.shade700 : _text,
-                  fontWeight: FontWeight.w900,
-                ),
+                employee.name.trim().isEmpty
+                    ? '?'
+                    : employee.name.trim().characters.first,
+                style: const TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
-            if (fired)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD8D0C7),
-                  borderRadius: BorderRadius.circular(100),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    employee.name,
+                    style: TextStyle(
+                      color: fired ? const Color(0xFF686C70) : _text,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
-                child: const Text(
-                  'Уволен',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-                ),
-              ),
-          ],
+                if (fired)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDADBDD),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Text(
+                      'Уволен',
+                      style: TextStyle(
+                        color: Color(0xFF565A5E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Text(subtitle),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+          ),
         ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: Text(subtitle),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => openEmployee(employee),
       ),
     );
   }
@@ -550,16 +580,20 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: ColoredBox(
-        color: _bg,
+      child: PremiumWorkBackdrop(
         child: SafeArea(
-          child: ListView(
-            key: PageStorageKey(
-              'employees-${widget.selectedObjectName ?? 'all'}',
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: ListView(
+                key: PageStorageKey(
+                  'employees-${widget.selectedObjectName ?? 'all'}',
+                ),
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                children: content(),
+              ),
             ),
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-            children: content(),
           ),
         ),
       ),
