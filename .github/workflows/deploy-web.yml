@@ -76,6 +76,20 @@ jobs:
           rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
           rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
 
+      - name: Install locked dependencies
+        working-directory: skbs_app
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run regression tests
+        working-directory: skbs_app
+        shell: bash
+        run: flutter test 2>&1 | tee ../flutter-test.log
+
+      - name: Analyze source
+        working-directory: skbs_app
+        shell: bash
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ../flutter-analyze.log
+
       - name: Configure public Firebase web values
         working-directory: skbs_app
         shell: bash
@@ -99,20 +113,6 @@ jobs:
               text = text.replace(marker, value)
           path.write_text(text, encoding='utf-8')
           PY
-
-      - name: Install locked dependencies
-        working-directory: skbs_app
-        run: flutter pub get --enforce-lockfile
-
-      - name: Run regression tests
-        working-directory: skbs_app
-        shell: bash
-        run: flutter test 2>&1 | tee ../flutter-test.log
-
-      - name: Analyze source
-        working-directory: skbs_app
-        shell: bash
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ../flutter-analyze.log
 
       - name: Build Flutter Web through proxy
         working-directory: skbs_app
@@ -187,5 +187,6 @@ jobs:
           git add downloads/web-build-status.txt downloads/web-source-commit.txt downloads/web-build.log
           if ! git diff --cached --quiet; then
             git commit -m "сохранён статус веб-сборки"
+            git pull --rebase
             git push
           fi

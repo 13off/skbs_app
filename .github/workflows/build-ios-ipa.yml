@@ -65,11 +65,11 @@ jobs:
       - name: Prepare iOS app
         shell: bash
         run: |
+          perl -0pi -e 's/com\.example\.skbsApp/ru.appstroy.mobile/g' ios/Runner.xcodeproj/project.pbxproj
           python3 - <<'PY'
           from pathlib import Path
           project = Path('ios/Runner.xcodeproj/project.pbxproj')
           text = project.read_text(encoding='utf-8')
-          text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
           if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
               text = text.replace(
                   'INFOPLIST_FILE = Runner/Info.plist;',
@@ -77,14 +77,17 @@ jobs:
               )
           project.write_text(text, encoding='utf-8')
           PY
+          grep -q 'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;' ios/Runner.xcodeproj/project.pbxproj
+          grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' ios/Runner.xcodeproj/project.pbxproj
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName AppСтрой" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleName AppStroy" ios/Runner/Info.plist
 
       - name: Build unsigned app
         id: ios_build
+        continue-on-error: true
         shell: bash
         run: |
-          set +e
+          set -o pipefail
           flutter build ios --release --no-codesign \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
@@ -97,12 +100,9 @@ jobs:
             --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
             --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
             2>&1 | tee ios-build.log
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
-          exit 0
 
       - name: Create IPA
-        if: steps.ios_build.outputs.exit_code == '0'
+        if: steps.ios_build.outcome == 'success'
         shell: bash
         run: |
           SHORT_SHA="$(git rev-parse --short=12 HEAD)"
@@ -115,7 +115,7 @@ jobs:
           shasum -a 256 AppStroy-latest.ipa > AppStroy-iOS-latest.sha256
 
       - name: Upload IPA artifact
-        if: steps.ios_build.outputs.exit_code == '0'
+        if: steps.ios_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: AppStroy-iOS-IPA
@@ -133,7 +133,7 @@ jobs:
           cp ios-build.log appstroy-web/downloads/ios-build.log || true
           printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/ios-source-commit.txt
 
-          if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
+          if [ "${{ steps.ios_build.outcome }}" = "success" ]; then
             rm -f appstroy-web/downloads/AppStroy-*.ipa
             cp ios-output/AppStroy-*.ipa appstroy-web/downloads/
             cp ios-output/AppStroy-iOS-latest.sha256 appstroy-web/downloads/
@@ -147,14 +147,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads
           if ! git diff --cached --quiet; then
-            if [ "${{ steps.ios_build.outputs.exit_code }}" = "0" ]; then
+            if [ "${{ steps.ios_build.outcome }}" = "success" ]; then
               git commit -m "опубликована проверочная IPA для iPhone"
             else
               git commit -m "сохранена ошибка сборки iOS"
             fi
+            git pull --rebase
             git push
           fi
 
       - name: Fail workflow when iOS build failed
-        if: steps.ios_build.outputs.exit_code != '0'
+        if: steps.ios_build.outcome != 'success'
         run: exit 1
