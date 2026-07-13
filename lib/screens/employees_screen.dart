@@ -10,6 +10,7 @@ import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../navigation/app_page_route.dart';
+import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import 'add_employee_screen.dart';
 import 'employee_details_screen.dart';
@@ -327,62 +328,20 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       ],
     );
 
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Сотрудники',
-          style: TextStyle(
-            color: _text,
-            fontSize: 31,
-            height: 1.05,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.8,
-          ),
+        AppPageHeader(
+          title: 'Сотрудники',
+          subtitle: 'Люди, ставки и документы • $scopeTitle',
         ),
-        const SizedBox(height: 7),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.apartment_outlined, size: 16, color: _accent),
-            const SizedBox(width: 7),
-            Flexible(
-              child: Text(
-                scopeTitle,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF6B7075),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
+        const SizedBox(height: 14),
+        PremiumWorkCard(
+          radius: 24,
+          padding: const EdgeInsets.all(14),
+          child: actions,
         ),
       ],
-    );
-
-    return PremiumWorkCard(
-      radius: 28,
-      child: LayoutBuilder(
-        builder: (_, constraints) {
-          if (constraints.maxWidth < 720) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [titleBlock, const SizedBox(height: 16), actions],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: titleBlock),
-              const SizedBox(width: 18),
-              Flexible(child: actions),
-            ],
-          );
-        },
-      ),
     );
   }
 

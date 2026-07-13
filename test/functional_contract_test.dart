@@ -91,7 +91,7 @@ void main() {
 
     test('табель сохраняет быстрый ввод, ручной ввод и отчёты', () {
       _containsAll('lib/screens/timesheet_screen.dart', const [
-        "title: const Text('Табель')",
+        "title: 'Табель'",
         "label: const Text('Отчет')",
         "'Сохранить изменения'",
         "'Сохранить табель'",

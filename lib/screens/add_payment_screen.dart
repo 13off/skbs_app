@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
+import '../data/object_repository.dart';
 import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
@@ -28,6 +29,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   final amountController = TextEditingController();
   final commentController = TextEditingController();
 
+  String? selectedObjectName;
   String? selectedEmployeeId;
   DateTime paymentDate = DateTime.now();
 
@@ -39,6 +41,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     'fine': 'Штраф',
   };
 
+  List<String> objectNames = [];
   List<Employee> employees = [];
   List<PickedPaymentReceiptFile> receiptFiles = [];
 
@@ -81,34 +84,55 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     });
 
     try {
-      final loadedEmployees = await EmployeeRepository.fetchEmployees(
-        includeFired: true,
-      );
-
+      final results = await Future.wait<dynamic>([
+        EmployeeRepository.fetchEmployees(includeFired: true),
+        ObjectRepository.fetchObjectNames(),
+      ]);
+      final loadedEmployees = results[0] as List<Employee>;
       final employeesWithId = loadedEmployees
           .where((employee) => employee.id != null)
           .toList();
+      final names = <String>{
+        ...(results[1] as List<String>).map((name) => name.trim()),
+        ...employeesWithId.map((employee) => employee.objectName.trim()),
+      }.where((name) => name.isNotEmpty).toList()
+        ..sort();
+
+      Employee? selectedEmployee;
+      for (final employee in employeesWithId) {
+        if (employee.id == selectedEmployeeId) {
+          selectedEmployee = employee;
+          break;
+        }
+      }
 
       if (!mounted) return;
 
-      final selectedIdExists = employeesWithId.any(
-        (employee) => employee.id == selectedEmployeeId,
-      );
-
       setState(() {
         employees = employeesWithId;
+        objectNames = names;
 
-        if (employeesWithId.isEmpty) {
-          selectedEmployeeId = null;
-        } else if (selectedEmployeeId == null || !selectedIdExists) {
-          selectedEmployeeId = employeesWithId.first.id;
+        if (selectedEmployee != null) {
+          final employeeObject = selectedEmployee.objectName.trim();
+          selectedObjectName = employeeObject.isEmpty ? null : employeeObject;
+        } else {
+          final objectStillExists = selectedObjectName != null &&
+              names.contains(selectedObjectName!.trim());
+          if (!objectStillExists) {
+            selectedObjectName = null;
+            selectedEmployeeId = null;
+          } else if (!employeesForSelectedObject().any(
+            (employee) => employee.id == selectedEmployeeId,
+          )) {
+            selectedEmployeeId = null;
+          }
         }
       });
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        errorText = 'Ошибка загрузки сотрудников: $e';
+        errorText = 'Ошибка загрузки объектов и сотрудников: $e';
       });
     } finally {
       if (mounted) {
@@ -117,6 +141,17 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         });
       }
     }
+  }
+
+  List<Employee> employeesForSelectedObject() {
+    final objectName = selectedObjectName?.trim();
+    if (objectName == null || objectName.isEmpty) return const <Employee>[];
+
+    final result = employees
+        .where((employee) => employee.objectName.trim() == objectName)
+        .toList();
+    result.sort((a, b) => a.name.compareTo(b.name));
+    return result;
   }
 
   Employee? findSelectedEmployee() {
@@ -193,6 +228,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   Future<void> savePayment() async {
     final selectedEmployee = findSelectedEmployee();
     final amount = parseAmount();
+
+    if (selectedObjectName == null || selectedObjectName!.trim().isEmpty) {
+      setState(() {
+        errorText = 'Сначала выберите объект';
+      });
+      return;
+    }
 
     if (selectedEmployee == null || selectedEmployee.id == null) {
       setState(() {
@@ -378,6 +420,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     } else if (employees.isEmpty) {
       body = buildEmptyState();
     } else {
+      final availableEmployees = employeesForSelectedObject();
+      final employeeFieldValue = availableEmployees.any(
+        (employee) => employee.id == selectedEmployeeId,
+      )
+          ? selectedEmployeeId
+          : null;
+
       body = ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -404,23 +453,55 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           const SizedBox(height: 18),
 
           DropdownButtonFormField<String>(
-            initialValue: selectedEmployeeId,
-            items: employees.map((employee) {
+            key: const ValueKey('payment-object-field'),
+            initialValue: selectedObjectName,
+            items: objectNames.map((objectName) {
+              return DropdownMenuItem<String>(
+                value: objectName,
+                child: Text(objectName),
+              );
+            }).toList(),
+            onChanged: isSaving
+                ? null
+                : (objectName) {
+                    setState(() {
+                      selectedObjectName = objectName;
+                      selectedEmployeeId = null;
+                    });
+                  },
+            decoration: const InputDecoration(
+              labelText: 'Объект',
+              hintText: 'Сначала выберите объект',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          DropdownButtonFormField<String>(
+            key: ValueKey("payment-employee-${selectedObjectName ?? 'none'}"),
+            initialValue: employeeFieldValue,
+            items: availableEmployees.map((employee) {
               return DropdownMenuItem<String>(
                 value: employee.id,
                 child: Text(employee.name),
               );
             }).toList(),
-            onChanged: isSaving
+            onChanged: isSaving || selectedObjectName == null
                 ? null
                 : (employeeId) {
                     setState(() {
                       selectedEmployeeId = employeeId;
                     });
                   },
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Сотрудник',
-              border: OutlineInputBorder(),
+              hintText: selectedObjectName == null
+                  ? 'Сначала выберите объект'
+                  : availableEmployees.isEmpty
+                      ? 'На объекте нет сотрудников'
+                      : 'Выберите сотрудника',
+              border: const OutlineInputBorder(),
             ),
           ),
 

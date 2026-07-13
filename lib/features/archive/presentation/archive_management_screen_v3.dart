@@ -632,38 +632,45 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: Material(
         color: const Color(0xFFF8F7F3),
         child: SafeArea(
+          top: false,
           minimum: const EdgeInsets.fromLTRB(18, 10, 18, 16),
-          child: Center(
+          child: Align(
+            alignment: Alignment.center,
+            heightFactor: 1,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: selectedCount == 0 || isBusy
-                          ? null
-                          : restoreSelected,
-                      icon: const Icon(Icons.restore_rounded),
-                      label: const Text('Восстановить'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF9D3E38),
+              child: SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: selectedCount == 0 || isBusy
+                            ? null
+                            : restoreSelected,
+                        icon: const Icon(Icons.restore_rounded),
+                        label: const Text('Восстановить'),
                       ),
-                      onPressed: selectedCount == 0 || isBusy
-                          ? null
-                          : deleteSelectedForever,
-                      icon: const Icon(Icons.delete_forever_outlined),
-                      label: const Text('Удалить'),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF9D3E38),
+                        ),
+                        onPressed: selectedCount == 0 || isBusy
+                            ? null
+                            : deleteSelectedForever,
+                        icon: const Icon(Icons.delete_forever_outlined),
+                        label: const Text('Удалить'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
