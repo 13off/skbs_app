@@ -330,6 +330,105 @@ class _PremiumBrandMarkState extends State<PremiumBrandMark>
   }
 }
 
+class PremiumWorkBackdrop extends StatelessWidget {
+  final Widget child;
+
+  const PremiumWorkBackdrop({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const RepaintBoundary(child: CustomPaint(painter: _GridPainter())),
+          Positioned(
+            top: -140,
+            right: -100,
+            child: IgnorePointer(
+              child: Container(
+                width: 330,
+                height: 330,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.94),
+                      Colors.white.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class PremiumWorkCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry margin;
+  final double radius;
+  final Color? tint;
+
+  const PremiumWorkCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.margin = EdgeInsets.zero,
+    this.radius = 26,
+    this.tint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: tint,
+        gradient: tint == null
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.91),
+                  Colors.white.withValues(alpha: 0.72),
+                ],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.94)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF17191C).withValues(alpha: 0.075),
+            blurRadius: 28,
+            spreadRadius: -12,
+            offset: const Offset(0, 16),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.78),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class PremiumLoadingScreen extends StatelessWidget {
   final String message;
 
