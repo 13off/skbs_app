@@ -580,9 +580,7 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     );
   }
 
-  Widget buildWorkedSummaryPanel({
-    required List<Employee> visibleEmployees,
-  }) {
+  Widget buildWorkedSummaryPanel({required List<Employee> visibleEmployees}) {
     final visibleWorked = workedCountFor(visibleEmployees);
     final totalShifts = totalShiftsFor(visibleEmployees);
 
@@ -896,7 +894,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                             )
                           else
                             ...visibleEmployees.map(
-                              (employee) => RepaintBoundary(child: buildEmployeeRow(employee)),
+                              (employee) => RepaintBoundary(
+                                child: buildEmployeeRow(employee),
+                              ),
                             ),
                         ],
                       ),

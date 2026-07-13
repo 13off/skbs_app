@@ -484,11 +484,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           padding: EdgeInsets.symmetric(vertical: 34),
           child: Column(
             children: [
-              Icon(
-                Icons.inventory_2_outlined,
-                color: _archiveMuted,
-                size: 34,
-              ),
+              Icon(Icons.inventory_2_outlined, color: _archiveMuted, size: 34),
               SizedBox(height: 10),
               Text(
                 'Архив пуст',
@@ -678,5 +674,4 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
       ),
     );
   }
-
 }

@@ -127,10 +127,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeeDetailsScreen(
-          profile: widget.profile,
-          employee: employee,
-        ),
+        builder: (_) =>
+            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),
     );
     if (!mounted) return;
@@ -187,9 +185,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         objectName: widget.selectedObjectName,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Сводка скачана')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Сводка скачана')));
       }
     } catch (e) {
       if (mounted) {
@@ -240,12 +238,13 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         return a.objectName.compareTo(b.objectName);
       });
       final main = group.first;
-      final objects = group
-          .map((employee) => employee.objectName.trim())
-          .where((name) => name.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+      final objects =
+          group
+              .map((employee) => employee.objectName.trim())
+              .where((name) => name.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       return Employee(
         main.name,
         main.position,
@@ -292,10 +291,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: foreground,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(color: foreground, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -399,9 +395,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 ? const Color(0xFFE9EAEB)
                 : Colors.white.withValues(alpha: 0.88),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: fired ? const Color(0xFFD7D8DA) : _line,
-            ),
+            border: Border.all(color: fired ? const Color(0xFFD7D8DA) : _line),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.035),

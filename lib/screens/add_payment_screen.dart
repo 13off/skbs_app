@@ -95,8 +95,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       final names = <String>{
         ...(results[1] as List<String>).map((name) => name.trim()),
         ...employeesWithId.map((employee) => employee.objectName.trim()),
-      }.where((name) => name.isNotEmpty).toList()
-        ..sort();
+      }.where((name) => name.isNotEmpty).toList()..sort();
 
       Employee? selectedEmployee;
       for (final employee in employeesWithId) {
@@ -116,7 +115,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           final employeeObject = selectedEmployee.objectName.trim();
           selectedObjectName = employeeObject.isEmpty ? null : employeeObject;
         } else {
-          final objectStillExists = selectedObjectName != null &&
+          final objectStillExists =
+              selectedObjectName != null &&
               names.contains(selectedObjectName!.trim());
           if (!objectStillExists) {
             selectedObjectName = null;
@@ -421,9 +421,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       body = buildEmptyState();
     } else {
       final availableEmployees = employeesForSelectedObject();
-      final employeeFieldValue = availableEmployees.any(
-        (employee) => employee.id == selectedEmployeeId,
-      )
+      final employeeFieldValue =
+          availableEmployees.any(
+            (employee) => employee.id == selectedEmployeeId,
+          )
           ? selectedEmployeeId
           : null;
 
@@ -499,8 +500,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               hintText: selectedObjectName == null
                   ? 'Сначала выберите объект'
                   : availableEmployees.isEmpty
-                      ? 'На объекте нет сотрудников'
-                      : 'Выберите сотрудника',
+                  ? 'На объекте нет сотрудников'
+                  : 'Выберите сотрудника',
               border: const OutlineInputBorder(),
             ),
           ),

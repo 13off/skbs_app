@@ -1,1 +1,84 @@
-/home/runner/work/_temp/f1ac47db-d91d-4099-b15f-2bd6708450f9.sh: line 3: dart: command not found
+===== lib/widgets/app_page.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted 1 file (0 changed) in 0.01 seconds.
+===== lib/features/archive/presentation/archive_management_screen_v3.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted lib/features/archive/presentation/archive_management_screen_v3.dart
+Formatted 1 file (1 changed) in 0.02 seconds.
+===== lib/screens/add_payment_screen.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted lib/screens/add_payment_screen.dart
+Formatted 1 file (1 changed) in 0.01 seconds.
+===== lib/screens/home_screen.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted 1 file (0 changed) in 0.06 seconds.
+===== lib/screens/employees_screen.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted lib/screens/employees_screen.dart
+Formatted 1 file (1 changed) in 0.02 seconds.
+===== lib/screens/timesheet_screen.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted lib/screens/timesheet_screen.dart
+Formatted 1 file (1 changed) in 0.06 seconds.
+===== test/functional_contract_test.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted test/functional_contract_test.dart
+Formatted 1 file (1 changed) in 0.01 seconds.
+===== test/archive_payment_page_contract_test.dart =====
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Could not format because the source could not be parsed:
+
+line 47, column 71 of test/archive_payment_page_contract_test.dart: Expected to find ';'.
+   ╷
+47 │         anyOf(contains('AppPageHeader('), contains('return AppPage('))),
+   │                                                                       ^
+   ╵
+line 47, column 72 of test/archive_payment_page_contract_test.dart: Expected an identifier.
+   ╷
+47 │         anyOf(contains('AppPageHeader('), contains('return AppPage('))),
+   │                                                                        ^
+   ╵
+line 47, column 72 of test/archive_payment_page_contract_test.dart: Unexpected text ','.
+   ╷
+47 │         anyOf(contains('AppPageHeader('), contains('return AppPage('))),
+   │                                                                        ^
+   ╵
+line 48, column 23 of test/archive_payment_page_contract_test.dart: Expected to find ';'.
+   ╷
+48 │         reason: '$path должен использовать единую объёмную шапку',
+   │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+line 48, column 66 of test/archive_payment_page_contract_test.dart: Expected an identifier.
+   ╷
+48 │         reason: '$path должен использовать единую объёмную шапку',
+   │                                                                  ^
+   ╵
+line 48, column 66 of test/archive_payment_page_contract_test.dart: Unexpected text ','.
+   ╷
+48 │         reason: '$path должен использовать единую объёмную шапку',
+   │                                                                  ^
+   ╵
+line 49, column 7 of test/archive_payment_page_contract_test.dart: Expected an identifier.
+   ╷
+49 │       );
+   │       ^
+   ╵
+line 48, column 66 of test/archive_payment_page_contract_test.dart: Expected to find ';'.
+   ╷
+48 │         reason: '$path должен использовать единую объёмную шапку',
+   │                                                                  ^
+   ╵
+line 49, column 7 of test/archive_payment_page_contract_test.dart: Unexpected text ')'.
+   ╷
+49 │       );
+   │       ^
+   ╵
+Formatted no files in 0.00 seconds.
