@@ -27,6 +27,9 @@ jobs:
           ref: fix/archive-payments-unified-pages
           persist-credentials: true
 
+      - name: Repair generator quoting
+        run: python3 tool/fix_archive_payment_patch_quote.py
+
       - name: Apply source changes
         run: python3 tool/apply_archive_payment_page_fix.py
 
@@ -101,6 +104,7 @@ jobs:
         run: |
           git pull --rebase origin fix/archive-payments-unified-pages
           rm -f tool/apply_archive_payment_page_fix.py
+          rm -f tool/fix_archive_payment_patch_quote.py
           rm -f tool/archive_payment_page_validation.log
           rm -f .github/workflows/apply-archive-payment-page-fix.yml
           git config user.name "github-actions[bot]"
