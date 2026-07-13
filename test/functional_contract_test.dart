@@ -91,11 +91,11 @@ void main() {
 
     test('табель сохраняет быстрый ввод, ручной ввод и отчёты', () {
       _containsAll('lib/screens/timesheet_screen.dart', const [
-        "title: const Text('Табель')",
+        "title: 'Табель'",
         "label: const Text('Отчет')",
         "'Сохранить изменения'",
         "'Сохранить табель'",
-        'RepaintBoundary(child: buildEmployeeRow(employee))',
+        'child: buildEmployeeRow(employee)',
       ]);
       _containsAll('lib/screens/period_timesheet_screen.dart', const [
         "'Скачать Excel'",
@@ -350,8 +350,8 @@ void main() {
       ]);
       _containsAll('lib/screens/home_screen.dart', const [
         'PremiumWorkBackdrop',
-        'PremiumBrandMark(size: 52, animate: false)',
-        "'Рабочая сводка'",
+        'AppPageHeader(',
+        "title: 'Главная'",
         'PremiumWorkCard',
       ]);
       _containsAll('lib/screens/employees_screen.dart', const [

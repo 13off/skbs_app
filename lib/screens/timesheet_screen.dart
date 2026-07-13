@@ -11,6 +11,7 @@ import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../app/app_theme.dart';
+import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import 'period_timesheet_screen.dart';
 
@@ -90,6 +91,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     final clean = value?.trim();
     return clean == null || clean.isEmpty ? null : clean;
   }
+
+  String get objectTitle =>
+      cleanObjectName(widget.selectedObjectName) ?? 'Все объекты';
 
   bool changeMatchesCurrentTimesheet(AppDataChange change) {
     final workDate = change.contextValue('work_date');
@@ -465,34 +469,78 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     }
   }
 
+  Widget buildPageHeader() {
+    return AppPageHeader(
+      title: 'Табель',
+      subtitle: 'Смены сотрудников за выбранную дату • $objectTitle',
+      trailing: widget.profile.isAdmin
+          ? FilledButton.tonalIcon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (_) => _TimesheetReportRoute(
+                      selectedObjectName: widget.selectedObjectName,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.analytics_outlined, size: 18),
+              label: const Text('Отчет'),
+            )
+          : null,
+    );
+  }
+
+  Widget buildDateArrow({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return PremiumPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F0EC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE4E2DC)),
+        ),
+        child: Icon(icon, color: AppColors.textPrimary, size: 24),
+      ),
+    );
+  }
+
   Widget buildDatePanel() {
+    final dateActionsEnabled = !isSaving && !isAttendanceLoading;
+
     return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(14),
+      radius: 28,
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          IconButton.filledTonal(
-            onPressed: isSaving || isAttendanceLoading
-                ? null
-                : () {
+          buildDateArrow(
+            icon: Icons.chevron_left_rounded,
+            onTap: dateActionsEnabled
+                ? () {
                     changeDate(selectedDate.subtract(const Duration(days: 1)));
-                  },
-            icon: const Icon(Icons.chevron_left),
+                  }
+                : null,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 11),
           Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: isSaving ? null : pickDate,
+            child: PremiumPressable(
+              onTap: dateActionsEnabled ? pickDate : null,
+              borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  vertical: 13,
-                  horizontal: 14,
+                  vertical: 14,
+                  horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F0),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white),
+                  color: const Color(0xFFF1F0EC),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE4E2DC)),
                 ),
                 child: Column(
                   children: [
@@ -502,9 +550,10 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                         color: AppColors.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       weekDayName(selectedDate),
                       style: const TextStyle(
@@ -517,23 +566,21 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          IconButton.filledTonal(
-            onPressed: isSaving || isAttendanceLoading
-                ? null
-                : () {
+          const SizedBox(width: 11),
+          buildDateArrow(
+            icon: Icons.chevron_right_rounded,
+            onTap: dateActionsEnabled
+                ? () {
                     changeDate(selectedDate.add(const Duration(days: 1)));
-                  },
-            icon: const Icon(Icons.chevron_right),
+                  }
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Widget buildWorkedSummaryPanel({
-    required List<Employee> visibleEmployees,
-  }) {
+  Widget buildWorkedSummaryPanel({required List<Employee> visibleEmployees}) {
     final visibleWorked = workedCountFor(visibleEmployees);
     final totalShifts = totalShiftsFor(visibleEmployees);
 
@@ -778,29 +825,6 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('Табель'),
-        actions: [
-          if (widget.profile.isAdmin)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    CupertinoPageRoute(
-                      builder: (_) => _TimesheetReportRoute(
-                        selectedObjectName: widget.selectedObjectName,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.analytics_outlined, size: 18),
-                label: const Text('Отчет'),
-              ),
-            ),
-        ],
-      ),
       body: PremiumWorkBackdrop(
         child: FutureBuilder<List<Employee>>(
           future: employeesFuture,
@@ -830,6 +854,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
                         children: [
+                          buildPageHeader(),
+                          const SizedBox(height: 14),
                           buildDatePanel(),
                           const SizedBox(height: 14),
                           buildWorkedSummaryPanel(
@@ -868,7 +894,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                             )
                           else
                             ...visibleEmployees.map(
-                              (employee) => RepaintBoundary(child: buildEmployeeRow(employee)),
+                              (employee) => RepaintBoundary(
+                                child: buildEmployeeRow(employee),
+                              ),
                             ),
                         ],
                       ),

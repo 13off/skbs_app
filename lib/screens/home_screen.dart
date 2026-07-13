@@ -12,6 +12,7 @@ import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
+import '../widgets/app_page.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/premium_ui.dart';
 
@@ -927,59 +928,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildHeader(BuildContext context, DateTime today) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const PremiumBrandMark(size: 52, animate: false),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        AppPageHeader(
+          title: 'Главная',
+          subtitle: 'Рабочая сводка по объектам, людям, задачам и выплатам',
+          trailing: NotificationBell(
+            selectedObjectName: widget.selectedObjectName,
+          ),
+        ),
+        const SizedBox(height: 14),
+        PremiumWorkCard(
+          radius: 26,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    'AppСтрой',
-                    style: TextStyle(
-                      color: _text,
-                      fontSize: 31,
-                      height: 1,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -1.1,
-                    ),
+                  const Icon(
+                    Icons.calendar_month_outlined,
+                    color: _muted,
+                    size: 20,
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(width: 10),
                   Text(
-                    'Рабочая сводка',
-                    style: TextStyle(
+                    'Сегодня, ${dateText(today)}',
+                    style: const TextStyle(
                       color: _muted,
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
                     ),
                   ),
                 ],
               ),
-            ),
-            NotificationBell(selectedObjectName: widget.selectedObjectName),
-          ],
+              const SizedBox(height: 14),
+              buildObjectSelector(context),
+            ],
+          ),
         ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            const Icon(Icons.calendar_month_outlined, color: _muted, size: 20),
-            const SizedBox(width: 10),
-            Text(
-              'Сегодня, ${dateText(today)}',
-              style: const TextStyle(
-                color: _muted,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        buildObjectSelector(context),
       ],
     );
   }
