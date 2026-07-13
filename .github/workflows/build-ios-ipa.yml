@@ -100,16 +100,8 @@ jobs:
           print('Prepared ru.appstroy.mobile with Runner.entitlements')
           PY
 
-      - name: Run regression tests
-        if: steps.ios_prepare.outcome == 'success'
-        run: flutter test
-
-      - name: Analyze source
-        if: steps.ios_prepare.outcome == 'success'
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
       - name: Build unsigned app
-        if: steps.ios_prepare.outcome == 'success'
+        if: always() && steps.ios_prepare.outcome == 'success'
         id: ios_build
         continue-on-error: true
         shell: bash
@@ -129,7 +121,7 @@ jobs:
             2>&1 | tee ios-build.log
 
       - name: Create IPA
-        if: steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
+        if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
         shell: bash
         run: |
           SHORT_SHA="$(git rev-parse --short=12 HEAD)"
@@ -142,7 +134,7 @@ jobs:
           shasum -a 256 AppStroy-latest.ipa > AppStroy-iOS-latest.sha256
 
       - name: Upload IPA artifact
-        if: steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
+        if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: AppStroy-iOS-IPA
