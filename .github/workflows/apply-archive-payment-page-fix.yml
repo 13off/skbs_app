@@ -1,4 +1,4 @@
-name: Apply archive payment and page fixes
+name: Validate archive payment and page fixes
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  apply-test-build:
+  test-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,18 +27,14 @@ jobs:
           ref: fix/archive-payments-unified-pages
           persist-credentials: true
 
-      - name: Repair generator quoting
-        run: python3 tool/fix_archive_payment_patch_quote.py
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
 
-      - name: Apply source changes
-        run: python3 tool/apply_archive_payment_page_fix.py
-
-      - name: Format changed Dart files with diagnostics
-        id: format
-        shell: bash
+      - name: Format changed Dart files
         run: |
-          set +e
-          set -o pipefail
           dart format \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
@@ -47,18 +43,14 @@ jobs:
             lib/screens/employees_screen.dart \
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
-            test/archive_payment_page_contract_test.dart \
-            2>&1 | tee tool/archive_payment_page_format.log
-          status=${PIPESTATUS[0]}
-          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
-          exit 0
+            test/archive_payment_page_contract_test.dart
 
-      - name: Commit generated draft and format log
+      - name: Commit formatted draft
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f \
+          git add \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
             lib/screens/add_payment_screen.dart \
@@ -66,28 +58,14 @@ jobs:
             lib/screens/employees_screen.dart \
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
-            test/archive_payment_page_contract_test.dart \
-            tool/archive_payment_page_format.log
-          git commit -m "сохранён сгенерированный черновик архива выплат и страниц" || true
+            test/archive_payment_page_contract_test.dart
+          git commit -m "отформатирован черновик архива выплат и страниц" || true
           git push origin HEAD:fix/archive-payments-unified-pages
 
-      - name: Stop after format failure
-        if: steps.format.outputs.exit_code != '0'
-        run: exit 1
-
-      - name: Setup Flutter
-        if: steps.format.outputs.exit_code == '0'
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
       - name: Install locked dependencies
-        if: steps.format.outputs.exit_code == '0'
         run: flutter pub get --enforce-lockfile
 
       - name: Validate tests analysis and web build
-        if: steps.format.outputs.exit_code == '0'
         id: validation
         shell: bash
         run: |
@@ -103,7 +81,7 @@ jobs:
           exit 0
 
       - name: Save failed diagnostics
-        if: steps.format.outputs.exit_code == '0' && steps.validation.outputs.exit_code != '0'
+        if: steps.validation.outputs.exit_code != '0'
         shell: bash
         run: |
           git pull --rebase origin fix/archive-payments-unified-pages
@@ -115,7 +93,7 @@ jobs:
           exit 1
 
       - name: Finalize verified branch
-        if: steps.format.outputs.exit_code == '0' && steps.validation.outputs.exit_code == '0'
+        if: steps.validation.outputs.exit_code == '0'
         shell: bash
         run: |
           git pull --rebase origin fix/archive-payments-unified-pages
