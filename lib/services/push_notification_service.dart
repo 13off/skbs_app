@@ -132,10 +132,8 @@ class PushNotificationService {
       ValueNotifier<PushNavigationRequest?>(null);
 
   static bool _initialized = false;
-  static StreamSubscription<String>? _tokenSubscription;
-  static StreamSubscription<RemoteMessage>? _foregroundSubscription;
-  static StreamSubscription<RemoteMessage>? _openedSubscription;
-  static StreamSubscription<AuthState>? _authSubscription;
+  static final List<StreamSubscription<dynamic>> _subscriptions =
+      <StreamSubscription<dynamic>>[];
 
   static SupabaseClient get _client => Supabase.instance.client;
 
@@ -174,33 +172,37 @@ class PushNotificationService {
             sound: true,
           );
 
-      _foregroundSubscription = FirebaseMessaging.onMessage.listen(
-        _handleForegroundMessage,
+      _subscriptions.add(
+        FirebaseMessaging.onMessage.listen(_handleForegroundMessage),
       );
-      _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
-        _handleOpenedMessage,
+      _subscriptions.add(
+        FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedMessage),
       );
-      _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => unawaited(_registerToken(token)),
+      _subscriptions.add(
+        FirebaseMessaging.instance.onTokenRefresh.listen(
+          (token) => unawaited(_registerToken(token)),
+        ),
       );
-      _authSubscription = _client.auth.onAuthStateChange.listen((authState) {
-        if (authState.event == AuthChangeEvent.signedOut) {
-          _publish(
-            configured: true,
-            enabled: enabled,
-            registered: false,
-            permission: state.value.permission,
-            message: 'Войдите, чтобы подключить push-уведомления',
-          );
-          return;
-        }
-        if (authState.event == AuthChangeEvent.signedIn ||
-            authState.event == AuthChangeEvent.tokenRefreshed ||
-            authState.event == AuthChangeEvent.userUpdated ||
-            authState.event == AuthChangeEvent.initialSession) {
-          unawaited(syncForCurrentSession());
-        }
-      });
+      _subscriptions.add(
+        _client.auth.onAuthStateChange.listen((authState) {
+          if (authState.event == AuthChangeEvent.signedOut) {
+            _publish(
+              configured: true,
+              enabled: enabled,
+              registered: false,
+              permission: state.value.permission,
+              message: 'Войдите, чтобы подключить push-уведомления',
+            );
+            return;
+          }
+          if (authState.event == AuthChangeEvent.signedIn ||
+              authState.event == AuthChangeEvent.tokenRefreshed ||
+              authState.event == AuthChangeEvent.userUpdated ||
+              authState.event == AuthChangeEvent.initialSession) {
+            unawaited(syncForCurrentSession());
+          }
+        }),
+      );
 
       final settings = await FirebaseMessaging.instance
           .getNotificationSettings();
