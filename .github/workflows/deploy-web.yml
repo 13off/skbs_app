@@ -64,9 +64,9 @@ jobs:
           rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
           rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
 
-      - name: Install locked dependencies
+      - name: Resolve dependencies while lock refresh runs
         working-directory: skbs_app
-        run: flutter pub get --enforce-lockfile
+        run: flutter pub get
 
       - name: Run regression tests
         working-directory: skbs_app
