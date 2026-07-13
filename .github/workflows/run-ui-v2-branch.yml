@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - tool/run_ui_v2_branch.marker
+      - .github/workflows/run-ui-v2-branch.yml
   workflow_dispatch:
 
 permissions:
