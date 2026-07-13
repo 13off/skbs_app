@@ -27,18 +27,39 @@ jobs:
           persist-credentials: true
 
       - name: Apply interface patch
-        run: python tool/apply_unified_ui_motion.py
+        id: patch
+        continue-on-error: true
+        shell: bash
+        run: python tool/apply_unified_ui_motion.py > tool/ui_patch_error.log 2>&1
+
+      - name: Preserve patch diagnostics
+        if: steps.patch.outcome == 'failure'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tool/ui_patch_error.log
+          git commit -m "сохранена диагностика правки интерфейса"
+          git push origin HEAD:${{ github.head_ref }}
+          exit 1
+
+      - name: Remove empty diagnostic log
+        if: steps.patch.outcome == 'success'
+        run: rm -f tool/ui_patch_error.log
 
       - name: Setup Flutter
+        if: steps.patch.outcome == 'success'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Install dependencies
+        if: steps.patch.outcome == 'success'
         run: flutter pub get
 
       - name: Format changed files
+        if: steps.patch.outcome == 'success'
         run: |
           dart format \
             lib/app/app_theme.dart \
@@ -47,15 +68,19 @@ jobs:
             test/ui_motion_contract_test.dart
 
       - name: Run tests
+        if: steps.patch.outcome == 'success'
         run: flutter test
 
       - name: Analyze source
+        if: steps.patch.outcome == 'success'
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build web release
+        if: steps.patch.outcome == 'success'
         run: flutter build web --release --base-href /appstroy-web/
 
       - name: Commit verified changes to pull request branch
+        if: steps.patch.outcome == 'success'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
