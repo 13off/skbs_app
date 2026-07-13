@@ -56,15 +56,15 @@ class _PremiumPressableState extends State<PremiumPressable> {
     }
   }
 
-  void activate() {
+  void invokeAction() {
     if (!isEnabled) return;
     widget.onTap?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeHover =
-        supportsHover && (isHovered || isFocused) && isEnabled && !isPressed;
+    final activeHover = supportsHover && isHovered && isEnabled && !isPressed;
+    final showFocusRing = isFocused && isEnabled;
     final scale = isPressed
         ? widget.pressedScale
         : activeHover
@@ -96,7 +96,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
-              activate();
+              invokeAction();
               return null;
             },
           ),
@@ -108,7 +108,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
           onTapUp: isEnabled ? (_) => updatePressed(false) : null,
           onTap: widget.onTap,
           child: AnimatedSlide(
-            offset: activeHover ? const Offset(0, -0.018) : Offset.zero,
+            offset: activeHover ? const Offset(0, -0.012) : Offset.zero,
             duration: duration,
             curve: curve,
             child: AnimatedScale(
@@ -121,32 +121,26 @@ class _PremiumPressableState extends State<PremiumPressable> {
                 decoration: BoxDecoration(
                   borderRadius: widget.borderRadius,
                   border: Border.all(
-                    color: activeHover || isFocused
-                        ? Colors.white.withValues(alpha: 0.88)
+                    color: showFocusRing
+                        ? AppColors.accent.withValues(alpha: 0.35)
                         : Colors.transparent,
-                    width: 0.8,
+                    width: 1,
                   ),
                   boxShadow: activeHover
                       ? [
                           BoxShadow(
                             color: const Color(
-                              0xFF111317,
-                            ).withValues(alpha: 0.075),
-                            blurRadius: 30,
-                            spreadRadius: -9,
-                            offset: const Offset(0, 15),
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.76),
-                            blurRadius: 12,
-                            spreadRadius: -6,
-                            offset: const Offset(0, -3),
+                              0xFF17191C,
+                            ).withValues(alpha: 0.10),
+                            blurRadius: 24,
+                            spreadRadius: -8,
+                            offset: const Offset(0, 11),
                           ),
                         ]
                       : const [],
                 ),
                 child: AnimatedOpacity(
-                  opacity: isEnabled ? (isPressed ? 0.96 : 1) : 0.46,
+                  opacity: isEnabled ? (isPressed ? 0.95 : 1) : 0.46,
                   duration: AppMotion.fast,
                   child: ClipRRect(
                     borderRadius: widget.borderRadius,
