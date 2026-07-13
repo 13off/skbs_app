@@ -34,6 +34,8 @@
 - открывает внутренний экран уведомлений после нажатия;
 - хранит только публичную Firebase-конфигурацию из `--dart-define`.
 
+Для актуальной ветки FlutterFire (`firebase_core 4.x`, `firebase_messaging 16.x`) минимальная версия приложения на iPhone установлена в iOS 15. Проверочная unsigned IPA собирается с bundle ID `ru.appstroy.mobile` и подключённым `Runner.entitlements`.
+
 ## Секреты
 
 В репозитории и Flutter запрещены:
