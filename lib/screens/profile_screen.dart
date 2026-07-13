@@ -8,7 +8,13 @@ import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
+import '../widgets/premium_ui_v2.dart';
 import 'template_documents_screen.dart';
+
+const Color _profileText = Color(0xFF1F2328);
+const Color _profileMuted = Color(0xFF6B7075);
+const Color _profileSoft = Color(0xFFF1F0EC);
+const Color _profileLine = Color(0xFFE4E2DC);
 
 class ProfileScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -86,20 +92,159 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  String get profileInitial {
+    final words = profile.fullName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+
+    if (words.isEmpty) return 'A';
+    if (words.length == 1) return words.first.substring(0, 1).toUpperCase();
+
+    return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'
+        .toUpperCase();
+  }
+
+  Widget buildProfileHero() {
+    return PremiumWorkCard(
+      radius: 28,
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF73777C), Color(0xFF34373B)],
+              ),
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF17191C).withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Text(
+              profileInitial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.fullName.isEmpty ? 'Пользователь AppСтрой' : profile.fullName,
+                  style: const TextStyle(
+                    color: _profileText,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  profile.roleTitle,
+                  style: const TextStyle(
+                    color: _profileMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _profileSoft,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.verified_user_outlined,
+              color: _profileMuted,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: _profileMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
   Widget buildInfoTile({
     required IconData icon,
     required String title,
     required String value,
   }) {
-    return Card(
-      elevation: 0,
-      color: Colors.grey.shade100,
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(
-          value.isEmpty ? 'Не указано' : value,
-          style: const TextStyle(fontWeight: FontWeight.w700),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumWorkCard(
+        radius: 22,
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _profileSoft,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: _profileLine),
+              ),
+              child: Icon(icon, color: _profileText, size: 21),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _profileMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value.isEmpty ? 'Не указано' : value,
+                    style: const TextStyle(
+                      color: _profileText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -112,15 +257,89 @@ class ProfileScreen extends StatelessWidget {
     required VoidCallback onTap,
     Color? color,
   }) {
-    return Card(
-      elevation: 0,
-      color: color ?? const Color(0xFFF0EFEB),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumPressable(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: PremiumWorkCard(
+          radius: 22,
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+          tint: color,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _profileSoft,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: _profileLine),
+                ),
+                child: Icon(icon, color: _profileText, size: 22),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _profileText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: _profileMuted,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, color: _profileMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildSignOutButton(BuildContext context) {
+    return PremiumPressable(
+      onTap: () {
+        signOut(context);
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 54,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _profileLine),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: _profileText, size: 20),
+            SizedBox(width: 9),
+            Text(
+              'Выйти',
+              style: TextStyle(
+                color: _profileText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -129,10 +348,13 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Профиль',
-      subtitle: 'Пользователь системы',
+      subtitle: 'Аккаунт, компания и доступ к рабочим инструментам',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          buildProfileHero(),
+          const SizedBox(height: 18),
+          buildSectionTitle('Рабочие данные'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
               future: CompanyRepository.fetchCompany(profile.activeCompanyId),
@@ -140,7 +362,8 @@ class ProfileScreen extends StatelessWidget {
                 return buildInfoTile(
                   icon: Icons.apartment_rounded,
                   title: 'Компания',
-                  value: snapshot.data?.name ??
+                  value:
+                      snapshot.data?.name ??
                       (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
                 );
               },
@@ -165,10 +388,9 @@ class ProfileScreen extends StatelessWidget {
             title: 'Объект',
             value: profile.objectName,
           ),
-
-          const SizedBox(height: 12),
-
+          const SizedBox(height: 8),
           if (profile.isAdmin) ...[
+            buildSectionTitle('Управление компанией'),
             buildActionTile(
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
@@ -178,18 +400,15 @@ class ProfileScreen extends StatelessWidget {
                 openCompanyManagement(context);
               },
             ),
-            const SizedBox(height: 10),
             buildActionTile(
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
                   'Архивированные сотрудники и объекты: восстановить или удалить навсегда',
-              color: const Color(0xFFF0EFEB),
               onTap: () {
                 openArchive(context);
               },
             ),
-            const SizedBox(height: 10),
             buildActionTile(
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
@@ -198,40 +417,33 @@ class ProfileScreen extends StatelessWidget {
                 openTemplateDocuments(context);
               },
             ),
-
-            const SizedBox(height: 18),
+            const SizedBox(height: 8),
           ],
-
           FutureBuilder<List<CompanySummary>>(
             future: CompanyRepository.fetchMyCompanies(),
             builder: (context, snapshot) {
               final companies = snapshot.data ?? const <CompanySummary>[];
               if (companies.length < 2) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: buildActionTile(
-                  icon: Icons.swap_horiz_rounded,
-                  title: 'Сменить компанию',
-                  subtitle: 'Переключиться между доступными рабочими пространствами',
-                  onTap: () {
-                    openCompanySwitcher(context);
-                  },
-                ),
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildSectionTitle('Рабочее пространство'),
+                  buildActionTile(
+                    icon: Icons.swap_horiz_rounded,
+                    title: 'Сменить компанию',
+                    subtitle:
+                        'Переключиться между доступными рабочими пространствами',
+                    onTap: () {
+                      openCompanySwitcher(context);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
               );
             },
           ),
-
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                signOut(context);
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Выйти'),
-            ),
-          ),
+          buildSignOutButton(context),
         ],
       ),
     );
