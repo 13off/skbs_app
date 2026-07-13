@@ -1,0 +1,155 @@
+name: Publish UI v2 preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-ui-v2-preview.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-ui-v2-preview
+  cancel-in-progress: true
+
+env:
+  FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+  FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+  FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+  FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+  FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
+  FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+  FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+  FIREBASE_VAPID_KEY: ${{ vars.FIREBASE_VAPID_KEY }}
+
+jobs:
+  test-build-publish-preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check deploy token
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
+            echo "::error::Не найден secret WEB_DEPLOY_TOKEN"
+            exit 1
+          fi
+
+      - name: Checkout UI branch
+        uses: actions/checkout@v4
+        with:
+          ref: ui/unified-motion-nav-v2
+          path: skbs_app
+
+      - name: Checkout web repository
+        uses: actions/checkout@v4
+        with:
+          repository: 13off/appstroy-web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: skbs_app/.fvmrc
+          cache: true
+
+      - name: Install icon renderer
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+
+      - name: Generate preview icons
+        shell: bash
+        run: |
+          mkdir -p skbs_app/web/icons
+          rsvg-convert -w 192 -h 192 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-192-v2.png
+          rsvg-convert -w 512 -h 512 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/icons/AppStroy-512-v2.png
+          rsvg-convert -w 64 -h 64 skbs_app/web/icons/app_icon_matte_v2.svg -o skbs_app/web/favicon-v2.png
+
+      - name: Install locked dependencies
+        working-directory: skbs_app
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run all tests
+        working-directory: skbs_app
+        run: flutter test
+
+      - name: Analyze branch
+        working-directory: skbs_app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Configure Firebase preview values
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('web/firebase-messaging-sw.js')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '__FIREBASE_API_KEY__': os.environ.get('FIREBASE_API_KEY', ''),
+              '__FIREBASE_AUTH_DOMAIN__': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+              '__FIREBASE_PROJECT_ID__': os.environ.get('FIREBASE_PROJECT_ID', ''),
+              '__FIREBASE_STORAGE_BUCKET__': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+              '__FIREBASE_MESSAGING_SENDER_ID__': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+              '__FIREBASE_WEB_APP_ID__': os.environ.get('FIREBASE_WEB_APP_ID', ''),
+              '__APP_PUBLIC_URL__': 'https://13off.github.io/appstroy-web/preview-ui-v2/',
+          }
+          for marker, value in replacements.items():
+              text = text.replace(marker, value)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Build isolated web preview
+        working-directory: skbs_app
+        run: |
+          flutter build web --release \
+            --base-href /appstroy-web/preview-ui-v2/ \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define=FIREBASE_AUTH_DOMAIN="$FIREBASE_AUTH_DOMAIN" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET" \
+            --dart-define=FIREBASE_WEB_APP_ID="$FIREBASE_WEB_APP_ID" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="$FIREBASE_ANDROID_APP_ID" \
+            --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
+            --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY"
+
+      - name: Bust preview cache
+        shell: bash
+        run: |
+          BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
+          sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
+          sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
+          sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
+          printf '%s\n' "$(git -C skbs_app rev-parse HEAD)" > skbs_app/build/web/source-commit.txt
+
+      - name: Publish preview without touching production
+        working-directory: appstroy-web
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf preview-ui-v2
+            mkdir -p preview-ui-v2
+            cp -R ../skbs_app/build/web/. preview-ui-v2/
+            git add preview-ui-v2
+            git commit -m "опубликована изолированная UI-preview" || exit 0
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 3))
+          done
+
+          echo "::error::Не удалось опубликовать UI-preview"
+          exit 1
