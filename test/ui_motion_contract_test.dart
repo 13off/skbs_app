@@ -24,14 +24,17 @@ void main() {
     expect(source, contains('FocusableActionDetector'));
   });
 
-  test('shell uses unified routes and adaptive professional bar', () {
+  test('shell keeps the last known-good visible tab structure', () {
     final source = File(
       'lib/features/shell/presentation/premium_main_screen.dart',
     ).readAsStringSync();
 
     expect(source, contains('CupertinoPageRoute<void>'));
-    expect(source, contains('final isDesktop = screenWidth >= 760'));
-    expect(source, contains('constraints: BoxConstraints(maxWidth: maxWidth)'));
-    expect(source, contains('hoverScale: selected ? 1.012 : 1.026'));
+    expect(source, contains('PageView.builder'));
+    expect(
+      source,
+      contains('return buildRootPage(index, selectedObjectName);'),
+    );
+    expect(source, isNot(contains('final isDesktop = screenWidth >= 760')));
   });
 }
