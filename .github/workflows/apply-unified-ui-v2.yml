@@ -7,6 +7,16 @@ on:
     paths:
       - tool/apply_unified_ui_v2.marker
       - .github/workflows/apply-unified-ui-v2.yml
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - tool/apply_unified_ui_v2.marker
+      - .github/workflows/apply-unified-ui-v2.yml
   workflow_dispatch:
 
 permissions:
