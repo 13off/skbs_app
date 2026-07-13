@@ -7,6 +7,8 @@ import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
+import '../app/app_theme.dart';
+import '../widgets/premium_ui.dart';
 import 'period_timesheet_screen.dart';
 
 class TimesheetScreen extends StatefulWidget {
@@ -381,103 +383,126 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   }
 
   Widget buildDatePanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      child: Row(
         children: [
-          Row(
-            children: [
-              IconButton.filledTonal(
-                onPressed: isSaving || isAttendanceLoading
-                    ? null
-                    : () {
-                        changeDate(
-                          selectedDate.subtract(const Duration(days: 1)),
-                        );
-                      },
-                icon: const Icon(Icons.chevron_left),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: InkWell(
+          IconButton.filledTonal(
+            onPressed: isSaving || isAttendanceLoading
+                ? null
+                : () {
+                    changeDate(selectedDate.subtract(const Duration(days: 1)));
+                  },
+            icon: const Icon(Icons.chevron_left),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: isSaving ? null : pickDate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 13,
+                  horizontal: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F0),
                   borderRadius: BorderRadius.circular(18),
-                  onTap: isSaving ? null : pickDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 14,
+                  border: Border.all(color: Colors.white),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      shortDate(selectedDate),
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.grey.shade300),
+                    const SizedBox(height: 2),
+                    Text(
+                      weekDayName(selectedDate),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        Text(
-                          shortDate(selectedDate),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          weekDayName(selectedDate),
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              IconButton.filledTonal(
-                onPressed: isSaving || isAttendanceLoading
-                    ? null
-                    : () {
-                        changeDate(selectedDate.add(const Duration(days: 1)));
-                      },
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton.filledTonal(
+            onPressed: isSaving || isAttendanceLoading
+                ? null
+                : () {
+                    changeDate(selectedDate.add(const Duration(days: 1)));
+                  },
+            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
     );
   }
 
-  Widget buildWorkedSummaryPanel({required List<Employee> visibleEmployees}) {
+  Widget buildWorkedSummaryPanel({
+    required List<Employee> visibleEmployees,
+  }) {
     final visibleWorked = workedCountFor(visibleEmployees);
+    final totalShifts = totalShiftsFor(visibleEmployees);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          const Icon(Icons.groups, size: 22),
-          const SizedBox(width: 10),
-          const Text(
-            'Вышли:',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: AppColors.accentSoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.groups_outlined,
+              size: 21,
+              color: AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '$visibleWorked / ${visibleEmployees.length}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Вышли сегодня',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$visibleWorked / ${visibleEmployees.length}',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                '${formatShift(totalShifts)} смен',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -499,56 +524,74 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                 },
                 icon: const Icon(Icons.close),
               ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.86),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Colors.white),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(
+            color: AppColors.textPrimary,
+            width: 1.3,
+          ),
+        ),
       ),
-      onChanged: (_) {
-        setState(() {});
-      },
+      onChanged: (_) => setState(() {}),
     );
   }
 
   Widget buildQuickActions(List<Employee> visibleEmployees) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Быстрые действия',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilledButton.tonalIcon(
-              onPressed:
-                  visibleEmployees.isEmpty || isSaving || isAttendanceLoading
-                  ? null
-                  : () {
-                      setVisibleEmployeesShifts(
-                        employees: visibleEmployees,
-                        value: 1,
-                      );
-                    },
-              icon: const Icon(Icons.done_all, size: 18),
-              label: const Text('Всем 1'),
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(15),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Быстрый ввод',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            FilledButton.tonalIcon(
-              onPressed:
-                  visibleEmployees.isEmpty || isSaving || isAttendanceLoading
-                  ? null
-                  : () {
-                      setVisibleEmployeesShifts(
-                        employees: visibleEmployees,
-                        value: 0,
-                      );
-                    },
-              icon: const Icon(Icons.remove_done, size: 18),
-              label: const Text('Всем 0'),
-            ),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(width: 10),
+          FilledButton.tonalIcon(
+            onPressed:
+                visibleEmployees.isEmpty || isSaving || isAttendanceLoading
+                ? null
+                : () {
+                    setVisibleEmployeesShifts(
+                      employees: visibleEmployees,
+                      value: 1,
+                    );
+                  },
+            icon: const Icon(Icons.done_all, size: 18),
+            label: const Text('Всем 1'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonalIcon(
+            onPressed:
+                visibleEmployees.isEmpty || isSaving || isAttendanceLoading
+                ? null
+                : () {
+                    setVisibleEmployeesShifts(
+                      employees: visibleEmployees,
+                      value: 0,
+                    );
+                  },
+            icon: const Icon(Icons.remove_done, size: 18),
+            label: const Text('Всем 0'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -556,33 +599,65 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
     final shifts = shiftValueFor(employee);
     final hasWorked = shifts > 0;
 
-    return Container(
+    return PremiumWorkCard(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: hasWorked ? Colors.green.shade50 : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hasWorked ? Colors.green.shade200 : Colors.grey.shade200,
-        ),
-      ),
+      padding: const EdgeInsets.all(15),
+      radius: 22,
+      tint: hasWorked
+          ? const Color(0xFFEDEEEB)
+          : Colors.white.withValues(alpha: 0.86),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            employee.name,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      employee.name,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      employee.position,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedContainer(
+                duration: AppMotion.regular,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: hasWorked
+                      ? AppColors.textPrimary
+                      : AppColors.accentSoft,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  formatShift(shifts),
+                  style: TextStyle(
+                    color: hasWorked ? Colors.white : AppColors.textMuted,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            employee.position,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 13),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -619,7 +694,9 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: const Text('Табель'),
         actions: [
           if (widget.profile.isAdmin)
@@ -641,89 +718,101 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
             ),
         ],
       ),
-      body: FutureBuilder<List<Employee>>(
-        future: employeesFuture,
-        builder: (context, employeesSnapshot) {
-          final allEmployees = employeesSnapshot.data ?? [];
-          final visibleEmployees = filterEmployees(allEmployees);
+      body: PremiumWorkBackdrop(
+        child: FutureBuilder<List<Employee>>(
+          future: employeesFuture,
+          builder: (context, employeesSnapshot) {
+            final allEmployees = employeesSnapshot.data ?? [];
+            final visibleEmployees = filterEmployees(allEmployees);
 
-          if (employeesSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            if (employeesSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (employeesSnapshot.hasError) {
-            return Center(
-              child: Text(
-                'Ошибка загрузки сотрудников: ${employeesSnapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                  children: [
-                    buildDatePanel(),
-                    const SizedBox(height: 14),
-                    buildWorkedSummaryPanel(visibleEmployees: visibleEmployees),
-                    const SizedBox(height: 14),
-                    buildSearch(),
-                    const SizedBox(height: 16),
-                    buildQuickActions(visibleEmployees),
-                    const SizedBox(height: 16),
-                    if (isAttendanceLoading || isSaving)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        child: LinearProgressIndicator(),
-                      ),
-                    if (errorText != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Text(
-                          errorText!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    if (visibleEmployees.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 30),
-                        child: Center(
-                          child: Text(
-                            'Сотрудники не найдены',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      ...visibleEmployees.map(
-                        (employee) =>
-                            RepaintBoundary(child: buildEmployeeRow(employee)),
-                      ),
-                  ],
+            if (employeesSnapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Ошибка загрузки сотрудников: ${employeesSnapshot.error}',
+                  style: const TextStyle(color: Colors.red),
                 ),
-              ),
-              SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
+              );
+            }
+
+            return Column(
+              children: [
+                Expanded(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 360),
-                      child: SizedBox(
-                        height: 46,
-                        child: FilledButton.icon(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                        children: [
+                          buildDatePanel(),
+                          const SizedBox(height: 14),
+                          buildWorkedSummaryPanel(
+                            visibleEmployees: visibleEmployees,
+                          ),
+                          const SizedBox(height: 14),
+                          buildSearch(),
+                          const SizedBox(height: 14),
+                          buildQuickActions(visibleEmployees),
+                          const SizedBox(height: 16),
+                          if (isAttendanceLoading || isSaving)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: LinearProgressIndicator(),
+                            ),
+                          if (errorText != null)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Text(
+                                errorText!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          if (visibleEmployees.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 30),
+                              child: Center(
+                                child: Text(
+                                  'Сотрудники не найдены',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            ...visibleEmployees.map(
+                              (employee) => RepaintBoundary(child: buildEmployeeRow(employee)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.94),
+                        ),
+                      ),
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: PremiumActionButton(
+                          label: hasUnsavedChanges
+                              ? 'Сохранить изменения'
+                              : 'Сохранить табель',
+                          icon: Icons.save_outlined,
+                          isLoading: isSaving,
                           onPressed:
                               allEmployees.isEmpty ||
                                   isAttendanceLoading ||
@@ -732,29 +821,15 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
                               : () {
                                   saveTimesheet(allEmployees);
                                 },
-                          icon: isSaving
-                              ? const SizedBox(
-                                  width: 17,
-                                  height: 17,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.save_outlined, size: 19),
-                          label: Text(
-                            hasUnsavedChanges
-                                ? 'Сохранить изменения'
-                                : 'Сохранить табель',
-                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
