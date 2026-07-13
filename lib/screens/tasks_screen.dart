@@ -10,10 +10,17 @@ import '../data/task_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import '../widgets/app_page.dart';
+import '../widgets/premium_ui_v2.dart';
 import '../widgets/task_tile.dart';
 import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
+
+const Color _tasksText = Color(0xFF1F2328);
+const Color _tasksMuted = Color(0xFF6B7075);
+const Color _tasksSoft = Color(0xFFF1F0EC);
+const Color _tasksLine = Color(0xFFE4E2DC);
+const Color _tasksAccent = Color(0xFF646A70);
 
 class TasksScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -295,52 +302,70 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
-  Widget buildDatePanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+  Widget buildDateArrow({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return PremiumPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: _tasksSoft,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _tasksLine),
+        ),
+        child: Icon(icon, color: _tasksText, size: 24),
       ),
+    );
+  }
+
+  Widget buildDatePanel() {
+    return PremiumWorkCard(
+      radius: 28,
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          IconButton.filledTonal(
-            onPressed: () {
+          buildDateArrow(
+            icon: Icons.chevron_left_rounded,
+            onTap: () {
               changeDate(selectedDate.subtract(const Duration(days: 1)));
             },
-            icon: const Icon(Icons.chevron_left),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 11),
           Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
+            child: PremiumPressable(
               onTap: pickDate,
+              borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 14,
-                  horizontal: 14,
+                  horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: _tasksSoft,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _tasksLine),
                 ),
                 child: Column(
                   children: [
                     Text(
                       shortDate(selectedDate),
                       style: const TextStyle(
+                        color: _tasksText,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       weekDayName(selectedDate),
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w600,
+                      style: const TextStyle(
+                        color: _tasksMuted,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -348,12 +373,12 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          IconButton.filledTonal(
-            onPressed: () {
+          const SizedBox(width: 11),
+          buildDateArrow(
+            icon: Icons.chevron_right_rounded,
+            onTap: () {
               changeDate(selectedDate.add(const Duration(days: 1)));
             },
-            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -362,38 +387,134 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Widget buildTasksCounter(List<TaskItemData> tasks) {
     final doneCount = tasks.where((task) => task.status == 'Выполнено').length;
+    final progress = tasks.isEmpty ? 0.0 : doneCount / tasks.length;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+    return PremiumWorkCard(
+      radius: 28,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _tasksSoft,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _tasksLine),
+                ),
+                child: const Icon(
+                  Icons.assignment_turned_in_outlined,
+                  color: _tasksText,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ход работ',
+                      style: TextStyle(
+                        color: _tasksText,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      objectTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _tasksMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$doneCount / ${tasks.length}',
+                style: const TextStyle(
+                  color: _tasksText,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: progress,
+              backgroundColor: _tasksSoft,
+              valueColor: const AlwaysStoppedAnimation<Color>(_tasksAccent),
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            tasks.isEmpty
+                ? 'На выбранную дату пока нет задач'
+                : 'Выполнено: $doneCount из ${tasks.length}',
+            style: const TextStyle(
+              color: _tasksMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget buildStateCard({
+    required IconData icon,
+    required String title,
+    required String text,
+    bool isError = false,
+  }) {
+    final color = isError ? const Color(0xFF9D3E38) : _tasksMuted;
+
+    return PremiumWorkCard(
+      radius: 24,
       child: Row(
         children: [
-          const Icon(Icons.assignment_outlined, size: 22),
-          const SizedBox(width: 10),
-          const Text(
-            'Задачи:',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '$doneCount / ${tasks.length}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 13),
           Expanded(
-            child: Text(
-              objectTitle,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _tasksText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  text,
+                  style: const TextStyle(
+                    color: _tasksMuted,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -406,29 +527,45 @@ class _TasksScreenState extends State<TasksScreen> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        const SizedBox(height: 10),
-        SizedBox(
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: PremiumPressable(
+        onTap: tasks.isEmpty
+            ? null
+            : () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (_) =>
+                        ActPreviewScreen(tasks: tasks, date: selectedDate),
+                  ),
+                );
+              },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
           width: double.infinity,
           height: 54,
-          child: OutlinedButton.icon(
-            onPressed: tasks.isEmpty
-                ? null
-                : () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (_) =>
-                            ActPreviewScreen(tasks: tasks, date: selectedDate),
-                      ),
-                    );
-                  },
-            icon: const Icon(Icons.description),
-            label: const Text('Сформировать акт'),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _tasksLine),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.description_outlined, color: _tasksText, size: 20),
+              SizedBox(width: 9),
+              Text(
+                'Сформировать акт',
+                style: TextStyle(
+                  color: _tasksText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -436,41 +573,34 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Задачи',
-      subtitle: 'Работы по осям за выбранную дату',
+      subtitle: 'Работы по осям, исполнители и готовность за выбранную дату',
       child: Column(
         children: [
           buildDatePanel(),
-
           const SizedBox(height: 14),
-
           buildTasksCounter(tasks),
-
           const SizedBox(height: 14),
-
           if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: CircularProgressIndicator(),
+            const PremiumWorkCard(
+              radius: 24,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
             ),
-
           if (loadError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                'Ошибка загрузки задач: $loadError',
-                style: const TextStyle(color: Colors.red),
-              ),
+            buildStateCard(
+              icon: Icons.error_outline_rounded,
+              title: 'Не удалось загрузить задачи',
+              text: loadError!,
+              isError: true,
             ),
-
           if (!isLoading && loadError == null && tasks.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                'На эту дату задач нет',
-                style: TextStyle(fontSize: 16),
-              ),
+            buildStateCard(
+              icon: Icons.assignment_outlined,
+              title: 'Задач пока нет',
+              text: 'Добавьте первую задачу на выбранную дату и объект.',
             ),
-
           if (loadError == null)
             ...tasks.map((task) {
               return TaskTile(
@@ -480,22 +610,16 @@ class _TasksScreenState extends State<TasksScreen> {
                 },
               );
             }),
-
           const SizedBox(height: 14),
-
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: FilledButton.icon(
-              onPressed: openAddTaskScreen,
-              icon: const Icon(Icons.add),
-              label: const Text('Добавить задачу'),
-            ),
+          PremiumActionButton(
+            label: 'Добавить задачу',
+            icon: Icons.add_rounded,
+            onPressed: openAddTaskScreen,
           ),
-
           buildActButton(tasks),
         ],
       ),
     );
   }
+
 }
