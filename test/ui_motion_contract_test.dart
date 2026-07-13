@@ -29,8 +29,7 @@ void main() {
       'lib/features/shell/presentation/premium_main_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('MaterialPageRoute<void>'));
-    expect(source, isNot(contains('CupertinoPageRoute')));
+    expect(source, contains('CupertinoPageRoute<void>'));
     expect(source, contains('final isDesktop = screenWidth >= 760'));
     expect(source, contains('constraints: BoxConstraints(maxWidth: maxWidth)'));
     expect(source, contains('hoverScale: selected ? 1.012 : 1.026'));

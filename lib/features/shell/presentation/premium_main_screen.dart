@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/services.dart';
 
 import '../../../app/app_theme.dart';
@@ -238,7 +239,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       child: Navigator(
         key: navigatorKeys[index],
         onGenerateRoute: (settings) {
-          return MaterialPageRoute<void>(
+          return CupertinoPageRoute<void>(
             settings: settings,
             builder: (_) {
               return ValueListenableBuilder<String?>(
