@@ -65,22 +65,28 @@ jobs:
       - name: Prepare iOS app
         shell: bash
         run: |
-          perl -0pi -e 's/com\.example\.skbsApp/ru.appstroy.mobile/g' ios/Runner.xcodeproj/project.pbxproj
           python3 - <<'PY'
           from pathlib import Path
+
           project = Path('ios/Runner.xcodeproj/project.pbxproj')
           text = project.read_text(encoding='utf-8')
-          if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
+          text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
+
+          entitlement_line = 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;'
+          if entitlement_line not in text:
               text = text.replace(
                   'INFOPLIST_FILE = Runner/Info.plist;',
-                  'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;\n\t\t\t\tINFOPLIST_FILE = Runner/Info.plist;',
+                  entitlement_line + '\n\t\t\t\tINFOPLIST_FILE = Runner/Info.plist;',
               )
+
+          if 'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;' not in text:
+              raise SystemExit('iOS bundle identifier was not updated')
+          if entitlement_line not in text:
+              raise SystemExit('Runner.entitlements was not connected')
+
           project.write_text(text, encoding='utf-8')
+          print('Prepared ru.appstroy.mobile with Runner.entitlements')
           PY
-          grep -q 'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;' ios/Runner.xcodeproj/project.pbxproj
-          grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' ios/Runner.xcodeproj/project.pbxproj
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName AppСтрой" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleName AppStroy" ios/Runner/Info.plist
 
       - name: Build unsigned app
         id: ios_build
