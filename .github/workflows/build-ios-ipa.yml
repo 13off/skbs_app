@@ -70,6 +70,12 @@ jobs:
           old_bundle_count = text.count('com.example.skbsApp')
           text = text.replace('com.example.skbsApp', 'ru.appstroy.mobile')
 
+          old_target_count = text.count('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')
+          text = text.replace(
+              'IPHONEOS_DEPLOYMENT_TARGET = 13.0;',
+              'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
+          )
+
           entitlement_line = 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;'
           if entitlement_line not in text:
               info_line = 'INFOPLIST_FILE = Runner/Info.plist;'
@@ -84,20 +90,27 @@ jobs:
           new_bundle_count = text.count(
               'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.mobile;'
           )
+          new_target_count = text.count(
+              'IPHONEOS_DEPLOYMENT_TARGET = 15.0;'
+          )
           entitlement_count = text.count(entitlement_line)
 
           print(f'Old bundle replacements: {old_bundle_count}')
           print(f'New bundle settings: {new_bundle_count}')
+          print(f'Old iOS 13 targets replaced: {old_target_count}')
+          print(f'New iOS 15 targets: {new_target_count}')
           print(f'Info.plist settings patched: {info_count}')
           print(f'Entitlement settings: {entitlement_count}')
 
           if new_bundle_count == 0:
               raise SystemExit('iOS bundle identifier was not updated')
+          if new_target_count == 0:
+              raise SystemExit('iOS deployment target was not raised to 15.0')
           if entitlement_count == 0:
               raise SystemExit('Runner.entitlements was not connected')
 
           project.write_text(text, encoding='utf-8')
-          print('Prepared ru.appstroy.mobile with Runner.entitlements')
+          print('Prepared ru.appstroy.mobile for iOS 15 with Runner.entitlements')
           PY
 
       - name: Build unsigned app
