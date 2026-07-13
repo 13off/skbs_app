@@ -31,9 +31,9 @@ void main() {
       'firebaseMessagingBackgroundHandler',
       'onTokenRefresh',
       "serviceWorkerScriptPath: kIsWeb",
-      "'register_current_push_device'",
-      "'unregister_current_push_device'",
+      "'manage-push-device'",
       "'dispatch-push-notification'",
+      "'action': 'unregister'",
       'Push идёт поверх внутреннего колокольчика',
     ]);
     containsAll('lib/data/notification_repository.dart', const [
@@ -61,11 +61,21 @@ void main() {
       'user_id uuid not null references auth.users',
       'company_id uuid not null references public.companies',
       'enable row level security',
-      'register_current_push_device',
-      'set_current_push_device_enabled',
-      'unregister_current_push_device',
       'push_notification_deliveries',
       'revoke all on table public.push_device_tokens from anon, authenticated',
+    ]);
+    containsAll('supabase/migrations/20260713130000_move_push_device_management_to_edge.sql', const [
+      'drop function if exists public.register_current_push_device',
+      'drop function if exists public.set_current_push_device_enabled',
+      'drop function if exists public.unregister_current_push_device',
+    ]);
+    containsAll('supabase/functions/manage-push-device/index.ts', const [
+      'userClient.auth.getUser()',
+      '.select("active_company_id, is_active")',
+      '.eq("company_id", companyId)',
+      '.eq("user_id", userData.user.id)',
+      'push_device_tokens',
+      'SUPABASE_SERVICE_ROLE_KEY',
     ]);
     containsAll('supabase/functions/dispatch-push-notification/index.ts', const [
       'notification.actor_user_id !== userData.user.id',

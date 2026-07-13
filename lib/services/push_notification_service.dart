@@ -355,13 +355,11 @@ class PushNotificationService {
     if (!enabled) {
       try {
         if (_client.auth.currentUser != null) {
-          await _client.rpc(
-            'set_current_push_device_enabled',
-            params: {
-              'p_device_id': await _deviceId(),
-              'p_enabled': false,
-            },
-          );
+          await _manageDevice({
+            'action': 'set_enabled',
+            'device_id': await _deviceId(),
+            'enabled': false,
+          });
         }
       } catch (_) {
         // Настройка push не должна влиять на рабочие функции приложения.
@@ -384,10 +382,10 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
-      await _client.rpc(
-        'unregister_current_push_device',
-        params: {'p_device_id': await _deviceId()},
-      );
+      await _manageDevice({
+        'action': 'unregister',
+        'device_id': await _deviceId(),
+      });
     } catch (_) {
       // Выход из аккаунта продолжится даже при недоступности push-сервиса.
     }
@@ -396,7 +394,7 @@ class PushNotificationService {
       try {
         await FirebaseMessaging.instance.deleteToken();
       } catch (_) {
-        // Токен в базе уже удалён; ошибка Firebase не блокирует выход.
+        // Серверная запись уже удалена; ошибка Firebase не блокирует выход.
       }
     }
 
@@ -433,26 +431,15 @@ class PushNotificationService {
     String token, {
     PushPermissionState? permission,
   }) async {
-    final user = _client.auth.currentUser;
-    if (user == null || token.trim().isEmpty) return;
+    if (_client.auth.currentUser == null || token.trim().isEmpty) return;
 
-    final profile = await _client
-        .from('user_profiles')
-        .select('active_company_id')
-        .eq('id', user.id)
-        .maybeSingle();
-    final companyId = profile?['active_company_id']?.toString().trim() ?? '';
-    if (companyId.isEmpty) return;
-
-    await _client.rpc(
-      'register_current_push_device',
-      params: {
-        'p_token': token.trim(),
-        'p_device_id': await _deviceId(),
-        'p_platform': _platform,
-        'p_enabled': true,
-      },
-    );
+    await _manageDevice({
+      'action': 'register',
+      'token': token.trim(),
+      'device_id': await _deviceId(),
+      'platform': _platform,
+      'enabled': true,
+    });
 
     _publish(
       configured: true,
@@ -461,6 +448,10 @@ class PushNotificationService {
       permission: permission ?? state.value.permission,
       message: 'Устройство подключено к push-уведомлениям',
     );
+  }
+
+  static Future<void> _manageDevice(Map<String, dynamic> body) async {
+    await _client.functions.invoke('manage-push-device', body: body);
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {
