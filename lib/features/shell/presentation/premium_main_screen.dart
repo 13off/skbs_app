@@ -535,111 +535,18 @@ class _PremiumBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final animationsDisabled =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final duration = animationsDisabled ? Duration.zero : AppMotion.regular;
-
-    return Material(
-      color: AppColors.background,
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        child: Container(
-          height: 68,
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.97),
-            borderRadius: BorderRadius.circular(27),
-            border: Border.all(color: Colors.white),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF17191C).withValues(alpha: 0.11),
-                blurRadius: 24,
-                offset: const Offset(0, 11),
-              ),
-            ],
-          ),
-          child: Row(
-            children: List<Widget>.generate(items.length, (index) {
-              final item = items[index];
-              final selected = index == selectedIndex;
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: PremiumPressable(
-                    onTap: () => onSelected(index),
-                    pressedScale: 0.95,
-                    borderRadius: BorderRadius.circular(19),
-                    child: AnimatedContainer(
-                      duration: duration,
-                      curve: AppMotion.enterCurve,
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(19),
-                        boxShadow: selected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.accent.withValues(
-                                    alpha: 0.20,
-                                  ),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ]
-                            : const [],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: duration,
-                            switchInCurve: AppMotion.enterCurve,
-                            switchOutCurve: AppMotion.exitCurve,
-                            child: Icon(
-                              selected ? item.selectedIcon : item.icon,
-                              key: ValueKey('$index-$selected'),
-                              size: 21,
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.textMuted,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          AnimatedDefaultTextStyle(
-                            duration: duration,
-                            curve: AppMotion.enterCurve,
-                            style:
-                                Theme.of(
-                                  context,
-                                ).textTheme.labelSmall?.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textMuted,
-                                  fontWeight: selected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  fontSize: 10.5,
-                                  letterSpacing: -0.2,
-                                ) ??
-                                const TextStyle(),
-                            child: Text(
-                              item.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
+    return ProfessionalBottomNavigation(
+      items: items
+          .map(
+            (item) => ProfessionalBottomNavigationItem(
+              label: item.label,
+              icon: item.icon,
+              selectedIcon: item.selectedIcon,
+            ),
+          )
+          .toList(growable: false),
+      selectedIndex: selectedIndex,
+      onSelected: onSelected,
     );
   }
 }
