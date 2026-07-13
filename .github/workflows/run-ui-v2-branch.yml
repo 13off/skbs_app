@@ -26,6 +26,16 @@ jobs:
           ref: ui/unified-motion-nav-v2
           persist-credentials: true
 
+      - name: Mark validation start
+        shell: bash
+        run: |
+          printf '%s\n' "${{ github.sha }}" > tool/ui_v2_validation_started.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tool/ui_v2_validation_started.txt
+          git commit -m "запущена проверка новой навигации" || true
+          git push origin HEAD:ui/unified-motion-nav-v2
+
       - name: Apply UI changes
         run: python3 tool/apply_unified_ui_v2.py
 
@@ -63,9 +73,10 @@ jobs:
         run: |
           rm -f tool/apply_unified_ui_v2.py
           rm -f tool/apply_unified_ui_v2.marker
+          rm -f tool/ui_v2_validation_started.txt
           rm -f .github/workflows/apply-unified-ui-v2.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "унифицирован интерфейс без изменения рабочих экранов"
-          git push origin ui/unified-motion-nav-v2
+          git push origin HEAD:ui/unified-motion-nav-v2
