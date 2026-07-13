@@ -1,16 +1,16 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app/app_theme.dart';
-import 'premium_pressable_v3.dart' as unified;
 
-class PremiumPressable extends StatelessWidget {
+class PremiumPressable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final BorderRadius borderRadius;
   final double pressedScale;
-  final double hoverScale;
   final bool enableHaptics;
 
   const PremiumPressable({
@@ -18,20 +18,94 @@ class PremiumPressable extends StatelessWidget {
     required this.child,
     required this.onTap,
     this.borderRadius = const BorderRadius.all(Radius.circular(18)),
-    this.pressedScale = AppMotion.pressedScale,
-    this.hoverScale = AppMotion.hoverScale,
+    this.pressedScale = 0.972,
     this.enableHaptics = true,
   });
 
   @override
+  State<PremiumPressable> createState() => _PremiumPressableState();
+}
+
+class _PremiumPressableState extends State<PremiumPressable> {
+  bool isPressed = false;
+  bool isHovered = false;
+
+  bool get isEnabled => widget.onTap != null;
+
+  void updatePressed(bool value) {
+    if (!mounted || isPressed == value) return;
+    setState(() => isPressed = value);
+  }
+
+  void handleTapDown(TapDownDetails details) {
+    if (!isEnabled) return;
+    updatePressed(true);
+
+    if (widget.enableHaptics &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return unified.PremiumPressable(
-      onTap: onTap,
-      borderRadius: borderRadius,
-      pressedScale: pressedScale,
-      hoverScale: hoverScale,
-      enableHaptics: enableHaptics,
-      child: child,
+    final scale = isPressed
+        ? widget.pressedScale
+        : isHovered && isEnabled
+        ? 1.003
+        : 1.0;
+
+    final hoverShadow = isHovered && isEnabled && !isPressed
+        ? <BoxShadow>[
+            BoxShadow(
+              color: const Color(0xFF17191C).withValues(alpha: 0.14),
+              blurRadius: 20,
+              offset: const Offset(0, 9),
+            ),
+          ]
+        : const <BoxShadow>[];
+
+    return MouseRegion(
+      cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) {
+        if (isEnabled) setState(() => isHovered = true);
+      },
+      onExit: (_) {
+        if (!mounted) return;
+        setState(() {
+          isHovered = false;
+          isPressed = false;
+        });
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: isEnabled ? handleTapDown : null,
+        onTapCancel: isEnabled ? () => updatePressed(false) : null,
+        onTapUp: isEnabled ? (_) => updatePressed(false) : null,
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: scale,
+          duration: isPressed ? AppMotion.pressIn : AppMotion.pressOut,
+          curve: isPressed ? Curves.easeOut : AppMotion.springCurve,
+          child: AnimatedContainer(
+            duration: AppMotion.regular,
+            curve: AppMotion.enterCurve,
+            decoration: BoxDecoration(
+              borderRadius: widget.borderRadius,
+              boxShadow: hoverShadow,
+            ),
+            child: AnimatedOpacity(
+              opacity: isEnabled ? (isPressed ? 0.94 : 1) : 0.46,
+              duration: AppMotion.fast,
+              child: ClipRRect(
+                borderRadius: widget.borderRadius,
+                child: widget.child,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -469,7 +543,10 @@ class _AppStroyMarkPainter extends CustomPainter {
   final double animation;
   final bool light;
 
-  const _AppStroyMarkPainter({required this.animation, required this.light});
+  const _AppStroyMarkPainter({
+    required this.animation,
+    required this.light,
+  });
 
   static double _staggered(double value, double start, double end) {
     final normalized = ((value - start) / (end - start))
@@ -523,8 +600,16 @@ class _AppStroyMarkPainter extends CustomPainter {
         end: Alignment.bottomRight,
         stops: const [0, 0.47, 1],
         colors: light
-            ? const [Color(0xFFFFFFFF), Color(0xFFD8DDE1), Color(0xFFAEB4BA)]
-            : const [Color(0xFFD7D7D7), Color(0xFFA3A4A6), Color(0xFF77797C)],
+            ? const [
+                Color(0xFFFFFFFF),
+                Color(0xFFD8DDE1),
+                Color(0xFFAEB4BA),
+              ]
+            : const [
+                Color(0xFFD7D7D7),
+                Color(0xFFA3A4A6),
+                Color(0xFF77797C),
+              ],
       ).createShader(markBounds);
 
     void drawTower(Path path, Rect bounds, double progress) {
