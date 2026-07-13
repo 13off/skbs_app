@@ -140,53 +140,85 @@ jobs:
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
 
-      - name: Replace web files
-        shell: bash
-        run: |
-          find appstroy-web -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'downloads' -exec rm -rf {} +
-          cp -R skbs_app/build/web/. appstroy-web/
-          touch appstroy-web/.nojekyll
-
-      - name: Commit and push web build
+      - name: Publish web files with conflict-safe retries
         working-directory: appstroy-web
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No web changes to publish"
-            exit 0
-          fi
-          git commit -m "обновлена веб версия через российский прокси"
-          git pull --rebase
-          git push
+
+          for attempt in 1 2 3 4 5; do
+            echo "Publish attempt ${attempt}/5"
+            git fetch origin main
+            git reset --hard origin/main
+
+            find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'downloads' -exec rm -rf {} +
+            cp -R ../skbs_app/build/web/. ./
+            touch .nojekyll
+
+            git add -A
+            if git diff --cached --quiet; then
+              echo "No web changes to publish"
+              exit 0
+            fi
+
+            git commit -m "обновлена веб версия через российский прокси"
+            if git push origin HEAD:main; then
+              echo "Web files published successfully"
+              exit 0
+            fi
+
+            echo "Remote changed during publish; rebuilding commit on latest main"
+            sleep $((attempt * 3))
+          done
+
+          echo "::error::Не удалось опубликовать веб-файлы после 5 попыток"
+          exit 1
 
       - name: Publish web build status
         if: always()
         working-directory: appstroy-web
         shell: bash
         run: |
-          git pull --rebase
-          mkdir -p downloads
-          BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
-          if grep -q "flutter_bootstrap.js?v=${BUILD_ID}" index.html; then
-            BUILD_STATUS="success"
-          else
-            BUILD_STATUS="failure"
-          fi
-          printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
-          printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
-          {
-            test -f ../flutter-test.log && cat ../flutter-test.log
-            test -f ../flutter-analyze.log && cat ../flutter-analyze.log
-            test -f ../flutter-web-build.log && cat ../flutter-web-build.log
-          } > downloads/web-build.log || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/web-build-status.txt downloads/web-source-commit.txt downloads/web-build.log
-          if ! git diff --cached --quiet; then
+          BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
+
+          for attempt in 1 2 3 4 5; do
+            echo "Status attempt ${attempt}/5"
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p downloads
+
+            if grep -q "flutter_bootstrap.js?v=${BUILD_ID}" index.html 2>/dev/null; then
+              BUILD_STATUS="success"
+            else
+              BUILD_STATUS="failure"
+            fi
+
+            printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
+            printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
+            {
+              test -f ../flutter-test.log && cat ../flutter-test.log
+              test -f ../flutter-analyze.log && cat ../flutter-analyze.log
+              test -f ../flutter-web-build.log && cat ../flutter-web-build.log
+            } > downloads/web-build.log || true
+
+            git add downloads/web-build-status.txt downloads/web-source-commit.txt downloads/web-build.log
+            if git diff --cached --quiet; then
+              echo "Web build status is already current"
+              exit 0
+            fi
+
             git commit -m "сохранён статус веб-сборки"
-            git pull --rebase
-            git push
-          fi
+            if git push origin HEAD:main; then
+              echo "Web build status published"
+              exit 0
+            fi
+
+            echo "Remote changed during status publish; retrying"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Не удалось сохранить статус веб-сборки"
+          exit 1
