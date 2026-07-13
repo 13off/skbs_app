@@ -14,7 +14,10 @@ void main() {
     expect(archive, contains('buildContent()'));
     expect(archive, contains('heightFactor: 1'));
     expect(archive, contains('height: 54'));
-    expect(archive, isNot(contains('child: Center(\n            child: ConstrainedBox')));
+    expect(
+      archive,
+      isNot(contains('child: Center(\n            child: ConstrainedBox')),
+    );
   });
 
   test('payment flow selects object before employee', () {
@@ -26,7 +29,7 @@ void main() {
     expect(employeeField, greaterThan(objectField));
     expect(payment, contains('employeesForSelectedObject()'));
     expect(payment, contains("errorText = 'Сначала выберите объект'"));
-    expect(payment, contains("selectedEmployeeId = null"));
+    expect(payment, contains('selectedEmployeeId = null'));
   });
 
   test('main employee and timesheet pages share task profile header', () {
@@ -44,7 +47,7 @@ void main() {
       final screen = source(path);
       expect(
         screen,
-        anyOf(contains('AppPageHeader('), contains('return AppPage('))),
+        anyOf(contains('AppPageHeader('), contains('return AppPage(')),
         reason: '$path должен использовать единую объёмную шапку',
       );
     }
