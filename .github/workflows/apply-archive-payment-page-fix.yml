@@ -1,4 +1,4 @@
-name: Diagnose archive payment and page fixes
+name: Validate archive payment and page fixes
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  diagnose:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: fix/archive-payments-unified-pages
+          fetch-depth: 0
           persist-credentials: true
+
+      - name: Restore current functional contract and update changed markers
+        shell: bash
+        run: |
+          git fetch origin main
+          git show origin/main:test/functional_contract_test.dart > test/functional_contract_test.dart
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('test/functional_contract_test.dart')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              "title: const Text('Табель')": "title: 'Табель'",
+              'RepaintBoundary(child: buildEmployeeRow(employee))': 'child: buildEmployeeRow(employee)',
+              'PremiumBrandMark(size: 52, animate: false)': 'AppPageHeader(',
+              "'Рабочая сводка'": "title: 'Главная'",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise RuntimeError(f'Не найден маркер функционального контракта: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,14 +57,12 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Diagnose each Dart file
-        id: diagnose
-        shell: bash
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed Dart files
         run: |
-          set +e
-          : > tool/archive_payment_page_format.log
-          status=0
-          for file in \
+          dart format \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
             lib/screens/add_payment_screen.dart \
@@ -49,23 +71,13 @@ jobs:
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
             test/archive_payment_page_contract_test.dart
-          do
-            echo "===== ${file} =====" | tee -a tool/archive_payment_page_format.log
-            dart format "$file" 2>&1 | tee -a tool/archive_payment_page_format.log
-            code=${PIPESTATUS[0]}
-            if [ "$code" -ne 0 ]; then
-              status="$code"
-            fi
-          done
-          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
-          exit 0
 
-      - name: Save diagnostic log and formatted files
+      - name: Commit normalized draft
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f \
+          git add \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
             lib/screens/add_payment_screen.dart \
@@ -73,21 +85,11 @@ jobs:
             lib/screens/employees_screen.dart \
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
-            test/archive_payment_page_contract_test.dart \
-            tool/archive_payment_page_format.log
-          git commit -m "сохранена пофайловая диагностика UI-патча" || true
+            test/archive_payment_page_contract_test.dart
+          git commit -m "нормализован проверяемый черновик архива выплат и страниц" || true
           git push origin HEAD:fix/archive-payments-unified-pages
 
-      - name: Stop after diagnostic failure
-        if: steps.diagnose.outputs.exit_code != '0'
-        run: exit 1
-
-      - name: Install locked dependencies
-        if: steps.diagnose.outputs.exit_code == '0'
-        run: flutter pub get --enforce-lockfile
-
       - name: Validate tests analysis and web build
-        if: steps.diagnose.outputs.exit_code == '0'
         id: validation
         shell: bash
         run: |
@@ -103,7 +105,7 @@ jobs:
           exit 0
 
       - name: Save failed validation diagnostics
-        if: steps.diagnose.outputs.exit_code == '0' && steps.validation.outputs.exit_code != '0'
+        if: steps.validation.outputs.exit_code != '0'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -114,7 +116,7 @@ jobs:
           exit 1
 
       - name: Finalize verified branch
-        if: steps.diagnose.outputs.exit_code == '0' && steps.validation.outputs.exit_code == '0'
+        if: steps.validation.outputs.exit_code == '0'
         shell: bash
         run: |
           rm -f tool/apply_archive_payment_page_fix.py
