@@ -33,6 +33,9 @@ jobs:
           ref: ui/unified-motion-nav-v2
           persist-credentials: true
 
+      - name: Apply compact layout fix
+        run: python3 tool/fix_ui_v2_layout.py
+
       - name: Apply UI changes
         run: python3 tool/apply_unified_ui_v2.py
 
@@ -71,6 +74,7 @@ jobs:
         run: |
           rm -f tool/apply_unified_ui_v2.py
           rm -f tool/apply_unified_ui_v2.marker
+          rm -f tool/fix_ui_v2_layout.py
           rm -f .github/workflows/apply-unified-ui-v2.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
