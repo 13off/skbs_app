@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
+import '../../../../app/app_theme.dart';
 import '../../../../data/attendance_repository.dart';
 import '../../../../models/employee.dart';
 import '../../../../models/monthly_timesheet_row.dart';
 import '../../../../screens/add_payment_screen.dart';
 import '../../../../screens/payment_history_screen.dart';
+import '../../../../widgets/premium_ui.dart';
 import '../../data/payment_report_exporter.dart';
 import '../widgets/payment_report_sheet.dart';
 
@@ -285,13 +287,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget buildMonthPanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           IconButton.filledTonal(
@@ -305,16 +303,18 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 const Text(
                   'Период выплат',
                   style: TextStyle(
-                    fontSize: 13,
+                    color: AppColors.textMuted,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   monthTitle,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    color: AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
@@ -333,15 +333,21 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget buildSummaryPanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(15),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text(
+            'Сводка за период',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -384,7 +390,23 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 },
                 icon: const Icon(Icons.close),
               ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.86),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Colors.white),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(
+            color: AppColors.textPrimary,
+            width: 1.3,
+          ),
+        ),
       ),
       onChanged: (_) => setState(() {}),
     );
@@ -398,38 +420,64 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final String balanceTitle;
 
     if (balance > 0) {
-      balanceColor = Colors.orange.shade700;
+      balanceColor = AppColors.textPrimary;
       balanceTitle = 'Остаток';
     } else if (balance < 0) {
-      balanceColor = Colors.red.shade700;
+      balanceColor = const Color(0xFF8A4B46);
       balanceTitle = 'Переплата';
     } else {
-      balanceColor = Colors.green.shade700;
+      balanceColor = const Color(0xFF3F6B56);
       balanceTitle = 'Закрыто';
     }
 
-    return Container(
+    return PremiumWorkCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+      radius: 23,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            employee.name,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${employee.position} • ${row.objectTitle}',
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(
+                  color: AppColors.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppColors.textPrimary,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      employee.name,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${employee.position} • ${row.objectTitle}',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Row(
@@ -516,50 +564,64 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final visibleRows = filteredRows;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: const Text('Выплаты'),
         actions: [buildReportAction(), buildAddAction()],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => loadPaymentsData(forceRefresh: true),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            buildMonthPanel(),
-            const SizedBox(height: 14),
-            buildSummaryPanel(),
-            const SizedBox(height: 14),
-            buildSearch(),
-            const SizedBox(height: 16),
-            if (isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: LinearProgressIndicator(),
-              ),
-            if (errorText != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  errorText!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            if (!isLoading && visibleRows.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: Text(
-                    'Сотрудники не найдены',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w700,
-                    ),
+      body: PremiumWorkBackdrop(
+        child: RefreshIndicator(
+          onRefresh: () => loadPaymentsData(forceRefresh: true),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Column(
+                    children: [
+                      buildMonthPanel(),
+                      const SizedBox(height: 14),
+                      buildSummaryPanel(),
+                      const SizedBox(height: 14),
+                      buildSearch(),
+                      const SizedBox(height: 16),
+                      if (isLoading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: LinearProgressIndicator(),
+                        ),
+                      if (errorText != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            errorText!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      if (!isLoading && visibleRows.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              'Сотрудники не найдены',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...visibleRows.map(buildPaymentCard),
+                    ],
                   ),
                 ),
-              )
-            else
-              ...visibleRows.map(buildPaymentCard),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -656,7 +718,7 @@ class _MoneySummaryItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFFE1E2DF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -664,7 +726,7 @@ class _MoneySummaryItem extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: AppColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -695,7 +757,7 @@ class _MoneyLine extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFFE1E2DF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -703,7 +765,7 @@ class _MoneyLine extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: AppColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
