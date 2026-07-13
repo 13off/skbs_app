@@ -14,4 +14,14 @@ void main() {
     expect(source, contains('return buildRootPage(index, selectedObjectName);'));
     expect(source, isNot(contains('final isDesktop = screenWidth >= 760')));
   });
+
+  test('release workflow keeps conflict-safe web publishing enabled', () {
+    final workflow = File(
+      '.github/workflows/deploy-web.yml',
+    ).readAsStringSync();
+
+    expect(workflow, contains('Publish web files with conflict-safe retries'));
+    expect(workflow, contains('git reset --hard origin/main'));
+    expect(workflow, contains('for attempt in 1 2 3 4 5'));
+  });
 }
