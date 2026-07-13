@@ -251,6 +251,59 @@ void main() {
       );
     });
 
+    test('тарифы и заявки сохраняют бизнес-контур компании', () {
+      _containsAll(
+        'lib/features/company/data/company_repository.dart',
+        const [
+          "'billing_plans'",
+          "'company_plan_requests'",
+          'fetchBillingPlans',
+          'fetchOpenPlanRequest',
+          'requestPlan',
+          'seatLimit',
+          'objectLimit',
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_management_screen.dart',
+        const [
+          'CompanyPlansScreen',
+          "'Тарифы'",
+          "'Пригласить пользователя'",
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_plans_screen.dart',
+        const [
+          "'Тариф и лимиты'",
+          "'Оставить заявку'",
+          "'Тарифы для компаний'",
+          'Оплата сейчас не списывается.',
+          'PremiumWorkCard',
+        ],
+      );
+      _containsAll(
+        'supabase/migrations/20260713100000_add_company_billing_foundation.sql',
+        const [
+          'create table public.billing_plans',
+          'create table public.company_plan_requests',
+          'enable row level security',
+          'public.is_company_admin(company_id)',
+          'company_plan_requests_one_open_idx',
+        ],
+      );
+      _containsAll(
+        'supabase/migrations/20260713100100_index_company_plan_requests_plan.sql',
+        const ['company_plan_requests_requested_plan_idx'],
+      );
+      _containsAll('docs/BUSINESS_MODEL.md', const [
+        '## Принцип тарифов',
+        '2 990 ₽',
+        '7 990 ₽',
+        'все рабочие функции',
+      ]);
+    });
+
     test('приглашённый пользователь обязательно задаёт пароль', () {
       _containsAll(
         'lib/features/auth/presentation/premium_auth_gate_v2.dart',
