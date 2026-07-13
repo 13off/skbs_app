@@ -1,4 +1,4 @@
-name: Validate archive payment and page fixes
+name: Diagnose archive payment and page fixes
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-build:
+  diagnose:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,9 +33,14 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Format changed Dart files
+      - name: Diagnose each Dart file
+        id: diagnose
+        shell: bash
         run: |
-          dart format \
+          set +e
+          : > tool/archive_payment_page_format.log
+          status=0
+          for file in \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
             lib/screens/add_payment_screen.dart \
@@ -44,13 +49,23 @@ jobs:
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
             test/archive_payment_page_contract_test.dart
+          do
+            echo "===== ${file} =====" | tee -a tool/archive_payment_page_format.log
+            dart format "$file" 2>&1 | tee -a tool/archive_payment_page_format.log
+            code=${PIPESTATUS[0]}
+            if [ "$code" -ne 0 ]; then
+              status="$code"
+            fi
+          done
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Commit formatted draft
+      - name: Save diagnostic log and formatted files
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
+          git add -f \
             lib/widgets/app_page.dart \
             lib/features/archive/presentation/archive_management_screen_v3.dart \
             lib/screens/add_payment_screen.dart \
@@ -58,14 +73,21 @@ jobs:
             lib/screens/employees_screen.dart \
             lib/screens/timesheet_screen.dart \
             test/functional_contract_test.dart \
-            test/archive_payment_page_contract_test.dart
-          git commit -m "отформатирован черновик архива выплат и страниц" || true
+            test/archive_payment_page_contract_test.dart \
+            tool/archive_payment_page_format.log
+          git commit -m "сохранена пофайловая диагностика UI-патча" || true
           git push origin HEAD:fix/archive-payments-unified-pages
 
+      - name: Stop after diagnostic failure
+        if: steps.diagnose.outputs.exit_code != '0'
+        run: exit 1
+
       - name: Install locked dependencies
+        if: steps.diagnose.outputs.exit_code == '0'
         run: flutter pub get --enforce-lockfile
 
       - name: Validate tests analysis and web build
+        if: steps.diagnose.outputs.exit_code == '0'
         id: validation
         shell: bash
         run: |
@@ -80,8 +102,8 @@ jobs:
           echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Save failed diagnostics
-        if: steps.validation.outputs.exit_code != '0'
+      - name: Save failed validation diagnostics
+        if: steps.diagnose.outputs.exit_code == '0' && steps.validation.outputs.exit_code != '0'
         shell: bash
         run: |
           git pull --rebase origin fix/archive-payments-unified-pages
@@ -93,7 +115,7 @@ jobs:
           exit 1
 
       - name: Finalize verified branch
-        if: steps.validation.outputs.exit_code == '0'
+        if: steps.diagnose.outputs.exit_code == '0' && steps.validation.outputs.exit_code == '0'
         shell: bash
         run: |
           git pull --rebase origin fix/archive-payments-unified-pages
