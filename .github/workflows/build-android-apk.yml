@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Validate UI v2 branch
 
 on:
   workflow_dispatch:
@@ -6,173 +6,16 @@ on:
     branches:
       - main
     paths:
-      - android/**
-      - lib/**
-      - test/**
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
       - .github/workflows/build-android-apk.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: appstroy-android-apk
+  group: ui-v2-branch-only
   cancel-in-progress: true
 
-env:
-  FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
-  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-  FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
-  FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
-  FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
-  FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
-  FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
-  FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
-  FIREBASE_VAPID_KEY: ${{ vars.FIREBASE_VAPID_KEY }}
-
 jobs:
-  build-apk:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check publish token
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.WEB_DEPLOY_TOKEN }}" ]; then
-            echo "::error::Не найден secret WEB_DEPLOY_TOKEN"
-            exit 1
-          fi
-
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Checkout download repository
-        uses: actions/checkout@v4
-        with:
-          repository: 13off/appstroy-web
-          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
-          path: appstroy-web
-
-      - name: Publish building status
-        shell: bash
-        run: |
-          mkdir -p appstroy-web/downloads
-          printf 'building\n' > appstroy-web/downloads/apk-build-status.txt
-          printf '%s\n' "$(git rev-parse HEAD)" > appstroy-web/downloads/source-commit.txt
-          cd appstroy-web
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/apk-build-status.txt downloads/source-commit.txt
-          if ! git diff --cached --quiet; then
-            git commit -m "запущена сборка APK через российский прокси"
-            git push
-          fi
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Run regression tests
-        run: flutter test
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Build release APK through proxy
-        id: apk_build
-        shell: bash
-        run: |
-          set +e
-          flutter build apk --release \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
-            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
-            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
-            --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
-            --dart-define=FIREBASE_AUTH_DOMAIN="$FIREBASE_AUTH_DOMAIN" \
-            --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET" \
-            --dart-define=FIREBASE_WEB_APP_ID="$FIREBASE_WEB_APP_ID" \
-            --dart-define=FIREBASE_ANDROID_APP_ID="$FIREBASE_ANDROID_APP_ID" \
-            --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
-            --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
-            2>&1 | tee apk-build.log
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Prepare APK files
-        if: steps.apk_build.outputs.exit_code == '0'
-        shell: bash
-        run: |
-          SOURCE_SHA="$(git rev-parse HEAD)"
-          SHORT_SHA="$(git rev-parse --short=12 HEAD)"
-          mkdir -p apk-output
-          cp build/app/outputs/flutter-apk/app-release.apk "apk-output/AppStroy-${SHORT_SHA}.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk apk-output/AppStroy-latest.apk
-          printf '%s\n' "$SOURCE_SHA" > apk-output/source-commit.txt
-          sha256sum apk-output/AppStroy-latest.apk > apk-output/AppStroy-latest.sha256
-
-      - name: Upload APK artifact
-        if: steps.apk_build.outputs.exit_code == '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: AppStroy-Android-APK
-          path: apk-output/
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Publish final build result
-        if: always()
-        shell: bash
-        run: |
-          cd appstroy-web
-          git pull --rebase
-          cd ..
-
-          SOURCE_SHA="$(git rev-parse HEAD)"
-          mkdir -p appstroy-web/downloads
-          cp apk-build.log appstroy-web/downloads/apk-build.log || true
-          printf '%s\n' "$SOURCE_SHA" > appstroy-web/downloads/source-commit.txt
-
-          if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
-            rm -f appstroy-web/downloads/AppStroy-*.apk
-            cp apk-output/AppStroy-*.apk appstroy-web/downloads/
-            cp apk-output/AppStroy-latest.sha256 appstroy-web/downloads/
-            printf 'success\n' > appstroy-web/downloads/apk-build-status.txt
-          else
-            printf 'failure\n' > appstroy-web/downloads/apk-build-status.txt
-          fi
-
-          cd appstroy-web
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads
-          if ! git diff --cached --quiet; then
-            if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
-              git commit -m "опубликован APK через российский прокси"
-            else
-              git commit -m "сохранена ошибка сборки APK"
-            fi
-            git push
-          fi
-
-      - name: Fail workflow when APK build failed
-        if: steps.apk_build.outputs.exit_code != '0'
-        run: exit 1
-
   validate-ui-v2-branch:
     runs-on: ubuntu-latest
 
@@ -184,27 +27,49 @@ jobs:
           persist-credentials: true
 
       - name: Apply and commit UI draft
+        id: apply_ui
         shell: bash
         run: |
-          python3 tool/apply_unified_ui_v2.py
+          set +e
+          set -o pipefail
+          python3 tool/apply_unified_ui_v2.py 2>&1 | tee /tmp/ui-v2-apply.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            cp /tmp/ui-v2-apply.log tool/ui_v2_apply_failure.log
+            git add tool/ui_v2_apply_failure.log
+            git commit -m "сохранена ошибка применения нового интерфейса"
+            git push origin HEAD:ui/unified-motion-nav-v2
+            exit 0
+          fi
+
           rm -f tool/apply_unified_ui_v2.py
           rm -f tool/apply_unified_ui_v2.marker
           rm -f tool/ui_v2_validation_started.txt
           rm -f tool/ui_v2_validation_failure.log
+          rm -f tool/ui_v2_apply_failure.log
           rm -f .github/workflows/apply-unified-ui-v2.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "применён безопасный черновик единого интерфейса"
           git push origin HEAD:ui/unified-motion-nav-v2
 
+      - name: Stop after apply failure
+        if: steps.apply_ui.outputs.exit_code != '0'
+        run: exit 1
+
       - name: Setup Flutter
+        if: steps.apply_ui.outputs.exit_code == '0'
         uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
           cache: true
 
       - name: Validate committed UI draft
+        if: steps.apply_ui.outputs.exit_code == '0'
         id: ui_validation
         shell: bash
         run: |
@@ -229,7 +94,7 @@ jobs:
           exit 0
 
       - name: Save UI validation success
-        if: steps.ui_validation.outputs.exit_code == '0'
+        if: steps.apply_ui.outputs.exit_code == '0' && steps.ui_validation.outputs.exit_code == '0'
         shell: bash
         run: |
           printf 'success\n' > tool/ui_v2_validation_status.txt
@@ -240,7 +105,7 @@ jobs:
           git push origin HEAD:ui/unified-motion-nav-v2
 
       - name: Save UI validation failure
-        if: steps.ui_validation.outputs.exit_code != '0'
+        if: steps.apply_ui.outputs.exit_code == '0' && steps.ui_validation.outputs.exit_code != '0'
         shell: bash
         run: |
           cp /tmp/ui-v2-validation.log tool/ui_v2_validation_failure.log
