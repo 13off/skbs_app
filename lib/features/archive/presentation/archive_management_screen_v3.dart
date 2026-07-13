@@ -5,6 +5,12 @@ import '../../../data/object_repository.dart';
 import '../../../data/permanent_deletion_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/employee.dart';
+import '../../../widgets/premium_ui_v2.dart';
+
+const Color _archiveText = Color(0xFF1F2328);
+const Color _archiveMuted = Color(0xFF6B7075);
+const Color _archiveSoft = Color(0xFFF1F0EC);
+const Color _archiveLine = Color(0xFFE4E2DC);
 
 enum _ArchiveKind { employees, objects }
 
@@ -298,86 +304,168 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
   }
 
   Widget buildTopPanel() {
-    return Column(
-      children: [
-        SegmentedButton<_ArchiveKind>(
-          segments: const [
-            ButtonSegment(
-              value: _ArchiveKind.employees,
-              icon: Icon(Icons.groups_outlined),
-              label: Text('Сотрудники'),
-            ),
-            ButtonSegment(
-              value: _ArchiveKind.objects,
-              icon: Icon(Icons.apartment_outlined),
-              label: Text('Объекты'),
-            ),
-          ],
-          selected: {kind},
-          onSelectionChanged: isBusy
-              ? null
-              : (value) {
-                  setState(() {
-                    kind = value.first;
-                    searchController.clear();
-                    clearSelection();
-                  });
-                },
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: searchController,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: kind == _ArchiveKind.employees
-                ? 'Поиск в архиве сотрудников'
-                : 'Поиск в архиве объектов',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: searchController.text.isEmpty
+    return PremiumWorkCard(
+      radius: 28,
+      child: Column(
+        children: [
+          SegmentedButton<_ArchiveKind>(
+            segments: const [
+              ButtonSegment(
+                value: _ArchiveKind.employees,
+                icon: Icon(Icons.groups_outlined),
+                label: Text('Сотрудники'),
+              ),
+              ButtonSegment(
+                value: _ArchiveKind.objects,
+                icon: Icon(Icons.apartment_outlined),
+                label: Text('Объекты'),
+              ),
+            ],
+            selected: {kind},
+            onSelectionChanged: isBusy
                 ? null
-                : IconButton(
-                    onPressed: () {
+                : (value) {
+                    setState(() {
+                      kind = value.first;
                       searchController.clear();
-                      setState(() {});
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
+                      clearSelection();
+                    });
+                  },
           ),
-        ),
-        const SizedBox(height: 8),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          value: allVisibleSelected,
-          onChanged: isBusy ? null : (value) => selectAllVisible(value == true),
-          title: const Text(
-            'Выбрать все',
-            style: TextStyle(fontWeight: FontWeight.w800),
+          const SizedBox(height: 14),
+          TextField(
+            controller: searchController,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: kind == _ArchiveKind.employees
+                  ? 'Поиск в архиве сотрудников'
+                  : 'Поиск в архиве объектов',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        searchController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
           ),
-          subtitle: Text('Выбрано: $selectedCount'),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: _archiveSoft,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _archiveLine),
+            ),
+            child: CheckboxListTile(
+              value: allVisibleSelected,
+              onChanged: isBusy
+                  ? null
+                  : (value) => selectAllVisible(value == true),
+              title: const Text(
+                'Выбрать все',
+                style: TextStyle(
+                  color: _archiveText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              subtitle: Text(
+                'Выбрано: $selectedCount',
+                style: const TextStyle(
+                  color: _archiveMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildArchiveTile({
+    required bool value,
+    required ValueChanged<bool?>? onChanged,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumWorkCard(
+        radius: 22,
+        padding: EdgeInsets.zero,
+        child: CheckboxListTile(
+          value: value,
+          onChanged: onChanged,
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: _archiveText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: const TextStyle(
+              color: _archiveMuted,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          secondary: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _archiveSoft,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: _archiveLine),
+            ),
+            child: Icon(icon, color: _archiveText, size: 21),
+          ),
           controlAffinity: ListTileControlAffinity.leading,
         ),
-      ],
+      ),
     );
   }
 
   Widget buildContent() {
     if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 70),
-        child: Center(child: CircularProgressIndicator()),
+      return const PremiumWorkCard(
+        radius: 24,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     if (errorText != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 50),
+      return PremiumWorkCard(
+        radius: 24,
         child: Column(
           children: [
-            Text(errorText!, textAlign: TextAlign.center),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Color(0xFF9D3E38),
+              size: 32,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              errorText!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _archiveMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: loadData,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Повторить'),
             ),
           ],
@@ -390,12 +478,35 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
         : visibleObjects();
 
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 70),
-        child: Center(
-          child: Text(
-            'Архив пуст',
-            style: TextStyle(fontWeight: FontWeight.w700),
+      return const PremiumWorkCard(
+        radius: 24,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 34),
+          child: Column(
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                color: _archiveMuted,
+                size: 34,
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Архив пуст',
+                style: TextStyle(
+                  color: _archiveText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Здесь появятся архивированные сотрудники или объекты.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _archiveMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -405,7 +516,8 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
       return Column(
         children: visibleEmployees().map((employee) {
           final id = employee.id?.trim() ?? '';
-          return CheckboxListTile(
+
+          return buildArchiveTile(
             value: selectedEmployeeIds.contains(id),
             onChanged: id.isEmpty || isBusy
                 ? null
@@ -416,19 +528,13 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                           : selectedEmployeeIds.remove(id);
                     });
                   },
-            title: Text(
-              employee.name,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              [
-                employee.position,
-                employee.objectName,
-                employee.phone,
-              ].where((value) => value.trim().isNotEmpty).join(' • '),
-            ),
-            secondary: const Icon(Icons.inventory_2_outlined),
-            controlAffinity: ListTileControlAffinity.leading,
+            title: employee.name,
+            subtitle: [
+              employee.position,
+              employee.objectName,
+              employee.phone,
+            ].where((value) => value.trim().isNotEmpty).join(' • '),
+            icon: Icons.person_outline_rounded,
           );
         }).toList(),
       );
@@ -436,7 +542,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
 
     return Column(
       children: visibleObjects().map((name) {
-        return CheckboxListTile(
+        return buildArchiveTile(
           value: selectedObjectNames.contains(name),
           onChanged: isBusy
               ? null
@@ -447,13 +553,9 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                         : selectedObjectNames.remove(name);
                   });
                 },
-          title: Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          subtitle: const Text('Объект находится в архиве'),
-          secondary: const Icon(Icons.inventory_2_outlined),
-          controlAffinity: ListTileControlAffinity.leading,
+          title: name,
+          subtitle: 'Объект находится в архиве',
+          icon: Icons.apartment_outlined,
         );
       }).toList(),
     );
@@ -462,68 +564,112 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
   @override
   Widget build(BuildContext context) {
     if (!widget.profile.isAdmin) {
-      return const Scaffold(
-        body: Center(child: Text('Архив доступен только администратору')),
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: PremiumWorkBackdrop(
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: PremiumWorkCard(
+                  radius: 28,
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lock_outline_rounded,
+                        color: _archiveMuted,
+                        size: 34,
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'Архив доступен только администратору',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _archiveText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Архив и удаление')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 120),
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(26),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: buildTopPanel(),
-                  ),
-                  const SizedBox(height: 14),
-                  buildContent(),
-                ],
-              ),
-            ),
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Архив и удаление'),
+        backgroundColor: const Color(0xFFFAF9F6),
+        surfaceTintColor: Colors.transparent,
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(18, 8, 18, 16),
-        child: Row(
+      body: PremiumWorkBackdrop(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 120),
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: selectedCount == 0 || isBusy
-                    ? null
-                    : restoreSelected,
-                icon: const Icon(Icons.restore),
-                label: const Text('Восстановить'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF9D3E38),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    buildTopPanel(),
+                    const SizedBox(height: 14),
+                    if (isBusy) ...[
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 12),
+                    ],
+                    buildContent(),
+                  ],
                 ),
-                onPressed: selectedCount == 0 || isBusy
-                    ? null
-                    : deleteSelectedForever,
-                icon: const Icon(Icons.delete_forever_outlined),
-                label: const Text('Удалить'),
               ),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+        color: const Color(0xFFF8F7F3),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: selectedCount == 0 || isBusy
+                          ? null
+                          : restoreSelected,
+                      icon: const Icon(Icons.restore_rounded),
+                      label: const Text('Восстановить'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF9D3E38),
+                      ),
+                      onPressed: selectedCount == 0 || isBusy
+                          ? null
+                          : deleteSelectedForever,
+                      icon: const Icon(Icons.delete_forever_outlined),
+                      label: const Text('Удалить'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
+
 }
