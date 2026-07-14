@@ -13,7 +13,7 @@ void main() {
       'static String buildInvitationRedirectUrl',
     );
     final methodEnd = repository.indexOf(
-      'static String? get pendingInvitationCompanyId',
+      'static Future<bool> verifyPendingInvitationLink',
       methodStart,
     );
     final redirectMethod = repository.substring(methodStart, methodEnd);
