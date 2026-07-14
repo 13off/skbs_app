@@ -1,0 +1,90 @@
+name: Normalize invitation links and session restore
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: normalize-invitation-links-session
+  cancel-in-progress: true
+
+jobs:
+  normalize-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/invitation-links-session-restore
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Restore main formatting and reapply exact patch
+        shell: bash
+        run: |
+          git fetch origin main
+          for file in \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            lib/features/company/data/company_repository.dart \
+            lib/features/company/presentation/company_management_screen.dart \
+            supabase/functions/invite-company-member/index.ts \
+            test/functional_contract_test.dart
+          do
+            git show "origin/main:${file}" > "${file}"
+          done
+          rm -f test/invitation_links_session_contract_test.dart
+          git show 091f4b1a65e45cb9f568fb276f9a9d4a68c7e682:tool/apply_invitation_links_session_restore.py \
+            > tool/apply_invitation_links_session_restore.py
+          python3 -m py_compile tool/apply_invitation_links_session_restore.py
+          python3 tool/apply_invitation_links_session_restore.py
+
+      - name: Commit normalized source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            lib/features/company/data/company_repository.dart \
+            lib/features/company/presentation/company_management_screen.dart \
+            supabase/functions/invite-company-member/index.ts \
+            test/functional_contract_test.dart \
+            test/invitation_links_session_contract_test.dart
+          git commit -m "нормализованы точечные изменения приглашений и входа"
+          git push origin HEAD:feature/invitation-links-session-restore
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate final branch
+        run: |
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Remove temporary files
+        shell: bash
+        run: |
+          rm -f tool/apply_invitation_links_session_restore.py
+          rm -f .github/workflows/normalize-invitation-links-session.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "завершена финальная проверка приглашений и входа"
+          git push origin HEAD:feature/invitation-links-session-restore
