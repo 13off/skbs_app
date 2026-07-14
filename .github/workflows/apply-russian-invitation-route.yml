@@ -63,10 +63,12 @@ jobs:
             --base-href /app/ \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
 
-      - name: Commit validated implementation
+      - name: Commit validated non-workflow files
         shell: bash
         run: |
-          rm -f .github/workflows/apply-russian-invitation-route.yml
+          git checkout -- \
+            .github/workflows/deploy-web.yml \
+            .github/workflows/deploy-supabase-proxy.yml
           rm -f tool/apply_russian_invitation_route.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
