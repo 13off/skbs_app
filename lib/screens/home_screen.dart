@@ -916,59 +916,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildAiAssistantCard(BuildContext context) {
-    return PremiumPressable(
-      onTap: () => openAiAssistant(context),
-      borderRadius: BorderRadius.circular(26),
-      child: PremiumWorkCard(
-        radius: 26,
-        padding: const EdgeInsets.all(17),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F0EC),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: _line),
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: _text,
-                size: 25,
-              ),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ИИ-помощник',
-                    style: TextStyle(
-                      color: _text,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'Проверить табель, собрать сводку или подготовить черновик',
-                    style: TextStyle(
-                      color: _muted,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Icon(Icons.chevron_right_rounded, color: _muted),
-          ],
-        ),
-      ),
+  Widget buildAiAssistantButton(BuildContext context) {
+    return FloatingActionButton(
+      heroTag: 'home-ai-assistant',
+      onPressed: () => openAiAssistant(context),
+      tooltip: 'ИИ-помощник',
+      backgroundColor: _text,
+      foregroundColor: Colors.white,
+      elevation: 8,
+      child: const Icon(Icons.auto_awesome_rounded),
     );
   }
 
@@ -1103,8 +1059,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
                       ),
                     ],
-                    const SizedBox(height: 14),
-                    buildAiAssistantCard(context),
                     const SizedBox(height: 24),
                     _DashboardMetricCard(
                       icon: Icons.person_outline,
@@ -1161,15 +1115,28 @@ class _HomeScreenState extends State<HomeScreen> {
             snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData;
 
-        return buildDashboard(
-          context: context,
-          today: today,
-          employees: data.employees,
-          workedEmployeeIds: data.workedEmployeeIds,
-          tasks: data.tasks,
-          finance: data.finance,
-          isLoading: isLoading,
-          hasError: snapshot.hasError,
+        return Stack(
+          children: [
+            buildDashboard(
+              context: context,
+              today: today,
+              employees: data.employees,
+              workedEmployeeIds: data.workedEmployeeIds,
+              tasks: data.tasks,
+              finance: data.finance,
+              isLoading: isLoading,
+              hasError: snapshot.hasError,
+            ),
+            Positioned(
+              right: 18,
+              bottom: 18,
+              child: SafeArea(
+                top: false,
+                left: false,
+                child: buildAiAssistantButton(context),
+              ),
+            ),
+          ],
         );
       },
     );
