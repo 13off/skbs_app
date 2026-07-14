@@ -29,8 +29,29 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Apply feature changes
-        run: python3 tool/apply_remove_company_member.py
+      - name: Restore stable files and apply exact feature
+        shell: bash
+        run: |
+          git fetch origin main
+          git show origin/main:lib/features/company/data/company_repository.dart > lib/features/company/data/company_repository.dart
+          git show origin/main:lib/features/company/presentation/company_management_screen.dart > lib/features/company/presentation/company_management_screen.dart
+          python3 tool/normalize_remove_company_member.py
+          dart format test/remove_company_member_contract_test.dart
+          rm -f tool/normalize_remove_company_member.py
+          rm -f .github/workflows/apply-remove-company-member.yml
+
+      - name: Commit clean feature
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/company/data/company_repository.dart
+          git add lib/features/company/presentation/company_management_screen.dart
+          git add supabase/migrations/20260714093000_add_remove_company_member_rpc.sql
+          git add test/remove_company_member_contract_test.dart
+          git add -A tool .github/workflows/apply-remove-company-member.yml || true
+          git commit -m "нормализовано удаление пользователя из компании" || true
+          git push origin HEAD:feature/remove-company-member
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -41,32 +62,19 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Format changed Dart files
-        run: dart format lib/features/company/data/company_repository.dart lib/features/company/presentation/company_management_screen.dart test/remove_company_member_contract_test.dart
-
-      - name: Commit feature changes
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/company/data/company_repository.dart lib/features/company/presentation/company_management_screen.dart test/remove_company_member_contract_test.dart
-          git commit -m "добавлено удаление пользователя из компании" || true
-          git push origin HEAD:feature/remove-company-member
-
       - name: Validate tests analysis and web build
         run: |
           flutter test
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter build web --release --base-href /appstroy-web/
 
-      - name: Clean feature branch helpers
-        if: always()
+      - name: Record successful validation
         shell: bash
         run: |
-          rm -f tool/apply_remove_company_member.py
-          rm -f .github/workflows/apply-remove-company-member.yml
+          mkdir -p .validation
+          printf 'success\n' > .validation/remove-company-member-success.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "завершена проверка удаления участника компании" || true
+          git add .validation/remove-company-member-success.txt
+          git commit -m "подтверждена проверка удаления участника компании"
           git push origin HEAD:feature/remove-company-member
