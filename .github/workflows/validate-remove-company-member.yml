@@ -1,13 +1,15 @@
 name: Validate remove company member
 
 on:
-  issue_comment:
+  pull_request:
+    branches:
+      - main
     types:
-      - created
+      - opened
+      - reopened
 
 permissions:
   contents: write
-  issues: read
   pull-requests: read
 
 concurrency:
@@ -16,10 +18,7 @@ concurrency:
 
 jobs:
   validate:
-    if: >-
-      github.event.issue.pull_request &&
-      github.event.issue.number == 8 &&
-      github.event.comment.body == '/validate-remove-member'
+    if: github.event.pull_request.head.ref == 'feature/remove-company-member'
     runs-on: ubuntu-latest
 
     steps:
