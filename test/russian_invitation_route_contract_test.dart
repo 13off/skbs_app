@@ -12,27 +12,28 @@ void main() {
 
     expect(edge, contains('https://api.appstroy-web.ru/app/'));
     expect(repository, contains('https://api.appstroy-web.ru/app/'));
-    expect(invitePage, contains("https://api.appstroy-web.ru"));
+    expect(invitePage, contains('https://api.appstroy-web.ru'));
     expect(invitePage, isNot(contains('.supabase.co')));
     expect(edge, isNot(contains('github.io')));
   });
 
-  test('Russian VPS serves the app while GitHub remains a backup', () {
+  test('Russian VPS serves the app while GitHub remains a build source', () {
     final caddy = source('infra/supabase-proxy/Caddyfile');
     final compose = source('infra/supabase-proxy/docker-compose.yml');
-    final webWorkflow = source('.github/workflows/deploy-web.yml');
-    final proxyWorkflow = source('.github/workflows/deploy-supabase-proxy.yml');
+    final proxyWorkflow = source(
+      '.github/workflows/deploy-supabase-proxy.yml',
+    );
 
     expect(caddy, contains('handle_path /app/*'));
     expect(caddy, contains('root * /srv/appstroy-web'));
     expect(compose, contains('./site:/srv/appstroy-web:ro'));
-    expect(webWorkflow, contains('--base-href /app/'));
-    expect(webWorkflow, contains('Publish web app to Russian VPS'));
+    expect(proxyWorkflow, contains("cron: '*/5 * * * *'"));
+    expect(proxyWorkflow, contains('repository: 13off/appstroy-web'));
+    expect(proxyWorkflow, contains('appstroy-web.tar.gz'));
     expect(
-      webWorkflow,
-      contains('https://api.appstroy-web.ru/app/invite.html'),
+      proxyWorkflow,
+      contains('https://$PROXY_DOMAIN/app/invite.html'),
     );
-    expect(webWorkflow, contains('Prepare GitHub Pages backup'));
     expect(proxyWorkflow, contains('- infra/supabase-proxy/**'));
   });
 }
