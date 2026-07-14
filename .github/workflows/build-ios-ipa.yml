@@ -120,6 +120,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          set +e
           flutter build ios --release --no-codesign \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
@@ -132,6 +133,25 @@ jobs:
             --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
             --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
             2>&1 | tee ios-build.log
+          build_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$build_status" -eq 0 ]; then
+            exit 0
+          fi
+
+          app_path="build/ios/iphoneos/Runner.app"
+          if [ -d "$app_path" ] && \
+             [ -f "$app_path/Info.plist" ] && \
+             [ -f "$app_path/Runner" ] && \
+             grep -q "Xcode build done" ios-build.log && \
+             grep -q "requires a selected Development Team" ios-build.log; then
+            printf '\nUnsigned Runner.app was produced; ignoring Flutter post-build signing validation.\n' \
+              | tee -a ios-build.log
+            exit 0
+          fi
+
+          exit "$build_status"
 
       - name: Create IPA
         if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
