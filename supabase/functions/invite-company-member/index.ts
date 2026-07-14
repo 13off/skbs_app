@@ -199,7 +199,6 @@ Deno.serve(async (request: Request) => {
           type: "invite",
           email,
           options: {
-            redirectTo,
             data: {
               full_name: fullName,
               invited_company_id: companyId,
@@ -228,7 +227,6 @@ Deno.serve(async (request: Request) => {
         await adminClient.auth.admin.generateLink({
           type: linkType,
           email,
-          options: { redirectTo },
         });
       if (linkError) throw linkError;
       const tokenHash = linkData.properties?.hashed_token ?? "";

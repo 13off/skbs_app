@@ -23,6 +23,8 @@ void main() {
         edge,
         isNot(contains('actionLink = linkData.properties?.action_link')),
       );
+      expect(edge, isNot(contains('options: { redirectTo }')));
+      expect(edge, isNot(contains('redirectTo,\n            data:')));
 
       expect(repository, contains('verifyPendingInvitationLink'));
       expect(repository, contains('verifyOTP('));
