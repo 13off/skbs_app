@@ -61,13 +61,12 @@ class UserRepository {
     if (running != null) return running;
 
     late final Future<bool> future;
-    future = _applyPendingInvitationCompany();
-    _pendingInvitationApplication = future;
-    future.whenComplete(() {
+    future = _applyPendingInvitationCompany().whenComplete(() {
       if (identical(_pendingInvitationApplication, future)) {
         _pendingInvitationApplication = null;
       }
     });
+    _pendingInvitationApplication = future;
     return future;
   }
 
@@ -197,6 +196,8 @@ class UserRepository {
 
   static Future<void> signOut() async {
     await PushNotificationService.unregisterCurrentDevice();
+    _consumedInvitationCompanyId = null;
+    _pendingInvitationApplication = null;
     clearProfileCache();
     await _client.auth.signOut();
   }
