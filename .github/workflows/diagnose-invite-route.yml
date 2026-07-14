@@ -14,18 +14,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare report
+        run: |
+          mkdir -p diagnostics ~/.ssh
+          : > diagnostics/invite-route.txt
+
+      - name: Inspect external response
+        id: external
+        continue-on-error: true
+        shell: bash
+        env:
+          PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
+        run: |
+          {
+            echo '=== External response headers ==='
+            echo "domain_set=$([ -n "$PROXY_DOMAIN" ] && echo yes || echo no)"
+            curl -ksSI "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=2" || true
+            echo
+          } >> diagnostics/invite-route.txt 2>&1
+
       - name: Prepare SSH
+        id: ssh_prepare
+        continue-on-error: true
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh diagnostics
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/appstroy_proxy
           chmod 600 ~/.ssh/appstroy_proxy
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Inspect live proxy
+        id: inspect
+        continue-on-error: true
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -33,14 +55,11 @@ jobs:
           PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
         run: |
           {
-            echo '=== External response headers ==='
-            curl -ksSI "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=1" || true
-            echo
             echo '=== VPS state ==='
             ssh -i ~/.ssh/appstroy_proxy "$VPS_USER@$VPS_HOST" \
               "PROXY_DOMAIN='$PROXY_DOMAIN' bash -s" <<'REMOTE'
           set +e
-          cd /opt/appstroy-proxy || exit 0
+          cd /opt/appstroy-proxy || { echo 'missing /opt/appstroy-proxy'; exit 0; }
           echo '--- docker compose ps ---'
           sudo docker compose ps 2>&1
           echo '--- host Caddyfile matcher ---'
@@ -51,17 +70,30 @@ jobs:
           sudo docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile 2>&1
           echo '--- local HTTPS headers ---'
           curl -ksSI --resolve "$PROXY_DOMAIN:443:127.0.0.1" \
-            "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=1" 2>&1
+            "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=2" 2>&1
           echo '--- recent Caddy logs ---'
           sudo docker compose logs --tail=80 caddy 2>&1
           REMOTE
-          } > diagnostics/invite-route.txt 2>&1
+          } >> diagnostics/invite-route.txt 2>&1
+
+      - name: Save step outcomes
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo
+            echo '=== Step outcomes ==='
+            echo 'external=${{ steps.external.outcome }}'
+            echo 'ssh_prepare=${{ steps.ssh_prepare.outcome }}'
+            echo 'inspect=${{ steps.inspect.outcome }}'
+          } >> diagnostics/invite-route.txt
 
       - name: Commit diagnostic report
+        if: always()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add diagnostics/invite-route.txt
-          git commit -m "сохранена диагностика маршрута приглашения"
+          git commit -m "сохранена диагностика маршрута приглашения" || true
           git push
