@@ -32,7 +32,7 @@ void main() {
     expect(proxyWorkflow, contains('appstroy-web.tar.gz'));
     expect(
       proxyWorkflow,
-      contains('https://$PROXY_DOMAIN/app/invite.html'),
+      contains(r'https://$PROXY_DOMAIN/app/invite.html'),
     );
     expect(proxyWorkflow, contains('- infra/supabase-proxy/**'));
   });
