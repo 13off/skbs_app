@@ -59,6 +59,19 @@ void main() {
     expect(repository, isNot(contains('OPENAI_API_KEY')));
   });
 
+  test('employee timesheet query understands a person and full period', () {
+    final edge = source('supabase/functions/ai-assistant/index.ts');
+
+    expect(edge, contains('findEmployeesInPrompt'));
+    expect(edge, contains('employeeMatchScore'));
+    expect(edge, contains('buildEmployeeTimesheetResult'));
+    expect(edge, contains('mode: "employee_timesheet"'));
+    expect(edge, contains('.eq("employee_id", employee.id)'));
+    expect(edge, contains('.order("work_date", { ascending: true })'));
+    expect(edge, contains('Покажи табель за весь период у Филимонова'));
+    expect(edge, contains('Сумма смен:'));
+  });
+
   test('edge function is company scoped read only and has no external key', () {
     final edge = source('supabase/functions/ai-assistant/index.ts');
 
