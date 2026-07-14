@@ -20,31 +20,8 @@ function cleanEmail(value: unknown) {
 
 const defaultWebAppUrl = "https://13off.github.io/appstroy-web/";
 
-function invitationRedirectUrl(value: unknown, companyId: string) {
-  const requested = String(value ?? "").trim() || defaultWebAppUrl;
-  let url: URL;
-
-  try {
-    url = new URL(requested);
-  } catch (_) {
-    url = new URL(defaultWebAppUrl);
-  }
-
-  const allowedHost =
-    url.host === "13off.github.io" ||
-    url.hostname === "localhost" ||
-    url.hostname === "127.0.0.1";
-  const allowedProtocol =
-    url.protocol === "https:" ||
-    ((url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
-      url.protocol === "http:");
-
-  if (!allowedHost || !allowedProtocol) {
-    url = new URL(defaultWebAppUrl);
-  }
-
-  url.hash = "";
-  url.search = "";
+function invitationRedirectUrl(companyId: string) {
+  const url = new URL(defaultWebAppUrl);
   url.searchParams.set("companyInvite", companyId);
   return url.toString();
 }
@@ -107,7 +84,7 @@ Deno.serve(async (request: Request) => {
     const fullName = String(input.full_name ?? "").trim();
     const role = String(input.role ?? "foreman").trim();
     const objectId = String(input.object_id ?? "").trim();
-    const redirectTo = invitationRedirectUrl(input.redirect_to, companyId);
+    const redirectTo = invitationRedirectUrl(companyId);
 
     if (!companyId || !email || !email.includes("@")) {
       return json({ error: "Укажите компанию и корректный email" }, 400);

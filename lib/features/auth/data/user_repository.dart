@@ -32,13 +32,9 @@ class UserRepository {
 
   static String buildInvitationRedirectUrl(String companyId) {
     final cleanCompanyId = companyId.trim();
-    final current = Uri.base;
-    final canUseCurrent = kIsWeb &&
-        (current.scheme == 'https' || current.scheme == 'http') &&
-        current.host.isNotEmpty;
-    final base = canUseCurrent ? current : Uri.parse(_fallbackWebAppUrl);
+    final productionApp = Uri.parse(_fallbackWebAppUrl);
 
-    return base
+    return productionApp
         .replace(
           queryParameters: <String, String>{
             _invitationCompanyParameter: cleanCompanyId,
@@ -145,10 +141,7 @@ class UserRepository {
 
     if (response.session == null) return false;
 
-    await createCompanyProfile(
-      companyName: companyName,
-      fullName: fullName,
-    );
+    await createCompanyProfile(companyName: companyName, fullName: fullName);
     unawaited(
       PushNotificationService.syncForCurrentSession(requestPermission: true),
     );
