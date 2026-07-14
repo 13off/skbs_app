@@ -20,17 +20,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout pull request merge ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Merge current main
-        run: |
-          git fetch origin main
-          git merge --no-edit origin/main
+      - name: Prepare pull request branch
+        run: git switch -C "${GITHUB_HEAD_REF}"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
