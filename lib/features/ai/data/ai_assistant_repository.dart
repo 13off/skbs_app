@@ -18,9 +18,17 @@ class AiAssistantRepository {
     if (mode.trim() != 'chat') return true;
 
     final normalized = prompt.trim().toLowerCase().replaceAll('ё', 'е');
-    return RegExp(
-      r'табел|смен|выход|отработ|сводк|подготов|состав|напиш|созда',
+    final timesheetOrSummary = RegExp(
+      r'табел|смен|выход|отработ|сводк',
     ).hasMatch(normalized);
+    final documentAction = RegExp(
+      r'подготов|состав|напиш|созда',
+    ).hasMatch(normalized);
+    final documentType = RegExp(
+      r'документ|акт|записк|письм|отчет',
+    ).hasMatch(normalized);
+
+    return timesheetOrSummary || (documentAction && documentType);
   }
 
   static Future<AiAssistantResult> request({
