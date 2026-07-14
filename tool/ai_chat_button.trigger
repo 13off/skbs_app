@@ -1,1 +1,1 @@
-publish-ai-chat-button-v4
+publish-ai-chat-button-v5
