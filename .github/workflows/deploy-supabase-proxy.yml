@@ -16,6 +16,9 @@ concurrency:
   group: appstroy-supabase-proxy
   cancel-in-progress: true
 
+env:
+  PROXY_DOMAIN: api.appstroy-web.ru
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -27,9 +30,8 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
         run: |
-          for name in VPS_HOST VPS_USER VPS_SSH_KEY PROXY_DOMAIN; do
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::Не найден secret $name"
               exit 1
@@ -79,7 +81,6 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
-          PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
         run: |
           ssh -i ~/.ssh/appstroy_proxy "$VPS_USER@$VPS_HOST" \
             "PROXY_DOMAIN='$PROXY_DOMAIN' bash -s" <<'REMOTE'
@@ -115,22 +116,21 @@ jobs:
           cd /opt/appstroy-proxy
           $SUDO docker compose pull
           $SUDO docker compose up -d --force-recreate --remove-orphans
+          $SUDO docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
           REMOTE
 
       - name: Verify Russian route
         shell: bash
-        env:
-          PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
         run: |
           for attempt in $(seq 1 24); do
             HEALTH="$(curl --fail --silent --show-error "https://$PROXY_DOMAIN/proxy-health" || true)"
-            INVITE="$(curl --fail --silent --show-error "https://$PROXY_DOMAIN/app/invite.html" || true)"
-            if [ "$HEALTH" = "ok" ] && printf '%s' "$INVITE" | grep -q 'Приглашение в AppСтрой'; then
-              echo "Russian proxy and web are ready: https://$PROXY_DOMAIN/app/"
+            HEADERS="$(curl --fail --silent --show-error --head "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?verify=1" || true)"
+            if [ "$HEALTH" = "ok" ] && printf '%s' "$HEADERS" | grep -qi '^content-type: text/html; charset=utf-8'; then
+              echo "Russian invite route is ready"
               exit 0
             fi
             sleep 5
           done
 
-          echo "::error::Российский маршрут не прошел проверку HTTPS"
+          echo "::error::Российский маршрут приглашения не прошёл проверку HTTPS и Content-Type"
           exit 1
