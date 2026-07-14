@@ -34,7 +34,18 @@ jobs:
       - name: Apply UI patch
         run: python3 tool/apply_ai_chat_button.py
 
+      - name: Upload raw patched source files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-chat-patched-raw
+          if-no-files-found: error
+          path: |
+            lib/screens/home_screen.dart
+            lib/features/ai/presentation/ai_assistant_screen.dart
+            test/ai_assistant_contract_test.dart
+
       - name: Format changed Dart files
+        continue-on-error: true
         run: |
           dart format \
             lib/screens/home_screen.dart \
@@ -54,6 +65,7 @@ jobs:
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
 
       - name: Upload validated source files
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ai-chat-patched-files
