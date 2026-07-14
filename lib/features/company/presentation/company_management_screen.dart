@@ -426,6 +426,61 @@ class _CompanyMemberEditorScreenState
     );
   }
 
+  Future<void> removeMember() async {
+    if (!isEditing || isSaving) return;
+    final member = widget.member!;
+    final displayName = member.fullName.trim().isEmpty
+        ? member.email
+        : member.fullName.trim();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить пользователя?'),
+        content: Text(
+          '$displayName потеряет доступ к этой компании и назначенному объекту. Его аккаунт и доступ к другим компаниям сохранятся.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF874540),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.person_remove_outlined),
+            label: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      isSaving = true;
+      errorText = null;
+    });
+    try {
+      await CompanyRepository.removeMember(
+        companyId: widget.companyId,
+        member: member,
+      );
+      if (mounted) Navigator.pop(context, 'Пользователь удалён из компании');
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => errorText = error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
+
   Future<void> save() async {
     if (isSaving) return;
     final fullName = fullNameController.text.trim();
@@ -575,6 +630,19 @@ class _CompanyMemberEditorScreenState
             label: isEditing ? 'Сохранить права' : 'Создать ссылку',
             isLoading: isSaving,
           ),
+          if (isEditing) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF874540),
+                side: const BorderSide(color: Color(0xFFB88A85)),
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: isSaving ? null : removeMember,
+              icon: const Icon(Icons.person_remove_outlined),
+              label: const Text('Удалить из компании'),
+            ),
+          ],
           ],
         ),
       ),

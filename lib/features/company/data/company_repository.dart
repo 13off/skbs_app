@@ -417,6 +417,19 @@ class CompanyRepository {
     );
   }
 
+  static Future<void> removeMember({
+    required String companyId,
+    required CompanyMember member,
+  }) async {
+    await _client.rpc(
+      'remove_company_member',
+      params: <String, dynamic>{
+        'p_company_id': companyId,
+        'p_user_id': member.userId,
+      },
+    );
+  }
+
   static Future<void> updateMemberAccess({
     required String companyId,
     required CompanyMember member,
