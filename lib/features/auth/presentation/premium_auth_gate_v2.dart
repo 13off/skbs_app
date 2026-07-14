@@ -82,6 +82,21 @@ class _AuthGateState extends State<AuthGate> {
     bool showLoading = false,
   }) async {
     final token = ++loadToken;
+
+    try {
+      await UserRepository.verifyPendingInvitationLink();
+    } catch (error) {
+      if (!mounted || token != loadToken) return;
+      setState(() {
+        profile = null;
+        lastLoadedUserId = null;
+        errorText = 'Ошибка приглашения: $error';
+        isLoading = false;
+      });
+      return;
+    }
+
+    if (!mounted || token != loadToken) return;
     final session = UserRepository.currentSession;
 
     if (session == null) {

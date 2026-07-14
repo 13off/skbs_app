@@ -26,6 +26,18 @@ function invitationRedirectUrl(companyId: string) {
   return url.toString();
 }
 
+function invitationActionUrl(
+  companyId: string,
+  tokenHash: string,
+  verificationType: string,
+) {
+  const url = new URL(defaultWebAppUrl);
+  url.searchParams.set("companyInvite", companyId);
+  url.searchParams.set("inviteTokenHash", tokenHash);
+  url.searchParams.set("inviteType", verificationType);
+  return url.toString();
+}
+
 async function findUserByEmail(
   adminClient: ReturnType<typeof createClient>,
   email: string,
@@ -198,7 +210,17 @@ Deno.serve(async (request: Request) => {
         });
       if (linkError) throw linkError;
       invitedUser = linkData.user;
-      actionLink = linkData.properties?.action_link ?? "";
+      const tokenHash = linkData.properties?.hashed_token ?? "";
+      const verificationType =
+        linkData.properties?.verification_type ?? "invite";
+      if (!tokenHash) {
+        throw new Error("Supabase не вернул токен приглашения");
+      }
+      actionLink = invitationActionUrl(
+        companyId,
+        tokenHash,
+        verificationType,
+      );
       delivery = "invite_link";
     } else {
       const linkType = requiresPasswordSetup ? "recovery" : "magiclink";
@@ -209,7 +231,17 @@ Deno.serve(async (request: Request) => {
           options: { redirectTo },
         });
       if (linkError) throw linkError;
-      actionLink = linkData.properties?.action_link ?? "";
+      const tokenHash = linkData.properties?.hashed_token ?? "";
+      const verificationType =
+        linkData.properties?.verification_type ?? linkType;
+      if (!tokenHash) {
+        throw new Error("Supabase не вернул токен входа");
+      }
+      actionLink = invitationActionUrl(
+        companyId,
+        tokenHash,
+        verificationType,
+      );
       delivery = requiresPasswordSetup
         ? "password_setup_link"
         : "sign_in_link";

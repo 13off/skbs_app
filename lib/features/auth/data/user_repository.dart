@@ -12,10 +12,14 @@ class UserRepository {
 
   static AppUserProfile? _cachedProfile;
   static String? _cachedProfileUserId;
+  static Future<bool>? _pendingInvitationVerification;
   static Future<bool>? _pendingInvitationApplication;
+  static String? _consumedInvitationTokenHash;
   static String? _consumedInvitationCompanyId;
 
   static const String _invitationCompanyParameter = 'companyInvite';
+  static const String _invitationTokenHashParameter = 'inviteTokenHash';
+  static const String _invitationTypeParameter = 'inviteType';
   static const String _fallbackWebAppUrl =
       'https://13off.github.io/appstroy-web/';
 
@@ -42,6 +46,76 @@ class UserRepository {
           fragment: '',
         )
         .toString();
+  }
+
+  static Future<bool> verifyPendingInvitationLink() {
+    final running = _pendingInvitationVerification;
+    if (running != null) return running;
+
+    late final Future<bool> future;
+    future = _verifyPendingInvitationLink().whenComplete(() {
+      if (identical(_pendingInvitationVerification, future)) {
+        _pendingInvitationVerification = null;
+      }
+    });
+    _pendingInvitationVerification = future;
+    return future;
+  }
+
+  static Future<bool> _verifyPendingInvitationLink() async {
+    if (!kIsWeb) return false;
+
+    final tokenHash = Uri.base.queryParameters[_invitationTokenHashParameter]
+        ?.trim();
+    final typeValue = Uri.base.queryParameters[_invitationTypeParameter]
+        ?.trim()
+        .toLowerCase();
+
+    if (tokenHash == null || tokenHash.isEmpty) return false;
+    if (tokenHash == _consumedInvitationTokenHash) return false;
+    if (typeValue == null || typeValue.isEmpty) {
+      throw const AuthException('В ссылке приглашения отсутствует тип входа');
+    }
+
+    final type = switch (typeValue) {
+      'invite' => OtpType.invite,
+      'recovery' => OtpType.recovery,
+      'magiclink' => OtpType.magiclink,
+      'signup' => OtpType.signup,
+      'email' => OtpType.email,
+      _ => null,
+    };
+    if (type == null) {
+      throw AuthException('Неподдерживаемый тип приглашения: $typeValue');
+    }
+
+    final response = await _client.auth.verifyOTP(
+      type: type,
+      tokenHash: tokenHash,
+    );
+    if (response.session == null || response.user == null) {
+      throw const AuthException('Не удалось создать сессию по приглашению');
+    }
+
+    _consumedInvitationTokenHash = tokenHash;
+    _removeInvitationAuthFromBrowserUrl();
+    clearProfileCache();
+    return true;
+  }
+
+  static void _removeInvitationAuthFromBrowserUrl() {
+    if (!kIsWeb) return;
+
+    final current = Uri.base;
+    final parameters = Map<String, String>.from(current.queryParameters)
+      ..remove(_invitationTokenHashParameter)
+      ..remove(_invitationTypeParameter);
+    final cleaned = current.replace(queryParameters: parameters, fragment: '');
+    html.window.history.replaceState(
+      null,
+      html.document.title,
+      cleaned.toString(),
+    );
   }
 
   static String? get pendingInvitationCompanyId {
@@ -189,7 +263,9 @@ class UserRepository {
 
   static Future<void> signOut() async {
     await PushNotificationService.unregisterCurrentDevice();
+    _consumedInvitationTokenHash = null;
     _consumedInvitationCompanyId = null;
+    _pendingInvitationVerification = null;
     _pendingInvitationApplication = null;
     clearProfileCache();
     await _client.auth.signOut();
