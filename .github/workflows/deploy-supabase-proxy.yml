@@ -114,7 +114,7 @@ jobs:
 
           cd /opt/appstroy-proxy
           $SUDO docker compose pull
-          $SUDO docker compose up -d --remove-orphans
+          $SUDO docker compose up -d --force-recreate --remove-orphans
           REMOTE
 
       - name: Verify Russian route
