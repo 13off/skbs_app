@@ -1,23 +1,23 @@
 name: Patch payments scope
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - tool/payments_scope.trigger
+  issues:
+    types:
+      - opened
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   patch:
+    if: github.event.issue.title == '[internal] apply payments scope patch'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: main
           fetch-depth: 0
           persist-credentials: true
 
@@ -125,17 +125,21 @@ void main() {
 """, encoding='utf-8')
           PY
 
-      - name: Remove one-time files
-        run: |
-          rm -f .github/workflows/patch-payments-scope.yml
-          rm -f tool/payments_scope.trigger
+      - name: Remove one-time workflow
+        run: rm -f .github/workflows/patch-payments-scope.yml
 
-      - name: Commit patch to pull request
+      - name: Commit patch
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Исправить выплаты по объекту и месяцу"
-          git pull --rebase origin "${{ github.head_ref }}"
-          git push origin HEAD:"${{ github.head_ref }}"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 4
+          done
+          exit 1
