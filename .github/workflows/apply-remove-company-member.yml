@@ -1,9 +1,11 @@
 name: Apply remove company member
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/remove-company-member
+      - main
+    types:
+      - reopened
 
 permissions:
   contents: write
