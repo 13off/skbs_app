@@ -36,9 +36,20 @@ jobs:
           git show origin/main:lib/features/company/data/company_repository.dart > lib/features/company/data/company_repository.dart
           git show origin/main:lib/features/company/presentation/company_management_screen.dart > lib/features/company/presentation/company_management_screen.dart
           python3 tool/normalize_remove_company_member.py
-          dart format test/remove_company_member_contract_test.dart
           rm -f tool/normalize_remove_company_member.py
           rm -f .github/workflows/apply-remove-company-member.yml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format new contract test
+        run: dart format test/remove_company_member_contract_test.dart
 
       - name: Commit clean feature
         shell: bash
@@ -52,15 +63,6 @@ jobs:
           git add -A tool .github/workflows/apply-remove-company-member.yml || true
           git commit -m "нормализовано удаление пользователя из компании" || true
           git push origin HEAD:feature/remove-company-member
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile
 
       - name: Validate tests analysis and web build
         run: |
