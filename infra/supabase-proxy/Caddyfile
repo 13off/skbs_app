@@ -13,7 +13,7 @@
     file_server
   }
 
-  @inviteLanding path /functions/v1/invite-landing
+  @inviteLanding path /functions/v1/invite-landing /functions/v1/invite-landing/*
   handle @inviteLanding {
     reverse_proxy https://{$SUPABASE_UPSTREAM} {
       header_up Host {$SUPABASE_UPSTREAM}
