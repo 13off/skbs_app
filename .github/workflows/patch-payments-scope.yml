@@ -1,9 +1,11 @@
 name: Patch payments scope
 
 on:
-  push:
+  pull_request:
+    branches:
+      - main
     paths:
-      - .github/workflows/patch-payments-scope.yml
+      - tool/payments_scope.trigger
 
 permissions:
   contents: write
@@ -12,10 +14,12 @@ jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Patch payments screen
         shell: bash
@@ -45,9 +49,14 @@ jobs:
 """
           if old_open not in employees:
               raise SystemExit('openPayments snippet not found')
-          employees_path.write_text(employees.replace(old_open, new_open, 1), encoding='utf-8')
+          employees_path.write_text(
+              employees.replace(old_open, new_open, 1),
+              encoding='utf-8',
+          )
 
-          payments_path = Path('lib/features/payments/presentation/screens/payments_screen.dart')
+          payments_path = Path(
+              'lib/features/payments/presentation/screens/payments_screen.dart'
+          )
           payments = payments_path.read_text(encoding='utf-8')
 
           old_ctor = """class PaymentsScreen extends StatefulWidget {
@@ -78,7 +87,10 @@ jobs:
 """
           if old_fetch not in payments:
               raise SystemExit('monthly payments fetch snippet not found')
-          payments_path.write_text(payments.replace(old_fetch, new_fetch, 1), encoding='utf-8')
+          payments_path.write_text(
+              payments.replace(old_fetch, new_fetch, 1),
+              encoding='utf-8',
+          )
 
           test_path = Path('test/payments_scope_contract_test.dart')
           test_path.write_text("""import 'dart:io';
@@ -113,24 +125,17 @@ void main() {
 """, encoding='utf-8')
           PY
 
-      - name: Remove one-time workflow
-        run: rm -f .github/workflows/patch-payments-scope.yml
+      - name: Remove one-time files
+        run: |
+          rm -f .github/workflows/patch-payments-scope.yml
+          rm -f tool/payments_scope.trigger
 
-      - name: Commit patch
+      - name: Commit patch to pull request
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/screens/employees_screen.dart \
-                  lib/features/payments/presentation/screens/payments_screen.dart \
-                  test/payments_scope_contract_test.dart \
-                  .github/workflows/patch-payments-scope.yml
+          git add -A
           git commit -m "Исправить выплаты по объекту и месяцу"
-          for attempt in 1 2 3; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then
-              exit 0
-            fi
-            sleep 4
-          done
-          exit 1
+          git pull --rebase origin "${{ github.head_ref }}"
+          git push origin HEAD:"${{ github.head_ref }}"
