@@ -11,6 +11,26 @@ class AiAssistantRepository {
     return <String, dynamic>{};
   }
 
+  static bool _useStructuredAssistant({
+    required String mode,
+    required String prompt,
+  }) {
+    if (mode.trim() != 'chat') return true;
+
+    final normalized = prompt.trim().toLowerCase().replaceAll('ё', 'е');
+    final timesheetOrSummary = RegExp(
+      r'табел|смен|выход|отработ|сводк',
+    ).hasMatch(normalized);
+    final documentAction = RegExp(
+      r'подготов|состав|напиш|созда',
+    ).hasMatch(normalized);
+    final documentType = RegExp(
+      r'документ|акт|записк|письм|отчет',
+    ).hasMatch(normalized);
+
+    return timesheetOrSummary || (documentAction && documentType);
+  }
+
   static Future<AiAssistantResult> request({
     required String mode,
     required String companyId,
@@ -23,15 +43,22 @@ class AiAssistantRepository {
       throw Exception('Не выбрана активная компания');
     }
 
+    final cleanPrompt = prompt.trim();
+    final functionName = _useStructuredAssistant(
+      mode: mode,
+      prompt: cleanPrompt,
+    )
+        ? 'ai-assistant'
+        : 'ai-search';
     final requestDate = date ?? DateTime.now();
     final response = await _client.functions.invoke(
-      'ai-assistant',
+      functionName,
       body: <String, dynamic>{
         'mode': mode.trim(),
         'company_id': cleanCompanyId,
         'object_name': objectName?.trim(),
         'date': _dateKey(requestDate),
-        'prompt': prompt.trim(),
+        'prompt': cleanPrompt,
       },
     );
     final data = _map(response.data);
