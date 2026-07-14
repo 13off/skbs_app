@@ -8,15 +8,15 @@ void main() {
       '.github/workflows/build-ios-ipa.yml',
     ).readAsStringSync();
 
-    expect(workflow, contains('build_status=${PIPESTATUS[0]}'));
+    expect(workflow, contains(r'build_status=${PIPESTATUS[0]}'));
     expect(workflow, contains('build/ios/iphoneos/Runner.app'));
-    expect(workflow, contains('[ -f "$app_path/Info.plist" ]'));
-    expect(workflow, contains('[ -f "$app_path/Runner" ]'));
+    expect(workflow, contains(r'[ -f "$app_path/Info.plist" ]'));
+    expect(workflow, contains(r'[ -f "$app_path/Runner" ]'));
     expect(workflow, contains('grep -q "Xcode build done" ios-build.log'));
     expect(
       workflow,
       contains('grep -q "requires a selected Development Team" ios-build.log'),
     );
-    expect(workflow, contains('exit "$build_status"'));
+    expect(workflow, contains(r'exit "$build_status"'));
   });
 }
