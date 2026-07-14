@@ -40,54 +40,170 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function stringList(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => cleanText(item, 600))
-    .filter((item) => item.length > 0)
-    .slice(0, 12);
+function shortNames(rows: any[], employeeById?: Map<string, any>) {
+  return rows
+    .slice(0, 10)
+    .map((row: any) => {
+      const employee = employeeById
+        ? employeeById.get(String(row.employee_id))
+        : row;
+      return cleanText(employee?.fio, 160) || "Сотрудник";
+    })
+    .join(", ");
 }
 
-function extractResponseText(payload: any) {
-  if (typeof payload?.output_text === "string") {
-    return payload.output_text.trim();
+function buildTimesheetResult({
+  workDate,
+  scope,
+  employees,
+  attendance,
+  missingEmployees,
+  elevatedShifts,
+  workedRows,
+  totalShifts,
+  employeeById,
+}: any) {
+  const warnings: string[] = [];
+
+  if (missingEmployees.length > 0) {
+    const names = shortNames(missingEmployees);
+    warnings.push(
+      `Нет строк табеля: ${missingEmployees.length}. ${names}${
+        missingEmployees.length > 10 ? "…" : ""
+      }`,
+    );
   }
 
-  for (const item of payload?.output ?? []) {
-    for (const content of item?.content ?? []) {
-      if (content?.type === "output_text" && typeof content.text === "string") {
-        return content.text.trim();
-      }
-    }
+  if (elevatedShifts.length > 0) {
+    const values = elevatedShifts
+      .slice(0, 10)
+      .map((row: any) => {
+        const employee = employeeById.get(String(row.employee_id));
+        return `${cleanText(employee?.fio, 160) || "Сотрудник"} — ${numberValue(row.shifts)}`;
+      })
+      .join(", ");
+    warnings.push(`Повышенное количество смен, проверь вручную: ${values}`);
   }
 
-  return "";
+  if (warnings.length === 0) {
+    warnings.push("Явных пропусков и повышенных значений не найдено.");
+  }
+
+  return {
+    ok: true,
+    mode: "timesheet_check",
+    title: "Проверка табеля завершена",
+    summary:
+      `За ${workDate} найдено ${employees.length} активных сотрудников. ` +
+      `Отмечено ${workedRows.length}, всего ${totalShifts.toFixed(1)} смен.`,
+    highlights: [
+      `Активных сотрудников: ${employees.length}`,
+      `Строк табеля: ${attendance.length}`,
+      `Отработали: ${workedRows.length}`,
+      `Сумма смен: ${totalShifts.toFixed(1)}`,
+    ],
+    warnings,
+    next_steps: [
+      "Сверь предупреждения с прорабом или ответственным за табель.",
+      "Исправления вноси вручную в разделе «Табель» после проверки.",
+    ],
+    scope,
+    preliminary: true,
+    ai_used: false,
+  };
 }
 
-function parseModelResult(text: string) {
-  const withoutFence = text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
+function buildSiteSummaryResult({
+  workDate,
+  scope,
+  employees,
+  missingEmployees,
+  workedRows,
+  totalShifts,
+  tasks,
+  doneTasks,
+  pendingTasks,
+  blockedTasks,
+}: any) {
+  const warnings: string[] = [];
 
-  try {
-    const parsed = JSON.parse(withoutFence);
-    return {
-      title: cleanText(parsed?.title, 140) || "Ответ ИИ-помощника",
-      summary: cleanText(parsed?.summary, 6000),
-      highlights: stringList(parsed?.highlights),
-      warnings: stringList(parsed?.warnings),
-      next_steps: stringList(parsed?.next_steps),
-    };
-  } catch (_) {
-    return {
-      title: "Ответ ИИ-помощника",
-      summary: cleanText(text, 6000),
-      highlights: [],
-      warnings: [],
-      next_steps: ["Проверь факты и формулировки перед использованием результата."],
-    };
+  if (missingEmployees.length > 0) {
+    warnings.push(`У ${missingEmployees.length} сотрудников нет строки табеля.`);
   }
+  if (pendingTasks.length > 0) {
+    warnings.push(`Не завершено задач: ${pendingTasks.length}.`);
+  }
+  if (blockedTasks.length > 0) {
+    warnings.push(`Есть комментарии о невыполнении у ${blockedTasks.length} задач.`);
+  }
+  if (warnings.length === 0) {
+    warnings.push("По доступным данным критичных отклонений не найдено.");
+  }
+
+  return {
+    ok: true,
+    mode: "site_summary",
+    title: "Рабочая сводка за сегодня",
+    summary:
+      `Область: ${scope.object_name}. На ${workDate} в работе ${employees.length} сотрудников, ` +
+      `${workedRows.length} отмечены в табеле. Выполнено ${doneTasks.length} из ${tasks.length} задач.`,
+    highlights: [
+      `Активных сотрудников: ${employees.length}`,
+      `Отработали по табелю: ${workedRows.length}`,
+      `Всего смен: ${totalShifts.toFixed(1)}`,
+      `Задачи: ${doneTasks.length} выполнено, ${pendingTasks.length} остаётся`,
+    ],
+    warnings,
+    next_steps: [
+      "Проверь незавершённые задачи и комментарии исполнителей.",
+      "Перед передачей сводки руководителю сверь цифры с первичными данными.",
+    ],
+    scope,
+    preliminary: true,
+    ai_used: false,
+  };
+}
+
+function buildDocumentDraft(prompt: string, scope: any, workDate: string) {
+  const subject = prompt || "Рабочая ситуация на объекте";
+  const draft = [
+    "ЧЕРНОВИК — ТРЕБУЕТ ПРОВЕРКИ",
+    "",
+    `Дата: ${workDate}`,
+    `Объект: ${scope.object_name}`,
+    `Тема: ${subject}`,
+    "",
+    "Фактическая часть:",
+    "[Указать подтверждённые обстоятельства, даты, объёмы и ответственных лиц.]",
+    "",
+    "Результат / текущее состояние:",
+    "[Указать фактически достигнутый результат или зафиксированную проблему.]",
+    "",
+    "Необходимые действия:",
+    "[Указать действие, срок и ответственного после согласования.]",
+  ].join("\n");
+
+  return {
+    ok: true,
+    mode: "document_draft",
+    title: "Черновик рабочего документа",
+    summary: draft,
+    highlights: [
+      "Добавлена нейтральная структура без выдуманных фактов.",
+      "Объект и дата подставлены из текущего рабочего контекста.",
+    ],
+    warnings: [
+      "Заполни все поля в квадратных скобках подтверждёнными данными.",
+      "Перед подписанием проверь формулировки, суммы, даты и ответственных.",
+    ],
+    next_steps: [
+      "Уточни тип документа: акт, служебная записка, письмо или отчёт.",
+      "После проверки перенеси согласованный текст в нужный шаблон.",
+    ],
+    scope,
+    preliminary: true,
+    ai_used: false,
+  };
 }
 
 Deno.serve(async (request: Request) => {
@@ -121,7 +237,7 @@ Deno.serve(async (request: Request) => {
     }
 
     const input = await request.json().catch(() => ({}));
-    const mode = cleanText(input.mode, 40) || "chat";
+    let mode = cleanText(input.mode, 40) || "chat";
     const requestedCompanyId = cleanText(input.company_id, 80);
     const requestedObjectName = cleanText(input.object_name, 180);
     const prompt = cleanText(input.prompt, 4000);
@@ -133,7 +249,7 @@ Deno.serve(async (request: Request) => {
 
     const { data: profile, error: profileError } = await userClient
       .from("user_profiles")
-      .select("id, full_name, role, object_name, active_company_id, is_active")
+      .select("id, role, object_name, active_company_id, is_active")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -185,19 +301,19 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    let employeesQuery = userClient
+    let employeesQuery: any = userClient
       .from("employees")
       .select("id, fio, position, object_name")
       .eq("company_id", activeCompanyId)
       .eq("is_active", true)
       .is("archived_at", null)
       .order("fio", { ascending: true });
-    let attendanceQuery = userClient
+    let attendanceQuery: any = userClient
       .from("attendance")
       .select("employee_id, shifts, status, object_name")
       .eq("company_id", activeCompanyId)
       .eq("work_date", workDate);
-    let tasksQuery = userClient
+    let tasksQuery: any = userClient
       .from("tasks")
       .select("id, status, work, axes, not_done_comment, object_name")
       .eq("company_id", activeCompanyId)
@@ -251,185 +367,63 @@ Deno.serve(async (request: Request) => {
       object_name: effectiveObjectName || "Все доступные объекты",
       date: workDate,
     };
-    const modelReady = Boolean(
-      cleanText(Deno.env.get("OPENAI_API_KEY"), 500) &&
-        cleanText(Deno.env.get("OPENAI_MODEL"), 120),
-    );
+    const context = {
+      workDate,
+      scope,
+      employees,
+      attendance,
+      missingEmployees,
+      elevatedShifts,
+      workedRows,
+      totalShifts,
+      employeeById,
+      tasks,
+      doneTasks,
+      pendingTasks,
+      blockedTasks,
+    };
+
+    if (mode === "chat") {
+      const normalized = prompt.toLowerCase();
+      if (/табел|смен|выход/.test(normalized)) {
+        mode = "timesheet_check";
+      } else if (/свод|объект|задач|сотрудник|люд/.test(normalized)) {
+        mode = "site_summary";
+      } else if (/документ|акт|записк|письм|отч[её]т/.test(normalized)) {
+        mode = "document_draft";
+      }
+    }
 
     if (mode === "timesheet_check") {
-      const warnings: string[] = [];
-      if (missingEmployees.length > 0) {
-        const names = missingEmployees
-          .slice(0, 10)
-          .map((employee: any) => cleanText(employee.fio, 160))
-          .filter(Boolean)
-          .join(", ");
-        warnings.push(
-          `Нет строк табеля: ${missingEmployees.length}. ${names}${
-            missingEmployees.length > 10 ? "…" : ""
-          }`,
-        );
-      }
-      if (elevatedShifts.length > 0) {
-        const values = elevatedShifts
-          .slice(0, 10)
-          .map((row: any) => {
-            const employee = employeeById.get(String(row.employee_id));
-            return `${cleanText(employee?.fio, 160) || "Сотрудник"} — ${numberValue(row.shifts)}`;
-          })
-          .join(", ");
-        warnings.push(`Повышенное количество смен, проверь вручную: ${values}`);
-      }
-      if (warnings.length === 0) {
-        warnings.push("Явных пропусков и повышенных значений не найдено.");
-      }
-
-      return json({
-        ok: true,
-        mode,
-        title: "Проверка табеля завершена",
-        summary:
-          `За ${workDate} найдено ${employees.length} активных сотрудников. ` +
-          `Отмечено ${workedRows.length}, всего ${totalShifts.toFixed(1)} смен.`,
-        highlights: [
-          `Активных сотрудников: ${employees.length}`,
-          `Строк табеля: ${attendance.length}`,
-          `Отработали: ${workedRows.length}`,
-          `Сумма смен: ${totalShifts.toFixed(1)}`,
-        ],
-        warnings,
-        next_steps: [
-          "Сверь предупреждения с прорабом или ответственным за табель.",
-          "Исправления вноси вручную в разделе «Табель» после проверки.",
-        ],
-        scope,
-        preliminary: true,
-        ai_used: false,
-        model_ready: modelReady,
-      });
+      return json(buildTimesheetResult(context));
     }
-
     if (mode === "site_summary") {
-      const warnings: string[] = [];
-      if (missingEmployees.length > 0) {
-        warnings.push(`У ${missingEmployees.length} сотрудников нет строки табеля.`);
-      }
-      if (pendingTasks.length > 0) {
-        warnings.push(`Не завершено задач: ${pendingTasks.length}.`);
-      }
-      if (blockedTasks.length > 0) {
-        warnings.push(`Есть комментарии о невыполнении у ${blockedTasks.length} задач.`);
-      }
-      if (warnings.length === 0) {
-        warnings.push("По доступным данным критичных отклонений не найдено.");
-      }
-
-      return json({
-        ok: true,
-        mode,
-        title: "Рабочая сводка за сегодня",
-        summary:
-          `Область: ${scope.object_name}. На ${workDate} в работе ${employees.length} сотрудников, ` +
-          `${workedRows.length} отмечены в табеле. Выполнено ${doneTasks.length} из ${tasks.length} задач.`,
-        highlights: [
-          `Активных сотрудников: ${employees.length}`,
-          `Отработали по табелю: ${workedRows.length}`,
-          `Всего смен: ${totalShifts.toFixed(1)}`,
-          `Задачи: ${doneTasks.length} выполнено, ${pendingTasks.length} остаётся`,
-        ],
-        warnings,
-        next_steps: [
-          "Проверь незавершённые задачи и комментарии исполнителей.",
-          "Перед передачей сводки руководителю сверь цифры с первичными данными.",
-        ],
-        scope,
-        preliminary: true,
-        ai_used: false,
-        model_ready: modelReady,
-      });
+      return json(buildSiteSummaryResult(context));
     }
-
-    const openAiKey = cleanText(Deno.env.get("OPENAI_API_KEY"), 500);
-    const openAiModel = cleanText(Deno.env.get("OPENAI_MODEL"), 120);
-    if (!openAiKey || !openAiModel) {
-      return json(
-        {
-          error:
-            "Проверка табеля и сводка уже работают. Для свободного диалога и черновиков добавь OPENAI_API_KEY и OPENAI_MODEL в секреты Supabase.",
-          configuration_required: true,
-        },
-        503,
-      );
+    if (mode === "document_draft") {
+      return json(buildDocumentDraft(prompt, scope, workDate));
     }
-    if (!prompt) {
-      return json({ error: "Напиши запрос для ИИ-помощника" }, 400);
-    }
-
-    const compactContext = {
-      date: workDate,
-      object_scope: scope.object_name,
-      user_role: role,
-      active_employees: employees.length,
-      attendance_rows: attendance.length,
-      worked_employees: workedRows.length,
-      total_shifts: Number(totalShifts.toFixed(1)),
-      missing_attendance_rows: missingEmployees.length,
-      tasks_total: tasks.length,
-      tasks_done: doneTasks.length,
-      tasks_pending: pendingTasks.length,
-      tasks_with_not_done_comment: blockedTasks.length,
-    };
-    const systemPrompt = [
-      "Ты встроенный рабочий помощник строительной компании AppСтрой.",
-      "Отвечай по-русски, конкретно и без выдуманных фактов.",
-      "Результат всегда предварительный: человек обязан проверить его перед использованием.",
-      "Не предлагай напрямую менять базу, увольнять людей, начислять деньги или принимать юридические решения.",
-      "Для документов делай только черновик и помечай места, где не хватает фактов.",
-      "Верни только JSON с полями title, summary, highlights, warnings, next_steps.",
-      "highlights, warnings и next_steps должны быть массивами коротких строк.",
-    ].join("\n");
-    const userPrompt = JSON.stringify({
-      mode,
-      request: prompt,
-      company_context: compactContext,
-    });
-
-    const modelResponse = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: openAiModel,
-        store: false,
-        max_output_tokens: 1200,
-        input: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-    const modelPayload = await modelResponse.json().catch(() => ({}));
-    if (!modelResponse.ok) {
-      console.error("OpenAI response error", modelResponse.status, modelPayload);
-      return json({ error: "ИИ-модель не ответила. Повтори запрос позже." }, 502);
-    }
-
-    const outputText = extractResponseText(modelPayload);
-    if (!outputText) {
-      return json({ error: "ИИ-модель вернула пустой результат" }, 502);
-    }
-    const parsed = parseModelResult(outputText);
 
     return json({
       ok: true,
-      mode,
-      ...parsed,
+      mode: "chat",
+      title: "Что умеет помощник сейчас",
+      summary:
+        "Напиши запрос про табель, рабочую сводку, сотрудников, задачи или черновик документа. Помощник определит нужный сценарий и покажет предварительный результат.",
+      highlights: [
+        "Проверка пропусков и повышенных значений в табеле.",
+        "Сводка по людям, сменам и задачам текущего объекта.",
+        "Безопасный черновик документа без выдуманных фактов.",
+      ],
+      warnings: [
+        "Помощник работает только на чтение и не изменяет данные приложения.",
+      ],
+      next_steps: [
+        "Сформулируй запрос конкретнее или выбери быстрое действие сверху.",
+      ],
       scope,
       preliminary: true,
-      ai_used: true,
-      model_ready: true,
+      ai_used: false,
     });
   } catch (error) {
     console.error(error);
