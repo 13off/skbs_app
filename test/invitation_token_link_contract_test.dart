@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('invitation link bypasses localhost redirect and verifies token in app', () {
+  test('invitation link bypasses localhost and uses a production token flow', () {
     final repository = source(
       'lib/features/auth/data/user_repository.dart',
     );
@@ -17,6 +17,7 @@ void main() {
     );
 
     expect(edge, contains('https://13off.github.io/appstroy-web/'));
+    expect(edge, contains('invite.html'));
     expect(edge, contains('inviteTokenHash'));
     expect(edge, contains('inviteType'));
     expect(edge, contains('properties?.hashed_token'));
@@ -40,5 +41,22 @@ void main() {
     );
     expect(verifyIndex, greaterThanOrEqualTo(0));
     expect(sessionIndex, greaterThan(verifyIndex));
+  });
+
+  test('production invitation page consumes the token only after user action', () {
+    final invitePage = source('web/invite.html');
+
+    expect(invitePage, contains('<button id="accept" type="button">'));
+    expect(
+      invitePage,
+      contains("accept.addEventListener('click', acceptInvitation)"),
+    );
+    expect(invitePage, contains('async function acceptInvitation()'));
+    expect(invitePage, contains('/auth/v1/verify'));
+    expect(invitePage, contains("token_hash: tokenHash"));
+    expect(invitePage, contains('progress hidden'));
+
+    expect(invitePage, isNot(contains('(async function ()')));
+    expect(invitePage, isNot(contains('acceptInvitation();')));
   });
 }

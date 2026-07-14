@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#F3F1EC">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-store">
   <title>Вход по приглашению — AppСтрой</title>
   <style>
     * { box-sizing: border-box; }
@@ -64,16 +66,44 @@
       animation: travel 1.2s ease-in-out infinite;
     }
     .error { color: #874540; }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    button,
     a {
+      min-height: 50px;
       display: inline-flex;
-      margin-top: 20px;
+      align-items: center;
+      justify-content: center;
       padding: 13px 20px;
       border-radius: 14px;
+      font: inherit;
+      font-weight: 750;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease;
+    }
+    button {
+      border: 0;
       color: #fff;
       background: #30343a;
-      text-decoration: none;
-      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(33,37,43,.18);
+    }
+    button:hover:not(:disabled),
+    a:hover { transform: translateY(-1px); }
+    button:active:not(:disabled),
+    a:active { transform: scale(.985); }
+    button:disabled {
+      cursor: wait;
+      opacity: .62;
+    }
+    a {
+      color: #30343a;
+      border: 1px solid rgba(48,52,58,.18);
+      background: rgba(255,255,255,.56);
     }
     @keyframes travel {
       from { transform: translateX(-115%); }
@@ -84,76 +114,118 @@
 <body>
   <main class="card">
     <div class="mark" aria-hidden="true">A</div>
-    <h1 id="title">Принимаем приглашение</h1>
-    <p id="message">Проверяем одноразовую ссылку и выполняем безопасный вход в AppСтрой.</p>
-    <div id="progress" class="progress" aria-hidden="true"></div>
-    <a id="back" class="hidden" href="./">Открыть AppСтрой</a>
+    <h1 id="title">Приглашение в AppСтрой</h1>
+    <p id="message">Нажмите кнопку, чтобы подтвердить одноразовую ссылку и войти в компанию.</p>
+    <div id="progress" class="progress hidden" aria-hidden="true"></div>
+    <div class="actions">
+      <button id="accept" type="button">Войти в AppСтрой</button>
+      <a id="back" class="hidden" href="./">Открыть AppСтрой без приглашения</a>
+    </div>
   </main>
 
   <script>
-    (async function () {
+    (function () {
       const supabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
       const publishableKey = 'sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm';
       const query = new URLSearchParams(window.location.search);
       const companyId = (query.get('companyInvite') || '').trim();
       const tokenHash = (query.get('inviteTokenHash') || '').trim();
       const verificationType = (query.get('inviteType') || '').trim().toLowerCase();
+      const supportedTypes = new Set(['invite', 'recovery', 'magiclink', 'signup', 'email']);
       const title = document.getElementById('title');
       const message = document.getElementById('message');
       const progress = document.getElementById('progress');
+      const accept = document.getElementById('accept');
       const back = document.getElementById('back');
+      let isSubmitting = false;
 
-      function fail(text) {
+      function fail(text, allowRetry) {
         title.textContent = 'Не удалось открыть приглашение';
         message.textContent = text;
         message.classList.add('error');
         progress.classList.add('hidden');
-        back.classList.remove('hidden');
+        isSubmitting = false;
+
+        if (allowRetry) {
+          accept.disabled = false;
+          accept.textContent = 'Повторить вход';
+          accept.classList.remove('hidden');
+          back.classList.add('hidden');
+        } else {
+          accept.classList.add('hidden');
+          back.classList.remove('hidden');
+        }
       }
 
-      if (!companyId || !tokenHash || !verificationType) {
-        fail('Ссылка неполная или устарела. Создайте новое приглашение в приложении.');
+      function authError(messageText) {
+        const error = new Error(messageText);
+        error.name = 'InvitationAuthError';
+        return error;
+      }
+
+      async function acceptInvitation() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        accept.disabled = true;
+        accept.textContent = 'Входим…';
+        title.textContent = 'Принимаем приглашение';
+        message.textContent = 'Проверяем одноразовую ссылку и выполняем безопасный вход в AppСтрой.';
+        message.classList.remove('error');
+        progress.classList.remove('hidden');
+
+        try {
+          const response = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': publishableKey,
+              'Authorization': `Bearer ${publishableKey}`,
+            },
+            body: JSON.stringify({
+              token_hash: tokenHash,
+              type: verificationType,
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw authError(
+              data.msg ||
+              data.message ||
+              data.error_description ||
+              data.error ||
+              'Одноразовая ссылка недействительна или уже была использована',
+            );
+          }
+          if (!data.access_token || !data.refresh_token) {
+            throw new Error('Сервис не вернул сессию пользователя');
+          }
+
+          const appUrl = new URL('./', window.location.href);
+          appUrl.searchParams.set('companyInvite', companyId);
+          const session = new URLSearchParams({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+            expires_in: String(data.expires_in || 3600),
+            token_type: data.token_type || 'bearer',
+            type: verificationType,
+          });
+          if (data.expires_at) {
+            session.set('expires_at', String(data.expires_at));
+          }
+          appUrl.hash = session.toString();
+          window.location.replace(appUrl.toString());
+        } catch (error) {
+          const text = error instanceof Error ? error.message : String(error);
+          fail(text, !(error instanceof Error && error.name === 'InvitationAuthError'));
+        }
+      }
+
+      if (!companyId || !tokenHash || !verificationType || !supportedTypes.has(verificationType)) {
+        fail('Ссылка неполная или устарела. Создайте новое приглашение в приложении.', false);
         return;
       }
 
-      try {
-        const response = await fetch(`${supabaseUrl}/auth/v1/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': publishableKey,
-            'Authorization': `Bearer ${publishableKey}`,
-          },
-          body: JSON.stringify({
-            token_hash: tokenHash,
-            type: verificationType,
-          }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data.msg || data.message || data.error_description || data.error || 'Одноразовая ссылка недействительна');
-        }
-        if (!data.access_token || !data.refresh_token) {
-          throw new Error('Сервис не вернул сессию пользователя');
-        }
-
-        const appUrl = new URL('./', window.location.href);
-        appUrl.searchParams.set('companyInvite', companyId);
-        const session = new URLSearchParams({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-          expires_in: String(data.expires_in || 3600),
-          token_type: data.token_type || 'bearer',
-          type: verificationType,
-        });
-        if (data.expires_at) {
-          session.set('expires_at', String(data.expires_at));
-        }
-        appUrl.hash = session.toString();
-        window.location.replace(appUrl.toString());
-      } catch (error) {
-        fail(error instanceof Error ? error.message : String(error));
-      }
+      accept.addEventListener('click', acceptInvitation);
     })();
   </script>
 </body>
