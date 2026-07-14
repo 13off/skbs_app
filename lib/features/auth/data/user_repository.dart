@@ -34,6 +34,11 @@ class UserRepository {
     return value == true || value?.toString().toLowerCase() == 'true';
   }
 
+  static String get _browserDocumentTitle {
+    final title = html.document.title?.trim() ?? '';
+    return title.isEmpty ? 'AppСтрой' : title;
+  }
+
   static String buildInvitationRedirectUrl(String companyId) {
     final cleanCompanyId = companyId.trim();
     final productionApp = Uri.parse(_fallbackWebAppUrl);
@@ -113,7 +118,7 @@ class UserRepository {
     final cleaned = current.replace(queryParameters: parameters, fragment: '');
     html.window.history.replaceState(
       null,
-      html.document.title,
+      _browserDocumentTitle,
       cleaned.toString(),
     );
   }
@@ -161,7 +166,7 @@ class UserRepository {
     final cleaned = current.replace(queryParameters: parameters, fragment: '');
     html.window.history.replaceState(
       null,
-      html.document.title,
+      _browserDocumentTitle,
       cleaned.toString(),
     );
   }
