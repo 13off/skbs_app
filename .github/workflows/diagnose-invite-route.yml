@@ -1,0 +1,67 @@
+name: Diagnose invite route
+
+on:
+  push:
+    paths:
+      - .github/workflows/diagnose-invite-route.yml
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare SSH
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh diagnostics
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/appstroy_proxy
+          chmod 600 ~/.ssh/appstroy_proxy
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect live proxy
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
+        run: |
+          {
+            echo '=== External response headers ==='
+            curl -ksSI "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=1" || true
+            echo
+            echo '=== VPS state ==='
+            ssh -i ~/.ssh/appstroy_proxy "$VPS_USER@$VPS_HOST" \
+              "PROXY_DOMAIN='$PROXY_DOMAIN' bash -s" <<'REMOTE'
+          set +e
+          cd /opt/appstroy-proxy || exit 0
+          echo '--- docker compose ps ---'
+          sudo docker compose ps 2>&1
+          echo '--- host Caddyfile matcher ---'
+          grep -n -A18 -B2 'inviteLanding' Caddyfile 2>&1
+          echo '--- container Caddyfile matcher ---'
+          sudo docker compose exec -T caddy sh -lc "grep -n -A18 -B2 inviteLanding /etc/caddy/Caddyfile" 2>&1
+          echo '--- Caddy validate ---'
+          sudo docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile 2>&1
+          echo '--- local HTTPS headers ---'
+          curl -ksSI --resolve "$PROXY_DOMAIN:443:127.0.0.1" \
+            "https://$PROXY_DOMAIN/functions/v1/invite-landing/invite.html?diag=1" 2>&1
+          echo '--- recent Caddy logs ---'
+          sudo docker compose logs --tail=80 caddy 2>&1
+          REMOTE
+          } > diagnostics/invite-route.txt 2>&1
+
+      - name: Commit diagnostic report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostics/invite-route.txt
+          git commit -m "сохранена диагностика маршрута приглашения"
+          git push
