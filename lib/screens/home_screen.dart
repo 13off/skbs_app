@@ -9,9 +9,11 @@ import '../data/employee_repository.dart';
 import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
+import '../features/ai/presentation/ai_assistant_screen.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
+import '../navigation/app_page_route.dart';
 import '../widgets/app_page.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/premium_ui.dart';
@@ -903,6 +905,73 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void openAiAssistant(BuildContext context) {
+    Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (_) => AiAssistantScreen(
+          profile: widget.profile,
+          selectedObjectName: widget.selectedObjectName,
+        ),
+      ),
+    );
+  }
+
+  Widget buildAiAssistantCard(BuildContext context) {
+    return PremiumPressable(
+      onTap: () => openAiAssistant(context),
+      borderRadius: BorderRadius.circular(26),
+      child: PremiumWorkCard(
+        radius: 26,
+        padding: const EdgeInsets.all(17),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F0EC),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: _line),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: _text,
+                size: 25,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ИИ-помощник',
+                    style: TextStyle(
+                      color: _text,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    'Проверить табель, собрать сводку или подготовить черновик',
+                    style: TextStyle(
+                      color: _muted,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Icon(Icons.chevron_right_rounded, color: _muted),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildObjectSelector(BuildContext context) {
     if (!widget.profile.isAdmin) {
       return _ObjectSelectorShell(
@@ -1034,6 +1103,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
                       ),
                     ],
+                    const SizedBox(height: 14),
+                    buildAiAssistantCard(context),
                     const SizedBox(height: 24),
                     _DashboardMetricCard(
                       icon: Icons.person_outline,
