@@ -12,6 +12,7 @@ services:
       SUPABASE_UPSTREAM: ${SUPABASE_UPSTREAM}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/appstroy-web:ro
       - caddy_data:/data
       - caddy_config:/config
 

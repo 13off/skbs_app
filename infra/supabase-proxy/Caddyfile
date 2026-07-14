@@ -4,14 +4,25 @@
   @health path /proxy-health
   respond @health "ok" 200
 
-  reverse_proxy https://{$SUPABASE_UPSTREAM} {
-    header_up Host {$SUPABASE_UPSTREAM}
+  @appRoot path /app
+  redir @appRoot /app/ 308
 
-    transport http {
-      tls_server_name {$SUPABASE_UPSTREAM}
-      keepalive 30s
-      dial_timeout 10s
-      response_header_timeout 30s
+  handle_path /app/* {
+    root * /srv/appstroy-web
+    try_files {path} /index.html
+    file_server
+  }
+
+  handle {
+    reverse_proxy https://{$SUPABASE_UPSTREAM} {
+      header_up Host {$SUPABASE_UPSTREAM}
+
+      transport http {
+        tls_server_name {$SUPABASE_UPSTREAM}
+        keepalive 30s
+        dial_timeout 10s
+        response_header_timeout 30s
+      }
     }
   }
 

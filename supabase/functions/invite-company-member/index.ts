@@ -18,7 +18,7 @@ function cleanEmail(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
 
-const defaultWebAppUrl = "https://13off.github.io/appstroy-web/";
+const defaultWebAppUrl = "https://api.appstroy-web.ru/app/";
 
 function invitationRedirectUrl(companyId: string) {
   const url = new URL(defaultWebAppUrl);

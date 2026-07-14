@@ -20,8 +20,7 @@ class UserRepository {
   static const String _invitationCompanyParameter = 'companyInvite';
   static const String _invitationTokenHashParameter = 'inviteTokenHash';
   static const String _invitationTypeParameter = 'inviteType';
-  static const String _fallbackWebAppUrl =
-      'https://13off.github.io/appstroy-web/';
+  static const String _fallbackWebAppUrl = 'https://api.appstroy-web.ru/app/';
 
   static User? get currentUser => _client.auth.currentUser;
 
