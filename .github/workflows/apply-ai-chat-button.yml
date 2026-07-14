@@ -1,4 +1,4 @@
-name: Validate AI chat patch
+name: Publish validated AI chat patch
 
 on:
   pull_request:
@@ -8,19 +8,29 @@ on:
       - tool/ai_chat_button.trigger
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: appstroy-ai-chat-button-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  patch-test-build:
+  patch-test-publish:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout pull request
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Merge current main
+        run: |
+          git fetch origin main
+          git merge --no-edit origin/main
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -56,12 +66,16 @@ jobs:
             --base-href /appstroy-web/ \
             --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
 
-      - name: Upload validated source files
-        uses: actions/upload-artifact@v4
+      - name: Remove temporary patch files
+        run: |
+          rm -f .github/workflows/apply-ai-chat-button.yml
+          rm -f tool/apply_ai_chat_button.py
+          rm -f tool/fix_ai_chat_contract.py
+          rm -f tool/ai_chat_button.trigger
+
+      - name: Commit validated interface
+        uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          name: ai-chat-patched-files
-          if-no-files-found: error
-          path: |
-            lib/screens/home_screen.dart
-            lib/features/ai/presentation/ai_assistant_screen.dart
-            test/ai_assistant_contract_test.dart
+          branch: ${{ github.head_ref }}
+          commit_message: упрощён ИИ-помощник до чата
+          file_pattern: .
