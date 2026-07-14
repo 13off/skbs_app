@@ -116,7 +116,11 @@ void main() {
       );
       _containsAll(
         'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
-        const ["'Отчёт по выплатам'", "'Все сотрудники'", "'Скачать таблицу'"],
+        const [
+          "'Отчёт по выплатам'",
+          "'Все сотрудники'",
+          "'Скачать таблицу'",
+        ],
       );
       _containsAll('lib/screens/add_payment_screen.dart', const [
         "'Добавить чек'",
@@ -181,10 +185,14 @@ void main() {
       );
     });
 
+
     test('компании можно регистрировать и настраивать самостоятельно', () {
       _containsAll(
         'lib/features/auth/presentation/premium_login_screen_v2.dart',
-        const ["'Создать компанию'", 'CompanySignupScreen'],
+        const [
+          "'Создать компанию'",
+          'CompanySignupScreen',
+        ],
       );
       _containsAll(
         'lib/features/auth/presentation/company_signup_screen.dart',
@@ -205,11 +213,14 @@ void main() {
     });
 
     test('администратор управляет приглашениями, ролями и объектами', () {
-      _containsAll('lib/screens/profile_screen.dart', const [
-        "'Компания и пользователи'",
-        "'Сменить компанию'",
-        'CompanyManagementScreen',
-      ]);
+      _containsAll(
+        'lib/screens/profile_screen.dart',
+        const [
+          "'Компания и пользователи'",
+          "'Сменить компанию'",
+          'CompanyManagementScreen',
+        ],
+      );
       _containsAll(
         'lib/features/company/presentation/company_management_screen.dart',
         const [
@@ -221,34 +232,47 @@ void main() {
           'CompanyRepository.updateMemberAccess',
         ],
       );
-      _containsAll('lib/features/company/data/company_repository.dart', const [
-        "'invite-company-member'",
-        "'company_memberships'",
-        "'object_memberships'",
-        "'active_company_id'",
-      ]);
-      _containsAll('supabase/functions/invite-company-member/index.ts', const [
-        'generateLink',
-        'type: "invite"',
-        '"recovery"',
-        '"magiclink"',
-        'invite_url: actionLink',
-      ]);
+      _containsAll(
+        'lib/features/company/data/company_repository.dart',
+        const [
+          "'invite-company-member'",
+          "'company_memberships'",
+          "'object_memberships'",
+          "'active_company_id'",
+        ],
+      );
+      _containsAll(
+        'supabase/functions/invite-company-member/index.ts',
+        const [
+          'generateLink',
+          'type: "invite"',
+          '"recovery"',
+          '"magiclink"',
+          'invite_url: actionLink',
+        ],
+      );
     });
 
     test('тарифы и заявки сохраняют бизнес-контур компании', () {
-      _containsAll('lib/features/company/data/company_repository.dart', const [
-        "'billing_plans'",
-        "'company_plan_requests'",
-        'fetchBillingPlans',
-        'fetchOpenPlanRequest',
-        'requestPlan',
-        'seatLimit',
-        'objectLimit',
-      ]);
+      _containsAll(
+        'lib/features/company/data/company_repository.dart',
+        const [
+          "'billing_plans'",
+          "'company_plan_requests'",
+          'fetchBillingPlans',
+          'fetchOpenPlanRequest',
+          'requestPlan',
+          'seatLimit',
+          'objectLimit',
+        ],
+      );
       _containsAll(
         'lib/features/company/presentation/company_management_screen.dart',
-        const ['CompanyPlansScreen', "'Тарифы'", "'Пригласить пользователя'"],
+        const [
+          'CompanyPlansScreen',
+          "'Тарифы'",
+          "'Пригласить пользователя'",
+        ],
       );
       _containsAll(
         'lib/features/company/presentation/company_plans_screen.dart',
@@ -299,155 +323,155 @@ void main() {
           'UserRepository.setInvitationPassword',
         ],
       );
-      _containsAll('lib/features/auth/data/user_repository.dart', const [
-        "'must_set_password': false",
-        "'accept_current_company_invitation'",
-      ]);
+      _containsAll(
+        'lib/features/auth/data/user_repository.dart',
+        const [
+          "'must_set_password': false",
+          "'accept_current_company_invitation'",
+        ],
+      );
     });
-    test(
-      'платформенные экраны сохраняют премиальный стиль и финальный логотип',
-      () {
-        _containsAll('lib/widgets/premium_ui_v2.dart', const [
-          'class _AppStroyMarkPainter',
-          'final leftTower = Path()',
-          'final centerTower = Path()',
-          'final rightTower = Path()',
-          'Color(0xFF77797C)',
-          'controller.forward()',
-          'class PremiumBackdrop',
-        ]);
-        _containsAll('lib/widgets/premium_ui_v2.dart', const [
-          'class PremiumWorkBackdrop',
-          'class PremiumWorkCard',
-        ]);
-        _containsAll('lib/widgets/app_page.dart', const [
+    test('платформенные экраны сохраняют премиальный стиль и финальный логотип', () {
+      _containsAll('lib/widgets/premium_ui_v2.dart', const [
+        'class _AppStroyMarkPainter',
+        'final leftTower = Path()',
+        'final centerTower = Path()',
+        'final rightTower = Path()',
+        'Color(0xFF77797C)',
+        'controller.forward()',
+        'class PremiumBackdrop',
+      ]);
+      _containsAll('lib/widgets/premium_ui_v2.dart', const [
+        'class PremiumWorkBackdrop',
+        'class PremiumWorkCard',
+      ]);
+      _containsAll('lib/widgets/app_page.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumBrandMark(size: 50, animate: false)',
+      ]);
+      _containsAll('lib/screens/home_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'AppPageHeader(',
+        "title: 'Главная'",
+        'PremiumWorkCard',
+      ]);
+      _containsAll('lib/screens/employees_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsAll('lib/screens/timesheet_screen.dart', const [
+        'PremiumWorkBackdrop',
+        'PremiumWorkCard',
+        'PremiumActionButton',
+      ]);
+      _containsAll(
+        'lib/features/payments/presentation/screens/payments_screen.dart',
+        const [
           'PremiumWorkBackdrop',
           'PremiumWorkCard',
-          'PremiumBrandMark(size: 50, animate: false)',
-        ]);
-        _containsAll('lib/screens/home_screen.dart', const [
+          'AppColors.textPrimary',
+        ],
+      );
+      _containsAll('lib/screens/tasks_screen.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+        'PremiumActionButton',
+      ]);
+      _containsAll('lib/widgets/task_tile.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsNone('lib/widgets/task_tile.dart', const [
+        'Colors.orange',
+        'Colors.green',
+        'Colors.blue',
+      ]);
+      _containsAll('lib/screens/profile_screen.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+        "'Компания и пользователи'",
+        "'Сменить компанию'",
+      ]);
+      _containsAll('lib/widgets/notification_bell.dart', const [
+        'PremiumWorkCard',
+        'PremiumPressable',
+      ]);
+      _containsAll(
+        'lib/features/archive/presentation/archive_management_screen_v3.dart',
+        const [
           'PremiumWorkBackdrop',
-          'AppPageHeader(',
-          "title: 'Главная'",
           'PremiumWorkCard',
-        ]);
-        _containsAll('lib/screens/employees_screen.dart', const [
-          'PremiumWorkBackdrop',
-          'PremiumWorkCard',
-          'PremiumPressable',
-        ]);
-        _containsAll('lib/screens/timesheet_screen.dart', const [
-          'PremiumWorkBackdrop',
-          'PremiumWorkCard',
+          "'Архив доступен только администратору'",
+        ],
+      );
+      _containsNone('lib/widgets/premium_surfaces_v3.dart', const [
+        'GoldenRatioBrandMark',
+        '_GoldenRatioLogoPainter',
+        '0xFFD6B978',
+        '0xFFF3E4C0',
+        '0xFFB78C49',
+      ]);
+      _containsNone(
+        'lib/features/payments/presentation/screens/payments_screen.dart',
+        const ['Colors.orange'],
+      );
+      _containsNone('lib/screens/employees_screen.dart', const [
+        '0xFFD3CAC0',
+        '0xFFD6CEC4',
+        '0xFFD8D0C7',
+      ]);
+      _containsAll('web/index.html', const [
+        'tower-shape tower-left',
+        'tower-shape tower-center',
+        'tower-shape tower-right',
+        'mark-sheen',
+      ]);
+      _containsAll(
+        'android/app/src/main/res/drawable/app_icon_foreground.xml',
+        const [
+          'android:fillColor="#B6B7B9"',
+          'android:fillColor="#8D8E90"',
+          'android:fillColor="#A2A3A5"',
+        ],
+      );
+      _containsAll(
+        'android/app/src/main/res/mipmap-anydpi/ic_launcher.xml',
+        const [
+          'android:fillColor="#F3F0E9"',
+          'android:fillColor="#B6B7B9"',
+          'android:fillColor="#8D8E90"',
+          'android:fillColor="#A2A3A5"',
+        ],
+      );
+      _containsAll(
+        'lib/features/auth/presentation/company_signup_screen.dart',
+        const [
+          "'14 дней'",
+          "'Без карты'",
+          "'Команда и объекты'",
+          "'Создать компанию'",
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_switcher_screen.dart',
+        const [
+          'PremiumBackdrop',
+          "'Выбрать компанию'",
+          "'Данные, объекты и сотрудники каждой компании полностью изолированы.'",
+        ],
+      );
+      _containsAll(
+        'lib/features/company/presentation/company_management_screen.dart',
+        const [
+          'PremiumBackdrop',
           'PremiumActionButton',
-        ]);
-        _containsAll(
-          'lib/features/payments/presentation/screens/payments_screen.dart',
-          const [
-            'PremiumWorkBackdrop',
-            'PremiumWorkCard',
-            'AppColors.textPrimary',
-          ],
-        );
-        _containsAll('lib/screens/tasks_screen.dart', const [
-          'PremiumWorkCard',
-          'PremiumPressable',
-          'PremiumActionButton',
-        ]);
-        _containsAll('lib/widgets/task_tile.dart', const [
-          'PremiumWorkCard',
-          'PremiumPressable',
-        ]);
-        _containsNone('lib/widgets/task_tile.dart', const [
-          'Colors.orange',
-          'Colors.green',
-          'Colors.blue',
-        ]);
-        _containsAll('lib/screens/profile_screen.dart', const [
-          'PremiumWorkCard',
-          'PremiumPressable',
-          "'Компания и пользователи'",
-          "'Сменить компанию'",
-        ]);
-        _containsAll('lib/widgets/notification_bell.dart', const [
-          'PremiumWorkCard',
-          'PremiumPressable',
-        ]);
-        _containsAll(
-          'lib/features/archive/presentation/archive_management_screen_v3.dart',
-          const [
-            'PremiumWorkBackdrop',
-            'PremiumWorkCard',
-            "'Архив доступен только администратору'",
-          ],
-        );
-        _containsNone('lib/widgets/premium_surfaces_v3.dart', const [
-          'GoldenRatioBrandMark',
-          '_GoldenRatioLogoPainter',
-          '0xFFD6B978',
-          '0xFFF3E4C0',
-          '0xFFB78C49',
-        ]);
-        _containsNone(
-          'lib/features/payments/presentation/screens/payments_screen.dart',
-          const ['Colors.orange'],
-        );
-        _containsNone('lib/screens/employees_screen.dart', const [
-          '0xFFD3CAC0',
-          '0xFFD6CEC4',
-          '0xFFD8D0C7',
-        ]);
-        _containsAll('web/index.html', const [
-          'tower-shape tower-left',
-          'tower-shape tower-center',
-          'tower-shape tower-right',
-          'mark-sheen',
-        ]);
-        _containsAll(
-          'android/app/src/main/res/drawable/app_icon_foreground.xml',
-          const [
-            'android:fillColor="#B6B7B9"',
-            'android:fillColor="#8D8E90"',
-            'android:fillColor="#A2A3A5"',
-          ],
-        );
-        _containsAll(
-          'android/app/src/main/res/mipmap-anydpi/ic_launcher.xml',
-          const [
-            'android:fillColor="#F3F0E9"',
-            'android:fillColor="#B6B7B9"',
-            'android:fillColor="#8D8E90"',
-            'android:fillColor="#A2A3A5"',
-          ],
-        );
-        _containsAll(
-          'lib/features/auth/presentation/company_signup_screen.dart',
-          const [
-            "'14 дней'",
-            "'Без карты'",
-            "'Команда и объекты'",
-            "'Создать компанию'",
-          ],
-        );
-        _containsAll(
-          'lib/features/company/presentation/company_switcher_screen.dart',
-          const [
-            'PremiumBackdrop',
-            "'Выбрать компанию'",
-            "'Данные, объекты и сотрудники каждой компании полностью изолированы.'",
-          ],
-        );
-        _containsAll(
-          'lib/features/company/presentation/company_management_screen.dart',
-          const [
-            'PremiumBackdrop',
-            'PremiumActionButton',
-            "'Пригласить пользователя'",
-            "'Команда'",
-          ],
-        );
-      },
-    );
+          "'Пригласить пользователя'",
+          "'Команда'",
+        ],
+      );
+    });
 
     test('изменения данных сразу доходят до всех открытых экранов', () {
       _containsAll('lib/data/app_data_sync.dart', const [
@@ -501,5 +525,6 @@ void main() {
         ],
       );
     });
+
   });
 }

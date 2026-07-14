@@ -36,7 +36,9 @@ void main() {
     final gate = source(
       'lib/features/auth/presentation/premium_auth_gate_v2.dart',
     );
-    final repository = source('lib/features/auth/data/user_repository.dart');
+    final repository = source(
+      'lib/features/auth/data/user_repository.dart',
+    );
 
     final applyIndex = gate.indexOf('applyPendingInvitationCompany()');
     final profileIndex = gate.indexOf('fetchCurrentProfile(');
@@ -44,17 +46,16 @@ void main() {
     expect(profileIndex, greaterThan(applyIndex));
     expect(gate, contains('AuthChangeEvent.passwordRecovery'));
 
-    expect(
-      repository,
-      contains("_invitationCompanyParameter = 'companyInvite'"),
-    );
+    expect(repository, contains("_invitationCompanyParameter = 'companyInvite'"));
     expect(repository, contains("await setActiveCompany(companyId)"));
     expect(repository, contains("accept_current_company_invitation"));
     expect(repository, contains('history.replaceState'));
   });
 
   test('repeat login restores a missing active company from membership', () {
-    final repository = source('lib/features/auth/data/user_repository.dart');
+    final repository = source(
+      'lib/features/auth/data/user_repository.dart',
+    );
 
     expect(repository, contains(".from('company_memberships')"));
     expect(repository, contains(".select('company_id')"));
