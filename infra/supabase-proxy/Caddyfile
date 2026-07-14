@@ -13,6 +13,24 @@
     file_server
   }
 
+  @inviteLanding path /functions/v1/invite-landing
+  handle @inviteLanding {
+    reverse_proxy https://{$SUPABASE_UPSTREAM} {
+      header_up Host {$SUPABASE_UPSTREAM}
+      header_down Content-Type "text/html; charset=utf-8"
+      header_down Cache-Control "no-store, max-age=0"
+      header_down Referrer-Policy "no-referrer"
+      header_down X-Content-Type-Options "nosniff"
+
+      transport http {
+        tls_server_name {$SUPABASE_UPSTREAM}
+        keepalive 30s
+        dial_timeout 10s
+        response_header_timeout 30s
+      }
+    }
+  }
+
   handle {
     reverse_proxy https://{$SUPABASE_UPSTREAM} {
       header_up Host {$SUPABASE_UPSTREAM}
