@@ -1,0 +1,107 @@
+name: Validate invitation links and session restore
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: invitation-links-session-restore
+  cancel-in-progress: true
+
+jobs:
+  apply-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/invitation-links-session-restore
+          persist-credentials: true
+
+      - name: Validate and apply patch
+        run: |
+          python3 -m py_compile tool/apply_invitation_links_session_restore.py
+          python3 tool/apply_invitation_links_session_restore.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            lib/features/company/data/company_repository.dart \
+            lib/features/company/presentation/company_management_screen.dart \
+            test/functional_contract_test.dart \
+            test/invitation_links_session_contract_test.dart
+
+      - name: Commit generated draft
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            lib/features/company/data/company_repository.dart \
+            lib/features/company/presentation/company_management_screen.dart \
+            supabase/functions/invite-company-member/index.ts \
+            test/functional_contract_test.dart \
+            test/invitation_links_session_contract_test.dart
+          git commit -m "применён проверяемый черновик ссылок приглашений" || true
+          git push origin HEAD:feature/invitation-links-session-restore
+
+      - name: Validate tests analysis and web build
+        id: validation
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          {
+            flutter test -r expanded &&
+            flutter analyze --no-fatal-infos --no-fatal-warnings &&
+            flutter build web --release --base-href /appstroy-web/
+          } 2>&1 | tee tool/invitation_links_session_validation.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Save failed diagnostics
+        if: steps.validation.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tool/invitation_links_session_validation.log
+          git commit -m "сохранена диагностика приглашений и повторного входа" || true
+          git push origin HEAD:feature/invitation-links-session-restore
+          exit 1
+
+      - name: Finalize verified branch
+        if: steps.validation.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          rm -f tool/apply_invitation_links_session_restore.py
+          rm -f tool/invitation_links_session_validation.log
+          rm -f .github/workflows/validate-invitation-links-session.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "добавлены ссылки приглашений и восстановление входа"
+          git push origin HEAD:feature/invitation-links-session-restore
