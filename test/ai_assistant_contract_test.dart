@@ -41,23 +41,26 @@ void main() {
     expect(repository, isNot(contains('OPENAI_API_KEY')));
   });
 
-  test('edge function is company scoped read only and keeps secrets server side', () {
-    final edge = source('supabase/functions/ai-assistant/index.ts');
+  test(
+    'edge function is company scoped read only and keeps secrets server side',
+    () {
+      final edge = source('supabase/functions/ai-assistant/index.ts');
 
-    expect(edge, contains('auth.getUser()'));
-    expect(edge, contains('.from("user_profiles")'));
-    expect(edge, contains('.from("company_memberships")'));
-    expect(edge, contains('.eq("company_id", activeCompanyId)'));
-    expect(edge, contains('role === "foreman"'));
-    expect(edge, contains('assignedObjectName'));
-    expect(edge, contains('Deno.env.get("OPENAI_API_KEY")'));
-    expect(edge, contains('Deno.env.get("OPENAI_MODEL")'));
-    expect(edge, contains('store: false'));
-    expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
-    expect(edge, isNot(contains('.insert(')));
-    expect(edge, isNot(contains('.update(')));
-    expect(edge, isNot(contains('.upsert(')));
-    expect(edge, isNot(contains('.delete(')));
-    expect(edge, isNot(contains('sk-')));
-  });
+      expect(edge, contains('auth.getUser()'));
+      expect(edge, contains('.from("user_profiles")'));
+      expect(edge, contains('.from("company_memberships")'));
+      expect(edge, contains('.eq("company_id", activeCompanyId)'));
+      expect(edge, contains('role === "foreman"'));
+      expect(edge, contains('assignedObjectName'));
+      expect(edge, contains('Deno.env.get("OPENAI_API_KEY")'));
+      expect(edge, contains('Deno.env.get("OPENAI_MODEL")'));
+      expect(edge, contains('store: false'));
+      expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
+      expect(edge, isNot(contains('.insert(')));
+      expect(edge, isNot(contains('.update(')));
+      expect(edge, isNot(contains('.upsert(')));
+      expect(edge, isNot(contains('.delete(')));
+      expect(edge, isNot(contains('sk-')));
+    },
+  );
 }

@@ -200,53 +200,55 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             return Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: actions.map((action) {
-                return SizedBox(
-                  width: width,
-                  child: PremiumPressable(
-                    onTap: isSending
-                        ? null
-                        : () => runPreset(
-                            mode: action.mode,
-                            label: action.title,
-                            prompt: action.prompt,
+              children: actions
+                  .map((action) {
+                    return SizedBox(
+                      width: width,
+                      child: PremiumPressable(
+                        onTap: isSending
+                            ? null
+                            : () => runPreset(
+                                mode: action.mode,
+                                label: action.title,
+                                prompt: action.prompt,
+                              ),
+                        borderRadius: BorderRadius.circular(24),
+                        child: PremiumWorkCard(
+                          radius: 24,
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                action.icon,
+                                color: AppColors.textPrimary,
+                                size: 28,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                action.title,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                action.subtitle,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                    borderRadius: BorderRadius.circular(24),
-                    child: PremiumWorkCard(
-                      radius: 24,
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            action.icon,
-                            color: AppColors.textPrimary,
-                            size: 28,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            action.title,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            action.subtitle,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(growable: false),
+                    );
+                  })
+                  .toList(growable: false),
             );
           },
         ),
