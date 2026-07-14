@@ -1,0 +1,75 @@
+name: Validate invitation token link
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: validate-invitation-token-link
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.ref == 'fix/invitation-token-link'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/invitation-token-link
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply exact invitation fix
+        shell: bash
+        run: |
+          if [ -f tool/apply_invitation_token_link_fix.py ]; then
+            python3 tool/apply_invitation_token_link_fix.py
+          fi
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            test/invitation_token_link_contract_test.dart
+
+      - name: Validate tests analysis and web build
+        run: |
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit validated feature
+        shell: bash
+        run: |
+          rm -f tool/apply_invitation_token_link_fix.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/auth/data/user_repository.dart \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            supabase/functions/invite-company-member/index.ts \
+            test/invitation_token_link_contract_test.dart \
+            tool/apply_invitation_token_link_fix.py
+          git commit -m "исправлена ссылка приглашения без localhost" || true
+          git push origin HEAD:fix/invitation-token-link
