@@ -52,6 +52,84 @@ jobs:
         with:
           path: skbs_app
 
+      - name: Apply payments scope fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              text = path.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f'Expected fragment not found in {path}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          employees = Path('skbs_app/lib/screens/employees_screen.dart')
+          replace_once(
+              employees,
+              """  void openPayments() {
+            Navigator.push(
+              context,
+              AppPageRoute(builder: (_) => const PaymentsScreen()),
+            );
+          }
+          """,
+              """  void openPayments() {
+            Navigator.push(
+              context,
+              AppPageRoute(
+                builder: (_) => PaymentsScreen(
+                  selectedObjectName: widget.selectedObjectName,
+                ),
+              ),
+            );
+          }
+          """,
+          )
+
+          payments = Path(
+              'skbs_app/lib/features/payments/presentation/screens/payments_screen.dart'
+          )
+          replace_once(
+              payments,
+              """class PaymentsScreen extends StatefulWidget {
+            const PaymentsScreen({super.key});
+          """,
+              """class PaymentsScreen extends StatefulWidget {
+            final String? selectedObjectName;
+
+            const PaymentsScreen({super.key, this.selectedObjectName});
+          """,
+          )
+          replace_once(
+              payments,
+              """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
+                year: targetMonth.year,
+                month: targetMonth.month,
+                forceRefresh: forceRefresh,
+              );
+          """,
+              """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
+                year: targetMonth.year,
+                month: targetMonth.month,
+                objectName: widget.selectedObjectName,
+                includeFired: true,
+                forceRefresh: forceRefresh,
+              );
+          """,
+          )
+
+          repository = Path(
+              'skbs_app/lib/data/attendance_repository.dart'
+          ).read_text(encoding='utf-8')
+          if ".eq('period_year', year)" not in repository:
+              raise SystemExit('Payments query lost year filter')
+          if ".eq('period_month', month)" not in repository:
+              raise SystemExit('Payments query lost month filter')
+          PY
+
       - name: Checkout web repository
         uses: actions/checkout@v4
         with:
