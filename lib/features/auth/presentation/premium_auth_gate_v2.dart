@@ -67,6 +67,7 @@ class _AuthGateState extends State<AuthGate> {
 
     final shouldRefresh =
         state.event == AuthChangeEvent.signedIn ||
+        state.event == AuthChangeEvent.passwordRecovery ||
         state.event == AuthChangeEvent.tokenRefreshed ||
         currentUserId != lastLoadedUserId ||
         profile == null;
@@ -116,6 +117,7 @@ class _AuthGateState extends State<AuthGate> {
     });
 
     try {
+      await UserRepository.applyPendingInvitationCompany();
       final loadedProfile = await UserRepository.fetchCurrentProfile(
         forceRefresh: forceRefresh,
       );
@@ -233,10 +235,7 @@ class _AuthGateState extends State<AuthGate> {
       layoutBuilder: (currentChild, previousChildren) {
         return Stack(
           fit: StackFit.expand,
-          children: <Widget>[
-            ...previousChildren,
-            ?currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         );
       },
       transitionBuilder: (child, animation) {

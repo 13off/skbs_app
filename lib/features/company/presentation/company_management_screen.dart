@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,10 +11,7 @@ import 'company_plans_screen.dart';
 class CompanyManagementScreen extends StatefulWidget {
   final String companyId;
 
-  const CompanyManagementScreen({
-    super.key,
-    required this.companyId,
-  });
+  const CompanyManagementScreen({super.key, required this.companyId});
 
   @override
   State<CompanyManagementScreen> createState() =>
@@ -244,37 +242,40 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
         child: FutureBuilder<CompanyDashboard>(
           future: dashboardFuture,
           builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(
-              child: PremiumDots(color: AppColors.textPrimary),
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded, size: 44),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Не удалось загрузить компанию: ${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
-                  ],
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(
+                child: PremiumDots(color: AppColors.textPrimary),
+              );
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 44),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Не удалось загрузить компанию: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        onPressed: refresh,
+                        child: const Text('Повторить'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          final dashboard = snapshot.data!;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-            children: [
+            final dashboard = snapshot.data!;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              children: [
                 companyCard(dashboard),
                 const SizedBox(height: 20),
                 PremiumActionButton(
@@ -301,8 +302,8 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                 ...dashboard.members.map(
                   (member) => memberTile(dashboard, member),
                 ),
-            ],
-          );
+              ],
+            );
           },
         ),
       ),
@@ -327,8 +328,7 @@ class CompanyMemberEditorScreen extends StatefulWidget {
       _CompanyMemberEditorScreenState();
 }
 
-class _CompanyMemberEditorScreenState
-    extends State<CompanyMemberEditorScreen> {
+class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
   late final TextEditingController fullNameController;
   late final TextEditingController emailController;
   late String role;
@@ -341,7 +341,9 @@ class _CompanyMemberEditorScreenState
   @override
   void initState() {
     super.initState();
-    fullNameController = TextEditingController(text: widget.member?.fullName ?? '');
+    fullNameController = TextEditingController(
+      text: widget.member?.fullName ?? '',
+    );
     emailController = TextEditingController(text: widget.member?.email ?? '');
     role = widget.member?.role == 'admin' ? 'admin' : 'foreman';
     objectId = widget.member?.objectId.isNotEmpty == true
@@ -354,6 +356,75 @@ class _CompanyMemberEditorScreenState
     fullNameController.dispose();
     emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> showInvitationLink(
+    CompanyInviteResult result,
+    String email,
+  ) async {
+    final description = result.requiresPasswordSetup
+        ? 'Пользователь откроет ссылку, войдёт в нужную компанию и задаст пароль.'
+        : 'Пользователь уже зарегистрирован. Ссылка выполнит безопасный вход и откроет нужную компанию.';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Ссылка приглашения готова'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '$description\n\nПолучатель: $email',
+                  style: const TextStyle(height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F2F3),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: SelectableText(
+                    result.inviteUrl,
+                    style: const TextStyle(fontSize: 13, height: 1.35),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Передайте эту ссылку только приглашённому человеку.',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Готово'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: result.inviteUrl));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ссылка скопирована')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Копировать'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> save() async {
@@ -391,11 +462,13 @@ class _CompanyMemberEditorScreenState
           objectId: role == 'foreman' ? objectId : null,
         );
         if (!mounted) return;
+        await showInvitationLink(result, email);
+        if (!mounted) return;
         Navigator.pop(
           context,
           result.existingUser
-              ? 'Доступ добавлен существующему пользователю'
-              : 'Приглашение отправлено на email',
+              ? 'Ссылка входа создана, доступ к компании добавлен'
+              : 'Ссылка приглашения создана',
         );
       }
     } catch (error) {
@@ -413,98 +486,100 @@ class _CompanyMemberEditorScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Права пользователя' : 'Пригласить пользователя'),
+        title: Text(
+          isEditing ? 'Права пользователя' : 'Пригласить пользователя',
+        ),
       ),
       body: PremiumBackdrop(
         child: ListView(
           padding: const EdgeInsets.all(18),
           children: [
-          if (!isEditing) ...[
-            TextField(
-              controller: fullNameController,
-              enabled: !isSaving,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Имя и фамилия',
-                prefixIcon: Icon(Icons.person_outline_rounded),
+            if (!isEditing) ...[
+              TextField(
+                controller: fullNameController,
+                enabled: !isSaving,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Имя и фамилия',
+                  prefixIcon: Icon(Icons.person_outline_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: emailController,
-              enabled: !isSaving,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.alternate_email_rounded),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                enabled: !isSaving,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ] else ...[
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-              title: Text(widget.member!.fullName),
-              subtitle: Text(widget.member!.email),
-            ),
-            const SizedBox(height: 8),
-          ],
-          DropdownButtonFormField<String>(
-            initialValue: role,
-            decoration: const InputDecoration(
-              labelText: 'Роль',
-              prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
-              DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+              const SizedBox(height: 12),
+            ] else ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(widget.member!.fullName),
+                subtitle: Text(widget.member!.email),
+              ),
+              const SizedBox(height: 8),
             ],
-            onChanged: isSaving
-                ? null
-                : (value) => setState(() => role = value ?? 'foreman'),
-          ),
-          if (role == 'foreman') ...[
-            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: widget.objects.any((item) => item.id == objectId)
-                  ? objectId
-                  : null,
+              initialValue: role,
               decoration: const InputDecoration(
-                labelText: 'Объект',
-                prefixIcon: Icon(Icons.location_city_outlined),
+                labelText: 'Роль',
+                prefixIcon: Icon(Icons.admin_panel_settings_outlined),
               ),
-              items: widget.objects
-                  .map(
-                    (object) => DropdownMenuItem(
-                      value: object.id,
-                      child: Text(object.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: isSaving ? null : (value) => setState(() => objectId = value),
+              items: const [
+                DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
+                DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+              ],
+              onChanged: isSaving
+                  ? null
+                  : (value) => setState(() => role = value ?? 'foreman'),
             ),
-          ],
-          if (errorText != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              errorText!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF874540),
-                fontWeight: FontWeight.w700,
+            if (role == 'foreman') ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: widget.objects.any((item) => item.id == objectId)
+                    ? objectId
+                    : null,
+                decoration: const InputDecoration(
+                  labelText: 'Объект',
+                  prefixIcon: Icon(Icons.location_city_outlined),
+                ),
+                items: widget.objects
+                    .map(
+                      (object) => DropdownMenuItem(
+                        value: object.id,
+                        child: Text(object.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: isSaving
+                    ? null
+                    : (value) => setState(() => objectId = value),
               ),
+            ],
+            if (errorText != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                errorText!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF874540),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+            const SizedBox(height: 22),
+            PremiumActionButton(
+              onPressed: isSaving ? null : save,
+              icon: isEditing ? Icons.save_outlined : Icons.link_rounded,
+              label: isEditing ? 'Сохранить права' : 'Создать ссылку',
+              isLoading: isSaving,
             ),
-          ],
-          const SizedBox(height: 22),
-          PremiumActionButton(
-            onPressed: isSaving ? null : save,
-            icon: isEditing ? Icons.save_outlined : Icons.send_outlined,
-            label: isEditing
-                ? 'Сохранить права'
-                : 'Отправить приглашение',
-            isLoading: isSaving,
-          ),
           ],
         ),
       ),
