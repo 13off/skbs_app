@@ -1,4 +1,4 @@
-name: Apply Russian invitation route
+name: Generate Russian web deployment workflow
 
 on:
   push:
@@ -6,72 +6,111 @@ on:
       - fix/russian-invitation-route
     paths:
       - .github/workflows/apply-russian-invitation-route.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - .github/workflows/apply-russian-invitation-route.yml
-      - tool/apply_russian_invitation_route.py
 
 permissions:
   contents: write
 
-concurrency:
-  group: appstroy-russian-invitation-route
-  cancel-in-progress: true
-
 jobs:
-  apply-test-build:
+  generate:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout feature branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: fix/russian-invitation-route
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Apply Russian invitation route
-        run: python3 tool/apply_russian_invitation_route.py
-
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/features/auth/data/user_repository.dart \
-            test/invitation_token_link_contract_test.dart \
-            test/russian_invitation_route_contract_test.dart
-
-      - name: Run regression tests
-        run: flutter test
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Build Russian Flutter Web
-        run: |
-          flutter build web --release \
-            --base-href /app/ \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
-
-      - name: Commit validated non-workflow files
+      - name: Generate validated web workflow
         shell: bash
         run: |
-          git checkout -- \
-            .github/workflows/deploy-web.yml \
-            .github/workflows/deploy-supabase-proxy.yml
-          rm -f tool/apply_russian_invitation_route.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/deploy-web.yml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              '  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/',
+              '  APP_PUBLIC_URL: https://api.appstroy-web.ru/app/',
+              1,
+          )
+          text = text.replace(
+              '            --base-href /appstroy-web/ \\',
+              '            --base-href /app/ \\',
+              1,
+          )
+
+          marker = '      - name: Publish web files with conflict-safe retries\n'
+          if marker not in text:
+              raise SystemExit('Publish marker not found')
+
+          steps = r'''      - name: Publish web app to Russian VPS
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Не найден secret $name"
+              exit 1
+            fi
+          done
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/appstroy_web
+          chmod 600 ~/.ssh/appstroy_web
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          tar -C skbs_app/build/web -czf /tmp/appstroy-web.tar.gz .
+          scp -i ~/.ssh/appstroy_web /tmp/appstroy-web.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/appstroy-web.tar.gz"
+
+          ssh -i ~/.ssh/appstroy_web "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ]; then
+            SUDO="sudo"
+          fi
+          $SUDO mkdir -p /opt/appstroy-proxy/site
+          $SUDO find /opt/appstroy-proxy/site -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          $SUDO tar -xzf /tmp/appstroy-web.tar.gz -C /opt/appstroy-proxy/site
+          $SUDO rm -f /tmp/appstroy-web.tar.gz
+          REMOTE
+
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error \
+              https://api.appstroy-web.ru/app/invite.html \
+              | grep -q 'Приглашение в AppСтрой'; then
+              echo "Russian web app is ready"
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "::error::Русская веб-версия не прошла проверку"
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Prepare GitHub Pages backup
+        shell: bash
+        run: |
+          sed -i 's#<base href="/app/">#<base href="/appstroy-web/">#' \
+            skbs_app/build/web/index.html
+          sed -i 's#<base href="/app/">#<base href="/appstroy-web/">#' \
+            skbs_app/build/web/404.html
+
+'''
+          text = text.replace(marker, steps + marker, 1)
+          Path('tool').mkdir(exist_ok=True)
+          Path('tool/generated-deploy-web.yml').write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit generated workflow
+        shell: bash
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "приглашения переведены на российский VPS"
+          git add tool/generated-deploy-web.yml
+          git commit -m "сформирован российский web workflow"
           git push origin HEAD:fix/russian-invitation-route
