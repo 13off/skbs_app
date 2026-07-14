@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../../../services/push_notification_service.dart';
 import '../models/app_user_profile.dart';
@@ -10,6 +12,12 @@ class UserRepository {
 
   static AppUserProfile? _cachedProfile;
   static String? _cachedProfileUserId;
+  static Future<bool>? _pendingInvitationApplication;
+  static String? _consumedInvitationCompanyId;
+
+  static const String _invitationCompanyParameter = 'companyInvite';
+  static const String _fallbackWebAppUrl =
+      'https://13off.github.io/appstroy-web/';
 
   static User? get currentUser => _client.auth.currentUser;
 
@@ -20,6 +28,72 @@ class UserRepository {
   static bool get mustSetPassword {
     final value = currentUser?.userMetadata?['must_set_password'];
     return value == true || value?.toString().toLowerCase() == 'true';
+  }
+
+  static String buildInvitationRedirectUrl(String companyId) {
+    final cleanCompanyId = companyId.trim();
+    final current = Uri.base;
+    final canUseCurrent = kIsWeb &&
+        (current.scheme == 'https' || current.scheme == 'http') &&
+        current.host.isNotEmpty;
+    final base = canUseCurrent ? current : Uri.parse(_fallbackWebAppUrl);
+
+    return base
+        .replace(
+          queryParameters: <String, String>{
+            _invitationCompanyParameter: cleanCompanyId,
+          },
+          fragment: '',
+        )
+        .toString();
+  }
+
+  static String? get pendingInvitationCompanyId {
+    final companyId = Uri.base.queryParameters[_invitationCompanyParameter]
+        ?.trim();
+    if (companyId == null || companyId.isEmpty) return null;
+    if (companyId == _consumedInvitationCompanyId) return null;
+    return companyId;
+  }
+
+  static Future<bool> applyPendingInvitationCompany() {
+    final running = _pendingInvitationApplication;
+    if (running != null) return running;
+
+    late final Future<bool> future;
+    future = _applyPendingInvitationCompany().whenComplete(() {
+      if (identical(_pendingInvitationApplication, future)) {
+        _pendingInvitationApplication = null;
+      }
+    });
+    _pendingInvitationApplication = future;
+    return future;
+  }
+
+  static Future<bool> _applyPendingInvitationCompany() async {
+    final companyId = pendingInvitationCompanyId;
+    if (companyId == null) return false;
+
+    await setActiveCompany(companyId);
+    await _client.rpc('accept_current_company_invitation');
+
+    _consumedInvitationCompanyId = companyId;
+    _removeInvitationCompanyFromBrowserUrl();
+    return true;
+  }
+
+  static void _removeInvitationCompanyFromBrowserUrl() {
+    if (!kIsWeb) return;
+
+    final current = Uri.base;
+    final parameters = Map<String, String>.from(current.queryParameters)
+      ..remove(_invitationCompanyParameter);
+    final cleaned = current.replace(queryParameters: parameters, fragment: '');
+    html.window.history.replaceState(
+      null,
+      html.document.title,
+      cleaned.toString(),
+    );
   }
 
   static void clearProfileCache() {
@@ -103,6 +177,8 @@ class UserRepository {
       ),
     );
     await _client.rpc('accept_current_company_invitation');
+    clearProfileCache();
+    await _client.auth.refreshSession();
     unawaited(
       PushNotificationService.syncForCurrentSession(requestPermission: true),
     );
@@ -120,6 +196,8 @@ class UserRepository {
 
   static Future<void> signOut() async {
     await PushNotificationService.unregisterCurrentDevice();
+    _consumedInvitationCompanyId = null;
+    _pendingInvitationApplication = null;
     clearProfileCache();
     await _client.auth.signOut();
   }
@@ -140,7 +218,7 @@ class UserRepository {
       return _cachedProfile;
     }
 
-    final row = await _client
+    var row = await _client
         .from('user_profiles')
         .select(
           'id, email, full_name, role, object_name, is_active, active_company_id',
@@ -151,6 +229,39 @@ class UserRepository {
     if (row == null) {
       clearProfileCache();
       return null;
+    }
+
+    final activeCompanyId = row['active_company_id']?.toString().trim() ?? '';
+    if (activeCompanyId.isEmpty) {
+      final membership = await _client
+          .from('company_memberships')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('created_at')
+          .limit(1)
+          .maybeSingle();
+      final fallbackCompanyId =
+          membership?['company_id']?.toString().trim() ?? '';
+
+      if (fallbackCompanyId.isNotEmpty) {
+        await _client.rpc(
+          'set_active_company',
+          params: <String, dynamic>{'p_company_id': fallbackCompanyId},
+        );
+        await _client.auth.refreshSession();
+        row = await _client
+            .from('user_profiles')
+            .select(
+              'id, email, full_name, role, object_name, is_active, active_company_id',
+            )
+            .eq('id', user.id)
+            .maybeSingle();
+        if (row == null) {
+          clearProfileCache();
+          return null;
+        }
+      }
     }
 
     final profile = AppUserProfile.fromMap(row);

@@ -18,6 +18,37 @@ function cleanEmail(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
 
+const defaultWebAppUrl = "https://13off.github.io/appstroy-web/";
+
+function invitationRedirectUrl(value: unknown, companyId: string) {
+  const requested = String(value ?? "").trim() || defaultWebAppUrl;
+  let url: URL;
+
+  try {
+    url = new URL(requested);
+  } catch (_) {
+    url = new URL(defaultWebAppUrl);
+  }
+
+  const allowedHost =
+    url.host === "13off.github.io" ||
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1";
+  const allowedProtocol =
+    url.protocol === "https:" ||
+    ((url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+      url.protocol === "http:");
+
+  if (!allowedHost || !allowedProtocol) {
+    url = new URL(defaultWebAppUrl);
+  }
+
+  url.hash = "";
+  url.search = "";
+  url.searchParams.set("companyInvite", companyId);
+  return url.toString();
+}
+
 async function findUserByEmail(
   adminClient: ReturnType<typeof createClient>,
   email: string,
@@ -76,6 +107,7 @@ Deno.serve(async (request: Request) => {
     const fullName = String(input.full_name ?? "").trim();
     const role = String(input.role ?? "foreman").trim();
     const objectId = String(input.object_id ?? "").trim();
+    const redirectTo = invitationRedirectUrl(input.redirect_to, companyId);
 
     if (!companyId || !email || !email.includes("@")) {
       return json({ error: "Укажите компанию и корректный email" }, 400);
@@ -169,22 +201,45 @@ Deno.serve(async (request: Request) => {
       }
     }
 
+    let actionLink = "";
+    let delivery = "invite_link";
+
     if (!invitedUser) {
-      const { data: inviteData, error: inviteError } =
-        await adminClient.auth.admin.inviteUserByEmail(email, {
-          data: {
-            full_name: fullName,
-            invited_company_id: companyId,
-            invited_company_name: company.name,
-            must_set_password: true,
+      const { data: linkData, error: linkError } =
+        await adminClient.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: {
+            redirectTo,
+            data: {
+              full_name: fullName,
+              invited_company_id: companyId,
+              invited_company_name: company.name,
+              must_set_password: true,
+            },
           },
         });
-      if (inviteError) throw inviteError;
-      invitedUser = inviteData.user;
-    } else if (requiresPasswordSetup) {
-      const { error: recoveryError } =
-        await adminClient.auth.resetPasswordForEmail(email);
-      if (recoveryError) throw recoveryError;
+      if (linkError) throw linkError;
+      invitedUser = linkData.user;
+      actionLink = linkData.properties?.action_link ?? "";
+      delivery = "invite_link";
+    } else {
+      const linkType = requiresPasswordSetup ? "recovery" : "magiclink";
+      const { data: linkData, error: linkError } =
+        await adminClient.auth.admin.generateLink({
+          type: linkType,
+          email,
+          options: { redirectTo },
+        });
+      if (linkError) throw linkError;
+      actionLink = linkData.properties?.action_link ?? "";
+      delivery = requiresPasswordSetup
+        ? "password_setup_link"
+        : "sign_in_link";
+    }
+
+    if (!actionLink) {
+      throw new Error("Supabase не вернул ссылку приглашения");
     }
 
     if (!invitedUser) {
@@ -277,12 +332,8 @@ Deno.serve(async (request: Request) => {
         object_id: role === "foreman" ? objectId : null,
         invited_by: actor.id,
         invited_user_id: invitedUser.id,
-        status: existingUser && !requiresPasswordSetup
-          ? "accepted"
-          : "pending",
-        accepted_at: existingUser && !requiresPasswordSetup
-          ? new Date().toISOString()
-          : null,
+        status: "pending",
+        accepted_at: null,
       });
     if (invitationLogError) throw invitationLogError;
 
@@ -290,11 +341,9 @@ Deno.serve(async (request: Request) => {
       ok: true,
       user_id: invitedUser.id,
       existing_user: existingUser,
-      delivery: !existingUser
-        ? "email_invited"
-        : requiresPasswordSetup
-        ? "password_setup_resent"
-        : "access_granted",
+      delivery,
+      invite_url: actionLink,
+      redirect_to: redirectTo,
     });
   } catch (error) {
     console.error(error);

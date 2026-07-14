@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../auth/data/user_repository.dart';
+
 class CompanySummary {
   final String id;
   final String name;
@@ -93,8 +95,17 @@ class CompanyDashboard {
 
 class CompanyInviteResult {
   final bool existingUser;
+  final String inviteUrl;
+  final String delivery;
 
-  const CompanyInviteResult({required this.existingUser});
+  const CompanyInviteResult({
+    required this.existingUser,
+    required this.inviteUrl,
+    required this.delivery,
+  });
+
+  bool get requiresPasswordSetup =>
+      delivery == 'invite_link' || delivery == 'password_setup_link';
 }
 
 class CompanyBillingPlan {
@@ -385,6 +396,7 @@ class CompanyRepository {
         'email': email.trim(),
         'role': role,
         'object_id': objectId,
+        'redirect_to': UserRepository.buildInvitationRedirectUrl(companyId),
       },
     );
     final data = _map(response.data);
@@ -393,7 +405,16 @@ class CompanyRepository {
       throw Exception(error.isEmpty ? 'Не удалось отправить приглашение' : error);
     }
 
-    return CompanyInviteResult(existingUser: data['existing_user'] == true);
+    final inviteUrl = data['invite_url']?.toString().trim() ?? '';
+    if (inviteUrl.isEmpty) {
+      throw Exception('Сервис не вернул ссылку приглашения');
+    }
+
+    return CompanyInviteResult(
+      existingUser: data['existing_user'] == true,
+      inviteUrl: inviteUrl,
+      delivery: data['delivery']?.toString() ?? 'invite_link',
+    );
   }
 
   static Future<void> updateMemberAccess({

@@ -244,9 +244,11 @@ void main() {
       _containsAll(
         'supabase/functions/invite-company-member/index.ts',
         const [
-          'inviteUserByEmail',
-          'resetPasswordForEmail',
-          '"password_setup_resent"',
+          'generateLink',
+          'type: "invite"',
+          '"recovery"',
+          '"magiclink"',
+          'invite_url: actionLink',
         ],
       );
     });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -356,6 +357,75 @@ class _CompanyMemberEditorScreenState
     super.dispose();
   }
 
+  Future<void> showInvitationLink(
+    CompanyInviteResult result,
+    String email,
+  ) async {
+    final description = result.requiresPasswordSetup
+        ? 'Пользователь откроет ссылку, войдёт в нужную компанию и задаст пароль.'
+        : 'Пользователь уже зарегистрирован. Ссылка выполнит безопасный вход и откроет нужную компанию.';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Ссылка приглашения готова'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '$description\n\nПолучатель: $email',
+                  style: const TextStyle(height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F2F3),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: SelectableText(
+                    result.inviteUrl,
+                    style: const TextStyle(fontSize: 13, height: 1.35),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Передайте эту ссылку только приглашённому человеку.',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Готово'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: result.inviteUrl));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ссылка скопирована')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Копировать'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> save() async {
     if (isSaving) return;
     final fullName = fullNameController.text.trim();
@@ -391,11 +461,13 @@ class _CompanyMemberEditorScreenState
           objectId: role == 'foreman' ? objectId : null,
         );
         if (!mounted) return;
+        await showInvitationLink(result, email);
+        if (!mounted) return;
         Navigator.pop(
           context,
           result.existingUser
-              ? 'Доступ добавлен существующему пользователю'
-              : 'Приглашение отправлено на email',
+              ? 'Ссылка входа создана, доступ к компании добавлен'
+              : 'Ссылка приглашения создана',
         );
       }
     } catch (error) {
@@ -499,10 +571,8 @@ class _CompanyMemberEditorScreenState
           const SizedBox(height: 22),
           PremiumActionButton(
             onPressed: isSaving ? null : save,
-            icon: isEditing ? Icons.save_outlined : Icons.send_outlined,
-            label: isEditing
-                ? 'Сохранить права'
-                : 'Отправить приглашение',
+            icon: isEditing ? Icons.save_outlined : Icons.link_rounded,
+            label: isEditing ? 'Сохранить права' : 'Создать ссылку',
             isLoading: isSaving,
           ),
           ],
