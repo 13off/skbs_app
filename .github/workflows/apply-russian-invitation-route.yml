@@ -1,0 +1,69 @@
+name: Apply Russian invitation route
+
+on:
+  push:
+    branches:
+      - fix/russian-invitation-route
+    paths:
+      - .github/workflows/apply-russian-invitation-route.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-russian-invitation-route
+  cancel-in-progress: true
+
+jobs:
+  apply-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/russian-invitation-route
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply Russian invitation route
+        run: python3 tool/apply_russian_invitation_route.py
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/auth/data/user_repository.dart \
+            test/invitation_token_link_contract_test.dart \
+            test/russian_invitation_route_contract_test.dart
+
+      - name: Run regression tests
+        run: flutter test
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build Russian Flutter Web
+        run: |
+          flutter build web --release \
+            --base-href /app/ \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru
+
+      - name: Commit validated implementation
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-russian-invitation-route.yml
+          rm -f tool/apply_russian_invitation_route.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "приглашения переведены на российский VPS"
+          git push origin HEAD:fix/russian-invitation-route
