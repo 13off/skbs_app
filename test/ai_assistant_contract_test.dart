@@ -5,19 +5,39 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('home opens a built-in AI assistant without adding a crowded tab', () {
+  test('home opens AI chat from a fixed bottom-right button', () {
     final home = source('lib/screens/home_screen.dart');
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
 
     expect(home, contains('AiAssistantScreen('));
-    expect(home, contains("'ИИ-помощник'"));
-    expect(home, contains('AppPageRoute<void>('));
+    expect(home, contains('FloatingActionButton('));
+    expect(home, contains("heroTag: 'home-ai-assistant'"));
+    expect(home, contains('Positioned('));
+    expect(home, contains('right: 18'));
+    expect(home, contains('bottom: 18'));
+    expect(home, isNot(contains('buildAiAssistantCard')));
     expect(shell, isNot(contains("label: 'ИИ'")));
   });
 
-  test('assistant follows preview review execution safety flow', () {
+  test('assistant screen contains only chat without quick requests', () {
+    final screen = source(
+      'lib/features/ai/presentation/ai_assistant_screen.dart',
+    );
+
+    expect(screen, contains("'Чем помочь?'"));
+    expect(screen, contains('TextField('));
+    expect(screen, contains('Expanded('));
+    expect(screen, contains("mode: 'chat'"));
+    expect(screen, isNot(contains("'Быстрые действия'")));
+    expect(screen, isNot(contains("'Проверить табель'")));
+    expect(screen, isNot(contains("'Сводка по объекту'")));
+    expect(screen, isNot(contains("'Подготовить документ'")));
+    expect(screen, isNot(contains('class _AiQuickAction')));
+  });
+
+  test('assistant keeps preliminary result and human review', () {
     final screen = source(
       'lib/features/ai/presentation/ai_assistant_screen.dart',
     );
@@ -25,9 +45,6 @@ void main() {
     expect(screen, contains("'Предварительный результат'"));
     expect(screen, contains("'Отметить как проверенное'"));
     expect(screen, contains("'Проверено человеком'"));
-    expect(screen, contains("'Проверить табель'"));
-    expect(screen, contains("'Сводка по объекту'"));
-    expect(screen, contains("'Подготовить документ'"));
   });
 
   test('client calls only the authenticated server function', () {
@@ -35,7 +52,8 @@ void main() {
       'lib/features/ai/data/ai_assistant_repository.dart',
     );
 
-    expect(repository, contains("functions.invoke(\n      'ai-assistant'"));
+    expect(repository, contains('functions.invoke('));
+    expect(repository, contains("'ai-assistant'"));
     expect(repository, contains("'company_id'"));
     expect(repository, contains("'object_name'"));
     expect(repository, isNot(contains('OPENAI_API_KEY')));
@@ -50,9 +68,6 @@ void main() {
     expect(edge, contains('.eq("company_id", activeCompanyId)'));
     expect(edge, contains('role === "foreman"'));
     expect(edge, contains('assignedObjectName'));
-    expect(edge, contains('buildTimesheetResult'));
-    expect(edge, contains('buildSiteSummaryResult'));
-    expect(edge, contains('buildDocumentDraft'));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('OPENAI_API_KEY')));
     expect(edge, isNot(contains('api.openai.com')));
