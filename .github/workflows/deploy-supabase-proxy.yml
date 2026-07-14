@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - infra/supabase-proxy/deploy.trigger
+      - infra/supabase-proxy/**
+      - .github/workflows/deploy-supabase-proxy.yml
 
 permissions:
   contents: read
