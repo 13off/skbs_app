@@ -3,7 +3,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -40,6 +41,70 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeSearch(value: unknown) {
+  return cleanText(value, 4000)
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^а-яa-z0-9-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function searchTokens(value: unknown) {
+  return normalizeSearch(value)
+    .split(" ")
+    .filter((token) => token.length >= 4);
+}
+
+function formatDateRu(value: unknown) {
+  const date = cleanText(value, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}
+
+function employeeMatchScore(promptTokens: string[], employee: any) {
+  const nameTokens = searchTokens(employee?.fio);
+  let score = 0;
+
+  for (let nameIndex = 0; nameIndex < nameTokens.length; nameIndex += 1) {
+    const nameToken = nameTokens[nameIndex];
+    for (const promptToken of promptTokens) {
+      if (promptToken === nameToken) {
+        score += nameIndex === 0 ? 8 : 5;
+        continue;
+      }
+
+      const comparableLength = Math.min(promptToken.length, nameToken.length);
+      if (
+        comparableLength >= 5 &&
+        (promptToken.startsWith(nameToken) || nameToken.startsWith(promptToken))
+      ) {
+        score += nameIndex === 0 ? 6 : 3;
+      }
+    }
+  }
+
+  return score;
+}
+
+function findEmployeesInPrompt(prompt: string, employees: any[]) {
+  const promptTokens = searchTokens(prompt);
+  const scored = employees
+    .map((employee) => ({
+      employee,
+      score: employeeMatchScore(promptTokens, employee),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((first, second) => second.score - first.score);
+
+  if (scored.length === 0) return [];
+  const bestScore = scored[0].score;
+  return scored
+    .filter((item) => item.score === bestScore)
+    .map((item) => item.employee);
+}
+
 function shortNames(rows: any[], employeeById?: Map<string, any>) {
   return rows
     .slice(0, 10)
@@ -50,6 +115,90 @@ function shortNames(rows: any[], employeeById?: Map<string, any>) {
       return cleanText(employee?.fio, 160) || "Сотрудник";
     })
     .join(", ");
+}
+
+function buildEmployeeTimesheetResult({
+  employee,
+  rows,
+  scope,
+  todayOnly,
+}: {
+  employee: any;
+  rows: any[];
+  scope: Record<string, string>;
+  todayOnly: boolean;
+}) {
+  const fullName = cleanText(employee?.fio, 180) || "Сотрудник";
+  const totalShifts = rows.reduce(
+    (sum, row) => sum + numberValue(row.shifts),
+    0,
+  );
+  const totalHours = rows.reduce(
+    (sum, row) => sum + numberValue(row.hours),
+    0,
+  );
+  const workedRows = rows.filter((row) => numberValue(row.shifts) > 0);
+  const firstDate = rows.length > 0 ? cleanText(rows[0].work_date, 10) : "";
+  const lastDate = rows.length > 0
+    ? cleanText(rows[rows.length - 1].work_date, 10)
+    : "";
+  const periodText = todayOnly
+    ? formatDateRu(scope.date)
+    : firstDate && lastDate
+    ? `${formatDateRu(firstDate)} — ${formatDateRu(lastDate)}`
+    : "весь доступный период";
+
+  const lines = rows.map((row) => {
+    const parts = [`${formatDateRu(row.work_date)} — ${numberValue(row.shifts).toFixed(1)} смен`];
+    const hours = numberValue(row.hours);
+    const status = cleanText(row.status, 100);
+    const objectName = cleanText(row.object_name, 180);
+    const comment = cleanText(row.comment, 240);
+
+    if (hours > 0) parts.push(`${hours.toFixed(1)} ч`);
+    if (status) parts.push(status);
+    if (!scope.object_name && objectName) parts.push(objectName);
+    if (comment) parts.push(comment);
+    return parts.join(" • ");
+  });
+
+  const summary = rows.length === 0
+    ? `По сотруднику ${fullName} строк табеля за выбранный период не найдено.`
+    : [
+        `${fullName}`,
+        `Период: ${periodText}`,
+        "",
+        ...lines,
+      ].join("\n");
+
+  return {
+    ok: true,
+    mode: "employee_timesheet",
+    title: `Табель: ${fullName}`,
+    summary,
+    highlights: [
+      `Строк табеля: ${rows.length}`,
+      `Дней с выходом: ${workedRows.length}`,
+      `Сумма смен: ${totalShifts.toFixed(1)}`,
+      ifValue(totalHours > 0, `Сумма часов: ${totalHours.toFixed(1)}`),
+    ].filter(Boolean),
+    warnings: rows.length === 0
+      ? ["Проверь написание фамилии, объект и выбранный период."]
+      : [],
+    next_steps: [
+      "Сверь итог с разделом «Табель» перед расчётом выплат.",
+    ],
+    scope: {
+      ...scope,
+      date: periodText,
+    },
+    preliminary: true,
+    ai_used: false,
+  };
+}
+
+function ifValue(condition: boolean, value: string) {
+  return condition ? value : "";
 }
 
 function buildTimesheetResult({
@@ -94,7 +243,7 @@ function buildTimesheetResult({
     mode: "timesheet_check",
     title: "Проверка табеля завершена",
     summary:
-      `За ${workDate} найдено ${employees.length} активных сотрудников. ` +
+      `За ${formatDateRu(workDate)} найдено ${employees.length} активных сотрудников. ` +
       `Отмечено ${workedRows.length}, всего ${totalShifts.toFixed(1)} смен.`,
     highlights: [
       `Активных сотрудников: ${employees.length}`,
@@ -145,8 +294,10 @@ function buildSiteSummaryResult({
     mode: "site_summary",
     title: "Рабочая сводка за сегодня",
     summary:
-      `Область: ${scope.object_name}. На ${workDate} в работе ${employees.length} сотрудников, ` +
-      `${workedRows.length} отмечены в табеле. Выполнено ${doneTasks.length} из ${tasks.length} задач.`,
+      `Область: ${scope.object_name || "Все доступные объекты"}. ` +
+      `На ${formatDateRu(workDate)} в работе ${employees.length} сотрудников, ` +
+      `${workedRows.length} отмечены в табеле. ` +
+      `Выполнено ${doneTasks.length} из ${tasks.length} задач.`,
     highlights: [
       `Активных сотрудников: ${employees.length}`,
       `Отработали по табелю: ${workedRows.length}`,
@@ -169,8 +320,8 @@ function buildDocumentDraft(prompt: string, scope: any, workDate: string) {
   const draft = [
     "ЧЕРНОВИК — ТРЕБУЕТ ПРОВЕРКИ",
     "",
-    `Дата: ${workDate}`,
-    `Объект: ${scope.object_name}`,
+    `Дата: ${formatDateRu(workDate)}`,
+    `Объект: ${scope.object_name || "Все доступные объекты"}`,
     `Тема: ${subject}`,
     "",
     "Фактическая часть:",
@@ -301,13 +452,116 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    let employeesQuery: any = userClient
+    let allEmployeesQuery: any = userClient
       .from("employees")
-      .select("id, fio, position, object_name")
+      .select("id, fio, position, object_name, is_active, archived_at")
       .eq("company_id", activeCompanyId)
-      .eq("is_active", true)
-      .is("archived_at", null)
       .order("fio", { ascending: true });
+
+    if (effectiveObjectName) {
+      allEmployeesQuery = allEmployeesQuery.eq(
+        "object_name",
+        effectiveObjectName,
+      );
+    }
+
+    const { data: allEmployeesData, error: allEmployeesError } =
+      await allEmployeesQuery;
+    if (allEmployeesError) throw allEmployeesError;
+
+    const allEmployees = allEmployeesData ?? [];
+    const normalizedPrompt = normalizeSearch(prompt);
+    const asksTimesheet = /табел|смен|выход/.test(normalizedPrompt);
+    const asksToday = /сегодня|сегодняшн|за день/.test(normalizedPrompt);
+    const matchedEmployees = asksTimesheet
+      ? findEmployeesInPrompt(prompt, allEmployees)
+      : [];
+    const looksNamed = /(?:^|\s)(?:у|по|для)\s+[а-яa-z-]{4,}/.test(
+      normalizedPrompt,
+    );
+
+    if (asksTimesheet && matchedEmployees.length > 1) {
+      return json({
+        ok: true,
+        mode: "employee_timesheet",
+        title: "Уточни сотрудника",
+        summary: "По запросу найдено несколько сотрудников.",
+        highlights: matchedEmployees
+          .slice(0, 10)
+          .map((employee) => cleanText(employee.fio, 180)),
+        warnings: ["Напиши фамилию, имя или полное ФИО точнее."],
+        next_steps: [],
+        scope: {
+          object_name: effectiveObjectName || "Все доступные объекты",
+          date: asksToday ? formatDateRu(workDate) : "весь период",
+        },
+        preliminary: true,
+        ai_used: false,
+      });
+    }
+
+    if (asksTimesheet && matchedEmployees.length === 1) {
+      const employee = matchedEmployees[0];
+      let historyQuery: any = userClient
+        .from("attendance")
+        .select(
+          "work_date, shifts, hours, status, object_name, comment",
+        )
+        .eq("company_id", activeCompanyId)
+        .eq("employee_id", employee.id)
+        .order("work_date", { ascending: true });
+
+      if (effectiveObjectName) {
+        historyQuery = historyQuery.eq("object_name", effectiveObjectName);
+      }
+      if (asksToday) {
+        historyQuery = historyQuery.eq("work_date", workDate);
+      }
+
+      const { data: historyRows, error: historyError } = await historyQuery;
+      if (historyError) throw historyError;
+
+      return json(
+        buildEmployeeTimesheetResult({
+          employee,
+          rows: historyRows ?? [],
+          scope: {
+            object_name: effectiveObjectName || "",
+            date: workDate,
+          },
+          todayOnly: asksToday,
+        }),
+      );
+    }
+
+    if (asksTimesheet && looksNamed && matchedEmployees.length === 0) {
+      return json({
+        ok: true,
+        mode: "employee_timesheet",
+        title: "Сотрудник не найден",
+        summary:
+          "Не удалось сопоставить имя из запроса с сотрудником в доступной компании и выбранном объекте.",
+        highlights: [],
+        warnings: [
+          "Проверь написание фамилии или выбери другой объект на Главной.",
+        ],
+        next_steps: [
+          "Например: «Покажи табель за весь период у Филимонова».",
+        ],
+        scope: {
+          object_name: effectiveObjectName || "Все доступные объекты",
+          date: "весь период",
+        },
+        preliminary: true,
+        ai_used: false,
+      });
+    }
+
+    const employees = allEmployees.filter(
+      (employee: any) =>
+        employee.is_active === true && !employee.archived_at,
+    );
+
     let attendanceQuery: any = userClient
       .from("attendance")
       .select("employee_id, shifts, status, object_name")
@@ -321,22 +575,21 @@ Deno.serve(async (request: Request) => {
       .order("created_at", { ascending: true });
 
     if (effectiveObjectName) {
-      employeesQuery = employeesQuery.eq("object_name", effectiveObjectName);
-      attendanceQuery = attendanceQuery.eq("object_name", effectiveObjectName);
+      attendanceQuery = attendanceQuery.eq(
+        "object_name",
+        effectiveObjectName,
+      );
       tasksQuery = tasksQuery.eq("object_name", effectiveObjectName);
     }
 
-    const [employeesResult, attendanceResult, tasksResult] = await Promise.all([
-      employeesQuery,
+    const [attendanceResult, tasksResult] = await Promise.all([
       attendanceQuery,
       tasksQuery,
     ]);
 
-    if (employeesResult.error) throw employeesResult.error;
     if (attendanceResult.error) throw attendanceResult.error;
     if (tasksResult.error) throw tasksResult.error;
 
-    const employees = employeesResult.data ?? [];
     const attendance = attendanceResult.data ?? [];
     const tasks = tasksResult.data ?? [];
     const employeeById = new Map(
@@ -359,7 +612,9 @@ Deno.serve(async (request: Request) => {
       0,
     );
     const doneTasks = tasks.filter((task: any) => task.status === "Выполнено");
-    const pendingTasks = tasks.filter((task: any) => task.status !== "Выполнено");
+    const pendingTasks = tasks.filter(
+      (task: any) => task.status !== "Выполнено",
+    );
     const blockedTasks = tasks.filter(
       (task: any) => cleanText(task.not_done_comment, 500).length > 0,
     );
@@ -384,12 +639,11 @@ Deno.serve(async (request: Request) => {
     };
 
     if (mode === "chat") {
-      const normalized = prompt.toLowerCase();
-      if (/табел|смен|выход/.test(normalized)) {
+      if (asksTimesheet) {
         mode = "timesheet_check";
-      } else if (/свод|объект|задач|сотрудник|люд/.test(normalized)) {
+      } else if (/свод|объект|задач|сотрудник|люд/.test(normalizedPrompt)) {
         mode = "site_summary";
-      } else if (/документ|акт|записк|письм|отч[её]т/.test(normalized)) {
+      } else if (/документ|акт|записк|письм|отч[её]т/.test(normalizedPrompt)) {
         mode = "document_draft";
       }
     }
@@ -407,20 +661,17 @@ Deno.serve(async (request: Request) => {
     return json({
       ok: true,
       mode: "chat",
-      title: "Что умеет помощник сейчас",
+      title: "Уточни рабочий запрос",
       summary:
-        "Напиши запрос про табель, рабочую сводку, сотрудников, задачи или черновик документа. Помощник определит нужный сценарий и покажет предварительный результат.",
+        "Напиши, какие данные нужно показать: сотрудника, период, табель, задачи или документ.",
       highlights: [
-        "Проверка пропусков и повышенных значений в табеле.",
-        "Сводка по людям, сменам и задачам текущего объекта.",
-        "Безопасный черновик документа без выдуманных фактов.",
+        "Например: «Покажи табель за весь период у Филимонова».",
+        "Например: «Собери сводку по объекту за сегодня».",
       ],
       warnings: [
         "Помощник работает только на чтение и не изменяет данные приложения.",
       ],
-      next_steps: [
-        "Сформулируй запрос конкретнее или выбери быстрое действие сверху.",
-      ],
+      next_steps: [],
       scope,
       preliminary: true,
       ai_used: false,
