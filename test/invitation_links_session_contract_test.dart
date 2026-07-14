@@ -20,14 +20,19 @@ void main() {
     expect(repository, contains("data['invite_url']"));
   });
 
-  test('edge function creates invite recovery and magic action links', () {
+  test('edge adapter preserves invitation core and rewrites only the route', () {
     final edge = source('supabase/functions/invite-company-member/index.ts');
+    final core = source(
+      'supabase/functions/invite-company-member-core/index.ts',
+    );
 
-    expect(edge, contains('auth.admin.generateLink'));
-    expect(edge, contains('type: "invite"'));
-    expect(edge, contains('? "recovery" : "magiclink"'));
-    expect(edge, contains('invite_url: actionLink'));
+    expect(edge, contains('invite-company-member-core'));
+    expect(edge, contains('/functions/v1/invite-landing'));
     expect(edge, contains('companyInvite'));
+    expect(edge, contains('inviteTokenHash'));
+    expect(edge, contains('inviteType'));
+    expect(edge, contains('...data'));
+    expect(core, contains('raw.githubusercontent.com/13off/skbs_app/'));
     expect(edge, isNot(contains('inviteUserByEmail')));
     expect(edge, isNot(contains('resetPasswordForEmail')));
   });
@@ -47,8 +52,8 @@ void main() {
     expect(gate, contains('AuthChangeEvent.passwordRecovery'));
 
     expect(repository, contains("_invitationCompanyParameter = 'companyInvite'"));
-    expect(repository, contains("await setActiveCompany(companyId)"));
-    expect(repository, contains("accept_current_company_invitation"));
+    expect(repository, contains('await setActiveCompany(companyId)'));
+    expect(repository, contains('accept_current_company_invitation'));
     expect(repository, contains('history.replaceState'));
   });
 
