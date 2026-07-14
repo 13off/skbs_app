@@ -1,17 +1,20 @@
-name: Deploy Supabase proxy
+name: Deploy Supabase proxy and Russian web
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
   push:
     paths:
-      - infra/supabase-proxy/deploy.trigger
+      - infra/supabase-proxy/**
+      - .github/workflows/deploy-supabase-proxy.yml
 
 permissions:
   contents: read
 
 concurrency:
   group: appstroy-supabase-proxy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -33,8 +36,16 @@ jobs:
             fi
           done
 
-      - name: Checkout source
+      - name: Checkout proxy source
         uses: actions/checkout@v4
+        with:
+          path: skbs_app
+
+      - name: Checkout latest web build
+        uses: actions/checkout@v4
+        with:
+          repository: 13off/appstroy-web
+          path: web-build
 
       - name: Prepare SSH
         shell: bash
@@ -47,16 +58,23 @@ jobs:
           chmod 600 ~/.ssh/appstroy_proxy
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
-      - name: Upload proxy configuration
+      - name: Upload proxy and web files
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
-          tar -C infra/supabase-proxy -czf /tmp/appstroy-proxy.tar.gz .
-          scp -i ~/.ssh/appstroy_proxy /tmp/appstroy-proxy.tar.gz "$VPS_USER@$VPS_HOST:/tmp/appstroy-proxy.tar.gz"
+          tar -C skbs_app/infra/supabase-proxy -czf /tmp/appstroy-proxy.tar.gz .
+          tar -C web-build \
+            --exclude=.git \
+            --exclude=downloads \
+            -czf /tmp/appstroy-web.tar.gz .
+          scp -i ~/.ssh/appstroy_proxy \
+            /tmp/appstroy-proxy.tar.gz \
+            /tmp/appstroy-web.tar.gz \
+            "$VPS_USER@$VPS_HOST:/tmp/"
 
-      - name: Install and start proxy
+      - name: Install proxy and Russian web
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -78,9 +96,18 @@ jobs:
             $SUDO systemctl enable --now docker
           fi
 
-          $SUDO mkdir -p /opt/appstroy-proxy
+          $SUDO mkdir -p /opt/appstroy-proxy/site
           $SUDO tar -xzf /tmp/appstroy-proxy.tar.gz -C /opt/appstroy-proxy
-          $SUDO rm -f /tmp/appstroy-proxy.tar.gz
+          $SUDO find /opt/appstroy-proxy/site -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          $SUDO tar -xzf /tmp/appstroy-web.tar.gz -C /opt/appstroy-proxy/site
+          $SUDO rm -f /tmp/appstroy-proxy.tar.gz /tmp/appstroy-web.tar.gz
+
+          $SUDO sed -i 's#<base href="/appstroy-web/">#<base href="/app/">#' \
+            /opt/appstroy-proxy/site/index.html
+          if [ -f /opt/appstroy-proxy/site/404.html ]; then
+            $SUDO sed -i 's#<base href="/appstroy-web/">#<base href="/app/">#' \
+              /opt/appstroy-proxy/site/404.html
+          fi
 
           printf 'PROXY_DOMAIN=%s\nSUPABASE_UPSTREAM=dxbrhsefgxcaxzmrbfrb.supabase.co\n' \
             "$PROXY_DOMAIN" | $SUDO tee /opt/appstroy-proxy/.env >/dev/null
@@ -90,18 +117,20 @@ jobs:
           $SUDO docker compose up -d --remove-orphans
           REMOTE
 
-      - name: Verify proxy
+      - name: Verify Russian route
         shell: bash
         env:
           PROXY_DOMAIN: ${{ secrets.SUPABASE_PROXY_DOMAIN }}
         run: |
           for attempt in $(seq 1 24); do
-            if curl --fail --silent --show-error "https://$PROXY_DOMAIN/proxy-health" | grep -qx 'ok'; then
-              echo "Proxy is ready: https://$PROXY_DOMAIN"
+            HEALTH="$(curl --fail --silent --show-error "https://$PROXY_DOMAIN/proxy-health" || true)"
+            INVITE="$(curl --fail --silent --show-error "https://$PROXY_DOMAIN/app/invite.html" || true)"
+            if [ "$HEALTH" = "ok" ] && printf '%s' "$INVITE" | grep -q 'Приглашение в AppСтрой'; then
+              echo "Russian proxy and web are ready: https://$PROXY_DOMAIN/app/"
               exit 0
             fi
             sleep 5
           done
 
-          echo "::error::Прокси не прошел проверку HTTPS"
+          echo "::error::Российский маршрут не прошел проверку HTTPS"
           exit 1
