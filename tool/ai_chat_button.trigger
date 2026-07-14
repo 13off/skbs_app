@@ -1,1 +1,1 @@
-validate-ai-chat-button
+validate-ai-chat-button-v2
