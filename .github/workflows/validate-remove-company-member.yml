@@ -1,0 +1,69 @@
+name: Validate remove company member
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - reopened
+
+permissions:
+  contents: write
+
+concurrency:
+  group: validate-remove-company-member
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/remove-company-member
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply feature changes
+        run: python3 tool/apply_remove_company_member.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed Dart files
+        run: dart format lib/features/company/data/company_repository.dart lib/features/company/presentation/company_management_screen.dart test/remove_company_member_contract_test.dart
+
+      - name: Commit feature changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/company/data/company_repository.dart lib/features/company/presentation/company_management_screen.dart test/remove_company_member_contract_test.dart
+          git commit -m "добавлено удаление пользователя из компании" || true
+          git push origin HEAD:feature/remove-company-member
+
+      - name: Validate tests analysis and web build
+        run: |
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Clean feature branch helpers
+        if: always()
+        shell: bash
+        run: |
+          rm -f tool/apply_remove_company_member.py
+          rm -f .github/workflows/apply-remove-company-member.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "завершена проверка удаления участника компании" || true
+          git push origin HEAD:feature/remove-company-member
