@@ -31,7 +31,7 @@ function invitationActionUrl(
   tokenHash: string,
   verificationType: string,
 ) {
-  const url = new URL(defaultWebAppUrl);
+  const url = new URL("invite.html", defaultWebAppUrl);
   url.searchParams.set("companyInvite", companyId);
   url.searchParams.set("inviteTokenHash", tokenHash);
   url.searchParams.set("inviteType", verificationType);
