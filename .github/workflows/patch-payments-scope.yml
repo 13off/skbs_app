@@ -1,0 +1,129 @@
+name: Patch payments scope
+
+on:
+  push:
+    paths:
+      - .github/workflows/patch-payments-scope.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch payments screen
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          employees_path = Path('lib/screens/employees_screen.dart')
+          employees = employees_path.read_text(encoding='utf-8')
+          old_open = """  void openPayments() {
+    Navigator.push(
+      context,
+      AppPageRoute(builder: (_) => const PaymentsScreen()),
+    );
+  }
+"""
+          new_open = """  void openPayments() {
+    Navigator.push(
+      context,
+      AppPageRoute(
+        builder: (_) => PaymentsScreen(
+          selectedObjectName: widget.selectedObjectName,
+        ),
+      ),
+    );
+  }
+"""
+          if old_open not in employees:
+              raise SystemExit('openPayments snippet not found')
+          employees_path.write_text(employees.replace(old_open, new_open, 1), encoding='utf-8')
+
+          payments_path = Path('lib/features/payments/presentation/screens/payments_screen.dart')
+          payments = payments_path.read_text(encoding='utf-8')
+
+          old_ctor = """class PaymentsScreen extends StatefulWidget {
+  const PaymentsScreen({super.key});
+"""
+          new_ctor = """class PaymentsScreen extends StatefulWidget {
+  final String? selectedObjectName;
+
+  const PaymentsScreen({super.key, this.selectedObjectName});
+"""
+          if old_ctor not in payments:
+              raise SystemExit('PaymentsScreen constructor snippet not found')
+          payments = payments.replace(old_ctor, new_ctor, 1)
+
+          old_fetch = """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
+        year: targetMonth.year,
+        month: targetMonth.month,
+        forceRefresh: forceRefresh,
+      );
+"""
+          new_fetch = """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
+        year: targetMonth.year,
+        month: targetMonth.month,
+        objectName: widget.selectedObjectName,
+        includeFired: true,
+        forceRefresh: forceRefresh,
+      );
+"""
+          if old_fetch not in payments:
+              raise SystemExit('monthly payments fetch snippet not found')
+          payments_path.write_text(payments.replace(old_fetch, new_fetch, 1), encoding='utf-8')
+
+          test_path = Path('test/payments_scope_contract_test.dart')
+          test_path.write_text("""import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+String source(String path) => File(path).readAsStringSync();
+
+void main() {
+  test('payments keep the selected object and include fired employees', () {
+    final employees = source('lib/screens/employees_screen.dart');
+    final payments = source(
+      'lib/features/payments/presentation/screens/payments_screen.dart',
+    );
+
+    expect(
+      employees,
+      contains('selectedObjectName: widget.selectedObjectName'),
+    );
+    expect(payments, contains('final String? selectedObjectName;'));
+    expect(payments, contains('objectName: widget.selectedObjectName'));
+    expect(payments, contains('includeFired: true'));
+  });
+
+  test('payments remain restricted to the selected month', () {
+    final repository = source('lib/data/attendance_repository.dart');
+
+    expect(repository, contains(".eq('period_year', year)"));
+    expect(repository, contains(".eq('period_month', month)"));
+  });
+}
+""", encoding='utf-8')
+          PY
+
+      - name: Remove one-time workflow
+        run: rm -f .github/workflows/patch-payments-scope.yml
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/employees_screen.dart \
+                  lib/features/payments/presentation/screens/payments_screen.dart \
+                  test/payments_scope_contract_test.dart \
+                  .github/workflows/patch-payments-scope.yml
+          git commit -m "Исправить выплаты по объекту и месяцу"
+          git push origin HEAD:main
