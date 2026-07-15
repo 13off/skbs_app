@@ -18,8 +18,9 @@ class AppUserProfile {
   });
 
   bool get isAdmin => role == 'admin';
-
   bool get isForeman => role == 'foreman';
+  bool get isLawyer => role == 'lawyer';
+  bool get isAccountant => role == 'accountant';
 
   String get roleTitle {
     switch (role) {
@@ -27,6 +28,10 @@ class AppUserProfile {
         return 'Администратор';
       case 'foreman':
         return 'Прораб';
+      case 'lawyer':
+        return 'Юрист';
+      case 'accountant':
+        return 'Бухгалтер';
       default:
         return role;
     }
