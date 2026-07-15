@@ -49,68 +49,54 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          def replace_once(path, old, new):
-              text = path.read_text(encoding='utf-8')
-              if new in text:
-                  return
-              if old not in text:
-                  raise SystemExit(f'Expected fragment not found in {path}')
-              path.write_text(text.replace(old, new, 1), encoding='utf-8')
-
           employees = Path('skbs_app/lib/screens/employees_screen.dart')
-          replace_once(
-              employees,
-              """  void openPayments() {
-            Navigator.push(
-              context,
-              AppPageRoute(builder: (_) => const PaymentsScreen()),
-            );
-          }
-          """,
-              """  void openPayments() {
-            Navigator.push(
-              context,
-              AppPageRoute(
+          employee_text = employees.read_text(encoding='utf-8')
+          if 'selectedObjectName: widget.selectedObjectName' not in employee_text:
+              old = 'AppPageRoute(builder: (_) => const PaymentsScreen()),'
+              new = '''AppPageRoute(
                 builder: (_) => PaymentsScreen(
                   selectedObjectName: widget.selectedObjectName,
                 ),
-              ),
-            );
-          }
-          """,
-          )
+              ),'''
+              if old not in employee_text:
+                  raise SystemExit('Payments route fragment was not found')
+              employee_text = employee_text.replace(old, new, 1)
+              employees.write_text(employee_text, encoding='utf-8')
 
           payments = Path(
               'skbs_app/lib/features/payments/presentation/screens/payments_screen.dart'
           )
-          replace_once(
-              payments,
-              """class PaymentsScreen extends StatefulWidget {
-            const PaymentsScreen({super.key});
-          """,
-              """class PaymentsScreen extends StatefulWidget {
+          payment_text = payments.read_text(encoding='utf-8')
+          if 'final String? selectedObjectName;' not in payment_text:
+              old = '''class PaymentsScreen extends StatefulWidget {
+            const PaymentsScreen({super.key});'''
+              new = '''class PaymentsScreen extends StatefulWidget {
             final String? selectedObjectName;
 
-            const PaymentsScreen({super.key, this.selectedObjectName});
-          """,
-          )
-          replace_once(
-              payments,
-              """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
-                year: targetMonth.year,
-                month: targetMonth.month,
-                forceRefresh: forceRefresh,
-              );
-          """,
-              """      final result = await AttendanceRepository.fetchMonthlyTimesheet(
-                year: targetMonth.year,
-                month: targetMonth.month,
+            const PaymentsScreen({super.key, this.selectedObjectName});'''
+              if old not in payment_text:
+                  raise SystemExit('PaymentsScreen constructor fragment was not found')
+              payment_text = payment_text.replace(old, new, 1)
+
+          if 'objectName: widget.selectedObjectName' not in payment_text:
+              old = '''        month: targetMonth.month,
+                forceRefresh: forceRefresh,'''
+              new = '''        month: targetMonth.month,
                 objectName: widget.selectedObjectName,
                 includeFired: true,
-                forceRefresh: forceRefresh,
-              );
-          """,
-          )
+                forceRefresh: forceRefresh,'''
+              if old not in payment_text:
+                  old = '''        month: targetMonth.month,
+                forceRefresh: forceRefresh,'''.replace('                ', '        ')
+                  new = '''        month: targetMonth.month,
+        objectName: widget.selectedObjectName,
+        includeFired: true,
+        forceRefresh: forceRefresh,'''
+              if old not in payment_text:
+                  raise SystemExit('Monthly timesheet scope fragment was not found')
+              payment_text = payment_text.replace(old, new, 1)
+
+          payments.write_text(payment_text, encoding='utf-8')
           PY
 
       - name: Checkout web repository
