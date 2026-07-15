@@ -8,6 +8,8 @@ import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/legal/presentation/legal_member_invitation_screen.dart';
+import '../features/role_preview/role_preview_controller.dart';
+import '../features/role_preview/role_preview_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
@@ -44,7 +46,9 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (shouldExit == true) await UserRepository.signOut();
+    if (shouldExit != true) return;
+    RolePreviewController.reset();
+    await UserRepository.signOut();
   }
 
   void openTemplateDocuments(BuildContext context) {
@@ -116,6 +120,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void openRolePreview(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => const RolePreviewScreen()),
+    );
+  }
+
   String get profileInitial {
     final words = profile.fullName
         .trim()
@@ -126,6 +137,11 @@ class ProfileScreen extends StatelessWidget {
     if (words.length == 1) return words.first.substring(0, 1).toUpperCase();
     return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'
         .toUpperCase();
+  }
+
+  String get roleDescription {
+    if (!profile.isRolePreview) return profile.roleTitle;
+    return '${profile.roleTitle} · просмотр администратора';
   }
 
   Widget buildProfileHero() {
@@ -178,7 +194,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  profile.roleTitle,
+                  roleDescription,
                   style: const TextStyle(
                     color: _profileMuted,
                     fontWeight: FontWeight.w700,
@@ -194,8 +210,10 @@ class ProfileScreen extends StatelessWidget {
               color: _profileSoft,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: const Icon(
-              Icons.verified_user_outlined,
+            child: Icon(
+              profile.isRolePreview
+                  ? Icons.visibility_outlined
+                  : Icons.verified_user_outlined,
               color: _profileMuted,
               size: 20,
             ),
@@ -354,6 +372,17 @@ class ProfileScreen extends StatelessWidget {
         children: [
           buildProfileHero(),
           const SizedBox(height: 18),
+          if (profile.canPreviewRoles) ...[
+            buildSectionTitle('Режим платформы'),
+            buildActionTile(
+              icon: Icons.switch_account_rounded,
+              title: 'Переключить платформу',
+              subtitle:
+                  'Сейчас: ${profile.roleTitle}. Открыть платформу руководителя, прораба или юриста',
+              onTap: () => openRolePreview(context),
+            ),
+            const SizedBox(height: 8),
+          ],
           buildSectionTitle('Рабочие данные'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
@@ -372,8 +401,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           buildInfoTile(
             icon: Icons.admin_panel_settings_outlined,
-            title: 'Роль',
-            value: profile.roleTitle,
+            title: profile.isRolePreview ? 'Открытая платформа' : 'Роль',
+            value: roleDescription,
           ),
           buildInfoTile(
             icon: Icons.email_outlined,
