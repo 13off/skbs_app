@@ -6,6 +6,8 @@ import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
+import '../features/legal/presentation/legal_manager_summary_screen.dart';
+import '../features/legal/presentation/legal_member_invitation_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
@@ -89,6 +91,27 @@ class ProfileScreen extends StatelessWidget {
       context,
       CupertinoPageRoute(
         builder: (_) => const PushNotificationSettingsScreen(),
+      ),
+    );
+  }
+
+  void openSpecialistInvitation(BuildContext context) {
+    if (profile.activeCompanyId.isEmpty) return;
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => LegalMemberInvitationScreen(
+          companyId: profile.activeCompanyId,
+        ),
+      ),
+    );
+  }
+
+  void openLegalSummary(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => LegalManagerSummaryScreen(profile: profile),
       ),
     );
   }
@@ -375,6 +398,20 @@ class ProfileScreen extends StatelessWidget {
           if (profile.isAdmin) ...[
             buildSectionTitle('Управление компанией'),
             buildActionTile(
+              icon: Icons.gavel_rounded,
+              title: 'Юридическая сводка',
+              subtitle:
+                  'Риски, согласования, решения руководителя и недельный отчёт юриста',
+              onTap: () => openLegalSummary(context),
+            ),
+            buildActionTile(
+              icon: Icons.person_add_alt_1_rounded,
+              title: 'Пригласить юриста или бухгалтера',
+              subtitle:
+                  'Создать ссылку для специалиста с отдельной ролью и рабочим разделом',
+              onTap: () => openSpecialistInvitation(context),
+            ),
+            buildActionTile(
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
               subtitle:
@@ -437,9 +474,8 @@ class _TileIcon extends StatelessWidget {
       decoration: BoxDecoration(
         color: _profileSoft,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: _profileLine),
       ),
-      child: Icon(icon, color: _profileText, size: 22),
+      child: Icon(icon, color: _profileText, size: 21),
     );
   }
 }
