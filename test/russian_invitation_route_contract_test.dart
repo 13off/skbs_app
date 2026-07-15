@@ -26,13 +26,12 @@ void main() {
   test('existing Russian proxy already forwards the Edge Function route', () {
     final caddy = source('infra/supabase-proxy/Caddyfile');
     final compose = source('infra/supabase-proxy/docker-compose.yml');
+    final landing = source('supabase/functions/invite-landing/index.ts');
 
     expect(caddy, contains('reverse_proxy https://'));
     expect(caddy, contains(r'{$SUPABASE_UPSTREAM}'));
     expect(compose, contains('SUPABASE_UPSTREAM:'));
-    expect(
-      source('supabase/functions/invite-landing/index.ts'),
-      contains('Edge Function'),
-    );
+    expect(landing, contains('Deno.serve'));
+    expect(landing, contains('SUPABASE_ANON_KEY'));
   });
 }
