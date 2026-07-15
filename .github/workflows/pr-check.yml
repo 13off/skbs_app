@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -35,10 +37,10 @@ jobs:
           cache: true
 
       - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Run regression tests
-        run: flutter test
+        run: flutter pub get --enforce-lockfile >/dev/null
 
       - name: Analyze source
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run regression tests
+        run: flutter test
