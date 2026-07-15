@@ -7,8 +7,10 @@ import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
+import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../models/app_user_profile.dart';
+import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -21,13 +23,14 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   static const Duration _maximumWarmup = Duration(seconds: 7);
-
   int warmupToken = 0;
 
   @override
   void initState() {
     super.initState();
-    unawaited(warmUpApplication());
+    if (widget.profile.isAdmin || widget.profile.isForeman) {
+      unawaited(warmUpApplication());
+    }
   }
 
   @override
@@ -38,18 +41,14 @@ class _MainScreenState extends State<MainScreen> {
 
   String? get initialObjectName {
     if (widget.profile.isAdmin) return null;
-
     final value = widget.profile.objectName.trim();
-    if (value.isEmpty) return null;
-
-    return value;
+    return value.isEmpty ? null : value;
   }
 
   Future<void> warmUpApplication() async {
     final token = ++warmupToken;
     final today = AppState.today;
     final objectName = initialObjectName;
-
     try {
       await Future.wait<dynamic>([
         EmployeeRepository.fetchEmployees(
@@ -63,15 +62,20 @@ class _MainScreenState extends State<MainScreen> {
         ),
         TaskRepository.fetchTasksForDate(today, objectName: objectName),
       ]).timeout(_maximumWarmup);
-
       if (!mounted || token != warmupToken) return;
     } catch (_) {
-      // Остаток данных загрузится обычным фоновым способом внутри экранов.
+      // Остаток данных загрузится внутри экранов.
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.profile.isLawyer) {
+      return LegalMainScreen(profile: widget.profile);
+    }
+    if (widget.profile.isAccountant) {
+      return Scaffold(body: ProfileScreen(profile: widget.profile));
+    }
     return premium.MainScreen(profile: widget.profile);
   }
 }
