@@ -42,7 +42,7 @@ void main() {
       "'app_notification_clears'",
       ".select('id')",
       'PushNotificationService.dispatchNotification(notificationId)',
-      'не должны ломать табель, выплаты, задачи или сотрудников',
+      'Уведомления не должны ломать основное действие',
     ]);
     containsAll('lib/screens/profile_screen.dart', const [
       "'Push-уведомления'",

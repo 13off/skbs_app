@@ -33,6 +33,9 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Сервис приглашений не настроен" }, 500);
     }
 
+    // invite-company-member-core выполняет generateLink для type: "invite",
+    // "recovery" и "magiclink", затем возвращает invite_url: actionLink.
+    // Этот адаптер не дублирует Auth-логику и меняет только публичный маршрут.
     const body = await request.text();
     const coreResponse = await fetch(
       `${supabaseUrl}/functions/v1/invite-company-member-core`,
