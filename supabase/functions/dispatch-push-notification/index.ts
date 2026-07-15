@@ -12,6 +12,8 @@ const foremanAllowedEntityTypes = new Set([
   "tasks",
   "task_assignees",
   "task_photos",
+  "legal_document",
+  "legal_matter",
 ]);
 
 interface ServiceAccount {
@@ -30,6 +32,8 @@ interface NotificationRow {
   object_name: string;
   entity_type: string;
   entity_id: string;
+  target_user_id: string | null;
+  target_role: string | null;
 }
 
 interface TokenRow {
@@ -115,7 +119,9 @@ async function getGoogleAccessToken(account: ServiceAccount) {
   );
   const payload = await response.json();
   if (!response.ok || !payload.access_token) {
-    throw new Error(`Не удалось получить Google access token: ${JSON.stringify(payload)}`);
+    throw new Error(
+      `Не удалось получить Google access token: ${JSON.stringify(payload)}`,
+    );
   }
   return String(payload.access_token);
 }
@@ -146,47 +152,6 @@ async function sendToToken(
 ) {
   const publicUrl = Deno.env.get("APP_PUBLIC_URL") ??
     "https://13off.github.io/appstroy-web/";
-  const payload = {
-    message: {
-      token: token.token,
-      notification: {
-        title: notification.title,
-        body: notification.body,
-      },
-      data: {
-        notification_id: notification.id,
-        company_id: notification.company_id,
-        object_name: notification.object_name ?? "",
-        entity_type: notification.entity_type ?? "",
-        entity_id: notification.entity_id ?? "",
-      },
-      android: {
-        priority: "high",
-        notification: {
-          channel_id: "appstroy_updates",
-          sound: "default",
-        },
-      },
-      apns: {
-        headers: { "apns-priority": "10" },
-        payload: {
-          aps: {
-            sound: "default",
-            "content-available": 1,
-          },
-        },
-      },
-      webpush: {
-        headers: { Urgency: "high" },
-        notification: {
-          icon: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
-          badge: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
-        },
-        fcm_options: { link: publicUrl },
-      },
-    },
-  };
-
   const response = await fetch(
     `https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,
     {
@@ -195,7 +160,43 @@ async function sendToToken(
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json; charset=utf-8",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        message: {
+          token: token.token,
+          notification: {
+            title: notification.title,
+            body: notification.body,
+          },
+          data: {
+            notification_id: notification.id,
+            company_id: notification.company_id,
+            object_name: notification.object_name ?? "",
+            entity_type: notification.entity_type ?? "",
+            entity_id: notification.entity_id ?? "",
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channel_id: "appstroy_updates",
+              sound: "default",
+            },
+          },
+          apns: {
+            headers: { "apns-priority": "10" },
+            payload: {
+              aps: { sound: "default", "content-available": 1 },
+            },
+          },
+          webpush: {
+            headers: { Urgency: "high" },
+            notification: {
+              icon: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
+              badge: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
+            },
+            fcm_options: { link: publicUrl },
+          },
+        },
+      }),
     },
   );
   const body = await response.json().catch(() => ({}));
@@ -203,7 +204,6 @@ async function sendToToken(
     ok: response.ok,
     status: response.status,
     errorCode: fcmErrorCode(body),
-    body,
   };
 }
 
@@ -216,9 +216,9 @@ Deno.serve(async (request: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const authorization = request.headers.get("Authorization") ?? "";
     if (!supabaseUrl || !anonKey || !serviceRoleKey || !authorization) {
       return json({ error: "Push-сервис Supabase не настроен" }, 500);
@@ -228,7 +228,8 @@ Deno.serve(async (request: Request) => {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userData, error: userError } = await userClient.auth.getUser();
+    const { data: userData, error: userError } =
+      await userClient.auth.getUser();
     if (userError || !userData.user) {
       return json({ error: "Требуется повторный вход" }, 401);
     }
@@ -244,11 +245,15 @@ Deno.serve(async (request: Request) => {
     });
     const { data: rawNotification, error: notificationError } = await admin
       .from("app_notifications")
-      .select("id, company_id, title, body, actor_user_id, object_name, entity_type, entity_id")
+      .select(
+        "id, company_id, title, body, actor_user_id, object_name, entity_type, entity_id, target_user_id, target_role",
+      )
       .eq("id", notificationId)
       .maybeSingle();
     if (notificationError) throw notificationError;
-    if (!rawNotification) return json({ error: "Уведомление не найдено" }, 404);
+    if (!rawNotification) {
+      return json({ error: "Уведомление не найдено" }, 404);
+    }
 
     const notification = rawNotification as NotificationRow;
     if (notification.actor_user_id !== userData.user.id) {
@@ -276,12 +281,22 @@ Deno.serve(async (request: Request) => {
     if (previousDelivery) {
       const finalStatuses = new Set(["sent", "partial", "no_recipients"]);
       if (finalStatuses.has(previousDelivery.status)) {
-        return json({ ok: true, duplicate: true, status: previousDelivery.status });
+        return json({
+          ok: true,
+          duplicate: true,
+          status: previousDelivery.status,
+        });
       }
       const attemptedAt = Date.parse(String(previousDelivery.attempted_at));
-      if (previousDelivery.status === "processing" &&
-          Number.isFinite(attemptedAt) && Date.now() - attemptedAt < 5 * 60 * 1000) {
-        return json({ ok: true, duplicate: true, status: "processing" }, 202);
+      if (
+        previousDelivery.status === "processing" &&
+        Number.isFinite(attemptedAt) &&
+        Date.now() - attemptedAt < 5 * 60 * 1000
+      ) {
+        return json(
+          { ok: true, duplicate: true, status: "processing" },
+          202,
+        );
       }
       await admin.from("push_notification_deliveries")
         .delete().eq("notification_id", notification.id);
@@ -300,13 +315,34 @@ Deno.serve(async (request: Request) => {
     for (const membership of memberships ?? []) {
       const userId = String(membership.user_id);
       const role = String(membership.role);
-      if (role === "owner" || role === "admin") recipientIds.add(userId);
       if (role === "foreman") foremanIds.push(userId);
+
+      if (notification.target_user_id === userId) {
+        recipientIds.add(userId);
+        continue;
+      }
+      if (notification.target_role) {
+        const normalizedRole = role === "owner" ? "admin" : role;
+        if (normalizedRole === notification.target_role) recipientIds.add(userId);
+        continue;
+      }
+      if (role === "owner" || role === "admin") recipientIds.add(userId);
+      if (
+        role === "lawyer" &&
+        notification.entity_type.startsWith("legal_")
+      ) {
+        recipientIds.add(userId);
+      }
     }
 
-    if (foremanIds.length > 0 &&
-        foremanAllowedEntityTypes.has(notification.entity_type) &&
-        notification.object_name.trim()) {
+    const targetForemen = notification.target_role === "foreman" ||
+      (!notification.target_role && !notification.target_user_id);
+    if (
+      targetForemen &&
+      foremanIds.length > 0 &&
+      foremanAllowedEntityTypes.has(notification.entity_type) &&
+      notification.object_name.trim()
+    ) {
       const { data: objects, error: objectsError } = await admin
         .from("objects")
         .select("id, name")
@@ -400,7 +436,12 @@ Deno.serve(async (request: Request) => {
     const failureCodes: Record<string, number> = {};
 
     for (const token of tokens) {
-      const result = await sendToToken(accessToken, account, notification, token);
+      const result = await sendToToken(
+        accessToken,
+        account,
+        notification,
+        token,
+      );
       if (result.ok) {
         sentCount += 1;
         continue;
