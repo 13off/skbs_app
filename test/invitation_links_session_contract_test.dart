@@ -32,7 +32,13 @@ void main() {
     expect(edge, contains('inviteTokenHash'));
     expect(edge, contains('inviteType'));
     expect(edge, contains('...data'));
-    expect(core, contains('raw.githubusercontent.com/13off/skbs_app/'));
+    expect(core, contains('generateLink'));
+    expect(core, contains('type: "invite"'));
+    expect(core, contains('"recovery"'));
+    expect(core, contains('"magiclink"'));
+    expect(core, contains('invite_url: actionLink'));
+    expect(core, contains('"lawyer"'));
+    expect(core, contains('"accountant"'));
     expect(edge, isNot(contains('inviteUserByEmail')));
     expect(edge, isNot(contains('resetPasswordForEmail')));
   });
