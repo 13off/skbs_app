@@ -29,8 +29,18 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    RolePreviewController.reset();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
       unawaited(warmUpApplication());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.id != widget.profile.id ||
+        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      RolePreviewController.reset();
     }
   }
 
