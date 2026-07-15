@@ -10,6 +10,7 @@ enum AppDataDomain {
   objects,
   notifications,
   company,
+  legal,
 }
 
 class AppDataChange {
@@ -39,17 +40,10 @@ class AppDataChange {
 
 typedef AppDataCacheInvalidator = void Function(Set<AppDataDomain> domains);
 
-/// Единая точка актуализации данных приложения.
-///
-/// Локальные записи сообщают об изменении сразу после успешного ответа базы.
-/// Изменения других клиентов приходят через один приватный Broadcast-канал
-/// компании. Серии событий (например, строки одного табеля) объединяются,
-/// поэтому экраны делают один свежий запрос вместо десятков одинаковых.
 class AppDataSync {
   AppDataSync._();
 
   static const Duration _coalesceDuration = Duration(milliseconds: 120);
-
   static final StreamController<AppDataChange> _changesController =
       StreamController<AppDataChange>.broadcast(sync: true);
   static final Set<AppDataDomain> _pendingDomains = <AppDataDomain>{};
@@ -95,10 +89,7 @@ class AppDataSync {
         )
         .subscribe((status, _) {
           if (status != RealtimeSubscribeStatus.subscribed) return;
-
-          if (_hasSubscribedOnce) {
-            refreshAll();
-          }
+          if (_hasSubscribedOnce) refreshAll();
           _hasSubscribedOnce = true;
         });
 
@@ -107,7 +98,6 @@ class AppDataSync {
 
   static void stop({String? companyId}) {
     final cleanCompanyId = companyId?.trim();
-
     if (cleanCompanyId != null &&
         cleanCompanyId.isNotEmpty &&
         cleanCompanyId != _companyId) {
@@ -140,6 +130,7 @@ class AppDataSync {
         AppDataDomain.tasks,
         AppDataDomain.objects,
         AppDataDomain.notifications,
+        AppDataDomain.legal,
       },
       context: const <String, dynamic>{'source': 'resume_or_reconnect'},
       isRemote: true,
@@ -153,9 +144,7 @@ class AppDataSync {
         : Map<String, dynamic>.from(payload);
     final table = context['table']?.toString().trim().toLowerCase() ?? '';
     final domains = _domainsForTable(table);
-
     if (domains.isEmpty) return;
-
     _queueChange(domains: domains, context: context, isRemote: true);
   }
 
@@ -182,6 +171,7 @@ class AppDataSync {
           AppDataDomain.attendance,
           AppDataDomain.payments,
           AppDataDomain.tasks,
+          AppDataDomain.legal,
         };
       case 'app_notifications':
         return const <AppDataDomain>{AppDataDomain.notifications};
@@ -189,6 +179,15 @@ class AppDataSync {
       case 'company_memberships':
       case 'object_memberships':
         return const <AppDataDomain>{AppDataDomain.company};
+      case 'legal_counterparties':
+      case 'legal_documents':
+      case 'legal_document_files':
+      case 'legal_matters':
+      case 'weekly_reports':
+      case 'scheduled_reminders':
+      case 'app_files':
+      case 'audit_log':
+        return const <AppDataDomain>{AppDataDomain.legal};
       default:
         return const <AppDataDomain>{};
     }
@@ -200,20 +199,17 @@ class AppDataSync {
     required bool isRemote,
   }) {
     if (domains.isEmpty) return;
-
     _pendingDomains.addAll(domains);
     _pendingHasRemote = _pendingHasRemote || isRemote;
     if (context.isNotEmpty) {
       _pendingContext = Map<String, dynamic>.from(context);
     }
-
     _deliveryTimer?.cancel();
     _deliveryTimer = Timer(_coalesceDuration, _deliverPendingChange);
   }
 
   static void _deliverPendingChange() {
     _deliveryTimer = null;
-
     if (_pendingDomains.isEmpty) return;
 
     final domains = Set<AppDataDomain>.unmodifiable(_pendingDomains);
@@ -239,9 +235,7 @@ class AppDataSync {
     final channel = _channel;
     _channel = null;
     _hasSubscribedOnce = false;
-
     if (channel == null) return;
-
     unawaited(_removeChannel(channel));
   }
 
