@@ -7,6 +7,7 @@ import 'legal_dashboard_screen.dart';
 import 'legal_documents_screen.dart';
 import 'legal_matters_screen.dart';
 
+// Юрист использует отдельную оболочку, чтобы не менять вкладки администратора и прораба.
 class LegalMainScreen extends StatefulWidget {
   final AppUserProfile profile;
 
