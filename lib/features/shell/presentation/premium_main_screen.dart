@@ -17,11 +17,11 @@ import '../../../models/task_item_data.dart';
 import '../../../navigation/web_back_navigation.dart';
 import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/adaptive_home_screen.dart';
+import '../../../screens/adaptive_timesheet_screen.dart';
 import '../../../screens/payments_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
-import '../../../screens/timesheet_screen.dart';
 import '../../../widgets/premium_ui.dart';
 
 class MainScreen extends StatefulWidget {
@@ -267,7 +267,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             selectedObjectName: selectedObjectName,
           );
         case 2:
-          return TimesheetScreen(
+          return AdaptiveTimesheetScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
           );
@@ -301,7 +301,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           selectedObjectName: selectedObjectName,
         );
       case 2:
-        return TimesheetScreen(
+        return AdaptiveTimesheetScreen(
           profile: widget.profile,
           selectedObjectName: selectedObjectName,
         );
