@@ -81,6 +81,22 @@ class AccountingRepository {
     );
   }
 
+  static Future<List<MonthlyTimesheetRow>> fetchBalanceRows({
+    DateTime? month,
+    String? objectName,
+    bool forceRefresh = false,
+  }) {
+    final sourceMonth = month ?? DateTime.now();
+    final targetMonth = DateTime(sourceMonth.year, sourceMonth.month, 1);
+    return AttendanceRepository.fetchMonthlyTimesheet(
+      year: targetMonth.year,
+      month: targetMonth.month,
+      objectName: objectName,
+      includeFired: true,
+      forceRefresh: forceRefresh,
+    );
+  }
+
   static Future<List<AccountingPaymentRegisterRow>> fetchPaymentRegister({
     required DateTime startDate,
     required DateTime endDate,
