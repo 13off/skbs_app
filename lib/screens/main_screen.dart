@@ -12,6 +12,7 @@ import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../models/app_user_profile.dart';
+import '../navigation/navigation_session.dart';
 
 class MainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -25,11 +26,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   static const Duration _maximumWarmup = Duration(seconds: 7);
   int warmupToken = 0;
+  late Future<void> navigationRestoreFuture;
 
   @override
   void initState() {
     super.initState();
-    RolePreviewController.reset();
+    navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
       unawaited(warmUpApplication());
     }
@@ -40,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.id != widget.profile.id ||
         oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
-      RolePreviewController.reset();
+      navigationRestoreFuture = restoreNavigation();
     }
   }
 
@@ -48,6 +50,20 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     warmupToken++;
     super.dispose();
+  }
+
+  Future<void> restoreNavigation() async {
+    try {
+      await NavigationSession.configure(
+        userId: widget.profile.id,
+        companyId: widget.profile.activeCompanyId,
+      );
+      await RolePreviewController.restore(
+        canPreviewRoles: widget.profile.canPreviewRoles,
+      );
+    } catch (_) {
+      RolePreviewController.reset(clearPersisted: false);
+    }
   }
 
   String? get initialObjectName {
@@ -99,8 +115,7 @@ class _MainScreenState extends State<MainScreen> {
     return premium.MainScreen(profile: profile);
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildPlatform() {
     return ValueListenableBuilder<RolePreviewState>(
       valueListenable: RolePreviewController.state,
       builder: (context, preview, _) {
@@ -114,6 +129,28 @@ class _MainScreenState extends State<MainScreen> {
 
         if (!profile.isRolePreview) return platform;
         return _RolePreviewFrame(profile: profile, child: platform);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: navigationRestoreFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Material(
+            color: Color(0xFFF8F7F3),
+            child: Center(
+              child: SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+          );
+        }
+        return buildPlatform();
       },
     );
   }
