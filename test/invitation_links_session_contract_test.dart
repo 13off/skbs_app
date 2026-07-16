@@ -27,11 +27,13 @@ void main() {
     );
 
     expect(edge, contains('invite-company-member-core'));
-    expect(edge, contains('/functions/v1/invite-landing'));
+    expect(edge, contains('https://13off.github.io/appstroy-web/'));
+    expect(edge, contains('new URL("invite.html", publishedWebAppUrl)'));
     expect(edge, contains('companyInvite'));
     expect(edge, contains('inviteTokenHash'));
     expect(edge, contains('inviteType'));
     expect(edge, contains('...data'));
+    expect(edge, isNot(contains('/functions/v1/invite-landing')));
     expect(core, contains('generateLink'));
     expect(core, contains('type: "invite"'));
     expect(core, contains('"recovery"'));
