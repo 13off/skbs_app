@@ -33,6 +33,10 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
     RolePreviewController.showLawyer();
   }
 
+  void selectAccountant() {
+    RolePreviewController.showAccountant();
+  }
+
   Future<void> selectForeman(List<String> objectNames) async {
     if (objectNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -232,7 +236,9 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  selected ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.chevron_right_rounded,
                   color: selected ? _roleText : _roleMuted,
                 ),
               ],
@@ -289,10 +295,9 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                     icon: Icons.account_balance_wallet_rounded,
                     title: 'Бухгалтер',
                     subtitle:
-                        'Платформа бухгалтера будет подключена следующим этапом.',
+                        'Начисления, выплаты, остатки, чеки и финансовые отчёты.',
                     selected: preview.isAccountantMode,
-                    onTap: null,
-                    badge: 'СКОРО',
+                    onTap: selectAccountant,
                   ),
                   const SizedBox(height: 8),
                   PremiumWorkCard(

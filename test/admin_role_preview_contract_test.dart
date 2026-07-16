@@ -21,6 +21,7 @@ void main() {
     );
 
     final lawyerView = admin.previewAs(role: 'lawyer');
+    final accountantView = admin.previewAs(role: 'accountant');
     final foremanView = admin.previewAs(
       role: 'foreman',
       objectName: 'Объект Чона',
@@ -28,8 +29,9 @@ void main() {
 
     expect(lawyerView.role, 'lawyer');
     expect(lawyerView.actualRole, 'admin');
-    expect(lawyerView.isRolePreview, isTrue);
-    expect(lawyerView.canPreviewRoles, isTrue);
+    expect(accountantView.role, 'accountant');
+    expect(accountantView.actualRole, 'admin');
+    expect(accountantView.isRolePreview, isTrue);
     expect(foremanView.role, 'foreman');
     expect(foremanView.objectName, 'Объект Чона');
     expect(foremanView.actualRole, 'admin');
@@ -46,7 +48,7 @@ void main() {
       isActive: true,
     );
 
-    expect(identical(foreman.previewAs(role: 'lawyer'), foreman), isTrue);
+    expect(identical(foreman.previewAs(role: 'accountant'), foreman), isTrue);
     expect(foreman.canPreviewRoles, isFalse);
   });
 
@@ -57,13 +59,16 @@ void main() {
 
     RolePreviewController.showLawyer();
     expect(RolePreviewController.state.value.role, 'lawyer');
+
+    RolePreviewController.showAccountant();
+    expect(RolePreviewController.state.value.role, 'accountant');
     expect(RolePreviewController.state.value.objectName, isEmpty);
 
     RolePreviewController.showAdmin();
     expect(RolePreviewController.state.value.role, 'admin');
   });
 
-  test('переключатель встроен в профиль и не пишет роль в Supabase', () {
+  test('переключатель открывает все готовые платформы без записи роли', () {
     final profile = source('lib/screens/profile_screen.dart');
     final selector = source(
       'lib/features/role_preview/role_preview_screen.dart',
@@ -79,10 +84,10 @@ void main() {
     expect(selector, contains("title: 'Прораб'"));
     expect(selector, contains("title: 'Юрист'"));
     expect(selector, contains("title: 'Бухгалтер'"));
-    expect(selector, contains("badge: 'СКОРО'"));
-    expect(selector, contains('ObjectRepository.fetchObjectNames()'));
+    expect(selector, contains('onTap: selectAccountant'));
+    expect(selector, isNot(contains("badge: 'СКОРО'")));
+    expect(main, contains('AccountingMainScreen(profile: profile)'));
     expect(main, contains("'К руководителю'"));
-    expect(main, contains('KeyedSubtree'));
     expect(controller, isNot(contains('Supabase')));
     expect(controller, isNot(contains(".from('company_memberships')")));
   });
