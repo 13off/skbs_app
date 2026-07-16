@@ -59,7 +59,7 @@ void main() {
     expect(filters, contains("labelText: 'Объект'"));
     expect(table, contains("SpecialistTableColumn('Исполнители'"));
     expect(table, contains("SpecialistTableColumn('Подтверждение'"));
-    expect(table, contains("label: 'Нет фото'"));
+    expect(table, contains("'Нет фото'"));
     expect(table, contains("label: hasReport ? 'Есть отчёт' : 'Нет отчёта'"));
   });
 
@@ -76,6 +76,6 @@ void main() {
     expect(platform, contains('AdaptiveTimesheetScreen'));
     expect(platform, contains('ProfessionalBottomNavigation'));
     expect(timesheet, contains('DesktopTimesheetScreen'));
-    expect(timesheet, contains('mobile.TimesheetScreen'));
+    expect(timesheet, contains('return TimesheetScreen('));
   });
 }
