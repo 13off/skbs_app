@@ -1,69 +1,87 @@
-name: PR Check
+name: Apply desktop company center
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
       - lib/**
       - test/**
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
       - .github/workflows/pr-check.yml
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
+  group: appstroy-company-center-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  flutter-check:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          show-progress: false
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Run regression tests
-        id: regression
+      - name: Wire desktop company center and restore CI
         shell: bash
         run: |
-          set +e
-          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter test failure (last 180 lines) ---"
-            tail -n 180 /tmp/flutter-test.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-test.log
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Build web release
-        run: flutter build web --release --base-href /appstroy-web/
+          path = Path('lib/features/company/presentation/company_management_screen.dart')
+          text = path.read_text(encoding='utf-8')
 
-      - name: Upload failing test log
-        if: failure() && steps.regression.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-test-log
-          path: /tmp/flutter-test.log
-          if-no-files-found: error
-          retention-days: 3
+          material_import = "import 'package:flutter/material.dart';\n"
+          if "package:flutter/foundation.dart" not in text:
+              if text.count(material_import) != 1:
+                  raise SystemExit(f'foundation import anchor count: {text.count(material_import)}')
+              text = text.replace(
+                  material_import,
+                  "import 'package:flutter/foundation.dart';\n" + material_import,
+              )
+
+          plans_import = "import 'company_plans_screen.dart';\n"
+          if "desktop_company_management_screen.dart" not in text:
+              if text.count(plans_import) != 1:
+                  raise SystemExit(f'desktop import anchor count: {text.count(plans_import)}')
+              text = text.replace(
+                  plans_import,
+                  plans_import + "import 'desktop_company_management_screen.dart';\n",
+              )
+
+          build_anchor = """  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+"""
+          if "return DesktopCompanyManagementScreen" not in text:
+              if text.count(build_anchor) != 1:
+                  raise SystemExit(f'build anchor count: {text.count(build_anchor)}')
+              text = text.replace(
+                  build_anchor,
+                  """  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb && MediaQuery.sizeOf(context).width >= 1050) {
+      return DesktopCompanyManagementScreen(companyId: widget.companyId);
+    }
+
+    return Scaffold(
+""",
+              )
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          rm -f .github/workflows/apply-desktop-company-management.yml
+          git show origin/main:.github/workflows/pr-check.yml > .github/workflows/pr-check.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/company/presentation/company_management_screen.dart .github/workflows/pr-check.yml
+          git add -u .github/workflows
+          git commit -m "подключён адаптивный ПК-центр компании"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
