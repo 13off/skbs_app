@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
+import '../navigation/navigation_session.dart';
 import 'premium_pressable_v3.dart';
 
 class ProfessionalBottomNavigationItem {
@@ -15,7 +18,7 @@ class ProfessionalBottomNavigationItem {
   });
 }
 
-class ProfessionalBottomNavigation extends StatelessWidget {
+class ProfessionalBottomNavigation extends StatefulWidget {
   final List<ProfessionalBottomNavigationItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -26,6 +29,81 @@ class ProfessionalBottomNavigation extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
   });
+
+  @override
+  State<ProfessionalBottomNavigation> createState() =>
+      _ProfessionalBottomNavigationState();
+}
+
+class _ProfessionalBottomNavigationState
+    extends State<ProfessionalBottomNavigation> {
+  late String platformKey;
+  bool restored = false;
+
+  @override
+  void initState() {
+    super.initState();
+    platformKey = resolvePlatformKey(widget.items);
+    scheduleRestore();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfessionalBottomNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final nextPlatformKey = resolvePlatformKey(widget.items);
+    if (nextPlatformKey != platformKey) {
+      platformKey = nextPlatformKey;
+      restored = false;
+      scheduleRestore();
+      return;
+    }
+
+    if (restored && oldWidget.selectedIndex != widget.selectedIndex) {
+      unawaited(
+        NavigationSession.writeTabIndex(platformKey, widget.selectedIndex),
+      );
+    }
+  }
+
+  String resolvePlatformKey(List<ProfessionalBottomNavigationItem> items) {
+    final labels = items.map((item) => item.label).toSet();
+    if (labels.contains('Люди')) return 'admin';
+    if (labels.contains('Документы') && labels.contains('Вопросы')) {
+      return 'lawyer';
+    }
+    if (labels.contains('Выплаты') && labels.contains('Отчёты')) {
+      return 'accountant';
+    }
+    return 'foreman';
+  }
+
+  void scheduleRestore() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || restored) return;
+
+      final savedIndex = NavigationSession.readTabIndex(platformKey);
+      restored = true;
+
+      if (savedIndex == null ||
+          savedIndex < 0 ||
+          savedIndex >= widget.items.length) {
+        unawaited(
+          NavigationSession.writeTabIndex(platformKey, widget.selectedIndex),
+        );
+        return;
+      }
+
+      if (savedIndex != widget.selectedIndex) {
+        widget.onSelected(savedIndex);
+      }
+    });
+  }
+
+  void handleSelected(int index) {
+    unawaited(NavigationSession.writeTabIndex(platformKey, index));
+    widget.onSelected(index);
+  }
 
   Widget buildIcon(
     ProfessionalBottomNavigationItem item,
@@ -141,9 +219,9 @@ class ProfessionalBottomNavigation extends StatelessWidget {
                   ],
                 ),
                 child: Row(
-                  children: List<Widget>.generate(items.length, (index) {
-                    final item = items[index];
-                    final selected = index == selectedIndex;
+                  children: List<Widget>.generate(widget.items.length, (index) {
+                    final item = widget.items[index];
+                    final selected = index == widget.selectedIndex;
 
                     return Expanded(
                       child: Padding(
@@ -151,7 +229,7 @@ class ProfessionalBottomNavigation extends StatelessWidget {
                           horizontal: isDesktop ? 3 : 2,
                         ),
                         child: PremiumPressable(
-                          onTap: () => onSelected(index),
+                          onTap: () => handleSelected(index),
                           pressedScale: 0.97,
                           hoverScale: isDesktop ? AppMotion.hoverScale : 1,
                           borderRadius: BorderRadius.circular(17),

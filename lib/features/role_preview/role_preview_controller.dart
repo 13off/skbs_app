@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
+import '../../navigation/navigation_session.dart';
 
 class RolePreviewState {
   final String role;
@@ -32,28 +36,71 @@ class RolePreviewController {
   static final ValueNotifier<RolePreviewState> state =
       ValueNotifier<RolePreviewState>(const RolePreviewState());
 
-  static void showAdmin() {
+  static Future<void> restore({required bool canPreviewRoles}) async {
+    if (!canPreviewRoles) {
+      state.value = const RolePreviewState();
+      return;
+    }
+
+    final savedRole = NavigationSession.readPreviewRole()?.trim();
+    final savedObjectName = NavigationSession.readPreviewObjectName();
+
+    if (savedRole == 'foreman' && savedObjectName.isNotEmpty) {
+      state.value = RolePreviewState(
+        role: 'foreman',
+        objectName: savedObjectName,
+      );
+      return;
+    }
+    if (savedRole == 'lawyer') {
+      state.value = const RolePreviewState(role: 'lawyer');
+      return;
+    }
+    if (savedRole == 'accountant') {
+      state.value = const RolePreviewState(role: 'accountant');
+      return;
+    }
+
     state.value = const RolePreviewState();
+  }
+
+  static void setState(RolePreviewState nextState) {
+    state.value = nextState;
+    unawaited(
+      NavigationSession.writePreview(
+        role: nextState.role,
+        objectName: nextState.objectName,
+      ),
+    );
+  }
+
+  static void showAdmin() {
+    setState(const RolePreviewState());
   }
 
   static void showForeman({required String objectName}) {
     final cleanObjectName = objectName.trim();
     if (cleanObjectName.isEmpty) return;
-    state.value = RolePreviewState(
-      role: 'foreman',
-      objectName: cleanObjectName,
+    setState(
+      RolePreviewState(
+        role: 'foreman',
+        objectName: cleanObjectName,
+      ),
     );
   }
 
   static void showLawyer() {
-    state.value = const RolePreviewState(role: 'lawyer');
+    setState(const RolePreviewState(role: 'lawyer'));
   }
 
   static void showAccountant() {
-    state.value = const RolePreviewState(role: 'accountant');
+    setState(const RolePreviewState(role: 'accountant'));
   }
 
-  static void reset() {
-    showAdmin();
+  static void reset({bool clearPersisted = true}) {
+    state.value = const RolePreviewState();
+    if (clearPersisted) {
+      unawaited(NavigationSession.clearPreview());
+    }
   }
 }
