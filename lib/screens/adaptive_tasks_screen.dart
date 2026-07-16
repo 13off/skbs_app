@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../features/foreman/presentation/foreman_desktop_tasks_screen.dart';
 import '../models/app_user_profile.dart';
 import 'desktop_tasks_screen.dart';
 import 'mobile_tasks_screen.dart' as mobile;
@@ -26,6 +27,13 @@ class AdaptiveTasksScreen extends StatelessWidget {
 
         if (!useDesktopTasks) {
           return mobile.TasksScreen(
+            profile: profile,
+            selectedObjectName: selectedObjectName,
+          );
+        }
+
+        if (profile.isForeman) {
+          return ForemanDesktopTasksScreen(
             profile: profile,
             selectedObjectName: selectedObjectName,
           );
