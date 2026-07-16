@@ -69,7 +69,7 @@ class SpecialistDesktopTable extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width = math.max(minWidth, constraints.maxWidth);
+          final width = math.max(minWidth, constraints.maxWidth).toDouble();
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
