@@ -8,6 +8,7 @@ import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
+import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
@@ -111,6 +112,9 @@ class _MainScreenState extends State<MainScreen> {
     }
     if (profile.isAccountant) {
       return AccountingMainScreen(profile: profile);
+    }
+    if (profile.isForeman) {
+      return ForemanMainScreen(profile: profile);
     }
     return premium.MainScreen(profile: profile);
   }
