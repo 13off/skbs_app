@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
-import 'legal_dashboard_screen.dart';
+import '../models/legal_models.dart';
+import 'adaptive_legal_dashboard_screen.dart';
+import 'adaptive_legal_documents_screen.dart';
+import 'adaptive_legal_matters_screen.dart';
 import 'legal_documents_screen.dart';
 import 'legal_matters_screen.dart';
 
@@ -43,9 +46,15 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
 
   Widget rootPage(int index) {
     return switch (index) {
-      0 => LegalDashboardScreen(profile: widget.profile),
-      1 => const LegalDocumentsScreen(),
-      2 => const LegalMattersScreen(),
+      0 => AdaptiveLegalDashboardScreen(
+          profile: widget.profile,
+          onOpenDocuments: () => select(1),
+          onOpenMatters: () => select(2),
+          onOpenDocument: openDocumentFromDashboard,
+          onOpenMatter: openMatterFromDashboard,
+        ),
+      1 => const AdaptiveLegalDocumentsScreen(),
+      2 => AdaptiveLegalMattersScreen(profile: widget.profile),
       3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -76,6 +85,36 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
       index,
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<NavigatorState?> selectTabNavigator(int index) async {
+    await select(index);
+    if (!mounted) return null;
+    await WidgetsBinding.instance.endOfFrame;
+    return navigatorKeys[index].currentState;
+  }
+
+  Future<void> openDocumentFromDashboard(LegalDocument document) async {
+    final navigator = await selectTabNavigator(1);
+    if (navigator == null) return;
+    await navigator.push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => LegalDocumentDetailsScreen(document: document),
+      ),
+    );
+  }
+
+  Future<void> openMatterFromDashboard(LegalMatter matter) async {
+    final navigator = await selectTabNavigator(2);
+    if (navigator == null) return;
+    await navigator.push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => LegalMatterDetailsScreen(
+          matter: matter,
+          canDecide: false,
+        ),
+      ),
     );
   }
 
