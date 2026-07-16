@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum AppDataDomain {
@@ -89,7 +90,7 @@ class AppDataSync {
         )
         .subscribe((status, _) {
           if (status != RealtimeSubscribeStatus.subscribed) return;
-          if (_hasSubscribedOnce) refreshAll();
+          if (_hasSubscribedOnce) _refreshAfterReconnect();
           _hasSubscribedOnce = true;
         });
 
@@ -122,6 +123,21 @@ class AppDataSync {
   }
 
   static void refreshAll() {
+    // В браузере и установленном PWA сворачивание/возврат часто создаёт
+    // lifecycle resumed, хотя соединение и данные не менялись. Общий refresh
+    // здесь заставлял активный табель полностью перезагружаться.
+    if (kIsWeb) return;
+
+    _queueFullRefresh(source: 'resume');
+  }
+
+  static void _refreshAfterReconnect() {
+    // Настоящее повторное подключение realtime должно обновить кэши на всех
+    // платформах, включая Web/PWA.
+    _queueFullRefresh(source: 'reconnect');
+  }
+
+  static void _queueFullRefresh({required String source}) {
     _queueChange(
       domains: const <AppDataDomain>{
         AppDataDomain.attendance,
@@ -132,7 +148,7 @@ class AppDataSync {
         AppDataDomain.notifications,
         AppDataDomain.legal,
       },
-      context: const <String, dynamic>{'source': 'resume_or_reconnect'},
+      context: <String, dynamic>{'source': source},
       isRemote: true,
     );
   }
