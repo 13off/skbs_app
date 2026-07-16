@@ -1,10 +1,9 @@
 name: Apply unified company invitations
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
     branches:
-      - main
+      - fix/unify-company-invitations
     paths:
       - .github/workflows/apply-unified-invitations.yml
 
@@ -13,13 +12,11 @@ permissions:
 
 jobs:
   apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Apply invitation consolidation
@@ -241,10 +238,10 @@ void main() {
 
           git rm .github/workflows/apply-unified-invitations.yml
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898242+github-actions[bot]@users.noreply.github.com"
           git add lib/screens/profile_screen.dart \
             lib/features/company/presentation/company_management_screen.dart \
             lib/features/company/data/company_repository.dart \
             test/unified_company_invitation_contract_test.dart
           git commit -m "объединены приглашения пользователей компании"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+          git push origin HEAD:fix/unify-company-invitations
