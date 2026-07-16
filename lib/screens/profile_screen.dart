@@ -11,9 +11,11 @@ import '../features/legal/presentation/legal_member_invitation_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/role_preview/role_preview_screen.dart';
 import '../models/app_user_profile.dart';
+import '../services/pwa_install_service.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
 import 'push_notification_settings_screen.dart';
+import 'pwa_install_screen.dart';
 import 'template_documents_screen.dart';
 
 const Color _profileText = Color(0xFF1F2328);
@@ -96,6 +98,13 @@ class ProfileScreen extends StatelessWidget {
       CupertinoPageRoute(
         builder: (_) => const PushNotificationSettingsScreen(),
       ),
+    );
+  }
+
+  void openPwaInstall(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => const PwaInstallScreen()),
     );
   }
 
@@ -423,6 +432,17 @@ class ProfileScreen extends StatelessWidget {
                 'Разрешение, регистрация телефона или браузера и отключение устройства',
             onTap: () => openPushSettings(context),
           ),
+          if (PwaInstallService.isSupported) ...[
+            const SizedBox(height: 8),
+            buildSectionTitle('Приложение'),
+            buildActionTile(
+              icon: Icons.install_desktop_rounded,
+              title: 'Установить AppСтрой',
+              subtitle:
+                  'Добавить на телефон или компьютер как отдельное приложение',
+              onTap: () => openPwaInstall(context),
+            ),
+          ],
           const SizedBox(height: 8),
           if (profile.isAdmin) ...[
             buildSectionTitle('Управление компанией'),
