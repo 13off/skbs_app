@@ -6,7 +6,10 @@ String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('foreman gets a separate desktop shift workspace', () {
-    final adaptiveHome = source('lib/screens/adaptive_home_screen.dart');
+    final router = source('lib/screens/main_screen.dart');
+    final platform = source(
+      'lib/features/foreman/presentation/foreman_main_screen.dart',
+    );
     final home = source(
       'lib/features/foreman/presentation/foreman_desktop_home_screen.dart',
     );
@@ -14,9 +17,13 @@ void main() {
       'lib/features/foreman/data/foreman_workspace_repository.dart',
     );
 
-    expect(adaptiveHome, contains('ForemanDesktopHomeScreen'));
-    expect(adaptiveHome, contains('profile.isForeman'));
-    expect(adaptiveHome, contains('onAddTask'));
+    expect(router, contains('ForemanMainScreen'));
+    expect(router, contains('if (profile.isForeman)'));
+    expect(platform, contains('desktopBreakpoint = 1050'));
+    expect(platform, contains('return premium.MainScreen(profile: profile)'));
+    expect(platform, contains('ForemanDesktopHomeScreen'));
+    expect(platform, contains('ProfessionalBottomNavigation'));
+    expect(platform, contains("label: 'Смена'"));
     expect(home, contains("title: 'Рабочая смена'"));
     expect(home, contains("label: const Text('Заполнить табель')"));
     expect(home, contains("label: const Text('Добавить задачу')"));
@@ -56,17 +63,18 @@ void main() {
     expect(table, contains("label: hasReport ? 'Есть отчёт' : 'Нет отчёта'"));
   });
 
-  test('shell opens quick task creation and keeps bottom navigation', () {
-    final shell = source(
-      'lib/features/shell/presentation/premium_main_screen.dart',
+  test('foreman platform opens tasks and keeps mobile fallback', () {
+    final platform = source(
+      'lib/features/foreman/presentation/foreman_main_screen.dart',
     );
     final timesheet = source('lib/screens/adaptive_timesheet_screen.dart');
 
-    expect(shell, contains('addTaskFromHome'));
-    expect(shell, contains('AddTaskScreen'));
-    expect(shell, contains('TaskRepository.addTaskWithDetails'));
-    expect(shell, contains('onAddTask: addTaskFromHome'));
-    expect(shell, contains('ProfessionalBottomNavigation'));
+    expect(platform, contains('AddTaskScreen'));
+    expect(platform, contains('TaskRepository.addTaskWithDetails'));
+    expect(platform, contains('TaskDetailsScreen'));
+    expect(platform, contains('ForemanDesktopTasksScreen'));
+    expect(platform, contains('AdaptiveTimesheetScreen'));
+    expect(platform, contains('ProfessionalBottomNavigation'));
     expect(timesheet, contains('DesktopTimesheetScreen'));
     expect(timesheet, contains('mobile.TimesheetScreen'));
   });
