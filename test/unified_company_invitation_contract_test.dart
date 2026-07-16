@@ -18,7 +18,7 @@ void main() {
     expect(profile, isNot(contains('legal_member_invitation_screen.dart')));
   });
 
-  test('company form invites every supported role', () {
+  test('one company form invites every supported role', () {
     final screen = source(
       'lib/features/company/presentation/company_management_screen.dart',
     );
