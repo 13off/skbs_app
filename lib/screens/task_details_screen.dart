@@ -455,8 +455,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       selectedDate.month,
       selectedDate.day,
     );
-    final today = DateTime.now();
-    final cleanToday = DateTime(today.year, today.month, today.day);
+    final cleanToday = TaskEditPolicy.operationalToday;
     final isPastOrToday = !taskDate.isAfter(cleanToday);
 
     if (selectedStatus != 'Выполнено' &&
@@ -857,7 +856,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
           TextField(
             controller: axesController,
-            enabled: !isSaving,
+            enabled: !isSaving && canEdit,
             decoration: InputDecoration(
               hintText: 'Укажите оси',
               border: OutlineInputBorder(
@@ -884,7 +883,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
           TextField(
             controller: workController,
-            enabled: !isSaving,
+            enabled: !isSaving && canEdit,
             minLines: 3,
             maxLines: 7,
             decoration: InputDecoration(
