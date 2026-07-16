@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/presentation/specialist_desktop_table.dart';
+import '../../../widgets/premium_ui.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/company_invitation_repository.dart';
 import '../data/company_repository.dart';
@@ -625,7 +626,7 @@ class _DesktopCompanyManagementScreenState
     );
   }
 
-  Widget invitationStatusFilter() {
+  Widget buildInvitationStatusFilter() {
     return SizedBox(
       width: 220,
       child: DropdownButtonFormField<String>(
@@ -841,7 +842,7 @@ class _DesktopCompanyManagementScreenState
               title: 'Приглашения',
               subtitle:
                   'Активные, принятые, истёкшие и отменённые ссылки доступа',
-              trailing: invitationStatusFilter(),
+              trailing: buildInvitationStatusFilter(),
             ),
             if (invitations.isEmpty)
               const SpecialistMessageCard(
