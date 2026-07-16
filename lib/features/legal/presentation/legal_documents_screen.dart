@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/app_page.dart';
+import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';

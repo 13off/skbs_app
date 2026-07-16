@@ -15,7 +15,9 @@ import '../../data/payment_report_exporter.dart';
 import '../widgets/payment_report_sheet.dart';
 
 class PaymentsScreen extends StatefulWidget {
-  const PaymentsScreen({super.key});
+  final String? selectedObjectName;
+
+  const PaymentsScreen({super.key, this.selectedObjectName});
 
   @override
   State<PaymentsScreen> createState() => _PaymentsScreenState();
@@ -176,6 +178,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       final result = await AttendanceRepository.fetchMonthlyTimesheet(
         year: targetMonth.year,
         month: targetMonth.month,
+        objectName: widget.selectedObjectName,
+        includeFired: true,
         forceRefresh: forceRefresh,
       );
 
@@ -219,6 +223,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           periodMonth: selectedMonth.month,
           periodTitle: monthTitle,
           initialEmployeeId: employeeId,
+          initialObjectName: widget.selectedObjectName,
         ),
       ),
     );
@@ -250,6 +255,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         position: row.employee.position,
         objectTitle: row.objectTitle,
         employeeIds: List<String>.from(row.employeeIds),
+        objectNames: List<String>.from(row.objectNames),
       );
     }).toList();
   }
@@ -652,6 +658,7 @@ class _PaymentDisplayRow {
   final Employee employee;
   final String objectTitle;
   final List<String> employeeIds;
+  final List<String> objectNames;
   final double accrued;
   final double paid;
 
@@ -659,6 +666,7 @@ class _PaymentDisplayRow {
     required this.employee,
     required this.objectTitle,
     required this.employeeIds,
+    required this.objectNames,
     required this.accrued,
     required this.paid,
   });
@@ -718,6 +726,7 @@ class _PaymentDisplayDraft {
       employee: employee,
       objectTitle: title,
       employeeIds: employeeIds.toList(),
+      objectNames: objectNames.toList()..sort(),
       accrued: accrued,
       paid: paid,
     );

@@ -49,7 +49,11 @@ void main() {
         "title: 'Табель и начисления'",
         "'Реестр выплат'",
         'PaymentReportExporter.download(',
-        'PeriodTimesheetScreen(selectedObjectName: null)',
+        'Widget objectPanel()',
+        "child: Text('Все объекты')",
+        'selectedObjectName: selectedObjectName',
+        'objectName: selectedObjectName',
+        'selectedObjectScope == null',
       ],
     );
   });

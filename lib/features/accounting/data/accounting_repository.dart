@@ -84,9 +84,11 @@ class AccountingRepository {
   static Future<List<AccountingPaymentRegisterRow>> fetchPaymentRegister({
     required DateTime startDate,
     required DateTime endDate,
+    String? objectName,
     bool forceRefresh = false,
   }) async {
     final employees = await EmployeeRepository.fetchEmployees(
+      objectName: objectName,
       includeFired: true,
       forceRefresh: forceRefresh,
     );
