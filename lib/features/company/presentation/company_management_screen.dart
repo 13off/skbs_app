@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'desktop_company_management_screen.dart';
 import 'mobile_company_management_screen.dart' as mobile;
 
+export 'mobile_company_management_screen.dart'
+    show CompanyMemberEditorScreen;
+
 class CompanyManagementScreen extends StatelessWidget {
   static const double desktopBreakpoint = 1050;
 
