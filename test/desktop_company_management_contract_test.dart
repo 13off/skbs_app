@@ -21,6 +21,7 @@ void main() {
     expect(adaptive, contains('desktopBreakpoint = 1050'));
     expect(adaptive, contains('DesktopCompanyManagementScreen'));
     expect(adaptive, contains('mobile.CompanyManagementScreen'));
+    expect(adaptive, contains('show CompanyMemberEditorScreen'));
     expect(mobile, contains("title: const Text('Компания и пользователи')"));
     expect(mobile, contains('CompanyMemberEditorScreen'));
     expect(desktop, contains("title: 'Компания и пользователи'"));
