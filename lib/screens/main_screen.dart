@@ -7,11 +7,11 @@ import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
+import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../models/app_user_profile.dart';
-import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -94,7 +94,7 @@ class _MainScreenState extends State<MainScreen> {
       return LegalMainScreen(profile: profile);
     }
     if (profile.isAccountant) {
-      return Scaffold(body: ProfileScreen(profile: profile));
+      return AccountingMainScreen(profile: profile);
     }
     return premium.MainScreen(profile: profile);
   }
