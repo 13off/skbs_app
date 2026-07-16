@@ -25,6 +25,7 @@ void main() {
     expect(repository, contains('fetchTaskMeta'));
     expect(repository, contains(".from('task_photos')"));
     expect(repository, contains(".from('task_assignees')"));
+    expect(repository, contains(".inFilter('task_id', ids)"));
   });
 
   test('foreman desktop tasks have assignee and evidence filters', () {
