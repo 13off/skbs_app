@@ -1,31 +1,25 @@
 name: Apply foreman desktop wiring
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
     branches:
-      - main
-    paths:
-      - lib/**
-      - test/**
-      - .github/workflows/pr-check.yml
+      - feature/foreman-desktop-workspace
 
 permissions:
   contents: write
 
 concurrency:
-  group: appstroy-foreman-wiring-${{ github.event.pull_request.number }}
+  group: appstroy-foreman-wiring
   cancel-in-progress: true
 
 jobs:
   apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: feature/foreman-desktop-workspace
           fetch-depth: 0
 
       - name: Wire foreman desktop screens and restore CI
@@ -146,4 +140,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/screens/adaptive_home_screen.dart lib/features/shell/presentation/premium_main_screen.dart .github/workflows/pr-check.yml
           git commit -m "подключена ПК-платформа прораба"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:feature/foreman-desktop-workspace
