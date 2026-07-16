@@ -498,6 +498,33 @@ class TaskRepository {
     }).toList();
   }
 
+  static Future<void> deleteTaskPhoto(TaskPhotoData photo) async {
+    final deletedRows = await _client
+        .from('task_photos')
+        .delete()
+        .eq('id', photo.id)
+        .eq('task_id', photo.taskId)
+        .select('id');
+
+    if (deletedRows.isEmpty) {
+      throw Exception('Фото уже удалено или редактирование закрыто');
+    }
+
+    try {
+      await _client.storage.from(taskPhotosBucket).remove([photo.storagePath]);
+    } catch (_) {
+      // Запись уже удалена. Оставшийся файл можно убрать служебной очисткой.
+    }
+
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.tasks},
+      context: <String, dynamic>{
+        'table': 'task_photos',
+        'task_id': photo.taskId,
+      },
+    );
+  }
+
   static Future<String> createTaskPhotoSignedUrl(TaskPhotoData photo) async {
     return _client.storage
         .from(taskPhotosBucket)

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
+import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import '../widgets/app_page.dart';
@@ -208,6 +209,15 @@ class _TasksScreenState extends State<TasksScreen> {
       return;
     }
 
+    if (!TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Прораб может добавлять задачи только на текущий день'),
+        ),
+      );
+      return;
+    }
+
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
       CupertinoPageRoute(
@@ -257,7 +267,9 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> openTaskDetails(TaskItemData task) async {
     final result = await Navigator.push(
       context,
-      CupertinoPageRoute(builder: (_) => TaskDetailsScreen(task: task)),
+      CupertinoPageRoute(
+        builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
+      ),
     );
 
     if (result == null) return;
@@ -614,7 +626,12 @@ class _TasksScreenState extends State<TasksScreen> {
           PremiumActionButton(
             label: 'Добавить задачу',
             icon: Icons.add_rounded,
-            onPressed: openAddTaskScreen,
+            onPressed: TaskEditPolicy.canCreateForDate(
+              widget.profile,
+              selectedDate,
+            )
+                ? openAddTaskScreen
+                : null,
           ),
           buildActButton(tasks),
         ],
