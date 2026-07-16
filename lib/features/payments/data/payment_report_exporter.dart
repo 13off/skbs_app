@@ -10,6 +10,7 @@ class PaymentReportEmployeeOption {
   final String position;
   final String objectTitle;
   final List<String> employeeIds;
+  final List<String> objectNames;
 
   const PaymentReportEmployeeOption({
     required this.key,
@@ -17,14 +18,20 @@ class PaymentReportEmployeeOption {
     required this.position,
     required this.objectTitle,
     required this.employeeIds,
+    this.objectNames = const <String>[],
   });
 }
 
 class PaymentReportRequest {
   final DateTime? month;
   final String? employeeKey;
+  final String? objectName;
 
-  const PaymentReportRequest({required this.month, required this.employeeKey});
+  const PaymentReportRequest({
+    required this.month,
+    required this.employeeKey,
+    this.objectName,
+  });
 
   bool get isAllTime => month == null;
 }
@@ -36,9 +43,17 @@ class PaymentReportExporter {
     required PaymentReportRequest request,
     required List<PaymentReportEmployeeOption> employees,
   }) async {
-    final selectedEmployees = request.employeeKey == null
+    final objectName = request.objectName?.trim().toLowerCase();
+    final objectEmployees = objectName == null || objectName.isEmpty
         ? employees
-        : employees
+        : employees.where((employee) {
+            return employee.objectNames.any(
+              (value) => value.trim().toLowerCase() == objectName,
+            );
+          }).toList();
+    final selectedEmployees = request.employeeKey == null
+        ? objectEmployees
+        : objectEmployees
               .where((employee) => employee.key == request.employeeKey)
               .toList();
 

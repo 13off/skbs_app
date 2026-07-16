@@ -16,6 +16,7 @@ abstract final class _LegalDirectories {
         id: row['id']?.toString() ?? '',
         title: row['fio']?.toString() ?? '',
         subtitle: subtitle,
+        objectName: object,
       );
     }).where((item) => item.id.isNotEmpty && item.title.isNotEmpty).toList();
   }
