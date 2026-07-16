@@ -8,7 +8,6 @@ import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
-import 'widgets/professional_bottom_navigation.dart';
 
 const String _defaultSupabaseUrl =
     'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
@@ -108,11 +107,6 @@ class _SkbsAppState extends State<SkbsApp> {
       navigatorObservers: [AppWebHistoryObserver()],
       scrollBehavior: const PremiumScrollBehavior(),
       theme: PremiumDepthTheme.apply(AppTheme.light),
-      builder: (context, child) {
-        return ProfessionalDesktopShell(
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
       home: widget.startupError == null
           ? const AppBrowserBackBridge(child: AuthGate())
           : _StartupErrorScreen(error: widget.startupError!),
