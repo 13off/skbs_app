@@ -1,36 +1,42 @@
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+
+import 'package:universal_html/html.dart' as html;
+
+@JS('appstroyCanInstallPwa')
+external JSBoolean _appstroyCanInstallPwa();
+
+@JS('appstroyInstallPwa')
+external JSPromise<JSObject> _appstroyInstallPwa();
 
 bool get isSupported => true;
 
 bool get isInstalled {
   try {
-    if (html.window.matchMedia('(display-mode: standalone)').matches) {
-      return true;
-    }
-    final navigator = html.window.navigator;
-    if (js_util.hasProperty(navigator, 'standalone')) {
-      return js_util.getProperty<Object?>(navigator, 'standalone') == true;
-    }
-  } catch (_) {}
-  return false;
-}
-
-bool get canPrompt {
-  try {
-    return js_util.callMethod<Object?>(
-          html.window,
-          'appstroyCanInstallPwa',
-          const <Object?>[],
-        ) ==
-        true;
+    return html.window.matchMedia('(display-mode: standalone)').matches;
   } catch (_) {
     return false;
   }
 }
 
+bool get canPrompt {
+  try {
+    return _appstroyCanInstallPwa().toDart;
+  } catch (_) {
+    return false;
+  }
+}
+
+String get _userAgent {
+  try {
+    return html.window.navigator.userAgent.toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
 String get platformName {
-  final userAgent = html.window.navigator.userAgent.toLowerCase();
+  final userAgent = _userAgent;
   if (userAgent.contains('iphone') || userAgent.contains('ipad')) {
     return 'iPhone или iPad';
   }
@@ -43,7 +49,7 @@ String get platformName {
 }
 
 String get manualInstruction {
-  final userAgent = html.window.navigator.userAgent.toLowerCase();
+  final userAgent = _userAgent;
   if (userAgent.contains('iphone') || userAgent.contains('ipad')) {
     return 'Откройте AppСтрой в Safari, нажмите «Поделиться» и выберите «На экран Домой».';
   }
@@ -65,18 +71,8 @@ String get manualInstruction {
 Future<String> install() async {
   if (isInstalled) return 'installed';
   try {
-    final promise = js_util.callMethod<Object?>(
-      html.window,
-      'appstroyInstallPwa',
-      const <Object?>[],
-    );
-    if (promise == null) return 'unavailable';
-    final result = await js_util.promiseToFuture<Object?>(promise);
-    if (result == null || !js_util.hasProperty(result, 'status')) {
-      return 'unavailable';
-    }
-    return js_util.getProperty<Object?>(result, 'status')?.toString() ??
-        'unavailable';
+    final result = await _appstroyInstallPwa().toDart;
+    return result.getProperty<JSString>('status'.toJS).toDart;
   } catch (_) {
     return 'unavailable';
   }
