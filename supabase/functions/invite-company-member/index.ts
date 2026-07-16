@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const publishedWebAppUrl = "https://13off.github.io/appstroy-web/";
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -67,16 +69,12 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Сервис вернул неполную ссылку приглашения" }, 502);
     }
 
-    const landingUrl = new URL(
-      "https://api.appstroy-web.ru/functions/v1/invite-landing",
-    );
+    const landingUrl = new URL("invite.html", publishedWebAppUrl);
     landingUrl.searchParams.set("companyInvite", companyId);
     landingUrl.searchParams.set("inviteTokenHash", tokenHash);
     landingUrl.searchParams.set("inviteType", inviteType);
 
-    const redirectUrl = new URL(
-      "https://api.appstroy-web.ru/functions/v1/invite-landing",
-    );
+    const redirectUrl = new URL(publishedWebAppUrl);
     redirectUrl.searchParams.set("companyInvite", companyId);
 
     return json({
