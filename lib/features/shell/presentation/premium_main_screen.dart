@@ -15,8 +15,8 @@ import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
 import '../../../navigation/web_back_navigation.dart';
+import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/adaptive_home_screen.dart';
-import '../../../screens/employees_screen.dart';
 import '../../../screens/payments_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
@@ -262,7 +262,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             onOpenPayments: openPaymentsFromHome,
           );
         case 1:
-          return EmployeesScreen(
+          return AdaptiveEmployeesScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
           );
