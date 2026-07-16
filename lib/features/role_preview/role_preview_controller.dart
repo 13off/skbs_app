@@ -45,21 +45,23 @@ class RolePreviewController {
     final savedRole = NavigationSession.readPreviewRole()?.trim();
     final savedObjectName = NavigationSession.readPreviewObjectName();
 
-    switch (savedRole) {
-      case 'foreman':
-        state.value = savedObjectName.isEmpty
-            ? const RolePreviewState()
-            : RolePreviewState(
-                role: 'foreman',
-                objectName: savedObjectName,
-              );
-      case 'lawyer':
-        state.value = const RolePreviewState(role: 'lawyer');
-      case 'accountant':
-        state.value = const RolePreviewState(role: 'accountant');
-      default:
-        state.value = const RolePreviewState();
+    if (savedRole == 'foreman' && savedObjectName.isNotEmpty) {
+      state.value = RolePreviewState(
+        role: 'foreman',
+        objectName: savedObjectName,
+      );
+      return;
     }
+    if (savedRole == 'lawyer') {
+      state.value = const RolePreviewState(role: 'lawyer');
+      return;
+    }
+    if (savedRole == 'accountant') {
+      state.value = const RolePreviewState(role: 'accountant');
+      return;
+    }
+
+    state.value = const RolePreviewState();
   }
 
   static void setState(RolePreviewState nextState) {
