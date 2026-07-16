@@ -344,10 +344,21 @@ class _CompanyMemberEditorScreenState
     super.initState();
     fullNameController = TextEditingController(text: widget.member?.fullName ?? '');
     emailController = TextEditingController(text: widget.member?.email ?? '');
-    role = widget.member?.role == 'admin' ? 'admin' : 'foreman';
-    objectId = widget.member?.objectId.isNotEmpty == true
-        ? widget.member!.objectId
-        : (widget.objects.isEmpty ? null : widget.objects.first.id);
+    const allowedRoles = <String>{
+      'admin',
+      'foreman',
+      'lawyer',
+      'accountant',
+    };
+    final currentRole = widget.member?.role;
+    role = currentRole != null && allowedRoles.contains(currentRole)
+        ? currentRole
+        : 'foreman';
+    objectId = role == 'foreman'
+        ? (widget.member?.objectId.isNotEmpty == true
+              ? widget.member!.objectId
+              : (widget.objects.isEmpty ? null : widget.objects.first.id))
+        : null;
   }
 
   @override
@@ -584,12 +595,31 @@ class _CompanyMemberEditorScreenState
               prefixIcon: Icon(Icons.admin_panel_settings_outlined),
             ),
             items: const [
-              DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
               DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+              DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
+              DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
+              DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
             ],
             onChanged: isSaving
                 ? null
-                : (value) => setState(() => role = value ?? 'foreman'),
+                : (value) {
+                    final nextRole = value ?? 'foreman';
+                    setState(() {
+                      role = nextRole;
+                      if (role == 'foreman') {
+                        final objectStillAvailable = widget.objects.any(
+                          (item) => item.id == objectId,
+                        );
+                        if (!objectStillAvailable) {
+                          objectId = widget.objects.isEmpty
+                              ? null
+                              : widget.objects.first.id;
+                        }
+                      } else {
+                        objectId = null;
+                      }
+                    });
+                  },
           ),
           if (role == 'foreman') ...[
             const SizedBox(height: 12),

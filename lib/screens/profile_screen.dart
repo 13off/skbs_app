@@ -7,7 +7,6 @@ import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
-import '../features/legal/presentation/legal_member_invitation_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/role_preview/role_preview_screen.dart';
 import '../models/app_user_profile.dart';
@@ -105,18 +104,6 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(builder: (_) => const PwaInstallScreen()),
-    );
-  }
-
-  void openSpecialistInvitation(BuildContext context) {
-    if (profile.activeCompanyId.isEmpty) return;
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => LegalMemberInvitationScreen(
-          companyId: profile.activeCompanyId,
-        ),
-      ),
     );
   }
 
@@ -454,17 +441,10 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openLegalSummary(context),
             ),
             buildActionTile(
-              icon: Icons.person_add_alt_1_rounded,
-              title: 'Пригласить юриста или бухгалтера',
-              subtitle:
-                  'Создать ссылку для специалиста с отдельной ролью и рабочим разделом',
-              onTap: () => openSpecialistInvitation(context),
-            ),
-            buildActionTile(
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
               subtitle:
-                  'Приглашения, роли администраторов и назначение прорабов',
+                  'Приглашения, роли и доступ всех пользователей компании',
               onTap: () => openCompanyManagement(context),
             ),
             buildActionTile(
