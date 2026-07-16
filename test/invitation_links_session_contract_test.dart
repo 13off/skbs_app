@@ -7,7 +7,7 @@ String source(String path) => File(path).readAsStringSync();
 void main() {
   test('admin receives a copyable company invitation link', () {
     final screen = source(
-      'lib/features/company/presentation/company_management_screen.dart',
+      'lib/features/company/presentation/mobile_company_management_screen.dart',
     );
     final repository = source(
       'lib/features/company/data/company_repository.dart',
