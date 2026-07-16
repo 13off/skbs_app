@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/app_user_profile.dart';
 import 'desktop_tasks_screen.dart';
-import 'tasks_screen.dart';
+import 'mobile_tasks_screen.dart' as mobile;
 
 class AdaptiveTasksScreen extends StatelessWidget {
   static const double desktopBreakpoint = 1050;
@@ -25,7 +25,7 @@ class AdaptiveTasksScreen extends StatelessWidget {
             kIsWeb && constraints.maxWidth >= desktopBreakpoint;
 
         if (!useDesktopTasks) {
-          return TasksScreen(
+          return mobile.TasksScreen(
             profile: profile,
             selectedObjectName: selectedObjectName,
           );
