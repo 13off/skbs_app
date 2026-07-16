@@ -50,7 +50,7 @@ void main() {
     expect(desktop, contains("label: 'Готово'"));
     expect(desktop, contains("label: 'Частично'"));
     expect(desktop, contains("label: 'Нет данных'"));
-    expect(desktop, contains('onTap: () => onOpenEmployee(entry.$2)'));
+    expect(desktop, contains(r'onTap: () => onOpenEmployee(entry.$2)'));
     expect(desktop, contains('SingleChildScrollView('));
     expect(desktop, contains('scrollDirection: Axis.horizontal'));
   });
