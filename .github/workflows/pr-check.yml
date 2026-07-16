@@ -40,7 +40,16 @@ jobs:
         run: flutter pub get --enforce-lockfile >/dev/null
 
       - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            cat /tmp/flutter-analyze.log
+            exit "$status"
+          fi
+          tail -n 8 /tmp/flutter-analyze.log
 
       - name: Run regression tests
         id: regression
