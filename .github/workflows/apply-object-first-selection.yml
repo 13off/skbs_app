@@ -1,0 +1,550 @@
+name: Apply object-first employee selection
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/object-first-employee-selection'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/object-first-employee-selection
+          fetch-depth: 0
+
+      - name: Apply scoped employee selection
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path, text):
+              Path(path).parent.mkdir(parents=True, exist_ok=True)
+              Path(path).write_text(text, encoding='utf-8')
+
+          def replace(path, old, new, count=1):
+              text = read(path)
+              found = text.count(old)
+              if found < count:
+                  raise SystemExit(f'{path}: expected at least {count} occurrence(s), found {found}: {old[:100]!r}')
+              text = text.replace(old, new, count)
+              write(path, text)
+
+          write('lib/widgets/object_employee_scope.dart', """const String allObjectsScopeValue = '__all_objects__';
+
+bool isAllObjectsScope(String? value) => value == allObjectsScopeValue;
+
+String? selectedObjectNameFromScope(String? value) {
+  final clean = value?.trim();
+  if (clean == null || clean.isEmpty || isAllObjectsScope(clean)) return null;
+  return clean;
+}
+
+List<T> filterEmployeesByObject<T>({
+  required List<T> employees,
+  required String? selectedObject,
+  required String Function(T employee) objectNameOf,
+}) {
+  final cleanScope = selectedObject?.trim();
+  if (cleanScope == null || cleanScope.isEmpty) return <T>[];
+  if (isAllObjectsScope(cleanScope)) return List<T>.from(employees);
+
+  final normalizedScope = cleanScope.toLowerCase();
+  return employees.where((employee) {
+    return objectNameOf(employee).trim().toLowerCase() == normalizedScope;
+  }).toList();
+}
+""")
+
+          # Выплата: объект/все объекты всегда выбирается раньше сотрудника.
+          path = 'lib/screens/add_payment_screen.dart'
+          replace(path,
+              "import '../models/employee.dart';\n",
+              "import '../models/employee.dart';\nimport '../widgets/object_employee_scope.dart';\n")
+          replace(path,
+              "  final String? initialEmployeeId;\n",
+              "  final String? initialEmployeeId;\n  final String? initialObjectName;\n")
+          replace(path,
+              "    this.initialEmployeeId,\n",
+              "    this.initialEmployeeId,\n    this.initialObjectName,\n")
+          replace(path,
+              "    selectedEmployeeId = widget.initialEmployeeId;\n    loadEmployees();\n",
+              "    final initialObject = widget.initialObjectName?.trim();\n    selectedObjectName = initialObject == null || initialObject.isEmpty\n        ? null\n        : initialObject;\n    selectedEmployeeId = widget.initialEmployeeId;\n    loadEmployees();\n")
+          replace(path,
+              "  List<Employee> employeesForSelectedObject() {\n    final objectName = selectedObjectName?.trim();\n    if (objectName == null || objectName.isEmpty) return const <Employee>[];\n\n    final result = employees\n        .where((employee) => employee.objectName.trim() == objectName)\n        .toList();\n    result.sort((a, b) => a.name.compareTo(b.name));\n    return result;\n  }\n",
+              "  List<Employee> employeesForSelectedObject() {\n    final result = filterEmployeesByObject<Employee>(\n      employees: employees,\n      selectedObject: selectedObjectName,\n      objectNameOf: (employee) => employee.objectName,\n    );\n    result.sort((a, b) => a.name.compareTo(b.name));\n    return result;\n  }\n")
+          replace(path,
+              "            items: objectNames.map((objectName) {\n              return DropdownMenuItem<String>(\n                value: objectName,\n                child: Text(objectName),\n              );\n            }).toList(),\n",
+              "            items: [\n              const DropdownMenuItem<String>(\n                value: allObjectsScopeValue,\n                child: Text('Все объекты'),\n              ),\n              ...objectNames.map((objectName) {\n                return DropdownMenuItem<String>(\n                  value: objectName,\n                  child: Text(objectName),\n                );\n              }),\n            ],\n")
+          replace(path,
+              "                child: Text(employee.name),\n",
+              "                child: Text(\n                  isAllObjectsScope(selectedObjectName) &&\n                          employee.objectName.trim().isNotEmpty\n                      ? '${employee.name} — ${employee.objectName.trim()}'\n                      : employee.name,\n                  overflow: TextOverflow.ellipsis,\n                ),\n")
+
+          # Модель отчёта по выплатам знает, к каким объектам относится сотрудник.
+          path = 'lib/features/payments/data/payment_report_exporter.dart'
+          replace(path,
+              "  final List<String> employeeIds;\n",
+              "  final List<String> employeeIds;\n  final List<String> objectNames;\n")
+          replace(path,
+              "    required this.employeeIds,\n  });\n",
+              "    required this.employeeIds,\n    this.objectNames = const <String>[],\n  });\n")
+          replace(path,
+              "  final String? employeeKey;\n\n  const PaymentReportRequest({required this.month, required this.employeeKey});\n",
+              "  final String? employeeKey;\n  final String? objectName;\n\n  const PaymentReportRequest({\n    required this.month,\n    required this.employeeKey,\n    this.objectName,\n  });\n")
+          replace(path,
+              "    final selectedEmployees = request.employeeKey == null\n        ? employees\n        : employees\n              .where((employee) => employee.key == request.employeeKey)\n              .toList();\n",
+              "    final objectName = request.objectName?.trim().toLowerCase();\n    final objectEmployees = objectName == null || objectName.isEmpty\n        ? employees\n        : employees.where((employee) {\n            return employee.objectNames.any(\n              (value) => value.trim().toLowerCase() == objectName,\n            );\n          }).toList();\n    final selectedEmployees = request.employeeKey == null\n        ? objectEmployees\n        : objectEmployees\n              .where((employee) => employee.key == request.employeeKey)\n              .toList();\n")
+
+          # Отчёт: объект выбирается до сотрудника, список фамилий фильтруется.
+          path = 'lib/features/payments/presentation/widgets/payment_report_sheet.dart'
+          replace(path,
+              "import '../../data/payment_report_exporter.dart';\n",
+              "import '../../../../widgets/object_employee_scope.dart';\nimport '../../data/payment_report_exporter.dart';\n")
+          replace(path,
+              "  String selectedEmployeeKey = _allEmployeesKey;\n",
+              "  String? selectedObjectKey;\n  String selectedEmployeeKey = _allEmployeesKey;\n")
+          replace(path,
+              "  void submit() {\n",
+              "  List<String> get objectNames {\n    final values = widget.employees\n        .expand((employee) => employee.objectNames)\n        .map((value) => value.trim())\n        .where((value) => value.isNotEmpty)\n        .toSet()\n        .toList()\n      ..sort();\n    return values;\n  }\n\n  List<PaymentReportEmployeeOption> get filteredEmployees {\n    final scope = selectedObjectKey;\n    if (scope == null) return const <PaymentReportEmployeeOption>[];\n    if (isAllObjectsScope(scope)) return widget.employees;\n    final normalized = scope.trim().toLowerCase();\n    return widget.employees.where((employee) {\n      return employee.objectNames.any(\n        (value) => value.trim().toLowerCase() == normalized,\n      );\n    }).toList();\n  }\n\n  void submit() {\n")
+          replace(path,
+              "        employeeKey: selectedEmployeeKey == _allEmployeesKey\n            ? null\n            : selectedEmployeeKey,\n",
+              "        employeeKey: selectedEmployeeKey == _allEmployeesKey\n            ? null\n            : selectedEmployeeKey,\n        objectName: isAllObjectsScope(selectedObjectKey)\n            ? null\n            : selectedObjectKey,\n")
+          replace(path,
+              "                  'Выбери период и сотрудника. Таблица скачается одним XLSX-файлом.',\n",
+              "                  'Сначала выбери объект или «Все объекты», затем период и сотрудника.',\n")
+          replace(path,
+              "                    children: [\n                      DropdownButtonFormField<String>(\n                        initialValue: selectedPeriodKey,\n",
+              "                    children: [\n                      DropdownButtonFormField<String>(\n                        initialValue: selectedObjectKey,\n                        isExpanded: true,\n                        decoration: const InputDecoration(\n                          labelText: 'Объект',\n                          hintText: 'Сначала выберите объект',\n                          prefixIcon: Icon(Icons.apartment_outlined),\n                          border: OutlineInputBorder(),\n                        ),\n                        items: [\n                          const DropdownMenuItem<String>(\n                            value: allObjectsScopeValue,\n                            child: Text('Все объекты'),\n                          ),\n                          ...objectNames.map((objectName) {\n                            return DropdownMenuItem<String>(\n                              value: objectName,\n                              child: Text(objectName),\n                            );\n                          }),\n                        ],\n                        onChanged: (value) {\n                          setState(() {\n                            selectedObjectKey = value;\n                            selectedEmployeeKey = _allEmployeesKey;\n                          });\n                        },\n                      ),\n                      const SizedBox(height: 14),\n                      DropdownButtonFormField<String>(\n                        initialValue: selectedPeriodKey,\n")
+          replace(path,
+              "                          ...widget.employees.map((employee) {\n",
+              "                          ...filteredEmployees.map((employee) {\n")
+          replace(path,
+              "                        onChanged: (value) {\n                          if (value == null) return;\n\n                          setState(() {\n                            selectedEmployeeKey = value;\n                          });\n                        },\n",
+              "                        onChanged: selectedObjectKey == null\n                            ? null\n                            : (value) {\n                                if (value == null) return;\n                                setState(() {\n                                  selectedEmployeeKey = value;\n                                });\n                              },\n", count=1)
+          replace(path,
+              "                    onPressed: submit,\n",
+              "                    onPressed: selectedObjectKey == null ? null : submit,\n")
+
+          # Сохраняем структурированный список объектов у строк выплат.
+          path = 'lib/features/payments/presentation/screens/payments_screen.dart'
+          replace(path,
+              "        objectTitle: row.objectTitle,\n        employeeIds: List<String>.from(row.employeeIds),\n",
+              "        objectTitle: row.objectTitle,\n        employeeIds: List<String>.from(row.employeeIds),\n        objectNames: List<String>.from(row.objectNames),\n")
+          replace(path,
+              "  final List<String> employeeIds;\n  final double accrued;\n",
+              "  final List<String> employeeIds;\n  final List<String> objectNames;\n  final double accrued;\n")
+          replace(path,
+              "    required this.employeeIds,\n    required this.accrued,\n",
+              "    required this.employeeIds,\n    required this.objectNames,\n    required this.accrued,\n")
+          replace(path,
+              "      employeeIds: employeeIds.toList(),\n      accrued: accrued,\n",
+              "      employeeIds: employeeIds.toList(),\n      objectNames: objectNames.toList()..sort(),\n      accrued: accrued,\n")
+
+          # Источник выплат из экрана сотрудников получает текущий объект без deploy-патча.
+          path = 'lib/screens/employees_screen.dart'
+          replace(path,
+              "      AppPageRoute(builder: (_) => const PaymentsScreen()),\n",
+              "      AppPageRoute(\n        builder: (_) => PaymentsScreen(\n          selectedObjectName: widget.selectedObjectName,\n        ),\n      ),\n")
+
+          # Основной экран выплат принимает начальный объект и передаёт его в форму.
+          path = 'lib/features/payments/presentation/screens/payments_screen.dart'
+          replace(path,
+              "class PaymentsScreen extends StatefulWidget {\n  const PaymentsScreen({super.key});\n",
+              "class PaymentsScreen extends StatefulWidget {\n  final String? selectedObjectName;\n\n  const PaymentsScreen({super.key, this.selectedObjectName});\n")
+          replace(path,
+              "          initialEmployeeId: employeeId,\n",
+              "          initialEmployeeId: employeeId,\n          initialObjectName: widget.selectedObjectName,\n")
+          replace(path,
+              "        month: targetMonth.month,\n        forceRefresh: forceRefresh,\n",
+              "        month: targetMonth.month,\n        objectName: widget.selectedObjectName,\n        includeFired: true,\n        forceRefresh: forceRefresh,\n")
+
+          # Бухгалтерские отчёты: общий объектный фильтр до реестра и выгрузок.
+          path = 'lib/features/accounting/data/accounting_repository.dart'
+          replace(path,
+              "    required DateTime endDate,\n    bool forceRefresh = false,\n",
+              "    required DateTime endDate,\n    String? objectName,\n    bool forceRefresh = false,\n")
+          replace(path,
+              "    final employees = await EmployeeRepository.fetchEmployees(\n      includeFired: true,\n      forceRefresh: forceRefresh,\n    );\n",
+              "    final employees = await EmployeeRepository.fetchEmployees(\n      objectName: objectName,\n      includeFired: true,\n      forceRefresh: forceRefresh,\n    );\n", count=1)
+
+          path = 'lib/features/accounting/presentation/accounting_reports_screen.dart'
+          replace(path,
+              "import '../../../data/employee_repository.dart';\n",
+              "import '../../../data/employee_repository.dart';\nimport '../../../data/object_repository.dart';\n")
+          replace(path,
+              "import '../../../widgets/app_page.dart';\n",
+              "import '../../../widgets/app_page.dart';\nimport '../../../widgets/object_employee_scope.dart';\n")
+          replace(path,
+              "  bool isExporting = false;\n",
+              "  bool isExporting = false;\n  List<String> objectNames = const <String>[];\n  String? selectedObjectScope;\n")
+          replace(path,
+              "    registerFuture = loadRegister();\n",
+              "    registerFuture = Future.value(const <AccountingPaymentRegisterRow>[]);\n    loadObjects();\n")
+          replace(path,
+              "  DateTime get firstDay => DateTime(selectedMonth.year, selectedMonth.month, 1);\n",
+              "  DateTime get firstDay => DateTime(selectedMonth.year, selectedMonth.month, 1);\n  String? get selectedObjectName =>\n      selectedObjectNameFromScope(selectedObjectScope);\n\n  Future<void> loadObjects() async {\n    final names = await ObjectRepository.fetchObjectNames();\n    if (!mounted) return;\n    setState(() => objectNames = names);\n  }\n")
+          replace(path,
+              "    return AccountingRepository.fetchPaymentRegister(\n      startDate: firstDay,\n      endDate: lastDay,\n      forceRefresh: forceRefresh,\n    );\n",
+              "    if (selectedObjectScope == null) {\n      return Future.value(const <AccountingPaymentRegisterRow>[]);\n    }\n    return AccountingRepository.fetchPaymentRegister(\n      startDate: firstDay,\n      endDate: lastDay,\n      objectName: selectedObjectName,\n      forceRefresh: forceRefresh,\n    );\n")
+          replace(path,
+              "    final employees = await EmployeeRepository.fetchEmployees(includeFired: true);\n",
+              "    final employees = await EmployeeRepository.fetchEmployees(\n      objectName: selectedObjectName,\n      includeFired: true,\n    );\n")
+          replace(path,
+              "        employeeIds: draft.employeeIds.toList(),\n",
+              "        employeeIds: draft.employeeIds.toList(),\n        objectNames: objects,\n")
+          replace(path,
+              "  Future<void> downloadPayments() async {\n    if (isExporting) return;\n",
+              "  Future<void> downloadPayments() async {\n    if (isExporting || selectedObjectScope == null) return;\n")
+          replace(path,
+              "        request: PaymentReportRequest(month: selectedMonth, employeeKey: null),\n",
+              "        request: PaymentReportRequest(\n          month: selectedMonth,\n          employeeKey: null,\n          objectName: selectedObjectName,\n        ),\n")
+          replace(path,
+              "  void openTimesheet() {\n    Navigator.push<void>(\n",
+              "  void openTimesheet() {\n    if (selectedObjectScope == null) return;\n    Navigator.push<void>(\n")
+          replace(path,
+              "        builder: (_) => const PeriodTimesheetScreen(selectedObjectName: null),\n",
+              "        builder: (_) => PeriodTimesheetScreen(\n          selectedObjectName: selectedObjectName,\n        ),\n")
+          marker = "  Widget monthPanel() {\n"
+          object_panel = """  Widget objectPanel() {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      child: DropdownButtonFormField<String>(
+        initialValue: selectedObjectScope,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Объект',
+          hintText: 'Сначала выберите объект',
+          prefixIcon: Icon(Icons.apartment_outlined),
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem<String>(
+            value: allObjectsScopeValue,
+            child: Text('Все объекты'),
+          ),
+          ...objectNames.map(
+            (name) => DropdownMenuItem<String>(value: name, child: Text(name)),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            selectedObjectScope = value;
+            registerFuture = loadRegister(forceRefresh: true);
+          });
+        },
+      ),
+    );
+  }
+
+"""
+          replace(path, marker, object_panel + marker)
+          replace(path,
+              "        children: [\n          monthPanel(),\n",
+              "        children: [\n          objectPanel(),\n          const SizedBox(height: 14),\n          monthPanel(),\n")
+          replace(path,
+              "            onTap: isExporting ? null : downloadPayments,\n",
+              "            onTap: isExporting || selectedObjectScope == null\n                ? null\n                : downloadPayments,\n")
+          replace(path,
+              "            onTap: openTimesheet,\n",
+              "            onTap: selectedObjectScope == null ? null : openTimesheet,\n")
+          replace(path,
+              "              return register(snapshot.data ?? const []);\n",
+              "              if (selectedObjectScope == null) {\n                return const PremiumWorkCard(\n                  child: Padding(\n                    padding: EdgeInsets.all(22),\n                    child: Text(\n                      'Сначала выберите объект или «Все объекты».',\n                      textAlign: TextAlign.center,\n                    ),\n                  ),\n                );\n              }\n              return register(snapshot.data ?? const []);\n")
+
+          # Юридический справочник хранит объект отдельным полем, а не только в подписи.
+          path = 'lib/features/legal/models/legal_models.dart'
+          replace(path,
+              "  final String subtitle;\n",
+              "  final String subtitle;\n  final String objectName;\n")
+          replace(path,
+              "    this.subtitle = '',\n  });\n",
+              "    this.subtitle = '',\n    this.objectName = '',\n  });\n")
+          path = 'lib/features/legal/data/legal_directory_repository_part.dart'
+          replace(path,
+              "        subtitle: subtitle,\n      );\n",
+              "        subtitle: subtitle,\n        objectName: object,\n      );\n", count=1)
+
+          # Part-файлы получают общий объектный helper через родительские библиотеки.
+          path = 'lib/features/legal/presentation/legal_documents_screen.dart'
+          replace(path,
+              "import '../../../widgets/app_page.dart';\n",
+              "import '../../../widgets/app_page.dart';\nimport '../../../widgets/object_employee_scope.dart';\n")
+          path = 'lib/features/legal/presentation/legal_matters_screen.dart'
+          replace(path,
+              "import '../../../widgets/app_page.dart';\n",
+              "import '../../../widgets/app_page.dart';\nimport '../../../widgets/object_employee_scope.dart';\n")
+
+          # Юридический документ: сначала объект/все объекты, потом отфильтрованный сотрудник.
+          path = 'lib/features/legal/presentation/legal_document_editor_part.dart'
+          replace(path,
+              "      objectId = item.objectId.isEmpty ? null : item.objectId;\n",
+              "      objectId = item.objectId.isEmpty\n          ? allObjectsScopeValue\n          : item.objectId;\n")
+          replace(path,
+              "        objectId: objectId,\n",
+              "        objectId: isAllObjectsScope(objectId) ? null : objectId,\n")
+          insert_before = "  @override\n  Widget build(BuildContext context) {\n"
+          helpers = """  List<LegalDirectoryItem> employeesForObject(_DocumentDirectories data) {
+    if (objectId == null) return const <LegalDirectoryItem>[];
+    if (isAllObjectsScope(objectId)) return List<LegalDirectoryItem>.from(data.employees);
+    final selectedObject = data.objects
+        .where((item) => item.id == objectId)
+        .map((item) => item.title.trim().toLowerCase())
+        .firstOrNull;
+    if (selectedObject == null) return const <LegalDirectoryItem>[];
+    return data.employees.where((employee) {
+      return employee.objectName.trim().toLowerCase() == selectedObject;
+    }).toList();
+  }
+
+  String employeeTitle(LegalDirectoryItem item) {
+    if (isAllObjectsScope(objectId) && item.objectName.trim().isNotEmpty) {
+      return '${item.title} — ${item.objectName.trim()}';
+    }
+    return item.subtitle.isEmpty ? item.title : '${item.title} • ${item.subtitle}';
+  }
+
+"""
+          # Avoid Dart 3.0 firstOrNull dependency by replacing helper fragment immediately.
+          helpers = helpers.replace("    final selectedObject = data.objects\n        .where((item) => item.id == objectId)\n        .map((item) => item.title.trim().toLowerCase())\n        .firstOrNull;\n    if (selectedObject == null) return const <LegalDirectoryItem>[];\n", "    String? selectedObject;\n    for (final item in data.objects) {\n      if (item.id == objectId) {\n        selectedObject = item.title.trim().toLowerCase();\n        break;\n      }\n    }\n    if (selectedObject == null) return const <LegalDirectoryItem>[];\n")
+          replace(path, insert_before, helpers + insert_before)
+          replace(path,
+              "            final data = snapshot.data!;\n            return Column(\n",
+              "            final data = snapshot.data!;\n            final availableEmployees = employeesForObject(data);\n            final objectFieldValue = isAllObjectsScope(objectId) ||\n                    data.objects.any((item) => item.id == objectId)\n                ? objectId\n                : null;\n            final employeeFieldValue = availableEmployees\n                    .any((item) => item.id == employeeId)\n                ? employeeId\n                : null;\n            return Column(\n")
+          old_block = """                      DropdownButtonFormField<String>(
+                        initialValue: data.employees.any((item) => item.id == employeeId) ? employeeId : null,
+                        decoration: const InputDecoration(labelText: 'Сотрудник'),
+                        items: data.employees.map(directoryItem).toList(),
+                        onChanged: saving ? null : (value) => setState(() => employeeId = value),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: data.objects.any((item) => item.id == objectId) ? objectId : null,
+                        decoration: const InputDecoration(labelText: 'Объект'),
+                        items: data.objects.map(directoryItem).toList(),
+                        onChanged: saving ? null : (value) => setState(() => objectId = value),
+                      ),
+"""
+          new_block = """                      DropdownButtonFormField<String>(
+                        initialValue: objectFieldValue,
+                        decoration: const InputDecoration(
+                          labelText: 'Объект',
+                          hintText: 'Сначала выберите объект',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: allObjectsScopeValue,
+                            child: Text('Все объекты'),
+                          ),
+                          ...data.objects.map(directoryItem),
+                        ],
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() {
+                                  objectId = value;
+                                  employeeId = null;
+                                }),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('legal-document-employee-${objectId ?? 'none'}'),
+                        initialValue: employeeFieldValue,
+                        decoration: InputDecoration(
+                          labelText: 'Сотрудник',
+                          hintText: objectId == null
+                              ? 'Сначала выберите объект'
+                              : availableEmployees.isEmpty
+                                  ? 'На выбранном объекте нет сотрудников'
+                                  : 'Выберите сотрудника',
+                        ),
+                        items: availableEmployees
+                            .map((item) => DropdownMenuItem<String>(
+                                  value: item.id,
+                                  child: Text(
+                                    employeeTitle(item),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: saving || objectId == null
+                            ? null
+                            : (value) => setState(() => employeeId = value),
+                      ),
+"""
+          replace(path, old_block, new_block)
+
+          # Юридический вопрос: то же правило.
+          path = 'lib/features/legal/presentation/legal_matter_editor_part.dart'
+          replace(path,
+              "      objectId = item.objectId.isEmpty ? null : item.objectId;\n",
+              "      objectId = item.objectId.isEmpty\n          ? allObjectsScopeValue\n          : item.objectId;\n")
+          replace(path,
+              "        objectId: objectId,\n",
+              "        objectId: isAllObjectsScope(objectId) ? null : objectId,\n")
+          insert_before = "  @override\n  Widget build(BuildContext context) {\n"
+          helpers = """  List<LegalDirectoryItem> employeesForObject(_MatterDirectories data) {
+    if (objectId == null) return const <LegalDirectoryItem>[];
+    if (isAllObjectsScope(objectId)) return List<LegalDirectoryItem>.from(data.employees);
+    String? selectedObject;
+    for (final item in data.objects) {
+      if (item.id == objectId) {
+        selectedObject = item.title.trim().toLowerCase();
+        break;
+      }
+    }
+    if (selectedObject == null) return const <LegalDirectoryItem>[];
+    return data.employees.where((employee) {
+      return employee.objectName.trim().toLowerCase() == selectedObject;
+    }).toList();
+  }
+
+  String employeeTitle(LegalDirectoryItem item) {
+    if (isAllObjectsScope(objectId) && item.objectName.trim().isNotEmpty) {
+      return '${item.title} — ${item.objectName.trim()}';
+    }
+    return item.subtitle.isEmpty ? item.title : '${item.title} • ${item.subtitle}';
+  }
+
+"""
+          replace(path, insert_before, helpers + insert_before)
+          replace(path,
+              "            final data = snapshot.data!;\n            return Column(\n",
+              "            final data = snapshot.data!;\n            final availableEmployees = employeesForObject(data);\n            final objectFieldValue = isAllObjectsScope(objectId) ||\n                    data.objects.any((item) => item.id == objectId)\n                ? objectId\n                : null;\n            final employeeFieldValue = availableEmployees\n                    .any((item) => item.id == employeeId)\n                ? employeeId\n                : null;\n            return Column(\n")
+          old_block = """                      DropdownButtonFormField<String>(
+                        initialValue: data.employees.any((item) => item.id == employeeId) ? employeeId : null,
+                        decoration: const InputDecoration(labelText: 'Сотрудник'),
+                        items: data.employees.map(directoryItem).toList(),
+                        onChanged: saving ? null : (value) => setState(() => employeeId = value),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: data.objects.any((item) => item.id == objectId) ? objectId : null,
+                        decoration: const InputDecoration(labelText: 'Объект'),
+                        items: data.objects.map(directoryItem).toList(),
+                        onChanged: saving ? null : (value) => setState(() => objectId = value),
+                      ),
+"""
+          new_block = """                      DropdownButtonFormField<String>(
+                        initialValue: objectFieldValue,
+                        decoration: const InputDecoration(
+                          labelText: 'Объект',
+                          hintText: 'Сначала выберите объект',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: allObjectsScopeValue,
+                            child: Text('Все объекты'),
+                          ),
+                          ...data.objects.map(directoryItem),
+                        ],
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() {
+                                  objectId = value;
+                                  employeeId = null;
+                                }),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('legal-matter-employee-${objectId ?? 'none'}'),
+                        initialValue: employeeFieldValue,
+                        decoration: InputDecoration(
+                          labelText: 'Сотрудник',
+                          hintText: objectId == null
+                              ? 'Сначала выберите объект'
+                              : availableEmployees.isEmpty
+                                  ? 'На выбранном объекте нет сотрудников'
+                                  : 'Выберите сотрудника',
+                        ),
+                        items: availableEmployees
+                            .map((item) => DropdownMenuItem<String>(
+                                  value: item.id,
+                                  child: Text(
+                                    employeeTitle(item),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: saving || objectId == null
+                            ? null
+                            : (value) => setState(() => employeeId = value),
+                      ),
+"""
+          replace(path, old_block, new_block)
+
+          write('test/object_first_employee_selection_contract_test.dart', """import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+String source(String path) => File(path).readAsStringSync();
+
+void main() {
+  test('выплата требует объект или все объекты до сотрудника', () {
+    final text = source('lib/screens/add_payment_screen.dart');
+    expect(text, contains("value: allObjectsScopeValue"));
+    expect(text.indexOf("labelText: 'Объект'"),
+        lessThan(text.indexOf("labelText: 'Сотрудник'")));
+    expect(text, contains('filterEmployeesByObject<Employee>'));
+    expect(text, contains("'Все объекты'"));
+  });
+
+  test('отчёт по выплатам фильтрует сотрудников после объекта', () {
+    final sheet = source(
+      'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
+    );
+    final exporter = source(
+      'lib/features/payments/data/payment_report_exporter.dart',
+    );
+    expect(sheet.indexOf("labelText: 'Объект'"),
+        lessThan(sheet.indexOf("labelText: 'Сотрудник'")));
+    expect(sheet, contains('selectedObjectKey == null ? null : submit'));
+    expect(sheet, contains('filteredEmployees'));
+    expect(exporter, contains('final String? objectName;'));
+    expect(exporter, contains('employee.objectNames.any'));
+  });
+
+  test('юридические документы и вопросы используют объектный фильтр', () {
+    for (final path in <String>[
+      'lib/features/legal/presentation/legal_document_editor_part.dart',
+      'lib/features/legal/presentation/legal_matter_editor_part.dart',
+    ]) {
+      final text = source(path);
+      expect(text.indexOf("labelText: 'Объект'"),
+          lessThan(text.indexOf("labelText: 'Сотрудник'")));
+      expect(text, contains("value: allObjectsScopeValue"));
+      expect(text, contains('employeesForObject'));
+      expect(text, contains('employee.objectName'));
+    }
+  });
+
+  test('бухгалтерские отчёты сначала выбирают объект', () {
+    final text = source(
+      'lib/features/accounting/presentation/accounting_reports_screen.dart',
+    );
+    expect(text, contains('Widget objectPanel()'));
+    expect(text, contains("child: Text('Все объекты')"));
+    expect(text, contains('selectedObjectName: selectedObjectName'));
+    expect(text, contains('objectName: selectedObjectName'));
+  });
+}
+""")
+          PY
+
+      - name: Commit generated changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          git commit -m "Добавить выбор объекта перед сотрудником"
+          git push origin HEAD:agent/object-first-employee-selection
