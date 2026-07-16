@@ -13,10 +13,13 @@ import '../../../data/object_repository.dart';
 import '../../../data/payment_repository.dart';
 import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../models/task_item_data.dart';
 import '../../../navigation/web_back_navigation.dart';
 import '../../../screens/adaptive_home_screen.dart';
 import '../../../screens/employees_screen.dart';
+import '../../../screens/payments_screen.dart';
 import '../../../screens/profile_screen.dart';
+import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../screens/timesheet_screen.dart';
 import '../../../widgets/premium_ui.dart';
@@ -46,6 +49,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (currentIndex < 0 || currentIndex >= pageCount) return 0;
     return currentIndex;
   }
+
+  int get tasksTabIndex => widget.profile.isAdmin ? 3 : 1;
+
+  int get timesheetTabIndex => 2;
 
   bool get supportsAppSwipes {
     return kIsWeb || defaultTargetPlatform == TargetPlatform.android;
@@ -178,6 +185,68 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     warmUpVisibleData();
   }
 
+  Future<void> openEmployeesFromHome() async {
+    if (!widget.profile.isAdmin) {
+      await selectTab(timesheetTabIndex);
+      return;
+    }
+
+    await selectTab(1);
+  }
+
+  Future<void> openTimesheetFromHome() async {
+    await selectTab(timesheetTabIndex);
+  }
+
+  Future<void> openTasksFromHome() async {
+    await selectTab(tasksTabIndex);
+  }
+
+  Future<NavigatorState?> selectTabNavigator(int index) async {
+    await selectTab(index);
+
+    if (!mounted) return null;
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    return navigatorKeys[index].currentState;
+  }
+
+  Future<void> openPaymentsFromHome() async {
+    if (!widget.profile.isAdmin) return;
+
+    final navigator = await selectTabNavigator(1);
+    if (navigator == null) return;
+
+    await navigator.push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => PaymentsScreen(
+          selectedObjectName: selectedObjectNameNotifier.value,
+        ),
+      ),
+    );
+  }
+
+  Future<void> openTaskFromHome(TaskItemData task) async {
+    final navigator = await selectTabNavigator(tasksTabIndex);
+    if (navigator == null) return;
+
+    final result = await navigator.push<dynamic>(
+      CupertinoPageRoute<dynamic>(
+        builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
+      ),
+    );
+
+    if (result == 'delete') {
+      await TaskRepository.deleteTask(task);
+      return;
+    }
+
+    if (result is TaskItemData) {
+      await TaskRepository.updateTask(result);
+    }
+  }
+
   Widget buildRootPage(int index, String? selectedObjectName) {
     if (widget.profile.isAdmin) {
       switch (index) {
@@ -186,6 +255,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
             onObjectChanged: changeSelectedObject,
+            onOpenEmployees: openEmployeesFromHome,
+            onOpenTimesheet: openTimesheetFromHome,
+            onOpenTasks: openTasksFromHome,
+            onOpenTask: openTaskFromHome,
+            onOpenPayments: openPaymentsFromHome,
           );
         case 1:
           return EmployeesScreen(
@@ -215,6 +289,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           profile: widget.profile,
           selectedObjectName: selectedObjectName,
           onObjectChanged: changeSelectedObject,
+          onOpenEmployees: openEmployeesFromHome,
+          onOpenTimesheet: openTimesheetFromHome,
+          onOpenTasks: openTasksFromHome,
+          onOpenTask: openTaskFromHome,
+          onOpenPayments: openPaymentsFromHome,
         );
       case 1:
         return TasksScreen(
