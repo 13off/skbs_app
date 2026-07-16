@@ -37,21 +37,22 @@ jobs:
           path = Path('lib/features/legal/presentation/adaptive_legal_documents_screen.dart')
           text = path.read_text(encoding='utf-8')
 
-          first = """if (document.status == LegalDocumentStatus.signed ||
-                  document.status == LegalDocumentStatus.active) {"""
-          first_replacement = """if (document.status == LegalDocumentStatus.signed) {"""
-          second = """(item) =>
-                      item.status == LegalDocumentStatus.signed ||
-                      item.status == LegalDocumentStatus.active,"""
-          second_replacement = """(item) => item.status == LegalDocumentStatus.signed,"""
+          active_token = 'LegalDocumentStatus.active'
+          if text.count(active_token) != 2:
+              raise SystemExit(f'Expected two active status references, got {text.count(active_token)}')
 
-          if text.count(first) != 1:
-              raise SystemExit('Expected exactly one statusColor pattern')
-          if text.count(second) != 1:
-              raise SystemExit('Expected exactly one signed summary pattern')
+          text = text.replace(
+              'LegalDocumentStatus.signed ||\n        document.status == LegalDocumentStatus.active',
+              'LegalDocumentStatus.signed',
+          )
+          text = text.replace(
+              'item.status == LegalDocumentStatus.signed ||\n              item.status == LegalDocumentStatus.active',
+              'item.status == LegalDocumentStatus.signed',
+          )
 
-          text = text.replace(first, first_replacement)
-          text = text.replace(second, second_replacement)
+          if active_token in text:
+              raise SystemExit('Active status reference remained after patch')
+
           path.write_text(text, encoding='utf-8')
           PY
 
