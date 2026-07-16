@@ -33,6 +33,10 @@ class CompanySummary {
         return 'Администратор';
       case 'foreman':
         return 'Прораб';
+      case 'lawyer':
+        return 'Юрист';
+      case 'accountant':
+        return 'Бухгалтер';
       default:
         return role;
     }
@@ -75,6 +79,10 @@ class CompanyMember {
         return 'Администратор';
       case 'foreman':
         return 'Прораб';
+      case 'lawyer':
+        return 'Юрист';
+      case 'accountant':
+        return 'Бухгалтер';
       default:
         return role;
     }
