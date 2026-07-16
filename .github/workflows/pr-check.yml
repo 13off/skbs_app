@@ -1,64 +1,69 @@
-name: Apply specialist desktop fix
+name: PR Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
     paths:
       - lib/**
       - test/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .fvmrc
       - .github/workflows/pr-check.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: appstroy-specialist-fix-${{ github.event.pull_request.number }}
+  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  flutter-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout feature branch
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
+          show-progress: false
 
-      - name: Apply exact legal status fix and restore CI
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run regression tests
+        id: regression
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          set +e
+          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- Flutter test failure (last 180 lines) ---"
+            tail -n 180 /tmp/flutter-test.log
+            exit "$status"
+          fi
+          tail -n 20 /tmp/flutter-test.log
 
-          path = Path('lib/features/legal/presentation/adaptive_legal_documents_screen.dart')
-          text = path.read_text(encoding='utf-8')
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
 
-          active_token = 'LegalDocumentStatus.active'
-          if text.count(active_token) != 2:
-              raise SystemExit(f'Expected two active status references, got {text.count(active_token)}')
-
-          text = text.replace(
-              'LegalDocumentStatus.signed ||\n        document.status == LegalDocumentStatus.active',
-              'LegalDocumentStatus.signed',
-          )
-          text = text.replace(
-              'item.status == LegalDocumentStatus.signed ||\n              item.status == LegalDocumentStatus.active',
-              'item.status == LegalDocumentStatus.signed',
-          )
-
-          if active_token in text:
-              raise SystemExit('Active status reference remained after patch')
-
-          path.write_text(text, encoding='utf-8')
-          PY
-
-          git show origin/main:.github/workflows/pr-check.yml > .github/workflows/pr-check.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/legal/presentation/adaptive_legal_documents_screen.dart .github/workflows/pr-check.yml
-          git commit -m "исправлен статус юридических документов"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+      - name: Upload failing test log
+        if: failure() && steps.regression.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-log
+          path: /tmp/flutter-test.log
+          if-no-files-found: error
+          retention-days: 3

@@ -118,8 +118,7 @@ class _DesktopLegalDocumentsScreenState
   Color statusColor(LegalDocument document) {
     if (document.isExpired || document.isActionOverdue) return specialistDanger;
     if (document.needsAttention) return specialistWarning;
-    if (document.status == LegalDocumentStatus.signed ||
-        document.status == LegalDocumentStatus.active) {
+    if (document.status == LegalDocumentStatus.signed) {
       return specialistSuccess;
     }
     return specialistMuted;
@@ -206,8 +205,7 @@ class _DesktopLegalDocumentsScreenState
     final signed = documents
         .where(
           (item) =>
-              item.status == LegalDocumentStatus.signed ||
-              item.status == LegalDocumentStatus.active,
+              item.status == LegalDocumentStatus.signed,
         )
         .length;
     final expiring = documents
