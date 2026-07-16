@@ -9,14 +9,20 @@ void main() {
     final adaptive = source(
       'lib/features/company/presentation/company_management_screen.dart',
     );
+    final mobile = source(
+      'lib/features/company/presentation/mobile_company_management_screen.dart',
+    );
     final desktop = source(
       'lib/features/company/presentation/desktop_company_management_screen.dart',
     );
 
     expect(adaptive, contains('kIsWeb'));
-    expect(adaptive, contains('MediaQuery.sizeOf(context).width >= 1050'));
+    expect(adaptive, contains('constraints.maxWidth >= desktopBreakpoint'));
+    expect(adaptive, contains('desktopBreakpoint = 1050'));
     expect(adaptive, contains('DesktopCompanyManagementScreen'));
-    expect(adaptive, contains("title: const Text('Компания и пользователи')"));
+    expect(adaptive, contains('mobile.CompanyManagementScreen'));
+    expect(mobile, contains("title: const Text('Компания и пользователи')"));
+    expect(mobile, contains('CompanyMemberEditorScreen'));
     expect(desktop, contains("title: 'Компания и пользователи'"));
     expect(desktop, contains('SpecialistDesktopTable'));
     expect(desktop, contains("title: 'Команда'"));
