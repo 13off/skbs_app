@@ -890,7 +890,7 @@ class _DesktopObjectMenuItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          minHeight: 54,
+          constraints: const BoxConstraints(minHeight: 54),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: selected ? _desktopSoft : Colors.white,
@@ -1513,6 +1513,7 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
   bool loading = true;
   bool busy = false;
   String? errorText;
+  String? selectedObjectName;
 
   String? clean(String? value) {
     final text = value?.trim();
@@ -1522,6 +1523,7 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
   @override
   void initState() {
     super.initState();
+    selectedObjectName = clean(widget.selectedObjectName);
     loadObjects();
   }
 
@@ -1666,6 +1668,7 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
 
     await runAction(() async {
       final savedName = await ObjectRepository.addObject(name: name);
+      selectedObjectName = savedName;
       widget.onObjectChanged(savedName);
     });
   }
@@ -1682,7 +1685,8 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
         oldName: oldName,
         newName: newName,
       );
-      if (clean(widget.selectedObjectName) == oldName) {
+      if (selectedObjectName == oldName) {
+        selectedObjectName = savedName;
         widget.onObjectChanged(savedName);
       }
     });
@@ -1693,7 +1697,8 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
 
     await runAction(() async {
       await ObjectRepository.archiveObject(name: objectName);
-      if (clean(widget.selectedObjectName) == objectName) {
+      if (selectedObjectName == objectName) {
+        selectedObjectName = null;
         widget.onObjectChanged(null);
       }
     });
@@ -1705,9 +1710,16 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
     });
   }
 
+  void selectObject(String objectName) {
+    setState(() {
+      selectedObjectName = objectName;
+    });
+    widget.onObjectChanged(objectName);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selected = clean(widget.selectedObjectName);
+    final selected = selectedObjectName;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
@@ -1842,9 +1854,7 @@ class _ObjectManagementDialogState extends State<_ObjectManagementDialog> {
                                         TextButton(
                                           onPressed: busy
                                               ? null
-                                              : () => widget.onObjectChanged(
-                                                    objectName,
-                                                  ),
+                                              : () => selectObject(objectName),
                                           child: const Text('Выбрать'),
                                         ),
                                       IconButton(
