@@ -27,7 +27,9 @@ class NavigationSession {
 
   static Future<void> writeTabIndex(String platform, int index) async {
     if (index < 0) return;
-    await _prefs?.setInt(_key('tab.$platform'), index);
+    final preferences = _prefs;
+    if (preferences == null) return;
+    await preferences.setInt(_key('tab.$platform'), index);
   }
 
   static String? readPreviewRole() {
