@@ -190,7 +190,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
         selectedDocuments != 'all';
   }
 
-  void clearFilters() {
+  Future<void> clearFilters() async {
     searchController.clear();
     setState(() {
       selectedObject = '';
