@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
-import '../../../features/payments/presentation/screens/payments_screen.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
-import 'accounting_dashboard_screen.dart';
-import 'accounting_reports_screen.dart';
+import 'adaptive_accounting_dashboard_screen.dart';
+import 'adaptive_accounting_payments_screen.dart';
+import 'adaptive_accounting_reports_screen.dart';
 
 class AccountingMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -42,13 +42,13 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
 
   Widget rootPage(int index) {
     return switch (index) {
-      0 => AccountingDashboardScreen(
+      0 => AdaptiveAccountingDashboardScreen(
           profile: widget.profile,
           onOpenPayments: () => select(1),
           onOpenReports: () => select(2),
         ),
-      1 => const PaymentsScreen(),
-      2 => const AccountingReportsScreen(),
+      1 => const AdaptiveAccountingPaymentsScreen(),
+      2 => const AdaptiveAccountingReportsScreen(),
       3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
