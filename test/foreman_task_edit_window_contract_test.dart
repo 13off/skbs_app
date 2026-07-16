@@ -31,7 +31,8 @@ void main() {
       'Прораб может добавлять задачи только на текущий день',
     ]);
 
-    containsAll('lib/screens/task_details_screen.dart', const [
+    const taskDetailsPath = 'lib/screens/task_details_screen.dart';
+    containsAll(taskDetailsPath, const [
       'final AppUserProfile profile;',
       'bool get canEdit => TaskEditPolicy.canEditTask',
       'Future<void> deletePhoto(TaskPhotoData photo)',
@@ -39,8 +40,13 @@ void main() {
       "tooltip: 'Удалить фото'",
       'if (widget.profile.isAdmin)',
       'if (!canEdit)',
-      'enabled: !isSaving && canEdit',
+      'TaskEditPolicy.operationalToday',
     ]);
+    expect(
+      'enabled: !isSaving && canEdit'.allMatches(source(taskDetailsPath)).length,
+      3,
+      reason: 'Все три текстовых поля задачи должны блокироваться после дня задачи',
+    );
 
     containsAll('lib/data/task_repository.dart', const [
       'Future<void> deleteTaskPhoto(TaskPhotoData photo)',
