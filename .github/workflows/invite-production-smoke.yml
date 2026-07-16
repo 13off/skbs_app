@@ -27,9 +27,9 @@ jobs:
 
           COMPANY_ID="00000000-0000-0000-0000-000000000001"
           TOKEN_HASH="production-smoke-token-not-for-verification"
-          STATIC_URL="https://api.appstroy-web.ru/app/invite.html?companyInvite=${COMPANY_ID}&inviteTokenHash=${TOKEN_HASH}&inviteType=invite"
+          PUBLISHABLE_KEY="sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm"
+          STATIC_URL="https://13off.github.io/appstroy-web/invite.html?companyInvite=${COMPANY_ID}&inviteTokenHash=${TOKEN_HASH}&inviteType=invite"
           EDGE_URL="https://api.appstroy-web.ru/functions/v1/invite-landing/invite.html?companyInvite=${COMPANY_ID}&inviteTokenHash=${TOKEN_HASH}&inviteType=invite"
-          DIRECT_URL="https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/invite-landing/invite.html?companyInvite=${COMPANY_ID}&inviteTokenHash=${TOKEN_HASH}&inviteType=invite"
 
           request() {
             local name="$1"
@@ -42,7 +42,7 @@ jobs:
               "$url"
           }
 
-          echo '=== Static /app/invite.html ==='
+          echo '=== GitHub Pages invite.html ==='
           static_status=$(request static "$STATIC_URL")
           echo "status=${static_status}"
           cat "$REPORT_DIR/static-headers.txt"
@@ -51,20 +51,16 @@ jobs:
           grep -Fq 'Войти в AppСтрой' "$REPORT_DIR/static-body.txt"
           grep -Fq '/auth/v1/verify' "$REPORT_DIR/static-body.txt"
           grep -Fq "accept.addEventListener('click', acceptInvitation)" "$REPORT_DIR/static-body.txt"
+          grep -Fq "const supabaseUrl = 'https://api.appstroy-web.ru'" "$REPORT_DIR/static-body.txt"
           if grep -Fq '&lt;!DOCTYPE html&gt;' "$REPORT_DIR/static-body.txt"; then
             echo 'Static HTML returned as escaped text'
             exit 1
           fi
 
-          echo '=== Edge landing through proxy (diagnostic) ==='
+          echo '=== Edge landing through proxy (known diagnostic) ==='
           edge_status=$(request edge "$EDGE_URL")
           echo "status=${edge_status}"
           cat "$REPORT_DIR/edge-headers.txt"
-
-          echo '=== Edge landing direct (diagnostic) ==='
-          direct_status=$(request direct "$DIRECT_URL")
-          echo "status=${direct_status}"
-          cat "$REPORT_DIR/direct-headers.txt"
 
           echo '=== proxy: Auth health ==='
           auth_status=$(request auth-health 'https://api.appstroy-web.ru/auth/v1/health')
@@ -72,16 +68,25 @@ jobs:
           cat "$REPORT_DIR/auth-health-body.txt"
           test "$auth_status" = "200"
 
-          echo '=== proxy: REST route reaches Supabase ==='
-          rest_status=$(request rest 'https://api.appstroy-web.ru/rest/v1/')
-          echo "status=${rest_status}"
-          cat "$REPORT_DIR/rest-body.txt"
-          case "$rest_status" in
-            401|403) ;;
-            *) echo "Unexpected REST status: ${rest_status}"; exit 1 ;;
+          echo '=== proxy: dummy token reaches Auth API ==='
+          verify_status=$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "apikey: ${PUBLISHABLE_KEY}" \
+            --header "Authorization: Bearer ${PUBLISHABLE_KEY}" \
+            --data "{\"token_hash\":\"${TOKEN_HASH}\",\"type\":\"invite\"}" \
+            --output "$REPORT_DIR/verify-body.json" \
+            --write-out '%{http_code}' \
+            'https://api.appstroy-web.ru/auth/v1/verify')
+          echo "status=${verify_status}"
+          cat "$REPORT_DIR/verify-body.json"
+          case "$verify_status" in
+            400|403|422) ;;
+            *) echo "Unexpected verify status: ${verify_status}"; exit 1 ;;
           esac
 
-          echo 'Static invitation route is production-ready.'
+          echo 'GitHub Pages invitation route and Russian Auth API are ready.'
 
       - name: Upload smoke report
         if: always()
