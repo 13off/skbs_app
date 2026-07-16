@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
+import '../features/tasks/task_edit_policy.dart';
+import '../models/app_user_profile.dart';
 import '../data/task_repository.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
+  final AppUserProfile profile;
 
-  const TaskDetailsScreen({super.key, required this.task});
+  const TaskDetailsScreen({
+    super.key,
+    required this.task,
+    required this.profile,
+  });
 
   @override
   State<TaskDetailsScreen> createState() => _TaskDetailsScreenState();
@@ -33,9 +40,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   bool isLoading = false;
   bool isSaving = false;
   bool isPickingPhotos = false;
+  String? deletingPhotoId;
   String? errorText;
 
   final statuses = const ['Запланировано', 'Выполнено'];
+
+  bool get canEdit => TaskEditPolicy.canEditTask(widget.profile, widget.task);
 
   @override
   void initState() {
@@ -166,6 +176,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   Future<void> openAssigneesPicker() async {
+    if (!canEdit) return;
+
     if (employees.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('На объекте нет сотрудников')),
@@ -297,6 +309,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   Future<void> addPhotos() async {
+    if (!canEdit) return;
+
     final taskId = widget.task.id;
 
     if (taskId == null || taskId.isEmpty) {
@@ -357,7 +371,69 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     }
   }
 
+  Future<void> deletePhoto(TaskPhotoData photo) async {
+    if (!canEdit || deletingPhotoId != null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Удалить фотографию?'),
+          content: Text(photo.originalName),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      deletingPhotoId = photo.id;
+      errorText = null;
+    });
+
+    try {
+      await TaskRepository.deleteTaskPhoto(photo);
+      if (!mounted) return;
+
+      setState(() {
+        photos = photos.where((item) => item.id != photo.id).toList();
+        signedUrlFutures.remove(photo.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Фотография удалена')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorText = 'Ошибка удаления фото: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          deletingPhotoId = null;
+        });
+      }
+    }
+  }
+
   Future<void> saveChanges() async {
+    if (!canEdit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(TaskEditPolicy.lockedMessage(widget.task))),
+      );
+      return;
+    }
+
     final taskId = widget.task.id;
     final axes = axesController.text.trim();
     final work = workController.text.trim();
@@ -469,7 +545,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   Widget buildAssigneesBlock() {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: isLoading ? null : openAssigneesPicker,
+      onTap: isLoading || !canEdit ? null : openAssigneesPicker,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -559,6 +635,36 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 ),
               ),
             ),
+            if (canEdit)
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.68),
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    tooltip: 'Удалить фото',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: deletingPhotoId == null
+                        ? () => deletePhoto(photo)
+                        : null,
+                    icon: deletingPhotoId == photo.id
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white,
+                            size: 19,
+                          ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -585,7 +691,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             width: double.infinity,
             height: 48,
             child: OutlinedButton.icon(
-              onPressed: isPickingPhotos ? null : addPhotos,
+              onPressed: isPickingPhotos || !canEdit ? null : addPhotos,
               icon: isPickingPhotos
                   ? const SizedBox(
                       width: 18,
@@ -629,11 +735,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       appBar: AppBar(
         title: const Text('Задача'),
         actions: [
-          IconButton(
-            tooltip: 'Удалить',
-            onPressed: isSaving ? null : confirmDelete,
-            icon: const Icon(Icons.delete_outline),
-          ),
+          if (widget.profile.isAdmin)
+            IconButton(
+              tooltip: 'Удалить',
+              onPressed: isSaving ? null : confirmDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
         ],
       ),
       body: ListView(
@@ -654,8 +761,37 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 16),
 
+          if (!canEdit) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3EFE7),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE1D8C8)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.lock_clock_outlined, size: 21),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      TaskEditPolicy.lockedMessage(widget.task),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           OutlinedButton.icon(
-            onPressed: isSaving ? null : pickDate,
+            onPressed: isSaving || !widget.profile.isAdmin ? null : pickDate,
             icon: const Icon(Icons.calendar_month),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
@@ -665,7 +801,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             value: done,
-            onChanged: isSaving
+            onChanged: isSaving || !canEdit
                 ? null
                 : (value) {
                     setState(() {
@@ -689,7 +825,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             const SizedBox(height: 14),
             TextField(
               controller: notDoneCommentController,
-              enabled: !isSaving,
+              enabled: !isSaving && canEdit,
               minLines: 2,
               maxLines: 5,
               decoration: InputDecoration(
@@ -777,20 +913,21 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 22),
 
-          SizedBox(
-            height: 54,
-            child: FilledButton.icon(
-              onPressed: isSaving ? null : saveChanges,
-              icon: isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: const Text('Сохранить'),
+          if (canEdit)
+            SizedBox(
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: isSaving ? null : saveChanges,
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: const Text('Сохранить'),
+              ),
             ),
-          ),
         ],
       ),
     );
