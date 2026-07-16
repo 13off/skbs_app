@@ -14,8 +14,8 @@ import '../../../data/payment_repository.dart';
 import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/web_back_navigation.dart';
+import '../../../screens/adaptive_home_screen.dart';
 import '../../../screens/employees_screen.dart';
-import '../../../screens/home_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../screens/timesheet_screen.dart';
@@ -182,7 +182,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (widget.profile.isAdmin) {
       switch (index) {
         case 0:
-          return HomeScreen(
+          return AdaptiveHomeScreen(
             profile: widget.profile,
             selectedObjectName: selectedObjectName,
             onObjectChanged: changeSelectedObject,
@@ -211,7 +211,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     switch (index) {
       case 0:
-        return HomeScreen(
+        return AdaptiveHomeScreen(
           profile: widget.profile,
           selectedObjectName: selectedObjectName,
           onObjectChanged: changeSelectedObject,
