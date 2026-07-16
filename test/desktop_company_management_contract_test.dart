@@ -25,6 +25,7 @@ void main() {
     expect(mobile, contains("title: const Text('Компания и пользователи')"));
     expect(mobile, contains('CompanyMemberEditorScreen'));
     expect(desktop, contains("title: 'Компания и пользователи'"));
+    expect(desktop, contains('PremiumWorkCard'));
     expect(desktop, contains('SpecialistDesktopTable'));
     expect(desktop, contains("title: 'Команда'"));
     expect(desktop, contains("title: 'Приглашения'"));
@@ -44,6 +45,7 @@ void main() {
     expect(desktop, contains("labelText: 'Доступ'"));
     expect(desktop, contains("SpecialistTableColumn('Пользователь'"));
     expect(desktop, contains("SpecialistTableColumn('Права'"));
+    expect(desktop, contains('buildInvitationStatusFilter'));
     expect(dialogs, contains("value: 'admin'"));
     expect(dialogs, contains("value: 'foreman'"));
     expect(dialogs, contains("value: 'lawyer'"));
