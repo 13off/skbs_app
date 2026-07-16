@@ -1,0 +1,115 @@
+name: Invite production smoke
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+    paths:
+      - .github/workflows/invite-production-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  invite-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check production invitation routes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          REPORT_DIR=/tmp/invite-smoke
+          mkdir -p "$REPORT_DIR"
+
+          PROXY_BASE="https://api.appstroy-web.ru/functions/v1/invite-landing"
+          DIRECT_BASE="https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/invite-landing"
+          COMPANY_ID="00000000-0000-0000-0000-000000000001"
+          TOKEN_HASH="production-smoke-token-not-for-verification"
+
+          check_landing() {
+            local name="$1"
+            local base="$2"
+            local headers="$REPORT_DIR/${name}-headers.txt"
+            local body="$REPORT_DIR/${name}-body.html"
+            local root_headers="$REPORT_DIR/${name}-root-headers.txt"
+            local root_body="$REPORT_DIR/${name}-root-body.txt"
+
+            echo "=== ${name}: root redirect ==="
+            local root_status
+            root_status=$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --dump-header "$root_headers" \
+              --output "$root_body" \
+              --write-out '%{http_code}' \
+              "$base")
+            echo "status=${root_status}"
+            cat "$root_headers"
+            test "$root_status" = "302"
+            tr -d '\r' < "$root_headers" | grep -Eiq '^location: .*/invite-landing/invite\.html([?]|$)'
+
+            echo "=== ${name}: HTML landing ==="
+            local page_url
+            page_url="${base}/invite.html?companyInvite=${COMPANY_ID}&inviteTokenHash=${TOKEN_HASH}&inviteType=invite"
+            local page_status
+            page_status=$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --dump-header "$headers" \
+              --output "$body" \
+              --write-out '%{http_code}' \
+              "$page_url")
+            echo "status=${page_status}"
+            cat "$headers"
+            test "$page_status" = "200"
+            tr -d '\r' < "$headers" | grep -Eiq '^content-type: text/html;[[:space:]]*charset=utf-8'
+            tr -d '\r' < "$headers" | grep -Eiq '^cache-control: no-store, max-age=0'
+            grep -Fq 'Принять приглашение' "$body"
+            grep -Fq 'Одноразовый токен используется только после нажатия кнопки' "$body"
+            grep -Fq '/auth/v1/verify' "$body"
+            grep -Fq '/rest/v1/rpc/set_active_company' "$body"
+            grep -Fq '/rest/v1/rpc/accept_current_company_invitation' "$body"
+            if grep -Fq '&lt;!doctype html&gt;' "$body"; then
+              echo 'HTML returned as escaped text'
+              exit 1
+            fi
+          }
+
+          check_landing proxy "$PROXY_BASE"
+          check_landing direct "$DIRECT_BASE"
+
+          echo '=== proxy: Auth health ==='
+          auth_status=$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --output "$REPORT_DIR/auth-health.json" \
+            --write-out '%{http_code}' \
+            'https://api.appstroy-web.ru/auth/v1/health')
+          echo "status=${auth_status}"
+          cat "$REPORT_DIR/auth-health.json"
+          test "$auth_status" = "200"
+
+          echo '=== proxy: REST route reaches Supabase ==='
+          rest_status=$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --output "$REPORT_DIR/rest-response.txt" \
+            --write-out '%{http_code}' \
+            'https://api.appstroy-web.ru/rest/v1/')
+          echo "status=${rest_status}"
+          cat "$REPORT_DIR/rest-response.txt"
+          case "$rest_status" in
+            401|403) ;;
+            *) echo "Unexpected REST status: ${rest_status}"; exit 1 ;;
+          esac
+
+          echo 'Invitation production route smoke test passed.'
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: invite-production-smoke
+          path: /tmp/invite-smoke
+          if-no-files-found: warn
+          retention-days: 3
