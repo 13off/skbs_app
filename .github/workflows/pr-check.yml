@@ -40,7 +40,23 @@ jobs:
         run: flutter pub get --enforce-lockfile >/dev/null
 
       - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        id: analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
+          status=$?
+          tail -n 180 /tmp/flutter-analyze.log
+          exit "$status"
+
+      - name: Upload analyzer log
+        if: failure() && steps.analyze.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analyze-log
+          path: /tmp/flutter-analyze.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Run regression tests
         id: regression
