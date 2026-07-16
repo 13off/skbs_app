@@ -32,24 +32,42 @@ void main() {
     expect(navigation, isNot(contains('NavigationRail(')));
   });
 
-  test('desktop controls open stable overlays and real work screens', () {
+  test('desktop controls use overlays and real bottom navigation tabs', () {
     final adaptive = source('lib/screens/adaptive_home_screen.dart');
+    final widgets = source('lib/screens/desktop_home_widgets.dart');
+    final manager = source(
+      'lib/screens/desktop_object_management_dialog.dart',
+    );
+    final shell = source(
+      'lib/features/shell/presentation/premium_main_screen.dart',
+    );
 
-    expect(adaptive, contains('OverlayEntry('));
-    expect(adaptive, contains('CompositedTransformFollower('));
-    expect(adaptive, contains('menuWidth'));
-    expect(adaptive, isNot(contains('PopupMenuButton<String>')));
+    expect(widgets, contains('OverlayEntry('));
+    expect(widgets, contains('CompositedTransformFollower('));
+    expect(widgets, contains('menuWidth'));
+    expect(widgets, isNot(contains('PopupMenuButton<String>')));
 
-    expect(adaptive, contains('EmployeesScreen('));
-    expect(adaptive, contains('TimesheetScreen('));
-    expect(adaptive, contains('TasksScreen('));
-    expect(adaptive, contains('PaymentsScreen('));
-    expect(adaptive, contains('_ObjectManagementDialog('));
+    expect(adaptive, contains('required this.onOpenEmployees'));
+    expect(adaptive, contains('required this.onOpenTimesheet'));
+    expect(adaptive, contains('required this.onOpenTasks'));
+    expect(adaptive, contains('required this.onOpenTask'));
+    expect(adaptive, contains('required this.onOpenPayments'));
+    expect(adaptive, contains('DesktopObjectManagementDialog('));
     expect(adaptive, contains('showFinancePeriodPicker'));
-    expect(adaptive, isNot(contains('openClassicHome')));
 
-    expect(adaptive, contains('required this.onTap'));
-    expect(adaptive, contains('onOpenTasks: openTasks'));
-    expect(adaptive, contains('onOpenPayments: openPayments'));
+    expect(widgets, contains('onTap: () => onOpenTask(task)'));
+    expect(widgets, isNot(contains("label: const Text('Открыть')")));
+
+    expect(shell, contains('int get tasksTabIndex'));
+    expect(shell, contains('Future<NavigatorState?> selectTabNavigator'));
+    expect(shell, contains('Future<void> openPaymentsFromHome()'));
+    expect(shell, contains('Future<void> openTaskFromHome(TaskItemData task)'));
+    expect(shell, contains('TaskDetailsScreen(task: task'));
+    expect(shell, contains('onOpenTask: openTaskFromHome'));
+    expect(shell, contains('onOpenPayments: openPaymentsFromHome'));
+
+    expect(manager, contains('ObjectRepository.renameObject'));
+    expect(manager, contains('ObjectRepository.archiveObject'));
+    expect(manager, contains('ObjectRepository.restoreObject'));
   });
 }
