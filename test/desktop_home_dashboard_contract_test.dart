@@ -31,4 +31,25 @@ void main() {
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
     expect(navigation, isNot(contains('NavigationRail(')));
   });
+
+  test('desktop controls open stable overlays and real work screens', () {
+    final adaptive = source('lib/screens/adaptive_home_screen.dart');
+
+    expect(adaptive, contains('OverlayEntry('));
+    expect(adaptive, contains('CompositedTransformFollower('));
+    expect(adaptive, contains('menuWidth'));
+    expect(adaptive, isNot(contains('PopupMenuButton<String>')));
+
+    expect(adaptive, contains('EmployeesScreen('));
+    expect(adaptive, contains('TimesheetScreen('));
+    expect(adaptive, contains('TasksScreen('));
+    expect(adaptive, contains('PaymentsScreen('));
+    expect(adaptive, contains('_ObjectManagementDialog('));
+    expect(adaptive, contains('showFinancePeriodPicker'));
+    expect(adaptive, isNot(contains('openClassicHome')));
+
+    expect(adaptive, contains('required this.onTap'));
+    expect(adaptive, contains('onOpenTasks: openTasks'));
+    expect(adaptive, contains('onOpenPayments: openPayments'));
+  });
 }
