@@ -20,7 +20,7 @@ void main() {
 
   test('one company form invites every supported role', () {
     final screen = source(
-      'lib/features/company/presentation/company_management_screen.dart',
+      'lib/features/company/presentation/mobile_company_management_screen.dart',
     );
 
     expect(screen, contains("label: 'Пригласить пользователя'"));
@@ -33,7 +33,7 @@ void main() {
 
   test('object assignment remains exclusive to foreman', () {
     final screen = source(
-      'lib/features/company/presentation/company_management_screen.dart',
+      'lib/features/company/presentation/mobile_company_management_screen.dart',
     );
 
     expect(screen, contains("if (role == 'foreman')"));

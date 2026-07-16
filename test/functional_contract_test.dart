@@ -222,7 +222,7 @@ void main() {
         ],
       );
       _containsAll(
-        'lib/features/company/presentation/company_management_screen.dart',
+        'lib/features/company/presentation/mobile_company_management_screen.dart',
         const [
           "'Пригласить пользователя'",
           "'Прораб'",
@@ -267,7 +267,7 @@ void main() {
         ],
       );
       _containsAll(
-        'lib/features/company/presentation/company_management_screen.dart',
+        'lib/features/company/presentation/mobile_company_management_screen.dart',
         const [
           'CompanyPlansScreen',
           "'Тарифы'",
@@ -463,7 +463,7 @@ void main() {
         ],
       );
       _containsAll(
-        'lib/features/company/presentation/company_management_screen.dart',
+        'lib/features/company/presentation/mobile_company_management_screen.dart',
         const [
           'PremiumBackdrop',
           'PremiumActionButton',
