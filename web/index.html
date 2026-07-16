@@ -349,6 +349,44 @@
     })();
   </script>
 
+  <script>
+    (function () {
+      var deferredPwaPrompt = null;
+
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        deferredPwaPrompt = event;
+        window.dispatchEvent(new CustomEvent('appstroy-pwa-install-available'));
+      });
+
+      window.appstroyCanInstallPwa = function () {
+        return Boolean(deferredPwaPrompt);
+      };
+
+      window.appstroyInstallPwa = async function () {
+        var standalone = window.matchMedia('(display-mode: standalone)').matches ||
+          window.navigator.standalone === true;
+        if (standalone) {
+          return { status: 'installed' };
+        }
+        if (!deferredPwaPrompt) {
+          return { status: 'unavailable' };
+        }
+
+        var prompt = deferredPwaPrompt;
+        deferredPwaPrompt = null;
+        await prompt.prompt();
+        var choice = await prompt.userChoice;
+        return { status: choice && choice.outcome ? choice.outcome : 'dismissed' };
+      };
+
+      window.addEventListener('appinstalled', function () {
+        deferredPwaPrompt = null;
+        window.dispatchEvent(new CustomEvent('appstroy-pwa-installed'));
+      });
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
