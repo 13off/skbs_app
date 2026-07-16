@@ -170,7 +170,7 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                   ),
                   SizedBox(height: 12),
                   _BenefitRow(
-                    icon: Icons.auto_sync_rounded,
+                    icon: Icons.sync_rounded,
                     text: 'Обновляется вместе с веб-версией AppСтрой.',
                   ),
                   SizedBox(height: 12),
