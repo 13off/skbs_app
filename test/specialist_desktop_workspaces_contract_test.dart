@@ -33,6 +33,7 @@ void main() {
     expect(documents, contains('LegalDocumentsScreen('));
     expect(documents, contains('SpecialistDesktopTable'));
     expect(documents, contains("title: 'Юридические документы'"));
+    expect(documents, isNot(contains('LegalDocumentStatus.active')));
     expect(matters, contains('LegalMattersScreen('));
     expect(matters, contains('SpecialistDesktopTable'));
     expect(matters, contains("title: managerMode ? 'Решения и риски'"));
@@ -87,5 +88,6 @@ void main() {
     expect(ui, contains('PremiumWorkBackdrop'));
     expect(table, contains('SingleChildScrollView'));
     expect(table, contains('scrollDirection: Axis.horizontal'));
+    expect(table, contains('.toDouble()'));
   });
 }
