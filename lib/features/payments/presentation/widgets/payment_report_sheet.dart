@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../widgets/object_employee_scope.dart';
 import '../../data/payment_report_exporter.dart';
 
 const Color _sheetCard = Color(0xFFFFFFFF);
@@ -45,6 +46,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
 
   late final List<DateTime> availableMonths;
   late String selectedPeriodKey;
+  String? selectedObjectKey;
   String selectedEmployeeKey = _allEmployeesKey;
 
   @override
@@ -98,6 +100,29 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
     return widget.initialMonth;
   }
 
+  List<String> get objectNames {
+    final values = widget.employees
+        .expand((employee) => employee.objectNames)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return values;
+  }
+
+  List<PaymentReportEmployeeOption> get filteredEmployees {
+    final scope = selectedObjectKey;
+    if (scope == null) return const <PaymentReportEmployeeOption>[];
+    if (isAllObjectsScope(scope)) return widget.employees;
+    final normalized = scope.trim().toLowerCase();
+    return widget.employees.where((employee) {
+      return employee.objectNames.any(
+        (value) => value.trim().toLowerCase() == normalized,
+      );
+    }).toList();
+  }
+
   void submit() {
     Navigator.pop(
       context,
@@ -106,6 +131,9 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
         employeeKey: selectedEmployeeKey == _allEmployeesKey
             ? null
             : selectedEmployeeKey,
+        objectName: isAllObjectsScope(selectedObjectKey)
+            ? null
+            : selectedObjectKey,
       ),
     );
   }
@@ -167,7 +195,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Выбери период и сотрудника. Таблица скачается одним XLSX-файлом.',
+                  'Сначала выбери объект или «Все объекты», затем период и сотрудника.',
                   style: TextStyle(
                     color: _sheetMuted,
                     fontWeight: FontWeight.w600,
@@ -184,6 +212,35 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                   ),
                   child: Column(
                     children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedObjectKey,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Объект',
+                          hintText: 'Сначала выберите объект',
+                          prefixIcon: Icon(Icons.apartment_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: allObjectsScopeValue,
+                            child: Text('Все объекты'),
+                          ),
+                          ...objectNames.map((objectName) {
+                            return DropdownMenuItem<String>(
+                              value: objectName,
+                              child: Text(objectName),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedObjectKey = value;
+                            selectedEmployeeKey = _allEmployeesKey;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         initialValue: selectedPeriodKey,
                         isExpanded: true,
@@ -214,19 +271,25 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
+                        key: ValueKey(
+                          'payment-report-employee-${selectedObjectKey ?? 'none'}',
+                        ),
                         initialValue: selectedEmployeeKey,
                         isExpanded: true,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Сотрудник',
-                          prefixIcon: Icon(Icons.person_outline),
-                          border: OutlineInputBorder(),
+                          hintText: selectedObjectKey == null
+                              ? 'Сначала выберите объект'
+                              : 'Выберите сотрудника',
+                          prefixIcon: const Icon(Icons.person_outline),
+                          border: const OutlineInputBorder(),
                         ),
                         items: [
                           const DropdownMenuItem<String>(
                             value: _allEmployeesKey,
                             child: Text('Все сотрудники'),
                           ),
-                          ...widget.employees.map((employee) {
+                          ...filteredEmployees.map((employee) {
                             final subtitle = employee.objectTitle.trim();
                             final label = subtitle.isEmpty
                                 ? employee.name
@@ -242,13 +305,14 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                             );
                           }),
                         ],
-                        onChanged: (value) {
-                          if (value == null) return;
-
-                          setState(() {
-                            selectedEmployeeKey = value;
-                          });
-                        },
+                        onChanged: selectedObjectKey == null
+                            ? null
+                            : (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  selectedEmployeeKey = value;
+                                });
+                              },
                       ),
                     ],
                   ),
@@ -258,7 +322,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                   width: double.infinity,
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: submit,
+                    onPressed: selectedObjectKey == null ? null : submit,
                     icon: const Icon(Icons.download_outlined),
                     label: const Text('Скачать таблицу'),
                   ),

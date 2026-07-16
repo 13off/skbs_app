@@ -6,12 +6,14 @@ import '../data/object_repository.dart';
 import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
+import '../widgets/object_employee_scope.dart';
 
 class AddPaymentScreen extends StatefulWidget {
   final int periodYear;
   final int periodMonth;
   final String periodTitle;
   final String? initialEmployeeId;
+  final String? initialObjectName;
 
   const AddPaymentScreen({
     super.key,
@@ -19,6 +21,7 @@ class AddPaymentScreen extends StatefulWidget {
     required this.periodMonth,
     required this.periodTitle,
     this.initialEmployeeId,
+    this.initialObjectName,
   });
 
   @override
@@ -54,6 +57,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   void initState() {
     super.initState();
 
+    final initialObject = widget.initialObjectName?.trim();
+    selectedObjectName = initialObject == null || initialObject.isEmpty
+        ? null
+        : initialObject;
     selectedEmployeeId = widget.initialEmployeeId;
     loadEmployees();
   }
@@ -144,12 +151,11 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   }
 
   List<Employee> employeesForSelectedObject() {
-    final objectName = selectedObjectName?.trim();
-    if (objectName == null || objectName.isEmpty) return const <Employee>[];
-
-    final result = employees
-        .where((employee) => employee.objectName.trim() == objectName)
-        .toList();
+    final result = filterEmployeesByObject<Employee>(
+      employees: employees,
+      selectedObject: selectedObjectName,
+      objectNameOf: (employee) => employee.objectName,
+    );
     result.sort((a, b) => a.name.compareTo(b.name));
     return result;
   }
@@ -456,12 +462,18 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           DropdownButtonFormField<String>(
             key: const ValueKey('payment-object-field'),
             initialValue: selectedObjectName,
-            items: objectNames.map((objectName) {
-              return DropdownMenuItem<String>(
-                value: objectName,
-                child: Text(objectName),
-              );
-            }).toList(),
+            items: [
+              const DropdownMenuItem<String>(
+                value: allObjectsScopeValue,
+                child: Text('Все объекты'),
+              ),
+              ...objectNames.map((objectName) {
+                return DropdownMenuItem<String>(
+                  value: objectName,
+                  child: Text(objectName),
+                );
+              }),
+            ],
             onChanged: isSaving
                 ? null
                 : (objectName) {
@@ -485,7 +497,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
             items: availableEmployees.map((employee) {
               return DropdownMenuItem<String>(
                 value: employee.id,
-                child: Text(employee.name),
+                child: Text(
+                  isAllObjectsScope(selectedObjectName) &&
+                          employee.objectName.trim().isNotEmpty
+                      ? '${employee.name} — ${employee.objectName.trim()}'
+                      : employee.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }).toList(),
             onChanged: isSaving || selectedObjectName == null

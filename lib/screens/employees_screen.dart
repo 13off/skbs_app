@@ -161,7 +161,11 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   void openPayments() {
     Navigator.push(
       context,
-      AppPageRoute(builder: (_) => const PaymentsScreen()),
+      AppPageRoute(
+        builder: (_) => PaymentsScreen(
+          selectedObjectName: widget.selectedObjectName,
+        ),
+      ),
     );
   }
 

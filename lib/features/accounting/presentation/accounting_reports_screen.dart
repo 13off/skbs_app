@@ -2,9 +2,11 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/employee_repository.dart';
+import '../../../data/object_repository.dart';
 import '../../../models/employee.dart';
 import '../../../screens/period_timesheet_screen.dart';
 import '../../../widgets/app_page.dart';
+import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../payments/data/payment_report_exporter.dart';
 import '../data/accounting_repository.dart';
@@ -21,24 +23,41 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
   late DateTime selectedMonth;
   late Future<List<AccountingPaymentRegisterRow>> registerFuture;
   bool isExporting = false;
+  List<String> objectNames = const <String>[];
+  String? selectedObjectScope;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month, 1);
-    registerFuture = loadRegister();
+    registerFuture = Future.value(
+      const <AccountingPaymentRegisterRow>[],
+    );
+    loadObjects();
   }
 
   DateTime get firstDay => DateTime(selectedMonth.year, selectedMonth.month, 1);
   DateTime get lastDay => DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+  String? get selectedObjectName =>
+      selectedObjectNameFromScope(selectedObjectScope);
+
+  Future<void> loadObjects() async {
+    final names = await ObjectRepository.fetchObjectNames();
+    if (!mounted) return;
+    setState(() => objectNames = names);
+  }
 
   Future<List<AccountingPaymentRegisterRow>> loadRegister({
     bool forceRefresh = false,
   }) {
+    if (selectedObjectScope == null) {
+      return Future.value(const <AccountingPaymentRegisterRow>[]);
+    }
     return AccountingRepository.fetchPaymentRegister(
       startDate: firstDay,
       endDate: lastDay,
+      objectName: selectedObjectName,
       forceRefresh: forceRefresh,
     );
   }
@@ -69,7 +88,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
   }
 
   Future<List<PaymentReportEmployeeOption>> reportEmployees() async {
-    final employees = await EmployeeRepository.fetchEmployees(includeFired: true);
+    final employees = await EmployeeRepository.fetchEmployees(
+      objectName: selectedObjectName,
+      includeFired: true,
+    );
     final drafts = <String, _ReportEmployeeDraft>{};
 
     for (final employee in employees) {
@@ -92,6 +114,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
         position: draft.employee.position,
         objectTitle: objects.isEmpty ? 'Все объекты' : objects.join(', '),
         employeeIds: draft.employeeIds.toList(),
+        objectNames: objects,
       );
     }).toList();
     result.sort((a, b) => a.name.compareTo(b.name));
@@ -99,13 +122,17 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
   }
 
   Future<void> downloadPayments() async {
-    if (isExporting) return;
+    if (isExporting || selectedObjectScope == null) return;
     setState(() => isExporting = true);
     try {
       final employees = await reportEmployees();
       if (employees.isEmpty) throw Exception('Нет сотрудников для отчёта');
       final count = await PaymentReportExporter.download(
-        request: PaymentReportRequest(month: selectedMonth, employeeKey: null),
+        request: PaymentReportRequest(
+          month: selectedMonth,
+          employeeKey: null,
+          objectName: selectedObjectName,
+        ),
         employees: employees,
       );
       if (!mounted) return;
@@ -123,10 +150,45 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
   }
 
   void openTimesheet() {
+    if (selectedObjectScope == null) return;
     Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => const PeriodTimesheetScreen(selectedObjectName: null),
+        builder: (_) => PeriodTimesheetScreen(
+          selectedObjectName: selectedObjectName,
+        ),
+      ),
+    );
+  }
+
+  Widget objectPanel() {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      child: DropdownButtonFormField<String>(
+        initialValue: selectedObjectScope,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Объект',
+          hintText: 'Сначала выберите объект',
+          prefixIcon: Icon(Icons.apartment_outlined),
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem<String>(
+            value: allObjectsScopeValue,
+            child: Text('Все объекты'),
+          ),
+          ...objectNames.map(
+            (name) => DropdownMenuItem<String>(value: name, child: Text(name)),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            selectedObjectScope = value;
+            registerFuture = loadRegister(forceRefresh: true);
+          });
+        },
       ),
     );
   }
@@ -288,19 +350,23 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
       subtitle: 'Выплаты, табели, начисления и подтверждающие документы',
       child: Column(
         children: [
+          objectPanel(),
+          const SizedBox(height: 14),
           monthPanel(),
           const SizedBox(height: 14),
           reportAction(
             icon: Icons.download_outlined,
             title: 'Отчёт по выплатам',
             subtitle: 'Скачать XLSX по всем сотрудникам за выбранный месяц',
-            onTap: isExporting ? null : downloadPayments,
+            onTap: isExporting || selectedObjectScope == null
+                ? null
+                : downloadPayments,
           ),
           reportAction(
             icon: Icons.calendar_month_outlined,
             title: 'Табель и начисления',
             subtitle: 'Открыть общий табель, начисления и выгрузку Excel',
-            onTap: openTimesheet,
+            onTap: selectedObjectScope == null ? null : openTimesheet,
           ),
           const SizedBox(height: 4),
           FutureBuilder<List<AccountingPaymentRegisterRow>>(
@@ -325,6 +391,17 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                         const SizedBox(height: 10),
                         FilledButton(onPressed: refresh, child: const Text('Повторить')),
                       ],
+                    ),
+                  ),
+                );
+              }
+              if (selectedObjectScope == null) {
+                return const PremiumWorkCard(
+                  child: Padding(
+                    padding: EdgeInsets.all(22),
+                    child: Text(
+                      'Сначала выберите объект или «Все объекты».',
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 );

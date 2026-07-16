@@ -43,7 +43,9 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
       expiresOn = item.expiresOn;
       nextActionDueAt = item.nextActionDueAt;
       employeeId = item.employeeId.isEmpty ? null : item.employeeId;
-      objectId = item.objectId.isEmpty ? null : item.objectId;
+      objectId = item.objectId.isEmpty
+          ? allObjectsScopeValue
+          : item.objectId;
       counterpartyId = item.counterpartyId.isEmpty ? null : item.counterpartyId;
       responsibleId = item.responsibleUserId.isEmpty ? null : item.responsibleUserId;
       foremanAction = item.requiresForemanAction;
@@ -135,7 +137,7 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
         expiresOn: expiresOn,
         responsibleUserId: responsibleId,
         employeeId: employeeId,
-        objectId: objectId,
+        objectId: isAllObjectsScope(objectId) ? null : objectId,
         counterpartyId: counterpartyId,
         taskId: widget.document?.taskId,
         legalMatterId: widget.document?.legalMatterId,
@@ -161,6 +163,33 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
     );
   }
 
+  List<LegalDirectoryItem> employeesForObject(_DocumentDirectories data) {
+    if (objectId == null) return const <LegalDirectoryItem>[];
+    if (isAllObjectsScope(objectId)) {
+      return List<LegalDirectoryItem>.from(data.employees);
+    }
+    String? selectedObject;
+    for (final item in data.objects) {
+      if (item.id == objectId) {
+        selectedObject = item.title.trim().toLowerCase();
+        break;
+      }
+    }
+    if (selectedObject == null) return const <LegalDirectoryItem>[];
+    return data.employees.where((employee) {
+      return employee.objectName.trim().toLowerCase() == selectedObject;
+    }).toList();
+  }
+
+  String employeeTitle(LegalDirectoryItem item) {
+    if (isAllObjectsScope(objectId) && item.objectName.trim().isNotEmpty) {
+      return '${item.title} — ${item.objectName.trim()}';
+    }
+    return item.subtitle.isEmpty
+        ? item.title
+        : '${item.title} • ${item.subtitle}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,6 +205,15 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
               return const PremiumWorkCard(child: Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())));
             }
             final data = snapshot.data!;
+            final availableEmployees = employeesForObject(data);
+            final objectFieldValue = isAllObjectsScope(objectId) ||
+                    data.objects.any((item) => item.id == objectId)
+                ? objectId
+                : null;
+            final employeeFieldValue = availableEmployees
+                    .any((item) => item.id == employeeId)
+                ? employeeId
+                : null;
             return Column(
               children: [
                 PremiumWorkCard(
@@ -226,17 +264,51 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
                   child: Column(
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: data.employees.any((item) => item.id == employeeId) ? employeeId : null,
-                        decoration: const InputDecoration(labelText: 'Сотрудник'),
-                        items: data.employees.map(directoryItem).toList(),
-                        onChanged: saving ? null : (value) => setState(() => employeeId = value),
+                        initialValue: objectFieldValue,
+                        decoration: const InputDecoration(
+                          labelText: 'Объект',
+                          hintText: 'Сначала выберите объект',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: allObjectsScopeValue,
+                            child: Text('Все объекты'),
+                          ),
+                          ...data.objects.map(directoryItem),
+                        ],
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() {
+                                  objectId = value;
+                                  employeeId = null;
+                                }),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        initialValue: data.objects.any((item) => item.id == objectId) ? objectId : null,
-                        decoration: const InputDecoration(labelText: 'Объект'),
-                        items: data.objects.map(directoryItem).toList(),
-                        onChanged: saving ? null : (value) => setState(() => objectId = value),
+                        key: ValueKey('legal-document-employee-${objectId ?? 'none'}'),
+                        initialValue: employeeFieldValue,
+                        decoration: InputDecoration(
+                          labelText: 'Сотрудник',
+                          hintText: objectId == null
+                              ? 'Сначала выберите объект'
+                              : availableEmployees.isEmpty
+                                  ? 'На выбранном объекте нет сотрудников'
+                                  : 'Выберите сотрудника',
+                        ),
+                        items: availableEmployees
+                            .map(
+                              (item) => DropdownMenuItem<String>(
+                                value: item.id,
+                                child: Text(
+                                  employeeTitle(item),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving || objectId == null
+                            ? null
+                            : (value) => setState(() => employeeId = value),
                       ),
                       const SizedBox(height: 12),
                       Row(
