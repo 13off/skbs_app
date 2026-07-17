@@ -11,6 +11,7 @@ void main() {
     final repository = source('lib/data/employee_repository.dart');
 
     expect(repository, contains('position, phone, object_name'));
+    expect(repository, contains("phone: json['phone']"));
 
     expect(mobile, contains('widget.profile.isForeman'));
     expect(mobile, contains('employee.phone.trim()'));
