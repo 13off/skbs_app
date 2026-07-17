@@ -35,7 +35,7 @@ class SpecialistDesktopPage extends StatelessWidget {
     final list = ListView(
       key: PageStorageKey<String>(storageKey),
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 120),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
       children: [
         Center(
           child: ConstrainedBox(
@@ -48,7 +48,7 @@ class SpecialistDesktopPage extends StatelessWidget {
                   subtitle: subtitle,
                   trailing: trailing,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 ...children,
               ],
             ),
