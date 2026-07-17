@@ -5,25 +5,24 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('all role tabs use the compact shared page header', () {
+  test('all role tabs use the same plain header as home', () {
     final header = source('lib/widgets/app_page.dart');
     final specialist = source(
       'lib/features/shared/presentation/specialist_desktop_ui.dart',
     );
 
-    expect(header, contains('PremiumBrandMark(size: 40'));
-    expect(header, contains('fontSize: 24'));
-    expect(header, contains('radius: 24'));
-    expect(header, isNot(contains('fontSize: 30')));
+    expect(header, contains('fontSize: 20'));
+    expect(header, contains('Flexible(fit: FlexFit.loose, child: action)'));
+    expect(header, isNot(contains('PremiumBrandMark(')));
+    expect(header, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
+    expect(header, isNot(contains('PremiumWorkCard(')));
     expect(specialist, contains('AppPageHeader('));
-    expect(specialist, contains('EdgeInsets.fromLTRB(24, 18, 24, 120)'));
   });
 
-  test('home tab keeps its separate compact title', () {
+  test('home tab keeps the same plain title style', () {
     final home = source('lib/screens/home_screen.dart');
 
     expect(home, contains("'Главная'"));
     expect(home, contains('fontSize: 20'));
-    expect(home, contains('radius: 18'));
   });
 }
