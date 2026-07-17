@@ -962,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Главная',
                 style: TextStyle(
                   color: _text,
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -970,10 +970,10 @@ class _HomeScreenState extends State<HomeScreen> {
             NotificationBell(selectedObjectName: widget.selectedObjectName),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         PremiumWorkCard(
-          radius: 20,
-          padding: const EdgeInsets.all(10),
+          radius: 18,
+          padding: const EdgeInsets.all(8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -982,20 +982,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Icon(
                     Icons.calendar_month_outlined,
                     color: _muted,
-                    size: 18,
+                    size: 16,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Text(
                     'Сегодня, ${dateText(today)}',
                     style: const TextStyle(
                       color: _muted,
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               buildObjectSelector(context),
             ],
           ),

@@ -24,7 +24,7 @@ class AppPage extends StatelessWidget {
     return PremiumWorkBackdrop(
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 120),
           children: [
             Center(
               child: ConstrainedBox(
@@ -37,7 +37,7 @@ class AppPage extends StatelessWidget {
                       subtitle: subtitle,
                       trailing: headerTrailing,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     child,
                   ],
                 ),
@@ -66,8 +66,8 @@ class AppPageHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PremiumBrandMark(size: 50, animate: false),
-        const SizedBox(width: 16),
+        const PremiumBrandMark(size: 40, animate: false),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,33 +76,33 @@ class AppPageHeader extends StatelessWidget {
                 'APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ',
                 style: TextStyle(
                   color: _appMuted,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 0.75,
+                  letterSpacing: 0.55,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _appText,
-                  fontSize: 30,
-                  height: 1.02,
+                  fontSize: 24,
+                  height: 1.05,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -0.8,
+                  letterSpacing: -0.45,
                 ),
               ),
               if (subtitle.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _appMuted,
-                    fontSize: 15,
+                    fontSize: 13,
                     height: 1.3,
                     fontWeight: FontWeight.w600,
                   ),
@@ -118,8 +118,8 @@ class AppPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumWorkCard(
-      radius: 30,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      radius: 24,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final action = trailing;
@@ -130,7 +130,7 @@ class AppPageHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 buildIdentity(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Align(alignment: Alignment.centerRight, child: action),
               ],
             );
@@ -140,7 +140,7 @@ class AppPageHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: buildIdentity()),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               action,
             ],
           );
