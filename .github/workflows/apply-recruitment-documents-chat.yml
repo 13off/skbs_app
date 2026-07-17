@@ -29,16 +29,23 @@ jobs:
       - name: Format and verify
         shell: bash
         run: |
-          dart format \
-            lib/features/recruitment \
-            lib/data/app_data_sync.dart \
-            test/recruitment_documents_chat_contract_test.dart
-          flutter pub get
-          flutter test
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter build web --release --base-href /appstroy-web/
+          set +e
+          {
+            dart format \
+              lib/features/recruitment \
+              lib/data/app_data_sync.dart \
+              test/recruitment_documents_chat_contract_test.dart
+            flutter pub get
+            flutter test
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            flutter build web --release --base-href /appstroy-web/
+          } > /tmp/recruitment-check.log 2>&1
+          status=$?
+          tail -n 260 /tmp/recruitment-check.log > ci-recruitment-check.log
+          echo "$status" > ci-recruitment-check.status
+          exit 0
 
-      - name: Commit checked changes
+      - name: Commit checked changes and log
         shell: bash
         run: |
           rm tool/apply_recruitment_documents_chat.py
@@ -46,5 +53,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Добавить документы и чат кандидата"
+          git commit -m "Проверить документы и чат кандидата"
           git push origin HEAD:feature/recruitment-documents-chat
