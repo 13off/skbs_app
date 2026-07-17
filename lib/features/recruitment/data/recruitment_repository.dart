@@ -51,10 +51,7 @@ abstract final class RecruitmentRepository {
     for (final application in applications) {
       counts[application.status] = (counts[application.status] ?? 0) + 1;
     }
-    return RecruitmentDashboardData(
-      applications: applications,
-      counts: counts,
-    );
+    return RecruitmentDashboardData(applications: applications, counts: counts);
   }
 
   static Future<RecruitmentApplication> saveApplication({

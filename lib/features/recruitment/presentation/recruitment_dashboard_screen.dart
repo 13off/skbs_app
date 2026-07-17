@@ -242,13 +242,17 @@ class _RecruitmentDashboardScreenState
                     style: const TextStyle(color: _muted),
                   ),
                   const SizedBox(height: 14),
-                  FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                  FilledButton(
+                    onPressed: refresh,
+                    child: const Text('Повторить'),
+                  ),
                 ],
               ),
             );
           }
 
-          final data = snapshot.data ??
+          final data =
+              snapshot.data ??
               const RecruitmentDashboardData(
                 applications: <RecruitmentApplication>[],
                 counts: <String, int>{},

@@ -11,10 +11,7 @@ import 'recruitment_dashboard_screen.dart';
 class RecruitmentMainScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const RecruitmentMainScreen({
-    super.key,
-    required this.profile,
-  });
+  const RecruitmentMainScreen({super.key, required this.profile});
 
   @override
   State<RecruitmentMainScreen> createState() => _RecruitmentMainScreenState();
@@ -51,9 +48,9 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
   Widget rootPage(int index) {
     return switch (index) {
       0 => RecruitmentDashboardScreen(
-          profile: widget.profile,
-          onOpenApplications: () => select(1),
-        ),
+        profile: widget.profile,
+        onOpenApplications: () => select(1),
+      ),
       1 => RecruitmentApplicationsScreen(profile: widget.profile),
       2 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),

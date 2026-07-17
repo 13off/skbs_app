@@ -8,10 +8,7 @@ class RolePreviewState {
   final String role;
   final String objectName;
 
-  const RolePreviewState({
-    this.role = 'admin',
-    this.objectName = '',
-  });
+  const RolePreviewState({this.role = 'admin', this.objectName = ''});
 
   bool get isAdminMode => role == 'admin';
   bool get isForemanMode => role == 'foreman';
@@ -88,12 +85,7 @@ class RolePreviewController {
   static void showForeman({required String objectName}) {
     final cleanObjectName = objectName.trim();
     if (cleanObjectName.isEmpty) return;
-    setState(
-      RolePreviewState(
-        role: 'foreman',
-        objectName: cleanObjectName,
-      ),
-    );
+    setState(RolePreviewState(role: 'foreman', objectName: cleanObjectName));
   }
 
   static void showLawyer() {

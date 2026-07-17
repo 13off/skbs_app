@@ -27,18 +27,15 @@ void main() {
   });
 
   test('recruitment pipeline keeps the agreed MVP stages', () {
-    expect(
-      recruitmentStatuses,
-      <String>[
-        'new',
-        'documents',
-        'problems',
-        'ready',
-        'tickets',
-        'completed',
-        'rejected',
-      ],
-    );
+    expect(recruitmentStatuses, <String>[
+      'new',
+      'documents',
+      'problems',
+      'ready',
+      'tickets',
+      'completed',
+      'rejected',
+    ]);
     expect(recruitmentStatusTitle('new'), 'Новые');
     expect(recruitmentStatusTitle('documents'), 'Ждём документы');
     expect(recruitmentStatusTitle('problems'), 'Косяки');

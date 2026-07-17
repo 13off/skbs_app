@@ -65,9 +65,9 @@ Future<void> showDesktopInvitationLink(
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: result.inviteUrl));
             if (!dialogContext.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ссылка скопирована')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Ссылка скопирована')));
           },
           icon: const Icon(Icons.copy_rounded),
           label: const Text('Копировать'),
@@ -112,7 +112,7 @@ class _DesktopCompanyMemberDialogState
       text: widget.member?.fullName ?? '',
     );
     emailController = TextEditingController(text: widget.member?.email ?? '');
-    const roles = <String>{'admin', 'foreman', 'lawyer', 'accountant'};
+    const roles = <String>{'admin', 'foreman', 'lawyer', 'accountant', 'hr'};
     final currentRole = widget.member?.role;
     role = currentRole != null && roles.contains(currentRole)
         ? currentRole
@@ -286,7 +286,7 @@ class _DesktopCompanyMemberDialogState
               Text(
                 isEditing
                     ? 'Измените роль и назначенный объект.'
-                    : 'Одна форма для администратора, прораба, юриста и бухгалтера.',
+                    : 'Одна форма для администратора, прораба, юриста, бухгалтера и HR.',
                 style: const TextStyle(
                   color: specialistMuted,
                   fontWeight: FontWeight.w600,
@@ -367,9 +367,7 @@ class _DesktopCompanyMemberDialogState
                       initialValue: role,
                       decoration: const InputDecoration(
                         labelText: 'Роль',
-                        prefixIcon: Icon(
-                          Icons.admin_panel_settings_outlined,
-                        ),
+                        prefixIcon: Icon(Icons.admin_panel_settings_outlined),
                       ),
                       items: const [
                         DropdownMenuItem(
@@ -380,13 +378,14 @@ class _DesktopCompanyMemberDialogState
                           value: 'foreman',
                           child: Text('Прораб'),
                         ),
-                        DropdownMenuItem(
-                          value: 'lawyer',
-                          child: Text('Юрист'),
-                        ),
+                        DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                         DropdownMenuItem(
                           value: 'accountant',
                           child: Text('Бухгалтер'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'hr',
+                          child: Text('HR-менеджер'),
                         ),
                       ],
                       onChanged: isSaving
@@ -398,9 +397,10 @@ class _DesktopCompanyMemberDialogState
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue: widget.objects.any(
-                          (object) => object.id == objectId,
-                        )
+                        initialValue:
+                            widget.objects.any(
+                              (object) => object.id == objectId,
+                            )
                             ? objectId
                             : null,
                         decoration: const InputDecoration(

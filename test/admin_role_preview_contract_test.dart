@@ -22,6 +22,7 @@ void main() {
 
     final lawyerView = admin.previewAs(role: 'lawyer');
     final accountantView = admin.previewAs(role: 'accountant');
+    final hrView = admin.previewAs(role: 'hr');
     final foremanView = admin.previewAs(
       role: 'foreman',
       objectName: 'Объект Чона',
@@ -32,6 +33,8 @@ void main() {
     expect(accountantView.role, 'accountant');
     expect(accountantView.actualRole, 'admin');
     expect(accountantView.isRolePreview, isTrue);
+    expect(hrView.role, 'hr');
+    expect(hrView.actualRole, 'admin');
     expect(foremanView.role, 'foreman');
     expect(foremanView.objectName, 'Объект Чона');
     expect(foremanView.actualRole, 'admin');
@@ -64,6 +67,10 @@ void main() {
     expect(RolePreviewController.state.value.role, 'accountant');
     expect(RolePreviewController.state.value.objectName, isEmpty);
 
+    RolePreviewController.showHr();
+    expect(RolePreviewController.state.value.role, 'hr');
+    expect(RolePreviewController.state.value.objectName, isEmpty);
+
     RolePreviewController.showAdmin();
     expect(RolePreviewController.state.value.role, 'admin');
   });
@@ -84,9 +91,12 @@ void main() {
     expect(selector, contains("title: 'Прораб'"));
     expect(selector, contains("title: 'Юрист'"));
     expect(selector, contains("title: 'Бухгалтер'"));
+    expect(selector, contains("title: 'HR-менеджер'"));
     expect(selector, contains('onTap: selectAccountant'));
+    expect(selector, contains('onTap: selectHr'));
     expect(selector, isNot(contains("badge: 'СКОРО'")));
     expect(main, contains('AccountingMainScreen(profile: profile)'));
+    expect(main, contains('RecruitmentMainScreen(profile: profile)'));
     expect(main, contains("'К руководителю'"));
     expect(controller, isNot(contains('Supabase')));
     expect(controller, isNot(contains(".from('company_memberships')")));

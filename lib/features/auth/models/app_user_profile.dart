@@ -48,10 +48,7 @@ class AppUserProfile {
     }
   }
 
-  AppUserProfile previewAs({
-    required String role,
-    String objectName = '',
-  }) {
+  AppUserProfile previewAs({required String role, String objectName = ''}) {
     if (!canPreviewRoles) return this;
     return AppUserProfile(
       id: id,

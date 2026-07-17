@@ -16,10 +16,7 @@ const Color _soft = Color(0xFFF1F2F4);
 class RecruitmentApplicationsScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const RecruitmentApplicationsScreen({
-    super.key,
-    required this.profile,
-  });
+  const RecruitmentApplicationsScreen({super.key, required this.profile});
 
   @override
   State<RecruitmentApplicationsScreen> createState() =>
@@ -309,7 +306,8 @@ class _RecruitmentApplicationsScreenState
             );
           }
 
-          final applications = snapshot.data ?? const <RecruitmentApplication>[];
+          final applications =
+              snapshot.data ?? const <RecruitmentApplication>[];
           final filtered = visible(applications);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -398,13 +396,17 @@ class _RecruitmentApplicationEditorState
   void initState() {
     super.initState();
     final application = widget.application;
-    fullNameController = TextEditingController(text: application?.fullName ?? '');
+    fullNameController = TextEditingController(
+      text: application?.fullName ?? '',
+    );
     phoneController = TextEditingController(text: application?.phone ?? '');
     citizenshipController = TextEditingController(
       text: application?.citizenship ?? '',
     );
     vacancyController = TextEditingController(text: application?.vacancy ?? '');
-    objectController = TextEditingController(text: application?.objectName ?? '');
+    objectController = TextEditingController(
+      text: application?.objectName ?? '',
+    );
     experienceController = TextEditingController(
       text: application?.experience ?? '',
     );
