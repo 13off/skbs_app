@@ -1,11 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.5";
+import JSZip from "npm:jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const documentsBucket = "recruitment-documents";
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -47,9 +50,141 @@ type ApplicationRow = {
   archived_at: string | null;
 };
 
+type DocumentRow = {
+  document_type: string;
+  storage_bucket: string;
+  storage_path: string;
+  original_name: string;
+  mime_type: string;
+};
+
+function safeFileName(value: string, fallback: string): string {
+  const clean = value
+    .trim()
+    .replace(/[\\/:*?"<>|\u0000-\u001F]/g, "_")
+    .replace(/\s+/g, " ")
+    .replace(/^\.+|\.+$/g, "")
+    .slice(0, 120);
+  return clean || fallback;
+}
+
+function extensionFrom(row: DocumentRow): string {
+  const fromName = row.original_name.split(".").at(-1)?.toLowerCase() ?? "";
+  const fromPath = row.storage_path.split(".").at(-1)?.toLowerCase() ?? "";
+  for (const value of [fromName, fromPath]) {
+    if (["jpg", "jpeg", "png", "webp", "pdf"].includes(value)) {
+      return value === "jpeg" ? "jpg" : value;
+    }
+  }
+  switch (row.mime_type) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "application/pdf":
+      return "pdf";
+    default:
+      return "jpg";
+  }
+}
+
+function documentTitle(type: string): string {
+  switch (type) {
+    case "passport_main":
+      return "Паспорт — разворот";
+    case "registration":
+      return "Паспорт — регистрация";
+    case "snils":
+      return "СНИЛС";
+    case "inn":
+      return "ИНН";
+    case "policy":
+      return "Медицинский полис";
+    default:
+      return "Документ";
+  }
+}
+
+async function createDocumentsArchive(
+  admin: ReturnType<typeof createClient>,
+  application: ApplicationRow,
+) {
+  const { data, error } = await admin
+    .from("recruitment_documents")
+    .select(
+      "document_type,storage_bucket,storage_path,original_name,mime_type",
+    )
+    .eq("company_id", application.company_id)
+    .eq("application_id", application.id)
+    .order("created_at");
+  if (error) throw error;
+
+  const documents = ((data ?? []) as DocumentRow[]).filter((row) =>
+    row.storage_bucket.trim().length > 0
+    && row.storage_path.trim().length > 0
+    && !row.storage_path.startsWith("telegram://")
+  );
+  if (!documents.length) {
+    throw new Error("У кандидата пока нет загруженных документов");
+  }
+
+  const zip = new JSZip();
+  const usedNames = new Set<string>();
+  for (let index = 0; index < documents.length; index += 1) {
+    const row = documents[index];
+    const { data: blob, error: downloadError } = await admin.storage
+      .from(row.storage_bucket)
+      .download(row.storage_path);
+    if (downloadError) throw downloadError;
+
+    const ext = extensionFrom(row);
+    const preferred = row.original_name.trim().length > 0
+      ? safeFileName(row.original_name, `document_${index + 1}.${ext}`)
+      : `${documentTitle(row.document_type)}.${ext}`;
+    let fileName = safeFileName(preferred, `document_${index + 1}.${ext}`);
+    if (!fileName.toLowerCase().endsWith(`.${ext}`)) {
+      fileName = `${fileName}.${ext}`;
+    }
+    if (usedNames.has(fileName.toLowerCase())) {
+      const dot = fileName.lastIndexOf(".");
+      const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+      const suffix = dot > 0 ? fileName.slice(dot) : "";
+      fileName = `${base}_${index + 1}${suffix}`;
+    }
+    usedNames.add(fileName.toLowerCase());
+    zip.file(fileName, new Uint8Array(await blob.arrayBuffer()));
+  }
+
+  const bytes = await zip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
+  const archivePath =
+    `${application.company_id}/${application.id}/exports/documents.zip`;
+  const { error: uploadError } = await admin.storage
+    .from(documentsBucket)
+    .upload(archivePath, bytes, {
+      contentType: "application/zip",
+      upsert: true,
+      cacheControl: "300",
+    });
+  if (uploadError) throw uploadError;
+
+  const archiveName = safeFileName(
+    `${application.full_name} — документы.zip`,
+    "documents.zip",
+  );
+  const { data: signed, error: signedError } = await admin.storage
+    .from(documentsBucket)
+    .createSignedUrl(archivePath, 300, { download: archiveName });
+  if (signedError) throw signedError;
+  return { url: signed.signedUrl, count: documents.length };
+}
+
 async function removeStoredFiles(
   admin: ReturnType<typeof createClient>,
-  applicationId: string,
+  application: ApplicationRow,
 ) {
   const [
     { data: documents, error: documentsError },
@@ -58,11 +193,11 @@ async function removeStoredFiles(
     admin
       .from("recruitment_documents")
       .select("storage_bucket,storage_path")
-      .eq("application_id", applicationId),
+      .eq("application_id", application.id),
     admin
       .from("recruitment_messages")
       .select("storage_bucket,storage_path")
-      .eq("application_id", applicationId),
+      .eq("application_id", application.id),
   ]);
   if (documentsError) throw documentsError;
   if (messagesError) throw messagesError;
@@ -76,6 +211,12 @@ async function removeStoredFiles(
     paths.add(path);
     grouped.set(bucket, paths);
   }
+
+  const archivePaths = grouped.get(documentsBucket) ?? new Set<string>();
+  archivePaths.add(
+    `${application.company_id}/${application.id}/exports/documents.zip`,
+  );
+  grouped.set(documentsBucket, archivePaths);
 
   for (const [bucket, paths] of grouped.entries()) {
     if (!paths.size) continue;
@@ -148,6 +289,13 @@ Deno.serve(async (request: Request) => {
     if (membershipError) throw membershipError;
     if (!membership) {
       return response({ error: "Нет доступа к заявке" }, 403);
+    }
+
+    if (action === "create_documents_archive") {
+      return response({
+        ok: true,
+        ...(await createDocumentsArchive(admin, application)),
+      });
     }
 
     if (action === "send_message") {
@@ -227,7 +375,7 @@ Deno.serve(async (request: Request) => {
       if (!application.archived_at) {
         return response({ error: "Сначала переместите заявку в архив" }, 409);
       }
-      await removeStoredFiles(admin, application.id);
+      await removeStoredFiles(admin, application);
       const { error: deleteError } = await admin
         .from("recruitment_applications")
         .delete()
