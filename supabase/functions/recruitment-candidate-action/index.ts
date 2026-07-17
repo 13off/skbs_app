@@ -46,6 +46,7 @@ type ApplicationRow = {
   full_name: string;
   source: string;
   external_chat_id: string;
+  external_user_id: string;
   status: string;
   archived_at: string | null;
 };
@@ -268,7 +269,7 @@ Deno.serve(async (request: Request) => {
     const { data: applicationData, error: applicationError } = await admin
       .from("recruitment_applications")
       .select(
-        "id,company_id,full_name,source,external_chat_id,status,archived_at",
+        "id,company_id,full_name,source,external_chat_id,external_user_id,status,archived_at",
       )
       .eq("id", applicationId)
       .maybeSingle();
@@ -350,6 +351,37 @@ Deno.serve(async (request: Request) => {
         .select("id,created_at")
         .single();
       if (messageError) throw messageError;
+
+      const { data: currentSession, error: sessionReadError } = await admin
+        .from("recruitment_bot_sessions")
+        .select("external_user_id,draft")
+        .eq("source", "telegram")
+        .eq("external_chat_id", application.external_chat_id)
+        .maybeSingle();
+      if (sessionReadError) throw sessionReadError;
+      const currentDraft = currentSession?.draft && typeof currentSession.draft === "object"
+        ? currentSession.draft as JsonMap
+        : {};
+      const { error: sessionError } = await admin
+        .from("recruitment_bot_sessions")
+        .upsert({
+          source: "telegram",
+          external_chat_id: application.external_chat_id,
+          external_user_id: String(
+            currentSession?.external_user_id
+              ?? application.external_user_id
+              ?? application.external_chat_id,
+          ),
+          company_id: application.company_id,
+          step: "submitted",
+          draft: {
+            ...currentDraft,
+            full_name: application.full_name,
+          },
+          application_id: application.id,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "source,external_chat_id" });
+      if (sessionError) throw sessionError;
 
       if (application.status === "new" || application.status === "draft") {
         const now = new Date().toISOString();

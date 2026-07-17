@@ -36,8 +36,11 @@ void main() {
     );
 
     expect(detail, isNot(contains('Widget imagePreview(')));
-    expect(detail, isNot(contains('InteractiveViewer(')));
     expect(detail, isNot(contains('Image.network(')));
+    expect(detail, contains('class _RecruitmentImageViewer'));
+    expect(detail, contains('InteractiveViewer('));
+    expect(detail, contains('Image.memory('));
+    expect(detail, contains('downloadStoredFile'));
     expect(detail, contains("label: const Text('Открыть')"));
     expect(detail, contains("label: const Text('Скачать')"));
     expect(detail, contains("'Скачать все ZIP"));
@@ -93,6 +96,12 @@ void main() {
     expect(repository, contains("'recruitment-candidate-action'"));
     expect(repository, contains("'action': 'send_message'"));
     expect(repository, contains("'action': 'delete_application'"));
+    final candidateAction = source(
+      'supabase/functions/recruitment-candidate-action/index.ts',
+    );
+    expect(candidateAction, contains('.from("recruitment_bot_sessions")'));
+    expect(candidateAction, contains('application_id: application.id'));
+    expect(candidateAction, contains('step: "submitted"'));
     expect(sync, contains("case 'recruitment_messages':"));
   });
 }

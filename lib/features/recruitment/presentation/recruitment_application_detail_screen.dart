@@ -118,10 +118,26 @@ class _RecruitmentApplicationDetailScreenState
     required String id,
     required String bucket,
     required String path,
+    required String title,
+    required bool isImage,
   }) async {
     if (openingId != null) return;
     setState(() => openingId = id);
     try {
+      if (isImage) {
+        final bytes = await RecruitmentRepository.downloadStoredFile(
+          bucket: bucket,
+          path: path,
+        );
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => _RecruitmentImageViewer(title: title, bytes: bytes),
+          ),
+        );
+        return;
+      }
+
       final signedUrl = await RecruitmentRepository.createSignedFileUrl(
         bucket: bucket,
         path: path,
@@ -541,6 +557,8 @@ class _RecruitmentApplicationDetailScreenState
                                   id: document.id,
                                   bucket: document.storageBucket,
                                   path: document.storagePath,
+                                  title: downloadName(document),
+                                  isImage: document.isImage,
                                 ),
                           icon: const Icon(Icons.open_in_new_rounded),
                           label: const Text('Открыть'),
@@ -663,6 +681,10 @@ class _RecruitmentApplicationDetailScreenState
                         id: message.id,
                         bucket: message.storageBucket,
                         path: message.storagePath,
+                        title: message.originalName.isEmpty
+                            ? 'Вложение кандидата'
+                            : message.originalName,
+                        isImage: message.mimeType.startsWith('image/'),
                       )
                     : null,
                 icon: const Icon(Icons.attach_file_rounded),
@@ -800,6 +822,38 @@ class _RecruitmentApplicationDetailScreenState
           conversationSection(),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+}
+
+class _RecruitmentImageViewer extends StatelessWidget {
+  final String title;
+  final Uint8List bytes;
+
+  const _RecruitmentImageViewer({required this.title, required this.bytes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: InteractiveViewer(
+            minScale: 0.8,
+            maxScale: 5,
+            child: Image.memory(
+              bytes,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+            ),
+          ),
+        ),
       ),
     );
   }
