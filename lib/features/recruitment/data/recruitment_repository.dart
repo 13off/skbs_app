@@ -20,8 +20,19 @@ abstract final class RecruitmentRepository {
     return '$year-$month-$day';
   }
 
+  static void _notify(String applicationId) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.recruitment},
+      context: <String, dynamic>{
+        'table': 'recruitment_applications',
+        'entity_id': applicationId,
+      },
+    );
+  }
+
   static Future<List<RecruitmentApplication>> fetchApplications({
     required String companyId,
+    bool archived = false,
   }) async {
     final cleanCompanyId = companyId.trim();
     if (cleanCompanyId.isEmpty) return const <RecruitmentApplication>[];
@@ -31,13 +42,13 @@ abstract final class RecruitmentRepository {
         .select('*, objects(name), recruitment_vacancies(title)')
         .eq('company_id', cleanCompanyId)
         .order('created_at', ascending: false)
-        .limit(500);
+        .limit(1000);
 
     return rows
         .map<RecruitmentApplication>(
           (value) => RecruitmentApplication.fromMap(_map(value)),
         )
-        .where((item) => item.id.isNotEmpty)
+        .where((item) => item.id.isNotEmpty && item.isArchived == archived)
         .toList();
   }
 
@@ -190,13 +201,7 @@ abstract final class RecruitmentRepository {
     }
 
     final result = RecruitmentApplication.fromMap(_map(row));
-    AppDataSync.notifyLocal(
-      const <AppDataDomain>{AppDataDomain.recruitment},
-      context: <String, dynamic>{
-        'table': 'recruitment_applications',
-        'entity_id': result.id,
-      },
-    );
+    _notify(result.id);
     return result;
   }
 
@@ -225,12 +230,48 @@ abstract final class RecruitmentRepository {
       'created_by': _client.auth.currentUser?.id,
     });
 
-    AppDataSync.notifyLocal(
-      const <AppDataDomain>{AppDataDomain.recruitment},
-      context: <String, dynamic>{
-        'table': 'recruitment_applications',
-        'entity_id': cleanApplicationId,
-      },
-    );
+    _notify(cleanApplicationId);
+  }
+
+  static Future<void> archiveApplication({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final cleanApplicationId = applicationId.trim();
+    await _client
+        .from('recruitment_applications')
+        .update(<String, dynamic>{
+          'archived_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('company_id', companyId.trim())
+        .eq('id', cleanApplicationId);
+    _notify(cleanApplicationId);
+  }
+
+  static Future<void> restoreApplication({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final cleanApplicationId = applicationId.trim();
+    await _client
+        .from('recruitment_applications')
+        .update(<String, dynamic>{'archived_at': null})
+        .eq('company_id', companyId.trim())
+        .eq('id', cleanApplicationId);
+    _notify(cleanApplicationId);
+  }
+
+  static Future<void> deleteApplication({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final cleanApplicationId = applicationId.trim();
+    await _client
+        .from('recruitment_applications')
+        .delete()
+        .eq('company_id', companyId.trim())
+        .eq('id', cleanApplicationId)
+        .not('archived_at', 'is', null);
+    _notify(cleanApplicationId);
   }
 }
