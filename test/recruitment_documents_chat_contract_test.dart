@@ -31,8 +31,8 @@ void main() {
     final repository = source(
       'lib/features/recruitment/data/recruitment_repository.dart',
     );
-    final server = source(
-      'supabase/functions/recruitment-candidate-action/index.ts',
+    final archiveFunction = source(
+      'supabase/functions/recruitment-documents-archive/index.ts',
     );
 
     expect(
@@ -44,10 +44,10 @@ void main() {
     expect(detail, contains("'Скачать все ZIP"));
     expect(repository, contains('createDownloadFileUrl'));
     expect(repository, contains('createDocumentsArchiveUrl'));
-    expect(repository, contains("'action': 'create_documents_archive'"));
-    expect(server, contains('import JSZip'));
-    expect(server, contains('createDocumentsArchive'));
-    expect(server, contains('application/zip'));
+    expect(repository, contains("'recruitment-documents-archive'"));
+    expect(archiveFunction, contains('import JSZip'));
+    expect(archiveFunction, contains('application/zip'));
+    expect(archiveFunction, contains('createSignedUrl'));
   });
 
   test('document and message models keep only protected storage paths', () {
