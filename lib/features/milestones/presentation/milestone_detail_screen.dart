@@ -196,11 +196,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
       if (taskId == null || taskId.isEmpty) {
         throw Exception('Не удалось получить ID созданной задачи');
       }
-      await MilestoneRepository.linkTask(
-        taskId: taskId,
-        milestoneId: milestone.id,
-        checklistItemId: item.id,
-      );
       await refresh();
     } finally {
       if (mounted) setState(() => busy = false);
