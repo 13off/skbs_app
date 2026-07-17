@@ -52,6 +52,79 @@ abstract final class RecruitmentRepository {
         .toList();
   }
 
+  static Future<List<RecruitmentDocument>> fetchDocuments({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final rows = await _client
+        .from('recruitment_documents')
+        .select()
+        .eq('company_id', companyId.trim())
+        .eq('application_id', applicationId.trim())
+        .order('created_at');
+    return rows
+        .map<RecruitmentDocument>(
+          (value) => RecruitmentDocument.fromMap(_map(value)),
+        )
+        .where((item) => item.id.isNotEmpty)
+        .toList();
+  }
+
+  static Future<List<RecruitmentMessage>> fetchMessages({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final rows = await _client
+        .from('recruitment_messages')
+        .select()
+        .eq('company_id', companyId.trim())
+        .eq('application_id', applicationId.trim())
+        .order('created_at');
+    return rows
+        .map<RecruitmentMessage>(
+          (value) => RecruitmentMessage.fromMap(_map(value)),
+        )
+        .where((item) => item.id.isNotEmpty)
+        .toList();
+  }
+
+  static Future<String> createSignedFileUrl({
+    required String bucket,
+    required String path,
+    int expiresInSeconds = 300,
+  }) async {
+    final cleanBucket = bucket.trim();
+    final cleanPath = path.trim();
+    if (cleanBucket.isEmpty ||
+        cleanPath.isEmpty ||
+        cleanPath.startsWith('telegram://')) {
+      throw Exception('Файл ещё не загружен в защищённое хранилище');
+    }
+    return _client.storage
+        .from(cleanBucket)
+        .createSignedUrl(cleanPath, expiresInSeconds);
+  }
+
+  static Future<void> sendCandidateMessage({
+    required String applicationId,
+    required String message,
+  }) async {
+    final response = await _client.functions.invoke(
+      'recruitment-candidate-action',
+      body: <String, dynamic>{
+        'action': 'send_message',
+        'application_id': applicationId.trim(),
+        'message': message.trim(),
+      },
+    );
+    final data = _map(response.data);
+    final error = data['error']?.toString().trim() ?? '';
+    if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
+      throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
+    }
+    _notify(applicationId.trim());
+  }
+
   static Future<List<RecruitmentObjectOption>> fetchObjects({
     required String companyId,
   }) async {
@@ -265,12 +338,18 @@ abstract final class RecruitmentRepository {
     required String companyId,
     required String applicationId,
   }) async {
-    final cleanApplicationId = applicationId.trim();
-    await _client
-        .from('recruitment_applications')
-        .delete()
-        .eq('company_id', companyId.trim())
-        .eq('id', cleanApplicationId);
-    _notify(cleanApplicationId);
+    final response = await _client.functions.invoke(
+      'recruitment-candidate-action',
+      body: <String, dynamic>{
+        'action': 'delete_application',
+        'application_id': applicationId.trim(),
+      },
+    );
+    final data = _map(response.data);
+    final error = data['error']?.toString().trim() ?? '';
+    if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
+      throw Exception(error.isEmpty ? 'Не удалось удалить заявку' : error);
+    }
+    _notify(applicationId.trim());
   }
 }
