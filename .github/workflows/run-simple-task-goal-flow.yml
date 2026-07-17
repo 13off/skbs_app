@@ -21,7 +21,8 @@ jobs:
       - name: Apply patch stored in temporary workflow
         shell: bash
         run: |
-          python3 - <<'PY'
+          set +e
+          python3 - <<'PY' > patch-error.log 2>&1
           from pathlib import Path
           import textwrap
 
@@ -32,6 +33,16 @@ jobs:
           body = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
           exec(compile(textwrap.dedent(body), 'simple_task_goal_patch.py', 'exec'))
           PY
+          status=$?
+          cat patch-error.log
+          if [ "$status" -ne 0 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add patch-error.log
+            git commit -m "Сохранить ошибку патчера формы задачи"
+            git push origin HEAD:feature/simple-task-goal-flow
+            exit "$status"
+          fi
 
       - uses: subosito/flutter-action@v2
         with:
@@ -53,6 +64,7 @@ jobs:
       - name: Commit result and remove temporary files
         shell: bash
         run: |
+          rm -f patch-error.log
           rm .github/workflows/apply-simple-task-goal-flow.yml
           rm .github/workflows/run-simple-task-goal-flow.yml
           git config user.name "github-actions[bot]"
