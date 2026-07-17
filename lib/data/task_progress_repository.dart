@@ -146,7 +146,6 @@ abstract final class TaskProgressRepository {
     if (itemRow == null) return;
 
     final currentState = itemRow['state']?.toString() ?? 'not_started';
-    if (currentState == 'blocked') return;
 
     final rawLinks = await _client
         .from('task_milestone_links')
@@ -164,14 +163,13 @@ abstract final class TaskProgressRepository {
     }
     total = total.clamp(0, 100).toInt();
 
-    String nextState;
-    if (total > 0) {
-      nextState = 'progress_$total';
-    } else if (currentState == 'done') {
-      nextState = 'done';
-    } else {
-      nextState = 'not_started';
-    }
+    final nextState = currentState == 'blocked'
+        ? 'blocked'
+        : total >= 100
+            ? 'done'
+            : total > 0
+                ? 'in_progress'
+                : 'not_started';
 
     await _client.from('milestone_checklist_items').update({
       'state': nextState,
