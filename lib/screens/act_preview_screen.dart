@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/act_context_repository.dart';
 import '../data/act_generator.dart';
+import '../models/task_act_context.dart';
 import '../models/task_item_data.dart';
 
 class ActPreviewScreen extends StatefulWidget {
@@ -18,6 +20,9 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
   late final List<TaskItemData> completedTasks;
   late final String formattedDate;
 
+  Map<String, TaskActContext> contextByTaskId =
+      const <String, TaskActContext>{};
+  bool isLoadingContext = true;
   bool isDownloading = false;
   String? errorText;
 
@@ -26,21 +31,44 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
     super.initState();
 
     completedTasks = widget.tasks
-        .where((task) {
-          return task.status == 'Выполнено';
-        })
+        .where((task) => task.status == 'Выполнено')
         .toList(growable: false);
-
     formattedDate = DateFormat('dd.MM.yyyy').format(widget.date);
+    loadActContext();
+  }
+
+  Future<void> loadActContext() async {
+    if (completedTasks.isEmpty) {
+      if (mounted) setState(() => isLoadingContext = false);
+      return;
+    }
+
+    setState(() {
+      isLoadingContext = true;
+      errorText = null;
+    });
+
+    try {
+      final result = await ActContextRepository.fetchForTasks(completedTasks);
+      if (!mounted) return;
+      setState(() {
+        contextByTaskId = result;
+        isLoadingContext = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        isLoadingContext = false;
+        errorText = 'Не удалось загрузить прогресс целей: $error';
+      });
+    }
   }
 
   Future<void> downloadAct() async {
-    if (isDownloading) return;
+    if (isDownloading || isLoadingContext) return;
 
     if (completedTasks.isEmpty) {
-      setState(() {
-        errorText = 'Нет выполненных задач для акта';
-      });
+      setState(() => errorText = 'Нет выполненных задач для акта');
       return;
     }
 
@@ -50,29 +78,28 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
     });
 
     try {
-      await ActGenerator.downloadAct(tasks: completedTasks, date: widget.date);
+      await ActGenerator.downloadAct(
+        tasks: completedTasks,
+        date: widget.date,
+        contextByTaskId: contextByTaskId,
+      );
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Акт скачан')));
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-
-      setState(() {
-        errorText = 'Ошибка: $e';
-      });
+      setState(() => errorText = 'Ошибка: $error');
     } finally {
-      if (mounted) {
-        setState(() {
-          isDownloading = false;
-        });
-      }
+      if (mounted) setState(() => isDownloading = false);
     }
   }
 
   Widget buildTaskCard(TaskItemData task) {
+    final taskId = task.id?.trim() ?? '';
+    final goalContext = contextByTaskId[taskId];
+
     return Card(
       elevation: 0,
       color: const Color(0xFFF7F8FA),
@@ -88,6 +115,27 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
             ),
             const SizedBox(height: 10),
             Text('Выполнены работы: ${task.work}.'),
+            if (goalContext != null) ...[
+              const SizedBox(height: 14),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Text(
+                'Цель: ${goalContext.milestoneTitle} — '
+                '${goalContext.milestoneProgressPercent}%',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              if (goalContext.milestoneLocation.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(goalContext.milestoneLocation),
+              ],
+              const SizedBox(height: 7),
+              Text(
+                'Пункт чек-листа: ${goalContext.checklistTitle} — '
+                '${goalContext.checklistProgressPercent}% '
+                '(${goalContext.checklistStateTitle.toLowerCase()})',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
           ],
         ),
       ),
@@ -112,24 +160,29 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'В акт попадают только задачи со статусом “Выполнено”.',
+            'В акт попадают выполненные задачи. Для связанных задач '
+            'добавляется готовность цели и пункта чек-листа.',
             style: TextStyle(
               color: Colors.grey.shade700,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 22),
-
-          if (completedTasks.isEmpty)
+          if (isLoadingContext)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 28),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (completedTasks.isEmpty)
             const Text(
               'Нет выполненных задач для акта',
               style: TextStyle(fontSize: 16),
             )
           else
             ...completedTasks.map(buildTaskCard),
-
           if (errorText != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -140,15 +193,14 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
               ),
             ),
           ],
-
           const SizedBox(height: 24),
-
           SizedBox(
             height: 54,
             child: FilledButton.icon(
-              onPressed: isDownloading || completedTasks.isEmpty
-                  ? null
-                  : downloadAct,
+              onPressed:
+                  isDownloading || isLoadingContext || completedTasks.isEmpty
+                      ? null
+                      : downloadAct,
               icon: isDownloading
                   ? const SizedBox(
                       width: 18,
