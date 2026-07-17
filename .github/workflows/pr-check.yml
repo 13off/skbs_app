@@ -1,31 +1,25 @@
 name: Apply key milestones home integration
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
     branches:
-      - main
-    paths:
-      - lib/**
-      - test/**
-      - .github/workflows/pr-check.yml
+      - feature/key-milestones
 
 permissions:
   contents: write
 
 concurrency:
-  group: appstroy-key-milestones-${{ github.event.pull_request.number }}
+  group: appstroy-key-milestones-feature
   cancel-in-progress: true
 
 jobs:
   apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: feature/key-milestones
           fetch-depth: 0
 
       - name: Wrap shared home with nearest milestone
@@ -44,7 +38,7 @@ jobs:
                   raise SystemExit('Adaptive home import anchor mismatch')
               text = text.replace(import_anchor, import_anchor + '\n' + import_line)
 
-          mobile_old = """        if (!useDesktopDashboard) {
+          old = """        if (!useDesktopDashboard) {
           return HomeScreen(
             profile: profile,
             selectedObjectName: selectedObjectName,
@@ -62,7 +56,7 @@ jobs:
           onOpenTask: onOpenTask,
           onOpenPayments: onOpenPayments,
         );"""
-          mobile_new = """        if (!useDesktopDashboard) {
+          new = """        if (!useDesktopDashboard) {
           return MilestoneHomeOverlay(
             profile: profile,
             selectedObjectName: selectedObjectName,
@@ -90,9 +84,9 @@ jobs:
         );"""
 
           if 'return MilestoneHomeOverlay(' not in text:
-              if text.count(mobile_old) != 1:
+              if text.count(old) != 1:
                   raise SystemExit('Adaptive home body pattern mismatch')
-              text = text.replace(mobile_old, mobile_new)
+              text = text.replace(old, new)
 
           path.write_text(text, encoding='utf-8')
           PY
@@ -102,4 +96,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/screens/adaptive_home_screen.dart .github/workflows/pr-check.yml
           git commit -m "подключены ключевые этапы к общей главной"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:feature/key-milestones
