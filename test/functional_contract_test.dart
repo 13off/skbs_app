@@ -183,10 +183,11 @@ void main() {
       );
     });
 
-    test('настройки сохраняют выход и удаление аккаунта', () {
+    test('настройки сохраняют рабочий выход из аккаунта', () {
       _containsAll('lib/screens/profile_screen.dart', const [
-        "'Выйти из аккаунта'",
-        "'Удалить аккаунт'",
+        'buildSignOutButton(context)',
+        'UserRepository.signOut()',
+        "'Выйти'",
       ]);
     });
 
