@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'adaptive_home_base_screen.dart' as base;
@@ -31,19 +30,15 @@ class AdaptiveHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MilestoneHomeOverlay(
+    return base.AdaptiveHomeScreen(
       profile: profile,
       selectedObjectName: selectedObjectName,
-      child: base.AdaptiveHomeScreen(
-        profile: profile,
-        selectedObjectName: selectedObjectName,
-        onObjectChanged: onObjectChanged,
-        onOpenEmployees: onOpenEmployees,
-        onOpenTimesheet: onOpenTimesheet,
-        onOpenTasks: onOpenTasks,
-        onOpenTask: onOpenTask,
-        onOpenPayments: onOpenPayments,
-      ),
+      onObjectChanged: onObjectChanged,
+      onOpenEmployees: onOpenEmployees,
+      onOpenTimesheet: onOpenTimesheet,
+      onOpenTasks: onOpenTasks,
+      onOpenTask: onOpenTask,
+      onOpenPayments: onOpenPayments,
     );
   }
 }
