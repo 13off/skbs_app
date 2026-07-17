@@ -467,7 +467,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${item.stateTitle} · вес ${item.weight}% · '
+                      '${item.stateTitle} · '
                       'задачи ${item.doneTaskCount}/${item.tasks.length}',
                       style: TextStyle(
                         color: accent,

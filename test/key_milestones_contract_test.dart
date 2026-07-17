@@ -13,7 +13,8 @@ void main() {
       'lib/features/milestones/data/milestone_repository.dart',
     );
 
-    expect(models, contains('item.weight * item.completionFraction'));
+    expect(models, contains('completed / items.length'));
+    expect(models, isNot(contains('item.weight * item.completionFraction')));
     expect(
       models,
       contains('tasks.isNotEmpty && doneTaskCount == tasks.length'),
@@ -34,6 +35,7 @@ void main() {
     expect(detail, contains("child: Text('Изменить название')"));
     expect(detail, isNot(contains('Критичный пункт')));
     expect(detail, isNot(contains("const Text('Вес')")));
+    expect(detail, isNot(contains('· вес ')));
   });
 
   test('main screens show several goals inline before metrics', () {

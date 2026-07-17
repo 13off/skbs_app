@@ -111,16 +111,13 @@ class ProjectMilestone {
     this.items = const <MilestoneChecklistItem>[],
   });
 
-  int get totalWeight => items.fold<int>(0, (sum, item) => sum + item.weight);
-
   double get progress {
-    final total = totalWeight;
-    if (total <= 0) return 0;
+    if (items.isEmpty) return 0;
     final completed = items.fold<double>(
       0,
-      (sum, item) => sum + item.weight * item.completionFraction,
+      (sum, item) => sum + item.completionFraction,
     );
-    return (completed / total).clamp(0, 1).toDouble();
+    return (completed / items.length).clamp(0, 1).toDouble();
   }
 
   int get progressPercent => (progress * 100).round();
@@ -130,11 +127,11 @@ class ProjectMilestone {
   int get doneTaskCount =>
       items.fold<int>(0, (sum, item) => sum + item.doneTaskCount);
 
-  List<MilestoneChecklistItem> get blockingItems => items
-      .where((item) => item.isCritical && !item.isEffectivelyDone)
-      .toList();
+  List<MilestoneChecklistItem> get blockingItems =>
+      const <MilestoneChecklistItem>[];
 
-  bool get isReady => items.isNotEmpty && blockingItems.isEmpty && progress >= 1;
+  bool get isReady =>
+      items.isNotEmpty && items.every((item) => item.isEffectivelyDone);
   bool get isCompleted => status == 'completed' || isReady;
 
   String get statusTitle {
