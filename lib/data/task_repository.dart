@@ -304,6 +304,7 @@ class TaskRepository {
                 'id, task_date, object_name, axes, work, status, not_done_comment',
               )
               .eq('task_date', _dateKey(date))
+              .eq('is_draft', false)
               .order('created_at', ascending: true)
         : await _client
               .from('tasks')
@@ -311,6 +312,7 @@ class TaskRepository {
                 'id, task_date, object_name, axes, work, status, not_done_comment',
               )
               .eq('task_date', _dateKey(date))
+              .eq('is_draft', false)
               .eq('object_name', cleanObject)
               .order('created_at', ascending: true);
 
@@ -338,9 +340,12 @@ class TaskRepository {
         .eq('task_date', _dateKey(date))
         .order('created_at', ascending: true)
         .map((rows) {
+          final visibleRows = rows
+              .where((row) => row['is_draft'] != true)
+              .toList();
           final filteredRows = cleanObject == null
-              ? rows
-              : rows.where((row) {
+              ? visibleRows
+              : visibleRows.where((row) {
                   final rowObject = row['object_name']?.toString().trim();
 
                   return rowObject == cleanObject;
@@ -375,11 +380,7 @@ class TaskRepository {
         )
         .single();
 
-    clearTaskListCache();
-    final createdTask = TaskItemData.fromSupabase(row);
-    _notifyTasksChanged(createdTask);
-
-    return createdTask;
+    return TaskItemData.fromSupabase(row);
   }
 
   static Future<TaskItemData> addTaskWithDetails(
@@ -404,6 +405,9 @@ class TaskRepository {
         photoStage: 'before',
       );
 
+      final createdWithLink = task.copyWith(id: taskId);
+      await saveTaskMilestoneLink(createdWithLink);
+
       final finalized = await _client
           .from('tasks')
           .update({
@@ -416,8 +420,6 @@ class TaskRepository {
           )
           .single();
 
-      final createdWithLink = task.copyWith(id: taskId);
-      await saveTaskMilestoneLink(createdWithLink);
       clearTaskListCache();
       final result = TaskItemData.fromSupabase(finalized).copyWith(
         milestoneId: task.milestoneId,
@@ -427,9 +429,21 @@ class TaskRepository {
       return result;
     } catch (_) {
       try {
+        final draftPhotos = await fetchTaskPhotos(taskId);
+        final paths = draftPhotos
+            .map((photo) => photo.storagePath)
+            .where((path) => path.trim().isNotEmpty)
+            .toList();
+        if (paths.isNotEmpty) {
+          await _client.storage.from(taskPhotosBucket).remove(paths);
+        }
+      } catch (_) {
+        // Удаление черновика продолжится даже при недоступности Storage.
+      }
+      try {
         await _client.from('tasks').delete().eq('id', taskId);
       } catch (_) {
-        // Черновик будет скрыт и может быть удалён служебной очисткой.
+        // Черновик скрыт из рабочих списков и может быть удалён служебно.
       }
       rethrow;
     }

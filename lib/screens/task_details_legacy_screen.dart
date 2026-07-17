@@ -488,6 +488,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final isPastOrToday = !taskDate.isAfter(cleanToday);
 
     if (selectedStatus == 'Выполнено' &&
+        widget.task.status != 'Выполнено' &&
         !photos.any((photo) => photo.isAfter)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Добавьте хотя бы одно фото «После»')),
@@ -857,7 +858,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             onChanged: isSaving || !canEdit
                 ? null
                 : (value) {
-                    if (value && !photos.any((photo) => photo.isAfter)) {
+                    if (value &&
+                        widget.task.status != 'Выполнено' &&
+                        !photos.any((photo) => photo.isAfter)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(

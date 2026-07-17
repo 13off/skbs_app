@@ -56,11 +56,21 @@ void main() {
         'tasks_validate_photo_requirements',
       ],
     );
+    expectContains(
+      'supabase/migrations/20260718121000_harden_role_notifications_task_drafts.sql',
+      const [
+        'appstroy.suppress_draft_task_id',
+        'alter column source_role drop default',
+        'create or replace function public.app_notify_change()',
+      ],
+    );
     expectContains('lib/data/task_repository.dart', const [
       "'is_draft': true",
       "'photo_requirements_enforced': true",
       "photoStage: 'before'",
       "'photo_stage': photoStage",
+      ".eq('is_draft', false)",
+      "row['is_draft'] != true",
     ]);
     expectContains('lib/screens/add_task_screen.dart', const [
       'Фото «До» — обязательно',
@@ -71,6 +81,7 @@ void main() {
       "photoStage: 'after'",
       'Без фото «После» задачу нельзя выполнить',
       'Сначала добавьте хотя бы одно фото «После»',
+      "widget.task.status != 'Выполнено'",
     ]);
   });
 }
