@@ -1,0 +1,50 @@
+name: Harden role notifications and task photos
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  harden-and-check:
+    if: github.head_ref == 'feature/role-notifications-task-photos' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply hardening
+        run: python3 tool/harden_role_notifications_task_photos.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Run full verification
+        shell: bash
+        run: |
+          dart format \
+            lib/data/task_repository.dart \
+            lib/screens/task_details_legacy_screen.dart \
+            test/role_notifications_task_photos_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --reporter compact
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit verified hardening
+        shell: bash
+        run: |
+          rm tool/harden_role_notifications_task_photos.py
+          rm .github/workflows/harden-role-notifications-task-photos.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Усилить ролевые уведомления и черновики задач"
+          git push origin HEAD:feature/role-notifications-task-photos
