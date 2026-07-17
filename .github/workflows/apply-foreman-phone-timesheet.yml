@@ -1,19 +1,19 @@
 name: Apply foreman phone timesheet
 
 on:
-  issue_comment:
-    types: [created]
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: read
+
+concurrency:
+  group: appstroy-foreman-phone-patch
+  cancel-in-progress: false
 
 jobs:
   apply:
-    if: >-
-      github.event.issue.pull_request &&
-      github.event.issue.number == 67 &&
-      github.event.comment.body == '/apply-foreman-phone-timesheet'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
