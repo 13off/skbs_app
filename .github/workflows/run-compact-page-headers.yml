@@ -1,0 +1,63 @@
+name: Run compact page headers patch
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'feature/compact-page-headers' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply patch from source workflow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/apply-compact-page-headers.yml').read_text(
+              encoding='utf-8',
+          )
+          marker = "          python3 - <<'PY'\n"
+          raw_body = workflow.split(marker, 1)[1].split('\n          PY', 1)[0]
+          body = textwrap.dedent(raw_body)
+          exec(compile(body, 'compact_page_headers_patch.py', 'exec'))
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and verify
+        shell: bash
+        run: |
+          dart format \
+            lib/widgets/app_page.dart \
+            lib/features/shared/presentation/specialist_desktop_ui.dart \
+            lib/screens/home_screen.dart \
+            test/compact_page_headers_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit result
+        shell: bash
+        run: |
+          rm .github/workflows/apply-compact-page-headers.yml
+          rm .github/workflows/run-compact-page-headers.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Уменьшить заголовки во всех ролях"
+          git push origin HEAD:feature/compact-page-headers
