@@ -1,0 +1,26 @@
+name: Apply cumulative task progress
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cumulative-task-progress
+    paths:
+      - .github/workflows/apply-cumulative-task-progress.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cumulative-task-progress
+      - run: python3 tool/apply_cumulative_task_progress.py
+      - run: rm -f .github/workflows/apply-cumulative-task-progress.yml tool/apply_cumulative_task_progress.py
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: added cumulative daily task progress
+          branch: feature/cumulative-task-progress
