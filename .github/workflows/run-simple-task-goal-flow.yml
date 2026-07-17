@@ -24,14 +24,17 @@ jobs:
           set +e
           python3 - <<'PY' > patch-error.log 2>&1
           from pathlib import Path
-          import textwrap
 
           workflow = Path('.github/workflows/apply-simple-task-goal-flow.yml').read_text(
               encoding='utf-8'
           )
           marker = "python3 - <<'PY'\n"
-          body = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
-          exec(compile(textwrap.dedent(body), 'simple_task_goal_patch.py', 'exec'))
+          raw_body = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
+          body = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in raw_body.splitlines()
+          )
+          exec(compile(body, 'simple_task_goal_patch.py', 'exec'))
           PY
           status=$?
           cat patch-error.log
