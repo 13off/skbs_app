@@ -24,6 +24,7 @@ jobs:
           set +e
           python3 - <<'PY' > patch-error.log 2>&1
           from pathlib import Path
+          import re
 
           workflow = Path('.github/workflows/apply-simple-task-goal-flow.yml').read_text(
               encoding='utf-8'
@@ -50,6 +51,88 @@ jobs:
           if strict_add_call not in body:
               raise SystemExit('Patch source does not contain add form call')
           body = body.replace(strict_add_call, flexible_add_call, 1)
+
+          placement_pattern = re.compile(
+              r"legacy = replace_once\(\n"
+              r"\s+legacy,\n"
+              r"\s+osi_marker,\n"
+              r"\s+compact_picker \+ osi_marker,\n"
+              r"\s+'legacy picker placement',\n"
+              r"\s+\)"
+          )
+          flexible_placement = """legacy_osi_text = legacy.index(
+              \"                'Оси',\"
+          )
+          legacy_osi_start = legacy.rfind(
+              \"          const Padding(\", 0, legacy_osi_text
+          )
+          if legacy_osi_start < 0:
+              raise SystemExit('Osi block not found')
+          legacy = (
+              legacy[:legacy_osi_start]
+              + compact_picker
+              + legacy[legacy_osi_start:]
+          )"""
+          body, count = placement_pattern.subn(flexible_placement, body, count=1)
+          if count != 1:
+              raise SystemExit('Patch source does not contain legacy placement call')
+
+          strict_work_call = (
+              "legacy = replace_once(legacy, old_work, new_work, "
+              "'legacy conditional work')"
+          )
+          flexible_work_call = """legacy_work_text = legacy.index(
+              \"                'Вид работ',\", legacy_osi_start
+          )
+          legacy_work_start = legacy.rfind(
+              \"          const Padding(\", 0, legacy_work_text
+          )
+          legacy_old_picker_start = legacy.index(
+              \"          if (isLoading)\\n"
+              \"            const Center(child: CircularProgressIndicator())\\n"
+              \"          else ...[\",
+              legacy_work_text,
+          )
+          legacy = (
+              legacy[:legacy_work_start]
+              + new_work
+              + legacy[legacy_old_picker_start:]
+          )"""
+          if strict_work_call not in body:
+              raise SystemExit('Patch source does not contain legacy work call')
+          body = body.replace(strict_work_call, flexible_work_call, 1)
+
+          old_picker_pattern = re.compile(
+              r"legacy = replace_once\(\n"
+              r"\s+legacy,\n"
+              r"\s+old_picker_block,\n"
+              r"\s+\"          if \(!isLoading\) buildAssigneesBlock\(\),\\n\",\n"
+              r"\s+'legacy remove large picker',\n"
+              r"\s+\)"
+          )
+          flexible_picker_removal = """legacy_old_picker_start = legacy.index(
+              \"          if (isLoading)\\n"
+              \"            const Center(child: CircularProgressIndicator())\\n"
+              \"          else ...[\",
+              legacy_work_start + len(new_work),
+          )
+          legacy_picker_end_marker = (
+              \"            buildAssigneesBlock(),\\n          ],\\n\"
+          )
+          legacy_old_picker_end = (
+              legacy.index(legacy_picker_end_marker, legacy_old_picker_start)
+              + len(legacy_picker_end_marker)
+          )
+          legacy = (
+              legacy[:legacy_old_picker_start]
+              + \"          if (!isLoading) buildAssigneesBlock(),\\n\"
+              + legacy[legacy_old_picker_end:]
+          )"""
+          body, count = old_picker_pattern.subn(
+              flexible_picker_removal, body, count=1
+          )
+          if count != 1:
+              raise SystemExit('Patch source does not contain old picker removal call')
 
           exec(compile(body, 'simple_task_goal_patch.py', 'exec'))
           PY
