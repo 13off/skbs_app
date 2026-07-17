@@ -8,6 +8,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
+import 'recruitment_application_detail_screen.dart';
 import 'recruitment_archive_screen.dart';
 
 const Color _text = Color(0xFF1F2328);
@@ -115,6 +116,22 @@ class _RecruitmentApplicationsScreenState
   }
 
   Future<void> openEditor([RecruitmentApplication? application]) async {
+    if (application != null) {
+      final action = await Navigator.of(context).push<String>(
+        MaterialPageRoute<String>(
+          builder: (_) => RecruitmentApplicationDetailScreen(
+            profile: widget.profile,
+            application: application,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (action != 'edit') {
+        await refresh();
+        return;
+      }
+    }
+
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
