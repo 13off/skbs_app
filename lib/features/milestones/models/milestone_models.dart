@@ -104,7 +104,7 @@ class ProjectMilestone {
       0,
       (sum, item) => sum + item.weight * item.completionFraction,
     );
-    return (completed / total).clamp(0, 1);
+    return (completed / total).clamp(0, 1).toDouble();
   }
 
   int get progressPercent => (progress * 100).round();
