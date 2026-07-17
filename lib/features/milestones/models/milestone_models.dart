@@ -4,6 +4,7 @@ class MilestoneTaskData {
   final String axes;
   final String status;
   final DateTime date;
+  final int progressPercent;
 
   const MilestoneTaskData({
     required this.taskId,
@@ -11,6 +12,7 @@ class MilestoneTaskData {
     required this.axes,
     required this.status,
     required this.date,
+    this.progressPercent = 0,
   });
 
   bool get isDone => status == 'Выполнено';
@@ -39,21 +41,22 @@ class MilestoneChecklistItem {
 
   int get doneTaskCount => tasks.where((task) => task.isDone).length;
 
-  int? get encodedProgressPercent {
-    final match = RegExp(r'^progress_(\d{1,3})$').firstMatch(state);
-    final value = int.tryParse(match?.group(1) ?? '');
-    return value?.clamp(0, 100).toInt();
+  int get accumulatedTaskProgress {
+    final total = tasks
+        .where((task) => task.isDone)
+        .fold<int>(0, (sum, task) => sum + task.progressPercent);
+    return total.clamp(0, 100).toInt();
   }
 
   int get progressPercent {
-    final encoded = encodedProgressPercent;
-    if (encoded != null) return encoded;
     if (state == 'blocked') return 0;
     if (state == 'done') return 100;
 
-    // Совместимость со старыми целями, созданными до накопительного прогресса.
+    final accumulated = accumulatedTaskProgress;
+    if (accumulated > 0) return accumulated;
+
+    // Совместимость со старыми задачами без дневного процента.
     if (tasks.isNotEmpty && doneTaskCount == tasks.length) return 100;
-    if (state == 'in_progress' || tasks.isNotEmpty) return 50;
     return 0;
   }
 
@@ -67,7 +70,6 @@ class MilestoneChecklistItem {
     if (isBlocked) return 'Заблокировано';
     if (isEffectivelyDone) return 'Готово · 100%';
     if (progressPercent > 0) return 'В работе · $progressPercent%';
-    if (state == 'in_progress') return 'В работе · 0%';
     return 'Не начато · 0%';
   }
 
