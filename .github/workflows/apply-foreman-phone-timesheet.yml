@@ -1,6 +1,11 @@
 name: Apply foreman phone timesheet
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-foreman-phone-timesheet.yml
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
