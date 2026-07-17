@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
+import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
 import '../data/task_repository.dart';
@@ -29,6 +30,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   late DateTime selectedDate;
   late String selectedStatus;
+  String? selectedMilestoneId;
+  String? selectedChecklistItemId;
 
   List<Employee> employees = [];
   final Set<String> selectedAssigneeIds = {};
@@ -122,6 +125,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         EmployeeRepository.fetchEmployees(objectName: widget.task.objectName),
         TaskRepository.fetchTaskAssigneeIds(taskId),
         TaskRepository.fetchTaskPhotos(taskId),
+        TaskRepository.fetchTaskMilestoneLink(taskId),
       ]);
 
       if (!mounted || token != _loadToken) return;
@@ -131,6 +135,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         result[1] as List<String>,
       );
       final loadedPhotos = result[2] as List<TaskPhotoData>;
+      final loadedMilestoneLink = result[3] as TaskMilestoneLinkData?;
 
       setState(() {
         employees = loadedEmployees.where((employee) {
@@ -143,6 +148,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ..clear()
           ..addAll(loadedAssigneeIds);
         photos = loadedPhotos;
+        selectedMilestoneId = loadedMilestoneLink?.milestoneId;
+        selectedChecklistItemId = loadedMilestoneLink?.checklistItemId;
         signedUrlFutures.clear();
         isLoading = false;
         errorText = null;
@@ -450,6 +457,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       return;
     }
 
+    if (selectedMilestoneId != null && selectedChecklistItemId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Выбери пункт чек-листа выбранной цели'),
+        ),
+      );
+      return;
+    }
+
     final taskDate = DateTime(
       selectedDate.year,
       selectedDate.month,
@@ -481,6 +497,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         status: selectedStatus,
         date: selectedDate,
         notDoneComment: selectedStatus == 'Выполнено' ? '' : notDoneComment,
+        milestoneId: selectedMilestoneId ?? '',
+        checklistItemId: selectedChecklistItemId ?? '',
       );
 
       await TaskRepository.saveTaskAssigneesIfChanged(
@@ -898,8 +916,22 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           if (isLoading)
             const Center(child: CircularProgressIndicator())
-          else
+          else ...[
+            TaskMilestonePicker(
+              objectName: widget.task.objectName,
+              initialMilestoneId: selectedMilestoneId,
+              initialChecklistItemId: selectedChecklistItemId,
+              canSelect: canEdit,
+              canEditChecklist:
+                  widget.profile.isAdmin || widget.profile.isForeman,
+              onChanged: (selection) {
+                selectedMilestoneId = selection.milestoneId;
+                selectedChecklistItemId = selection.checklistItemId;
+              },
+            ),
+            const SizedBox(height: 16),
             buildAssigneesBlock(),
+          ],
 
           const SizedBox(height: 16),
 

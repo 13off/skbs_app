@@ -280,6 +280,27 @@ abstract final class MilestoneRepository {
     });
   }
 
+  static Future<void> updateChecklistItem({
+    required String itemId,
+    required String title,
+    required int weight,
+    required bool isCritical,
+  }) async {
+    await _client.from('milestone_checklist_items').update({
+      'title': title.trim(),
+      'weight': weight,
+      'is_critical': isCritical,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', itemId);
+  }
+
+  static Future<void> deleteChecklistItem(String itemId) async {
+    await _client
+        .from('milestone_checklist_items')
+        .delete()
+        .eq('id', itemId);
+  }
+
   static Future<void> linkTask({
     required String taskId,
     required String milestoneId,

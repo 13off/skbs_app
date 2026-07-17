@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
 import '../data/task_repository.dart';
+import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 
@@ -21,11 +22,15 @@ class TaskCreateDraft {
 class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
+  final String? initialMilestoneId;
+  final String? initialChecklistItemId;
 
   const AddTaskScreen({
     super.key,
     required this.initialDate,
     required this.objectName,
+    this.initialMilestoneId,
+    this.initialChecklistItemId,
   });
 
   @override
@@ -41,6 +46,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   List<Employee> employees = [];
   final Set<String> selectedAssigneeIds = {};
   final List<TaskPhotoFile> selectedPhotos = [];
+  String? selectedMilestoneId;
+  String? selectedChecklistItemId;
 
   bool isLoadingEmployees = false;
   bool isPickingPhotos = false;
@@ -51,6 +58,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     super.initState();
 
     selectedDate = widget.initialDate;
+    selectedMilestoneId = widget.initialMilestoneId;
+    selectedChecklistItemId = widget.initialChecklistItemId;
     loadEmployees();
   }
 
@@ -313,12 +322,23 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       return;
     }
 
+    if (selectedMilestoneId != null && selectedChecklistItemId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Выбери пункт чек-листа выбранной цели'),
+        ),
+      );
+      return;
+    }
+
     final newTask = TaskItemData(
       axes,
       work,
       'Запланировано',
       selectedDate,
       objectName: widget.objectName,
+      milestoneId: selectedMilestoneId ?? '',
+      checklistItemId: selectedChecklistItemId ?? '',
     );
 
     Navigator.pop(
@@ -528,6 +548,20 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
+          ),
+
+          const SizedBox(height: 16),
+
+          TaskMilestonePicker(
+            objectName: widget.objectName,
+            initialMilestoneId: selectedMilestoneId,
+            initialChecklistItemId: selectedChecklistItemId,
+            canSelect: true,
+            canEditChecklist: true,
+            onChanged: (selection) {
+              selectedMilestoneId = selection.milestoneId;
+              selectedChecklistItemId = selection.checklistItemId;
+            },
           ),
 
           const SizedBox(height: 16),

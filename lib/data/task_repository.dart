@@ -74,6 +74,16 @@ class TaskPhotoFile {
   });
 }
 
+class TaskMilestoneLinkData {
+  final String milestoneId;
+  final String checklistItemId;
+
+  const TaskMilestoneLinkData({
+    required this.milestoneId,
+    required this.checklistItemId,
+  });
+}
+
 class TaskRepository {
   static final _client = Supabase.instance.client;
   static const taskPhotosBucket = 'task-photos';
@@ -99,6 +109,57 @@ class TaskRepository {
 
   static void clearTaskListCache() {
     _tasksCache.clear();
+  }
+
+  static Future<TaskMilestoneLinkData?> fetchTaskMilestoneLink(
+    String taskId,
+  ) async {
+    final row = await _client
+        .from('task_milestone_links')
+        .select('milestone_id, checklist_item_id')
+        .eq('task_id', taskId)
+        .maybeSingle();
+
+    if (row == null) return null;
+    final milestoneId = row['milestone_id']?.toString().trim() ?? '';
+    final checklistItemId =
+        row['checklist_item_id']?.toString().trim() ?? '';
+    if (milestoneId.isEmpty || checklistItemId.isEmpty) return null;
+
+    return TaskMilestoneLinkData(
+      milestoneId: milestoneId,
+      checklistItemId: checklistItemId,
+    );
+  }
+
+  static Future<void> saveTaskMilestoneLink(TaskItemData task) async {
+    final taskId = task.id?.trim() ?? '';
+    if (taskId.isEmpty) return;
+
+    final milestoneId = task.milestoneId;
+    final checklistItemId = task.checklistItemId;
+
+    // null means that the link was not loaded and must stay untouched.
+    if (milestoneId == null && checklistItemId == null) return;
+
+    final cleanMilestoneId = milestoneId?.trim() ?? '';
+    final cleanChecklistItemId = checklistItemId?.trim() ?? '';
+    if (cleanMilestoneId.isEmpty || cleanChecklistItemId.isEmpty) {
+      await _client
+          .from('task_milestone_links')
+          .delete()
+          .eq('task_id', taskId);
+      return;
+    }
+
+    await _client.from('task_milestone_links').upsert(
+      {
+        'task_id': taskId,
+        'milestone_id': cleanMilestoneId,
+        'checklist_item_id': cleanChecklistItemId,
+      },
+      onConflict: 'task_id',
+    );
   }
 
   static void _notifyTasksChanged(TaskItemData task) {
@@ -335,7 +396,13 @@ class TaskRepository {
       await uploadPhotosForTask(taskId: taskId, photos: photos);
     }
 
-    return createdTask;
+    final createdWithLink = task.copyWith(id: taskId);
+    await saveTaskMilestoneLink(createdWithLink);
+
+    return createdTask.copyWith(
+      milestoneId: task.milestoneId,
+      checklistItemId: task.checklistItemId,
+    );
   }
 
   static Future<void> updateTask(TaskItemData task) async {
@@ -354,6 +421,7 @@ class TaskRepository {
         })
         .eq('id', task.id!);
 
+    await saveTaskMilestoneLink(task);
     clearTaskListCache();
     _notifyTasksChanged(task);
   }
