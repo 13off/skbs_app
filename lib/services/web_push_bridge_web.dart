@@ -7,8 +7,7 @@ class WebPushBridge {
 
   static const String _workerPath = 'appstroy-push-sw.js';
   static const String _workerScope = 'push-scope/';
-  static const String _publicKeyEndpoint =
-      'https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/web-push-public-key';
+  static const String _publicKeyEndpoint = 'appstroy-push-config.json';
 
   static bool get _hasServiceWorker =>
       js_util.hasProperty(html.window.navigator, 'serviceWorker');
@@ -105,7 +104,7 @@ class WebPushBridge {
         if (value.isNotEmpty) return value;
       }
     } catch (_) {
-      // На случай краткой недоступности сервера используем ключ сборки.
+      // На случай краткой недоступности конфигурации используем ключ сборки.
     }
     return fallback;
   }
