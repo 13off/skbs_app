@@ -31,7 +31,7 @@ void main() {
 
     expect(detail, contains('AddTaskScreen('));
     expect(detail, contains('TaskRepository.addTaskWithDetails'));
-    expect(detail, contains('MilestoneRepository.linkTask'));
+    expect(detail, contains('initialMilestoneId: milestone.id'));
     expect(detail, contains('Добавить задачу к этому пункту'));
     expect(detail, contains('Критичный пункт'));
   });

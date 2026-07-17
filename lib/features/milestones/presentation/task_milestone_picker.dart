@@ -189,7 +189,7 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
     if (!widget.canEditChecklist || busy) return;
 
     final titleController = TextEditingController(text: item?.title ?? '');
-    var weight = (item?.weight ?? 10).toDouble().clamp(5, 50);
+    var weight = (item?.weight ?? 10).toDouble().clamp(5, 50).toDouble();
     var critical = item?.isCritical ?? false;
 
     final accepted = await showDialog<bool>(

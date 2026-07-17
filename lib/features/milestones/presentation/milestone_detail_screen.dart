@@ -177,6 +177,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
         builder: (_) => AddTaskScreen(
           initialDate: initialDate,
           objectName: milestone.objectName,
+          initialMilestoneId: milestone.id,
+          initialChecklistItemId: item.id,
         ),
       ),
     );
