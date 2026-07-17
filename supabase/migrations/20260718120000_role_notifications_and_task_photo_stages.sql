@@ -285,6 +285,9 @@ alter table public.tasks
   add column if not exists photo_requirements_enforced boolean not null default false,
   add column if not exists created_by_user_id uuid references auth.users(id) on delete set null;
 
+alter table public.tasks
+  alter column photo_requirements_enforced set default true;
+
 update public.tasks
 set created_by_user_id = null
 where created_by_user_id is null;
@@ -409,6 +412,22 @@ as $$
   );
 $$;
 
+drop policy if exists tasks_insert_company_object on public.tasks;
+create policy tasks_insert_company_object
+on public.tasks for insert to authenticated
+with check (
+  company_id = public.current_user_company_id()
+  and public.can_access_object(object_name)
+  and public.is_active_object(object_name)
+  and is_draft
+  and photo_requirements_enforced
+  and created_by_user_id = auth.uid()
+  and (
+    public.is_admin()
+    or (public.is_foreman() and task_date = public.current_operational_date())
+  )
+);
+
 drop policy if exists tasks_select_company_object on public.tasks;
 create policy tasks_select_company_object
 on public.tasks for select to authenticated
@@ -431,10 +450,28 @@ set search_path = public, pg_temp
 as $$
 begin
   if new.entity_type = 'tasks'
-     and coalesce(new.entity_id, '') ~ '^[0-9a-fA-F-]{36}$'
+     and coalesce(new.entity_id, '') ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
      and exists (
        select 1 from public.tasks t
        where t.id = new.entity_id::uuid and t.is_draft
+     ) then
+    return null;
+  end if;
+
+  if new.entity_type in ('task_assignees','task_photos')
+     and coalesce(new.entity_id, '') ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+     and exists (
+       select 1
+       from public.tasks t
+       where t.is_draft
+         and t.id = case
+           when new.entity_type = 'task_assignees' then (
+             select a.task_id from public.task_assignees a where a.id = new.entity_id::uuid
+           )
+           else (
+             select p.task_id from public.task_photos p where p.id = new.entity_id::uuid
+           )
+         end
      ) then
     return null;
   end if;

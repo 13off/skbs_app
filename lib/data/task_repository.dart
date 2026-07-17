@@ -37,6 +37,7 @@ class TaskPhotoData {
   final String taskId;
   final String storagePath;
   final String originalName;
+  final String photoStage;
   final DateTime createdAt;
 
   const TaskPhotoData({
@@ -44,8 +45,12 @@ class TaskPhotoData {
     required this.taskId,
     required this.storagePath,
     required this.originalName,
+    required this.photoStage,
     required this.createdAt,
   });
+
+  bool get isBefore => photoStage == 'before';
+  bool get isAfter => photoStage == 'after';
 
   factory TaskPhotoData.fromSupabase(Map<String, dynamic> json) {
     return TaskPhotoData(
@@ -53,6 +58,9 @@ class TaskPhotoData {
       taskId: json['task_id']?.toString() ?? '',
       storagePath: json['storage_path']?.toString() ?? '',
       originalName: json['original_name']?.toString() ?? 'Фото',
+      photoStage: json['photo_stage']?.toString() == 'after'
+          ? 'after'
+          : 'before',
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -122,8 +130,7 @@ class TaskRepository {
 
     if (row == null) return null;
     final milestoneId = row['milestone_id']?.toString().trim() ?? '';
-    final checklistItemId =
-        row['checklist_item_id']?.toString().trim() ?? '';
+    final checklistItemId = row['checklist_item_id']?.toString().trim() ?? '';
     if (milestoneId.isEmpty || checklistItemId.isEmpty) return null;
 
     return TaskMilestoneLinkData(
@@ -145,21 +152,15 @@ class TaskRepository {
     final cleanMilestoneId = milestoneId?.trim() ?? '';
     final cleanChecklistItemId = checklistItemId?.trim() ?? '';
     if (cleanMilestoneId.isEmpty || cleanChecklistItemId.isEmpty) {
-      await _client
-          .from('task_milestone_links')
-          .delete()
-          .eq('task_id', taskId);
+      await _client.from('task_milestone_links').delete().eq('task_id', taskId);
       return;
     }
 
-    await _client.from('task_milestone_links').upsert(
-      {
-        'task_id': taskId,
-        'milestone_id': cleanMilestoneId,
-        'checklist_item_id': cleanChecklistItemId,
-      },
-      onConflict: 'task_id',
-    );
+    await _client.from('task_milestone_links').upsert({
+      'task_id': taskId,
+      'milestone_id': cleanMilestoneId,
+      'checklist_item_id': cleanChecklistItemId,
+    }, onConflict: 'task_id');
   }
 
   static void _notifyTasksChanged(TaskItemData task) {
@@ -216,13 +217,14 @@ class TaskRepository {
 
   static String safePhotoStoragePath({
     required String taskId,
+    required String photoStage,
     required TaskPhotoFile photo,
     required int index,
   }) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final extension = photo.extension.isEmpty ? 'jpg' : photo.extension;
 
-    return '$taskId/${timestamp}_$index.$extension';
+    return '$taskId/$photoStage/${timestamp}_$index.$extension';
   }
 
   static Future<List<TaskPhotoFile>> pickPhotoFiles() async {
@@ -364,6 +366,9 @@ class TaskRepository {
           'status': task.status,
           'not_done_comment': task.notDoneComment,
           'created_by': 'Илья',
+          'created_by_user_id': _client.auth.currentUser?.id,
+          'is_draft': true,
+          'photo_requirements_enforced': true,
         })
         .select(
           'id, task_date, object_name, axes, work, status, not_done_comment',
@@ -383,26 +388,51 @@ class TaskRepository {
     required List<String> assigneeIds,
     required List<TaskPhotoFile> photos,
   }) async {
+    if (photos.isEmpty) {
+      throw Exception('Добавьте хотя бы одно фото «До»');
+    }
+
     final createdTask = await addTask(task, objectName: objectName);
     final taskId = createdTask.id;
+    if (taskId == null || taskId.isEmpty) return createdTask;
 
-    if (taskId == null || taskId.isEmpty) {
-      return createdTask;
+    try {
+      await saveTaskAssignees(taskId: taskId, assigneeIds: assigneeIds);
+      await uploadPhotosForTask(
+        taskId: taskId,
+        photos: photos,
+        photoStage: 'before',
+      );
+
+      final finalized = await _client
+          .from('tasks')
+          .update({
+            'is_draft': false,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', taskId)
+          .select(
+            'id, task_date, object_name, axes, work, status, not_done_comment',
+          )
+          .single();
+
+      final createdWithLink = task.copyWith(id: taskId);
+      await saveTaskMilestoneLink(createdWithLink);
+      clearTaskListCache();
+      final result = TaskItemData.fromSupabase(finalized).copyWith(
+        milestoneId: task.milestoneId,
+        checklistItemId: task.checklistItemId,
+      );
+      _notifyTasksChanged(result);
+      return result;
+    } catch (_) {
+      try {
+        await _client.from('tasks').delete().eq('id', taskId);
+      } catch (_) {
+        // Черновик будет скрыт и может быть удалён служебной очисткой.
+      }
+      rethrow;
     }
-
-    await saveTaskAssignees(taskId: taskId, assigneeIds: assigneeIds);
-
-    if (photos.isNotEmpty) {
-      await uploadPhotosForTask(taskId: taskId, photos: photos);
-    }
-
-    final createdWithLink = task.copyWith(id: taskId);
-    await saveTaskMilestoneLink(createdWithLink);
-
-    return createdTask.copyWith(
-      milestoneId: task.milestoneId,
-      checklistItemId: task.checklistItemId,
-    );
   }
 
   static Future<void> updateTask(TaskItemData task) async {
@@ -513,7 +543,9 @@ class TaskRepository {
   static Future<List<TaskPhotoData>> fetchTaskPhotos(String taskId) async {
     final rows = await _client
         .from('task_photos')
-        .select('id, task_id, storage_path, original_name, created_at')
+        .select(
+          'id, task_id, storage_path, original_name, photo_stage, created_at',
+        )
         .eq('task_id', taskId)
         .order('created_at', ascending: false);
 
@@ -525,45 +557,66 @@ class TaskRepository {
   static Future<List<TaskPhotoData>> uploadPhotosForTask({
     required String taskId,
     required List<TaskPhotoFile> photos,
+    required String photoStage,
   }) async {
     if (photos.isEmpty) return <TaskPhotoData>[];
-
-    final rowsToInsert = <Map<String, String>>[];
-
-    for (var i = 0; i < photos.length; i++) {
-      final photo = photos[i];
-      final path = safePhotoStoragePath(
-        taskId: taskId,
-        photo: photo,
-        index: i + 1,
-      );
-
-      await _client.storage
-          .from(taskPhotosBucket)
-          .uploadBinary(
-            path,
-            photo.bytes,
-            fileOptions: FileOptions(
-              contentType: photo.contentType,
-              upsert: false,
-            ),
-          );
-
-      rowsToInsert.add({
-        'task_id': taskId,
-        'storage_path': path,
-        'original_name': photo.originalName,
-      });
+    if (photoStage != 'before' && photoStage != 'after') {
+      throw ArgumentError.value(photoStage, 'photoStage');
     }
 
-    final rows = await _client
-        .from('task_photos')
-        .insert(rowsToInsert)
-        .select('id, task_id, storage_path, original_name, created_at');
+    final rowsToInsert = <Map<String, String>>[];
+    final uploadedPaths = <String>[];
 
-    return rows.map<TaskPhotoData>((row) {
-      return TaskPhotoData.fromSupabase(row);
-    }).toList();
+    try {
+      for (var i = 0; i < photos.length; i++) {
+        final photo = photos[i];
+        final path = safePhotoStoragePath(
+          taskId: taskId,
+          photoStage: photoStage,
+          photo: photo,
+          index: i + 1,
+        );
+
+        await _client.storage
+            .from(taskPhotosBucket)
+            .uploadBinary(
+              path,
+              photo.bytes,
+              fileOptions: FileOptions(
+                contentType: photo.contentType,
+                upsert: false,
+              ),
+            );
+
+        uploadedPaths.add(path);
+        rowsToInsert.add({
+          'task_id': taskId,
+          'storage_path': path,
+          'original_name': photo.originalName,
+          'photo_stage': photoStage,
+        });
+      }
+
+      final rows = await _client
+          .from('task_photos')
+          .insert(rowsToInsert)
+          .select(
+            'id, task_id, storage_path, original_name, photo_stage, created_at',
+          );
+
+      return rows.map<TaskPhotoData>((row) {
+        return TaskPhotoData.fromSupabase(row);
+      }).toList();
+    } catch (_) {
+      if (uploadedPaths.isNotEmpty) {
+        try {
+          await _client.storage.from(taskPhotosBucket).remove(uploadedPaths);
+        } catch (_) {
+          // Служебная очистка удалит оставшиеся файлы.
+        }
+      }
+      rethrow;
+    }
   }
 
   static Future<void> deleteTaskPhoto(TaskPhotoData photo) async {

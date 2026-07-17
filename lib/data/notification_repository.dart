@@ -18,6 +18,7 @@ class AppNotification {
   final String entityId;
   final String targetUserId;
   final String targetRole;
+  final String sourceRole;
   final bool requiresAction;
   final DateTime? dueAt;
   final String priority;
@@ -36,6 +37,7 @@ class AppNotification {
     required this.entityId,
     this.targetUserId = '',
     this.targetRole = '',
+    this.sourceRole = 'admin',
     this.requiresAction = false,
     this.dueAt,
     this.priority = 'normal',
@@ -60,10 +62,12 @@ class AppNotification {
       entityId: json['entity_id']?.toString() ?? '',
       targetUserId: json['target_user_id']?.toString() ?? '',
       targetRole: json['target_role']?.toString() ?? '',
+      sourceRole: json['source_role']?.toString() ?? 'admin',
       requiresAction: json['requires_action'] == true,
       dueAt: dueText.isEmpty ? null : DateTime.tryParse(dueText)?.toLocal(),
       priority: json['priority']?.toString() ?? 'normal',
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
       isRead: isRead,
     );
@@ -80,7 +84,25 @@ class NotificationRepository {
     'task_photos',
     'legal_document',
     'legal_matter',
+    'foreman_reminder',
+    'brigade_photo',
   ];
+
+  static const List<String> allNotificationRoles = <String>[
+    'admin',
+    'foreman',
+    'hr',
+    'accountant',
+    'lawyer',
+  ];
+
+  static const Map<String, String> notificationRoleTitles = <String, String>{
+    'admin': 'Руководитель',
+    'foreman': 'Прораб',
+    'hr': 'HR-менеджер',
+    'accountant': 'Бухгалтер',
+    'lawyer': 'Юрист',
+  };
 
   static String? cleanObjectName(String? objectName) {
     final clean = objectName?.trim();
@@ -132,10 +154,10 @@ class NotificationRepository {
       final actorName = profile?.fullName.trim().isNotEmpty == true
           ? profile!.fullName.trim()
           : profile?.email.trim().isNotEmpty == true
-              ? profile!.email.trim()
-              : user?.email?.trim().isNotEmpty == true
-                  ? user!.email!.trim()
-                  : 'Пользователь';
+          ? profile!.email.trim()
+          : user?.email?.trim().isNotEmpty == true
+          ? user!.email!.trim()
+          : 'Пользователь';
       final actorEmail = profile?.email.trim().isNotEmpty == true
           ? profile!.email.trim()
           : user?.email?.trim() ?? '';
@@ -157,7 +179,8 @@ class NotificationRepository {
             'target_role': cleanTargetRole.isEmpty ? null : cleanTargetRole,
             'requires_action': requiresAction,
             'due_at': dueAt?.toUtc().toIso8601String(),
-            'priority': <String>{'low', 'normal', 'high', 'critical'}.contains(priority)
+            'priority':
+                <String>{'low', 'normal', 'high', 'critical'}.contains(priority)
                 ? priority
                 : 'normal',
           })
@@ -180,6 +203,44 @@ class NotificationRepository {
       if (_isMissingNotificationsTableError(error)) return;
       // Уведомления не должны ломать основное действие.
     }
+  }
+
+  static Future<Set<String>> fetchSelectedNotificationRoles() async {
+    final data = await _client.rpc('get_my_notification_role_preferences');
+    if (data is List) {
+      return data
+          .map((value) => value.toString())
+          .where(allNotificationRoles.contains)
+          .toSet();
+    }
+    return allNotificationRoles.toSet();
+  }
+
+  static Future<Set<String>> saveSelectedNotificationRoles(
+    Iterable<String> roles,
+  ) async {
+    final clean = roles
+        .map((role) => role.trim())
+        .where(allNotificationRoles.contains)
+        .toSet()
+        .toList();
+    final data = await _client.rpc(
+      'set_my_notification_role_preferences',
+      params: <String, dynamic>{'p_roles': clean},
+    );
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.notifications},
+      context: const <String, dynamic>{
+        'table': 'notification_role_preferences',
+      },
+    );
+    if (data is List) {
+      return data
+          .map((value) => value.toString())
+          .where(allNotificationRoles.contains)
+          .toSet();
+    }
+    return clean.toSet();
   }
 
   static DateTime? _parseDate(dynamic value) {
@@ -249,20 +310,26 @@ class NotificationRepository {
       final profile = await UserRepository.fetchCurrentProfile();
       final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
       final profileObject = cleanObjectName(profile?.objectName);
-      final visibleObject = isForeman ? cleanObject ?? profileObject : cleanObject;
+      final visibleObject = isForeman
+          ? cleanObject ?? profileObject
+          : cleanObject;
       final clearDate = await _fetchClearDate(visibleObject);
 
-      dynamic query = _client.from('app_notifications').select(
-            'id, title, body, actor_user_id, actor_name, actor_email, object_name, entity_type, entity_id, target_user_id, target_role, requires_action, due_at, priority, created_at',
+      dynamic query = _client
+          .from('app_notifications')
+          .select(
+            'id, title, body, actor_user_id, actor_name, actor_email, object_name, entity_type, entity_id, target_user_id, target_role, source_role, requires_action, due_at, priority, created_at',
           );
       if (visibleObject != null) query = query.eq('object_name', visibleObject);
-      if (isForeman) query = query.inFilter('entity_type', foremanAllowedEntityTypes);
+      if (isForeman)
+        query = query.inFilter('entity_type', foremanAllowedEntityTypes);
       if (clearDate != null) {
         query = query.gt('created_at', clearDate.toUtc().toIso8601String());
       }
 
-      final List<dynamic> rows =
-          await query.order('created_at', ascending: false).limit(limit);
+      final List<dynamic> rows = await query
+          .order('created_at', ascending: false)
+          .limit(limit);
       final ids = rows
           .map<String>((row) => row['id']?.toString() ?? '')
           .where((id) => id.isNotEmpty)
@@ -298,11 +365,13 @@ class NotificationRepository {
     if (ids.isEmpty) return;
     final now = DateTime.now().toUtc().toIso8601String();
     final rows = ids
-        .map((id) => <String, dynamic>{
-              'user_id': userId,
-              'notification_id': id,
-              'read_at': now,
-            })
+        .map(
+          (id) => <String, dynamic>{
+            'user_id': userId,
+            'notification_id': id,
+            'read_at': now,
+          },
+        )
         .toList();
     try {
       await _client

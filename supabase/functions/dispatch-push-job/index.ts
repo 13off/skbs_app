@@ -19,6 +19,8 @@ const foremanAllowedEntityTypes = new Set([
   "task_photos",
   "legal_document",
   "legal_matter",
+  "foreman_reminder",
+  "brigade_photo",
 ]);
 
 interface ServiceAccount {
@@ -39,6 +41,7 @@ interface NotificationRow {
   entity_id: string;
   target_user_id: string | null;
   target_role: string | null;
+  source_role: string;
 }
 
 interface FcmTokenRow {
@@ -169,6 +172,15 @@ async function getGoogleAccessToken(account: ServiceAccount) {
 
 function normalize(value: unknown) {
   return String(value ?? "").trim().toLocaleLowerCase("ru");
+}
+
+function normalizeRole(value: unknown) {
+  const role = normalize(value);
+  if (role === "owner") return "admin";
+  if (role === "accounting") return "accountant";
+  return ["admin", "foreman", "hr", "accountant", "lawyer"].includes(role)
+    ? role
+    : "admin";
 }
 
 function fcmErrorCode(payload: unknown) {
@@ -372,7 +384,7 @@ Deno.serve(async (request: Request) => {
     const { data: rawNotification, error: notificationError } = await admin
       .from("app_notifications")
       .select(
-        "id,company_id,title,body,actor_user_id,object_name,entity_type,entity_id,target_user_id,target_role",
+        "id,company_id,title,body,actor_user_id,object_name,entity_type,entity_id,target_user_id,target_role,source_role",
       )
       .eq("id", job.notification_id)
       .maybeSingle();
@@ -432,68 +444,91 @@ Deno.serve(async (request: Request) => {
       await membershipsQuery;
     if (membershipsError) throw membershipsError;
 
+    const { data: preferenceRows, error: preferenceError } = await admin
+      .from("notification_role_preferences")
+      .select("user_id,selected_roles")
+      .eq("company_id", notification.company_id);
+    if (preferenceError) throw preferenceError;
+    const adminPreferences = new Map<string, Set<string>>();
+    for (const row of preferenceRows ?? []) {
+      const selected = Array.isArray(row.selected_roles)
+        ? row.selected_roles.map(normalizeRole)
+        : ["admin", "foreman", "hr", "accountant", "lawyer"];
+      adminPreferences.set(String(row.user_id), new Set(selected));
+    }
+
+    const sourceRole = normalizeRole(
+      notification.source_role || notification.target_role || "admin",
+    );
+    const targetRole = notification.target_role
+      ? normalizeRole(notification.target_role)
+      : "";
     const recipientIds = new Set<string>();
     const foremanIds: string[] = [];
     for (const membership of memberships ?? []) {
       const userId = String(membership.user_id);
-      const role = String(membership.role);
+      const role = normalizeRole(membership.role);
       if (role === "foreman") foremanIds.push(userId);
 
-      if (notification.target_user_id === userId) {
-        recipientIds.add(userId);
+      if (notification.target_user_id) {
+        if (notification.target_user_id === userId) recipientIds.add(userId);
         continue;
       }
-      if (notification.target_role) {
-        const normalizedRole = role === "owner" ? "admin" : role;
-        if (normalizedRole === notification.target_role) recipientIds.add(userId);
+
+      if (role === "admin") {
+        const selected = adminPreferences.get(userId) ??
+          new Set(["admin", "foreman", "hr", "accountant", "lawyer"]);
+        if (selected.has(sourceRole)) recipientIds.add(userId);
         continue;
       }
-      if (role === "owner" || role === "admin") recipientIds.add(userId);
-      if (role === "lawyer" && notification.entity_type.startsWith("legal_")) {
-        recipientIds.add(userId);
+
+      if (targetRole) {
+        if (role === targetRole && role !== "foreman") recipientIds.add(userId);
+        continue;
       }
+
+      if (role === sourceRole && role !== "foreman") recipientIds.add(userId);
     }
 
-    const targetForemen = notification.target_role === "foreman" ||
-      (!notification.target_role && !notification.target_user_id);
-    if (
-      targetForemen &&
-      foremanIds.length > 0 &&
-      foremanAllowedEntityTypes.has(notification.entity_type) &&
-      notification.object_name.trim()
-    ) {
-      const { data: objects, error: objectsError } = await admin
-        .from("objects")
-        .select("id,name")
-        .eq("company_id", notification.company_id)
-        .eq("is_active", true);
-      if (objectsError) throw objectsError;
-      const objectIds = (objects ?? [])
-        .filter((row) => normalize(row.name) === normalize(notification.object_name))
-        .map((row) => String(row.id));
-
-      if (objectIds.length > 0) {
-        const { data: assignments, error: assignmentsError } = await admin
-          .from("object_memberships")
-          .select("user_id")
+    const targetForemen = sourceRole === "foreman" || targetRole === "foreman";
+    if (targetForemen && foremanIds.length > 0) {
+      const objectName = notification.object_name.trim();
+      if (!objectName) {
+        for (const userId of foremanIds) recipientIds.add(userId);
+      } else if (foremanAllowedEntityTypes.has(notification.entity_type)) {
+        const { data: objects, error: objectsError } = await admin
+          .from("objects")
+          .select("id,name")
           .eq("company_id", notification.company_id)
-          .in("object_id", objectIds)
-          .in("user_id", foremanIds);
-        if (assignmentsError) throw assignmentsError;
-        for (const assignment of assignments ?? []) {
-          recipientIds.add(String(assignment.user_id));
-        }
-      }
+          .eq("is_active", true);
+        if (objectsError) throw objectsError;
+        const objectIds = (objects ?? [])
+          .filter((row) => normalize(row.name) === normalize(objectName))
+          .map((row) => String(row.id));
 
-      const { data: profiles, error: profilesError } = await admin
-        .from("user_profiles")
-        .select("id,object_name,is_active")
-        .in("id", foremanIds)
-        .eq("is_active", true);
-      if (profilesError) throw profilesError;
-      for (const profile of profiles ?? []) {
-        if (normalize(profile.object_name) === normalize(notification.object_name)) {
-          recipientIds.add(String(profile.id));
+        if (objectIds.length > 0) {
+          const { data: assignments, error: assignmentsError } = await admin
+            .from("object_memberships")
+            .select("user_id")
+            .eq("company_id", notification.company_id)
+            .in("object_id", objectIds)
+            .in("user_id", foremanIds);
+          if (assignmentsError) throw assignmentsError;
+          for (const assignment of assignments ?? []) {
+            recipientIds.add(String(assignment.user_id));
+          }
+        }
+
+        const { data: profiles, error: profilesError } = await admin
+          .from("user_profiles")
+          .select("id,object_name,is_active")
+          .in("id", foremanIds)
+          .eq("is_active", true);
+        if (profilesError) throw profilesError;
+        for (const profile of profiles ?? []) {
+          if (normalize(profile.object_name) === normalize(objectName)) {
+            recipientIds.add(String(profile.id));
+          }
         }
       }
     }
