@@ -46,6 +46,10 @@ void main() {
     expect(repository, contains('createDownloadFileUrl'));
     expect(repository, contains('downloadStoredFile'));
     expect(detail, contains('ArchiveFile(downloadName(document)'));
+    expect(detail, contains('pw.Document('));
+    expect(detail, contains('pw.MemoryImage(bytes)'));
+    expect(detail, contains('PdfPageFormat.a4'));
+    expect(detail, contains(r"'Документы_$suffix.pdf'"));
     expect(detail, contains('ZipEncoder().encode(archive)'));
     expect(detail, contains('FileSaver.instance.saveFile'));
     expect(server, contains('documentFilePrefix'));
