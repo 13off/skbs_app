@@ -1,0 +1,417 @@
+name: Apply milestone act progress
+
+on:
+  push:
+    branches:
+      - feature/milestone-act-progress
+    paths:
+      - .github/workflows/apply-milestone-act-progress.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-milestone-act-progress
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/milestone-act-progress
+          fetch-depth: 0
+
+      - name: Patch goal editor and completed-work act
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, marker=None):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if marker and marker in text:
+                  return
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, got {count}')
+              file.write_text(text.replace(old, new), encoding='utf-8')
+
+          generator = 'lib/data/act_generator.dart'
+          replace_once(
+              generator,
+              "import '../models/task_item_data.dart';",
+              "import '../models/task_act_context.dart';\nimport '../models/task_item_data.dart';",
+              marker="import '../models/task_act_context.dart';",
+          )
+          replace_once(
+              generator,
+              """  static Future<void> downloadAct({
+            required List<TaskItemData> tasks,
+            required DateTime date,
+          }) async {""",
+              """  static Future<void> downloadAct({
+            required List<TaskItemData> tasks,
+            required DateTime date,
+            Map<String, TaskActContext> contextByTaskId =
+                const <String, TaskActContext>{},
+          }) async {""",
+              marker='Map<String, TaskActContext> contextByTaskId =',
+          )
+          replace_once(
+              generator,
+              """    final bytes = await createDocxFromTemplate(
+              tasks: completedTasks,
+              date: date,
+            );""",
+              """    final bytes = await createDocxFromTemplate(
+              tasks: completedTasks,
+              date: date,
+              contextByTaskId: contextByTaskId,
+            );""",
+              marker='contextByTaskId: contextByTaskId,',
+          )
+          replace_once(
+              generator,
+              """  static Future<Uint8List> createDocxFromTemplate({
+            required List<TaskItemData> tasks,
+            required DateTime date,
+          }) async {""",
+              """  static Future<Uint8List> createDocxFromTemplate({
+            required List<TaskItemData> tasks,
+            required DateTime date,
+            Map<String, TaskActContext> contextByTaskId =
+                const <String, TaskActContext>{},
+          }) async {""",
+              marker='static Future<Uint8List> createDocxFromTemplate({\n    required List<TaskItemData> tasks,\n    required DateTime date,\n    Map<String, TaskActContext>',
+          )
+          replace_once(
+              generator,
+              "final newXml = _fillDocumentXml(xml: xml, tasks: tasks, date: date);",
+              """final newXml = _fillDocumentXml(
+                  xml: xml,
+                  tasks: tasks,
+                  date: date,
+                  contextByTaskId: contextByTaskId,
+                );""",
+              marker='contextByTaskId: contextByTaskId,\n                );',
+          )
+          replace_once(
+              generator,
+              """  static String _fillDocumentXml({
+            required String xml,
+            required List<TaskItemData> tasks,
+            required DateTime date,
+          }) {""",
+              """  static String _fillDocumentXml({
+            required String xml,
+            required List<TaskItemData> tasks,
+            required DateTime date,
+            required Map<String, TaskActContext> contextByTaskId,
+          }) {""",
+              marker='required Map<String, TaskActContext> contextByTaskId,',
+          )
+          replace_once(
+              generator,
+              "final worksXml = _buildWorksXml(tasks);",
+              "final worksXml = _buildWorksXml(tasks, contextByTaskId);",
+              marker='_buildWorksXml(tasks, contextByTaskId)',
+          )
+          replace_once(
+              generator,
+              """  static String _buildWorksXml(List<TaskItemData> tasks) {
+            final groupedWorks = _groupWorksByAxes(tasks);
+            final buffer = StringBuffer();
+
+            groupedWorks.forEach((axes, works) {
+              if (axes.isNotEmpty) {
+                buffer.write(_workParagraph('В осях $axes'));
+              }
+
+              for (final work in works) {
+                buffer.write(_workParagraph(_productionSentence(work)));
+              }
+
+              buffer.write(_emptyWorkParagraph());
+            });
+
+            return buffer.toString();
+          }
+
+          static Map<String, List<String>> _groupWorksByAxes(List<TaskItemData> tasks) {
+            final grouped = <String, List<String>>{};
+
+            for (final task in tasks) {
+              final axes = task.axes.trim();
+              final workLines = _splitWorkLines(task.work);
+
+              if (workLines.isEmpty) continue;
+
+              grouped.putIfAbsent(axes, () => <String>[]).addAll(workLines);
+            }
+
+            return grouped;
+          }
+""",
+              """  static String _buildWorksXml(
+            List<TaskItemData> tasks,
+            Map<String, TaskActContext> contextByTaskId,
+          ) {
+            final groupedTasks = <String, List<TaskItemData>>{};
+            for (final task in tasks) {
+              groupedTasks
+                  .putIfAbsent(task.axes.trim(), () => <TaskItemData>[])
+                  .add(task);
+            }
+
+            final buffer = StringBuffer();
+            groupedTasks.forEach((axes, grouped) {
+              if (axes.isNotEmpty) {
+                buffer.write(_workParagraph('В осях $axes'));
+              }
+
+              for (final task in grouped) {
+                for (final work in _splitWorkLines(task.work)) {
+                  buffer.write(_workParagraph(_productionSentence(work)));
+                }
+
+                final taskId = task.id?.trim() ?? '';
+                final goalContext = contextByTaskId[taskId];
+                if (goalContext != null) {
+                  buffer.write(
+                    _workParagraph(_goalProgressSentence(goalContext)),
+                  );
+                }
+              }
+
+              buffer.write(_emptyWorkParagraph());
+            });
+
+            return buffer.toString();
+          }
+
+          static String _goalProgressSentence(TaskActContext context) {
+            final location = context.milestoneLocation.trim();
+            final locationText = location.isEmpty ? '' : ' ($location)';
+            final criticalText = context.checklistIsCritical ? ', критичный пункт' : '';
+            return 'Ключевая цель: ${context.milestoneTitle}$locationText. '
+                'Готовность цели — ${context.milestoneProgressPercent}%. '
+                'Пункт чек-листа: ${context.checklistTitle} — '
+                '${context.checklistProgressPercent}% '
+                '(${context.checklistStateTitle.toLowerCase()}$criticalText).';
+          }
+""",
+              marker='_goalProgressSentence(TaskActContext context)',
+          )
+
+          detail = 'lib/features/milestones/presentation/milestone_detail_screen.dart'
+          replace_once(
+              detail,
+              """    if (mounted) await refresh();
+            }
+
+            Future<void> addTask(""",
+              """    if (mounted) await refresh();
+            }
+
+            Future<void> editChecklistItem(
+              ProjectMilestone milestone,
+              MilestoneChecklistItem item,
+            ) async {
+              final titleController = TextEditingController(text: item.title);
+              var weight = item.weight.toDouble().clamp(5, 50).toDouble();
+              var critical = item.isCritical;
+              final accepted = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => StatefulBuilder(
+                  builder: (context, setDialogState) => AlertDialog(
+                    title: const Text('Изменить пункт чек-листа'),
+                    content: SizedBox(
+                      width: 440,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: titleController,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Название пункта',
+                              hintText: 'Например: армирование завершено',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              const Text('Вес'),
+                              Expanded(
+                                child: Slider(
+                                  min: 5,
+                                  max: 50,
+                                  divisions: 9,
+                                  value: weight,
+                                  label: '${weight.round()}%',
+                                  onChanged: (value) {
+                                    setDialogState(() => weight = value);
+                                  },
+                                ),
+                              ),
+                              Text('${weight.round()}%'),
+                            ],
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: critical,
+                            onChanged: (value) {
+                              setDialogState(() => critical = value);
+                            },
+                            title: const Text('Критичный пункт'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text('Отмена'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Сохранить'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+              final title = titleController.text.trim();
+              titleController.dispose();
+              if (accepted != true || title.isEmpty) return;
+
+              setState(() => busy = true);
+              try {
+                await MilestoneRepository.updateChecklistItem(
+                  itemId: item.id,
+                  title: title,
+                  weight: weight.round(),
+                  isCritical: critical,
+                );
+                await refresh();
+              } finally {
+                if (mounted) setState(() => busy = false);
+              }
+            }
+
+            Future<void> deleteChecklistItem(
+              ProjectMilestone milestone,
+              MilestoneChecklistItem item,
+            ) async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Удалить пункт чек-листа?'),
+                  content: Text(
+                    item.tasks.isEmpty
+                        ? item.title
+                        : 'К пункту привязано задач: ${item.tasks.length}. '
+                            'Связи будут удалены, сами задачи останутся.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('Отмена'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('Удалить'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
+
+              setState(() => busy = true);
+              try {
+                await MilestoneRepository.deleteChecklistItem(item.id);
+                await refresh();
+              } finally {
+                if (mounted) setState(() => busy = false);
+              }
+            }
+
+            Future<void> addTask(""",
+              marker='Future<void> editChecklistItem(',
+          )
+          replace_once(
+              detail,
+              """              PopupMenuButton<String>(
+                enabled: !busy,
+                tooltip: 'Изменить состояние',
+                onSelected: (value) => setItemState(item, value),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'not_started', child: Text('Не начато')),
+                  PopupMenuItem(value: 'in_progress', child: Text('В работе')),
+                  PopupMenuItem(value: 'done', child: Text('Готово')),
+                  PopupMenuItem(value: 'blocked', child: Text('Заблокировано')),
+                ],
+              ),""",
+              """              PopupMenuButton<String>(
+                enabled: !busy,
+                tooltip: 'Действия с пунктом',
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    editChecklistItem(milestone, item);
+                  } else if (value == 'delete') {
+                    deleteChecklistItem(milestone, item);
+                  } else {
+                    setItemState(item, value);
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'not_started', child: Text('Не начато')),
+                  PopupMenuItem(value: 'in_progress', child: Text('В работе')),
+                  PopupMenuItem(value: 'done', child: Text('Готово')),
+                  PopupMenuItem(value: 'blocked', child: Text('Заблокировано')),
+                  PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Изменить название и вес'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Удалить пункт'),
+                  ),
+                ],
+              ),""",
+              marker="value: 'edit',\n                    child: Text('Изменить название и вес')",
+          )
+          replace_once(
+              detail,
+              'if (widget.profile.isAdmin && milestone != null)',
+              'if ((widget.profile.isAdmin || widget.profile.isForeman) &&\n                  milestone != null)',
+              marker='widget.profile.isAdmin || widget.profile.isForeman',
+          )
+          replace_once(
+              detail,
+              "title: const Text('Удалить ключевой этап?'),",
+              "title: const Text('Удалить цель?'),",
+              marker="title: const Text('Удалить цель?'),",
+          )
+          replace_once(
+              detail,
+              "tooltip: 'Удалить этап',",
+              "tooltip: 'Удалить цель',",
+              marker="tooltip: 'Удалить цель',",
+          )
+          PY
+
+          rm .github/workflows/apply-milestone-act-progress.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/data/act_generator.dart \
+            lib/features/milestones/presentation/milestone_detail_screen.dart \
+            .github/workflows/apply-milestone-act-progress.yml
+          git commit -m "добавлены редактирование целей и проценты в акт"
+          git push origin HEAD:feature/milestone-act-progress
