@@ -5,38 +5,34 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('foreman sees employee phones in mobile and desktop timesheets', () {
-    final mobile = source('lib/screens/timesheet_screen.dart');
-    final desktop = source('lib/screens/desktop_timesheet_screen.dart');
+  test('foreman employee position includes the stored phone number', () {
+    final employee = source('lib/models/employee.dart');
     final repository = source('lib/data/employee_repository.dart');
 
     expect(repository, contains('position, phone, object_name'));
-    expect(repository, contains("phone: json['phone']"));
-
-    expect(mobile, contains('widget.profile.isForeman'));
-    expect(mobile, contains('employee.phone.trim()'));
-    expect(mobile, contains("join(' • ')"));
-    expect(mobile, contains('employee.phone.toLowerCase().contains(searchText)'));
-
-    expect(desktop, contains('showPhone: widget.profile.isForeman'));
-    expect(desktop, contains('final bool showPhone;'));
-    expect(desktop, contains('required this.showPhone'));
-    expect(desktop, contains('employee.phone.trim()'));
-    expect(desktop, contains("join(' • ')"));
-    expect(desktop, contains('employee.phone.toLowerCase().contains(query)'));
+    expect(employee, contains("final phone = json['phone']"));
+    expect(employee, contains('UserRepository.cachedProfile?.isForeman == true'));
+    expect(employee, contains('phone.trim().isNotEmpty'));
+    expect(employee, contains("join(' • ')"));
+    expect(employee, contains('positionWithContact'));
   });
 
-  test('phone remains hidden from non-foreman timesheet views', () {
+  test('both timesheets display and search the prepared position line', () {
     final mobile = source('lib/screens/timesheet_screen.dart');
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
 
-    expect(
-      mobile,
-      contains('if (widget.profile.isForeman && employee.phone.trim().isNotEmpty)'),
-    );
-    expect(
-      desktop,
-      contains('if (showPhone && employee.phone.trim().isNotEmpty)'),
-    );
+    expect(mobile, contains('employee.position'));
+    expect(mobile, contains('employee.position.toLowerCase().contains(searchText)'));
+    expect(desktop, contains('employee.position'));
+    expect(desktop, contains('employee.position.toLowerCase().contains(query)'));
+  });
+
+  test('phone exposure is restricted to the real foreman profile', () {
+    final employee = source('lib/models/employee.dart');
+
+    expect(employee, contains('UserRepository.cachedProfile?.isForeman == true'));
+    expect(employee, isNot(contains('isAdmin')));
+    expect(employee, isNot(contains('isLawyer')));
+    expect(employee, isNot(contains('isAccountant')));
   });
 }
