@@ -1,21 +1,21 @@
 name: Apply HR recruitment MVP
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/hr-recruitment-mvp
+      - main
 
 permissions:
   contents: write
 
 jobs:
   patch-and-check:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'feature/hr-recruitment-mvp' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/hr-recruitment-mvp
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Apply HR patch
