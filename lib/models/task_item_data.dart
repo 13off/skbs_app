@@ -7,6 +7,11 @@ class TaskItemData {
   final String objectName;
   final String notDoneComment;
 
+  /// null — связь не загружалась и при обновлении её нельзя менять;
+  /// пустая строка — пользователь явно выбрал «Не привязано».
+  final String? milestoneId;
+  final String? checklistItemId;
+
   const TaskItemData(
     this.axes,
     this.work,
@@ -15,6 +20,8 @@ class TaskItemData {
     this.id,
     this.objectName = 'Мурманск',
     this.notDoneComment = '',
+    this.milestoneId,
+    this.checklistItemId,
   });
 
   factory TaskItemData.fromJson(Map<String, dynamic> json) {
@@ -26,6 +33,8 @@ class TaskItemData {
       id: json['id'] as String?,
       objectName: json['object_name'] as String? ?? 'Мурманск',
       notDoneComment: json['not_done_comment'] as String? ?? '',
+      milestoneId: json['milestone_id'] as String?,
+      checklistItemId: json['checklist_item_id'] as String?,
     );
   }
 
@@ -38,6 +47,8 @@ class TaskItemData {
       id: json['id'] as String?,
       objectName: json['object_name'] as String? ?? 'Мурманск',
       notDoneComment: json['not_done_comment'] as String? ?? '',
+      milestoneId: json['milestone_id'] as String?,
+      checklistItemId: json['checklist_item_id'] as String?,
     );
   }
 
@@ -50,6 +61,8 @@ class TaskItemData {
       'date': DateTime(date.year, date.month, date.day).toIso8601String(),
       'object_name': objectName,
       'not_done_comment': notDoneComment,
+      'milestone_id': milestoneId,
+      'checklist_item_id': checklistItemId,
     };
   }
 
@@ -61,6 +74,8 @@ class TaskItemData {
     DateTime? date,
     String? objectName,
     String? notDoneComment,
+    String? milestoneId,
+    String? checklistItemId,
   }) {
     return TaskItemData(
       axes ?? this.axes,
@@ -70,6 +85,8 @@ class TaskItemData {
       id: id ?? this.id,
       objectName: objectName ?? this.objectName,
       notDoneComment: notDoneComment ?? this.notDoneComment,
+      milestoneId: milestoneId ?? this.milestoneId,
+      checklistItemId: checklistItemId ?? this.checklistItemId,
     );
   }
 }
