@@ -1,0 +1,30 @@
+name: Fix task goal linking
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-task-goal-linking.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/task-goal-linking
+          fetch-depth: 0
+
+      - name: Apply cleanup
+        run: |
+          python3 tool/fix_task_goal_linking.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "убрана повторная привязка задачи к исходной цели"
+          git push origin HEAD:feature/task-goal-linking
