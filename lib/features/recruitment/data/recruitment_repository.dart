@@ -131,11 +131,8 @@ abstract final class RecruitmentRepository {
     required String applicationId,
   }) async {
     final response = await _client.functions.invoke(
-      'recruitment-candidate-action',
-      body: <String, dynamic>{
-        'action': 'create_documents_archive',
-        'application_id': applicationId.trim(),
-      },
+      'recruitment-documents-archive',
+      body: <String, dynamic>{'application_id': applicationId.trim()},
     );
     final data = _map(response.data);
     final error = data['error']?.toString().trim() ?? '';
