@@ -4,6 +4,7 @@ class TaskActContext {
   final int milestoneProgressPercent;
   final String checklistTitle;
   final int checklistProgressPercent;
+  final int taskProgressPercent;
   final String checklistStateTitle;
   final bool checklistIsCritical;
 
@@ -13,6 +14,7 @@ class TaskActContext {
     required this.milestoneProgressPercent,
     required this.checklistTitle,
     required this.checklistProgressPercent,
+    required this.taskProgressPercent,
     required this.checklistStateTitle,
     required this.checklistIsCritical,
   });
