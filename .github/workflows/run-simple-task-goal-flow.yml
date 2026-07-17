@@ -35,14 +35,15 @@ jobs:
           PY
           status=$?
           cat patch-error.log
-          if [ "$status" -ne 0 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add patch-error.log
-            git commit -m "Сохранить ошибку патчера формы задачи"
-            git push origin HEAD:feature/simple-task-goal-flow
-            exit "$status"
-          fi
+          exit "$status"
+
+      - name: Upload patch error
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-task-goal-patch-error
+          path: patch-error.log
+          if-no-files-found: error
 
       - uses: subosito/flutter-action@v2
         with:
