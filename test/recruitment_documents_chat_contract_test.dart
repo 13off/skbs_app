@@ -117,4 +117,18 @@ void main() {
     expect(candidateAction, contains('step: "submitted"'));
     expect(sync, contains("case 'recruitment_messages':"));
   });
+
+  test('messages are always ordered from oldest to newest', () {
+    final repository = source(
+      'lib/features/recruitment/data/recruitment_repository.dart',
+    );
+    final detail = source(
+      'lib/features/recruitment/presentation/recruitment_application_detail_screen.dart',
+    );
+
+    expect(repository, contains(".order('created_at', ascending: true)"));
+    expect(repository, contains(".order('id', ascending: true)"));
+    expect(repository, contains('first.createdAt.compareTo(second.createdAt)'));
+    expect(detail, contains('reverse: false'));
+  });
 }
