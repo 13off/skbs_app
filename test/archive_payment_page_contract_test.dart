@@ -32,10 +32,12 @@ void main() {
     expect(payment, contains('selectedEmployeeId = null'));
   });
 
-  test('home stays compact while work pages share the profile header', () {
+  test('all work pages use the same plain header as home', () {
     final appPage = source('lib/widgets/app_page.dart');
     expect(appPage, contains('class AppPageHeader'));
-    expect(appPage, contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ'));
+    expect(appPage, contains('fontSize: 20'));
+    expect(appPage, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
+    expect(appPage, isNot(contains('PremiumBrandMark(')));
 
     final home = source('lib/screens/home_screen.dart');
     expect(home, contains("'Главная'"));
@@ -52,7 +54,7 @@ void main() {
       expect(
         screen,
         anyOf(contains('AppPageHeader('), contains('return AppPage(')),
-        reason: '$path должен использовать единую объёмную шапку',
+        reason: '$path должен использовать единую простую шапку',
       );
     }
   });
