@@ -913,6 +913,7 @@ class _RecruitmentApplicationDetailScreenState
                   thumbVisibility: true,
                   child: ListView.builder(
                     controller: messageScrollController,
+                    reverse: false,
                     padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
                     itemCount: messages.length,
                     itemBuilder: (_, index) => messageBubble(messages[index]),

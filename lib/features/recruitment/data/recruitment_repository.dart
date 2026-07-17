@@ -81,13 +81,21 @@ abstract final class RecruitmentRepository {
         .select()
         .eq('company_id', companyId.trim())
         .eq('application_id', applicationId.trim())
-        .order('created_at');
-    return rows
-        .map<RecruitmentMessage>(
-          (value) => RecruitmentMessage.fromMap(_map(value)),
-        )
-        .where((item) => item.id.isNotEmpty)
-        .toList();
+        .order('created_at', ascending: true)
+        .order('id', ascending: true);
+    final messages =
+        rows
+            .map<RecruitmentMessage>(
+              (value) => RecruitmentMessage.fromMap(_map(value)),
+            )
+            .where((item) => item.id.isNotEmpty)
+            .toList()
+          ..sort((first, second) {
+            final byTime = first.createdAt.compareTo(second.createdAt);
+            if (byTime != 0) return byTime;
+            return first.id.compareTo(second.id);
+          });
+    return messages;
   }
 
   static Future<String> createSignedFileUrl({
