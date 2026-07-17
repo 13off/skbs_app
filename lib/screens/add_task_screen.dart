@@ -48,6 +48,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final List<TaskPhotoFile> selectedPhotos = [];
   String? selectedMilestoneId;
   String? selectedChecklistItemId;
+  String? selectedChecklistTitle;
+  bool isGoalTask = false;
 
   bool isLoadingEmployees = false;
   bool isPickingPhotos = false;
@@ -60,6 +62,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedDate = widget.initialDate;
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
+    isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     loadEmployees();
   }
 
@@ -314,26 +317,29 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void saveTask() {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
+    final linkedToGoal = isGoalTask;
+    final goalWork = selectedChecklistTitle?.trim() ?? '';
+    final savedWork = linkedToGoal ? goalWork : work;
 
-    if (axes.isEmpty || work.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Заполни оси и вид работ')));
-      return;
-    }
-
-    if (selectedMilestoneId != null && selectedChecklistItemId == null) {
+    if (axes.isEmpty || (!linkedToGoal && work.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Выбери пункт чек-листа выбранной цели'),
+        SnackBar(
+          content: Text(axes.isEmpty ? 'Заполни оси' : 'Укажи вид работ'),
         ),
       );
       return;
     }
 
+    if (linkedToGoal && (selectedChecklistItemId == null || goalWork.isEmpty)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Выбери работу по цели')));
+      return;
+    }
+
     final newTask = TaskItemData(
       axes,
-      work,
+      savedWork,
       'Запланировано',
       selectedDate,
       objectName: widget.objectName,
@@ -524,6 +530,33 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
           const SizedBox(height: 16),
 
+          TaskMilestonePicker(
+            objectName: widget.objectName,
+            initialMilestoneId: selectedMilestoneId,
+            initialChecklistItemId: selectedChecklistItemId,
+            canSelect: true,
+            canEditChecklist: false,
+            onChanged: (selection) {
+              final previousTitle = selectedChecklistTitle;
+              setState(() {
+                isGoalTask = selection.goalMode;
+                selectedMilestoneId = selection.milestoneId;
+                selectedChecklistItemId = selection.checklistItemId;
+                selectedChecklistTitle = selection.checklistTitle;
+
+                final nextTitle = selection.checklistTitle?.trim() ?? '';
+                if (selection.isLinked && nextTitle.isNotEmpty) {
+                  workController.text = nextTitle;
+                } else if (previousTitle != null &&
+                    workController.text.trim() == previousTitle.trim()) {
+                  workController.clear();
+                }
+              });
+            },
+          ),
+
+          const SizedBox(height: 16),
+
           TextField(
             controller: axesController,
             decoration: InputDecoration(
@@ -535,34 +568,21 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: workController,
-            minLines: 2,
-            maxLines: 5,
-            decoration: InputDecoration(
-              labelText: 'Вид работ',
-              hintText: 'Например: Армирование плиты',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+          if (!isGoalTask) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: workController,
+              minLines: 2,
+              maxLines: 5,
+              decoration: InputDecoration(
+                labelText: 'Вид работ',
+                hintText: 'Например: Армирование плиты',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          TaskMilestonePicker(
-            objectName: widget.objectName,
-            initialMilestoneId: selectedMilestoneId,
-            initialChecklistItemId: selectedChecklistItemId,
-            canSelect: true,
-            canEditChecklist: true,
-            onChanged: (selection) {
-              selectedMilestoneId = selection.milestoneId;
-              selectedChecklistItemId = selection.checklistItemId;
-            },
-          ),
+          ],
 
           const SizedBox(height: 16),
 

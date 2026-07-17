@@ -32,6 +32,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   late String selectedStatus;
   String? selectedMilestoneId;
   String? selectedChecklistItemId;
+  String? selectedChecklistTitle;
+  bool isGoalTask = false;
 
   List<Employee> employees = [];
   final Set<String> selectedAssigneeIds = {};
@@ -150,6 +152,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         photos = loadedPhotos;
         selectedMilestoneId = loadedMilestoneLink?.milestoneId;
         selectedChecklistItemId = loadedMilestoneLink?.checklistItemId;
+        isGoalTask = loadedMilestoneLink != null;
         signedUrlFutures.clear();
         isLoading = false;
         errorText = null;
@@ -416,9 +419,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         photos = photos.where((item) => item.id != photo.id).toList();
         signedUrlFutures.remove(photo.id);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Фотография удалена')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Фотография удалена')));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -444,25 +447,28 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final taskId = widget.task.id;
     final axes = axesController.text.trim();
     final work = workController.text.trim();
+    final linkedToGoal = isGoalTask;
+    final goalWork = selectedChecklistTitle?.trim() ?? '';
+    final savedWork = linkedToGoal ? goalWork : work;
     final notDoneComment = notDoneCommentController.text.trim();
 
     if (taskId == null || taskId.isEmpty) {
       return;
     }
 
-    if (axes.isEmpty || work.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Заполни оси и вид работ')));
+    if (axes.isEmpty || (!linkedToGoal && work.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(axes.isEmpty ? 'Заполни оси' : 'Укажи вид работ'),
+        ),
+      );
       return;
     }
 
-    if (selectedMilestoneId != null && selectedChecklistItemId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Выбери пункт чек-листа выбранной цели'),
-        ),
-      );
+    if (linkedToGoal && (selectedChecklistItemId == null || goalWork.isEmpty)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Выбери работу по цели')));
       return;
     }
 
@@ -493,7 +499,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     try {
       final updatedTask = widget.task.copyWith(
         axes: axes,
-        work: work,
+        work: savedWork,
         status: selectedStatus,
         date: selectedDate,
         notDoneComment: selectedStatus == 'Выполнено' ? '' : notDoneComment,
@@ -858,6 +864,36 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 14),
 
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            TaskMilestonePicker(
+              objectName: widget.task.objectName,
+              initialMilestoneId: selectedMilestoneId,
+              initialChecklistItemId: selectedChecklistItemId,
+              canSelect: canEdit,
+              canEditChecklist: false,
+              onChanged: (selection) {
+                final previousTitle = selectedChecklistTitle;
+                setState(() {
+                  isGoalTask = selection.goalMode;
+                  selectedMilestoneId = selection.milestoneId;
+                  selectedChecklistItemId = selection.checklistItemId;
+                  selectedChecklistTitle = selection.checklistTitle;
+
+                  final nextTitle = selection.checklistTitle?.trim() ?? '';
+                  if (selection.isLinked && nextTitle.isNotEmpty) {
+                    workController.text = nextTitle;
+                  } else if (previousTitle != null &&
+                      workController.text.trim() == previousTitle.trim()) {
+                    workController.clear();
+                  }
+                });
+              },
+            ),
+
+          const SizedBox(height: 16),
+
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 8),
             child: Align(
@@ -885,53 +921,36 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 14),
 
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Вид работ',
-                style: TextStyle(
-                  color: Color(0xFF6B7075),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+          if (!isGoalTask) ...[
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Вид работ',
+                  style: TextStyle(
+                    color: Color(0xFF6B7075),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
-          ),
-          TextField(
-            controller: workController,
-            enabled: !isSaving && canEdit,
-            minLines: 3,
-            maxLines: 7,
-            decoration: InputDecoration(
-              hintText: 'Опишите выполненные работы',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+            TextField(
+              controller: workController,
+              enabled: !isSaving && canEdit,
+              minLines: 3,
+              maxLines: 7,
+              decoration: InputDecoration(
+                hintText: 'Опишите работы',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          if (isLoading)
-            const Center(child: CircularProgressIndicator())
-          else ...[
-            TaskMilestonePicker(
-              objectName: widget.task.objectName,
-              initialMilestoneId: selectedMilestoneId,
-              initialChecklistItemId: selectedChecklistItemId,
-              canSelect: canEdit,
-              canEditChecklist:
-                  widget.profile.isAdmin || widget.profile.isForeman,
-              onChanged: (selection) {
-                selectedMilestoneId = selection.milestoneId;
-                selectedChecklistItemId = selection.checklistItemId;
-              },
-            ),
             const SizedBox(height: 16),
-            buildAssigneesBlock(),
           ],
+          if (!isLoading) buildAssigneesBlock(),
 
           const SizedBox(height: 16),
 
