@@ -1,0 +1,72 @@
+name: Run goals-first home patch
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'feature/home-goals-first' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply patch from source workflow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/apply-home-goals-first.yml').read_text(
+              encoding='utf-8'
+          )
+          marker = "python3 - <<'PY'\n"
+          raw_body = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
+          body = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in raw_body.splitlines()
+          )
+          exec(compile(body, 'home_goals_first_patch.py', 'exec'))
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and test
+        shell: bash
+        run: |
+          dart format \
+            lib/features/milestones/presentation/milestone_home_overlay.dart \
+            lib/features/milestones/presentation/milestones_screen.dart \
+            lib/features/milestones/presentation/milestone_detail_screen.dart \
+            lib/features/foreman/presentation/foreman_main_screen.dart \
+            lib/features/foreman/presentation/foreman_desktop_home_screen.dart \
+            lib/features/foreman/presentation/foreman_home_summary_widgets.dart \
+            lib/screens/adaptive_home_screen.dart \
+            lib/screens/adaptive_home_base_screen.dart \
+            lib/screens/home_screen.dart \
+            test/key_milestones_contract_test.dart \
+            test/desktop_home_dashboard_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test test/key_milestones_contract_test.dart test/desktop_home_dashboard_contract_test.dart test/milestone_act_progress_contract_test.dart test/foreman_desktop_workspace_contract_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit result
+        shell: bash
+        run: |
+          rm .github/workflows/apply-home-goals-first.yml
+          rm .github/workflows/run-home-goals-first.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Поставить цели первыми на главной"
+          git push origin HEAD:feature/home-goals-first
