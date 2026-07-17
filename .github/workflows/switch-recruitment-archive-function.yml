@@ -1,0 +1,49 @@
+name: Switch recruitment archive function
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-check:
+    if: github.head_ref == 'feature/recruitment-document-previews-downloads' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Switch archive function
+        run: python3 tool/switch_recruitment_archive_function.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and verify
+        shell: bash
+        run: |
+          dart format \
+            lib/features/recruitment/data/recruitment_repository.dart \
+            test/recruitment_documents_chat_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit checked changes
+        shell: bash
+        run: |
+          rm tool/switch_recruitment_archive_function.py
+          rm .github/workflows/switch-recruitment-archive-function.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Подключить отдельную ZIP-функцию документов"
+          git push origin HEAD:feature/recruitment-document-previews-downloads
