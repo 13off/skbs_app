@@ -26,24 +26,30 @@ void main() {
     );
   });
 
-  test('recruitment pipeline keeps the agreed MVP stages', () {
-    expect(recruitmentStatuses, <String>[
+  test('HR uses the Telegram bot workflow without losing simple stages', () {
+    expect(recruitmentStatuses, containsAll(<String>[
+      'draft',
       'new',
-      'documents',
-      'problems',
-      'ready',
-      'tickets',
-      'completed',
+      'waiting_documents',
+      'review',
+      'approved',
+      'ticket_request',
+      'in_transit',
+      'arrived',
+      'hired',
+      'reserve',
       'rejected',
-    ]);
-    expect(recruitmentStatusTitle('new'), 'Новые');
-    expect(recruitmentStatusTitle('documents'), 'Ждём документы');
-    expect(recruitmentStatusTitle('problems'), 'Косяки');
-    expect(recruitmentStatusTitle('ready'), 'Готовы к вылету');
-    expect(recruitmentStatusTitle('tickets'), 'Нужны билеты');
+    ]));
+    expect(recruitmentStageKey('waiting_documents'), 'documents');
+    expect(recruitmentStageKey('review'), 'problems');
+    expect(recruitmentStageKey('approved'), 'ready');
+    expect(recruitmentStageKey('ticket_request'), 'tickets');
+    expect(recruitmentStageKey('hired'), 'completed');
+    expect(recruitmentStageTitle('documents'), 'Ждём документы');
+    expect(recruitmentStageTitle('problems'), 'Косяки');
   });
 
-  test('HR screen supports manual intake before Telegram integration', () {
+  test('HR reads the same applications that the Telegram bot creates', () {
     final screen = source(
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
     );
@@ -56,6 +62,9 @@ void main() {
     expect(screen, contains("labelText: 'Вакансия'"));
     expect(screen, contains("labelText: 'Объект'"));
     expect(repository, contains(".from('recruitment_applications')"));
+    expect(repository, contains("external_user_id"));
+    expect(repository, contains("position_title"));
+    expect(repository, contains("experience_text"));
     expect(repository, contains("source = 'manual'"));
   });
 }
