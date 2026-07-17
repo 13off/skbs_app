@@ -34,6 +34,23 @@ jobs:
               line[10:] if line.startswith('          ') else line
               for line in raw_body.splitlines()
           )
+
+          strict_add_call = "add = replace_once(add, old_add_form, new_add_form, 'add form')"
+          flexible_add_call = """add_form_start = add.index(
+              \"          TextField(\\n            controller: axesController,\"
+          )
+          add_picker_start = add.index(
+              \"          TaskMilestonePicker(\", add_form_start
+          )
+          add_form_end = add.index(
+              \"\\n\\n          const SizedBox(height: 16),\\n\\n          buildAssigneesBlock(),\",
+              add_picker_start,
+          )
+          add = add[:add_form_start] + new_add_form + add[add_form_end:]"""
+          if strict_add_call not in body:
+              raise SystemExit('Patch source does not contain add form call')
+          body = body.replace(strict_add_call, flexible_add_call, 1)
+
           exec(compile(body, 'simple_task_goal_patch.py', 'exec'))
           PY
           status=$?
