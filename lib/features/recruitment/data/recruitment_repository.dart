@@ -28,7 +28,7 @@ abstract final class RecruitmentRepository {
 
     final rows = await _client
         .from('recruitment_applications')
-        .select()
+        .select('*, objects(name), recruitment_vacancies(title)')
         .eq('company_id', cleanCompanyId)
         .order('created_at', ascending: false)
         .limit(500);
@@ -41,17 +41,84 @@ abstract final class RecruitmentRepository {
         .toList();
   }
 
+  static Future<List<RecruitmentObjectOption>> fetchObjects({
+    required String companyId,
+  }) async {
+    final rows = await _client
+        .from('objects')
+        .select('id, name')
+        .eq('company_id', companyId.trim())
+        .eq('is_active', true)
+        .order('name');
+    return rows
+        .map<RecruitmentObjectOption>(
+          (row) => RecruitmentObjectOption(
+            id: row['id']?.toString() ?? '',
+            name: row['name']?.toString() ?? '',
+          ),
+        )
+        .where((item) => item.id.isNotEmpty && item.name.isNotEmpty)
+        .toList();
+  }
+
+  static Future<List<RecruitmentVacancyOption>> fetchVacancies({
+    required String companyId,
+  }) async {
+    final rows = await _client
+        .from('recruitment_vacancies')
+        .select('id, object_id, title')
+        .eq('company_id', companyId.trim())
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('title');
+    return rows
+        .map<RecruitmentVacancyOption>(
+          (row) => RecruitmentVacancyOption(
+            id: row['id']?.toString() ?? '',
+            objectId: row['object_id']?.toString() ?? '',
+            title: row['title']?.toString() ?? '',
+          ),
+        )
+        .where((item) => item.id.isNotEmpty && item.title.isNotEmpty)
+        .toList();
+  }
+
   static Future<RecruitmentDashboardData> fetchDashboard({
     required String companyId,
   }) async {
     final applications = await fetchApplications(companyId: companyId);
     final counts = <String, int>{
-      for (final status in recruitmentStatuses) status: 0,
+      for (final stage in recruitmentStages) stage: 0,
     };
     for (final application in applications) {
-      counts[application.status] = (counts[application.status] ?? 0) + 1;
+      final stage = application.stage;
+      counts[stage] = (counts[stage] ?? 0) + 1;
     }
     return RecruitmentDashboardData(applications: applications, counts: counts);
+  }
+
+  static Future<String> _resolveObjectId({
+    required String companyId,
+    required String objectId,
+    required String objectName,
+  }) async {
+    final cleanId = objectId.trim();
+    if (cleanId.isNotEmpty) return cleanId;
+    final cleanName = objectName.trim();
+    if (cleanName.isEmpty) throw Exception('Выберите объект');
+
+    final rows = await _client
+        .from('objects')
+        .select('id, name')
+        .eq('company_id', companyId.trim())
+        .eq('is_active', true);
+    for (final row in rows) {
+      final name = row['name']?.toString().trim() ?? '';
+      if (name.toLowerCase() == cleanName.toLowerCase()) {
+        return row['id']?.toString() ?? '';
+      }
+    }
+    throw Exception('Объект не найден');
   }
 
   static Future<RecruitmentApplication> saveApplication({
@@ -61,7 +128,9 @@ abstract final class RecruitmentRepository {
     required String phone,
     required String citizenship,
     required String vacancy,
+    String vacancyId = '',
     required String objectName,
+    String objectId = '',
     required String experience,
     DateTime? departureDate,
     required String status,
@@ -71,38 +140,52 @@ abstract final class RecruitmentRepository {
     String sourceChatId = '',
   }) async {
     final cleanId = id?.trim() ?? '';
+    final cleanCompanyId = companyId.trim();
+    final cleanName = fullName.trim();
+    final cleanPhone = phone.trim();
+    final cleanVacancy = vacancy.trim();
+    if (cleanName.length < 2 || cleanPhone.isEmpty || cleanVacancy.isEmpty) {
+      throw Exception('Укажите ФИО, телефон и вакансию');
+    }
+    final resolvedObjectId = await _resolveObjectId(
+      companyId: cleanCompanyId,
+      objectId: objectId,
+      objectName: objectName,
+    );
+    final now = DateTime.now().toUtc().toIso8601String();
     final payload = <String, dynamic>{
-      'company_id': companyId.trim(),
+      'company_id': cleanCompanyId,
       'source': source.trim().isEmpty ? 'manual' : source.trim(),
-      'source_user_id': sourceUserId.trim(),
-      'source_chat_id': sourceChatId.trim(),
-      'full_name': fullName.trim(),
-      'phone': phone.trim(),
+      'external_user_id': sourceUserId.trim(),
+      'external_chat_id': sourceChatId.trim(),
+      'full_name': cleanName,
+      'phone': cleanPhone,
       'citizenship': citizenship.trim(),
-      'vacancy': vacancy.trim(),
-      'object_name': objectName.trim(),
-      'experience': experience.trim(),
-      'departure_date': departureDate == null ? null : _dateOnly(departureDate),
+      'object_id': resolvedObjectId,
+      'vacancy_id': vacancyId.trim().isEmpty ? null : vacancyId.trim(),
+      'position_title': cleanVacancy,
+      'experience_text': experience.trim(),
+      'ready_date': departureDate == null ? null : _dateOnly(departureDate),
       'status': recruitmentStatuses.contains(status) ? status : 'new',
-      'comment': comment.trim(),
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
+      'hr_comment': comment.trim(),
+      'updated_at': now,
     };
 
     final dynamic row;
     if (cleanId.isEmpty) {
-      payload['created_by'] = _client.auth.currentUser?.id;
+      payload['submitted_at'] = now;
       row = await _client
           .from('recruitment_applications')
           .insert(payload)
-          .select()
+          .select('*, objects(name), recruitment_vacancies(title)')
           .single();
     } else {
       row = await _client
           .from('recruitment_applications')
           .update(payload)
-          .eq('company_id', companyId.trim())
+          .eq('company_id', cleanCompanyId)
           .eq('id', cleanId)
-          .select()
+          .select('*, objects(name), recruitment_vacancies(title)')
           .single();
     }
 
@@ -123,20 +206,30 @@ abstract final class RecruitmentRepository {
     required String status,
   }) async {
     if (!recruitmentStatuses.contains(status)) return;
+    final cleanCompanyId = companyId.trim();
+    final cleanApplicationId = applicationId.trim();
     await _client
         .from('recruitment_applications')
         .update(<String, dynamic>{
           'status': status,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
-        .eq('company_id', companyId.trim())
-        .eq('id', applicationId.trim());
+        .eq('company_id', cleanCompanyId)
+        .eq('id', cleanApplicationId);
+
+    await _client.from('recruitment_status_history').insert(<String, dynamic>{
+      'company_id': cleanCompanyId,
+      'application_id': cleanApplicationId,
+      'status': status,
+      'source': 'appstroy_hr',
+      'created_by': _client.auth.currentUser?.id,
+    });
 
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.recruitment},
       context: <String, dynamic>{
         'table': 'recruitment_applications',
-        'entity_id': applicationId,
+        'entity_id': cleanApplicationId,
       },
     );
   }
