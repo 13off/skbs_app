@@ -70,7 +70,7 @@ class _RecruitmentApplicationsScreenState
   ) {
     final query = searchController.text.trim().toLowerCase();
     return applications.where((application) {
-      if (status != 'all' && application.status != status) return false;
+      if (status != 'all' && application.stage != status) return false;
       if (query.isEmpty) return true;
       final haystack = <String>[
         application.fullName,
@@ -87,15 +87,18 @@ class _RecruitmentApplicationsScreenState
 
   Color statusColor(String value) {
     switch (value) {
-      case 'problems':
+      case 'review':
       case 'rejected':
         return const Color(0xFF9A403A);
-      case 'ready':
-      case 'completed':
+      case 'approved':
+      case 'arrived':
+      case 'hired':
         return const Color(0xFF2E7D52);
-      case 'tickets':
+      case 'ticket_request':
+      case 'in_transit':
         return const Color(0xFF9A6816);
-      case 'documents':
+      case 'waiting_documents':
+      case 'medical':
         return const Color(0xFF4C6076);
       default:
         return _muted;
@@ -332,9 +335,9 @@ class _RecruitmentApplicationsScreenState
                   children: [
                     filterChip('all', 'Все'),
                     const SizedBox(width: 8),
-                    ...recruitmentStatuses.expand(
+                    ...recruitmentStages.expand(
                       (item) => <Widget>[
-                        filterChip(item, recruitmentStatusTitle(item)),
+                        filterChip(item, recruitmentStageTitle(item)),
                         const SizedBox(width: 8),
                       ],
                     ),
@@ -448,8 +451,10 @@ class _RecruitmentApplicationEditorState
   Future<void> save() async {
     if (saving) return;
     if (fullNameController.text.trim().length < 2 ||
-        vacancyController.text.trim().isEmpty) {
-      setState(() => errorText = 'Укажите ФИО и вакансию');
+        phoneController.text.trim().isEmpty ||
+        vacancyController.text.trim().isEmpty ||
+        objectController.text.trim().isEmpty) {
+      setState(() => errorText = 'Укажите ФИО, телефон, вакансию и объект');
       return;
     }
 
@@ -465,7 +470,9 @@ class _RecruitmentApplicationEditorState
         phone: phoneController.text,
         citizenship: citizenshipController.text,
         vacancy: vacancyController.text,
+        vacancyId: widget.application?.vacancyId ?? '',
         objectName: objectController.text,
+        objectId: widget.application?.objectId ?? '',
         experience: experienceController.text,
         departureDate: departureDate,
         status: status,

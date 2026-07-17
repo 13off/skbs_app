@@ -27,19 +27,22 @@ void main() {
   });
 
   test('HR uses the Telegram bot workflow without losing simple stages', () {
-    expect(recruitmentStatuses, containsAll(<String>[
-      'draft',
-      'new',
-      'waiting_documents',
-      'review',
-      'approved',
-      'ticket_request',
-      'in_transit',
-      'arrived',
-      'hired',
-      'reserve',
-      'rejected',
-    ]));
+    expect(
+      recruitmentStatuses,
+      containsAll(<String>[
+        'draft',
+        'new',
+        'waiting_documents',
+        'review',
+        'approved',
+        'ticket_request',
+        'in_transit',
+        'arrived',
+        'hired',
+        'reserve',
+        'rejected',
+      ]),
+    );
     expect(recruitmentStageKey('waiting_documents'), 'documents');
     expect(recruitmentStageKey('review'), 'problems');
     expect(recruitmentStageKey('approved'), 'ready');
