@@ -14,8 +14,10 @@ void main() {
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
     );
 
-    expect(detail, contains("sectionTitle('Документы'"));
-    expect(detail, contains("sectionTitle('Переписка')"));
+    expect(detail, contains("'Документы'"));
+    expect(detail, contains("'Переписка'"));
+    expect(detail, contains('Widget documentsSection()'));
+    expect(detail, contains('Widget conversationSection()'));
     expect(detail, contains('sendCandidateMessage'));
     expect(detail, contains('createSignedFileUrl'));
     expect(detail, contains("label: const Text('Позвонить')"));
