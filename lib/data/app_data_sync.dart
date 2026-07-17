@@ -206,6 +206,7 @@ class AppDataSync {
         return const <AppDataDomain>{AppDataDomain.legal};
       case 'recruitment_applications':
       case 'recruitment_documents':
+      case 'recruitment_messages':
       case 'recruitment_status_history':
       case 'recruitment_vacancies':
         return const <AppDataDomain>{AppDataDomain.recruitment};

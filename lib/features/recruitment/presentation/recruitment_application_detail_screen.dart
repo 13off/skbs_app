@@ -93,9 +93,9 @@ class _RecruitmentApplicationDetailScreenState
     if (phone.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: phone));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Номер телефона скопирован')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Номер телефона скопирован')));
   }
 
   Future<void> callCandidate() async {
@@ -258,11 +258,7 @@ class _RecruitmentApplicationDetailScreenState
           ),
           const SizedBox(height: 16),
           infoRow(Icons.work_outline_rounded, 'Вакансия', application.vacancy),
-          infoRow(
-            Icons.apartment_outlined,
-            'Объект',
-            application.objectName,
-          ),
+          infoRow(Icons.apartment_outlined, 'Объект', application.objectName),
           infoRow(Icons.badge_outlined, 'Опыт', application.experience),
           if (application.comment.isNotEmpty)
             infoRow(Icons.notes_rounded, 'Комментарий HR', application.comment),
