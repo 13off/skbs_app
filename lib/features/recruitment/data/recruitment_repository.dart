@@ -105,6 +105,49 @@ abstract final class RecruitmentRepository {
         .createSignedUrl(cleanPath, expiresInSeconds);
   }
 
+  static Future<String> createDownloadFileUrl({
+    required String bucket,
+    required String path,
+    required String fileName,
+    int expiresInSeconds = 300,
+  }) async {
+    final signedUrl = await createSignedFileUrl(
+      bucket: bucket,
+      path: path,
+      expiresInSeconds: expiresInSeconds,
+    );
+    final uri = Uri.parse(signedUrl);
+    return uri
+        .replace(
+          queryParameters: <String, String>{
+            ...uri.queryParameters,
+            'download': fileName.trim().isEmpty ? 'document' : fileName.trim(),
+          },
+        )
+        .toString();
+  }
+
+  static Future<String> createDocumentsArchiveUrl({
+    required String applicationId,
+  }) async {
+    final response = await _client.functions.invoke(
+      'recruitment-documents-archive',
+      body: <String, dynamic>{'application_id': applicationId.trim()},
+    );
+    final data = _map(response.data);
+    final error = data['error']?.toString().trim() ?? '';
+    final url = data['url']?.toString().trim() ?? '';
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        error.isNotEmpty ||
+        url.isEmpty) {
+      throw Exception(
+        error.isEmpty ? 'Не удалось подготовить архив документов' : error,
+      );
+    }
+    return url;
+  }
+
   static Future<void> sendCandidateMessage({
     required String applicationId,
     required String message,

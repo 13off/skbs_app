@@ -24,6 +24,32 @@ void main() {
     expect(applications, contains('RecruitmentApplicationDetailScreen'));
   });
 
+  test('document gallery previews images and downloads one or all files', () {
+    final detail = source(
+      'lib/features/recruitment/presentation/recruitment_application_detail_screen.dart',
+    );
+    final repository = source(
+      'lib/features/recruitment/data/recruitment_repository.dart',
+    );
+    final archiveFunction = source(
+      'supabase/functions/recruitment-documents-archive/index.ts',
+    );
+
+    expect(
+      detail,
+      contains('Widget imagePreview(RecruitmentDocument document)'),
+    );
+    expect(detail, contains('InteractiveViewer('));
+    expect(detail, contains("const Text('Скачать')"));
+    expect(detail, contains("'Скачать все ZIP"));
+    expect(repository, contains('createDownloadFileUrl'));
+    expect(repository, contains('createDocumentsArchiveUrl'));
+    expect(repository, contains("'recruitment-documents-archive'"));
+    expect(archiveFunction, contains('import JSZip'));
+    expect(archiveFunction, contains('application/zip'));
+    expect(archiveFunction, contains('createSignedUrl'));
+  });
+
   test('document and message models keep only protected storage paths', () {
     final document = RecruitmentDocument.fromMap(<String, dynamic>{
       'id': 'document-id',
@@ -44,6 +70,7 @@ void main() {
     });
 
     expect(document.isStored, isTrue);
+    expect(document.isImage, isTrue);
     expect(document.title, 'Паспорт — разворот с фотографией');
     expect(pending.isStored, isFalse);
   });
