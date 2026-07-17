@@ -7,7 +7,9 @@ String source(String path) => File(path).readAsStringSync();
 void main() {
   test('new and existing tasks expose optional goal linking', () {
     final create = source('lib/screens/add_task_screen.dart');
-    final details = source('lib/screens/task_details_screen.dart');
+    final details =
+        source('lib/screens/task_details_screen.dart') +
+        source('lib/screens/task_details_legacy_screen.dart');
     final picker = source(
       'lib/features/milestones/presentation/task_milestone_picker.dart',
     );
@@ -16,6 +18,7 @@ void main() {
     expect(create, contains("milestoneId: selectedMilestoneId ?? ''"));
     expect(details, contains('TaskRepository.fetchTaskMilestoneLink'));
     expect(details, contains('TaskMilestonePicker('));
+    expect(details, contains('TaskProgressRepository.fetchContext'));
     expect(picker, contains("labelText: 'Привязать к цели'"));
     expect(picker, contains("child: Text('Не привязано')"));
   });
