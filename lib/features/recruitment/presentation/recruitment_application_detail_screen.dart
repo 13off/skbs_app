@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -207,18 +210,39 @@ class _RecruitmentApplicationDetailScreenState
     }
   }
 
-  Future<void> downloadAllDocuments() async {
+  Future<void> downloadAllDocuments(List<RecruitmentDocument> documents) async {
     if (downloadingArchive) return;
+    final stored = documents.where((item) => item.isStored).toList();
+    if (stored.isEmpty) {
+      showError('У кандидата пока нет загруженных документов');
+      return;
+    }
+
     setState(() => downloadingArchive = true);
     try {
-      final url = await RecruitmentRepository.createDocumentsArchiveUrl(
-        applicationId: widget.application.id,
+      final archive = Archive();
+      for (final document in stored) {
+        final bytes = await RecruitmentRepository.downloadStoredFile(
+          bucket: document.storageBucket,
+          path: document.storagePath,
+        );
+        archive.addFile(
+          ArchiveFile(downloadName(document), bytes.length, bytes),
+        );
+      }
+
+      final encoded = ZipEncoder().encode(archive);
+      if (encoded == null || encoded.isEmpty) {
+        throw Exception('Не удалось собрать ZIP');
+      }
+      final candidate = safeFilePart(widget.application.fullName);
+      final suffix = candidate.isEmpty ? 'Кандидат' : candidate;
+      await FileSaver.instance.saveFile(
+        name: 'Документы_$suffix',
+        bytes: Uint8List.fromList(encoded),
+        ext: 'zip',
+        mimeType: MimeType.zip,
       );
-      final opened = await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
-      if (!opened) throw Exception('Не удалось начать скачивание ZIP');
     } catch (error) {
       showError('Не удалось скачать архив: $error');
     } finally {
@@ -530,7 +554,9 @@ class _RecruitmentApplicationDetailScreenState
               SizedBox(
                 height: 50,
                 child: FilledButton.tonalIcon(
-                  onPressed: downloadingArchive ? null : downloadAllDocuments,
+                  onPressed: downloadingArchive
+                      ? null
+                      : () => downloadAllDocuments(documents),
                   icon: downloadingArchive
                       ? const SizedBox(
                           width: 18,

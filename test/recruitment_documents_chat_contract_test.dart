@@ -44,7 +44,10 @@ void main() {
     expect(detail, contains("return 'Паспорт';"));
     expect(detail, contains(r"return '${prefix}_$suffix"));
     expect(repository, contains('createDownloadFileUrl'));
-    expect(repository, contains('createDocumentsArchiveUrl'));
+    expect(repository, contains('downloadStoredFile'));
+    expect(detail, contains('ArchiveFile(downloadName(document)'));
+    expect(detail, contains('ZipEncoder().encode(archive)'));
+    expect(detail, contains('FileSaver.instance.saveFile'));
     expect(server, contains('documentFilePrefix'));
     expect(server, contains('Паспорт'));
     expect(server, contains('Документы_'));
