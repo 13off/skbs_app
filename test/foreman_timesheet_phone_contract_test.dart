@@ -5,14 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('foreman employee position includes the stored phone number', () {
+  test('all roles receive the stored phone in the prepared position line', () {
     final employee = source('lib/models/employee.dart');
     final repository = source('lib/data/employee_repository.dart');
 
     expect(repository, contains('position, phone, object_name'));
     expect(employee, contains("final phone = json['phone']"));
-    expect(employee, contains('UserRepository.cachedProfile?.isForeman == true'));
-    expect(employee, contains('phone.trim().isNotEmpty'));
+    expect(employee, contains('if (phone.trim().isNotEmpty) phone.trim()'));
     expect(employee, contains("join(' • ')"));
     expect(employee, contains('positionWithContact'));
   });
@@ -27,10 +26,11 @@ void main() {
     expect(desktop, contains('employee.position.toLowerCase().contains(query)'));
   });
 
-  test('phone exposure is restricted to the real foreman profile', () {
+  test('phone visibility has no role restriction', () {
     final employee = source('lib/models/employee.dart');
 
-    expect(employee, contains('UserRepository.cachedProfile?.isForeman == true'));
+    expect(employee, isNot(contains('UserRepository')));
+    expect(employee, isNot(contains('isForeman')));
     expect(employee, isNot(contains('isAdmin')));
     expect(employee, isNot(contains('isLawyer')));
     expect(employee, isNot(contains('isAccountant')));
