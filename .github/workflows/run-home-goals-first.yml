@@ -21,7 +21,8 @@ jobs:
       - name: Apply patch from source workflow
         shell: bash
         run: |
-          python3 - <<'PY'
+          set +e
+          python3 - <<'PY' > patch-error.log 2>&1
           from pathlib import Path
 
           workflow = Path('.github/workflows/apply-home-goals-first.yml').read_text(
@@ -35,6 +36,17 @@ jobs:
           )
           exec(compile(body, 'home_goals_first_patch.py', 'exec'))
           PY
+          status=$?
+          cat patch-error.log
+          exit "$status"
+
+      - name: Upload patch error
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-goals-first-patch-error
+          path: patch-error.log
+          if-no-files-found: error
 
       - uses: subosito/flutter-action@v2
         with:
@@ -63,6 +75,7 @@ jobs:
       - name: Commit result
         shell: bash
         run: |
+          rm -f patch-error.log
           rm .github/workflows/apply-home-goals-first.yml
           rm .github/workflows/run-home-goals-first.yml
           git config user.name "github-actions[bot]"
