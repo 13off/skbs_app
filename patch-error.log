@@ -1,3 +1,0 @@
-/home/runner/work/skbs_app/skbs_app/tool/apply_recruitment_document_list.py:178: SyntaxWarning: invalid escape sequence '\s'
-  """function safeName(value: string, fallback: string): string {
-Pattern not found: server safe filename helper in supabase/functions/recruitment-documents-archive/index.ts

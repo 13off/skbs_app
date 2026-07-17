@@ -1,0 +1,277 @@
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/skbs_app/skbs_app/analysis_options.yaml".
+Formatted 2 files (1 changed) in 0.02 seconds.
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  file_saver 0.2.14 (0.4.0 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  file_saver 0.2.14 (0.4.0 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+
+✅ /home/runner/work/skbs_app/skbs_app/test/push_notification_contract_test.dart: push работает поверх внутреннего колокольчика и защищает компании
+✅ /home/runner/work/skbs_app/skbs_app/test/russian_invitation_route_contract_test.dart: invitation uses the published static landing and Russian API
+✅ /home/runner/work/skbs_app/skbs_app/test/russian_invitation_route_contract_test.dart: Russian proxy still forwards Auth and REST requests
+✅ /home/runner/work/skbs_app/skbs_app/test/web_deployment_contract_test.dart: web deployment runs on source changes and repairs missed bot pushes
+✅ /home/runner/work/skbs_app/skbs_app/test/browser_history_title_contract_test.dart: browser history always receives a non-null document title
+✅ /home/runner/work/skbs_app/skbs_app/test/key_milestones_contract_test.dart: milestones keep linked task progress internally
+✅ /home/runner/work/skbs_app/skbs_app/test/key_milestones_contract_test.dart: goal checklist UI asks only for one work name
+✅ /home/runner/work/skbs_app/skbs_app/test/key_milestones_contract_test.dart: main screens show several goals inline before metrics
+✅ /home/runner/work/skbs_app/skbs_app/test/milestone_act_progress_contract_test.dart: foreman can edit checklist names and delete checklist items or goals
+✅ /home/runner/work/skbs_app/skbs_app/test/milestone_act_progress_contract_test.dart: completed-work act includes goal and checklist percentages
+✅ /home/runner/work/skbs_app/skbs_app/test/archive_payment_page_contract_test.dart: archive bottom actions never hide archived items
+✅ /home/runner/work/skbs_app/skbs_app/test/archive_payment_page_contract_test.dart: payment flow selects object before employee
+✅ /home/runner/work/skbs_app/skbs_app/test/archive_payment_page_contract_test.dart: all work pages use the same plain header as home
+✅ /home/runner/work/skbs_app/skbs_app/test/archive_payment_page_contract_test.dart: timesheet date uses the same premium press motion as tasks
+✅ /home/runner/work/skbs_app/skbs_app/test/shell_visibility_contract_test.dart: main shell keeps the stable nested route that renders tab screens
+✅ /home/runner/work/skbs_app/skbs_app/test/task_goal_linking_contract_test.dart: new and existing tasks expose optional goal linking
+✅ /home/runner/work/skbs_app/skbs_app/test/task_goal_linking_contract_test.dart: goal task selects exactly one goal work without extra controls
+✅ /home/runner/work/skbs_app/skbs_app/test/task_goal_linking_contract_test.dart: task repository persists link and supports explicit unlinking
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_token_link_contract_test.dart: invitation link uses the published page without localhost
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_token_link_contract_test.dart: static landing consumes the token only after explicit user action
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_company_management_contract_test.dart: company management keeps mobile screen and adds desktop center
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_company_management_contract_test.dart: desktop team center exposes roles objects access and search
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_company_management_contract_test.dart: invitation journal supports live statuses new link and revocation
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_pwa_navigation_contract_test.dart: PWA and desktop keep the existing bottom navigation
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_timesheet_phone_contract_test.dart: all roles receive the stored phone in the prepared position line
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_timesheet_phone_contract_test.dart: both timesheets display and search the prepared position line
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_timesheet_phone_contract_test.dart: phone visibility has no role restriction
+✅ /home/runner/work/skbs_app/skbs_app/test/pwa_flutter_344_compat_contract_test.dart: PWA bridge uses current Dart JS interop supported by Flutter 3.44
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_desktop_workspace_contract_test.dart: foreman gets a separate desktop shift workspace
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_desktop_workspace_contract_test.dart: foreman desktop tasks have assignee and evidence filters
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_desktop_workspace_contract_test.dart: foreman platform opens tasks and keeps mobile fallback
+✅ /home/runner/work/skbs_app/skbs_app/test/pwa_install_contract_test.dart: веб-версия устанавливается как приложение на телефон и компьютер
+✅ /home/runner/work/skbs_app/skbs_app/test/ui_motion_contract_test.dart: standard buttons use one motion system
+✅ /home/runner/work/skbs_app/skbs_app/test/ui_motion_contract_test.dart: both premium pressables use identical motion constants
+✅ /home/runner/work/skbs_app/skbs_app/test/ui_motion_contract_test.dart: shell body remains unchanged before bottom navigation
+✅ /home/runner/work/skbs_app/skbs_app/test/unified_company_invitation_contract_test.dart: profile exposes one company invitation entry point
+✅ /home/runner/work/skbs_app/skbs_app/test/unified_company_invitation_contract_test.dart: one company form invites every supported role
+✅ /home/runner/work/skbs_app/skbs_app/test/unified_company_invitation_contract_test.dart: object assignment remains exclusive to foreman
+✅ /home/runner/work/skbs_app/skbs_app/test/unified_company_invitation_contract_test.dart: company member list names specialist roles
+✅ /home/runner/work/skbs_app/skbs_app/test/accountant_platform_contract_test.dart: платформа бухгалтера имеет отдельные вкладки и рабочие экраны
+✅ /home/runner/work/skbs_app/skbs_app/test/accountant_platform_contract_test.dart: реальный бухгалтер получает только бухгалтерские права
+test/recruitment_documents_chat_contract_test.dart:45:40: Error: Undefined name 'prefix'.
+    expect(detail, contains("return '${prefix}_$suffix"));
+                                       ^^^^^^
+test/recruitment_documents_chat_contract_test.dart:45:49: Error: Undefined name 'suffix'.
+    expect(detail, contains("return '${prefix}_$suffix"));
+                                                ^^^^^^
+::group::❌ loading /home/runner/work/skbs_app/skbs_app/test/recruitment_documents_chat_contract_test.dart (failed)
+Failed to load "/home/runner/work/skbs_app/skbs_app/test/recruitment_documents_chat_contract_test.dart":
+Compilation failed for testPath=/home/runner/work/skbs_app/skbs_app/test/recruitment_documents_chat_contract_test.dart: test/recruitment_documents_chat_contract_test.dart:45:40: Error: Undefined name 'prefix'.
+    expect(detail, contains("return '${prefix}_$suffix"));
+                                       ^^^^^^
+test/recruitment_documents_chat_contract_test.dart:45:49: Error: Undefined name 'suffix'.
+    expect(detail, contains("return '${prefix}_$suffix"));
+                                                ^^^^^^
+.
+
+::endgroup::
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_mvp_contract_test.dart: HR role has a dedicated title and platform
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_mvp_contract_test.dart: HR uses the Telegram bot workflow without losing simple stages
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_mvp_contract_test.dart: HR reads the same applications that the Telegram bot creates
+✅ /home/runner/work/skbs_app/skbs_app/test/ios_unsigned_workflow_contract_test.dart: unsigned iOS workflow accepts only completed Xcode signing validation
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_links_session_contract_test.dart: admin receives a copyable company invitation link
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_links_session_contract_test.dart: edge adapter preserves invitation core and rewrites only the route
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_links_session_contract_test.dart: invitation link activates its company before profile loading
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_links_session_contract_test.dart: repeat login restores a missing active company from membership
+✅ /home/runner/work/skbs_app/skbs_app/test/foreman_task_edit_window_contract_test.dart: прораб редактирует задачу и фото только в день задачи
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой роли сохраняют свои вкладки и навигацию без перезагрузки
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой главная сохраняет объекты, архив и финансовую сводку
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой люди сохраняют поиск, разделы, отчёты и позицию списка
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой карточка сотрудника сохраняет все критичные действия
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой табель сохраняет быстрый ввод, ручной ввод и отчёты
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой выплаты сохраняют добавление, фильтры, чеки и единый XLSX
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой задачи сохраняют фото, статусы, редактирование и акт
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой уведомления остаются персональными и ограниченными для прораба
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой архив сохраняет восстановление и окончательное удаление
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой настройки сохраняют рабочий выход из аккаунта
+✅ /home/runner/work/skbs_app/skbs_app/test/functional_contract_test.dart: Функциональный контракт AppСтрой в приложении не возвращаются дубли вкладок и старые подписи
+✅ /home/runner/work/skbs_app/skbs_app/test/stable_shell_release_contract_test.dart: published shell uses the last known-good visible structure
+✅ /home/runner/work/skbs_app/skbs_app/test/stable_shell_release_contract_test.dart: release workflow keeps conflict-safe web publishing enabled
+✅ /home/runner/work/skbs_app/skbs_app/test/specialist_desktop_workspaces_contract_test.dart: lawyer platform uses adaptive desktop workspaces
+✅ /home/runner/work/skbs_app/skbs_app/test/specialist_desktop_workspaces_contract_test.dart: accountant platform uses adaptive desktop workspaces
+✅ /home/runner/work/skbs_app/skbs_app/test/specialist_desktop_workspaces_contract_test.dart: desktop specialist layout keeps web breakpoint and mobile fallbacks
+✅ /home/runner/work/skbs_app/skbs_app/test/navigation_session_persistence_test.dart: платформа и вкладка восстанавливаются после новой сессии
+✅ /home/runner/work/skbs_app/skbs_app/test/navigation_session_persistence_test.dart: сохранение изолировано между компаниями
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_archive_contract_test.dart: recruitment application reads archived state from the database
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_archive_contract_test.dart: working list and dashboard exclude archived applications
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_archive_contract_test.dart: applications screen opens archive and can archive a candidate
+✅ /home/runner/work/skbs_app/skbs_app/test/recruitment_archive_contract_test.dart: permanent deletion is allowed only for archived applications
+✅ /home/runner/work/skbs_app/skbs_app/test/compact_page_headers_contract_test.dart: all role tabs use the same plain header as home
+✅ /home/runner/work/skbs_app/skbs_app/test/compact_page_headers_contract_test.dart: home tab keeps the same plain title style
+✅ /home/runner/work/skbs_app/skbs_app/test/professional_bottom_navigation_test.dart: desktop navigation never consumes the screen body
+✅ /home/runner/work/skbs_app/skbs_app/test/professional_bottom_navigation_test.dart: mobile navigation stays compact and keeps all tabs visible
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_employees_contract_test.dart: employees use desktop table only on wide web screens
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_employees_contract_test.dart: desktop employees provide filters, document state and clickable rows
+✅ /home/runner/work/skbs_app/skbs_app/test/object_first_employee_selection_contract_test.dart: выплата требует объект или все объекты до сотрудника
+✅ /home/runner/work/skbs_app/skbs_app/test/object_first_employee_selection_contract_test.dart: отчёт по выплатам фильтрует сотрудников после объекта
+✅ /home/runner/work/skbs_app/skbs_app/test/object_first_employee_selection_contract_test.dart: юридические документы и вопросы используют объектный фильтр
+✅ /home/runner/work/skbs_app/skbs_app/test/object_first_employee_selection_contract_test.dart: бухгалтерские отчёты сначала выбирают объект
+✅ /home/runner/work/skbs_app/skbs_app/test/admin_role_preview_contract_test.dart: просмотр роли не меняет реальную роль администратора
+✅ /home/runner/work/skbs_app/skbs_app/test/admin_role_preview_contract_test.dart: обычный пользователь не может подменить свою платформу
+✅ /home/runner/work/skbs_app/skbs_app/test/admin_role_preview_contract_test.dart: контроллер хранит только режим интерфейса и объект прораба
+✅ /home/runner/work/skbs_app/skbs_app/test/admin_role_preview_contract_test.dart: переключатель открывает все готовые платформы без записи роли
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: home opens AI chat from a fixed bottom-right button
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: assistant screen contains only chat without quick requests
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: assistant keeps preliminary result and human review
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: client calls only the authenticated server function
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: employee timesheet query understands a person and full period
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_assistant_contract_test.dart: edge function is company scoped read only and has no external key
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_home_dashboard_contract_test.dart: desktop home uses a wide web dashboard and preserves mobile home
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_home_dashboard_contract_test.dart: desktop controls use overlays and real bottom navigation tabs
+✅ /home/runner/work/skbs_app/skbs_app/test/invitation_redirect_contract_test.dart: company invitations use the published static landing route
+✅ /home/runner/work/skbs_app/skbs_app/test/remove_company_member_contract_test.dart: admin can remove a non-owner member from one company
+✅ /home/runner/work/skbs_app/skbs_app/test/web_resume_sync_contract_test.dart: web resume does not trigger a full data refresh
+✅ /home/runner/work/skbs_app/skbs_app/test/web_resume_sync_contract_test.dart: real realtime reconnect still refreshes every platform
+✅ /home/runner/work/skbs_app/skbs_app/test/specialist_role_preview_navigation_contract_test.dart: платформа юриста открывает вложенные экраны внутри своей вкладки
+✅ /home/runner/work/skbs_app/skbs_app/test/specialist_role_preview_navigation_contract_test.dart: платформа бухгалтера открывает вложенные экраны внутри своей вкладки
+✅ /home/runner/work/skbs_app/skbs_app/test/cumulative_task_progress_contract_test.dart: completed daily tasks accumulate exact checklist progress
+✅ /home/runner/work/skbs_app/skbs_app/test/cumulative_task_progress_contract_test.dart: task completion asks for todays contribution and protects remainder
+✅ /home/runner/work/skbs_app/skbs_app/test/cumulative_task_progress_contract_test.dart: act contains daily, checklist and goal percentages
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_tasks_contract_test.dart: tasks use desktop table only on wide web screens
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_tasks_contract_test.dart: desktop tasks provide date controls, filters and clickable rows
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_timesheet_contract_test.dart: timesheet switches to desktop table only on wide web
+✅ /home/runner/work/skbs_app/skbs_app/test/desktop_timesheet_contract_test.dart: desktop timesheet preserves input save realtime and report actions
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_universal_search_contract_test.dart: chat routes free search to ai-search and keeps structured scenarios
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_universal_search_contract_test.dart: universal search covers application data sources
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_universal_search_contract_test.dart: search understands periods and natural Russian queries
+✅ /home/runner/work/skbs_app/skbs_app/test/ai_universal_search_contract_test.dart: search stays company scoped read only and protects private data
+
+::error::111 tests passed, 1 failed.
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  file_saver 0.2.14 (0.4.0 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing skbs_app...                                           
+
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this.year') to initialize the field • lib/data/finance_summary_repository.dart:14:7 • prefer_initializing_formals
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this.month') to initialize the field • lib/data/finance_summary_repository.dart:15:7 • prefer_initializing_formals
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/accounting/presentation/accounting_main_screen.dart:96:12 • deprecated_member_use
+warning • A value for optional parameter 'reviewed' isn't ever given. Try removing the unused parameter • lib/features/ai/presentation/ai_assistant_screen.dart:425:10 • unused_element_parameter
+warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.' • lib/features/auth/data/user_repository.dart:37:38 • invalid_null_aware_operator
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/features/company/presentation/desktop_company_management_screen.dart:546:11 • use_null_aware_elements
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/foreman/presentation/foreman_main_screen.dart:187:12 • deprecated_member_use
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/legal/presentation/legal_main_screen.dart:132:12 • deprecated_member_use
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/features/recruitment/presentation/recruitment_application_detail_screen.dart:284:11 • use_null_aware_elements
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/recruitment/presentation/recruitment_main_screen.dart:100:12 • deprecated_member_use
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/features/role_preview/role_preview_screen.dart:94:41 • unnecessary_underscores
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/shell/presentation/premium_main_screen.dart:527:12 • deprecated_member_use
+   info • 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead. Try replacing the use of the deprecated member with the replacement • lib/navigation/web_edge_swipe_platform_web.dart:2:1 • deprecated_member_use
+   info • Don't use web-only libraries outside Flutter web plugins. Try finding a different library for your needs • lib/navigation/web_edge_swipe_platform_web.dart:2:1 • avoid_web_libraries_in_flutter
+warning • Unused import: '../widgets/premium_ui.dart'. Try removing the import directive • lib/screens/desktop_object_management_dialog.dart:4:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/screens/task_details_screen.dart:46:41 • use_build_context_synchronously
+  error • Undefined name 'prefix'. Try correcting the name to one that is defined, or defining the name • test/recruitment_documents_chat_contract_test.dart:45:40 • undefined_identifier
+  error • Undefined name 'suffix'. Try correcting the name to one that is defined, or defining the name • test/recruitment_documents_chat_contract_test.dart:45:49 • undefined_identifier
+
+18 issues found. (ran in 13.7s)
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  file_saver 0.2.14 (0.4.0 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+21 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Compiling lib/main.dart for the Web...                          
+Wasm dry run findings:
+Found incompatibilities with WebAssembly.
+
+package:universal_html/src/_sdk/html.dart 32:1 - dart:html unsupported (0)
+package:universal_html/src/_sdk_html_additions.dart 16:1 - dart:html unsupported (0)
+
+Consider addressing these issues to enable wasm builds. See docs for more info: https://docs.flutter.dev/platform-integration/web/wasm
+
+Use --no-wasm-dry-run to disable these warnings.
+Font asset "CupertinoIcons.ttf" was tree-shaken, reducing it from 257628 to 1472 bytes (99.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 37932 bytes (97.7% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Compiling lib/main.dart for the Web...                             51.8s
+✓ Built build/web

@@ -41,14 +41,31 @@ function serviceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 }
 
-function safeName(value: string, fallback: string): string {
+function safeFilePart(value: string, fallback: string): string {
   const clean = value
     .trim()
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .replace(/\s+/g, " ")
-    .replace(/^\.+|\.+$/g, "")
-    .slice(0, 120);
+    .replace(/[^0-9A-Za-zА-Яа-яЁё]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 100);
   return clean || fallback;
+}
+
+function documentFilePrefix(type: string): string {
+  switch (type) {
+    case "passport_main":
+      return "Паспорт";
+    case "registration":
+      return "Прописка";
+    case "snils":
+      return "СНИЛС";
+    case "inn":
+      return "ИНН";
+    case "policy":
+      return "Полис";
+    default:
+      return "Документ";
+  }
 }
 
 function extension(row: DocumentRow): string {
@@ -168,10 +185,11 @@ Deno.serve(async (request: Request) => {
       if (downloadError) throw downloadError;
 
       const ext = extension(row);
-      const preferred = row.original_name.trim().length > 0
-        ? row.original_name
-        : `${documentTitle(row.document_type)}.${ext}`;
-      let fileName = safeName(preferred, `document_${index + 1}.${ext}`);
+      const candidateName = safeFilePart(
+        String(application.full_name ?? ""),
+        "Кандидат",
+      );
+      let fileName = `${documentFilePrefix(row.document_type)}_${candidateName}.${ext}`;
       if (!fileName.toLowerCase().endsWith(`.${ext}`)) {
         fileName = `${fileName}.${ext}`;
       }
@@ -201,10 +219,10 @@ Deno.serve(async (request: Request) => {
       });
     if (uploadError) throw uploadError;
 
-    const fileName = safeName(
-      `${application.full_name} — документы.zip`,
-      "documents.zip",
-    );
+    const fileName = `Документы_${safeFilePart(
+      String(application.full_name ?? ""),
+      "Кандидат",
+    )}.zip`;
     const { data: signed, error: signedError } = await admin.storage
       .from(bucketName)
       .createSignedUrl(archivePath, 300, { download: fileName });

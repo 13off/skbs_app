@@ -41,8 +41,6 @@ class _RecruitmentApplicationDetailScreenState
   bool downloadingArchive = false;
   String? openingId;
   final Set<String> downloadingIds = <String>{};
-  final Map<String, Future<String>> previewUrlFutures =
-      <String, Future<String>>{};
 
   @override
   void initState() {
@@ -80,7 +78,6 @@ class _RecruitmentApplicationDetailScreenState
     final messages = loadMessages();
     if (mounted) {
       setState(() {
-        previewUrlFutures.clear();
         documentsFuture = documents;
         messagesFuture = messages;
       });
@@ -136,22 +133,57 @@ class _RecruitmentApplicationDetailScreenState
     }
   }
 
-  Future<String> previewUrl(RecruitmentDocument document) {
-    return previewUrlFutures.putIfAbsent(
-      document.id,
-      () => RecruitmentRepository.createSignedFileUrl(
-        bucket: document.storageBucket,
-        path: document.storagePath,
-        expiresInSeconds: 900,
-      ),
-    );
+  String documentFilePrefix(String documentType) {
+    switch (documentType) {
+      case 'passport_main':
+        return 'Паспорт';
+      case 'registration':
+        return 'Прописка';
+      case 'snils':
+        return 'СНИЛС';
+      case 'inn':
+        return 'ИНН';
+      case 'policy':
+        return 'Полис';
+      default:
+        return 'Документ';
+    }
+  }
+
+  String safeFilePart(String value) {
+    return value
+        .trim()
+        .replaceAll(RegExp(r'[^0-9A-Za-zА-Яа-яЁё]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  String documentExtension(RecruitmentDocument document) {
+    final original = document.originalName.trim().toLowerCase();
+    final dot = original.lastIndexOf('.');
+    if (dot >= 0 && dot < original.length - 1) {
+      final extension = original.substring(dot + 1);
+      if (<String>{'jpg', 'jpeg', 'png', 'webp', 'pdf'}.contains(extension)) {
+        return extension == 'jpeg' ? 'jpg' : extension;
+      }
+    }
+    switch (document.mimeType) {
+      case 'application/pdf':
+        return 'pdf';
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      default:
+        return 'jpg';
+    }
   }
 
   String downloadName(RecruitmentDocument document) {
-    final original = document.originalName.trim();
-    if (original.isNotEmpty) return original;
-    final extension = document.mimeType == 'application/pdf' ? 'pdf' : 'jpg';
-    return '${document.title}.$extension';
+    final candidate = safeFilePart(widget.application.fullName);
+    final prefix = documentFilePrefix(document.documentType);
+    final suffix = candidate.isEmpty ? 'Кандидат' : candidate;
+    return '${prefix}_$suffix.${documentExtension(document)}';
   }
 
   Future<void> downloadDocument(RecruitmentDocument document) async {
@@ -192,140 +224,6 @@ class _RecruitmentApplicationDetailScreenState
     } finally {
       if (mounted) setState(() => downloadingArchive = false);
     }
-  }
-
-  Future<void> showImagePreview(RecruitmentDocument document) async {
-    try {
-      final url = await previewUrl(document);
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierColor: Colors.black.withValues(alpha: 0.92),
-        builder: (dialogContext) {
-          return Dialog(
-            insetPadding: EdgeInsets.zero,
-            backgroundColor: Colors.black,
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: InteractiveViewer(
-                      minScale: 0.7,
-                      maxScale: 6,
-                      child: Center(
-                        child: Image.network(
-                          url,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Text(
-                              'Не удалось показать изображение',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        IconButton.filled(
-                          tooltip: 'Скачать',
-                          onPressed: () => downloadDocument(document),
-                          icon: const Icon(Icons.download_rounded),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filled(
-                          tooltip: 'Закрыть',
-                          onPressed: () => Navigator.pop(dialogContext),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    } catch (error) {
-      showError('Не удалось открыть изображение: $error');
-    }
-  }
-
-  Widget imagePreview(RecruitmentDocument document) {
-    return FutureBuilder<String>(
-      future: previewUrl(document),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
-          return const AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.hasError || !snapshot.hasData) {
-          return const AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Center(child: Icon(Icons.broken_image_outlined, size: 42)),
-          );
-        }
-        return GestureDetector(
-          onTap: () => showImagePreview(document),
-          child: AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.network(
-                  snapshot.data!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Center(
-                    child: Icon(Icons.broken_image_outlined, size: 42),
-                  ),
-                ),
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.68),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.zoom_in_rounded,
-                          color: Colors.white,
-                          size: 17,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          'Увеличить',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Future<void> sendMessage() async {
@@ -499,7 +397,6 @@ class _RecruitmentApplicationDetailScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!waiting && document.isImage) imagePreview(document),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -542,8 +439,7 @@ class _RecruitmentApplicationDetailScreenState
                               waiting
                                   ? 'Файл обрабатывается'
                                   : <String>[
-                                      if (document.originalName.isNotEmpty)
-                                        document.originalName,
+                                      downloadName(document),
                                       if (formatBytes(
                                         document.sizeBytes,
                                       ).isNotEmpty)
@@ -567,21 +463,13 @@ class _RecruitmentApplicationDetailScreenState
                         child: OutlinedButton.icon(
                           onPressed: waiting || openingId != null
                               ? null
-                              : document.isImage
-                              ? () => showImagePreview(document)
                               : () => openStoredFile(
                                   id: document.id,
                                   bucket: document.storageBucket,
                                   path: document.storagePath,
                                 ),
-                          icon: Icon(
-                            document.isImage
-                                ? Icons.visibility_outlined
-                                : Icons.open_in_new_rounded,
-                          ),
-                          label: Text(
-                            document.isImage ? 'Открыть' : 'Просмотр',
-                          ),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('Открыть'),
                         ),
                       ),
                       const SizedBox(width: 10),

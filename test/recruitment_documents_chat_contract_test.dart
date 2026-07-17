@@ -24,30 +24,30 @@ void main() {
     expect(applications, contains('RecruitmentApplicationDetailScreen'));
   });
 
-  test('document gallery previews images and downloads one or all files', () {
+  test('document list opens and downloads one or all files', () {
     final detail = source(
       'lib/features/recruitment/presentation/recruitment_application_detail_screen.dart',
     );
     final repository = source(
       'lib/features/recruitment/data/recruitment_repository.dart',
     );
-    final archiveFunction = source(
+    final server = source(
       'supabase/functions/recruitment-documents-archive/index.ts',
     );
 
-    expect(
-      detail,
-      contains('Widget imagePreview(RecruitmentDocument document)'),
-    );
-    expect(detail, contains('InteractiveViewer('));
-    expect(detail, contains("const Text('Скачать')"));
+    expect(detail, isNot(contains('Widget imagePreview(')));
+    expect(detail, isNot(contains('InteractiveViewer(')));
+    expect(detail, isNot(contains('Image.network(')));
+    expect(detail, contains("label: const Text('Открыть')"));
+    expect(detail, contains("label: const Text('Скачать')"));
     expect(detail, contains("'Скачать все ZIP"));
+    expect(detail, contains("return 'Паспорт';"));
+    expect(detail, contains("return '${prefix}_$suffix"));
     expect(repository, contains('createDownloadFileUrl'));
     expect(repository, contains('createDocumentsArchiveUrl'));
-    expect(repository, contains("'recruitment-documents-archive'"));
-    expect(archiveFunction, contains('import JSZip'));
-    expect(archiveFunction, contains('application/zip'));
-    expect(archiveFunction, contains('createSignedUrl'));
+    expect(server, contains('documentFilePrefix'));
+    expect(server, contains('Паспорт'));
+    expect(server, contains('Документы_'));
   });
 
   test('document and message models keep only protected storage paths', () {
