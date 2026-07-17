@@ -5,6 +5,8 @@ import 'package:archive/archive.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -189,6 +191,23 @@ class _RecruitmentApplicationDetailScreenState
     return '${prefix}_$suffix.${documentExtension(document)}';
   }
 
+  int documentOrder(String documentType) {
+    switch (documentType) {
+      case 'passport_main':
+        return 0;
+      case 'registration':
+        return 1;
+      case 'snils':
+        return 2;
+      case 'inn':
+        return 3;
+      case 'policy':
+        return 4;
+      default:
+        return 100;
+    }
+  }
+
   Future<void> downloadDocument(RecruitmentDocument document) async {
     if (!document.isStored || downloadingIds.contains(document.id)) return;
     setState(() => downloadingIds.add(document.id));
@@ -212,7 +231,14 @@ class _RecruitmentApplicationDetailScreenState
 
   Future<void> downloadAllDocuments(List<RecruitmentDocument> documents) async {
     if (downloadingArchive) return;
-    final stored = documents.where((item) => item.isStored).toList();
+    final stored = documents.where((item) => item.isStored).toList()
+      ..sort((first, second) {
+        final order = documentOrder(
+          first.documentType,
+        ).compareTo(documentOrder(second.documentType));
+        if (order != 0) return order;
+        return first.createdAt.compareTo(second.createdAt);
+      });
     if (stored.isEmpty) {
       showError('У кандидата пока нет загруженных документов');
       return;
@@ -221,6 +247,7 @@ class _RecruitmentApplicationDetailScreenState
     setState(() => downloadingArchive = true);
     try {
       final archive = Archive();
+      final pdfImages = <Uint8List>[];
       for (final document in stored) {
         final bytes = await RecruitmentRepository.downloadStoredFile(
           bucket: document.storageBucket,
@@ -229,14 +256,37 @@ class _RecruitmentApplicationDetailScreenState
         archive.addFile(
           ArchiveFile(downloadName(document), bytes.length, bytes),
         );
+        if (document.isImage) pdfImages.add(bytes);
+      }
+
+      final candidate = safeFilePart(widget.application.fullName);
+      final suffix = candidate.isEmpty ? 'Кандидат' : candidate;
+      if (pdfImages.isNotEmpty) {
+        final pdf = pw.Document(
+          title: 'Документы ${widget.application.fullName}',
+          author: 'AppСтрой',
+        );
+        for (final bytes in pdfImages) {
+          final image = pw.MemoryImage(bytes);
+          pdf.addPage(
+            pw.Page(
+              pageFormat: PdfPageFormat.a4,
+              margin: const pw.EdgeInsets.all(24),
+              build: (_) =>
+                  pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
+            ),
+          );
+        }
+        final pdfBytes = await pdf.save();
+        archive.addFile(
+          ArchiveFile('Документы_$suffix.pdf', pdfBytes.length, pdfBytes),
+        );
       }
 
       final encoded = ZipEncoder().encode(archive);
       if (encoded == null || encoded.isEmpty) {
         throw Exception('Не удалось собрать ZIP');
       }
-      final candidate = safeFilePart(widget.application.fullName);
-      final suffix = candidate.isEmpty ? 'Кандидат' : candidate;
       await FileSaver.instance.saveFile(
         name: 'Документы_$suffix',
         bytes: Uint8List.fromList(encoded),
