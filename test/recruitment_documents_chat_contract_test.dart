@@ -35,7 +35,10 @@ void main() {
       'supabase/functions/recruitment-candidate-action/index.ts',
     );
 
-    expect(detail, contains('Widget imagePreview(RecruitmentDocument document)'));
+    expect(
+      detail,
+      contains('Widget imagePreview(RecruitmentDocument document)'),
+    );
     expect(detail, contains('InteractiveViewer('));
     expect(detail, contains("const Text('Скачать')"));
     expect(detail, contains("'Скачать все ZIP"));
