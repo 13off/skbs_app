@@ -6,7 +6,8 @@ String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('desktop home uses a wide web dashboard and preserves mobile home', () {
-    final adaptive = source('lib/screens/adaptive_home_screen.dart');
+    final adaptive = source('lib/screens/adaptive_home_base_screen.dart');
+    final wrapper = source('lib/screens/adaptive_home_screen.dart');
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
@@ -22,6 +23,8 @@ void main() {
     expect(adaptive, contains('EmployeeRepository.fetchEmployees'));
     expect(adaptive, contains('TaskRepository.fetchTasksForDate'));
     expect(adaptive, contains('FinanceSummaryRepository.fetchSummary'));
+    expect(wrapper, contains('MilestoneHomeOverlay'));
+    expect(wrapper, contains('base.AdaptiveHomeScreen('));
 
     expect(shell, contains("import '../../../screens/adaptive_home_screen.dart';"));
     expect(shell, contains('return AdaptiveHomeScreen('));
@@ -33,7 +36,7 @@ void main() {
   });
 
   test('desktop controls use overlays and real bottom navigation tabs', () {
-    final adaptive = source('lib/screens/adaptive_home_screen.dart');
+    final adaptive = source('lib/screens/adaptive_home_base_screen.dart');
     final widgets = source('lib/screens/desktop_home_widgets.dart');
     final manager = source(
       'lib/screens/desktop_object_management_dialog.dart',

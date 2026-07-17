@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/milestones/presentation/milestone_home_overlay.dart';
 import '../../../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
@@ -74,13 +75,17 @@ class _ForemanDesktopMainScreenState
 
   Widget rootPage(int index) {
     return switch (index) {
-      0 => ForemanDesktopHomeScreen(
+      0 => MilestoneHomeOverlay(
           profile: widget.profile,
           selectedObjectName: objectName,
-          onOpenTimesheet: openTimesheet,
-          onOpenTasks: openTasks,
-          onOpenTask: openTask,
-          onAddTask: addTask,
+          child: ForemanDesktopHomeScreen(
+            profile: widget.profile,
+            selectedObjectName: objectName,
+            onOpenTimesheet: openTimesheet,
+            onOpenTasks: openTasks,
+            onOpenTask: openTask,
+            onAddTask: addTask,
+          ),
         ),
       1 => ForemanDesktopTasksScreen(
           profile: widget.profile,
