@@ -7,6 +7,8 @@ class WebPushBridge {
 
   static const String _workerPath = 'appstroy-push-sw.js';
   static const String _workerScope = 'push-scope/';
+  static const String _publicKeyEndpoint =
+      'https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/web-push-public-key';
 
   static bool get _hasServiceWorker =>
       js_util.hasProperty(html.window.navigator, 'serviceWorker');
@@ -94,6 +96,20 @@ class WebPushBridge {
     return js_util.callConstructor<Object>(constructor, <Object>[bytes.toList()]);
   }
 
+  static Future<String> _resolvePublicKey(String fallback) async {
+    try {
+      final raw = await html.HttpRequest.getString(_publicKeyEndpoint);
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        final value = decoded['public_key']?.toString().trim() ?? '';
+        if (value.isNotEmpty) return value;
+      }
+    } catch (_) {
+      // На случай краткой недоступности сервера используем ключ сборки.
+    }
+    return fallback;
+  }
+
   static Future<Map<String, dynamic>> existing() async {
     if (!isSupported) return status;
     if (_isAppleMobile && !isStandalone) return status;
@@ -128,13 +144,14 @@ class WebPushBridge {
     final registration = await _registration();
     var subscription = await _currentSubscription(registration);
     if (subscription == null) {
+      final resolvedPublicKey = await _resolvePublicKey(publicKey);
       final pushManager = js_util.getProperty<Object>(registration, 'pushManager');
       final options = js_util.newObject();
       js_util.setProperty(options, 'userVisibleOnly', true);
       js_util.setProperty(
         options,
         'applicationServerKey',
-        _applicationServerKey(publicKey),
+        _applicationServerKey(resolvedPublicKey),
       );
       final promise = js_util.callMethod<Object>(
         pushManager,
