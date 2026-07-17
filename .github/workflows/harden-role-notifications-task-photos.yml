@@ -19,7 +19,10 @@ jobs:
           fetch-depth: 0
 
       - name: Apply hardening
-        run: python3 tool/harden_role_notifications_task_photos.py
+        shell: bash
+        run: |
+          python3 tool/harden_role_notifications_task_photos.py
+          python3 tool/fix_hardening_contract_test.py
 
       - uses: subosito/flutter-action@v2
         with:
@@ -42,6 +45,7 @@ jobs:
         shell: bash
         run: |
           rm tool/harden_role_notifications_task_photos.py
+          rm tool/fix_hardening_contract_test.py
           rm .github/workflows/harden-role-notifications-task-photos.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
