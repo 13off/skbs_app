@@ -1,11 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const webPushPublicKey =
+  "BEDeIMiSvfz3KavkGnr8UKRZkfE0Ix3PmG8HGNWcm20b70Zh_cWBmNR3crMxi5nYHk4KHbf_frABXuQDontdYn8";
+const webPushSubject = "mailto:admin@appstroy-web.ru";
 
 const foremanAllowedEntityTypes = new Set([
   "attendance",
@@ -36,11 +41,19 @@ interface NotificationRow {
   target_role: string | null;
 }
 
-interface TokenRow {
+interface FcmTokenRow {
   id: string;
   user_id: string;
   token: string;
   platform: "android" | "ios" | "web";
+}
+
+interface WebPushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }
 
 interface JobRow {
@@ -139,7 +152,8 @@ async function getGoogleAccessToken(account: ServiceAccount) {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        grant_type: "urn:ietf:params:oauth-type:jwt-bearer"
+          .replace("oauth-type", "oauth-grant-type"),
         assertion,
       }),
     },
@@ -171,11 +185,11 @@ function fcmErrorCode(payload: unknown) {
   return "";
 }
 
-async function sendToToken(
+async function sendToFcmToken(
   accessToken: string,
   account: ServiceAccount,
   notification: NotificationRow,
-  token: TokenRow,
+  token: FcmTokenRow,
 ) {
   const publicUrl = Deno.env.get("APP_PUBLIC_URL") ??
     "https://13off.github.io/appstroy-web/";
@@ -232,6 +246,61 @@ async function sendToToken(
     status: response.status,
     errorCode: fcmErrorCode(body),
   };
+}
+
+function webPushErrorStatus(error: unknown) {
+  if (!error || typeof error !== "object") return 0;
+  const value = (error as Record<string, unknown>).statusCode;
+  return typeof value === "number" ? value : Number(value ?? 0);
+}
+
+async function sendToWebSubscription(
+  privateKey: string,
+  notification: NotificationRow,
+  subscription: WebPushSubscriptionRow,
+) {
+  const publicUrl = Deno.env.get("APP_PUBLIC_URL") ??
+    "https://13off.github.io/appstroy-web/";
+  const payload = JSON.stringify({
+    title: notification.title,
+    body: notification.body,
+    notification_id: notification.id,
+    company_id: notification.company_id,
+    object_name: notification.object_name ?? "",
+    entity_type: notification.entity_type ?? "",
+    entity_id: notification.entity_id ?? "",
+    link: publicUrl,
+  });
+
+  try {
+    await webpush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+      },
+      payload,
+      {
+        TTL: 3600,
+        urgency: "high",
+        vapidDetails: {
+          subject: webPushSubject,
+          publicKey: webPushPublicKey,
+          privateKey,
+        },
+      },
+    );
+    return { ok: true, status: 201, errorCode: "" };
+  } catch (error) {
+    const status = webPushErrorStatus(error);
+    return {
+      ok: false,
+      status,
+      errorCode: status ? `WEB_PUSH_${status}` : "WEB_PUSH_ERROR",
+    };
+  }
 }
 
 Deno.serve(async (request: Request) => {
@@ -443,16 +512,25 @@ Deno.serve(async (request: Request) => {
       return json({ ok: true, status: "no_recipients", sent: 0 });
     }
 
-    const { data: rawTokens, error: tokensError } = await admin
-      .from("push_device_tokens")
-      .select("id,user_id,token,platform")
-      .eq("company_id", notification.company_id)
-      .eq("enabled", true)
-      .in("user_id", [...recipientIds]);
-    if (tokensError) throw tokensError;
-    const tokens = (rawTokens ?? []) as TokenRow[];
+    const recipientList = [...recipientIds];
+    const [fcmResult, webResult] = await Promise.all([
+      admin.from("push_device_tokens")
+        .select("id,user_id,token,platform")
+        .eq("company_id", notification.company_id)
+        .eq("enabled", true)
+        .in("user_id", recipientList),
+      admin.from("web_push_subscriptions")
+        .select("id,user_id,endpoint,p256dh,auth")
+        .eq("company_id", notification.company_id)
+        .eq("enabled", true)
+        .in("user_id", recipientList),
+    ]);
+    if (fcmResult.error) throw fcmResult.error;
+    if (webResult.error) throw webResult.error;
+    const fcmTokens = (fcmResult.data ?? []) as FcmTokenRow[];
+    const webSubscriptions = (webResult.data ?? []) as WebPushSubscriptionRow[];
 
-    if (tokens.length === 0) {
+    if (fcmTokens.length === 0 && webSubscriptions.length === 0) {
       await admin.from("push_notification_deliveries").upsert({
         notification_id: notification.id,
         status: "no_recipients",
@@ -466,28 +544,6 @@ Deno.serve(async (request: Request) => {
       return json({ ok: true, status: "no_recipients", sent: 0 });
     }
 
-    const serviceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
-    if (!serviceAccountJson) {
-      const error =
-        "Добавьте FIREBASE_SERVICE_ACCOUNT_JSON в Supabase Edge Function Secrets";
-      await admin.from("push_notification_jobs").update({
-        status: "failed",
-        last_error: error,
-        next_attempt_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
-      return json({
-        ok: false,
-        configured: false,
-        skipped: true,
-        error,
-      }, 202);
-    }
-    const account = JSON.parse(serviceAccountJson) as ServiceAccount;
-    if (!account.project_id || !account.client_email || !account.private_key) {
-      throw new Error("Некорректный FIREBASE_SERVICE_ACCOUNT_JSON");
-    }
-
     await admin.from("push_notification_deliveries").upsert({
       notification_id: notification.id,
       status: "processing",
@@ -495,36 +551,88 @@ Deno.serve(async (request: Request) => {
       completed_at: null,
       sent_count: 0,
       failure_count: 0,
-      details: { device_count: tokens.length },
+      details: {
+        fcm_device_count: fcmTokens.length,
+        web_push_device_count: webSubscriptions.length,
+      },
     }, { onConflict: "notification_id" });
 
-    const accessToken = await getGoogleAccessToken(account);
     let sentCount = 0;
     let failureCount = 0;
-    const disabledTokenIds: string[] = [];
+    const disabledFcmTokenIds: string[] = [];
+    const disabledWebSubscriptionIds: string[] = [];
     const failureCodes: Record<string, number> = {};
 
-    for (const token of tokens) {
-      const result = await sendToToken(
-        accessToken,
-        account,
-        notification,
-        token,
-      );
-      if (result.ok) {
-        sentCount += 1;
-        continue;
+    if (fcmTokens.length > 0) {
+      const serviceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
+      if (!serviceAccountJson) {
+        failureCount += fcmTokens.length;
+        failureCodes.FCM_NOT_CONFIGURED = fcmTokens.length;
+      } else {
+        const account = JSON.parse(serviceAccountJson) as ServiceAccount;
+        if (!account.project_id || !account.client_email || !account.private_key) {
+          throw new Error("Некорректный FIREBASE_SERVICE_ACCOUNT_JSON");
+        }
+        const accessToken = await getGoogleAccessToken(account);
+        for (const token of fcmTokens) {
+          const result = await sendToFcmToken(
+            accessToken,
+            account,
+            notification,
+            token,
+          );
+          if (result.ok) {
+            sentCount += 1;
+            continue;
+          }
+          failureCount += 1;
+          const code = result.errorCode || `FCM_HTTP_${result.status}`;
+          failureCodes[code] = (failureCodes[code] ?? 0) + 1;
+          if (result.errorCode === "UNREGISTERED") {
+            disabledFcmTokenIds.push(token.id);
+          }
+        }
       }
-      failureCount += 1;
-      const code = result.errorCode || `HTTP_${result.status}`;
-      failureCodes[code] = (failureCodes[code] ?? 0) + 1;
-      if (result.errorCode === "UNREGISTERED") disabledTokenIds.push(token.id);
     }
 
-    if (disabledTokenIds.length > 0) {
+    if (webSubscriptions.length > 0) {
+      const { data: privateKey, error: privateKeyError } = await admin.rpc(
+        "get_push_secret",
+        { p_name: "appstroy_web_push_vapid_private_key" },
+      );
+      if (privateKeyError || !privateKey) {
+        failureCount += webSubscriptions.length;
+        failureCodes.WEB_PUSH_KEY_MISSING = webSubscriptions.length;
+      } else {
+        for (const subscription of webSubscriptions) {
+          const result = await sendToWebSubscription(
+            String(privateKey),
+            notification,
+            subscription,
+          );
+          if (result.ok) {
+            sentCount += 1;
+            continue;
+          }
+          failureCount += 1;
+          const code = result.errorCode || "WEB_PUSH_ERROR";
+          failureCodes[code] = (failureCodes[code] ?? 0) + 1;
+          if (result.status === 404 || result.status === 410) {
+            disabledWebSubscriptionIds.push(subscription.id);
+          }
+        }
+      }
+    }
+
+    if (disabledFcmTokenIds.length > 0) {
       await admin.from("push_device_tokens")
         .update({ enabled: false, updated_at: new Date().toISOString() })
-        .in("id", disabledTokenIds);
+        .in("id", disabledFcmTokenIds);
+    }
+    if (disabledWebSubscriptionIds.length > 0) {
+      await admin.from("web_push_subscriptions")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .in("id", disabledWebSubscriptionIds);
     }
 
     const status = sentCount === 0
@@ -538,8 +646,10 @@ Deno.serve(async (request: Request) => {
       sent_count: sentCount,
       failure_count: failureCount,
       details: {
-        device_count: tokens.length,
-        disabled_token_count: disabledTokenIds.length,
+        fcm_device_count: fcmTokens.length,
+        web_push_device_count: webSubscriptions.length,
+        disabled_fcm_token_count: disabledFcmTokenIds.length,
+        disabled_web_push_count: disabledWebSubscriptionIds.length,
         failure_codes: failureCodes,
       },
     }).eq("notification_id", notification.id);
@@ -557,7 +667,11 @@ Deno.serve(async (request: Request) => {
       status,
       sent: sentCount,
       failed: failureCount,
-      disabled: disabledTokenIds.length,
+      disabled: disabledFcmTokenIds.length + disabledWebSubscriptionIds.length,
+      channels: {
+        fcm: fcmTokens.length,
+        web_push: webSubscriptions.length,
+      },
     }, sentCount > 0 ? 200 : 502);
   } catch (error) {
     console.error(error);
