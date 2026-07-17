@@ -147,11 +147,17 @@ abstract final class RecruitmentRepository {
     required String applicationId,
     required String message,
   }) async {
+    final cleanApplicationId = applicationId.trim();
+    await _client.rpc(
+      'activate_recruitment_telegram_conversation',
+      params: <String, dynamic>{'p_application_id': cleanApplicationId},
+    );
+
     final response = await _client.functions.invoke(
       'recruitment-candidate-action',
       body: <String, dynamic>{
         'action': 'send_message',
-        'application_id': applicationId.trim(),
+        'application_id': cleanApplicationId,
         'message': message.trim(),
       },
     );
@@ -160,7 +166,7 @@ abstract final class RecruitmentRepository {
     if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
       throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
     }
-    _notify(applicationId.trim());
+    _notify(cleanApplicationId);
   }
 
   static Future<List<RecruitmentObjectOption>> fetchObjects({

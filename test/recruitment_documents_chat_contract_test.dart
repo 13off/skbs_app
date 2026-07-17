@@ -95,6 +95,11 @@ void main() {
     expect(repository, contains(".from('recruitment_messages')"));
     expect(repository, contains("'recruitment-candidate-action'"));
     expect(repository, contains("'action': 'send_message'"));
+    expect(
+      repository,
+      contains("'activate_recruitment_telegram_conversation'"),
+    );
+    expect(repository, contains("'p_application_id': cleanApplicationId"));
     expect(repository, contains("'action': 'delete_application'"));
     final candidateAction = source(
       'supabase/functions/recruitment-candidate-action/index.ts',
