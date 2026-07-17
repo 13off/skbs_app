@@ -20,7 +20,9 @@ abstract final class ActContextRepository {
 
     final rawLinks = await _client
         .from('task_milestone_links')
-        .select('task_id, milestone_id, checklist_item_id')
+        .select(
+          'task_id, milestone_id, checklist_item_id, progress_percent',
+        )
         .inFilter('task_id', taskIds);
 
     if (rawLinks.isEmpty) return const <String, TaskActContext>{};
@@ -52,13 +54,22 @@ abstract final class ActContextRepository {
       final item = itemById[checklistItemId];
       if (item == null) continue;
 
+      final dailyPercent =
+          ((row['progress_percent'] as num?)?.toInt() ?? 0)
+              .clamp(0, 100)
+              .toInt();
+      final stateWithDailyProgress = dailyPercent > 0
+          ? '${item.stateTitle}; за день +$dailyPercent%'
+          : item.stateTitle;
+
       result[taskId] = TaskActContext(
         milestoneTitle: milestone.title,
         milestoneLocation: milestone.location,
         milestoneProgressPercent: milestone.progressPercent,
         checklistTitle: item.title,
-        checklistProgressPercent: (item.completionFraction * 100).round(),
-        checklistStateTitle: item.stateTitle,
+        checklistProgressPercent: item.progressPercent,
+        taskProgressPercent: dailyPercent,
+        checklistStateTitle: stateWithDailyProgress,
         checklistIsCritical: item.isCritical,
       );
     }

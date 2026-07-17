@@ -122,7 +122,8 @@ abstract final class MilestoneRepository {
       _client
           .from('task_milestone_links')
           .select(
-            'task_id, milestone_id, checklist_item_id, tasks(id, work, axes, status, task_date)',
+            'task_id, milestone_id, checklist_item_id, progress_percent, '
+            'tasks(id, work, axes, status, task_date)',
           )
           .inFilter('milestone_id', milestoneIds),
     ]);
@@ -142,6 +143,10 @@ abstract final class MilestoneRepository {
               status: task['status']?.toString() ?? 'Запланировано',
               date: DateTime.tryParse(task['task_date']?.toString() ?? '') ??
                   DateTime.now(),
+              progressPercent:
+                  ((row['progress_percent'] as num?)?.toInt() ?? 0)
+                      .clamp(0, 100)
+                      .toInt(),
             ),
           );
     }

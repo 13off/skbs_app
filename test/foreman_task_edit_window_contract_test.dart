@@ -31,7 +31,7 @@ void main() {
       'Прораб может добавлять задачи только на текущий день',
     ]);
 
-    const taskDetailsPath = 'lib/screens/task_details_screen.dart';
+    const taskDetailsPath = 'lib/screens/task_details_legacy_screen.dart';
     containsAll(taskDetailsPath, const [
       'final AppUserProfile profile;',
       'bool get canEdit => TaskEditPolicy.canEditTask',
@@ -47,6 +47,12 @@ void main() {
       3,
       reason: 'Все три текстовых поля задачи должны блокироваться после дня задачи',
     );
+
+    containsAll('lib/screens/task_details_screen.dart', const [
+      'legacy.TaskDetailsScreen',
+      'TaskProgressRepository.fetchContext',
+      "'Что выполнили сегодня?'",
+    ]);
 
     containsAll('lib/data/task_repository.dart', const [
       'Future<void> deleteTaskPhoto(TaskPhotoData photo)',
