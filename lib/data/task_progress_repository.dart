@@ -18,7 +18,7 @@ class TaskProgressContext {
 
   int get maxAllowedPercent {
     final restoredOwn = ownProgressIsCounted ? ownProgressPercent : 0;
-    return (100 - itemProgressPercent + restoredOwn).clamp(0, 100);
+    return (100 - itemProgressPercent + restoredOwn).clamp(0, 100).toInt();
   }
 }
 
@@ -26,7 +26,7 @@ abstract final class TaskProgressRepository {
   static final SupabaseClient _client = Supabase.instance.client;
 
   static int _cleanPercent(Object? value) {
-    return ((value as num?)?.toInt() ?? 0).clamp(0, 100);
+    return ((value as num?)?.toInt() ?? 0).clamp(0, 100).toInt();
   }
 
   static Future<TaskProgressContext> fetchContext({
@@ -65,7 +65,7 @@ abstract final class TaskProgressRepository {
 
     return TaskProgressContext(
       checklistTitle: itemRow['title']?.toString() ?? 'Пункт чек-листа',
-      itemProgressPercent: total.clamp(0, 100),
+      itemProgressPercent: total.clamp(0, 100).toInt(),
       ownProgressPercent: ownProgress,
       ownProgressIsCounted: ownIsCounted,
     );
@@ -92,7 +92,7 @@ abstract final class TaskProgressRepository {
         'task_id': taskId,
         'milestone_id': milestoneId,
         'checklist_item_id': checklistItemId,
-        'progress_percent': progressPercent.clamp(0, 100),
+        'progress_percent': progressPercent.clamp(0, 100).toInt(),
       },
       onConflict: 'task_id',
     );
@@ -162,7 +162,7 @@ abstract final class TaskProgressRepository {
         total += _cleanPercent(row['progress_percent']);
       }
     }
-    total = total.clamp(0, 100);
+    total = total.clamp(0, 100).toInt();
 
     String nextState;
     if (total > 0) {
