@@ -1,0 +1,154 @@
+name: Apply foreman phone timesheet
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  apply:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.issue.number == 67 &&
+      github.event.comment.body == '/apply-foreman-phone-timesheet'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/foreman-timesheet-phones
+          fetch-depth: 0
+
+      - name: Apply exact phone changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          mobile_path = Path('lib/screens/timesheet_screen.dart')
+          mobile = mobile_path.read_text(encoding='utf-8')
+
+          mobile_search = """          employee.name.toLowerCase().contains(searchText) ||
+          employee.position.toLowerCase().contains(searchText);"""
+          mobile_search_replacement = """          employee.name.toLowerCase().contains(searchText) ||
+          employee.position.toLowerCase().contains(searchText) ||
+          (widget.profile.isForeman &&
+              employee.phone.toLowerCase().contains(searchText));"""
+          mobile_position = """                    Text(
+                      employee.position,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),"""
+          mobile_position_replacement = """                    Text(
+                      <String>[
+                        employee.position.trim(),
+                        if (widget.profile.isForeman &&
+                            employee.phone.trim().isNotEmpty)
+                          employee.phone.trim(),
+                      ].where((value) => value.isNotEmpty).join(' • '),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),"""
+
+          if mobile.count(mobile_search) != 1:
+              raise SystemExit(f'Mobile search pattern mismatch: {mobile.count(mobile_search)}')
+          if mobile.count(mobile_position) != 1:
+              raise SystemExit(f'Mobile position pattern mismatch: {mobile.count(mobile_position)}')
+          mobile = mobile.replace(mobile_search, mobile_search_replacement)
+          mobile = mobile.replace(mobile_position, mobile_position_replacement)
+          mobile_path.write_text(mobile, encoding='utf-8')
+
+          desktop_path = Path('lib/screens/desktop_timesheet_screen.dart')
+          desktop = desktop_path.read_text(encoding='utf-8')
+
+          desktop_search = """      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query);"""
+          desktop_search_replacement = """      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query) ||
+          (widget.profile.isForeman &&
+              employee.phone.toLowerCase().contains(query));"""
+          desktop_row_call = """                (employee) => _TimesheetRow(
+                  employee: employee,
+                  value: shiftValueFor(employee),"""
+          desktop_row_call_replacement = """                (employee) => _TimesheetRow(
+                  employee: employee,
+                  showPhone: widget.profile.isForeman,
+                  value: shiftValueFor(employee),"""
+          desktop_field = """class _TimesheetRow extends StatelessWidget {
+  final Employee employee;
+  final double value;"""
+          desktop_field_replacement = """class _TimesheetRow extends StatelessWidget {
+  final Employee employee;
+  final bool showPhone;
+  final double value;"""
+          desktop_constructor = """  const _TimesheetRow({
+    required this.employee,
+    required this.value,"""
+          desktop_constructor_replacement = """  const _TimesheetRow({
+    required this.employee,
+    required this.showPhone,
+    required this.value,"""
+          desktop_position = """            child: Text(
+              employee.position,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),"""
+          desktop_position_replacement = """            child: Text(
+              <String>[
+                employee.position.trim(),
+                if (showPhone && employee.phone.trim().isNotEmpty)
+                  employee.phone.trim(),
+              ].where((value) => value.isNotEmpty).join(' • '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),"""
+
+          replacements = [
+              (desktop_search, desktop_search_replacement, 'desktop search'),
+              (desktop_row_call, desktop_row_call_replacement, 'desktop row call'),
+              (desktop_field, desktop_field_replacement, 'desktop field'),
+              (desktop_constructor, desktop_constructor_replacement, 'desktop constructor'),
+              (desktop_position, desktop_position_replacement, 'desktop position'),
+          ]
+          for old, new, label in replacements:
+              if desktop.count(old) != 1:
+                  raise SystemExit(f'{label} pattern mismatch: {desktop.count(old)}')
+              desktop = desktop.replace(old, new)
+
+          desktop_path.write_text(desktop, encoding='utf-8')
+          PY
+
+          git show origin/main:.github/workflows/pr-check.yml > .github/workflows/pr-check.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/timesheet_screen.dart lib/screens/desktop_timesheet_screen.dart .github/workflows/pr-check.yml
+          git commit -m "добавлены телефоны сотрудников в табель прораба"
+          git push origin HEAD:feature/foreman-timesheet-phones
+
+      - name: Remove one-time runner from main
+        shell: bash
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          git rm .github/workflows/apply-foreman-phone-timesheet.yml
+          git commit -m "удалён одноразовый патчер табеля"
+          git push origin HEAD:main
