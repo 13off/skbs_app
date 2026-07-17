@@ -7,6 +7,7 @@ import '../../../data/app_state.dart';
 import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/milestones/presentation/milestone_home_overlay.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/employee.dart';
 import '../../../models/task_item_data.dart';
@@ -41,8 +42,7 @@ class ForemanDesktopHomeScreen extends StatefulWidget {
       _ForemanDesktopHomeScreenState();
 }
 
-class _ForemanDesktopHomeScreenState
-    extends State<ForemanDesktopHomeScreen> {
+class _ForemanDesktopHomeScreenState extends State<ForemanDesktopHomeScreen> {
   late Future<ForemanDashboardData> future;
   StreamSubscription<AppDataChange>? subscription;
 
@@ -115,12 +115,10 @@ class _ForemanDesktopHomeScreenState
 
     final todayTasks = results[2] as List<TaskItemData>;
     final overdueTasks = results[3] as List<TaskItemData>;
-    final meta = await ForemanWorkspaceRepository.fetchTaskMeta(
-      <String?>[
-        ...todayTasks.map((task) => task.id),
-        ...overdueTasks.map((task) => task.id),
-      ],
-    );
+    final meta = await ForemanWorkspaceRepository.fetchTaskMeta(<String?>[
+      ...todayTasks.map((task) => task.id),
+      ...overdueTasks.map((task) => task.id),
+    ]);
 
     return ForemanDashboardData(
       employees: results[0] as List<Employee>,
@@ -175,6 +173,11 @@ class _ForemanDesktopHomeScreenState
       builder: (context, snapshot) {
         final children = <Widget>[
           ForemanShiftIdentity(objectName: objectName),
+          const SizedBox(height: 16),
+          MilestoneHomeSection(
+            profile: widget.profile,
+            selectedObjectName: objectName,
+          ),
           const SizedBox(height: 18),
         ];
 
@@ -233,10 +236,7 @@ class _ForemanDesktopHomeScreenState
           );
           children.add(const SizedBox(height: 20));
           children.add(
-            ForemanOverdueTasks(
-              data: data,
-              onOpenTask: widget.onOpenTask,
-            ),
+            ForemanOverdueTasks(data: data, onOpenTask: widget.onOpenTask),
           );
         }
 
@@ -244,8 +244,7 @@ class _ForemanDesktopHomeScreenState
           storageKey:
               'desktop-foreman-home-${objectName.isEmpty ? 'none' : objectName}',
           title: 'Рабочая смена',
-          subtitle:
-              'Задачи, исполнители, табель и контроль результатов на одном экране',
+          subtitle: '',
           trailing: actions(),
           onRefresh: refresh,
           children: children,

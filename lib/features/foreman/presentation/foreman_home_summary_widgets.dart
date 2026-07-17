@@ -11,12 +11,27 @@ class ForemanShiftIdentity extends StatelessWidget {
 
   String dateText(DateTime date) {
     const months = <String>[
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря',
     ];
     const weekdays = <String>[
-      'понедельник', 'вторник', 'среда', 'четверг',
-      'пятница', 'суббота', 'воскресенье',
+      'понедельник',
+      'вторник',
+      'среда',
+      'четверг',
+      'пятница',
+      'суббота',
+      'воскресенье',
     ];
     return '${date.day} ${months[date.month - 1]} · ${weekdays[date.weekday - 1]}';
   }
@@ -44,7 +59,10 @@ class ForemanShiftIdentity extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_outline_rounded, color: specialistMuted),
+                    const Icon(
+                      Icons.lock_outline_rounded,
+                      color: specialistMuted,
+                    ),
                     const SizedBox(width: 11),
                     Expanded(
                       child: Text(
@@ -76,7 +94,10 @@ class ForemanShiftIdentity extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_month_outlined, color: specialistMuted),
+                  const Icon(
+                    Icons.calendar_month_outlined,
+                    color: specialistMuted,
+                  ),
                   const SizedBox(width: 10),
                   Text(
                     dateText(AppState.today),
@@ -118,8 +139,13 @@ class ForemanHomeMetrics extends StatelessWidget {
       final id = employee.id;
       return id != null && (data.shifts[id] ?? 0) > 0;
     }).length;
-    final totalShifts = data.shifts.values.fold<double>(0, (sum, value) => sum + value);
-    final done = data.todayTasks.where((task) => task.status == 'Выполнено').length;
+    final totalShifts = data.shifts.values.fold<double>(
+      0,
+      (sum, value) => sum + value,
+    );
+    final done = data.todayTasks
+        .where((task) => task.status == 'Выполнено')
+        .length;
     final withoutPhoto = data.todayTasks.where((task) {
       return task.status == 'Выполнено' && data.metaFor(task).photoCount == 0;
     }).length;
@@ -144,9 +170,9 @@ class ForemanHomeMetrics extends StatelessWidget {
         Expanded(
           child: SpecialistMetricCard(
             icon: Icons.assignment_outlined,
-            label: 'Задачи сегодня',
-            value: '${data.todayTasks.length}',
-            hint: 'Выполнено: $done',
+            label: 'Выполненные задачи',
+            value: '$done',
+            hint: 'из ${data.todayTasks.length}',
             onTap: onOpenTasks,
           ),
         ),
@@ -157,7 +183,9 @@ class ForemanHomeMetrics extends StatelessWidget {
             label: 'Просрочено',
             value: '${data.overdueTasks.length}',
             hint: 'Не закрыты до сегодняшнего дня',
-            accent: data.overdueTasks.isEmpty ? specialistSuccess : specialistDanger,
+            accent: data.overdueTasks.isEmpty
+                ? specialistSuccess
+                : specialistDanger,
             onTap: onOpenTasks,
           ),
         ),

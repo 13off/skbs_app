@@ -10,11 +10,11 @@ import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../features/ai/presentation/ai_assistant_screen.dart';
+import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 import '../navigation/app_page_route.dart';
-import '../widgets/app_page.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/premium_ui.dart';
 
@@ -955,17 +955,25 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppPageHeader(
-          title: 'Главная',
-          subtitle: 'Рабочая сводка по объектам, людям, задачам и выплатам',
-          trailing: NotificationBell(
-            selectedObjectName: widget.selectedObjectName,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Главная',
+                style: TextStyle(
+                  color: _text,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            NotificationBell(selectedObjectName: widget.selectedObjectName),
+          ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         PremiumWorkCard(
-          radius: 26,
-          padding: const EdgeInsets.all(16),
+          radius: 20,
+          padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -974,20 +982,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Icon(
                     Icons.calendar_month_outlined,
                     color: _muted,
-                    size: 20,
+                    size: 18,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Text(
                     'Сегодня, ${dateText(today)}',
                     style: const TextStyle(
                       color: _muted,
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               buildObjectSelector(context),
             ],
           ),
@@ -1059,7 +1067,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Часть данных не подтянулась. Обнови страницу или проверь интернет.',
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
+                    MilestoneHomeSection(
+                      profile: widget.profile,
+                      selectedObjectName: widget.selectedObjectName,
+                    ),
+                    const SizedBox(height: 18),
                     _DashboardMetricCard(
                       icon: Icons.person_outline,
                       title: 'Сотрудники на объекте',
@@ -1075,11 +1088,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 14),
                     _DashboardMetricCard(
                       icon: Icons.assignment_turned_in_outlined,
-                      title: 'Задачи на сегодня',
-                      value: isLoading ? '...' : totalTasks.toString(),
-                      secondaryValue: 'всего',
+                      title: 'Выполненные задачи',
+                      value: isLoading ? '...' : doneTasks.toString(),
+                      secondaryValue: isLoading ? '...' : 'из $totalTasks',
                       progress: tasksProgress,
-                      footerTitle: 'Выполнено',
+                      footerTitle: 'За сегодня',
                       footerValue: isLoading ? '...' : doneTasks.toString(),
                       footerColor: _accent,
                     ),
@@ -1178,40 +1191,41 @@ class _ObjectSelectorShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: _card,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: _line),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.035),
-              blurRadius: 18,
-              offset: const Offset(0, 9),
-            ),
-          ],
         ),
         child: Row(
           children: [
-            _IconBox(icon: icon, color: _text),
-            const SizedBox(width: 12),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _softCard,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: _text, size: 20),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 title,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _text,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             if (onTap != null)
-              const Icon(Icons.keyboard_arrow_down, color: _text),
+              const Icon(Icons.keyboard_arrow_down, color: _text, size: 20),
           ],
         ),
       ),

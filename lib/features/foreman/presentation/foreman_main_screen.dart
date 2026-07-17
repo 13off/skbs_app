@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
-import '../../../features/milestones/presentation/milestone_home_overlay.dart';
-import '../../../features/shell/presentation/premium_main_screen.dart' as premium;
+import '../../../features/shell/presentation/premium_main_screen.dart'
+    as premium;
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -45,8 +45,7 @@ class _ForemanDesktopMainScreen extends StatefulWidget {
       _ForemanDesktopMainScreenState();
 }
 
-class _ForemanDesktopMainScreenState
-    extends State<_ForemanDesktopMainScreen> {
+class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   static const int pageCount = 4;
   int currentIndex = 0;
   late final PageController controller;
@@ -75,26 +74,22 @@ class _ForemanDesktopMainScreenState
 
   Widget rootPage(int index) {
     return switch (index) {
-      0 => MilestoneHomeOverlay(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-          child: ForemanDesktopHomeScreen(
-            profile: widget.profile,
-            selectedObjectName: objectName,
-            onOpenTimesheet: openTimesheet,
-            onOpenTasks: openTasks,
-            onOpenTask: openTask,
-            onAddTask: addTask,
-          ),
-        ),
+      0 => ForemanDesktopHomeScreen(
+        profile: widget.profile,
+        selectedObjectName: objectName,
+        onOpenTimesheet: openTimesheet,
+        onOpenTasks: openTasks,
+        onOpenTask: openTask,
+        onAddTask: addTask,
+      ),
       1 => ForemanDesktopTasksScreen(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: objectName,
+      ),
       2 => AdaptiveTimesheetScreen(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: objectName,
+      ),
       3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -150,10 +145,8 @@ class _ForemanDesktopMainScreenState
 
     final draft = await navigator.push<TaskCreateDraft>(
       CupertinoPageRoute<TaskCreateDraft>(
-        builder: (_) => AddTaskScreen(
-          initialDate: date,
-          objectName: assignedObject,
-        ),
+        builder: (_) =>
+            AddTaskScreen(initialDate: date, objectName: assignedObject),
       ),
     );
     if (draft == null) return;

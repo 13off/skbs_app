@@ -45,8 +45,11 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
     return clean == null || clean.isEmpty ? null : clean;
   }
 
-  String? get effectiveObject => cleanObject(widget.selectedObjectName) ??
-      (widget.profile.isForeman ? cleanObject(widget.profile.objectName) : null);
+  String? get effectiveObject =>
+      cleanObject(widget.selectedObjectName) ??
+      (widget.profile.isForeman
+          ? cleanObject(widget.profile.objectName)
+          : null);
 
   Future<List<ProjectMilestone>> load() {
     return MilestoneRepository.fetchMilestones(objectName: effectiveObject);
@@ -223,7 +226,10 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                 child: Row(
                   children: [
                     const Expanded(child: Text('Не удалось загрузить цели')),
-                    TextButton(onPressed: refresh, child: const Text('Повторить')),
+                    TextButton(
+                      onPressed: refresh,
+                      child: const Text('Повторить'),
+                    ),
                   ],
                 ),
               )

@@ -23,12 +23,19 @@ void main() {
     expect(adaptive, contains('EmployeeRepository.fetchEmployees'));
     expect(adaptive, contains('TaskRepository.fetchTasksForDate'));
     expect(adaptive, contains('FinanceSummaryRepository.fetchSummary'));
-    expect(wrapper, contains('MilestoneHomeOverlay'));
+    expect(wrapper, isNot(contains('MilestoneHomeOverlay')));
     expect(wrapper, contains('base.AdaptiveHomeScreen('));
+    expect(adaptive, contains('MilestoneHomeSection('));
 
-    expect(shell, contains("import '../../../screens/adaptive_home_screen.dart';"));
+    expect(
+      shell,
+      contains("import '../../../screens/adaptive_home_screen.dart';"),
+    );
     expect(shell, contains('return AdaptiveHomeScreen('));
-    expect(shell, isNot(contains("import '../../../screens/home_screen.dart';")));
+    expect(
+      shell,
+      isNot(contains("import '../../../screens/home_screen.dart';")),
+    );
 
     expect(navigation, contains('ProfessionalBottomNavigation'));
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
@@ -38,9 +45,7 @@ void main() {
   test('desktop controls use overlays and real bottom navigation tabs', () {
     final adaptive = source('lib/screens/adaptive_home_base_screen.dart');
     final widgets = source('lib/screens/desktop_home_widgets.dart');
-    final manager = source(
-      'lib/screens/desktop_object_management_dialog.dart',
-    );
+    final manager = source('lib/screens/desktop_object_management_dialog.dart');
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );

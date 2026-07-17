@@ -66,10 +66,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     return const Color(0xFF6B7075);
   }
 
-  Future<void> setItemState(
-    MilestoneChecklistItem item,
-    String state,
-  ) async {
+  Future<void> setItemState(MilestoneChecklistItem item, String state) async {
     if (busy) return;
     setState(() => busy = true);
     try {
@@ -85,8 +82,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
 
   Future<void> addChecklistItem(ProjectMilestone milestone) async {
     final titleController = TextEditingController();
-    var weight = 10.0;
-    var critical = false;
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -101,37 +96,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                   controller: titleController,
                   decoration: const InputDecoration(
                     labelText: 'Что должно быть готово',
-                    hintText: 'Например: лаборатория подтверждена',
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Text('Вес'),
-                    Expanded(
-                      child: Slider(
-                        min: 5,
-                        max: 50,
-                        divisions: 9,
-                        label: '${weight.round()}%',
-                        value: weight,
-                        onChanged: (value) {
-                          setDialogState(() => weight = value);
-                        },
-                      ),
-                    ),
-                    Text('${weight.round()}%'),
-                  ],
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: critical,
-                  onChanged: (value) {
-                    setDialogState(() => critical = value);
-                  },
-                  title: const Text('Критичный пункт'),
-                  subtitle: const Text(
-                    'Без него этап не считается готовым к выполнению',
+                    hintText: 'Армирование',
                   ),
                 ),
               ],
@@ -157,8 +122,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     await MilestoneRepository.addChecklistItem(
       milestoneId: milestone.id,
       title: title,
-      weight: weight.round(),
-      isCritical: critical,
+      weight: 1,
+      isCritical: false,
       sortOrder: milestone.items.length,
     );
     if (mounted) await refresh();
@@ -169,8 +134,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     MilestoneChecklistItem item,
   ) async {
     final titleController = TextEditingController(text: item.title);
-    var weight = item.weight.toDouble().clamp(5, 50).toDouble();
-    var critical = item.isCritical;
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -186,36 +149,9 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                   autofocus: true,
                   decoration: const InputDecoration(
                     labelText: 'Название пункта',
-                    hintText: 'Например: армирование завершено',
+                    hintText: 'Армирование',
                     border: OutlineInputBorder(),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Text('Вес'),
-                    Expanded(
-                      child: Slider(
-                        min: 5,
-                        max: 50,
-                        divisions: 9,
-                        value: weight,
-                        label: '${weight.round()}%',
-                        onChanged: (value) {
-                          setDialogState(() => weight = value);
-                        },
-                      ),
-                    ),
-                    Text('${weight.round()}%'),
-                  ],
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: critical,
-                  onChanged: (value) {
-                    setDialogState(() => critical = value);
-                  },
-                  title: const Text('Критичный пункт'),
                 ),
               ],
             ),
@@ -242,8 +178,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
       await MilestoneRepository.updateChecklistItem(
         itemId: item.id,
         title: title,
-        weight: weight.round(),
-        isCritical: critical,
+        weight: item.weight,
+        isCritical: item.isCritical,
       );
       await refresh();
     } finally {
@@ -263,7 +199,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
           item.tasks.isEmpty
               ? item.title
               : 'К пункту привязано задач: ${item.tasks.length}. '
-                  'Связи будут удалены, сами задачи останутся.',
+                    'Связи будут удалены, сами задачи останутся.',
         ),
         actions: [
           TextButton(
@@ -389,7 +325,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
   }
 
   Widget header(ProjectMilestone milestone) {
-    final blockers = milestone.blockingItems;
     return PremiumWorkCard(
       radius: 28,
       padding: const EdgeInsets.all(20),
@@ -473,24 +408,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (blockers.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF4E5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFF2D29A)),
-              ),
-              child: Text(
-                'Этап ещё не готов: ${blockers.map((item) => item.title).join(', ')}',
-                style: const TextStyle(
-                  color: Color(0xFF7A4E08),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
           if (milestone.notes.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(milestone.notes),
@@ -525,8 +442,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                   item.isBlocked
                       ? Icons.block_rounded
                       : item.isEffectivelyDone
-                          ? Icons.check_rounded
-                          : Icons.pending_actions_outlined,
+                      ? Icons.check_rounded
+                      : Icons.pending_actions_outlined,
                   color: accent,
                 ),
               ),
@@ -546,11 +463,6 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                             ),
                           ),
                         ),
-                        if (item.isCritical)
-                          const _StatusPill(
-                            label: 'Критично',
-                            color: Color(0xFF9A403A),
-                          ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -586,12 +498,9 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                   PopupMenuDivider(),
                   PopupMenuItem(
                     value: 'edit',
-                    child: Text('Изменить название и вес'),
+                    child: Text('Изменить название'),
                   ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Удалить пункт'),
-                  ),
+                  PopupMenuItem(value: 'delete', child: Text('Удалить пункт')),
                 ],
               ),
             ],
@@ -662,69 +571,69 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                 ),
             ],
           ),
-          body: snapshot.connectionState == ConnectionState.waiting &&
+          body:
+              snapshot.connectionState == ConnectionState.waiting &&
                   !snapshot.hasData
               ? const Center(child: CircularProgressIndicator())
               : snapshot.hasError
-                  ? Center(child: Text('Ошибка: ${snapshot.error}'))
-                  : RefreshIndicator(
-                      onRefresh: refresh,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                        children: [
-                          Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 980),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+              ? Center(child: Text('Ошибка: ${snapshot.error}'))
+              : RefreshIndicator(
+                  onRefresh: refresh,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 980),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              header(milestone!),
+                              const SizedBox(height: 18),
+                              Row(
                                 children: [
-                                  header(milestone!),
-                                  const SizedBox(height: 18),
-                                  Row(
-                                    children: [
-                                      const Expanded(
-                                        child: Text(
-                                          'Чек-лист готовности',
-                                          style: TextStyle(
-                                            fontSize: 21,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: busy
-                                            ? null
-                                            : () => addChecklistItem(milestone),
-                                        icon: const Icon(Icons.add_rounded),
-                                        label: const Text('Добавить пункт'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (milestone.items.isEmpty)
-                                    PremiumWorkCard(
-                                      radius: 24,
-                                      padding: const EdgeInsets.all(24),
-                                      child: const Text(
-                                        'Чек-лист пуст. Добавьте условия готовности этапа.',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    )
-                                  else
-                                    ...milestone.items.map(
-                                      (item) => Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 12),
-                                        child: checklistItem(milestone, item),
+                                  const Expanded(
+                                    child: Text(
+                                      'Чек-лист готовности',
+                                      style: TextStyle(
+                                        fontSize: 21,
+                                        fontWeight: FontWeight.w900,
                                       ),
                                     ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: busy
+                                        ? null
+                                        : () => addChecklistItem(milestone),
+                                    icon: const Icon(Icons.add_rounded),
+                                    label: const Text('Добавить пункт'),
+                                  ),
                                 ],
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              if (milestone.items.isEmpty)
+                                PremiumWorkCard(
+                                  radius: 24,
+                                  padding: const EdgeInsets.all(24),
+                                  child: const Text(
+                                    'Чек-лист пуст. Добавьте условия готовности этапа.',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              else
+                                ...milestone.items.map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: checklistItem(milestone, item),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
         );
       },
     );

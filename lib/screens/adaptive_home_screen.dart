@@ -5,7 +5,8 @@ import '../models/task_item_data.dart';
 import 'adaptive_home_base_screen.dart' as base;
 
 class AdaptiveHomeScreen extends StatelessWidget {
-  static const double desktopBreakpoint = base.AdaptiveHomeScreen.desktopBreakpoint;
+  static const double desktopBreakpoint =
+      base.AdaptiveHomeScreen.desktopBreakpoint;
 
   final AppUserProfile profile;
   final String? selectedObjectName;

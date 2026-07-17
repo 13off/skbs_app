@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('milestones use weighted checklist and linked tasks', () {
+  test('milestones keep linked task progress internally', () {
     final models = source(
       'lib/features/milestones/models/milestone_models.dart',
     );
@@ -14,41 +14,47 @@ void main() {
     );
 
     expect(models, contains('item.weight * item.completionFraction'));
-    expect(models, contains("state == 'blocked'"));
-    expect(models, contains('tasks.isNotEmpty && doneTaskCount == tasks.length'));
-    expect(models, contains('blockingItems'));
+    expect(
+      models,
+      contains('tasks.isNotEmpty && doneTaskCount == tasks.length'),
+    );
     expect(repository, contains("from('project_milestones')"));
     expect(repository, contains("from('milestone_checklist_items')"));
     expect(repository, contains("from('task_milestone_links')"));
-    expect(repository, contains('concreteChecklist'));
-    expect(repository, contains('generalChecklist'));
   });
 
-  test('milestone detail creates a normal task and links it to checklist', () {
+  test('goal checklist UI asks only for one work name', () {
     final detail = source(
       'lib/features/milestones/presentation/milestone_detail_screen.dart',
     );
 
     expect(detail, contains('AddTaskScreen('));
     expect(detail, contains('TaskRepository.addTaskWithDetails'));
-    expect(detail, contains('initialMilestoneId: milestone.id'));
-    expect(detail, contains('Добавить задачу к этому пункту'));
-    expect(detail, contains('Критичный пункт'));
+    expect(detail, contains("hintText: 'Армирование'"));
+    expect(detail, contains("child: Text('Изменить название')"));
+    expect(detail, isNot(contains('Критичный пункт')));
+    expect(detail, isNot(contains("const Text('Вес')")));
   });
 
-  test('main screens show nearest milestone without replacing navigation', () {
-    final overlay = source(
+  test('main screens show several goals inline before metrics', () {
+    final section = source(
       'lib/features/milestones/presentation/milestone_home_overlay.dart',
     );
-    final foreman = source(
-      'lib/features/foreman/presentation/foreman_main_screen.dart',
+    final home = source('lib/screens/home_screen.dart');
+    final adaptive = source('lib/screens/adaptive_home_screen.dart');
+    final desktop = source('lib/screens/adaptive_home_base_screen.dart');
+    final foremanHome = source(
+      'lib/features/foreman/presentation/foreman_desktop_home_screen.dart',
     );
-    final adaptiveHome = source('lib/screens/adaptive_home_screen.dart');
 
-    expect(overlay, contains('MilestoneRepository.fetchNearest'));
-    expect(overlay, contains('LinearProgressIndicator'));
-    expect(foreman, contains('MilestoneHomeOverlay'));
-    expect(foreman, contains('ProfessionalBottomNavigation'));
-    expect(adaptiveHome, contains('MilestoneHomeOverlay'));
+    expect(section, contains('class MilestoneHomeSection'));
+    expect(section, contains('MilestoneRepository.fetchMilestones'));
+    expect(section, contains('active.take(4)'));
+    expect(section, isNot(contains('Positioned(')));
+    expect(home, contains('MilestoneHomeSection('));
+    expect(home, contains("title: 'Выполненные задачи'"));
+    expect(desktop, contains('MilestoneHomeSection('));
+    expect(foremanHome, contains('MilestoneHomeSection('));
+    expect(adaptive, isNot(contains('MilestoneHomeOverlay')));
   });
 }

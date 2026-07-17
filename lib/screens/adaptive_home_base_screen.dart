@@ -11,6 +11,7 @@ import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../features/ai/presentation/ai_assistant_screen.dart';
+import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
@@ -102,8 +103,7 @@ class _DesktopHomeDashboard extends StatefulWidget {
   });
 
   @override
-  State<_DesktopHomeDashboard> createState() =>
-      _DesktopHomeDashboardState();
+  State<_DesktopHomeDashboard> createState() => _DesktopHomeDashboardState();
 }
 
 class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
@@ -432,8 +432,9 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
     final totalEmployees = activeEmployeeNames.length;
     final workedEmployees = workedEmployeeNames.length;
     final totalTasks = data.tasks.length;
-    final doneTasks =
-        data.tasks.where((task) => task.status == 'Выполнено').length;
+    final doneTasks = data.tasks
+        .where((task) => task.status == 'Выполнено')
+        .length;
     final employeeProgress = totalEmployees == 0
         ? 0.0
         : workedEmployees / totalEmployees;
@@ -452,8 +453,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                 children: [
                   AppPageHeader(
                     title: 'Главная',
-                    subtitle:
-                        'ПК-вид · рабочая сводка по объектам, людям, задачам и выплатам',
+                    subtitle: '',
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -492,6 +492,11 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                     ),
                   ),
                   const SizedBox(height: 18),
+                  MilestoneHomeSection(
+                    profile: widget.profile,
+                    selectedObjectName: widget.selectedObjectName,
+                  ),
+                  const SizedBox(height: 18),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -517,12 +522,10 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       Expanded(
                         child: DesktopMetricCard(
                           icon: Icons.assignment_turned_in_outlined,
-                          title: 'Задачи на сегодня',
-                          value: isLoading ? '...' : '$totalTasks',
-                          detail: isLoading ? 'Загрузка' : 'всего',
-                          footer: isLoading
-                              ? 'Загрузка'
-                              : 'Выполнено: $doneTasks',
+                          title: 'Выполненные задачи',
+                          value: isLoading ? '...' : '$doneTasks',
+                          detail: isLoading ? 'Загрузка' : 'из $totalTasks',
+                          footer: isLoading ? 'Загрузка' : 'За сегодня',
                           progress: taskProgress,
                           accent: _desktopText,
                           onTap: () => widget.onOpenTasks(),
