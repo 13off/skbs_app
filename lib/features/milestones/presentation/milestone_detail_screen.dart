@@ -164,6 +164,130 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     if (mounted) await refresh();
   }
 
+  Future<void> editChecklistItem(
+    ProjectMilestone milestone,
+    MilestoneChecklistItem item,
+  ) async {
+    final titleController = TextEditingController(text: item.title);
+    var weight = item.weight.toDouble().clamp(5, 50).toDouble();
+    var critical = item.isCritical;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Изменить пункт чек-листа'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Название пункта',
+                    hintText: 'Например: армирование завершено',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    const Text('Вес'),
+                    Expanded(
+                      child: Slider(
+                        min: 5,
+                        max: 50,
+                        divisions: 9,
+                        value: weight,
+                        label: '${weight.round()}%',
+                        onChanged: (value) {
+                          setDialogState(() => weight = value);
+                        },
+                      ),
+                    ),
+                    Text('${weight.round()}%'),
+                  ],
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: critical,
+                  onChanged: (value) {
+                    setDialogState(() => critical = value);
+                  },
+                  title: const Text('Критичный пункт'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final title = titleController.text.trim();
+    titleController.dispose();
+    if (accepted != true || title.isEmpty) return;
+
+    setState(() => busy = true);
+    try {
+      await MilestoneRepository.updateChecklistItem(
+        itemId: item.id,
+        title: title,
+        weight: weight.round(),
+        isCritical: critical,
+      );
+      await refresh();
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> deleteChecklistItem(
+    ProjectMilestone milestone,
+    MilestoneChecklistItem item,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить пункт чек-листа?'),
+        content: Text(
+          item.tasks.isEmpty
+              ? item.title
+              : 'К пункту привязано задач: ${item.tasks.length}. '
+                  'Связи будут удалены, сами задачи останутся.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => busy = true);
+    try {
+      await MilestoneRepository.deleteChecklistItem(item.id);
+      await refresh();
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Future<void> addTask(
     ProjectMilestone milestone,
     MilestoneChecklistItem item,
@@ -243,7 +367,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Удалить ключевой этап?'),
+        title: const Text('Удалить цель?'),
         content: const Text(
           'Чек-лист и связи с задачами будут удалены. Сами задачи останутся.',
         ),
@@ -444,13 +568,30 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
               ),
               PopupMenuButton<String>(
                 enabled: !busy,
-                tooltip: 'Изменить состояние',
-                onSelected: (value) => setItemState(item, value),
+                tooltip: 'Действия с пунктом',
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    editChecklistItem(milestone, item);
+                  } else if (value == 'delete') {
+                    deleteChecklistItem(milestone, item);
+                  } else {
+                    setItemState(item, value);
+                  }
+                },
                 itemBuilder: (_) => const [
                   PopupMenuItem(value: 'not_started', child: Text('Не начато')),
                   PopupMenuItem(value: 'in_progress', child: Text('В работе')),
                   PopupMenuItem(value: 'done', child: Text('Готово')),
                   PopupMenuItem(value: 'blocked', child: Text('Заблокировано')),
+                  PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Изменить название и вес'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Удалить пункт'),
+                  ),
                 ],
               ),
             ],
@@ -512,9 +653,10 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                 onPressed: refresh,
                 icon: const Icon(Icons.refresh_rounded),
               ),
-              if (widget.profile.isAdmin && milestone != null)
+              if ((widget.profile.isAdmin || widget.profile.isForeman) &&
+                  milestone != null)
                 IconButton(
-                  tooltip: 'Удалить этап',
+                  tooltip: 'Удалить цель',
                   onPressed: () => deleteMilestone(milestone),
                   icon: const Icon(Icons.delete_outline_rounded),
                 ),
