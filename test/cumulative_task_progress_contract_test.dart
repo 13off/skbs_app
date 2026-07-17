@@ -7,6 +7,9 @@ String source(String path) => File(path).readAsStringSync();
 void main() {
   test('completed daily tasks accumulate exact checklist progress', () {
     final repository = source('lib/data/task_progress_repository.dart');
+    final milestoneRepository = source(
+      'lib/features/milestones/data/milestone_repository.dart',
+    );
     final model = source(
       'lib/features/milestones/models/milestone_models.dart',
     );
@@ -15,9 +18,12 @@ void main() {
     );
 
     expect(repository, contains(".select('task_id, progress_percent, tasks(status)')"));
-    expect(repository, contains("nextState = 'progress_\$total'"));
+    expect(repository, contains("'progress_percent': progressPercent"));
+    expect(repository, contains("? 'done'"));
+    expect(repository, contains("? 'in_progress'"));
     expect(repository, contains('maxAllowedPercent'));
-    expect(model, contains("RegExp(r'^progress_(\\d{1,3})\$')"));
+    expect(milestoneRepository, contains('progress_percent'));
+    expect(model, contains('sum + task.progressPercent'));
     expect(model, contains('completionFraction => progressPercent / 100'));
     expect(migration, contains('progress_percent integer not null default 0'));
     expect(migration, contains('progress_percent between 0 and 100'));
