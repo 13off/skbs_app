@@ -1,5 +1,3 @@
-import '../features/auth/data/user_repository.dart';
-
 class Employee {
   final String? id;
   final String name;
@@ -26,12 +24,9 @@ class Employee {
   factory Employee.fromSupabase(Map<String, dynamic> json) {
     final phone = json['phone'] as String? ?? '';
     final position = json['position'] as String? ?? '';
-    final showPhone =
-        UserRepository.cachedProfile?.isForeman == true &&
-        phone.trim().isNotEmpty;
     final positionWithContact = <String>[
       position.trim(),
-      if (showPhone) phone.trim(),
+      if (phone.trim().isNotEmpty) phone.trim(),
     ].where((value) => value.isNotEmpty).join(' • ');
 
     return Employee(
