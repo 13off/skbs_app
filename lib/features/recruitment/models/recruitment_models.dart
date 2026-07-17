@@ -15,6 +15,7 @@ class RecruitmentApplication {
   final DateTime? departureDate;
   final String status;
   final String comment;
+  final DateTime? archivedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -35,9 +36,12 @@ class RecruitmentApplication {
     required this.departureDate,
     required this.status,
     required this.comment,
+    required this.archivedAt,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  bool get isArchived => archivedAt != null;
 
   String get sourceTitle {
     switch (source) {
@@ -92,6 +96,7 @@ class RecruitmentApplication {
       departureDate: optionalDate(map['ready_date']),
       status: map['status']?.toString() ?? 'new',
       comment: map['hr_comment']?.toString() ?? '',
+      archivedAt: optionalDate(map['archived_at']),
       createdAt: createdAt,
       updatedAt: parseDate(map['updated_at'], fallback: createdAt),
     );
