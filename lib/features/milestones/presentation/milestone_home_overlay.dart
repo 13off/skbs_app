@@ -5,26 +5,25 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
+import 'milestone_detail_screen.dart';
 import 'milestones_screen.dart';
 
-class MilestoneHomeOverlay extends StatefulWidget {
+class MilestoneHomeSection extends StatefulWidget {
   final AppUserProfile profile;
   final String? selectedObjectName;
-  final Widget child;
 
-  const MilestoneHomeOverlay({
+  const MilestoneHomeSection({
     super.key,
     required this.profile,
     required this.selectedObjectName,
-    required this.child,
   });
 
   @override
-  State<MilestoneHomeOverlay> createState() => _MilestoneHomeOverlayState();
+  State<MilestoneHomeSection> createState() => _MilestoneHomeSectionState();
 }
 
-class _MilestoneHomeOverlayState extends State<MilestoneHomeOverlay> {
-  late Future<ProjectMilestone?> future;
+class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
+  late Future<List<ProjectMilestone>> future;
 
   @override
   void initState() {
@@ -33,7 +32,7 @@ class _MilestoneHomeOverlayState extends State<MilestoneHomeOverlay> {
   }
 
   @override
-  void didUpdateWidget(covariant MilestoneHomeOverlay oldWidget) {
+  void didUpdateWidget(covariant MilestoneHomeSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedObjectName != widget.selectedObjectName ||
         oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
@@ -46,13 +45,20 @@ class _MilestoneHomeOverlayState extends State<MilestoneHomeOverlay> {
     return clean == null || clean.isEmpty ? null : clean;
   }
 
-  Future<ProjectMilestone?> load() {
-    return MilestoneRepository.fetchNearest(
-      objectName: cleanObject(widget.selectedObjectName) ??
-          (widget.profile.isForeman
-              ? cleanObject(widget.profile.objectName)
-              : null),
-    );
+  String? get effectiveObject =>
+      cleanObject(widget.selectedObjectName) ??
+      (widget.profile.isForeman
+          ? cleanObject(widget.profile.objectName)
+          : null);
+
+  Future<List<ProjectMilestone>> load() {
+    return MilestoneRepository.fetchMilestones(objectName: effectiveObject);
+  }
+
+  Future<void> refresh() async {
+    final next = load();
+    setState(() => future = next);
+    await next;
   }
 
   Future<void> openMilestones() async {
@@ -60,175 +66,212 @@ class _MilestoneHomeOverlayState extends State<MilestoneHomeOverlay> {
       CupertinoPageRoute<void>(
         builder: (_) => MilestonesScreen(
           profile: widget.profile,
-          selectedObjectName: cleanObject(widget.selectedObjectName) ??
-              (widget.profile.isForeman
-                  ? cleanObject(widget.profile.objectName)
-                  : null),
+          selectedObjectName: effectiveObject,
         ),
       ),
     );
-    if (mounted) setState(() => future = load());
+    if (mounted) await refresh();
   }
 
-  String date(ProjectMilestone milestone) {
+  Future<void> openMilestone(ProjectMilestone milestone) async {
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => MilestoneDetailScreen(
+          profile: widget.profile,
+          milestoneId: milestone.id,
+          objectName: milestone.objectName,
+        ),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  String shortDate(ProjectMilestone milestone) {
     final value = milestone.targetDate;
     final day = value.day.toString().padLeft(2, '0');
     final month = value.month.toString().padLeft(2, '0');
     return '$day.$month';
   }
 
+  Widget milestoneCard(ProjectMilestone milestone) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumPressable(
+        onTap: () => openMilestone(milestone),
+        borderRadius: BorderRadius.circular(22),
+        child: PremiumWorkCard(
+          radius: 22,
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F1F3),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Text(
+                  shortDate(milestone),
+                  style: const TextStyle(
+                    color: Color(0xFF1F2328),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      milestone.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF1F2328),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      milestone.location.trim().isEmpty
+                          ? milestone.objectName
+                          : '${milestone.objectName} · ${milestone.location}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF6B7075),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(100),
+                      child: LinearProgressIndicator(
+                        value: milestone.progress,
+                        minHeight: 7,
+                        backgroundColor: const Color(0xFFE5E7EA),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${milestone.progressPercent}%',
+                style: const TextStyle(
+                  color: Color(0xFF1F2328),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.profile.isAdmin && !widget.profile.isForeman) {
-      return widget.child;
+      return const SizedBox.shrink();
     }
 
-    return Stack(
-      children: [
-        widget.child,
-        Positioned(
-          left: MediaQuery.sizeOf(context).width >= 1050 ? 28 : 12,
-          right: MediaQuery.sizeOf(context).width >= 1050 ? null : 12,
-          bottom: MediaQuery.sizeOf(context).width >= 1050 ? 20 : 82,
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              width: MediaQuery.sizeOf(context).width >= 1050 ? 430 : null,
-              child: FutureBuilder<ProjectMilestone?>(
-                future: future,
-                builder: (context, snapshot) {
-                  final milestone = snapshot.data;
-                  return PremiumPressable(
-                    onTap: openMilestones,
-                    borderRadius: BorderRadius.circular(24),
-                    child: Material(
-                      elevation: 10,
-                      shadowColor: Colors.black.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(24),
-                      color: Colors.white,
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFE2E4E7)),
-                        ),
-                        child: snapshot.connectionState ==
-                                    ConnectionState.waiting &&
-                                !snapshot.hasData
-                            ? const SizedBox(
-                                height: 54,
-                                child: Center(
-                                  child: LinearProgressIndicator(),
-                                ),
-                              )
-                            : milestone == null
-                                ? const Row(
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: Color(0xFFF0F1F3),
-                                        child: Icon(Icons.flag_outlined),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Ключевые этапы',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Добавить первую контрольную цель',
-                                              style: TextStyle(
-                                                color: Color(0xFF6B7075),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.add_circle_outline_rounded),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Container(
-                                        width: 56,
-                                        height: 56,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF0F1F3),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                        ),
-                                        child: Text(
-                                          date(milestone),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              milestone.title,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                            Text(
-                                              milestone.location.trim().isEmpty
-                                                  ? milestone.objectName
-                                                  : milestone.location,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: Color(0xFF6B7075),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 7),
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              child: LinearProgressIndicator(
-                                                minHeight: 7,
-                                                value: milestone.progress,
-                                                backgroundColor:
-                                                    const Color(0xFFE5E7EA),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        '${milestone.progressPercent}%',
-                                        style: const TextStyle(
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                      ),
+    return FutureBuilder<List<ProjectMilestone>>(
+      future: future,
+      builder: (context, snapshot) {
+        final source = snapshot.data ?? const <ProjectMilestone>[];
+        final active = source.where((item) => !item.isCompleted).toList();
+        final visible = active.take(4).toList();
+        final hiddenCount = active.length - visible.length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Цели',
+                    style: TextStyle(
+                      color: Color(0xFF1F2328),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: openMilestones,
+                  child: const Text('Все цели'),
+                ),
+              ],
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 8),
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData)
+              const PremiumWorkCard(
+                radius: 22,
+                padding: EdgeInsets.all(18),
+                child: LinearProgressIndicator(),
+              )
+            else if (snapshot.hasError)
+              PremiumWorkCard(
+                radius: 22,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Expanded(child: Text('Не удалось загрузить цели')),
+                    TextButton(
+                      onPressed: refresh,
+                      child: const Text('Повторить'),
+                    ),
+                  ],
+                ),
+              )
+            else if (visible.isEmpty)
+              PremiumPressable(
+                onTap: openMilestones,
+                borderRadius: BorderRadius.circular(22),
+                child: const PremiumWorkCard(
+                  radius: 22,
+                  padding: EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Icon(Icons.flag_outlined),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Активных целей пока нет',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Text(
+                        'Открыть',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              ...visible.map(milestoneCard),
+              if (hiddenCount > 0)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: openMilestones,
+                    child: Text('Ещё целей: $hiddenCount'),
+                  ),
+                ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

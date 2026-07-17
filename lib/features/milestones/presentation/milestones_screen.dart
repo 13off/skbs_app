@@ -37,8 +37,11 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
     return clean == null || clean.isEmpty ? null : clean;
   }
 
-  String? get effectiveObject => cleanObject(widget.selectedObjectName) ??
-      (widget.profile.isForeman ? cleanObject(widget.profile.objectName) : null);
+  String? get effectiveObject =>
+      cleanObject(widget.selectedObjectName) ??
+      (widget.profile.isForeman
+          ? cleanObject(widget.profile.objectName)
+          : null);
 
   Future<List<ProjectMilestone>> load() {
     return MilestoneRepository.fetchMilestones(objectName: effectiveObject);
@@ -109,7 +112,6 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
 
   Color statusColor(ProjectMilestone milestone) {
     if (milestone.isCompleted) return const Color(0xFF2E7D52);
-    if (milestone.blockingItems.isNotEmpty) return const Color(0xFF9A6816);
     if (milestone.status == 'postponed') return const Color(0xFF9A403A);
     return const Color(0xFF6B7075);
   }
@@ -191,12 +193,6 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                         children: [
                           _Pill(label: milestone.statusTitle, color: accent),
                           _Pill(label: remaining(milestone), color: accent),
-                          if (milestone.blockingItems.isNotEmpty)
-                            _Pill(
-                              label:
-                                  'Критичных пунктов: ${milestone.blockingItems.length}',
-                              color: const Color(0xFF9A403A),
-                            ),
                         ],
                       ),
                     ],
@@ -247,17 +243,12 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ключевые этапы'),
+        title: const Text('Цели'),
         actions: [
           IconButton(
             tooltip: 'Обновить',
             onPressed: refresh,
             icon: const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(
-            tooltip: 'Добавить этап',
-            onPressed: createMilestone,
-            icon: const Icon(Icons.add_rounded),
           ),
         ],
       ),
@@ -279,7 +270,10 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                     const SizedBox(height: 10),
                     Text('Не удалось загрузить этапы: ${snapshot.error}'),
                     const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                    FilledButton(
+                      onPressed: refresh,
+                      child: const Text('Повторить'),
+                    ),
                   ],
                 ),
               ),
@@ -309,17 +303,10 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Календарь основных целей',
+                                    'Активные цели',
                                     style: TextStyle(
-                                      fontSize: 25,
+                                      fontSize: 21,
                                       fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  Text(
-                                    effectiveObject ?? 'Все объекты компании',
-                                    style: const TextStyle(
-                                      color: Color(0xFF6B7075),
-                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
@@ -344,16 +331,11 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                                 const Icon(Icons.flag_outlined, size: 46),
                                 const SizedBox(height: 12),
                                 const Text(
-                                  'Ключевых этапов пока нет',
+                                  'Целей пока нет',
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Создайте дату важной работы и получите чек-лист готовности.',
-                                  textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
