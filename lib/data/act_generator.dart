@@ -4,6 +4,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../models/task_act_context.dart';
 import '../models/task_item_data.dart';
 
 class ActGenerator {
@@ -14,6 +15,8 @@ class ActGenerator {
   static Future<void> downloadAct({
     required List<TaskItemData> tasks,
     required DateTime date,
+    Map<String, TaskActContext> contextByTaskId =
+        const <String, TaskActContext>{},
   }) async {
     final completedTasks = tasks
         .where((task) {
@@ -28,6 +31,7 @@ class ActGenerator {
     final bytes = await createDocxFromTemplate(
       tasks: completedTasks,
       date: date,
+      contextByTaskId: contextByTaskId,
     );
 
     _downloadBytes(bytes: bytes, fileName: _actFileName(date));
@@ -36,6 +40,8 @@ class ActGenerator {
   static Future<Uint8List> createDocxFromTemplate({
     required List<TaskItemData> tasks,
     required DateTime date,
+    Map<String, TaskActContext> contextByTaskId =
+        const <String, TaskActContext>{},
   }) async {
     final templateFiles = await _loadTemplateFiles();
     final outputArchive = Archive();
@@ -46,7 +52,12 @@ class ActGenerator {
 
       if (fileName == 'word/document.xml') {
         final xml = utf8.decode(originalBytes);
-        final newXml = _fillDocumentXml(xml: xml, tasks: tasks, date: date);
+        final newXml = _fillDocumentXml(
+          xml: xml,
+          tasks: tasks,
+          date: date,
+          contextByTaskId: contextByTaskId,
+        );
         final newBytes = utf8.encode(newXml);
 
         outputArchive.addFile(ArchiveFile(fileName, newBytes.length, newBytes));
@@ -102,11 +113,12 @@ class ActGenerator {
     required String xml,
     required List<TaskItemData> tasks,
     required DateTime date,
+    required Map<String, TaskActContext> contextByTaskId,
   }) {
     var result = xml;
 
     final dateValue = _dateText(date);
-    final worksXml = _buildWorksXml(tasks);
+    final worksXml = _buildWorksXml(tasks, contextByTaskId);
 
     // В шаблоне date и tasks могут быть элементами управления Word:
     // <w:sdt> с alias="date" и alias="tasks".
@@ -217,17 +229,33 @@ class ActGenerator {
     return parts.join();
   }
 
-  static String _buildWorksXml(List<TaskItemData> tasks) {
-    final groupedWorks = _groupWorksByAxes(tasks);
-    final buffer = StringBuffer();
+  static String _buildWorksXml(
+    List<TaskItemData> tasks,
+    Map<String, TaskActContext> contextByTaskId,
+  ) {
+    final groupedTasks = <String, List<TaskItemData>>{};
+    for (final task in tasks) {
+      groupedTasks
+          .putIfAbsent(task.axes.trim(), () => <TaskItemData>[])
+          .add(task);
+    }
 
-    groupedWorks.forEach((axes, works) {
+    final buffer = StringBuffer();
+    groupedTasks.forEach((axes, grouped) {
       if (axes.isNotEmpty) {
         buffer.write(_workParagraph('В осях $axes'));
       }
 
-      for (final work in works) {
-        buffer.write(_workParagraph(_productionSentence(work)));
+      for (final task in grouped) {
+        for (final work in _splitWorkLines(task.work)) {
+          buffer.write(_workParagraph(_productionSentence(work)));
+        }
+
+        final taskId = task.id?.trim() ?? '';
+        final goalContext = contextByTaskId[taskId];
+        if (goalContext != null) {
+          buffer.write(_workParagraph(_goalProgressSentence(goalContext)));
+        }
       }
 
       buffer.write(_emptyWorkParagraph());
@@ -236,19 +264,15 @@ class ActGenerator {
     return buffer.toString();
   }
 
-  static Map<String, List<String>> _groupWorksByAxes(List<TaskItemData> tasks) {
-    final grouped = <String, List<String>>{};
-
-    for (final task in tasks) {
-      final axes = task.axes.trim();
-      final workLines = _splitWorkLines(task.work);
-
-      if (workLines.isEmpty) continue;
-
-      grouped.putIfAbsent(axes, () => <String>[]).addAll(workLines);
-    }
-
-    return grouped;
+  static String _goalProgressSentence(TaskActContext context) {
+    final location = context.milestoneLocation.trim();
+    final locationText = location.isEmpty ? '' : ' ($location)';
+    final criticalText = context.checklistIsCritical ? ', критичный пункт' : '';
+    return 'Ключевая цель: ${context.milestoneTitle}$locationText. '
+        'Готовность цели — ${context.milestoneProgressPercent}%. '
+        'Пункт чек-листа: ${context.checklistTitle} — '
+        '${context.checklistProgressPercent}% '
+        '(${context.checklistStateTitle.toLowerCase()}$criticalText).';
   }
 
   static List<String> _splitWorkLines(String value) {
