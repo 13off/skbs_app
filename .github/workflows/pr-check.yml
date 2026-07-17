@@ -1,31 +1,25 @@
 name: Apply foreman timesheet phones
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
     branches:
-      - main
-    paths:
-      - lib/**
-      - test/**
-      - .github/workflows/pr-check.yml
+      - feature/foreman-timesheet-phones
 
 permissions:
   contents: write
 
 concurrency:
-  group: appstroy-foreman-phone-${{ github.event.pull_request.number }}
+  group: appstroy-foreman-phone
   cancel-in-progress: true
 
 jobs:
   apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: feature/foreman-timesheet-phones
           fetch-depth: 0
 
       - name: Add phone to mobile and desktop timesheets
@@ -148,4 +142,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/screens/timesheet_screen.dart lib/screens/desktop_timesheet_screen.dart .github/workflows/pr-check.yml
           git commit -m "добавлены телефоны сотрудников в табель прораба"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:feature/foreman-timesheet-phones
