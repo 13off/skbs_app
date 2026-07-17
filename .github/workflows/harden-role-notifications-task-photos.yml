@@ -29,19 +29,25 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Run full verification
+      - name: Capture final verification
         shell: bash
         run: |
-          dart format \
-            lib/data/task_repository.dart \
-            lib/screens/task_details_legacy_screen.dart \
-            test/role_notifications_task_photos_contract_test.dart
-          flutter pub get --enforce-lockfile
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test --reporter compact
-          flutter build web --release --base-href /appstroy-web/
+          set +e
+          {
+            dart format \
+              lib/data/task_repository.dart \
+              lib/screens/task_details_legacy_screen.dart \
+              test/role_notifications_task_photos_contract_test.dart
+            flutter pub get --enforce-lockfile
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            flutter test --reporter compact
+            flutter build web --release --base-href /appstroy-web/
+          } > role-task-hardening.log 2>&1
+          status=$?
+          echo "$status" > role-task-hardening.status
+          exit 0
 
-      - name: Commit verified hardening
+      - name: Commit transformed hardening and result
         shell: bash
         run: |
           rm tool/harden_role_notifications_task_photos.py
@@ -49,6 +55,12 @@ jobs:
           rm .github/workflows/harden-role-notifications-task-photos.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$(cat role-task-hardening.status)" = "0" ]; then
+            rm role-task-hardening.log role-task-hardening.status
+            message="Усилить ролевые уведомления и черновики задач"
+          else
+            message="Сохранить ошибку защиты ролевых задач"
+          fi
           git add -A
-          git commit -m "Усилить ролевые уведомления и черновики задач"
+          git commit -m "$message"
           git push origin HEAD:feature/role-notifications-task-photos
