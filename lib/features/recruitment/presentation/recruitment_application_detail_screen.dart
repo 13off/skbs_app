@@ -1,0 +1,644 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../data/app_data_sync.dart';
+import '../../../models/app_user_profile.dart';
+import '../../../widgets/app_page.dart';
+import '../../../widgets/premium_ui_v2.dart';
+import '../data/recruitment_repository.dart';
+import '../models/recruitment_models.dart';
+
+const Color _detailText = Color(0xFF1F2328);
+const Color _detailMuted = Color(0xFF6B7075);
+const Color _detailSoft = Color(0xFFF1F2F4);
+const Color _detailSuccess = Color(0xFF2E7D52);
+
+class RecruitmentApplicationDetailScreen extends StatefulWidget {
+  final AppUserProfile profile;
+  final RecruitmentApplication application;
+
+  const RecruitmentApplicationDetailScreen({
+    super.key,
+    required this.profile,
+    required this.application,
+  });
+
+  @override
+  State<RecruitmentApplicationDetailScreen> createState() =>
+      _RecruitmentApplicationDetailScreenState();
+}
+
+class _RecruitmentApplicationDetailScreenState
+    extends State<RecruitmentApplicationDetailScreen> {
+  final TextEditingController messageController = TextEditingController();
+  late Future<List<RecruitmentDocument>> documentsFuture;
+  late Future<List<RecruitmentMessage>> messagesFuture;
+  StreamSubscription<AppDataChange>? changesSubscription;
+  bool sending = false;
+  String? openingId;
+
+  @override
+  void initState() {
+    super.initState();
+    documentsFuture = loadDocuments();
+    messagesFuture = loadMessages();
+    changesSubscription = AppDataSync.changes.listen((change) {
+      if (change.affects(AppDataDomain.recruitment) && mounted) refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    changesSubscription?.cancel();
+    messageController.dispose();
+    super.dispose();
+  }
+
+  Future<List<RecruitmentDocument>> loadDocuments() {
+    return RecruitmentRepository.fetchDocuments(
+      companyId: widget.profile.activeCompanyId,
+      applicationId: widget.application.id,
+    );
+  }
+
+  Future<List<RecruitmentMessage>> loadMessages() {
+    return RecruitmentRepository.fetchMessages(
+      companyId: widget.profile.activeCompanyId,
+      applicationId: widget.application.id,
+    );
+  }
+
+  Future<void> refresh() async {
+    final documents = loadDocuments();
+    final messages = loadMessages();
+    if (mounted) {
+      setState(() {
+        documentsFuture = documents;
+        messagesFuture = messages;
+      });
+    }
+    await Future.wait(<Future<Object?>>[documents, messages]);
+  }
+
+  void showError(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> copyPhone() async {
+    final phone = widget.application.phone.trim();
+    if (phone.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: phone));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Номер телефона скопирован')),
+    );
+  }
+
+  Future<void> callCandidate() async {
+    final phone = widget.application.phone.trim();
+    if (phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      showError('Не удалось открыть приложение для звонка');
+    }
+  }
+
+  Future<void> openStoredFile({
+    required String id,
+    required String bucket,
+    required String path,
+  }) async {
+    if (openingId != null) return;
+    setState(() => openingId = id);
+    try {
+      final signedUrl = await RecruitmentRepository.createSignedFileUrl(
+        bucket: bucket,
+        path: path,
+      );
+      final opened = await launchUrl(
+        Uri.parse(signedUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw Exception('Не удалось открыть файл');
+    } catch (error) {
+      showError(error.toString());
+    } finally {
+      if (mounted) setState(() => openingId = null);
+    }
+  }
+
+  Future<void> sendMessage() async {
+    final text = messageController.text.trim();
+    if (sending || text.isEmpty) return;
+    setState(() => sending = true);
+    try {
+      await RecruitmentRepository.sendCandidateMessage(
+        applicationId: widget.application.id,
+        message: text,
+      );
+      messageController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сообщение отправлено кандидату')),
+        );
+      }
+      await refresh();
+    } catch (error) {
+      showError('Не удалось отправить сообщение: $error');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  String formatDate(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day.$month.${local.year} · $hour:$minute';
+  }
+
+  String formatBytes(int? bytes) {
+    if (bytes == null || bytes <= 0) return '';
+    if (bytes < 1024) return '$bytes Б';
+    final kb = bytes / 1024;
+    if (kb < 1024) return '${kb.toStringAsFixed(0)} КБ';
+    return '${(kb / 1024).toStringAsFixed(1)} МБ';
+  }
+
+  Widget sectionTitle(String title, {Widget? trailing}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: _detailText,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget infoRow(IconData icon, String label, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: _detailMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: _detailMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: _detailText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget summaryCard() {
+    final application = widget.application;
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(17),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _DetailPill(
+                icon: Icons.flag_outlined,
+                label: application.statusTitle,
+              ),
+              _DetailPill(
+                icon: Icons.send_outlined,
+                label: application.sourceTitle,
+              ),
+              if (application.citizenship.isNotEmpty)
+                _DetailPill(
+                  icon: Icons.public_outlined,
+                  label: application.citizenship,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          infoRow(Icons.work_outline_rounded, 'Вакансия', application.vacancy),
+          infoRow(
+            Icons.apartment_outlined,
+            'Объект',
+            application.objectName,
+          ),
+          infoRow(Icons.badge_outlined, 'Опыт', application.experience),
+          if (application.comment.isNotEmpty)
+            infoRow(Icons.notes_rounded, 'Комментарий HR', application.comment),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: application.phone.isEmpty ? null : callCandidate,
+                  icon: const Icon(Icons.phone_outlined),
+                  label: const Text('Позвонить'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: application.phone.isEmpty ? null : copyPhone,
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Копировать номер'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget documentCard(RecruitmentDocument document) {
+    final waiting = !document.isStored;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: waiting
+                    ? const Color(0xFFFFF4E2)
+                    : const Color(0xFFE8F4ED),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                document.mimeType == 'application/pdf'
+                    ? Icons.picture_as_pdf_outlined
+                    : Icons.image_outlined,
+                color: waiting ? const Color(0xFF9A6816) : _detailSuccess,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    document.title,
+                    style: const TextStyle(
+                      color: _detailText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    waiting
+                        ? 'Файл обрабатывается'
+                        : <String>[
+                            if (document.originalName.isNotEmpty)
+                              document.originalName,
+                            if (formatBytes(document.sizeBytes).isNotEmpty)
+                              formatBytes(document.sizeBytes),
+                          ].join(' · '),
+                    style: const TextStyle(
+                      color: _detailMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton.filledTonal(
+              tooltip: waiting ? 'Файл ещё загружается' : 'Открыть документ',
+              onPressed: waiting || openingId != null
+                  ? null
+                  : () => openStoredFile(
+                      id: document.id,
+                      bucket: document.storageBucket,
+                      path: document.storagePath,
+                    ),
+              icon: openingId == document.id
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.open_in_new_rounded),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget documentsSection() {
+    return FutureBuilder<List<RecruitmentDocument>>(
+      future: documentsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _DetailMessage(
+            icon: Icons.error_outline_rounded,
+            text: 'Не удалось загрузить документы: ${snapshot.error}',
+          );
+        }
+        final documents = snapshot.data ?? const <RecruitmentDocument>[];
+        if (documents.isEmpty) {
+          return const _DetailMessage(
+            icon: Icons.folder_open_outlined,
+            text: 'Кандидат пока не прислал документы.',
+          );
+        }
+        return Column(children: documents.map(documentCard).toList());
+      },
+    );
+  }
+
+  Widget messageBubble(RecruitmentMessage message) {
+    final inbound = message.isInbound;
+    return Align(
+      alignment: inbound ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.fromLTRB(13, 10, 13, 8),
+        decoration: BoxDecoration(
+          color: inbound ? Colors.white : const Color(0xFFE8ECEF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.text.isNotEmpty)
+              Text(
+                message.text,
+                style: const TextStyle(
+                  color: _detailText,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            if (message.hasAttachment) ...[
+              if (message.text.isNotEmpty) const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: message.isStoredAttachment && openingId == null
+                    ? () => openStoredFile(
+                        id: message.id,
+                        bucket: message.storageBucket,
+                        path: message.storagePath,
+                      )
+                    : null,
+                icon: const Icon(Icons.attach_file_rounded),
+                label: Text(
+                  message.isStoredAttachment
+                      ? (message.originalName.isEmpty
+                            ? 'Открыть вложение'
+                            : message.originalName)
+                      : 'Вложение обрабатывается',
+                ),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              '${inbound ? 'Кандидат' : 'HR'} · ${formatDate(message.createdAt)}',
+              style: const TextStyle(
+                color: _detailMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget conversationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FutureBuilder<List<RecruitmentMessage>>(
+          future: messagesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return _DetailMessage(
+                icon: Icons.error_outline_rounded,
+                text: 'Не удалось загрузить переписку: ${snapshot.error}',
+              );
+            }
+            final messages = snapshot.data ?? const <RecruitmentMessage>[];
+            if (messages.isEmpty) {
+              return const _DetailMessage(
+                icon: Icons.forum_outlined,
+                text: 'Переписка пока не начата.',
+              );
+            }
+            return Column(children: messages.map(messageBubble).toList());
+          },
+        ),
+        const SizedBox(height: 10),
+        if (widget.application.canMessageInTelegram)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: messageController,
+                  enabled: !sending,
+                  minLines: 1,
+                  maxLines: 5,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'Сообщение кандидату через бота',
+                    prefixIcon: Icon(Icons.telegram),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 9),
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: FilledButton(
+                  onPressed: sending ? null : sendMessage,
+                  child: sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded),
+                ),
+              ),
+            ],
+          )
+        else
+          const _DetailMessage(
+            icon: Icons.info_outline_rounded,
+            text:
+                'Эта заявка создана не через Telegram-бота. Для связи используйте номер телефона.',
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPage(
+      title: 'Кандидат',
+      subtitle: '',
+      headerTrailing: IconButton.filledTonal(
+        tooltip: 'Изменить данные',
+        onPressed: () => Navigator.pop(context, 'edit'),
+        icon: const Icon(Icons.edit_outlined),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.application.fullName,
+            style: const TextStyle(
+              color: _detailText,
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          summaryCard(),
+          const SizedBox(height: 24),
+          sectionTitle(
+            'Документы',
+            trailing: IconButton(
+              tooltip: 'Обновить',
+              onPressed: refresh,
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ),
+          documentsSection(),
+          const SizedBox(height: 24),
+          sectionTitle('Переписка'),
+          conversationSection(),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _DetailPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: _detailSoft,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: _detailMuted),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _detailMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailMessage extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _DetailMessage({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.70),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _detailMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: _detailMuted,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
