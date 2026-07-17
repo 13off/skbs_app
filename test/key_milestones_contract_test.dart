@@ -21,6 +21,7 @@ void main() {
     expect(repository, contains("from('milestone_checklist_items')"));
     expect(repository, contains("from('task_milestone_links')"));
     expect(repository, contains('concreteChecklist'));
+    expect(repository, contains('generalChecklist'));
   });
 
   test('milestone detail creates a normal task and links it to checklist', () {
