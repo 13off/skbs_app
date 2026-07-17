@@ -42,7 +42,7 @@ class MilestoneChecklistItem {
   int? get encodedProgressPercent {
     final match = RegExp(r'^progress_(\d{1,3})$').firstMatch(state);
     final value = int.tryParse(match?.group(1) ?? '');
-    return value?.clamp(0, 100);
+    return value?.clamp(0, 100).toInt();
   }
 
   int get progressPercent {
@@ -57,7 +57,8 @@ class MilestoneChecklistItem {
     return 0;
   }
 
-  int get remainingProgressPercent => (100 - progressPercent).clamp(0, 100);
+  int get remainingProgressPercent =>
+      (100 - progressPercent).clamp(0, 100).toInt();
   double get completionFraction => progressPercent / 100;
   bool get isEffectivelyDone => progressPercent >= 100;
   bool get isBlocked => state == 'blocked';
