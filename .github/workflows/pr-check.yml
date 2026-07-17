@@ -1,99 +1,69 @@
-name: Apply key milestones home integration
+name: PR Check
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feature/key-milestones
+      - main
+    paths:
+      - lib/**
+      - test/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .fvmrc
+      - .github/workflows/pr-check.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: appstroy-key-milestones-feature
+  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply:
+  flutter-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout feature branch
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: feature/key-milestones
-          fetch-depth: 0
+          show-progress: false
 
-      - name: Wrap shared home with nearest milestone
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run regression tests
+        id: regression
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          set +e
+          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- Flutter test failure (last 180 lines) ---"
+            tail -n 180 /tmp/flutter-test.log
+            exit "$status"
+          fi
+          tail -n 20 /tmp/flutter-test.log
 
-          path = Path('lib/screens/adaptive_home_screen.dart')
-          text = path.read_text(encoding='utf-8')
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
 
-          import_anchor = "import '../features/ai/presentation/ai_assistant_screen.dart';"
-          import_line = "import '../features/milestones/presentation/milestone_home_overlay.dart';"
-          if import_line not in text:
-              if text.count(import_anchor) != 1:
-                  raise SystemExit('Adaptive home import anchor mismatch')
-              text = text.replace(import_anchor, import_anchor + '\n' + import_line)
-
-          old = """        if (!useDesktopDashboard) {
-          return HomeScreen(
-            profile: profile,
-            selectedObjectName: selectedObjectName,
-            onObjectChanged: onObjectChanged,
-          );
-        }
-
-        return _DesktopHomeDashboard(
-          profile: profile,
-          selectedObjectName: selectedObjectName,
-          onObjectChanged: onObjectChanged,
-          onOpenEmployees: onOpenEmployees,
-          onOpenTimesheet: onOpenTimesheet,
-          onOpenTasks: onOpenTasks,
-          onOpenTask: onOpenTask,
-          onOpenPayments: onOpenPayments,
-        );"""
-          new = """        if (!useDesktopDashboard) {
-          return MilestoneHomeOverlay(
-            profile: profile,
-            selectedObjectName: selectedObjectName,
-            child: HomeScreen(
-              profile: profile,
-              selectedObjectName: selectedObjectName,
-              onObjectChanged: onObjectChanged,
-            ),
-          );
-        }
-
-        return MilestoneHomeOverlay(
-          profile: profile,
-          selectedObjectName: selectedObjectName,
-          child: _DesktopHomeDashboard(
-            profile: profile,
-            selectedObjectName: selectedObjectName,
-            onObjectChanged: onObjectChanged,
-            onOpenEmployees: onOpenEmployees,
-            onOpenTimesheet: onOpenTimesheet,
-            onOpenTasks: onOpenTasks,
-            onOpenTask: onOpenTask,
-            onOpenPayments: onOpenPayments,
-          ),
-        );"""
-
-          if 'return MilestoneHomeOverlay(' not in text:
-              if text.count(old) != 1:
-                  raise SystemExit('Adaptive home body pattern mismatch')
-              text = text.replace(old, new)
-
-          path.write_text(text, encoding='utf-8')
-          PY
-
-          git show origin/main:.github/workflows/pr-check.yml > .github/workflows/pr-check.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/screens/adaptive_home_screen.dart .github/workflows/pr-check.yml
-          git commit -m "подключены ключевые этапы к общей главной"
-          git push origin HEAD:feature/key-milestones
+      - name: Upload failing test log
+        if: failure() && steps.regression.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-log
+          path: /tmp/flutter-test.log
+          if-no-files-found: error
+          retention-days: 3
