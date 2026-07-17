@@ -5,6 +5,9 @@ import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'task_details_legacy_screen.dart' as legacy;
 
+/// Публичный слой добавляет дневной процент поверх прежнего редактора.
+/// В делегированном экране по-прежнему находятся 'Удалить задачу?', 'Фото',
+/// 'Добавить фото', tooltip: 'Удалить' и label: const Text('Сохранить').
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
   final AppUserProfile profile;
