@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -127,25 +129,18 @@ abstract final class RecruitmentRepository {
         .toString();
   }
 
-  static Future<String> createDocumentsArchiveUrl({
-    required String applicationId,
+  static Future<Uint8List> downloadStoredFile({
+    required String bucket,
+    required String path,
   }) async {
-    final response = await _client.functions.invoke(
-      'recruitment-documents-archive',
-      body: <String, dynamic>{'application_id': applicationId.trim()},
-    );
-    final data = _map(response.data);
-    final error = data['error']?.toString().trim() ?? '';
-    final url = data['url']?.toString().trim() ?? '';
-    if (response.status < 200 ||
-        response.status >= 300 ||
-        error.isNotEmpty ||
-        url.isEmpty) {
-      throw Exception(
-        error.isEmpty ? 'Не удалось подготовить архив документов' : error,
-      );
+    final cleanBucket = bucket.trim();
+    final cleanPath = path.trim();
+    if (cleanBucket.isEmpty ||
+        cleanPath.isEmpty ||
+        cleanPath.startsWith('telegram://')) {
+      throw Exception('Файл ещё не загружен в защищённое хранилище');
     }
-    return url;
+    return _client.storage.from(cleanBucket).download(cleanPath);
   }
 
   static Future<void> sendCandidateMessage({
