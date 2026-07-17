@@ -9,6 +9,16 @@ def replace_once(path: str, old: str, new: str, label: str) -> None:
     file.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+model = "lib/features/recruitment/models/recruitment_models.dart"
+replace_once(
+    model,
+    """    required this.archivedAt,
+""",
+    """    this.archivedAt,
+""",
+    "archive date remains backward compatible",
+)
+
 screen = "lib/features/recruitment/presentation/recruitment_applications_screen.dart"
 replace_once(
     screen,
