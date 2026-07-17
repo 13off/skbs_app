@@ -37,6 +37,8 @@ class CompanySummary {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'hr':
+        return 'HR-менеджер';
       default:
         return role;
     }
@@ -83,6 +85,8 @@ class CompanyMember {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'hr':
+        return 'HR-менеджер';
       default:
         return role;
     }
@@ -205,19 +209,25 @@ class CompanyRepository {
         .eq('is_active', true)
         .order('created_at');
 
-    return rows.map<CompanySummary>((row) {
-      final company = _map(row['companies']);
-      return CompanySummary(
-        id: company['id']?.toString() ?? row['company_id']?.toString() ?? '',
-        name: company['name']?.toString() ?? 'Компания',
-        role: row['role']?.toString() ?? 'foreman',
-        planCode: company['plan_code']?.toString() ?? 'trial',
-        billingStatus: company['billing_status']?.toString() ?? 'trialing',
-        trialEndsAt: _date(company['trial_ends_at']),
-        seatLimit: _integer(company['seat_limit'], 10),
-        objectLimit: _integer(company['object_limit'], 5),
-      );
-    }).where((company) => company.id.isNotEmpty).toList();
+    return rows
+        .map<CompanySummary>((row) {
+          final company = _map(row['companies']);
+          return CompanySummary(
+            id:
+                company['id']?.toString() ??
+                row['company_id']?.toString() ??
+                '',
+            name: company['name']?.toString() ?? 'Компания',
+            role: row['role']?.toString() ?? 'foreman',
+            planCode: company['plan_code']?.toString() ?? 'trial',
+            billingStatus: company['billing_status']?.toString() ?? 'trialing',
+            trialEndsAt: _date(company['trial_ends_at']),
+            seatLimit: _integer(company['seat_limit'], 10),
+            objectLimit: _integer(company['object_limit'], 5),
+          );
+        })
+        .where((company) => company.id.isNotEmpty)
+        .toList();
   }
 
   static Future<CompanySummary> fetchCompany(String companyId) async {
@@ -286,22 +296,25 @@ class CompanyRepository {
       if (userId.isNotEmpty) assignments.putIfAbsent(userId, () => row);
     }
 
-    return membershipRows.map<CompanyMember>((row) {
-      final userId = row['user_id']?.toString() ?? '';
-      final profile = profiles[userId] ?? const <String, dynamic>{};
-      final assignment = assignments[userId] ?? const <String, dynamic>{};
-      final object = _map(assignment['objects']);
+    return membershipRows
+        .map<CompanyMember>((row) {
+          final userId = row['user_id']?.toString() ?? '';
+          final profile = profiles[userId] ?? const <String, dynamic>{};
+          final assignment = assignments[userId] ?? const <String, dynamic>{};
+          final object = _map(assignment['objects']);
 
-      return CompanyMember(
-        userId: userId,
-        fullName: profile['full_name']?.toString() ?? '',
-        email: profile['email']?.toString() ?? '',
-        role: row['role']?.toString() ?? 'foreman',
-        isActive: row['is_active'] == true,
-        objectId: assignment['object_id']?.toString() ?? '',
-        objectName: object['name']?.toString() ?? '',
-      );
-    }).where((member) => member.userId.isNotEmpty).toList();
+          return CompanyMember(
+            userId: userId,
+            fullName: profile['full_name']?.toString() ?? '',
+            email: profile['email']?.toString() ?? '',
+            role: row['role']?.toString() ?? 'foreman',
+            isActive: row['is_active'] == true,
+            objectId: assignment['object_id']?.toString() ?? '',
+            objectName: object['name']?.toString() ?? '',
+          );
+        })
+        .where((member) => member.userId.isNotEmpty)
+        .toList();
   }
 
   static Future<CompanyDashboard> fetchDashboard(String companyId) async {
@@ -327,19 +340,22 @@ class CompanyRepository {
         .eq('is_active', true)
         .order('sort_order');
 
-    return rows.map<CompanyBillingPlan>((row) {
-      return CompanyBillingPlan(
-        code: row['code']?.toString() ?? '',
-        name: row['name']?.toString() ?? '',
-        description: row['description']?.toString() ?? '',
-        monthlyPriceRub: row['monthly_price_rub'] == null
-            ? null
-            : _integer(row['monthly_price_rub'], 0),
-        seatLimit: _integer(row['seat_limit'], 10),
-        objectLimit: _integer(row['object_limit'], 5),
-        features: _stringList(row['features']),
-      );
-    }).where((plan) => plan.code.isNotEmpty && plan.name.isNotEmpty).toList();
+    return rows
+        .map<CompanyBillingPlan>((row) {
+          return CompanyBillingPlan(
+            code: row['code']?.toString() ?? '',
+            name: row['name']?.toString() ?? '',
+            description: row['description']?.toString() ?? '',
+            monthlyPriceRub: row['monthly_price_rub'] == null
+                ? null
+                : _integer(row['monthly_price_rub'], 0),
+            seatLimit: _integer(row['seat_limit'], 10),
+            objectLimit: _integer(row['object_limit'], 5),
+            features: _stringList(row['features']),
+          );
+        })
+        .where((plan) => plan.code.isNotEmpty && plan.name.isNotEmpty)
+        .toList();
   }
 
   static Future<CompanyPlanRequest?> fetchOpenPlanRequest(
@@ -410,7 +426,9 @@ class CompanyRepository {
     final data = _map(response.data);
     final error = data['error']?.toString().trim() ?? '';
     if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
-      throw Exception(error.isEmpty ? 'Не удалось отправить приглашение' : error);
+      throw Exception(
+        error.isEmpty ? 'Не удалось отправить приглашение' : error,
+      );
     }
 
     final inviteUrl = data['invite_url']?.toString().trim() ?? '';
@@ -495,4 +513,3 @@ class CompanyRepository {
     }
   }
 }
-

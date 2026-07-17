@@ -11,10 +11,7 @@ import 'company_plans_screen.dart';
 class CompanyManagementScreen extends StatefulWidget {
   final String companyId;
 
-  const CompanyManagementScreen({
-    super.key,
-    required this.companyId,
-  });
+  const CompanyManagementScreen({super.key, required this.companyId});
 
   @override
   State<CompanyManagementScreen> createState() =>
@@ -245,37 +242,40 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
         child: FutureBuilder<CompanyDashboard>(
           future: dashboardFuture,
           builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(
-              child: PremiumDots(color: AppColors.textPrimary),
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded, size: 44),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Не удалось загрузить компанию: ${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
-                  ],
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(
+                child: PremiumDots(color: AppColors.textPrimary),
+              );
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 44),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Не удалось загрузить компанию: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        onPressed: refresh,
+                        child: const Text('Повторить'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          final dashboard = snapshot.data!;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-            children: [
+            final dashboard = snapshot.data!;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              children: [
                 companyCard(dashboard),
                 const SizedBox(height: 20),
                 PremiumActionButton(
@@ -302,8 +302,8 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                 ...dashboard.members.map(
                   (member) => memberTile(dashboard, member),
                 ),
-            ],
-          );
+              ],
+            );
           },
         ),
       ),
@@ -328,8 +328,7 @@ class CompanyMemberEditorScreen extends StatefulWidget {
       _CompanyMemberEditorScreenState();
 }
 
-class _CompanyMemberEditorScreenState
-    extends State<CompanyMemberEditorScreen> {
+class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
   late final TextEditingController fullNameController;
   late final TextEditingController emailController;
   late String role;
@@ -342,13 +341,16 @@ class _CompanyMemberEditorScreenState
   @override
   void initState() {
     super.initState();
-    fullNameController = TextEditingController(text: widget.member?.fullName ?? '');
+    fullNameController = TextEditingController(
+      text: widget.member?.fullName ?? '',
+    );
     emailController = TextEditingController(text: widget.member?.email ?? '');
     const allowedRoles = <String>{
       'admin',
       'foreman',
       'lawyer',
       'accountant',
+      'hr',
     };
     final currentRole = widget.member?.role;
     role = currentRole != null && allowedRoles.contains(currentRole)
@@ -551,128 +553,133 @@ class _CompanyMemberEditorScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Права пользователя' : 'Пригласить пользователя'),
+        title: Text(
+          isEditing ? 'Права пользователя' : 'Пригласить пользователя',
+        ),
       ),
       body: PremiumBackdrop(
         child: ListView(
           padding: const EdgeInsets.all(18),
           children: [
-          if (!isEditing) ...[
-            TextField(
-              controller: fullNameController,
-              enabled: !isSaving,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Имя и фамилия',
-                prefixIcon: Icon(Icons.person_outline_rounded),
+            if (!isEditing) ...[
+              TextField(
+                controller: fullNameController,
+                enabled: !isSaving,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Имя и фамилия',
+                  prefixIcon: Icon(Icons.person_outline_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: emailController,
-              enabled: !isSaving,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.alternate_email_rounded),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                enabled: !isSaving,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ] else ...[
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-              title: Text(widget.member!.fullName),
-              subtitle: Text(widget.member!.email),
-            ),
-            const SizedBox(height: 8),
-          ],
-          DropdownButtonFormField<String>(
-            initialValue: role,
-            decoration: const InputDecoration(
-              labelText: 'Роль',
-              prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'admin', child: Text('Администратор')),
-              DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
-              DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
-              DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
+              const SizedBox(height: 12),
+            ] else ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(widget.member!.fullName),
+                subtitle: Text(widget.member!.email),
+              ),
+              const SizedBox(height: 8),
             ],
-            onChanged: isSaving
-                ? null
-                : (value) {
-                    final nextRole = value ?? 'foreman';
-                    setState(() {
-                      role = nextRole;
-                      if (role == 'foreman') {
-                        final objectStillAvailable = widget.objects.any(
-                          (item) => item.id == objectId,
-                        );
-                        if (!objectStillAvailable) {
-                          objectId = widget.objects.isEmpty
-                              ? null
-                              : widget.objects.first.id;
-                        }
-                      } else {
-                        objectId = null;
-                      }
-                    });
-                  },
-          ),
-          if (role == 'foreman') ...[
-            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: widget.objects.any((item) => item.id == objectId)
-                  ? objectId
-                  : null,
+              initialValue: role,
               decoration: const InputDecoration(
-                labelText: 'Объект',
-                prefixIcon: Icon(Icons.location_city_outlined),
+                labelText: 'Роль',
+                prefixIcon: Icon(Icons.admin_panel_settings_outlined),
               ),
-              items: widget.objects
-                  .map(
-                    (object) => DropdownMenuItem(
-                      value: object.id,
-                      child: Text(object.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: isSaving ? null : (value) => setState(() => objectId = value),
+              items: const [
+                DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+                DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
+                DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
+                DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
+                DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
+              ],
+              onChanged: isSaving
+                  ? null
+                  : (value) {
+                      final nextRole = value ?? 'foreman';
+                      setState(() {
+                        role = nextRole;
+                        if (role == 'foreman') {
+                          final objectStillAvailable = widget.objects.any(
+                            (item) => item.id == objectId,
+                          );
+                          if (!objectStillAvailable) {
+                            objectId = widget.objects.isEmpty
+                                ? null
+                                : widget.objects.first.id;
+                          }
+                        } else {
+                          objectId = null;
+                        }
+                      });
+                    },
             ),
-          ],
-          if (errorText != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              errorText!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF874540),
-                fontWeight: FontWeight.w700,
+            if (role == 'foreman') ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: widget.objects.any((item) => item.id == objectId)
+                    ? objectId
+                    : null,
+                decoration: const InputDecoration(
+                  labelText: 'Объект',
+                  prefixIcon: Icon(Icons.location_city_outlined),
+                ),
+                items: widget.objects
+                    .map(
+                      (object) => DropdownMenuItem(
+                        value: object.id,
+                        child: Text(object.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: isSaving
+                    ? null
+                    : (value) => setState(() => objectId = value),
               ),
-            ),
-          ],
-          const SizedBox(height: 22),
-          PremiumActionButton(
-            onPressed: isSaving ? null : save,
-            icon: isEditing ? Icons.save_outlined : Icons.link_rounded,
-            label: isEditing ? 'Сохранить права' : 'Создать ссылку',
-            isLoading: isSaving,
-          ),
-          if (isEditing) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF874540),
-                side: const BorderSide(color: Color(0xFFB88A85)),
-                minimumSize: const Size.fromHeight(54),
+            ],
+            if (errorText != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                errorText!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF874540),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              onPressed: isSaving ? null : removeMember,
-              icon: const Icon(Icons.person_remove_outlined),
-              label: const Text('Удалить из компании'),
+            ],
+            const SizedBox(height: 22),
+            PremiumActionButton(
+              onPressed: isSaving ? null : save,
+              icon: isEditing ? Icons.save_outlined : Icons.link_rounded,
+              label: isEditing ? 'Сохранить права' : 'Создать ссылку',
+              isLoading: isSaving,
             ),
-          ],
+            if (isEditing) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF874540),
+                  side: const BorderSide(color: Color(0xFFB88A85)),
+                  minimumSize: const Size.fromHeight(54),
+                ),
+                onPressed: isSaving ? null : removeMember,
+                icon: const Icon(Icons.person_remove_outlined),
+                label: const Text('Удалить из компании'),
+              ),
+            ],
           ],
         ),
       ),

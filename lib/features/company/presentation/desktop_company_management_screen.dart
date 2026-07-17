@@ -13,10 +13,7 @@ import 'desktop_company_user_dialogs.dart';
 class DesktopCompanyManagementScreen extends StatefulWidget {
   final String companyId;
 
-  const DesktopCompanyManagementScreen({
-    super.key,
-    required this.companyId,
-  });
+  const DesktopCompanyManagementScreen({super.key, required this.companyId});
 
   @override
   State<DesktopCompanyManagementScreen> createState() =>
@@ -117,7 +114,9 @@ class _DesktopCompanyManagementScreenState
     if (busyInvitationId != null) return;
     if (invitation.role == 'foreman' &&
         !dashboard.objects.any((object) => object.id == invitation.objectId)) {
-      showMessage('Назначенный объект больше недоступен. Создайте новое приглашение.');
+      showMessage(
+        'Назначенный объект больше недоступен. Создайте новое приглашение.',
+      );
       return;
     }
 
@@ -268,6 +267,8 @@ class _DesktopCompanyManagementScreenState
         return const Color(0xFF735E78);
       case 'accountant':
         return const Color(0xFF48706A);
+      case 'hr':
+        return const Color(0xFF6A5D47);
       default:
         return specialistMuted;
     }
@@ -366,7 +367,12 @@ class _DesktopCompanyManagementScreenState
         .length;
     final foremen = members.where((item) => item.role == 'foreman').length;
     final specialists = members
-        .where((item) => item.role == 'lawyer' || item.role == 'accountant')
+        .where(
+          (item) =>
+              item.role == 'lawyer' ||
+              item.role == 'accountant' ||
+              item.role == 'hr',
+        )
         .length;
     final pending = data.invitations.where((item) => item.isPending).length;
 
@@ -402,7 +408,7 @@ class _DesktopCompanyManagementScreenState
         Expanded(
           child: SpecialistMetricCard(
             icon: Icons.badge_outlined,
-            label: 'Юрист и бухгалтер',
+            label: 'Юрист, бухгалтер и HR',
             value: '$specialists',
             accent: roleColor('lawyer'),
           ),
@@ -458,6 +464,7 @@ class _DesktopCompanyManagementScreenState
                 DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
                 DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                 DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
+                DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
               ],
               onChanged: (value) => setState(() => roleFilter = value ?? 'all'),
             ),
@@ -465,9 +472,8 @@ class _DesktopCompanyManagementScreenState
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonFormField<String>(
-              initialValue: dashboard.objects.any(
-                (object) => object.id == objectFilter,
-              )
+              initialValue:
+                  dashboard.objects.any((object) => object.id == objectFilter)
                   ? objectFilter
                   : null,
               decoration: const InputDecoration(labelText: 'Объект'),
@@ -594,7 +600,9 @@ class _DesktopCompanyManagementScreenState
               color: roleColor(member.role),
             ),
             specialistCellText(
-              member.objectName.isEmpty ? 'Все объекты компании' : member.objectName,
+              member.objectName.isEmpty
+                  ? 'Все объекты компании'
+                  : member.objectName,
               color: specialistMuted,
             ),
             SpecialistStatusPill(
@@ -608,14 +616,17 @@ class _DesktopCompanyManagementScreenState
               member.isOwner
                   ? 'Полный доступ владельца'
                   : member.role == 'admin'
-                      ? 'Управление компанией и всеми объектами'
-                      : member.role == 'foreman'
-                          ? 'Работа только на назначенном объекте'
-                          : 'Отдельная рабочая платформа специалиста',
+                  ? 'Управление компанией и всеми объектами'
+                  : member.role == 'foreman'
+                  ? 'Работа только на назначенном объекте'
+                  : 'Отдельная рабочая платформа специалиста',
               color: specialistMuted,
             ),
             editable
-                ? const Icon(Icons.chevron_right_rounded, color: specialistMuted)
+                ? const Icon(
+                    Icons.chevron_right_rounded,
+                    color: specialistMuted,
+                  )
                 : Icon(
                     member.isOwner ? Icons.lock_outline : Icons.person_outline,
                     color: specialistMuted,
@@ -661,7 +672,11 @@ class _DesktopCompanyManagementScreenState
         SpecialistTableColumn('Создано', flex: 2),
         SpecialistTableColumn('Срок / принято', flex: 2),
         SpecialistTableColumn('Статус', flex: 2),
-        SpecialistTableColumn('Действия', flex: 3, alignment: Alignment.centerRight),
+        SpecialistTableColumn(
+          'Действия',
+          flex: 3,
+          alignment: Alignment.centerRight,
+        ),
       ],
       rows: invitations.map((invitation) {
         final busy = busyInvitationId == invitation.id;
@@ -706,8 +721,8 @@ class _DesktopCompanyManagementScreenState
               icon: invitation.isPending
                   ? Icons.schedule_send_outlined
                   : invitation.effectiveStatus == 'accepted'
-                      ? Icons.mark_email_read_outlined
-                      : Icons.link_off_outlined,
+                  ? Icons.mark_email_read_outlined
+                  : Icons.link_off_outlined,
             ),
             Wrap(
               spacing: 6,
@@ -733,7 +748,9 @@ class _DesktopCompanyManagementScreenState
                     message: 'Отменить приглашение',
                     child: IconButton(
                       color: specialistDanger,
-                      onPressed: busy ? null : () => revokeInvitation(invitation),
+                      onPressed: busy
+                          ? null
+                          : () => revokeInvitation(invitation),
                       icon: const Icon(Icons.link_off_rounded),
                     ),
                   ),

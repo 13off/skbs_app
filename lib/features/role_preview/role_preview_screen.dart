@@ -37,6 +37,10 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
     RolePreviewController.showAccountant();
   }
 
+  void selectHr() {
+    RolePreviewController.showHr();
+  }
+
   Future<void> selectForeman(List<String> objectNames) async {
     if (objectNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -275,7 +279,8 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                   roleCard(
                     icon: Icons.engineering_rounded,
                     title: 'Прораб',
-                    subtitle: preview.isForemanMode && preview.objectName.isNotEmpty
+                    subtitle:
+                        preview.isForemanMode && preview.objectName.isNotEmpty
                         ? 'Сейчас выбран объект: ${preview.objectName}'
                         : 'Показать рабочую платформу прораба выбранного объекта.',
                     selected: preview.isForemanMode,
@@ -298,6 +303,14 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         'Начисления, выплаты, остатки, чеки и финансовые отчёты.',
                     selected: preview.isAccountantMode,
                     onTap: selectAccountant,
+                  ),
+                  roleCard(
+                    icon: Icons.person_search_rounded,
+                    title: 'HR-менеджер',
+                    subtitle:
+                        'Заявки кандидатов, документы, выезды и оформление.',
+                    selected: preview.isHrMode,
+                    onTap: selectHr,
                   ),
                   const SizedBox(height: 8),
                   PremiumWorkCard(

@@ -46,6 +46,8 @@ class CompanyInvitation {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'hr':
+        return 'HR-менеджер';
       default:
         return role;
     }
@@ -132,35 +134,40 @@ class CompanyInvitationRepository {
       if (id.isNotEmpty) objects[id] = row;
     }
 
-    return rows.map<CompanyInvitation>((row) {
-      final userId = row['invited_user_id']?.toString() ?? '';
-      final objectId = row['object_id']?.toString() ?? '';
-      final profile = profiles[userId] ?? const <String, dynamic>{};
-      final object = objects[objectId] ?? const <String, dynamic>{};
-      final email = row['email']?.toString() ?? '';
-      final fallbackName = email.contains('@') ? email.split('@').first : email;
+    return rows
+        .map<CompanyInvitation>((row) {
+          final userId = row['invited_user_id']?.toString() ?? '';
+          final objectId = row['object_id']?.toString() ?? '';
+          final profile = profiles[userId] ?? const <String, dynamic>{};
+          final object = objects[objectId] ?? const <String, dynamic>{};
+          final email = row['email']?.toString() ?? '';
+          final fallbackName = email.contains('@')
+              ? email.split('@').first
+              : email;
 
-      return CompanyInvitation(
-        id: row['id']?.toString() ?? '',
-        companyId: row['company_id']?.toString() ?? companyId,
-        email: email,
-        fullName: profile['full_name']?.toString().trim().isNotEmpty == true
-            ? profile['full_name'].toString().trim()
-            : fallbackName,
-        role: row['role']?.toString() ?? 'foreman',
-        objectId: objectId,
-        objectName: object['name']?.toString() ?? '',
-        status: row['status']?.toString() ?? 'pending',
-        expiresAt: date(
-          row['expires_at'],
-          fallback: DateTime.now().add(const Duration(days: 7)),
-        ),
-        acceptedAt: row['accepted_at'] == null
-            ? null
-            : date(row['accepted_at']),
-        createdAt: date(row['created_at']),
-      );
-    }).where((item) => item.id.isNotEmpty).toList();
+          return CompanyInvitation(
+            id: row['id']?.toString() ?? '',
+            companyId: row['company_id']?.toString() ?? companyId,
+            email: email,
+            fullName: profile['full_name']?.toString().trim().isNotEmpty == true
+                ? profile['full_name'].toString().trim()
+                : fallbackName,
+            role: row['role']?.toString() ?? 'foreman',
+            objectId: objectId,
+            objectName: object['name']?.toString() ?? '',
+            status: row['status']?.toString() ?? 'pending',
+            expiresAt: date(
+              row['expires_at'],
+              fallback: DateTime.now().add(const Duration(days: 7)),
+            ),
+            acceptedAt: row['accepted_at'] == null
+                ? null
+                : date(row['accepted_at']),
+            createdAt: date(row['created_at']),
+          );
+        })
+        .where((item) => item.id.isNotEmpty)
+        .toList();
   }
 
   static Future<void> revokeInvitation({

@@ -10,6 +10,7 @@ import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
+import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../models/app_user_profile.dart';
@@ -113,6 +114,9 @@ class _MainScreenState extends State<MainScreen> {
     if (profile.isAccountant) {
       return AccountingMainScreen(profile: profile);
     }
+    if (profile.isHr) {
+      return RecruitmentMainScreen(profile: profile);
+    }
     if (profile.isForeman) {
       return ForemanMainScreen(profile: profile);
     }
@@ -183,9 +187,7 @@ class _RolePreviewFrame extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
               decoration: const BoxDecoration(
                 color: Color(0xFF1F2328),
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFF353A40)),
-                ),
+                border: Border(bottom: BorderSide(color: Color(0xFF353A40))),
               ),
               child: Row(
                 children: [

@@ -1,0 +1,15 @@
+drop policy if exists recruitment_applications_insert_admin on public.recruitment_applications;
+drop policy if exists recruitment_applications_update_admin on public.recruitment_applications;
+drop policy if exists recruitment_applications_delete_admin on public.recruitment_applications;
+
+drop policy if exists recruitment_documents_insert_admin on public.recruitment_documents;
+drop policy if exists recruitment_documents_update_admin on public.recruitment_documents;
+drop policy if exists recruitment_documents_delete_admin on public.recruitment_documents;
+
+drop policy if exists recruitment_status_history_insert_admin on public.recruitment_status_history;
+drop policy if exists recruitment_status_history_update_admin on public.recruitment_status_history;
+drop policy if exists recruitment_status_history_delete_admin on public.recruitment_status_history;
+
+drop policy if exists recruitment_vacancies_insert_admin on public.recruitment_vacancies;
+drop policy if exists recruitment_vacancies_update_admin on public.recruitment_vacancies;
+drop policy if exists recruitment_vacancies_delete_admin on public.recruitment_vacancies;

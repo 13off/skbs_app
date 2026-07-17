@@ -96,7 +96,7 @@ Deno.serve(async (request: Request) => {
     const fullName = String(input.full_name ?? "").trim();
     const role = String(input.role ?? "foreman").trim();
     const objectId = String(input.object_id ?? "").trim();
-    const allowedRoles = new Set(["admin", "foreman", "lawyer", "accountant"]);
+    const allowedRoles = new Set(["admin", "foreman", "lawyer", "accountant", "hr"]);
 
     if (!companyId || !email || !email.includes("@")) {
       return json({ error: "Укажите компанию и корректный email" }, 400);

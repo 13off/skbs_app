@@ -12,6 +12,7 @@ enum AppDataDomain {
   notifications,
   company,
   legal,
+  recruitment,
 }
 
 class AppDataChange {
@@ -84,10 +85,7 @@ class AppDataSync {
     );
 
     channel
-        .onBroadcast(
-          event: 'app_data_changed',
-          callback: _handleRemotePayload,
-        )
+        .onBroadcast(event: 'app_data_changed', callback: _handleRemotePayload)
         .subscribe((status, _) {
           if (status != RealtimeSubscribeStatus.subscribed) return;
           if (_hasSubscribedOnce) _refreshAfterReconnect();
@@ -147,6 +145,7 @@ class AppDataSync {
         AppDataDomain.objects,
         AppDataDomain.notifications,
         AppDataDomain.legal,
+        AppDataDomain.recruitment,
       },
       context: <String, dynamic>{'source': source},
       isRemote: true,
@@ -188,6 +187,7 @@ class AppDataSync {
           AppDataDomain.payments,
           AppDataDomain.tasks,
           AppDataDomain.legal,
+          AppDataDomain.recruitment,
         };
       case 'app_notifications':
         return const <AppDataDomain>{AppDataDomain.notifications};
@@ -204,6 +204,11 @@ class AppDataSync {
       case 'app_files':
       case 'audit_log':
         return const <AppDataDomain>{AppDataDomain.legal};
+      case 'recruitment_applications':
+      case 'recruitment_documents':
+      case 'recruitment_status_history':
+      case 'recruitment_vacancies':
+        return const <AppDataDomain>{AppDataDomain.recruitment};
       default:
         return const <AppDataDomain>{};
     }
