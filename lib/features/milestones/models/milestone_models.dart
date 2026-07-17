@@ -39,22 +39,35 @@ class MilestoneChecklistItem {
 
   int get doneTaskCount => tasks.where((task) => task.isDone).length;
 
-  double get completionFraction {
+  int? get encodedProgressPercent {
+    final match = RegExp(r'^progress_(\d{1,3})$').firstMatch(state);
+    final value = int.tryParse(match?.group(1) ?? '');
+    return value?.clamp(0, 100);
+  }
+
+  int get progressPercent {
+    final encoded = encodedProgressPercent;
+    if (encoded != null) return encoded;
     if (state == 'blocked') return 0;
-    if (state == 'done') return 1;
-    if (tasks.isNotEmpty && doneTaskCount == tasks.length) return 1;
-    if (state == 'in_progress' || tasks.isNotEmpty) return 0.5;
+    if (state == 'done') return 100;
+
+    // Совместимость со старыми целями, созданными до накопительного прогресса.
+    if (tasks.isNotEmpty && doneTaskCount == tasks.length) return 100;
+    if (state == 'in_progress' || tasks.isNotEmpty) return 50;
     return 0;
   }
 
-  bool get isEffectivelyDone => completionFraction >= 1;
+  int get remainingProgressPercent => (100 - progressPercent).clamp(0, 100);
+  double get completionFraction => progressPercent / 100;
+  bool get isEffectivelyDone => progressPercent >= 100;
   bool get isBlocked => state == 'blocked';
 
   String get stateTitle {
     if (isBlocked) return 'Заблокировано';
-    if (isEffectivelyDone) return 'Готово';
-    if (completionFraction > 0) return 'В работе';
-    return 'Не начато';
+    if (isEffectivelyDone) return 'Готово · 100%';
+    if (progressPercent > 0) return 'В работе · $progressPercent%';
+    if (state == 'in_progress') return 'В работе · 0%';
+    return 'Не начато · 0%';
   }
 
   MilestoneChecklistItem copyWith({
