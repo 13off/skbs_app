@@ -42,6 +42,8 @@ class RecruitmentApplication {
   });
 
   bool get isArchived => archivedAt != null;
+  bool get canMessageInTelegram =>
+      source == 'telegram' && sourceChatId.trim().isNotEmpty;
 
   String get sourceTitle {
     switch (source) {
@@ -100,6 +102,132 @@ class RecruitmentApplication {
       createdAt: createdAt,
       updatedAt: parseDate(map['updated_at'], fallback: createdAt),
     );
+  }
+}
+
+class RecruitmentDocument {
+  final String id;
+  final String applicationId;
+  final String documentType;
+  final String storageBucket;
+  final String storagePath;
+  final String originalName;
+  final String mimeType;
+  final int? sizeBytes;
+  final bool isTestCopy;
+  final DateTime createdAt;
+
+  const RecruitmentDocument({
+    required this.id,
+    required this.applicationId,
+    required this.documentType,
+    required this.storageBucket,
+    required this.storagePath,
+    required this.originalName,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.isTestCopy,
+    required this.createdAt,
+  });
+
+  bool get isStored =>
+      storageBucket == 'recruitment-documents' &&
+      storagePath.isNotEmpty &&
+      !storagePath.startsWith('telegram://');
+
+  String get title => recruitmentDocumentTitle(documentType);
+  bool get isImage => mimeType.startsWith('image/');
+
+  factory RecruitmentDocument.fromMap(Map<String, dynamic> map) {
+    return RecruitmentDocument(
+      id: map['id']?.toString() ?? '',
+      applicationId: map['application_id']?.toString() ?? '',
+      documentType: map['document_type']?.toString() ?? 'other',
+      storageBucket: map['storage_bucket']?.toString() ?? '',
+      storagePath: map['storage_path']?.toString() ?? '',
+      originalName: map['original_name']?.toString() ?? '',
+      mimeType: map['mime_type']?.toString() ?? 'application/octet-stream',
+      sizeBytes: switch (map['size_bytes']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => int.tryParse(map['size_bytes']?.toString() ?? ''),
+      },
+      isTestCopy: map['is_test_copy'] == true,
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
+    );
+  }
+}
+
+class RecruitmentMessage {
+  final String id;
+  final String applicationId;
+  final String direction;
+  final String text;
+  final String storageBucket;
+  final String storagePath;
+  final String originalName;
+  final String mimeType;
+  final int? sizeBytes;
+  final DateTime createdAt;
+
+  const RecruitmentMessage({
+    required this.id,
+    required this.applicationId,
+    required this.direction,
+    required this.text,
+    required this.storageBucket,
+    required this.storagePath,
+    required this.originalName,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.createdAt,
+  });
+
+  bool get isInbound => direction == 'inbound';
+  bool get hasAttachment => storagePath.isNotEmpty;
+  bool get isStoredAttachment =>
+      storageBucket == 'recruitment-documents' &&
+      storagePath.isNotEmpty &&
+      !storagePath.startsWith('telegram://');
+
+  factory RecruitmentMessage.fromMap(Map<String, dynamic> map) {
+    return RecruitmentMessage(
+      id: map['id']?.toString() ?? '',
+      applicationId: map['application_id']?.toString() ?? '',
+      direction: map['direction']?.toString() ?? 'system',
+      text: map['message_text']?.toString() ?? '',
+      storageBucket: map['storage_bucket']?.toString() ?? '',
+      storagePath: map['storage_path']?.toString() ?? '',
+      originalName: map['original_name']?.toString() ?? '',
+      mimeType: map['mime_type']?.toString() ?? '',
+      sizeBytes: switch (map['size_bytes']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => int.tryParse(map['size_bytes']?.toString() ?? ''),
+      },
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
+    );
+  }
+}
+
+String recruitmentDocumentTitle(String type) {
+  switch (type) {
+    case 'passport_main':
+      return 'Паспорт — разворот с фотографией';
+    case 'registration':
+      return 'Паспорт — регистрация';
+    case 'snils':
+      return 'СНИЛС';
+    case 'inn':
+      return 'ИНН';
+    case 'policy':
+      return 'Медицинский полис';
+    default:
+      return 'Другой документ';
   }
 }
 
