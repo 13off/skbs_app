@@ -18,32 +18,19 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Apply compact document list
-        run: python3 tool/apply_recruitment_document_list.py
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Format and verify
+      - name: Diagnose compact document list patch
         shell: bash
         run: |
-          dart format \
-            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart \
-            test/recruitment_documents_chat_contract_test.dart
-          flutter pub get --enforce-lockfile
-          flutter test
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter build web --release --base-href /appstroy-web/
+          set +e
+          python3 tool/apply_recruitment_document_list.py > patch-error.log 2>&1
+          echo "$?" > patch-error.status
+          exit 0
 
-      - name: Commit checked changes
+      - name: Commit diagnostic
         shell: bash
         run: |
-          rm tool/apply_recruitment_document_list.py
-          rm .github/workflows/apply-recruitment-document-list.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Сделать компактный список документов кандидата"
+          git add patch-error.log patch-error.status
+          git commit -m "Сохранить ошибку патча документов"
           git push origin HEAD:feature/recruitment-document-list
