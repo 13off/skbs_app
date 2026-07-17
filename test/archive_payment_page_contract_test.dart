@@ -32,13 +32,17 @@ void main() {
     expect(payment, contains('selectedEmployeeId = null'));
   });
 
-  test('main employee and timesheet pages share task profile header', () {
+  test('home stays compact while work pages share the profile header', () {
     final appPage = source('lib/widgets/app_page.dart');
     expect(appPage, contains('class AppPageHeader'));
     expect(appPage, contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ'));
 
+    final home = source('lib/screens/home_screen.dart');
+    expect(home, contains("'Главная'"));
+    expect(home, contains('MilestoneHomeSection('));
+    expect(home, isNot(contains("subtitle: 'Рабочая сводка")));
+
     for (final path in <String>[
-      'lib/screens/home_screen.dart',
       'lib/screens/employees_screen.dart',
       'lib/screens/timesheet_screen.dart',
       'lib/screens/tasks_screen.dart',
