@@ -19,6 +19,7 @@ void main() {
 
     expect(desktop, contains('showPhone: widget.profile.isForeman'));
     expect(desktop, contains('final bool showPhone;'));
+    expect(desktop, contains('required this.showPhone'));
     expect(desktop, contains('employee.phone.trim()'));
     expect(desktop, contains("join(' • ')"));
     expect(desktop, contains('employee.phone.toLowerCase().contains(query)'));
