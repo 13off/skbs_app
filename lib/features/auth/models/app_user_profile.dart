@@ -23,6 +23,7 @@ class AppUserProfile {
   bool get isForeman => role == 'foreman';
   bool get isLawyer => role == 'lawyer';
   bool get isAccountant => role == 'accountant';
+  bool get isHr => role == 'hr';
 
   bool get isRolePreview => role != actualRole;
   bool get canPreviewRoles => actualRole == 'admin';
@@ -40,6 +41,8 @@ class AppUserProfile {
         return 'Юрист';
       case 'accountant':
         return 'Бухгалтер';
+      case 'hr':
+        return 'HR-менеджер';
       default:
         return role;
     }
