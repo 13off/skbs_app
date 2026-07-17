@@ -20,6 +20,12 @@ void main() {
     expect(detail, contains('Widget conversationSection()'));
     expect(detail, contains('sendCandidateMessage'));
     expect(detail, contains('createSignedFileUrl'));
+    expect(detail, contains('height: 470'));
+    expect(detail, contains('ListView.builder('));
+    expect(detail, contains('messageScrollController'));
+    expect(detail, contains('scrollMessagesToBottom'));
+    expect(detail, contains('downloadMessageAttachment'));
+    expect(detail, contains("label: const Text('Скачать')"));
     expect(detail, contains("label: const Text('Позвонить')"));
     expect(applications, contains('RecruitmentApplicationDetailScreen'));
   });
@@ -40,6 +46,8 @@ void main() {
     expect(detail, contains('class _RecruitmentImageViewer'));
     expect(detail, contains('InteractiveViewer('));
     expect(detail, contains('Image.memory('));
+    expect(detail, contains("tooltip: 'Назад'"));
+    expect(detail, contains('Icons.arrow_back_rounded'));
     expect(detail, contains('downloadStoredFile'));
     expect(detail, contains("label: const Text('Открыть')"));
     expect(detail, contains("label: const Text('Скачать')"));
