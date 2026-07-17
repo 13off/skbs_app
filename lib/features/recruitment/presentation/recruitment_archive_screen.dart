@@ -17,10 +17,7 @@ const Color _archiveSoft = Color(0xFFF1F2F4);
 class RecruitmentArchiveScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const RecruitmentArchiveScreen({
-    super.key,
-    required this.profile,
-  });
+  const RecruitmentArchiveScreen({super.key, required this.profile});
 
   @override
   State<RecruitmentArchiveScreen> createState() =>
@@ -104,7 +101,9 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${application.fullName} восстановлен из архива')),
+        SnackBar(
+          content: Text('${application.fullName} восстановлен из архива'),
+        ),
       );
       await refresh();
     } catch (error) {

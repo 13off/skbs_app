@@ -32,10 +32,7 @@ void main() {
     );
 
     expect(repository, contains('bool archived = false'));
-    expect(
-      repository,
-      contains('item.isArchived == archived'),
-    );
+    expect(repository, contains('item.isArchived == archived'));
     expect(repository, contains('archiveApplication'));
     expect(repository, contains('restoreApplication'));
     expect(repository, contains('deleteApplication'));
@@ -67,7 +64,9 @@ void main() {
     expect(migration, contains('archived_at is not null'));
     expect(
       migration,
-      contains("current_user_has_permission('recruitment.applications.delete')"),
+      contains(
+        "current_user_has_permission('recruitment.applications.delete')",
+      ),
     );
   });
 }

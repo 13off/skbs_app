@@ -36,7 +36,7 @@ class RecruitmentApplication {
     required this.departureDate,
     required this.status,
     required this.comment,
-    required this.archivedAt,
+    this.archivedAt,
     required this.createdAt,
     required this.updatedAt,
   });

@@ -8,6 +8,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
+import 'recruitment_archive_screen.dart';
 
 const Color _text = Color(0xFF1F2328);
 const Color _muted = Color(0xFF6B7075);
@@ -28,6 +29,7 @@ class _RecruitmentApplicationsScreenState
   final TextEditingController searchController = TextEditingController();
   late Future<List<RecruitmentApplication>> future;
   StreamSubscription<AppDataChange>? changesSubscription;
+  final Set<String> archiveBusyIds = <String>{};
   String status = 'all';
 
   @override
@@ -126,6 +128,44 @@ class _RecruitmentApplicationsScreenState
     if (saved == true && mounted) await refresh();
   }
 
+  Future<void> openArchive() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => RecruitmentArchiveScreen(profile: widget.profile),
+      ),
+    );
+    if (mounted) await refresh();
+  }
+
+  Future<void> archiveApplication(RecruitmentApplication application) async {
+    if (archiveBusyIds.contains(application.id)) return;
+    setState(() => archiveBusyIds.add(application.id));
+    try {
+      await RecruitmentRepository.archiveApplication(
+        companyId: widget.profile.activeCompanyId,
+        applicationId: application.id,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${application.fullName} перемещён в архив'),
+          action: SnackBarAction(
+            label: 'Открыть архив',
+            onPressed: openArchive,
+          ),
+        ),
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось архивировать заявку: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => archiveBusyIds.remove(application.id));
+    }
+  }
+
   Future<void> changeStatus(
     RecruitmentApplication application,
     String nextStatus,
@@ -220,13 +260,35 @@ class _RecruitmentApplicationsScreenState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    formatDate(application.createdAt),
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formatDate(application.createdAt),
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      IconButton(
+                        tooltip: 'В архив',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: archiveBusyIds.contains(application.id)
+                            ? null
+                            : () => archiveApplication(application),
+                        icon: archiveBusyIds.contains(application.id)
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.inventory_2_outlined),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -285,10 +347,21 @@ class _RecruitmentApplicationsScreenState
     return AppPage(
       title: 'Заявки',
       subtitle: '',
-      headerTrailing: IconButton.filledTonal(
-        tooltip: 'Добавить кандидата',
-        onPressed: openEditor,
-        icon: const Icon(Icons.add_rounded),
+      headerTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton.filledTonal(
+            tooltip: 'Архив заявок',
+            onPressed: openArchive,
+            icon: const Icon(Icons.inventory_2_outlined),
+          ),
+          const SizedBox(width: 8),
+          IconButton.filledTonal(
+            tooltip: 'Добавить кандидата',
+            onPressed: openEditor,
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
       ),
       child: FutureBuilder<List<RecruitmentApplication>>(
         future: future,
@@ -352,7 +425,7 @@ class _RecruitmentApplicationsScreenState
                       ? 'Заявок пока нет'
                       : 'Ничего не найдено',
                   text: applications.isEmpty
-                      ? 'Добавьте кандидата вручную. Следующим этапом сюда подключится Telegram-бот.'
+                      ? 'Добавьте кандидата вручную или дождитесь новой заявки из Telegram-бота.'
                       : 'Измените поиск или выбранный этап.',
                   action: applications.isEmpty ? openEditor : null,
                 )

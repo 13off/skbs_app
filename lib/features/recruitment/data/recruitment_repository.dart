@@ -270,8 +270,7 @@ abstract final class RecruitmentRepository {
         .from('recruitment_applications')
         .delete()
         .eq('company_id', companyId.trim())
-        .eq('id', cleanApplicationId)
-        .not('archived_at', 'is', null);
+        .eq('id', cleanApplicationId);
     _notify(cleanApplicationId);
   }
 }
