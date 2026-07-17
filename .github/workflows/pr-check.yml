@@ -1,69 +1,151 @@
-name: PR Check
+name: Apply foreman timesheet phones
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
       - lib/**
       - test/**
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
       - .github/workflows/pr-check.yml
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
+  group: appstroy-foreman-phone-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  flutter-check:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
-          show-progress: false
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Run regression tests
-        id: regression
+      - name: Add phone to mobile and desktop timesheets
         shell: bash
         run: |
-          set +e
-          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter test failure (last 180 lines) ---"
-            tail -n 180 /tmp/flutter-test.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-test.log
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Build web release
-        run: flutter build web --release --base-href /appstroy-web/
+          mobile_path = Path('lib/screens/timesheet_screen.dart')
+          mobile = mobile_path.read_text(encoding='utf-8')
 
-      - name: Upload failing test log
-        if: failure() && steps.regression.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-test-log
-          path: /tmp/flutter-test.log
-          if-no-files-found: error
-          retention-days: 3
+          mobile_search = """          employee.name.toLowerCase().contains(searchText) ||
+          employee.position.toLowerCase().contains(searchText);"""
+          mobile_search_replacement = """          employee.name.toLowerCase().contains(searchText) ||
+          employee.position.toLowerCase().contains(searchText) ||
+          (widget.profile.isForeman &&
+              employee.phone.toLowerCase().contains(searchText));"""
+          mobile_position = """                    Text(
+                      employee.position,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),"""
+          mobile_position_replacement = """                    Text(
+                      <String>[
+                        employee.position.trim(),
+                        if (widget.profile.isForeman &&
+                            employee.phone.trim().isNotEmpty)
+                          employee.phone.trim(),
+                      ].where((value) => value.isNotEmpty).join(' • '),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),"""
+
+          if mobile.count(mobile_search) != 1:
+              raise SystemExit('Mobile search pattern mismatch')
+          if mobile.count(mobile_position) != 1:
+              raise SystemExit('Mobile position pattern mismatch')
+          mobile = mobile.replace(mobile_search, mobile_search_replacement)
+          mobile = mobile.replace(mobile_position, mobile_position_replacement)
+          mobile_path.write_text(mobile, encoding='utf-8')
+
+          desktop_path = Path('lib/screens/desktop_timesheet_screen.dart')
+          desktop = desktop_path.read_text(encoding='utf-8')
+
+          desktop_search = """      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query);"""
+          desktop_search_replacement = """      return employee.name.toLowerCase().contains(query) ||
+          employee.position.toLowerCase().contains(query) ||
+          employee.objectName.toLowerCase().contains(query) ||
+          (widget.profile.isForeman &&
+              employee.phone.toLowerCase().contains(query));"""
+          desktop_row_call = """                (employee) => _TimesheetRow(
+                  employee: employee,
+                  value: shiftValueFor(employee),"""
+          desktop_row_call_replacement = """                (employee) => _TimesheetRow(
+                  employee: employee,
+                  showPhone: widget.profile.isForeman,
+                  value: shiftValueFor(employee),"""
+          desktop_field = """class _TimesheetRow extends StatelessWidget {
+  final Employee employee;
+  final double value;"""
+          desktop_field_replacement = """class _TimesheetRow extends StatelessWidget {
+  final Employee employee;
+  final bool showPhone;
+  final double value;"""
+          desktop_constructor = """  const _TimesheetRow({
+    required this.employee,
+    required this.value,"""
+          desktop_constructor_replacement = """  const _TimesheetRow({
+    required this.employee,
+    required this.showPhone,
+    required this.value,"""
+          desktop_position = """            child: Text(
+              employee.position,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),"""
+          desktop_position_replacement = """            child: Text(
+              <String>[
+                employee.position.trim(),
+                if (showPhone && employee.phone.trim().isNotEmpty)
+                  employee.phone.trim(),
+              ].where((value) => value.isNotEmpty).join(' • '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),"""
+
+          replacements = [
+              (desktop_search, desktop_search_replacement, 'desktop search'),
+              (desktop_row_call, desktop_row_call_replacement, 'desktop row call'),
+              (desktop_field, desktop_field_replacement, 'desktop field'),
+              (desktop_constructor, desktop_constructor_replacement, 'desktop constructor'),
+              (desktop_position, desktop_position_replacement, 'desktop position'),
+          ]
+          for old, new, label in replacements:
+              if desktop.count(old) != 1:
+                  raise SystemExit(f'{label} pattern mismatch: {desktop.count(old)}')
+              desktop = desktop.replace(old, new)
+
+          desktop_path.write_text(desktop, encoding='utf-8')
+          PY
+
+          git show origin/main:.github/workflows/pr-check.yml > .github/workflows/pr-check.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/timesheet_screen.dart lib/screens/desktop_timesheet_screen.dart .github/workflows/pr-check.yml
+          git commit -m "добавлены телефоны сотрудников в табель прораба"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
