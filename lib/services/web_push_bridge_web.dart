@@ -1,6 +1,18 @@
 import 'dart:convert';
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+
+@JS('window')
+external JSObject get _window;
+
+@JS('navigator')
+external JSObject get _navigator;
+
+@JS('Notification')
+external JSObject get _notification;
+
+@JS('Uint8Array')
+external JSFunction get _uint8ArrayConstructor;
 
 class WebPushBridge {
   WebPushBridge._();
@@ -9,36 +21,42 @@ class WebPushBridge {
   static const String _workerScope = 'push-scope/';
   static const String _publicKeyEndpoint = 'appstroy-push-config.json';
 
-  static bool get _hasServiceWorker =>
-      js_util.hasProperty(html.window.navigator, 'serviceWorker');
+  static bool get _hasServiceWorker => _navigator.has('serviceWorker');
+  static bool get _hasPushManager => _window.has('PushManager');
+  static bool get _hasNotification => _window.has('Notification');
 
-  static bool get _hasPushManager =>
-      js_util.hasProperty(html.window, 'PushManager');
-
-  static bool get _hasNotification =>
-      js_util.hasProperty(html.window, 'Notification');
-
-  static bool get isSupported =>
-      html.window.isSecureContext == true &&
-      _hasServiceWorker &&
-      _hasPushManager &&
-      _hasNotification;
+  static bool get isSupported {
+    final secure = _window.has('isSecureContext') &&
+        _window
+            .getProperty<JSBoolean>('isSecureContext'.toJS)
+            .toDart;
+    return secure &&
+        _hasServiceWorker &&
+        _hasPushManager &&
+        _hasNotification;
+  }
 
   static bool get isStandalone {
-    final mediaStandalone =
-        html.window.matchMedia('(display-mode: standalone)').matches;
-    final navigatorStandalone =
-        js_util.getProperty<Object?>(html.window.navigator, 'standalone') == true;
+    final media = _window.callMethod<JSObject>(
+      'matchMedia'.toJS,
+      '(display-mode: standalone)'.toJS,
+    );
+    final mediaStandalone = media.getProperty<JSBoolean>('matches'.toJS).toDart;
+    final navigatorStandalone = _navigator.has('standalone') &&
+        _navigator.getProperty<JSBoolean>('standalone'.toJS).toDart;
     return mediaStandalone || navigatorStandalone;
   }
 
   static String get permission {
     if (!_hasNotification) return 'unsupported';
-    return html.Notification.permission ?? 'default';
+    return _notification.getProperty<JSString>('permission'.toJS).toDart;
   }
 
+  static String get _userAgent =>
+      _navigator.getProperty<JSString>('userAgent'.toJS).toDart;
+
   static bool get _isAppleMobile {
-    final userAgent = html.window.navigator.userAgent.toLowerCase();
+    final userAgent = _userAgent.toLowerCase();
     return userAgent.contains('iphone') || userAgent.contains('ipad');
   }
 
@@ -49,58 +67,64 @@ class WebPushBridge {
         'requires_home_screen': _isAppleMobile && !isStandalone,
       };
 
-  static Future<html.ServiceWorkerRegistration> _registration() async {
+  static Future<JSObject> _registration() async {
     if (!isSupported) {
       throw UnsupportedError('Стандартный Web Push не поддерживается');
     }
-    final container = html.window.navigator.serviceWorker;
-    if (container == null) {
-      throw UnsupportedError('Service Worker недоступен');
-    }
-    return container.register(_workerPath, scope: _workerScope);
-  }
-
-  static Future<Object?> _currentSubscription(
-    html.ServiceWorkerRegistration registration,
-  ) async {
-    final pushManager = js_util.getProperty<Object>(registration, 'pushManager');
-    final promise = js_util.callMethod<Object>(
-      pushManager,
-      'getSubscription',
-      const <Object>[],
+    final container = _navigator.getProperty<JSObject>('serviceWorker'.toJS);
+    final options = JSObject()..setProperty('scope'.toJS, _workerScope.toJS);
+    final promise = container.callMethod<JSPromise<JSObject>>(
+      'register'.toJS,
+      _workerPath.toJS,
+      options,
     );
-    return js_util.promiseToFuture<Object?>(promise);
+    return promise.toDart;
   }
 
-  static Map<String, dynamic> _subscriptionMap(Object subscription) {
-    final jsonValue = js_util.callMethod<Object>(
-      subscription,
-      'toJSON',
-      const <Object>[],
+  static Future<JSObject?> _currentSubscription(JSObject registration) async {
+    final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
+    final promise = pushManager.callMethod<JSPromise<JSAny?>>(
+      'getSubscription'.toJS,
     );
-    final dartValue = js_util.dartify(jsonValue);
-    if (dartValue is Map) {
-      return Map<String, dynamic>.from(dartValue);
-    }
-    return const <String, dynamic>{};
+    final value = await promise.toDart;
+    return value == null ? null : value as JSObject;
   }
 
-  static Object _applicationServerKey(String publicKey) {
+  static Map<String, dynamic> _subscriptionMap(JSObject subscription) {
+    final jsonValue = subscription.callMethod<JSObject>('toJSON'.toJS);
+    final keys = jsonValue.getProperty<JSObject>('keys'.toJS);
+    return <String, dynamic>{
+      'endpoint': jsonValue.getProperty<JSString>('endpoint'.toJS).toDart,
+      'expirationTime': null,
+      'keys': <String, dynamic>{
+        'p256dh': keys.getProperty<JSString>('p256dh'.toJS).toDart,
+        'auth': keys.getProperty<JSString>('auth'.toJS).toDart,
+      },
+    };
+  }
+
+  static JSObject _applicationServerKey(String publicKey) {
     final normalized = publicKey.padRight(
       publicKey.length + ((4 - publicKey.length % 4) % 4),
       '=',
     );
     final bytes = base64Url.decode(normalized);
-    final constructor = js_util.getProperty<Object>(html.window, 'Uint8Array');
-    return js_util.callConstructor<Object>(constructor, <Object>[bytes.toList()]);
+    final values = bytes.map((value) => value.toJS).toList().toJS;
+    return _uint8ArrayConstructor.callAsConstructor<JSObject>(values);
   }
 
   static Future<String> _resolvePublicKey(String fallback) async {
     try {
-      final raw = await html.HttpRequest.getString(_publicKeyEndpoint);
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        final value = decoded['public_key']?.toString().trim() ?? '';
+      final fetchPromise = _window.callMethod<JSPromise<JSObject>>(
+        'fetch'.toJS,
+        _publicKeyEndpoint.toJS,
+        (JSObject()..setProperty('cache'.toJS, 'no-store'.toJS)),
+      );
+      final response = await fetchPromise.toDart;
+      final jsonPromise = response.callMethod<JSPromise<JSObject>>('json'.toJS);
+      final payload = await jsonPromise.toDart;
+      if (payload.has('public_key')) {
+        final value = payload.getProperty<JSString>('public_key'.toJS).toDart.trim();
         if (value.isNotEmpty) return value;
       }
     } catch (_) {
@@ -118,19 +142,24 @@ class WebPushBridge {
       ...status,
       'registered': subscription != null,
       if (subscription != null) 'subscription': _subscriptionMap(subscription),
-      'user_agent': html.window.navigator.userAgent,
+      'user_agent': _userAgent,
     };
   }
 
   static Future<Map<String, dynamic>> subscribe(String publicKey) async {
-    if (!isSupported) return <String, dynamic>{...status, 'status': 'unsupported'};
+    if (!isSupported) {
+      return <String, dynamic>{...status, 'status': 'unsupported'};
+    }
     if (_isAppleMobile && !isStandalone) {
       return <String, dynamic>{...status, 'status': 'needs_install'};
     }
 
     var currentPermission = permission;
     if (currentPermission == 'default') {
-      currentPermission = await html.Notification.requestPermission();
+      final promise = _notification.callMethod<JSPromise<JSString>>(
+        'requestPermission'.toJS,
+      );
+      currentPermission = (await promise.toDart).toDart;
     }
     if (currentPermission != 'granted') {
       return <String, dynamic>{
@@ -144,20 +173,18 @@ class WebPushBridge {
     var subscription = await _currentSubscription(registration);
     if (subscription == null) {
       final resolvedPublicKey = await _resolvePublicKey(publicKey);
-      final pushManager = js_util.getProperty<Object>(registration, 'pushManager');
-      final options = js_util.newObject();
-      js_util.setProperty(options, 'userVisibleOnly', true);
-      js_util.setProperty(
+      final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
+      final options = JSObject()
+        ..setProperty('userVisibleOnly'.toJS, true.toJS)
+        ..setProperty(
+          'applicationServerKey'.toJS,
+          _applicationServerKey(resolvedPublicKey),
+        );
+      final promise = pushManager.callMethod<JSPromise<JSObject>>(
+        'subscribe'.toJS,
         options,
-        'applicationServerKey',
-        _applicationServerKey(resolvedPublicKey),
       );
-      final promise = js_util.callMethod<Object>(
-        pushManager,
-        'subscribe',
-        <Object>[options],
-      );
-      subscription = await js_util.promiseToFuture<Object>(promise);
+      subscription = await promise.toDart;
     }
 
     return <String, dynamic>{
@@ -166,7 +193,7 @@ class WebPushBridge {
       'registered': true,
       'status': 'subscribed',
       'subscription': _subscriptionMap(subscription),
-      'user_agent': html.window.navigator.userAgent,
+      'user_agent': _userAgent,
     };
   }
 
@@ -175,12 +202,10 @@ class WebPushBridge {
     final registration = await _registration();
     final subscription = await _currentSubscription(registration);
     if (subscription != null) {
-      final promise = js_util.callMethod<Object>(
-        subscription,
-        'unsubscribe',
-        const <Object>[],
+      final promise = subscription.callMethod<JSPromise<JSBoolean>>(
+        'unsubscribe'.toJS,
       );
-      await js_util.promiseToFuture<Object?>(promise);
+      await promise.toDart;
     }
     return <String, dynamic>{...status, 'registered': false};
   }
