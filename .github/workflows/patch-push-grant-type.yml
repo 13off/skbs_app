@@ -1,0 +1,37 @@
+name: Patch push grant type
+
+on:
+  push:
+    branches:
+      - feature/ios-pwa-web-push
+    paths:
+      - .github/workflows/patch-push-grant-type.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/ios-pwa-web-push
+      - name: Fix OAuth grant type
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/functions/dispatch-push-job/index.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '.replace("oauth-type", "oauth-grant-type")'
+          new = '.replace("oauth-type", "oauth:grant-type")'
+          if old not in text:
+              raise SystemExit('target string not found')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/dispatch-push-job/index.ts
+          git commit -m "Исправить OAuth grant type для Firebase push"
+          git push
