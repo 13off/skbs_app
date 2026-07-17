@@ -1,0 +1,50 @@
+name: Apply local document ZIP
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-check:
+    if: github.head_ref == 'feature/recruitment-document-list' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply local ZIP
+        run: python3 tool/apply_local_document_zip.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and verify
+        shell: bash
+        run: |
+          dart format \
+            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart \
+            lib/features/recruitment/data/recruitment_repository.dart \
+            test/recruitment_documents_chat_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit checked changes
+        shell: bash
+        run: |
+          rm tool/apply_local_document_zip.py
+          rm .github/workflows/apply-local-document-zip.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Собирать ZIP документов локально"
+          git push origin HEAD:feature/recruitment-document-list
