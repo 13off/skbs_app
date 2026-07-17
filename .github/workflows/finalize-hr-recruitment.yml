@@ -1,0 +1,50 @@
+name: Finalize HR recruitment
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.head_ref == 'feature/hr-recruitment-mvp' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply final HR patch
+        run: python3 tool/finalize_hr_recruitment.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Verify
+        shell: bash
+        run: |
+          dart format \
+            lib/features/recruitment \
+            lib/data/app_data_sync.dart \
+            test/recruitment_mvp_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit final HR changes
+        shell: bash
+        run: |
+          rm tool/finalize_hr_recruitment.py
+          rm .github/workflows/finalize-hr-recruitment.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Связать HR-интерфейс с заявками Telegram-бота"
+          git push origin HEAD:feature/hr-recruitment-mvp
