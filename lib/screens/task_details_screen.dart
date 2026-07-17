@@ -63,16 +63,18 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       try {
         final linked = _isLinked(result);
         if (result.status == 'Выполнено' && linked) {
-          final context = await TaskProgressRepository.fetchContext(
+          final progressContext = await TaskProgressRepository.fetchContext(
             taskId: result.id!,
             checklistItemId: result.checklistItemId!,
           );
           if (!mounted) return;
 
           final selectedPercent = await showDialog<int>(
-            context: this.context,
+            context: context,
             barrierDismissible: false,
-            builder: (_) => _DailyProgressDialog(contextData: context),
+            builder: (_) => _DailyProgressDialog(
+              contextData: progressContext,
+            ),
           );
           if (!mounted) return;
 
@@ -135,10 +137,9 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
   @override
   void initState() {
     super.initState();
-    selectedPercent = widget.contextData.ownProgressPercent.clamp(
-      0,
-      widget.contextData.maxAllowedPercent,
-    );
+    selectedPercent = widget.contextData.ownProgressPercent
+        .clamp(0, widget.contextData.maxAllowedPercent)
+        .toInt();
   }
 
   int get maxAllowed => widget.contextData.maxAllowedPercent;
@@ -150,7 +151,8 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
     return (widget.contextData.itemProgressPercent -
             restoredOwn +
             selectedPercent)
-        .clamp(0, 100);
+        .clamp(0, 100)
+        .toInt();
   }
 
   void confirm() {
