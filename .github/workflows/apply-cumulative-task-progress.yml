@@ -1,13 +1,12 @@
-# trigger
 name: Apply cumulative task progress
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - feature/cumulative-task-progress
+      - main
     paths:
       - .github/workflows/apply-cumulative-task-progress.yml
+      - tool/apply_cumulative_task_progress.py
 
 permissions:
   contents: write
