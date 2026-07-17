@@ -1,0 +1,95 @@
+name: Finalize simple goals
+
+on:
+  push:
+    branches:
+      - feature/home-goals-first
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/home-goals-first
+          fetch-depth: 0
+
+      - name: Make every goal work equal
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              if old not in text:
+                  raise SystemExit(f'Pattern not found: {label}')
+              return text.replace(old, new, 1)
+
+          models_path = Path('lib/features/milestones/models/milestone_models.dart')
+          models = models_path.read_text(encoding='utf-8')
+          old_progress = "  int get totalWeight => items.fold<int>(0, (sum, item) => sum + item.weight);\n\n  double get progress {\n    final total = totalWeight;\n    if (total <= 0) return 0;\n    final completed = items.fold<double>(\n      0,\n      (sum, item) => sum + item.weight * item.completionFraction,\n    );\n    return (completed / total).clamp(0, 1).toDouble();\n  }\n"
+          new_progress = "  double get progress {\n    if (items.isEmpty) return 0;\n    final completed = items.fold<double>(\n      0,\n      (sum, item) => sum + item.completionFraction,\n    );\n    return (completed / items.length).clamp(0, 1).toDouble();\n  }\n"
+          models = replace_once(models, old_progress, new_progress, 'equal goal progress')
+          old_ready = "  List<MilestoneChecklistItem> get blockingItems => items\n      .where((item) => item.isCritical && !item.isEffectivelyDone)\n      .toList();\n\n  bool get isReady => items.isNotEmpty && blockingItems.isEmpty && progress >= 1;\n"
+          new_ready = "  List<MilestoneChecklistItem> get blockingItems =>\n      const <MilestoneChecklistItem>[];\n\n  bool get isReady =>\n      items.isNotEmpty && items.every((item) => item.isEffectivelyDone);\n"
+          models = replace_once(models, old_ready, new_ready, 'ignore critical items')
+          models_path.write_text(models, encoding='utf-8')
+
+          detail_path = Path(
+              'lib/features/milestones/presentation/milestone_detail_screen.dart'
+          )
+          detail = detail_path.read_text(encoding='utf-8')
+          detail = replace_once(
+              detail,
+              "'${item.stateTitle} · вес ${item.weight}% · '\n                      'задачи ${item.doneTaskCount}/${item.tasks.length}'",
+              "'${item.stateTitle} · '\n                      'задачи ${item.doneTaskCount}/${item.tasks.length}'",
+              'remove visible weight',
+          )
+          detail_path.write_text(detail, encoding='utf-8')
+
+          test_path = Path('test/key_milestones_contract_test.dart')
+          test = test_path.read_text(encoding='utf-8')
+          test = replace_once(
+              test,
+              "    expect(models, contains('item.weight * item.completionFraction'));\n",
+              "    expect(models, contains('completed / items.length'));\n    expect(models, isNot(contains('item.weight * item.completionFraction')));\n",
+              'equal progress contract',
+          )
+          test = replace_once(
+              test,
+              "    expect(detail, isNot(contains(\"const Text('Вес')\")));\n",
+              "    expect(detail, isNot(contains(\"const Text('Вес')\")));\n    expect(detail, isNot(contains('· вес ')));\n",
+              'hidden weight contract',
+          )
+          test_path.write_text(test, encoding='utf-8')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and test
+        shell: bash
+        run: |
+          dart format \
+            lib/features/milestones/models/milestone_models.dart \
+            lib/features/milestones/presentation/milestone_detail_screen.dart \
+            test/key_milestones_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter test test/key_milestones_contract_test.dart test/cumulative_task_progress_contract_test.dart test/milestone_act_progress_contract_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit result
+        shell: bash
+        run: |
+          rm .github/workflows/finalize-simple-goals.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Упростить расчёт целей без весов"
+          git push origin HEAD:feature/home-goals-first
