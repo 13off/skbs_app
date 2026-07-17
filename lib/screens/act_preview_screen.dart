@@ -120,6 +120,11 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
               const Divider(height: 1),
               const SizedBox(height: 12),
               Text(
+                'Выполнение за день: +${goalContext.taskProgressPercent}%',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
+              Text(
                 'Цель: ${goalContext.milestoneTitle} — '
                 '${goalContext.milestoneProgressPercent}%',
                 style: const TextStyle(fontWeight: FontWeight.w900),
@@ -161,7 +166,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
           const SizedBox(height: 14),
           Text(
             'В акт попадают выполненные задачи. Для связанных задач '
-            'добавляется готовность цели и пункта чек-листа.',
+            'добавляется дневной вклад, готовность цели и пункта чек-листа.',
             style: TextStyle(
               color: Colors.grey.shade700,
               fontSize: 16,
