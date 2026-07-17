@@ -42,7 +42,7 @@ void main() {
     expect(detail, contains("label: const Text('Скачать')"));
     expect(detail, contains("'Скачать все ZIP"));
     expect(detail, contains("return 'Паспорт';"));
-    expect(detail, contains("return '${prefix}_$suffix"));
+    expect(detail, contains(r"return '${prefix}_$suffix"));
     expect(repository, contains('createDownloadFileUrl'));
     expect(repository, contains('createDocumentsArchiveUrl'));
     expect(server, contains('documentFilePrefix'));
