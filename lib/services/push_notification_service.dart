@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/app_data_sync.dart';
+import 'web_push_bridge.dart';
 
 enum PushPermissionState {
   unknown,
@@ -125,6 +126,8 @@ class PushNotificationService {
 
   static const _deviceIdKey = 'appstroy_push_device_id';
   static const _enabledKey = 'appstroy_push_enabled';
+  static const _webPushPublicKey =
+      'BMozm-Z22RK4cHcHgiGd8JdbIiOPdRgpHdC7_wG7HpF4UvKCQ5vQmN4HbjXyE8SX2PVrsqfS31BnvY0I21h4CxY';
 
   static final ValueNotifier<PushNotificationSnapshot> state =
       ValueNotifier<PushNotificationSnapshot>(PushNotificationSnapshot.initial);
@@ -136,6 +139,8 @@ class PushNotificationService {
       <StreamSubscription<dynamic>>[];
 
   static SupabaseClient get _client => Supabase.instance.client;
+  static bool get _isConfigured =>
+      kIsWeb ? WebPushBridge.isSupported : FirebaseRuntimeConfiguration.isConfigured;
 
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -143,8 +148,34 @@ class PushNotificationService {
 
     final preferences = await SharedPreferences.getInstance();
     final enabled = preferences.getBool(_enabledKey) ?? true;
-    final options = FirebaseRuntimeConfiguration.options;
 
+    _subscriptions.add(
+      _client.auth.onAuthStateChange.listen((authState) {
+        if (authState.event == AuthChangeEvent.signedOut) {
+          _publish(
+            configured: _isConfigured,
+            enabled: enabled,
+            registered: false,
+            permission: state.value.permission,
+            message: 'Войдите, чтобы подключить push-уведомления',
+          );
+          return;
+        }
+        if (authState.event == AuthChangeEvent.signedIn ||
+            authState.event == AuthChangeEvent.tokenRefreshed ||
+            authState.event == AuthChangeEvent.userUpdated ||
+            authState.event == AuthChangeEvent.initialSession) {
+          unawaited(syncForCurrentSession());
+        }
+      }),
+    );
+
+    if (kIsWeb) {
+      await _initializeWebPush(enabled);
+      return;
+    }
+
+    final options = FirebaseRuntimeConfiguration.options;
     if (options == null) {
       _publish(
         configured: false,
@@ -183,26 +214,6 @@ class PushNotificationService {
           (token) => unawaited(_registerToken(token)),
         ),
       );
-      _subscriptions.add(
-        _client.auth.onAuthStateChange.listen((authState) {
-          if (authState.event == AuthChangeEvent.signedOut) {
-            _publish(
-              configured: true,
-              enabled: enabled,
-              registered: false,
-              permission: state.value.permission,
-              message: 'Войдите, чтобы подключить push-уведомления',
-            );
-            return;
-          }
-          if (authState.event == AuthChangeEvent.signedIn ||
-              authState.event == AuthChangeEvent.tokenRefreshed ||
-              authState.event == AuthChangeEvent.userUpdated ||
-              authState.event == AuthChangeEvent.initialSession) {
-            unawaited(syncForCurrentSession());
-          }
-        }),
-      );
 
       final settings = await FirebaseMessaging.instance
           .getNotificationSettings();
@@ -236,13 +247,72 @@ class PushNotificationService {
     }
   }
 
+  static Future<void> _initializeWebPush(bool enabled) async {
+    final browserStatus = WebPushBridge.status;
+    final permission = _mapWebPermission(
+      browserStatus['permission']?.toString() ?? 'default',
+    );
+    if (!WebPushBridge.isSupported) {
+      _publish(
+        configured: false,
+        enabled: enabled,
+        registered: false,
+        permission: permission,
+        message: browserStatus['requires_home_screen'] == true
+            ? 'На iPhone сначала добавьте AppСтрой на экран «Домой»'
+            : 'Этот браузер не поддерживает системные Web Push',
+      );
+      return;
+    }
+
+    if (!enabled) {
+      _publish(
+        configured: true,
+        enabled: false,
+        registered: false,
+        permission: permission,
+        message: 'Push-уведомления отключены на этом устройстве',
+      );
+      return;
+    }
+
+    try {
+      final existing = await WebPushBridge.existing();
+      final registered = existing['registered'] == true;
+      if (registered && _client.auth.currentUser != null) {
+        await _registerWebSubscription(existing);
+      }
+      _publish(
+        configured: true,
+        enabled: true,
+        registered: registered,
+        permission: _mapWebPermission(
+          existing['permission']?.toString() ?? 'default',
+        ),
+        message: registered
+            ? 'Устройство подключено к push-уведомлениям'
+            : 'Нажмите «Разрешить и подключить»',
+      );
+    } catch (error) {
+      _publish(
+        configured: true,
+        enabled: true,
+        registered: false,
+        permission: permission,
+        message: 'Web Push временно недоступен: $error',
+      );
+    }
+  }
+
   static Future<void> syncForCurrentSession({
     bool requestPermission = false,
   }) async {
-    if (!FirebaseRuntimeConfiguration.isConfigured ||
-        _client.auth.currentUser == null) {
+    if (_client.auth.currentUser == null) return;
+    if (kIsWeb) {
+      await _syncWebPush(requestPermission: requestPermission);
       return;
     }
+    if (!FirebaseRuntimeConfiguration.isConfigured) return;
 
     final preferences = await SharedPreferences.getInstance();
     final enabled = preferences.getBool(_enabledKey) ?? true;
@@ -350,6 +420,118 @@ class PushNotificationService {
     }
   }
 
+  static Future<void> _syncWebPush({required bool requestPermission}) async {
+    final preferences = await SharedPreferences.getInstance();
+    final enabled = preferences.getBool(_enabledKey) ?? true;
+    final browserStatus = WebPushBridge.status;
+
+    if (!enabled) {
+      _publish(
+        configured: WebPushBridge.isSupported,
+        enabled: false,
+        registered: false,
+        permission: _mapWebPermission(
+          browserStatus['permission']?.toString() ?? 'default',
+        ),
+        message: 'Push-уведомления отключены на этом устройстве',
+      );
+      return;
+    }
+
+    if (browserStatus['requires_home_screen'] == true) {
+      _publish(
+        configured: true,
+        enabled: true,
+        registered: false,
+        permission: PushPermissionState.notDetermined,
+        message: 'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
+      );
+      return;
+    }
+
+    if (!WebPushBridge.isSupported) {
+      _publish(
+        configured: false,
+        enabled: true,
+        registered: false,
+        permission: PushPermissionState.unknown,
+        message: 'Этот браузер не поддерживает системные Web Push',
+      );
+      return;
+    }
+
+    _publish(
+      configured: true,
+      enabled: true,
+      registered: state.value.registered,
+      permission: state.value.permission,
+      busy: true,
+      message: 'Проверяем разрешение и подписку устройства…',
+    );
+
+    try {
+      final result = requestPermission
+          ? await WebPushBridge.subscribe(_webPushPublicKey)
+          : await WebPushBridge.existing();
+      final permission = _mapWebPermission(
+        result['permission']?.toString() ?? 'default',
+      );
+      final resultStatus = result['status']?.toString() ?? '';
+
+      if (resultStatus == 'needs_install') {
+        _publish(
+          configured: true,
+          enabled: true,
+          registered: false,
+          permission: permission,
+          message: 'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
+        );
+        return;
+      }
+      if (permission == PushPermissionState.denied || resultStatus == 'denied') {
+        _publish(
+          configured: true,
+          enabled: true,
+          registered: false,
+          permission: PushPermissionState.denied,
+          message: 'Разрешение на уведомления отключено в системе',
+        );
+        return;
+      }
+
+      final registered = result['registered'] == true;
+      if (!registered) {
+        _publish(
+          configured: true,
+          enabled: true,
+          registered: false,
+          permission: permission,
+          message: requestPermission
+              ? 'Браузер не создал подписку Web Push'
+              : 'Нажмите «Разрешить и подключить»',
+        );
+        return;
+      }
+
+      await _registerWebSubscription(result);
+      _publish(
+        configured: true,
+        enabled: true,
+        registered: true,
+        permission: permission,
+        message: 'Устройство подключено к push-уведомлениям',
+      );
+    } catch (error) {
+      _publish(
+        configured: true,
+        enabled: true,
+        registered: false,
+        permission: state.value.permission,
+        message: 'Не удалось зарегистрировать Web Push: $error',
+      );
+    }
+  }
+
   static Future<void> setEnabled(bool enabled) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_enabledKey, enabled);
@@ -357,17 +539,25 @@ class PushNotificationService {
     if (!enabled) {
       try {
         if (_client.auth.currentUser != null) {
-          await _manageDevice({
-            'action': 'set_enabled',
-            'device_id': await _deviceId(),
-            'enabled': false,
-          });
+          if (kIsWeb) {
+            await WebPushBridge.unsubscribe();
+            await _manageWebDevice(<String, dynamic>{
+              'action': 'unregister',
+              'device_id': await _deviceId(),
+            });
+          } else {
+            await _manageDevice(<String, dynamic>{
+              'action': 'set_enabled',
+              'device_id': await _deviceId(),
+              'enabled': false,
+            });
+          }
         }
       } catch (_) {
         // Настройка push не должна влиять на рабочие функции приложения.
       }
       _publish(
-        configured: FirebaseRuntimeConfiguration.isConfigured,
+        configured: _isConfigured,
         enabled: false,
         registered: false,
         permission: state.value.permission,
@@ -384,15 +574,23 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
-      await _manageDevice({
-        'action': 'unregister',
-        'device_id': await _deviceId(),
-      });
+      if (kIsWeb) {
+        await WebPushBridge.unsubscribe();
+        await _manageWebDevice(<String, dynamic>{
+          'action': 'unregister',
+          'device_id': await _deviceId(),
+        });
+      } else {
+        await _manageDevice(<String, dynamic>{
+          'action': 'unregister',
+          'device_id': await _deviceId(),
+        });
+      }
     } catch (_) {
       // Выход из аккаунта продолжится даже при недоступности push-сервиса.
     }
 
-    if (FirebaseRuntimeConfiguration.isConfigured) {
+    if (!kIsWeb && FirebaseRuntimeConfiguration.isConfigured) {
       try {
         await FirebaseMessaging.instance.deleteToken();
       } catch (_) {
@@ -401,7 +599,7 @@ class PushNotificationService {
     }
 
     _publish(
-      configured: FirebaseRuntimeConfiguration.isConfigured,
+      configured: _isConfigured,
       enabled: state.value.enabled,
       registered: false,
       permission: state.value.permission,
@@ -416,7 +614,7 @@ class PushNotificationService {
     try {
       await _client.functions.invoke(
         'dispatch-push-notification',
-        body: {'notification_id': notificationId},
+        body: <String, dynamic>{'notification_id': notificationId},
       );
     } catch (_) {
       // Push идёт поверх внутреннего колокольчика и не влияет на запись данных.
@@ -429,13 +627,45 @@ class PushNotificationService {
     return request;
   }
 
+  static Future<void> _registerWebSubscription(
+    Map<String, dynamic> result,
+  ) async {
+    final subscriptionValue = result['subscription'];
+    if (subscriptionValue is! Map) {
+      throw Exception('Браузер не вернул данные подписки');
+    }
+    final subscription = Map<String, dynamic>.from(subscriptionValue);
+    final keysValue = subscription['keys'];
+    if (keysValue is! Map) {
+      throw Exception('Браузер не вернул ключи подписки');
+    }
+    final keys = Map<String, dynamic>.from(keysValue);
+    final endpoint = subscription['endpoint']?.toString().trim() ?? '';
+    final p256dh = keys['p256dh']?.toString().trim() ?? '';
+    final auth = keys['auth']?.toString().trim() ?? '';
+    if (endpoint.isEmpty || p256dh.isEmpty || auth.isEmpty) {
+      throw Exception('Подписка Web Push заполнена не полностью');
+    }
+
+    await _manageWebDevice(<String, dynamic>{
+      'action': 'register',
+      'device_id': await _deviceId(),
+      'endpoint': endpoint,
+      'p256dh': p256dh,
+      'auth': auth,
+      'expiration_time': subscription['expirationTime'],
+      'user_agent': result['user_agent']?.toString() ?? '',
+      'enabled': true,
+    });
+  }
+
   static Future<void> _registerToken(
     String token, {
     PushPermissionState? permission,
   }) async {
     if (_client.auth.currentUser == null || token.trim().isEmpty) return;
 
-    await _manageDevice({
+    await _manageDevice(<String, dynamic>{
       'action': 'register',
       'token': token.trim(),
       'device_id': await _deviceId(),
@@ -454,6 +684,20 @@ class PushNotificationService {
 
   static Future<void> _manageDevice(Map<String, dynamic> body) async {
     await _client.functions.invoke('manage-push-device', body: body);
+  }
+
+  static Future<void> _manageWebDevice(Map<String, dynamic> body) async {
+    final response = await _client.functions.invoke(
+      'manage-web-push-device',
+      body: body,
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw Exception('Сервер не принял подписку Web Push');
+    }
+    final data = response.data;
+    if (data is Map && data['error'] != null) {
+      throw Exception(data['error'].toString());
+    }
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {
@@ -509,6 +753,19 @@ class PushNotificationService {
         return PushPermissionState.authorized;
       case AuthorizationStatus.provisional:
         return PushPermissionState.provisional;
+    }
+  }
+
+  static PushPermissionState _mapWebPermission(String permission) {
+    switch (permission) {
+      case 'granted':
+        return PushPermissionState.authorized;
+      case 'denied':
+        return PushPermissionState.denied;
+      case 'default':
+        return PushPermissionState.notDetermined;
+      default:
+        return PushPermissionState.unknown;
     }
   }
 
