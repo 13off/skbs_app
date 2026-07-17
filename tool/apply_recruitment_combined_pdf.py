@@ -197,7 +197,7 @@ replace_once(
     expect(detail, contains('pw.Document('));
     expect(detail, contains('pw.MemoryImage(bytes)'));
     expect(detail, contains('PdfPageFormat.a4'));
-    expect(detail, contains("'Документы_$suffix.pdf'"));
+    expect(detail, contains(r"'Документы_$suffix.pdf'"));
     expect(detail, contains('ZipEncoder().encode(archive)'));
     expect(detail, contains('FileSaver.instance.saveFile'));
 """,
