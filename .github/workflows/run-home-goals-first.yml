@@ -30,10 +30,33 @@ jobs:
           )
           marker = "python3 - <<'PY'\n"
           raw_body = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
-          body = '\n'.join(
-              line[10:] if line.startswith('          ') else line
-              for line in raw_body.splitlines()
-          )
+
+          lines = []
+          inside_triple = False
+          active_quote = None
+          for raw_line in raw_body.splitlines():
+              line = raw_line if inside_triple else (
+                  raw_line[10:] if raw_line.startswith('          ') else raw_line
+              )
+              lines.append(line)
+
+              single_count = line.count("'''")
+              double_count = line.count('"""')
+              if not inside_triple:
+                  if single_count % 2 == 1:
+                      inside_triple = True
+                      active_quote = "'''"
+                  elif double_count % 2 == 1:
+                      inside_triple = True
+                      active_quote = '"""'
+              elif active_quote == "'''" and single_count % 2 == 1:
+                  inside_triple = False
+                  active_quote = None
+              elif active_quote == '"""' and double_count % 2 == 1:
+                  inside_triple = False
+                  active_quote = None
+
+          body = '\n'.join(lines)
           exec(compile(body, 'home_goals_first_patch.py', 'exec'))
           PY
           status=$?
