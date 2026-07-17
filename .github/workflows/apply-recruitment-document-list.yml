@@ -36,18 +36,25 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Format and verify
+      - name: Capture verification result
         shell: bash
         run: |
-          dart format \
-            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart \
-            test/recruitment_documents_chat_contract_test.dart
-          flutter pub get --enforce-lockfile
-          flutter test
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter build web --release --base-href /appstroy-web/
+          set +e
+          {
+            dart format \
+              lib/features/recruitment/presentation/recruitment_application_detail_screen.dart \
+              test/recruitment_documents_chat_contract_test.dart
+            flutter pub get --enforce-lockfile
+            flutter test
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            flutter build web --release --base-href /appstroy-web/
+          } > /tmp/document-list-check.log 2>&1
+          status=$?
+          tail -n 320 /tmp/document-list-check.log > ci-document-list-check.log
+          echo "$status" > ci-document-list-check.status
+          exit 0
 
-      - name: Commit checked changes
+      - name: Commit result
         shell: bash
         run: |
           rm -f tool/apply_recruitment_document_list.py
@@ -57,5 +64,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Сделать компактный список документов кандидата"
+          git add -f ci-document-list-check.log ci-document-list-check.status
+          git commit -m "Проверить компактный список документов кандидата"
           git push origin HEAD:feature/recruitment-document-list
