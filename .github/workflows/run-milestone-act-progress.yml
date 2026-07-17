@@ -1,0 +1,31 @@
+# trigger
+name: Run milestone act progress patch
+
+on:
+  push:
+    branches:
+      - feature/milestone-act-progress
+    paths:
+      - .github/workflows/run-milestone-act-progress.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/milestone-act-progress
+          fetch-depth: 0
+      - run: python3 tool/apply_milestone_act_progress.py
+      - run: |
+          rm -f .github/workflows/apply-milestone-act-progress.yml
+          rm -f .github/workflows/run-milestone-act-progress.yml
+          rm -f tool/apply_milestone_act_progress.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "добавлены редактирование целей и проценты в акт"
+          git push origin HEAD:feature/milestone-act-progress
