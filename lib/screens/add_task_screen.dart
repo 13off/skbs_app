@@ -49,6 +49,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   String? selectedMilestoneId;
   String? selectedChecklistItemId;
   String? selectedChecklistTitle;
+  bool isGoalTask = false;
 
   bool isLoadingEmployees = false;
   bool isPickingPhotos = false;
@@ -61,6 +62,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedDate = widget.initialDate;
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
+    isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     loadEmployees();
   }
 
@@ -315,7 +317,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void saveTask() {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
-    final linkedToGoal = selectedMilestoneId?.trim().isNotEmpty == true;
+    final linkedToGoal = isGoalTask;
     final goalWork = selectedChecklistTitle?.trim() ?? '';
     final savedWork = linkedToGoal ? goalWork : work;
 
@@ -537,6 +539,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             onChanged: (selection) {
               final previousTitle = selectedChecklistTitle;
               setState(() {
+                isGoalTask = selection.goalMode;
                 selectedMilestoneId = selection.milestoneId;
                 selectedChecklistItemId = selection.checklistItemId;
                 selectedChecklistTitle = selection.checklistTitle;
@@ -565,7 +568,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             ),
           ),
 
-          if (selectedMilestoneId == null) ...[
+          if (!isGoalTask) ...[
             const SizedBox(height: 16),
             TextField(
               controller: workController,

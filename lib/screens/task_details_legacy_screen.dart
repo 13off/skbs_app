@@ -33,6 +33,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   String? selectedMilestoneId;
   String? selectedChecklistItemId;
   String? selectedChecklistTitle;
+  bool isGoalTask = false;
 
   List<Employee> employees = [];
   final Set<String> selectedAssigneeIds = {};
@@ -151,6 +152,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         photos = loadedPhotos;
         selectedMilestoneId = loadedMilestoneLink?.milestoneId;
         selectedChecklistItemId = loadedMilestoneLink?.checklistItemId;
+        isGoalTask = loadedMilestoneLink != null;
         signedUrlFutures.clear();
         isLoading = false;
         errorText = null;
@@ -445,7 +447,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final taskId = widget.task.id;
     final axes = axesController.text.trim();
     final work = workController.text.trim();
-    final linkedToGoal = selectedMilestoneId?.trim().isNotEmpty == true;
+    final linkedToGoal = isGoalTask;
     final goalWork = selectedChecklistTitle?.trim() ?? '';
     final savedWork = linkedToGoal ? goalWork : work;
     final notDoneComment = notDoneCommentController.text.trim();
@@ -874,6 +876,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               onChanged: (selection) {
                 final previousTitle = selectedChecklistTitle;
                 setState(() {
+                  isGoalTask = selection.goalMode;
                   selectedMilestoneId = selection.milestoneId;
                   selectedChecklistItemId = selection.checklistItemId;
                   selectedChecklistTitle = selection.checklistTitle;
@@ -918,7 +921,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 14),
 
-          if (selectedMilestoneId == null) ...[
+          if (!isGoalTask) ...[
             const Padding(
               padding: EdgeInsets.only(left: 4, bottom: 8),
               child: Align(

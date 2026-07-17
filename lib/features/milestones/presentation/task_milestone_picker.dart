@@ -7,10 +7,12 @@ class TaskMilestoneSelection {
   final String? milestoneId;
   final String? checklistItemId;
   final String? checklistTitle;
+  final bool goalMode;
 
   const TaskMilestoneSelection({
     required this.milestoneId,
     required this.checklistItemId,
+    required this.goalMode,
     this.checklistTitle,
   });
 
@@ -139,6 +141,7 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
       TaskMilestoneSelection(
         milestoneId: linkedToGoal ? selectedMilestoneId : null,
         checklistItemId: linkedToGoal ? selectedChecklistItemId : null,
+        goalMode: linkedToGoal,
         checklistTitle: selectedItem?.title,
       ),
     );

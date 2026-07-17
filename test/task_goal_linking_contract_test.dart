@@ -22,6 +22,7 @@ void main() {
     expect(picker, contains("'Тип задачи'"));
     expect(picker, contains("child: Text('Обычная задача')"));
     expect(picker, contains("child: Text('По цели')"));
+    expect(picker, contains('final bool goalMode;'));
   });
 
   test('goal task selects exactly one goal work without extra controls', () {
@@ -38,9 +39,12 @@ void main() {
     expect(picker, isNot(contains("title: const Text('Критичный пункт')")));
     expect(picker, isNot(contains("label: const Text('Добавить пункт')")));
     expect(create, contains('selection.checklistTitle'));
+    expect(create, contains('selection.goalMode'));
+    expect(create, contains('final linkedToGoal = isGoalTask;'));
     expect(create, contains('savedWork'));
     expect(details, contains('selection.checklistTitle'));
-    expect(details, contains('if (selectedMilestoneId == null)'));
+    expect(details, contains('selection.goalMode'));
+    expect(details, contains('if (!isGoalTask)'));
   });
 
   test('task repository persists link and supports explicit unlinking', () {
