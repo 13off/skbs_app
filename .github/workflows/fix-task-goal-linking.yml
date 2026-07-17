@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: appstroy-fix-task-goal-linking
+  cancel-in-progress: true
+
 jobs:
   apply:
     runs-on: ubuntu-latest
