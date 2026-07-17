@@ -40,7 +40,18 @@ jobs:
         run: flutter pub get --enforce-lockfile >/dev/null
 
       - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        id: analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- Flutter analyzer failure ---"
+            tail -n 120 /tmp/flutter-analyze.log
+            exit "$status"
+          fi
+          tail -n 20 /tmp/flutter-analyze.log
 
       - name: Run regression tests
         id: regression
@@ -58,6 +69,15 @@ jobs:
 
       - name: Build web release
         run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Upload failing analyzer log
+        if: failure() && steps.analyze.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analyze-log
+          path: /tmp/flutter-analyze.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Upload failing test log
         if: failure() && steps.regression.outcome == 'failure'

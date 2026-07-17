@@ -34,7 +34,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
       body: AppPage(
         title: 'Push-уведомления',
         subtitle:
-            'Системные уведомления для Android, iPhone и веб-приложения. Внутренний колокольчик продолжает работать независимо.',
+            'Системные уведомления для Android, iPhone и установленного веб-приложения. Внутренний колокольчик продолжает работать независимо.',
         child: ValueListenableBuilder<PushNotificationSnapshot>(
           valueListenable: PushNotificationService.state,
           builder: (context, snapshot, _) {
@@ -62,10 +62,10 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                       ),
                       const Divider(height: 28),
                       _StatusRow(
-                        label: 'Firebase',
+                        label: 'Канал',
                         value: snapshot.configured
-                            ? 'Публичная конфигурация подключена'
-                            : 'Ожидает настройки проекта',
+                            ? 'Системная доставка доступна'
+                            : 'Нужна установка приложения или поддерживаемый браузер',
                       ),
                       const SizedBox(height: 10),
                       _StatusRow(
@@ -76,8 +76,8 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                       _StatusRow(
                         label: 'Устройство',
                         value: snapshot.registered
-                            ? 'Токен зарегистрирован'
-                            : 'Токен не зарегистрирован',
+                            ? 'Подписка зарегистрирована'
+                            : 'Подписка не зарегистрирована',
                       ),
                     ],
                   ),
@@ -135,7 +135,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Токен привязывается к вашему пользователю и активной компании. При выходе из аккаунта устройство отключается. Push не заменяет историю уведомлений внутри приложения.',
+                          'На iPhone AppСтрой должен быть добавлен на экран «Домой» и открыт с иконки. Подписка привязывается к вашему пользователю и активной компании. При выходе из аккаунта устройство отключается. Push не заменяет историю уведомлений внутри приложения.',
                           style: TextStyle(
                             color: Color(0xFF5F646A),
                             height: 1.4,
