@@ -1,0 +1,60 @@
+name: Finalize recruitment combined PDF
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-commit:
+    if: github.head_ref == 'feature/recruitment-combined-pdf' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Run full verification
+        shell: bash
+        run: |
+          set +e
+          {
+            dart format \
+              lib/features/recruitment/presentation/recruitment_application_detail_screen.dart \
+              test/recruitment_documents_chat_contract_test.dart
+            flutter pub get
+            flutter test
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            flutter build web --release --base-href /appstroy-web/
+          } > combined-pdf-final.log 2>&1
+          status=$?
+          echo "$status" > combined-pdf-final.status
+          exit 0
+
+      - name: Commit verified files
+        shell: bash
+        run: |
+          status=$(cat combined-pdf-final.status)
+          rm .github/workflows/finalize-recruitment-combined-pdf.yml
+          rm -f ci-combined-pdf-check.status
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$status" = "0" ]; then
+            rm -f combined-pdf-final.log combined-pdf-final.status
+            git add -A
+            git commit -m "Добавить общий PDF документов кандидата"
+          else
+            git add -A
+            git add -f combined-pdf-final.log combined-pdf-final.status
+            git commit -m "Сохранить ошибку общего PDF документов"
+          fi
+          git push origin HEAD:feature/recruitment-combined-pdf
