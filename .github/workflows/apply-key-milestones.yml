@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: appstroy-key-milestones-main
+  cancel-in-progress: true
+
 jobs:
   apply:
     runs-on: ubuntu-latest
