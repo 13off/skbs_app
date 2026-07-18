@@ -8,6 +8,7 @@ import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
+import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
@@ -109,6 +110,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget platformFor(AppUserProfile profile) {
+    if (profile.isDeveloper && !profile.isRolePreview) {
+      return DeveloperMainScreen(profile: profile);
+    }
     if (profile.isLawyer) {
       return LegalMainScreen(profile: profile);
     }
