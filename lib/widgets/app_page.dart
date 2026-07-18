@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/theme_controller.dart';
+
 class AppPage extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -16,6 +18,11 @@ class AppPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveTrailing =
+        title == 'Профиль' && !AppThemeController.featureEnabled
+        ? null
+        : headerTrailing;
+
     return _AppPageBackdrop(
       child: SafeArea(
         child: ListView(
@@ -30,7 +37,7 @@ class AppPage extends StatelessWidget {
                     AppPageHeader(
                       title: title,
                       subtitle: subtitle,
-                      trailing: headerTrailing,
+                      trailing: effectiveTrailing,
                     ),
                     const SizedBox(height: 14),
                     child,

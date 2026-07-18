@@ -13,6 +13,7 @@ import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
+import '../features/whats_new/presentation/whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
 
@@ -158,7 +159,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           );
         }
-        return buildPlatform();
+        return WhatsNewGate(child: buildPlatform());
       },
     );
   }
