@@ -17,8 +17,7 @@ class _NotificationControlCenterScreenState
   bool isLoading = true;
   bool isSaving = false;
   String? errorText;
-  NotificationControlSettings settings =
-      NotificationControlSettings.defaults();
+  NotificationControlSettings settings = NotificationControlSettings.defaults();
   List<ReminderControlSetting> reminders = <ReminderControlSetting>[];
 
   @override
@@ -33,7 +32,8 @@ class _NotificationControlCenterScreenState
       errorText = null;
     });
     try {
-      final data = await NotificationRepository.fetchNotificationControlCenter();
+      final data =
+          await NotificationRepository.fetchNotificationControlCenter();
       if (!mounted) return;
       setState(() {
         settings = data.settings;
@@ -305,8 +305,8 @@ class _NotificationControlCenterScreenState
   Widget reminderCard(int index) {
     final reminder = reminders[index];
     final definition = NotificationRepository.reminderDefinitions[reminder.key];
-    final roleTitle = NotificationRepository.notificationRoleTitles[
-            reminder.recipientRole] ??
+    final roleTitle =
+        NotificationRepository.notificationRoleTitles[reminder.recipientRole] ??
         reminder.recipientRole;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),

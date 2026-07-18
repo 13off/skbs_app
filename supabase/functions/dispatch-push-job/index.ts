@@ -68,6 +68,12 @@ interface JobRow {
   updated_at: string;
 }
 
+interface AdminNotificationPreference {
+  roles: Set<string>;
+  eventGroups: Set<string>;
+  pushEnabled: boolean;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -181,6 +187,17 @@ function normalizeRole(value: unknown) {
   return ["admin", "foreman", "hr", "accountant", "lawyer"].includes(role)
     ? role
     : "admin";
+}
+
+function notificationEventGroup(entityType: unknown) {
+  const value = clean(entityType);
+  if (["tasks", "task_assignees", "task_photos", "brigade_photo", "foreman_reminder"].includes(value)) return "tasks";
+  if (value === "attendance") return "attendance";
+  if (["employees", "employee_private_data", "employee_documents"].includes(value)) return "employees";
+  if (["recruitment_application", "recruitment_applications", "recruitment_message", "recruitment_messages", "recruitment_document", "recruitment_documents", "hr_reminder"].includes(value)) return "hr";
+  if (["payments", "payment_receipts", "accountant_reminder"].includes(value)) return "payments";
+  if (value.startsWith("legal_") || ["legal_document", "legal_matter", "lawyer_reminder"].includes(value)) return "legal";
+  return "system";
 }
 
 function fcmErrorCode(payload: unknown) {
@@ -446,20 +463,38 @@ Deno.serve(async (request: Request) => {
 
     const { data: preferenceRows, error: preferenceError } = await admin
       .from("notification_role_preferences")
-      .select("user_id,selected_roles")
+      .select("user_id,selected_roles,selected_event_groups,push_enabled")
       .eq("company_id", notification.company_id);
     if (preferenceError) throw preferenceError;
-    const adminPreferences = new Map<string, Set<string>>();
+    const adminPreferences = new Map<string, AdminNotificationPreference>();
     for (const row of preferenceRows ?? []) {
-      const selected = Array.isArray(row.selected_roles)
+      const selectedRoles = Array.isArray(row.selected_roles)
         ? row.selected_roles.map(normalizeRole)
         : ["admin", "foreman", "hr", "accountant", "lawyer"];
-      adminPreferences.set(String(row.user_id), new Set(selected));
+      const selectedGroups = Array.isArray(row.selected_event_groups)
+        ? row.selected_event_groups.map((value: unknown) => clean(value))
+        : ["tasks", "attendance", "employees", "hr", "payments", "legal", "system"];
+      adminPreferences.set(String(row.user_id), {
+        roles: new Set(selectedRoles),
+        eventGroups: new Set(selectedGroups),
+        pushEnabled: row.push_enabled !== false,
+      });
     }
 
     const sourceRole = normalizeRole(
       notification.source_role || notification.target_role || "admin",
     );
+    const sourceEventGroup = notificationEventGroup(notification.entity_type);
+    const adminAllowsPush = (userId: string) => {
+      const preference = adminPreferences.get(userId) ?? {
+        roles: new Set(["admin", "foreman", "hr", "accountant", "lawyer"]),
+        eventGroups: new Set(["tasks", "attendance", "employees", "hr", "payments", "legal", "system"]),
+        pushEnabled: true,
+      };
+      return preference.pushEnabled &&
+        preference.roles.has(sourceRole) &&
+        preference.eventGroups.has(sourceEventGroup);
+    };
     const targetRole = notification.target_role
       ? normalizeRole(notification.target_role)
       : "";
@@ -471,14 +506,16 @@ Deno.serve(async (request: Request) => {
       if (role === "foreman") foremanIds.push(userId);
 
       if (notification.target_user_id) {
-        if (notification.target_user_id === userId) recipientIds.add(userId);
+        if (notification.target_user_id === userId) {
+          if (role !== "admin" || adminAllowsPush(userId)) {
+            recipientIds.add(userId);
+          }
+        }
         continue;
       }
 
       if (role === "admin") {
-        const selected = adminPreferences.get(userId) ??
-          new Set(["admin", "foreman", "hr", "accountant", "lawyer"]);
-        if (selected.has(sourceRole)) recipientIds.add(userId);
+        if (adminAllowsPush(userId)) recipientIds.add(userId);
         continue;
       }
 

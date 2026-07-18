@@ -18,15 +18,18 @@ void main() {
       'openNotificationControlCenter',
       'NotificationControlCenterScreen',
     ]);
-    expectContains('lib/screens/notification_control_center_screen.dart', const [
-      'Внутренний колокольчик',
-      'Системные push',
-      'Роли и направления',
-      'Типы событий',
-      'Напоминания компании',
-      'Выключить все',
-      'Сохранить все настройки',
-    ]);
+    expectContains(
+      'lib/screens/notification_control_center_screen.dart',
+      const [
+        'Внутренний колокольчик',
+        'Системные push',
+        'Роли и направления',
+        'Типы событий',
+        'Напоминания компании',
+        'Выключить все',
+        'Сохранить все настройки',
+      ],
+    );
     expectContains('lib/data/notification_repository.dart', const [
       'NotificationControlSettings',
       'ReminderControlSetting',
@@ -37,20 +40,23 @@ void main() {
     ]);
   });
 
-  test('напоминания по умолчанию выключены и включаются только настройками', () {
-    expectContains(
-      'supabase/migrations/20260718150000_notification_control_center.sql',
-      const [
-        'company_reminder_settings',
-        'enabled boolean not null default false',
-        'get_my_notification_control_center',
-        'set_my_notification_control_preferences',
-        'set_company_reminder_settings',
-        "and s.enabled = true",
-        'populate_role_operational_reminders',
-      ],
-    );
-  });
+  test(
+    'напоминания по умолчанию выключены и включаются только настройками',
+    () {
+      expectContains(
+        'supabase/migrations/20260718150000_notification_control_center.sql',
+        const [
+          'company_reminder_settings',
+          'enabled boolean not null default false',
+          'get_my_notification_control_center',
+          'set_my_notification_control_preferences',
+          'set_company_reminder_settings',
+          "and s.enabled = true",
+          'populate_role_operational_reminders',
+        ],
+      );
+    },
+  );
 
   test('колокольчик и push учитывают роли, события и общие выключатели', () {
     expectContains(
