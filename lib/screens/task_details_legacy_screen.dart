@@ -318,7 +318,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     });
   }
 
-  Future<void> addPhotos() async {
+  Future<void> addPhotos(String photoStage) async {
     if (!canEdit) return;
 
     final taskId = widget.task.id;
@@ -343,6 +343,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       final uploadedPhotos = await TaskRepository.uploadPhotosForTask(
         taskId: taskId,
         photos: pickedPhotos,
+        photoStage: photoStage,
       );
 
       if (!mounted) return;
@@ -351,9 +352,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         photos = [...uploadedPhotos, ...photos];
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Фото добавлены')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            photoStage == 'before'
+                ? 'Фото «До» добавлены'
+                : 'Фото «После» добавлены',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -479,6 +486,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     );
     final cleanToday = TaskEditPolicy.operationalToday;
     final isPastOrToday = !taskDate.isAfter(cleanToday);
+
+    if (selectedStatus == 'Выполнено' &&
+        widget.task.status != 'Выполнено' &&
+        !photos.any((photo) => photo.isAfter)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Добавьте хотя бы одно фото «После»')),
+      );
+      return;
+    }
 
     if (selectedStatus != 'Выполнено' &&
         isPastOrToday &&
@@ -694,7 +710,14 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     );
   }
 
-  Widget buildPhotosBlock() {
+  Widget buildPhotosBlock({
+    required String photoStage,
+    required String title,
+    required String emptyText,
+  }) {
+    final stagePhotos = photos
+        .where((photo) => photo.photoStage == photoStage)
+        .toList();
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -705,16 +728,24 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Фото',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          Text(
+            photoStage == 'before'
+                ? 'Обязательное состояние участка перед началом работ.'
+                : 'Обязательный результат после завершения работ.',
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 48,
             child: OutlinedButton.icon(
-              onPressed: isPickingPhotos || !canEdit ? null : addPhotos,
+              onPressed: isPickingPhotos || !canEdit
+                  ? null
+                  : () => addPhotos(photoStage),
               icon: isPickingPhotos
                   ? const SizedBox(
                       width: 18,
@@ -722,18 +753,18 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.add_photo_alternate_outlined),
-              label: const Text('Добавить фото'),
+              label: Text('Добавить $title'),
             ),
           ),
-          if (photos.isEmpty) ...[
+          if (stagePhotos.isEmpty) ...[
             const SizedBox(height: 12),
-            const Text('Фото пока не прикреплены'),
+            Text(emptyText),
           ] else ...[
             const SizedBox(height: 14),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: photos.length,
+              itemCount: stagePhotos.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 8,
@@ -741,7 +772,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 childAspectRatio: 1,
               ),
               itemBuilder: (context, index) {
-                return buildPhotoTile(photos[index]);
+                return buildPhotoTile(stagePhotos[index]);
               },
             ),
           ],
@@ -827,6 +858,18 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             onChanged: isSaving || !canEdit
                 ? null
                 : (value) {
+                    if (value &&
+                        widget.task.status != 'Выполнено' &&
+                        !photos.any((photo) => photo.isAfter)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Сначала добавьте хотя бы одно фото «После»',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     setState(() {
                       selectedStatus = value ? 'Выполнено' : 'Запланировано';
 
@@ -954,7 +997,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
           const SizedBox(height: 16),
 
-          buildPhotosBlock(),
+          buildPhotosBlock(
+            photoStage: 'before',
+            title: 'Фото «До»',
+            emptyText: 'Обязательное фото «До» пока не прикреплено',
+          ),
+          const SizedBox(height: 14),
+          buildPhotosBlock(
+            photoStage: 'after',
+            title: 'Фото «После»',
+            emptyText: 'Без фото «После» задачу нельзя выполнить',
+          ),
 
           if (errorText != null) ...[
             const SizedBox(height: 14),

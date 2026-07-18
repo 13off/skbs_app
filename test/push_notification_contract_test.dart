@@ -54,7 +54,8 @@ void main() {
     containsAll('lib/screens/push_notification_settings_screen.dart', const [
       "'Получать push на этом устройстве'",
       "'Разрешить и подключить'",
-      'Внутренний колокольчик продолжает работать независимо.',
+      'Настройки системных push и ролевой ленты внутреннего колокольчика.',
+      'Какие роли учитывать',
     ]);
     containsAll(
       'supabase/migrations/20260713123000_add_push_notification_delivery.sql',
@@ -113,6 +114,8 @@ void main() {
       'https://fcm.googleapis.com/v1/projects/',
       'no_enabled_device_tokens',
       'UNREGISTERED',
+      'notification_role_preferences',
+      'source_role',
     ]);
     containsAll('docs/firebase-push-setup.md', const [
       'FIREBASE_SERVICE_ACCOUNT_JSON',

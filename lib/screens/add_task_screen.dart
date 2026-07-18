@@ -330,6 +330,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       return;
     }
 
+    if (selectedPhotos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Добавьте хотя бы одно фото «До»')),
+      );
+      return;
+    }
+
     if (linkedToGoal && (selectedChecklistItemId == null || goalWork.isEmpty)) {
       ScaffoldMessenger.of(
         context,
@@ -429,11 +436,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Фото к задаче',
+            'Фото «До» — обязательно',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
-          const Text('Можно прикрепить несколько фото: JPG, PNG, WEBP.'),
+          const Text(
+            'Без фото «До» задача не будет создана. Можно прикрепить несколько снимков.',
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -447,7 +456,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.add_photo_alternate_outlined),
-              label: const Text('Добавить фото'),
+              label: const Text('Добавить фото «До»'),
             ),
           ),
           if (selectedPhotos.isNotEmpty) ...[
