@@ -44,23 +44,31 @@ class TaskEditPolicy {
   }
 
   static bool canEditDate(AppUserProfile profile, TaskItemData task) {
-    return canEditTask(profile, task) &&
-        (profile.isAdmin || forObject(task.objectName).foremanCanEditDate);
+    if (!canEditTask(profile, task)) return false;
+    if (profile.isAdmin) return true;
+    final policy = forObject(task.objectName);
+    return policy.foremanCanEditDate;
   }
 
   static bool canEditAxesWork(AppUserProfile profile, TaskItemData task) {
-    return canEditTask(profile, task) &&
-        (profile.isAdmin || forObject(task.objectName).foremanCanEditAxesWork);
+    if (!canEditTask(profile, task)) return false;
+    if (profile.isAdmin) return true;
+    final policy = forObject(task.objectName);
+    return policy.foremanCanEditAxesWork;
   }
 
   static bool canEditAssignees(AppUserProfile profile, TaskItemData task) {
-    return canEditTask(profile, task) &&
-        (profile.isAdmin || forObject(task.objectName).foremanCanEditAssignees);
+    if (!canEditTask(profile, task)) return false;
+    if (profile.isAdmin) return true;
+    final policy = forObject(task.objectName);
+    return policy.foremanCanEditAssignees;
   }
 
   static bool canEditStatus(AppUserProfile profile, TaskItemData task) {
-    return canEditTask(profile, task) &&
-        (profile.isAdmin || forObject(task.objectName).foremanCanEditStatus);
+    if (!canEditTask(profile, task)) return false;
+    if (profile.isAdmin) return true;
+    final policy = forObject(task.objectName);
+    return policy.foremanCanEditStatus;
   }
 
   static bool canDeletePhoto(
@@ -77,8 +85,10 @@ class TaskEditPolicy {
   }
 
   static bool canDeleteTask(AppUserProfile profile, TaskItemData task) {
-    return canEditTask(profile, task) &&
-        (profile.isAdmin || forObject(task.objectName).foremanCanDeleteTask);
+    if (!canEditTask(profile, task)) return false;
+    if (profile.isAdmin) return true;
+    final policy = forObject(task.objectName);
+    return policy.foremanCanDeleteTask;
   }
 
   static String lockedMessage(TaskItemData task) {
