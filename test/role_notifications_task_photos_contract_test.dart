@@ -64,6 +64,24 @@ void main() {
         'create or replace function public.app_notify_change()',
       ],
     );
+    expectContains(
+      'supabase/migrations/20260718122000_harden_task_delete_cascade.sql',
+      const [
+        'appstroy.deleting_task_id',
+        'tasks_mark_delete',
+        'child_delete_notifications',
+        'task_assignees',
+        'task_photos',
+      ],
+    );
+    expectContains(
+      'supabase/migrations/20260718123000_preserve_task_delete_notification_company.sql',
+      const [
+        'appstroy.deleting_task_company_id',
+        'assign_deleted_task_notification_company',
+        'app_notifications_00_deleted_task_company',
+      ],
+    );
     expectContains('lib/data/task_repository.dart', const [
       "'is_draft': true",
       "'photo_requirements_enforced': true",
