@@ -67,11 +67,9 @@ Deno.serve(async (request: Request) => {
   let runId = "";
   let token = "";
   try {
-    finalInput: {
-      const input = await request.json().catch(() => ({}));
-      runId = clean(input.run_id, 80);
-      token = clean(input.dispatch_token, 80);
-    }
+    const input = await request.json().catch(() => ({}));
+    runId = clean(input.run_id, 80);
+    token = clean(input.dispatch_token, 80);
     if (!runId || !token) return reply({ error: "Не указан запуск" }, 400);
 
     const { data, error } = await client.rpc(
