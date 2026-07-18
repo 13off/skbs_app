@@ -14,8 +14,11 @@ void main() {
     final repository = File(
       'lib/features/reports/data/manager_reports_repository.dart',
     ).readAsStringSync();
-    final migration = File(
-      'supabase/migrations/20260718162000_manager_reports_center.sql',
+    final centerMigration = File(
+      'supabase/migrations/20260718162600_manager_reports_center.sql',
+    ).readAsStringSync();
+    final tasksMigration = File(
+      'supabase/migrations/20260718162000_manager_reports_tasks.sql',
     ).readAsStringSync();
     final compactNotifications = File(
       'supabase/migrations/20260718163000_compact_dispatcher_notifications.sql',
@@ -36,8 +39,9 @@ void main() {
     expect(reports, contains('Объекты и этапы'));
     expect(reports, contains('Только проблемные разделы'));
     expect(repository, contains('get_manager_reports_center'));
-    expect(migration, contains('get_manager_reports_center'));
-    expect(migration, contains("'dispatcher_runs'"));
+    expect(centerMigration, contains('get_manager_reports_center'));
+    expect(centerMigration, contains("'dispatcher_runs'"));
+    expect(tasksMigration, contains('manager_report_tasks'));
     expect(compactNotifications, contains('Открой отчёт'));
     expect(compactNotifications, contains('v_full_body'));
   });
