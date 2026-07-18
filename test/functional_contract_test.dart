@@ -184,7 +184,7 @@ void main() {
 
     test('настройки сохраняют рабочий выход из аккаунта', () {
       _containsAll('lib/screens/profile_screen.dart', const [
-        'buildSignOutButton(context)',
+        'signOutButton(context)',
         'UserRepository.signOut()',
         "'Выйти'",
       ]);
