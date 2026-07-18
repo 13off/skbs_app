@@ -16,13 +16,19 @@ void containsAll(String path, Iterable<String> fragments) {
 }
 
 void main() {
-  test('прораб редактирует задачу и фото только в день задачи', () {
+  test('прораб по умолчанию редактирует сегодня, а объект меняет срок и права', () {
     containsAll('lib/features/tasks/task_edit_policy.dart', const [
       "DateTime.now().toUtc().add(const Duration(hours: 3))",
       'profile.isAdmin',
       'profile.isForeman',
-      'AppState.isSameDay(task.date, operationalToday)',
-      'только в день задачи',
+      'AppState.isSameDay(taskDate, operationalToday)',
+      'policy.foremanCanEditPastTasks',
+      'policy.editWindowDays',
+      'policy.foremanCanEditDate',
+      'policy.foremanCanEditAxesWork',
+      'policy.foremanCanEditAssignees',
+      'policy.foremanCanEditStatus',
+      'policy.foremanCanDeleteTask',
     ]);
 
     containsAll('lib/screens/tasks_screen.dart', const [
@@ -35,18 +41,18 @@ void main() {
     containsAll(taskDetailsPath, const [
       'final AppUserProfile profile;',
       'bool get canEdit => TaskEditPolicy.canEditTask',
+      'bool get canEditDate => TaskEditPolicy.canEditDate',
+      'bool get canEditAxesWork =>',
+      'bool get canEditAssignees =>',
+      'bool get canEditStatus =>',
+      'bool get canDeleteTask =>',
+      'TaskEditPolicy.canDeletePhoto',
       'Future<void> deletePhoto(TaskPhotoData photo)',
       'TaskRepository.deleteTaskPhoto(photo)',
       "tooltip: 'Удалить фото'",
-      'if (widget.profile.isAdmin)',
-      'if (!canEdit)',
+      'if (canDeleteTask)',
       'TaskEditPolicy.operationalToday',
     ]);
-    expect(
-      'enabled: !isSaving && canEdit'.allMatches(source(taskDetailsPath)).length,
-      3,
-      reason: 'Все три текстовых поля задачи должны блокироваться после дня задачи',
-    );
 
     containsAll('lib/screens/task_details_screen.dart', const [
       'legacy.TaskDetailsScreen',
@@ -71,6 +77,31 @@ void main() {
         'task_assignees_delete_company_task',
         'task_photos_delete_company_task',
         'task_photos_storage_delete_company_task',
+      ],
+    );
+
+    containsAll(
+      'supabase/migrations/20260718080500_developer_role_and_task_policy_schema.sql',
+      const [
+        'foreman_can_edit_past_tasks boolean not null default false',
+        'edit_window_days integer',
+        'foreman_can_edit_date boolean not null default true',
+        'foreman_can_edit_axes_work boolean not null default true',
+        'foreman_can_edit_assignees boolean not null default true',
+        'foreman_can_edit_status boolean not null default true',
+        'foreman_can_delete_task boolean not null default false',
+      ],
+    );
+
+    containsAll(
+      'supabase/migrations/20260718080600_developer_task_policy_rpcs.sql',
+      const [
+        'task_can_edit_for_user',
+        "'foreman_can_edit_past_tasks'",
+        "'edit_window_days'",
+        'task_can_edit_assignees_for_user',
+        'task_photo_can_delete_for_user',
+        'task_can_delete_for_user',
       ],
     );
   });
