@@ -11,6 +11,7 @@ class RolePreviewState {
   const RolePreviewState({this.role = 'admin', this.objectName = ''});
 
   bool get isAdminMode => role == 'admin';
+  bool get isDeveloperMode => role == 'developer';
   bool get isForemanMode => role == 'foreman';
   bool get isLawyerMode => role == 'lawyer';
   bool get isAccountantMode => role == 'accountant';
@@ -18,6 +19,8 @@ class RolePreviewState {
 
   String get title {
     switch (role) {
+      case 'developer':
+        return 'Разработчик';
       case 'foreman':
         return 'Прораб';
       case 'lawyer':
@@ -45,6 +48,10 @@ class RolePreviewController {
     final savedRole = NavigationSession.readPreviewRole()?.trim();
     final savedObjectName = NavigationSession.readPreviewObjectName();
 
+    if (savedRole == 'developer') {
+      state.value = const RolePreviewState(role: 'developer');
+      return;
+    }
     if (savedRole == 'foreman' && savedObjectName.isNotEmpty) {
       state.value = RolePreviewState(
         role: 'foreman',
@@ -80,6 +87,10 @@ class RolePreviewController {
 
   static void showAdmin() {
     setState(const RolePreviewState());
+  }
+
+  static void showDeveloper() {
+    setState(const RolePreviewState(role: 'developer'));
   }
 
   static void showForeman({required String objectName}) {
