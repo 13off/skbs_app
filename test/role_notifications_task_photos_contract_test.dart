@@ -69,7 +69,8 @@ void main() {
       const [
         'appstroy.deleting_task_id',
         'tasks_mark_delete',
-        'child_delete_notifications',
+        'prevent_required_task_photo_delete',
+        'position(v_deleting_task_id in coalesce(new.body',
         'task_assignees',
         'task_photos',
       ],
