@@ -95,6 +95,21 @@ jobs:
           if ambiguous not in text:
               raise SystemExit('Не найден неоднозначный блок комментария задачи')
           text = text.replace(ambiguous, precise, 1)
+
+          ambiguous_fields = '''replace_all(path, "             enabled: !isSaving && canEdit,", "             enabled: !isSaving && canEditAxesWork,", minimum=2)'''
+          precise_fields = '''replace_once(
+              path,
+              "            controller: axesController,\\n            enabled: !isSaving && canEdit,",
+              "            controller: axesController,\\n            enabled: !isSaving && canEditAxesWork,",
+          )
+          replace_once(
+              path,
+              "              controller: workController,\\n              enabled: !isSaving && canEdit,",
+              "              controller: workController,\\n              enabled: !isSaving && canEditAxesWork,",
+          )'''
+          if ambiguous_fields not in text:
+              raise SystemExit('Не найден неоднозначный блок полей задачи')
+          text = text.replace(ambiguous_fields, precise_fields, 1)
           path.write_text(text, encoding='utf-8')
           PY
 
