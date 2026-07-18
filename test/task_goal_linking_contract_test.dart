@@ -54,7 +54,10 @@ void main() {
     expect(repository, contains("from('task_milestone_links')"));
     expect(repository, contains('fetchTaskMilestoneLink'));
     expect(repository, contains('saveTaskMilestoneLink'));
-    expect(repository, contains(".delete()\n          .eq('task_id', taskId)"));
+    expect(
+      repository,
+      contains("from('task_milestone_links').delete().eq('task_id', taskId)"),
+    );
     expect(model, contains('final String? milestoneId;'));
     expect(model, contains('final String? checklistItemId;'));
   });
