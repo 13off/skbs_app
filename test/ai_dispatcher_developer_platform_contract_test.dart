@@ -13,7 +13,11 @@ void main() {
     ).readAsStringSync();
 
     expect(main, contains('DeveloperMainScreen(profile: profile)'));
-    expect(main, contains('profile.isDeveloper && !profile.isRolePreview'));
+    expect(main, contains('if (profile.isDeveloper)'));
+    expect(
+      main,
+      isNot(contains('profile.isDeveloper && !profile.isRolePreview')),
+    );
     expect(platform, contains("label: 'Система'"));
     expect(platform, contains("label: 'Диспетчер'"));
     expect(platform, contains("label: 'Ограничения'"));
