@@ -85,6 +85,16 @@ jobs:
           if first not in text or second not in text:
               raise SystemExit('Не найден защитный блок сигнатур')
           text = text.replace(first, replacement, 1).replace(second, '', 1)
+
+          ambiguous = '''replace_once(path, "               enabled: !isSaving && canEdit,", "               enabled: !isSaving && canEditStatus,")'''
+          precise = '''replace_once(
+              path,
+              "              controller: notDoneCommentController,\\n              enabled: !isSaving && canEdit,",
+              "              controller: notDoneCommentController,\\n              enabled: !isSaving && canEditStatus,",
+          )'''
+          if ambiguous not in text:
+              raise SystemExit('Не найден неоднозначный блок комментария задачи')
+          text = text.replace(ambiguous, precise, 1)
           path.write_text(text, encoding='utf-8')
           PY
 
