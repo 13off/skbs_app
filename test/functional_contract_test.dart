@@ -136,14 +136,13 @@ void main() {
         "'Сформировать акт'",
       ]);
       _containsAll('lib/screens/add_task_screen.dart', const [
-        "'Фото к задаче'",
-        "'Добавить фото'",
+        "'Фото «До» — обязательно'",
+        "'Добавить фото «До»'",
         "'Сохранить задачу'",
       ]);
-      _containsAll('lib/screens/task_details_screen.dart', const [
-        "'Удалить задачу?'",
-        "'Фото'",
-        "'Добавить фото'",
+      _containsAll('lib/screens/task_details_legacy_screen.dart', const [
+        "title: 'Фото «До»'",
+        "title: 'Фото «После»'",
         "tooltip: 'Удалить'",
         "label: const Text('Сохранить')",
       ]);
