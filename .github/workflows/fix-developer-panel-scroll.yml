@@ -137,4 +137,4 @@ jobs:
           git commit -m "Исправить прокрутку панели разработчика"
           git push origin HEAD:agent/fix-developer-panel-scroll
 
-# synchronize trigger
+# base workflow active
