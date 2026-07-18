@@ -25,13 +25,46 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Refine guarded patch for duplicate signatures
+      - name: Refine guarded patch
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('tool/apply_developer_panel.py')
           text = path.read_text(encoding='utf-8')
+          text = text.replace('from pathlib import Path\n', 'from pathlib import Path\nimport re\n', 1)
+          old_function = '''def replace_once(path: str, old: str, new: str) -> None:
+              content = read(path)
+              count = content.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, got {count}: {old[:100]!r}')
+              write(path, content.replace(old, new, 1))
+          '''
+          new_function = '''def replace_once(path: str, old: str, new: str) -> None:
+              content = read(path)
+              count = content.count(old)
+              if count == 1:
+                  write(path, content.replace(old, new, 1))
+                  return
+              if count > 1:
+                  raise RuntimeError(f'{path}: expected one match, got {count}: {old[:100]!r}')
+              pattern_lines = []
+              for line in old.split('\\n'):
+                  stripped = line.lstrip(' \\t')
+                  prefix = r'[ \\t]*' if stripped != line else ''
+                  pattern_lines.append(prefix + re.escape(stripped))
+              matches = list(re.finditer('\\n'.join(pattern_lines), content))
+              if len(matches) != 1:
+                  raise RuntimeError(
+                      f'{path}: expected one indentation-tolerant match, got {len(matches)}: {old[:100]!r}'
+                  )
+              match = matches[0]
+              write(path, content[:match.start()] + new + content[match.end():])
+          '''
+          if old_function not in text:
+              raise SystemExit('Не найдена функция защитной замены')
+          text = text.replace(old_function, new_function, 1)
+
           first = '''replace_once(
               'lib/features/company/data/company_repository.dart',
               "    required String role,\\n    String? objectId,\\n  }) async {",
@@ -52,14 +85,6 @@ jobs:
           if first not in text or second not in text:
               raise SystemExit('Не найден защитный блок сигнатур')
           text = text.replace(first, replacement, 1).replace(second, '', 1)
-          text = text.replace('"               full_name: fullName,\\n               invited_company_id:"', '"              full_name: fullName,\\n              invited_company_id:"')
-          text = text.replace('"               full_name: fullName,\\n               profession,\\n               invited_company_id:"', '"              full_name: fullName,\\n              profession,\\n              invited_company_id:"')
-          text = text.replace('"         full_name: fullName,\\n         role,"', '"        full_name: fullName,\\n        role,"')
-          text = text.replace('"         full_name: fullName,\\n         role,\\n         profession,"', '"        full_name: fullName,\\n        role,\\n        profession,"')
-          text = text.replace('"           full_name: existingProfile.full_name || fullName,\\n           role,"', '"          full_name: existingProfile.full_name || fullName,\\n          role,"')
-          text = text.replace('"           full_name: existingProfile.full_name || fullName,\\n           role,\\n           profession,"', '"          full_name: existingProfile.full_name || fullName,\\n          role,\\n          profession,"')
-          text = text.replace('"         role,\\n         object_id: role === \\"foreman\\" ? objectId : null,"', '"        role,\\n        object_id: role === \\"foreman\\" ? objectId : null,"')
-          text = text.replace('"         role,\\n         profession,\\n         object_id: role === \\"foreman\\" ? objectId : null,"', '"        role,\\n        profession,\\n        object_id: role === \\"foreman\\" ? objectId : null,"')
           path.write_text(text, encoding='utf-8')
           PY
 
