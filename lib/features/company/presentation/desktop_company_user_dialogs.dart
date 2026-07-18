@@ -98,6 +98,7 @@ class _DesktopCompanyMemberDialogState
     extends State<DesktopCompanyMemberDialog> {
   late final TextEditingController fullNameController;
   late final TextEditingController emailController;
+  late final TextEditingController professionController;
   late String role;
   String? objectId;
   bool isSaving = false;
@@ -112,7 +113,17 @@ class _DesktopCompanyMemberDialogState
       text: widget.member?.fullName ?? '',
     );
     emailController = TextEditingController(text: widget.member?.email ?? '');
-    const roles = <String>{'admin', 'foreman', 'lawyer', 'accountant', 'hr'};
+    professionController = TextEditingController(
+      text: widget.member?.profession ?? '',
+    );
+    const roles = <String>{
+      'admin',
+      'developer',
+      'foreman',
+      'lawyer',
+      'accountant',
+      'hr',
+    };
     final currentRole = widget.member?.role;
     role = currentRole != null && roles.contains(currentRole)
         ? currentRole
@@ -128,6 +139,7 @@ class _DesktopCompanyMemberDialogState
   void dispose() {
     fullNameController.dispose();
     emailController.dispose();
+    professionController.dispose();
     super.dispose();
   }
 
@@ -149,6 +161,7 @@ class _DesktopCompanyMemberDialogState
     if (isSaving) return;
     final fullName = fullNameController.text.trim();
     final email = emailController.text.trim().toLowerCase();
+    final profession = professionController.text.trim();
     if (!isEditing && (fullName.length < 2 || !email.contains('@'))) {
       setState(() => errorText = 'Укажите имя и корректный email');
       return;
@@ -168,6 +181,7 @@ class _DesktopCompanyMemberDialogState
           companyId: widget.companyId,
           member: widget.member!,
           role: role,
+          profession: profession,
           objectId: role == 'foreman' ? objectId : null,
         );
         if (mounted) Navigator.pop(context, 'Права пользователя обновлены');
@@ -177,6 +191,7 @@ class _DesktopCompanyMemberDialogState
           fullName: fullName,
           email: email,
           role: role,
+          profession: profession,
           objectId: role == 'foreman' ? objectId : null,
         );
         if (!mounted) return;
@@ -286,7 +301,7 @@ class _DesktopCompanyMemberDialogState
               Text(
                 isEditing
                     ? 'Измените роль и назначенный объект.'
-                    : 'Одна форма для администратора, прораба, юриста, бухгалтера и HR.',
+                    : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера и HR.',
                 style: const TextStyle(
                   color: specialistMuted,
                   fontWeight: FontWeight.w600,
@@ -360,6 +375,15 @@ class _DesktopCompanyMemberDialogState
                 ),
                 const SizedBox(height: 14),
               ],
+              TextField(
+                controller: professionController,
+                enabled: !isSaving,
+                decoration: const InputDecoration(
+                  labelText: 'Профессия / должность',
+                  prefixIcon: Icon(Icons.work_outline_rounded),
+                ),
+              ),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
@@ -373,6 +397,10 @@ class _DesktopCompanyMemberDialogState
                         DropdownMenuItem(
                           value: 'admin',
                           child: Text('Администратор'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'developer',
+                          child: Text('Разработчик'),
                         ),
                         DropdownMenuItem(
                           value: 'foreman',

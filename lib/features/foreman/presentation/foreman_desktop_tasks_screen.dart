@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -31,8 +32,7 @@ class ForemanDesktopTasksScreen extends StatefulWidget {
       _ForemanDesktopTasksScreenState();
 }
 
-class _ForemanDesktopTasksScreenState
-    extends State<ForemanDesktopTasksScreen> {
+class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
   final TextEditingController searchController = TextEditingController();
   DateTime selectedDate = AppState.today;
   List<TaskItemData> tasks = const <TaskItemData>[];
@@ -172,7 +172,13 @@ class _ForemanDesktopTasksScreenState
       );
       return;
     }
-    if (!TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)) {
+    await DeveloperPolicyRepository.ensurePolicy(objectName);
+
+    if (!TaskEditPolicy.canCreateForDate(
+      widget.profile,
+      selectedDate,
+      objectName: objectName,
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Прораб может добавлять задачи только на текущий день'),
@@ -187,6 +193,9 @@ class _ForemanDesktopTasksScreenState
         builder: (_) => AddTaskScreen(
           initialDate: selectedDate,
           objectName: objectName,
+          allowAnyDate: TaskEditPolicy.forObject(
+            objectName,
+          ).foremanCanCreateAnyDate,
         ),
       ),
     );
@@ -226,23 +235,25 @@ class _ForemanDesktopTasksScreenState
   }
 
   List<String> get statusOptions {
-    final values = tasks
-        .map((task) => task.status.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        tasks
+            .map((task) => task.status.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return <String>['Все статусы', ...values];
   }
 
   List<String> get assigneeOptions {
-    final values = meta.values
-        .expand((taskMeta) => taskMeta.assignees)
-        .map((assignee) => assignee.employeeName.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        meta.values
+            .expand((taskMeta) => taskMeta.assignees)
+            .map((assignee) => assignee.employeeName.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return values;
   }
 
@@ -319,11 +330,7 @@ class _ForemanDesktopTasksScreenState
             : () async => clearFilters(),
       );
     }
-    return ForemanTaskTable(
-      tasks: visible,
-      meta: meta,
-      onOpenTask: openTask,
-    );
+    return ForemanTaskTable(tasks: visible, meta: meta, onOpenTask: openTask);
   }
 
   @override
@@ -342,12 +349,10 @@ class _ForemanDesktopTasksScreenState
       children: [
         ForemanTaskToolbar(
           selectedDate: selectedDate,
-          onPreviousDay: () => changeDate(
-            selectedDate.subtract(const Duration(days: 1)),
-          ),
-          onNextDay: () => changeDate(
-            selectedDate.add(const Duration(days: 1)),
-          ),
+          onPreviousDay: () =>
+              changeDate(selectedDate.subtract(const Duration(days: 1))),
+          onNextDay: () =>
+              changeDate(selectedDate.add(const Duration(days: 1))),
           onPickDate: pickDate,
           onToday: sameDate(selectedDate, AppState.today)
               ? null

@@ -127,6 +127,7 @@ class _DesktopCompanyManagementScreenState
         fullName: invitation.fullName,
         email: invitation.email,
         role: invitation.role,
+        profession: invitation.profession,
         objectId: invitation.role == 'foreman' ? invitation.objectId : null,
       );
       if (!mounted) return;
@@ -224,14 +225,15 @@ class _DesktopCompanyManagementScreenState
       if (accessFilter == 'inactive' && member.isActive) return false;
       if (validObject != null && member.objectId != validObject) return false;
       return matchesSearch(
-        '${member.fullName} ${member.email} ${member.roleTitle} ${member.objectName}',
+        '${member.fullName} ${member.email} ${member.roleTitle} ${member.profession} ${member.objectName}',
       );
     }).toList();
     result.sort((a, b) {
       int rank(CompanyMember member) {
         if (member.isOwner) return 0;
         if (member.role == 'admin') return 1;
-        if (member.role == 'foreman') return 2;
+        if (member.role == 'developer') return 2;
+        if (member.role == 'foreman') return 3;
         return 3;
       }
 
@@ -251,7 +253,7 @@ class _DesktopCompanyManagementScreenState
         return false;
       }
       return matchesSearch(
-        '${invitation.fullName} ${invitation.email} ${invitation.roleTitle} ${invitation.objectName} ${invitation.statusTitle}',
+        '${invitation.fullName} ${invitation.email} ${invitation.roleTitle} ${invitation.profession} ${invitation.objectName} ${invitation.statusTitle}',
       );
     }).toList();
   }
@@ -261,6 +263,8 @@ class _DesktopCompanyManagementScreenState
       case 'owner':
       case 'admin':
         return const Color(0xFF4C6076);
+      case 'developer':
+        return const Color(0xFF455B75);
       case 'foreman':
         return const Color(0xFF6A7155);
       case 'lawyer':

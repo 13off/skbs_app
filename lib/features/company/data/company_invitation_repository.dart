@@ -6,6 +6,7 @@ class CompanyInvitation {
   final String email;
   final String fullName;
   final String role;
+  final String profession;
   final String objectId;
   final String objectName;
   final String status;
@@ -19,6 +20,7 @@ class CompanyInvitation {
     required this.email,
     required this.fullName,
     required this.role,
+    required this.profession,
     required this.objectId,
     required this.objectName,
     required this.status,
@@ -40,6 +42,8 @@ class CompanyInvitation {
     switch (role) {
       case 'admin':
         return 'Администратор';
+      case 'developer':
+        return 'Разработчик';
       case 'foreman':
         return 'Прораб';
       case 'lawyer':
@@ -88,7 +92,7 @@ class CompanyInvitationRepository {
     final rows = await _client
         .from('company_invitations')
         .select(
-          'id, company_id, email, role, object_id, invited_user_id, status, expires_at, accepted_at, created_at',
+          'id, company_id, email, role, profession, object_id, invited_user_id, status, expires_at, accepted_at, created_at',
         )
         .eq('company_id', companyId)
         .order('created_at', ascending: false)
@@ -110,7 +114,7 @@ class CompanyInvitationRepository {
           ? Future<List<dynamic>>.value(const <dynamic>[])
           : _client
                 .from('user_profiles')
-                .select('id, full_name')
+                .select('id, full_name, profession')
                 .inFilter('id', userIds),
       objectIds.isEmpty
           ? Future<List<dynamic>>.value(const <dynamic>[])
@@ -153,6 +157,9 @@ class CompanyInvitationRepository {
                 ? profile['full_name'].toString().trim()
                 : fallbackName,
             role: row['role']?.toString() ?? 'foreman',
+            profession: row['profession']?.toString().trim().isNotEmpty == true
+                ? row['profession'].toString().trim()
+                : profile['profession']?.toString() ?? '',
             objectId: objectId,
             objectName: object['name']?.toString() ?? '',
             status: row['status']?.toString() ?? 'pending',

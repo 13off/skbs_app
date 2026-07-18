@@ -23,7 +23,7 @@ class CompanySummary {
     this.objectLimit = 5,
   });
 
-  bool get isAdmin => role == 'owner' || role == 'admin';
+  bool get isAdmin => role == 'owner' || role == 'admin' || role == 'developer';
 
   String get roleTitle {
     switch (role) {
@@ -31,6 +31,8 @@ class CompanySummary {
         return 'Владелец';
       case 'admin':
         return 'Администратор';
+      case 'developer':
+        return 'Разработчик';
       case 'foreman':
         return 'Прораб';
       case 'lawyer':
@@ -57,6 +59,7 @@ class CompanyMember {
   final String fullName;
   final String email;
   final String role;
+  final String profession;
   final bool isActive;
   final String objectId;
   final String objectName;
@@ -66,6 +69,7 @@ class CompanyMember {
     required this.fullName,
     required this.email,
     required this.role,
+    required this.profession,
     required this.isActive,
     required this.objectId,
     required this.objectName,
@@ -79,6 +83,8 @@ class CompanyMember {
         return 'Владелец';
       case 'admin':
         return 'Администратор';
+      case 'developer':
+        return 'Разработчик';
       case 'foreman':
         return 'Прораб';
       case 'lawyer':
@@ -274,7 +280,7 @@ class CompanyRepository {
     final results = await Future.wait<dynamic>([
       _client
           .from('user_profiles')
-          .select('id, full_name, email')
+          .select('id, full_name, email, profession')
           .inFilter('id', userIds),
       _client
           .from('object_memberships')
@@ -308,6 +314,7 @@ class CompanyRepository {
             fullName: profile['full_name']?.toString() ?? '',
             email: profile['email']?.toString() ?? '',
             role: row['role']?.toString() ?? 'foreman',
+            profession: profile['profession']?.toString() ?? '',
             isActive: row['is_active'] == true,
             objectId: assignment['object_id']?.toString() ?? '',
             objectName: object['name']?.toString() ?? '',
@@ -410,6 +417,7 @@ class CompanyRepository {
     required String fullName,
     required String email,
     required String role,
+    String profession = '',
     String? objectId,
   }) async {
     final response = await _client.functions.invoke(
@@ -419,6 +427,7 @@ class CompanyRepository {
         'full_name': fullName.trim(),
         'email': email.trim(),
         'role': role,
+        'profession': profession.trim(),
         'object_id': objectId,
         'redirect_to': UserRepository.buildInvitationRedirectUrl(companyId),
       },
@@ -460,6 +469,7 @@ class CompanyRepository {
     required String companyId,
     required CompanyMember member,
     required String role,
+    String profession = '',
     String? objectId,
   }) async {
     await _client
@@ -495,6 +505,14 @@ class CompanyRepository {
         'created_by': _client.auth.currentUser?.id,
       });
     }
+
+    await _client
+        .from('user_profiles')
+        .update(<String, dynamic>{
+          'profession': profession.trim(),
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', member.userId);
 
     final targetProfile = await _client
         .from('user_profiles')

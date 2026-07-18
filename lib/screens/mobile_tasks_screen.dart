@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
 import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
@@ -209,7 +210,13 @@ class _TasksScreenState extends State<TasksScreen> {
       return;
     }
 
-    if (!TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)) {
+    await DeveloperPolicyRepository.ensurePolicy(objectName);
+
+    if (!TaskEditPolicy.canCreateForDate(
+      widget.profile,
+      selectedDate,
+      objectName: objectName,
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Прораб может добавлять задачи только на текущий день'),
@@ -221,8 +228,13 @@ class _TasksScreenState extends State<TasksScreen> {
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
       CupertinoPageRoute(
-        builder: (_) =>
-            AddTaskScreen(initialDate: selectedDate, objectName: objectName),
+        builder: (_) => AddTaskScreen(
+          initialDate: selectedDate,
+          objectName: objectName,
+          allowAnyDate:
+              widget.profile.isAdmin ||
+              TaskEditPolicy.forObject(objectName).foremanCanCreateAnyDate,
+        ),
       ),
     );
 
@@ -314,10 +326,7 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
-  Widget buildDateArrow({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  Widget buildDateArrow({required IconData icon, required VoidCallback onTap}) {
     return PremiumPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -626,10 +635,8 @@ class _TasksScreenState extends State<TasksScreen> {
           PremiumActionButton(
             label: 'Добавить задачу',
             icon: Icons.add_rounded,
-            onPressed: TaskEditPolicy.canCreateForDate(
-              widget.profile,
-              selectedDate,
-            )
+            onPressed:
+                TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)
                 ? openAddTaskScreen
                 : null,
           ),
@@ -638,5 +645,4 @@ class _TasksScreenState extends State<TasksScreen> {
       ),
     );
   }
-
 }
