@@ -136,3 +136,5 @@ jobs:
           git add lib/features/developer/presentation/developer_panel_screen.dart test/developer_panel_scroll_contract_test.dart .github/workflows/fix-developer-panel-scroll.yml
           git commit -m "Исправить прокрутку панели разработчика"
           git push origin HEAD:${{ github.head_ref }}
+
+# trigger v2
