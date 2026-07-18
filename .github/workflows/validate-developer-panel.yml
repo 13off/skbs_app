@@ -10,7 +10,7 @@ on:
       - reopened
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 concurrency:
@@ -25,7 +25,10 @@ jobs:
       - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
+          ref: agent/developer-panel-object-policies
+          fetch-depth: 0
           show-progress: false
+          persist-credentials: true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -50,16 +53,21 @@ jobs:
           status=$?
           cat /tmp/flutter-test.log
           if (( status != 0 )); then
+            tail -n 220 /tmp/flutter-test.log > tool/developer_panel_test_failure.log
             {
               echo '### Упавшие регрессионные тесты'
               echo
-              echo '```text'
-              tail -n 180 /tmp/flutter-test.log
-              echo '```'
+              echo 'Точный отчёт сохранён в `tool/developer_panel_test_failure.log`.'
             } > /tmp/flutter-test-comment.md
             gh pr comment "$PR_NUMBER" --body-file /tmp/flutter-test-comment.md
+            git config user.name "AppStroy Automation"
+            git config user.email "actions@users.noreply.github.com"
+            git add tool/developer_panel_test_failure.log
+            git commit -m "Сохранить отчёт упавших тестов" || true
+            git push origin HEAD:agent/developer-panel-object-policies || true
             exit "$status"
           fi
+          rm -f tool/developer_panel_test_failure.log
 
       - name: Build web release
         run: flutter build web --release --base-href /appstroy-web/
