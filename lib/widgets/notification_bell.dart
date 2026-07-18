@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
+import '../features/dispatcher/presentation/dispatcher_summary_details_screen.dart';
 import 'premium_ui_v2.dart';
 
 const Color _card = Color(0xFFFFFFFF);
@@ -36,7 +37,6 @@ class _NotificationBellState extends State<NotificationBell> {
   @override
   void didUpdateWidget(covariant NotificationBell oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
       refreshHasUnread();
     }
@@ -53,13 +53,11 @@ class _NotificationBellState extends State<NotificationBell> {
 
     final selectedObject = widget.selectedObjectName?.trim() ?? '';
     final changedObject = change.contextValue('object_name') ?? '';
-
     if (selectedObject.isNotEmpty &&
         changedObject.isNotEmpty &&
         selectedObject != changedObject) {
       return;
     }
-
     setState(refreshHasUnread);
   }
 
@@ -75,43 +73,33 @@ class _NotificationBellState extends State<NotificationBell> {
     final month = local.month.toString().padLeft(2, '0');
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
-
     return '$day.$month $hour:$minute';
   }
 
   Future<bool> confirmClear(BuildContext context) async {
+    final isAllObjects = widget.selectedObjectName == null ||
+        widget.selectedObjectName!.trim().isEmpty;
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        final isAllObjects =
-            widget.selectedObjectName == null ||
-            widget.selectedObjectName!.trim().isEmpty;
-
-        return AlertDialog(
-          title: const Text('Очистить уведомления?'),
-          content: Text(
-            isAllObjects
-                ? 'Уведомления будут скрыты для тебя по всем объектам.'
-                : 'Уведомления будут скрыты для тебя по объекту ${widget.selectedObjectName!.trim()}.',
+      builder: (context) => AlertDialog(
+        title: const Text('Очистить уведомления?'),
+        content: Text(
+          isAllObjects
+              ? 'Уведомления будут скрыты для тебя по всем объектам.'
+              : 'Уведомления будут скрыты для тебя по объекту ${widget.selectedObjectName!.trim()}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Очистить'),
-            ),
-          ],
-        );
-      },
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Очистить'),
+          ),
+        ],
+      ),
     );
-
     return result == true;
   }
 
@@ -126,179 +114,164 @@ class _NotificationBellState extends State<NotificationBell> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            Future<void> clearCurrentNotifications() async {
-              final confirmed = await confirmClear(context);
-
-              if (!confirmed || !context.mounted) return;
-
-              await NotificationRepository.clearNotifications(
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          Future<void> clearCurrentNotifications() async {
+            final confirmed = await confirmClear(context);
+            if (!confirmed || !context.mounted) return;
+            await NotificationRepository.clearNotifications(
+              objectName: widget.selectedObjectName,
+            );
+            setModalState(() {
+              notificationsFuture = NotificationRepository.fetchLatest(
                 objectName: widget.selectedObjectName,
+                limit: 60,
               );
+            });
+          }
 
-              setModalState(() {
-                notificationsFuture = NotificationRepository.fetchLatest(
-                  objectName: widget.selectedObjectName,
-                  limit: 60,
-                );
-              });
-            }
-
-            return SafeArea(
-              child: Container(
-                margin: const EdgeInsets.all(12),
-                padding: const EdgeInsets.all(18),
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.82,
-                ),
-                decoration: BoxDecoration(
-                  color: _card,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: _line),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 28,
-                      offset: const Offset(0, 14),
+          return SafeArea(
+            child: Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(18),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.82,
+              ),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: _line),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 28,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4CCC2),
+                      borderRadius: BorderRadius.circular(100),
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD4CCC2),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Уведомления',
-                            style: TextStyle(
-                              color: _text,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Уведомления',
+                          style: TextStyle(
+                            color: _text,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        TextButton.icon(
-                          onPressed: clearCurrentNotifications,
-                          icon: const Icon(Icons.delete_sweep_outlined),
-                          label: const Text('Очистить'),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        widget.selectedObjectName == null ||
-                                widget.selectedObjectName!.trim().isEmpty
-                            ? 'Последние изменения по всем объектам'
-                            : 'Последние изменения: ${widget.selectedObjectName!.trim()}',
-                        style: const TextStyle(
-                          color: _muted,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: clearCurrentNotifications,
+                        icon: const Icon(Icons.delete_sweep_outlined),
+                        label: const Text('Очистить'),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.selectedObjectName == null ||
+                              widget.selectedObjectName!.trim().isEmpty
+                          ? 'Последние изменения по всем объектам'
+                          : 'Последние изменения: ${widget.selectedObjectName!.trim()}',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Flexible(
-                      child: FutureBuilder<List<AppNotification>>(
-                        future: notificationsFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Padding(
-                              padding: EdgeInsets.all(28),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-
-                          if (snapshot.hasError) {
-                            return _NotificationMessage(
-                              icon: Icons.error_outline,
-                              title: 'Не удалось загрузить уведомления',
-                              text: snapshot.error.toString(),
-                            );
-                          }
-
-                          final notifications =
-                              snapshot.data ?? <AppNotification>[];
-
-                          if (notifications.isEmpty) {
-                            return const _NotificationMessage(
-                              icon: Icons.notifications_none_outlined,
-                              title: 'Пока пусто',
-                              text:
-                                  'Когда кто-то изменит сотрудников, табель, задачи, выплаты или объекты, записи появятся здесь.',
-                            );
-                          }
-
-                          final unreadIds = notifications
-                              .where((notification) => !notification.isRead)
-                              .map((notification) => notification.id)
-                              .where(
-                                (id) =>
-                                    id.trim().isNotEmpty &&
-                                    !markedAsReadIds.contains(id),
-                              )
-                              .toList();
-
-                          if (unreadIds.isNotEmpty) {
-                            markedAsReadIds.addAll(unreadIds);
-
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              NotificationRepository.markAsRead(unreadIds);
-                            });
-                          }
-
-                          return ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: notifications.length,
-                            itemBuilder: (context, index) {
-                              final notification = notifications[index];
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _NotificationTile(
-                                  notification: notification,
-                                  timeText: formatTime(notification.createdAt),
-                                ),
-                              );
-                            },
+                  ),
+                  const SizedBox(height: 14),
+                  Flexible(
+                    child: FutureBuilder<List<AppNotification>>(
+                      future: notificationsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(28),
+                            child: Center(child: CircularProgressIndicator()),
                           );
-                        },
-                      ),
+                        }
+                        if (snapshot.hasError) {
+                          return _NotificationMessage(
+                            icon: Icons.error_outline,
+                            title: 'Не удалось загрузить уведомления',
+                            text: snapshot.error.toString(),
+                          );
+                        }
+
+                        final notifications =
+                            snapshot.data ?? <AppNotification>[];
+                        if (notifications.isEmpty) {
+                          return const _NotificationMessage(
+                            icon: Icons.notifications_none_outlined,
+                            title: 'Пока пусто',
+                            text:
+                                'Когда кто-то изменит сотрудников, табель, задачи, выплаты или объекты, записи появятся здесь.',
+                          );
+                        }
+
+                        final unreadIds = notifications
+                            .where((notification) => !notification.isRead)
+                            .map((notification) => notification.id)
+                            .where(
+                              (id) =>
+                                  id.trim().isNotEmpty &&
+                                  !markedAsReadIds.contains(id),
+                            )
+                            .toList();
+                        if (unreadIds.isNotEmpty) {
+                          markedAsReadIds.addAll(unreadIds);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            NotificationRepository.markAsRead(unreadIds);
+                          });
+                        }
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: notifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = notifications[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _NotificationTile(
+                                notification: notification,
+                                timeText: formatTime(notification.createdAt),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
 
     if (!mounted) return;
-
-    setState(() {
-      refreshHasUnread();
-    });
+    setState(refreshHasUnread);
   }
 
   @override
@@ -307,11 +280,8 @@ class _NotificationBellState extends State<NotificationBell> {
       future: hasUnreadFuture,
       builder: (context, snapshot) {
         final hasUnread = snapshot.data == true;
-
         return PremiumPressable(
-          onTap: () {
-            showNotificationsSheet(context);
-          },
+          onTap: () => showNotificationsSheet(context),
           borderRadius: BorderRadius.circular(16),
           child: Container(
             width: 46,
@@ -326,9 +296,7 @@ class _NotificationBellState extends State<NotificationBell> {
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: hasUnread ? _accent : Colors.white,
-              ),
+              border: Border.all(color: hasUnread ? _accent : Colors.white),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF17191C).withValues(alpha: 0.08),
@@ -373,13 +341,19 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
   final String timeText;
 
-  const _NotificationTile({required this.notification, required this.timeText});
+  const _NotificationTile({
+    required this.notification,
+    required this.timeText,
+  });
 
   @override
   Widget build(BuildContext context) {
     final objectName = notification.objectName.trim();
     final actorEmail = notification.actorEmail.trim();
     final isUnread = !notification.isRead;
+    final isDispatcherSummary =
+        notification.entityType == 'dispatcher_summary' &&
+        notification.entityId.trim().isNotEmpty;
 
     return PremiumWorkCard(
       radius: 20,
@@ -396,7 +370,11 @@ class _NotificationTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(
-              isUnread ? Icons.notifications_active_outlined : Icons.history,
+              isDispatcherSummary
+                  ? Icons.analytics_outlined
+                  : isUnread
+                      ? Icons.notifications_active_outlined
+                      : Icons.history,
               color: _accent,
               size: 22,
             ),
@@ -445,6 +423,22 @@ class _NotificationTile extends StatelessWidget {
                       height: 1.25,
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                ],
+                if (isDispatcherSummary) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.tonalIcon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => DispatcherSummaryDetailsScreen(
+                            runId: notification.entityId.trim(),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.analytics_outlined, size: 19),
+                    label: const Text('Разобрать отклонения'),
                   ),
                 ],
                 const SizedBox(height: 8),
