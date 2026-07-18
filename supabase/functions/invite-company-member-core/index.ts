@@ -3,7 +3,8 @@ import { createClient, type User } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -97,7 +98,14 @@ Deno.serve(async (request: Request) => {
     const role = String(input.role ?? "foreman").trim();
     const profession = String(input.profession ?? "").trim();
     const objectId = String(input.object_id ?? "").trim();
-    const allowedRoles = new Set(["admin", "developer", "foreman", "lawyer", "accountant", "hr"]);
+    const allowedRoles = new Set([
+      "admin",
+      "developer",
+      "foreman",
+      "lawyer",
+      "accountant",
+      "hr",
+    ]);
 
     if (!companyId || !email || !email.includes("@")) {
       return json({ error: "Укажите компанию и корректный email" }, 400);
@@ -122,13 +130,16 @@ Deno.serve(async (request: Request) => {
         .select("role, is_active")
         .eq("company_id", companyId)
         .eq("user_id", actor.id)
-        .in("role", ["owner", "admin"])
+        .in("role", ["owner", "admin", "developer"])
         .eq("is_active", true)
         .maybeSingle();
     if (actorMembershipError) throw actorMembershipError;
     if (!actorMembership) {
       return json(
-        { error: "Приглашать может только администратор компании" },
+        {
+          error:
+            "Приглашать может только владелец, администратор или разработчик компании",
+        },
         403,
       );
     }
@@ -199,9 +210,9 @@ Deno.serve(async (request: Request) => {
           email,
           options: {
             data: {
-               full_name: fullName,
-               profession,
-               invited_company_id: companyId,
+              full_name: fullName,
+              profession,
+              invited_company_id: companyId,
               invited_company_name: company.name,
               must_set_password: true,
             },
@@ -259,9 +270,9 @@ Deno.serve(async (request: Request) => {
       const { error } = await adminClient.from("user_profiles").insert({
         id: invitedUser.id,
         email,
-         full_name: fullName,
-         role,
-         profession,
+        full_name: fullName,
+        role,
+        profession,
         object_name: objectName,
         is_active: true,
         active_company_id: companyId,
@@ -272,9 +283,9 @@ Deno.serve(async (request: Request) => {
         .from("user_profiles")
         .update({
           email,
-           full_name: existingProfile.full_name || fullName,
-           role,
-           profession,
+          full_name: existingProfile.full_name || fullName,
+          role,
+          profession,
           object_name: objectName,
           is_active: true,
           active_company_id: companyId,
@@ -313,9 +324,9 @@ Deno.serve(async (request: Request) => {
       .insert({
         company_id: companyId,
         email,
-         role,
-         profession,
-         object_id: role === "foreman" ? objectId : null,
+        role,
+        profession,
+        object_id: role === "foreman" ? objectId : null,
         invited_by: actor.id,
         invited_user_id: invitedUser.id,
         status: "pending",
