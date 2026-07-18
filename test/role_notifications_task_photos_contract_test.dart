@@ -49,7 +49,7 @@ void main() {
     ]);
   });
 
-  test('новая задача требует фото До, а выполнение требует фото После', () {
+  test('фото До и После обязательны по умолчанию и настраиваются по объекту', () {
     expectContains(
       'supabase/migrations/20260718120000_role_notifications_and_task_photo_stages.sql',
       const [
@@ -87,23 +87,46 @@ void main() {
         'app_notifications_00_deleted_task_company',
       ],
     );
+    expectContains(
+      'supabase/migrations/20260718080500_developer_role_and_task_policy_schema.sql',
+      const [
+        'company_task_policies',
+        'require_before_photo boolean not null default true',
+        'min_before_photos integer not null default 1',
+        'require_after_photo_on_complete boolean not null default true',
+        'min_after_photos integer not null default 1',
+      ],
+    );
+    expectContains(
+      'supabase/migrations/20260718080700_task_policy_enforcement.sql',
+      const [
+        'get_effective_task_policy',
+        "v_policy ->> 'require_before_photo'",
+        "v_policy ->> 'require_after_photo_on_complete'",
+        'task_can_create_for_user',
+        'task_photo_can_delete_for_user',
+      ],
+    );
     expectContains('lib/data/task_repository.dart', const [
       "'is_draft': true",
-      "'photo_requirements_enforced': true",
+      "'photo_requirements_enforced': policy.requireBeforePhoto",
+      'policy.minBeforePhotos',
       "photoStage: 'before'",
       "'photo_stage': photoStage",
       ".eq('is_draft', false)",
       "row['is_draft'] != true",
     ]);
     expectContains('lib/screens/add_task_screen.dart', const [
+      'policy.requireBeforePhoto',
+      'policy.minBeforePhotos',
       'Фото «До» — обязательно',
-      'Добавьте хотя бы одно фото «До»',
+      'Фото «До» — по желанию',
     ]);
     expectContains('lib/screens/task_details_legacy_screen.dart', const [
       "photoStage: 'before'",
       "photoStage: 'after'",
-      'Без фото «После» задачу нельзя выполнить',
-      'Сначала добавьте хотя бы одно фото «После»',
+      'policy.requireAfterPhotoOnComplete',
+      'policy.minAfterPhotos',
       "widget.task.status != 'Выполнено'",
     ]);
   });
