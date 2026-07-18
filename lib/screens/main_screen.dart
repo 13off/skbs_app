@@ -110,7 +110,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget platformFor(AppUserProfile profile) {
-    if (profile.isDeveloper && !profile.isRolePreview) {
+    if (profile.isDeveloper) {
       return DeveloperMainScreen(profile: profile);
     }
     if (profile.isLawyer) {
