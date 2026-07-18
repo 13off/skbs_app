@@ -1,0 +1,56 @@
+name: Apply developer panel
+
+on:
+  push:
+    branches:
+      - agent/developer-panel-object-policies
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, '[developer-panel-bootstrap]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply guarded source patches
+        run: python tool/apply_developer_panel.py
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          mapfile -t files < <(git diff --name-only -- '*.dart')
+          if (( ${#files[@]} )); then
+            dart format "${files[@]}"
+          fi
+
+      - name: Analyze application
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Check patch quality
+        run: git diff --check
+
+      - name: Commit integrated feature
+        shell: bash
+        run: |
+          rm -f tool/apply_developer_panel.py .github/workflows/apply-developer-panel.yml
+          git config user.name "AppStroy Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Добавить панель разработчика и объектные ограничения"
+          git push origin HEAD:agent/developer-panel-object-policies
