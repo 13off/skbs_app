@@ -14,7 +14,8 @@ void main() {
     expect(workflow, contains("'build-android-apk.yml'"));
     expect(workflow, contains("'build-ios-ipa.yml'"));
     expect(workflow, contains("ref: 'main'"));
-    expect(marker, contains('version: 1.1.0+2'));
-    expect(marker, contains('previous Android build: 2026-07-11 17:30'));
+    expect(marker, contains('version: 1.2.0+3'));
+    expect(marker, contains('previous mobile release: 1.1.0+2'));
+    expect(marker, contains('AI dispatcher daily summary'));
   });
 }
