@@ -1,0 +1,6 @@
+AppСтрой mobile release
+version: 1.1.0+2
+previous Android build: 2026-07-11 17:30
+release date: 2026-07-18
+dark theme: temporarily disabled, source preserved
+what's new: shown once after sign-in
