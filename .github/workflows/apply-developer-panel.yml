@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   apply:
@@ -25,23 +26,26 @@ jobs:
           persist-credentials: true
 
       - name: Apply guarded source patches
-        id: patch
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          rm -f tool/developer_panel_patch_failure.log
           set +e
-          python tool/apply_developer_panel.py > tool/developer_panel_patch_failure.log 2>&1
+          python tool/apply_developer_panel.py > /tmp/developer_panel_patch.log 2>&1
           status=$?
-          cat tool/developer_panel_patch_failure.log
+          cat /tmp/developer_panel_patch.log
           if (( status != 0 )); then
-            git config user.name "AppStroy Automation"
-            git config user.email "actions@users.noreply.github.com"
-            git add tool/developer_panel_patch_failure.log
-            git commit -m "Сохранить ошибку интеграции панели" || true
-            git push origin HEAD:agent/developer-panel-object-policies || true
+            {
+              echo '### Ошибка защитной интеграции'
+              echo
+              echo '```text'
+              cat /tmp/developer_panel_patch.log
+              echo '```'
+            } > /tmp/developer_panel_comment.md
+            gh pr comment "$PR_NUMBER" --body-file /tmp/developer_panel_comment.md
             exit "$status"
           fi
-          rm -f tool/developer_panel_patch_failure.log
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
