@@ -51,7 +51,16 @@ jobs:
           '''
           if first not in text or second not in text:
               raise SystemExit('Не найден защитный блок сигнатур')
-          path.write_text(text.replace(first, replacement, 1).replace(second, '', 1), encoding='utf-8')
+          text = text.replace(first, replacement, 1).replace(second, '', 1)
+          text = text.replace('"               full_name: fullName,\\n               invited_company_id:"', '"              full_name: fullName,\\n              invited_company_id:"')
+          text = text.replace('"               full_name: fullName,\\n               profession,\\n               invited_company_id:"', '"              full_name: fullName,\\n              profession,\\n              invited_company_id:"')
+          text = text.replace('"         full_name: fullName,\\n         role,"', '"        full_name: fullName,\\n        role,"')
+          text = text.replace('"         full_name: fullName,\\n         role,\\n         profession,"', '"        full_name: fullName,\\n        role,\\n        profession,"')
+          text = text.replace('"           full_name: existingProfile.full_name || fullName,\\n           role,"', '"          full_name: existingProfile.full_name || fullName,\\n          role,"')
+          text = text.replace('"           full_name: existingProfile.full_name || fullName,\\n           role,\\n           profession,"', '"          full_name: existingProfile.full_name || fullName,\\n          role,\\n          profession,"')
+          text = text.replace('"         role,\\n         object_id: role === \\"foreman\\" ? objectId : null,"', '"        role,\\n        object_id: role === \\"foreman\\" ? objectId : null,"')
+          text = text.replace('"         role,\\n         profession,\\n         object_id: role === \\"foreman\\" ? objectId : null,"', '"        role,\\n        profession,\\n        object_id: role === \\"foreman\\" ? objectId : null,"')
+          path.write_text(text, encoding='utf-8')
           PY
 
       - name: Apply guarded source patches
