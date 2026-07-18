@@ -51,7 +51,93 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
+          fetch-depth: 2
           show-progress: false
+
+      - name: Patch developer panel scrolling
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/developer/presentation/developer_panel_screen.dart')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  """                  final selector = _buildSelector();
+                  final editor = _buildEditor();""",
+                  """                  final selector = _buildSelector(scrollable: desktop);
+                  final editor = _buildEditor(scrollable: desktop);""",
+              ),
+              (
+                  """  Widget _buildSelector() {
+    final value = center!;
+    return ListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),""",
+                  """  Widget _buildSelector({required bool scrollable}) {
+    final value = center!;
+    return ListView(
+      primary: false,
+      shrinkWrap: !scrollable,
+      physics: scrollable
+          ? const AlwaysScrollableScrollPhysics()
+          : const NeverScrollableScrollPhysics(),""",
+              ),
+              (
+                  """  Widget _buildEditor() {
+    final object = selectedObject;
+    return ListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),""",
+                  """  Widget _buildEditor({required bool scrollable}) {
+    final object = selectedObject;
+    return ListView(
+      primary: false,
+      shrinkWrap: !scrollable,
+      physics: scrollable
+          ? const AlwaysScrollableScrollPhysics()
+          : const NeverScrollableScrollPhysics(),""",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding='utf-8')
+
+          test = Path('test/developer_panel_scroll_contract_test.dart')
+          test.write_text(
+              """import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('developer panel scrolls independently on desktop', () {
+    final source = File(
+      'lib/features/developer/presentation/developer_panel_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_buildSelector(scrollable: desktop)'));
+    expect(source, contains('_buildEditor(scrollable: desktop)'));
+    expect(source, contains('primary: false'));
+    expect(source, contains('shrinkWrap: !scrollable'));
+    expect(source, contains('AlwaysScrollableScrollPhysics'));
+    expect(
+      RegExp(r'NeverScrollableScrollPhysics').allMatches(source).length,
+      greaterThanOrEqualTo(2),
+    );
+  });
+}
+""",
+              encoding='utf-8',
+          )
+          PY
 
       - name: Checkout web repository
         uses: actions/checkout@v4
@@ -66,6 +152,10 @@ jobs:
         with:
           flutter-version-file: skbs_app/.fvmrc
           cache: true
+
+      - name: Format scroll fix
+        working-directory: skbs_app
+        run: dart format lib/features/developer/presentation/developer_panel_screen.dart test/developer_panel_scroll_contract_test.dart
 
       - name: Install icon renderer
         run: |
@@ -226,3 +316,14 @@ jobs:
 
           echo "::error::Не удалось сохранить статус веб-сборки"
           exit 1
+
+      - name: Persist scroll fix and restore workflow
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          git show HEAD^:.github/workflows/deploy-web.yml > .github/workflows/deploy-web.yml
+          git config user.name "AppStroy Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add lib/features/developer/presentation/developer_panel_screen.dart test/developer_panel_scroll_contract_test.dart .github/workflows/deploy-web.yml
+          git commit -m "Исправить прокрутку панели разработчика"
+          git push origin HEAD:main
