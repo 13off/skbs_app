@@ -8,6 +8,7 @@ import '../../../screens/template_documents_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../company/presentation/company_management_screen.dart';
+import 'developer_constructor_screen.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -47,10 +48,22 @@ class DeveloperSystemScreen extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: const [
-              _StatusBadge(icon: Icons.cloud_done_outlined, label: 'База подключена'),
-              _StatusBadge(icon: Icons.schedule_rounded, label: 'Планировщик активен'),
-              _StatusBadge(icon: Icons.notifications_active_outlined, label: 'Push-контур активен'),
-              _StatusBadge(icon: Icons.auto_awesome_rounded, label: 'ИИ-диспетчер готов'),
+              _StatusBadge(
+                icon: Icons.cloud_done_outlined,
+                label: 'База подключена',
+              ),
+              _StatusBadge(
+                icon: Icons.schedule_rounded,
+                label: 'Планировщик активен',
+              ),
+              _StatusBadge(
+                icon: Icons.notifications_active_outlined,
+                label: 'Push-контур активен',
+              ),
+              _StatusBadge(
+                icon: Icons.auto_awesome_rounded,
+                label: 'ИИ-диспетчер готов',
+              ),
             ],
           ),
         ],
@@ -89,7 +102,13 @@ class DeveloperSystemScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
@@ -124,28 +143,45 @@ class DeveloperSystemScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
             child: Text(
               'СИСТЕМНЫЕ РАЗДЕЛЫ',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.8),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
             ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.dashboard_customize_outlined,
+            title: 'Конструктор настроек',
+            subtitle:
+                'Создавать, переименовывать и удалять напоминания и системные параметры.',
+            onTap: () => open(context, const DeveloperConstructorScreen()),
           ),
           actionCard(
             context,
             icon: Icons.notifications_none_rounded,
             title: 'Уведомления и напоминания',
-            subtitle: 'Роли, события, колокольчик, push и время служебных напоминаний.',
-            onTap: () => open(context, const NotificationControlCenterScreen()),
+            subtitle:
+                'Базовые роли, события, колокольчик, push и встроенные напоминания.',
+            onTap: () =>
+                open(context, const NotificationControlCenterScreen()),
           ),
           actionCard(
             context,
             icon: Icons.devices_rounded,
             title: 'Устройства и push',
-            subtitle: 'Регистрация текущего телефона или браузера и диагностика доставки.',
-            onTap: () => open(context, const PushNotificationSettingsScreen()),
+            subtitle:
+                'Регистрация текущего телефона или браузера и диагностика доставки.',
+            onTap: () =>
+                open(context, const PushNotificationSettingsScreen()),
           ),
           actionCard(
             context,
             icon: Icons.manage_accounts_outlined,
             title: 'Роли и пользователи',
-            subtitle: 'Приглашения, профессии, доступ и отключение пользователей компании.',
+            subtitle:
+                'Приглашения, профессии, доступ и отключение пользователей компании.',
             onTap: () => open(
               context,
               CompanyManagementScreen(companyId: profile.activeCompanyId),
@@ -155,25 +191,9 @@ class DeveloperSystemScreen extends StatelessWidget {
             context,
             icon: Icons.folder_copy_outlined,
             title: 'Шаблоны документов',
-            subtitle: 'Системные формы договоров, актов и кадровых документов.',
+            subtitle:
+                'Системные формы договоров, актов и кадровых документов.',
             onTap: () => open(context, const TemplateDocumentsScreen()),
-          ),
-          const SizedBox(height: 8),
-          PremiumWorkCard(
-            radius: 22,
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline_rounded),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Следующие системные параметры будем добавлять сюда отдельными блоками. Значения сохраняются в базе и журналируются — менять константы в коде для обычной настройки больше не потребуется.',
-                    style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -200,7 +220,10 @@ class _StatusBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 17),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );

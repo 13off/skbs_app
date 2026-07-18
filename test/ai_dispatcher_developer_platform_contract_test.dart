@@ -11,6 +11,7 @@ void main() {
     final system = File(
       'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
+    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
 
     expect(main, contains('DeveloperMainScreen(profile: profile)'));
     expect(main, contains('if (profile.isDeveloper)'));
@@ -22,10 +23,70 @@ void main() {
     expect(platform, contains("label: 'Диспетчер'"));
     expect(platform, contains("label: 'Ограничения'"));
     expect(system, contains('Общие настройки AppСтрой без правок в коде'));
-    expect(system, contains('NotificationControlCenterScreen'));
+    expect(system, contains('DeveloperConstructorScreen'));
+    expect(profile, isNot(contains("title: 'Панель разработчика'")));
+    expect(profile, isNot(contains("'Для разработчика'")));
   });
 
-  test('dispatcher has configurable schedule, sections and delivery', () {
+  test('developer constructor manages reminders and custom settings', () {
+    final repository = File(
+      'lib/features/developer/data/developer_constructor_repository.dart',
+    ).readAsStringSync();
+    final screen = File(
+      'lib/features/developer/presentation/developer_constructor_screen.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260718150000_developer_constructor.sql',
+    ).readAsStringSync();
+
+    expect(repository, contains('get_developer_constructor_center'));
+    expect(repository, contains('save_developer_reminder_rule'));
+    expect(repository, contains('delete_developer_reminder_rule'));
+    expect(repository, contains('test_developer_reminder_rule'));
+    expect(repository, contains('save_developer_custom_setting'));
+    expect(repository, contains('delete_developer_custom_setting'));
+    expect(screen, contains('Новое напоминание'));
+    expect(screen, contains('Системные параметры'));
+    expect(screen, contains('Получатели'));
+    expect(screen, contains('Время напоминания'));
+    expect(migration, contains('developer_reminder_rules'));
+    expect(migration, contains('developer_custom_settings'));
+    expect(migration, contains('populate_developer_custom_reminders'));
+  });
+
+  test('dispatcher requires one object and keeps object-specific history', () {
+    final repository = File(
+      'lib/features/dispatcher/data/dispatcher_summary_repository.dart',
+    ).readAsStringSync();
+    final screen = File(
+      'lib/features/dispatcher/presentation/dispatcher_settings_screen.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260718151000_object_dispatcher_summary.sql',
+    ).readAsStringSync();
+    final edge = File(
+      'supabase/functions/daily-dispatcher-summary/index.ts',
+    ).readAsStringSync();
+
+    expect(repository, contains('DispatcherObjectOption'));
+    expect(repository, contains("'object_id': objectId"));
+    expect(repository, contains('objectName'));
+    expect(screen, contains('Объект сводки'));
+    expect(screen, contains('только объект'));
+    expect(screen, contains('Проверить сейчас'));
+    expect(migration, contains('object_id uuid references public.objects'));
+    expect(
+      migration,
+      contains('dispatcher_summary_runs_company_object_date_key'),
+    );
+    expect(migration, contains('prepare_dispatcher_object_summary'));
+    expect(migration, contains('Объект: %s'));
+    expect(edge, contains('prepare_dispatcher_object_summary'));
+    expect(edge, contains('object_name'));
+    expect(edge, contains('OPENAI_API_KEY'));
+  });
+
+  test('dispatcher keeps configurable schedule, sections and delivery', () {
     final repository = File(
       'lib/features/dispatcher/data/dispatcher_summary_repository.dart',
     ).readAsStringSync();
@@ -40,24 +101,5 @@ void main() {
     expect(screen, contains('Содержание сводки'));
     expect(screen, contains('Получатели'));
     expect(screen, contains('Комментарий ИИ'));
-    expect(screen, contains('Проверить сейчас'));
-  });
-
-  test('server migration schedules one daily company summary', () {
-    final migration = File(
-      'supabase/migrations/20260718133000_ai_dispatcher_developer_platform.sql',
-    ).readAsStringSync();
-    final edge = File(
-      'supabase/functions/daily-dispatcher-summary/index.ts',
-    ).readAsStringSync();
-
-    expect(migration, contains('dispatcher_summary_settings'));
-    expect(migration, contains('dispatcher_summary_runs'));
-    expect(migration, contains('process_due_dispatcher_summaries'));
-    expect(migration, contains('appstroy-dispatcher-daily-summary'));
-    expect(migration, contains('unique(company_id, summary_date)'));
-    expect(edge, contains('ИИ-диспетчер AppСтрой'));
-    expect(edge, contains('OPENAI_API_KEY'));
-    expect(edge, contains('push_requested'));
   });
 }

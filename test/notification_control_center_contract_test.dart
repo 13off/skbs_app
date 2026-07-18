@@ -15,7 +15,6 @@ void main() {
   test('руководитель управляет всеми внутренними настройками уведомлений', () {
     expectContains('lib/screens/profile_screen.dart', const [
       'Настройка уведомлений',
-      'openNotificationControlCenter',
       'NotificationControlCenterScreen',
     ]);
     expectContains(
@@ -51,7 +50,7 @@ void main() {
           'get_my_notification_control_center',
           'set_my_notification_control_preferences',
           'set_company_reminder_settings',
-          "and s.enabled = true",
+          'and s.enabled = true',
           'populate_role_operational_reminders',
         ],
       );

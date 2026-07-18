@@ -7,7 +7,6 @@ import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
-import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/role_preview/role_preview_screen.dart';
@@ -24,6 +23,13 @@ class ProfileScreen extends StatelessWidget {
   final AppUserProfile profile;
 
   const ProfileScreen({super.key, required this.profile});
+
+  void open(BuildContext context, Widget screen) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute<void>(builder: (_) => screen),
+    );
+  }
 
   Future<void> signOut(BuildContext context) async {
     final shouldExit = await showDialog<bool>(
@@ -48,93 +54,6 @@ class ProfileScreen extends StatelessWidget {
     if (shouldExit != true) return;
     RolePreviewController.reset();
     await UserRepository.signOut();
-  }
-
-  void openTemplateDocuments(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(builder: (_) => const TemplateDocumentsScreen()),
-    );
-  }
-
-  void openArchive(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => ArchiveManagementScreenV3(profile: profile),
-      ),
-    );
-  }
-
-  void openCompanyManagement(BuildContext context) {
-    if (profile.activeCompanyId.isEmpty) return;
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) =>
-            CompanyManagementScreen(companyId: profile.activeCompanyId),
-      ),
-    );
-  }
-
-  void openCompanySwitcher(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) =>
-            CompanySwitcherScreen(activeCompanyId: profile.activeCompanyId),
-      ),
-    );
-  }
-
-  void openPushSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => const PushNotificationSettingsScreen(),
-      ),
-    );
-  }
-
-  void openNotificationControlCenter(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => const NotificationControlCenterScreen(),
-      ),
-    );
-  }
-
-  void openPwaInstall(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(builder: (_) => const PwaInstallScreen()),
-    );
-  }
-
-  void openLegalSummary(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => LegalManagerSummaryScreen(profile: profile),
-      ),
-    );
-  }
-
-  void openRolePreview(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(builder: (_) => const RolePreviewScreen()),
-    );
-  }
-
-  void openDeveloperPanel(BuildContext context) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (_) => DeveloperPanelScreen(profile: profile),
-      ),
-    );
   }
 
   String get profileInitial {
@@ -259,7 +178,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildSectionTitle(BuildContext context, String title) {
+  Widget sectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
       child: Text(
@@ -274,7 +193,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildInfoTile(
+  Widget infoTile(
     BuildContext context, {
     required IconData icon,
     required String title,
@@ -320,7 +239,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildActionTile(
+  Widget actionTile(
     BuildContext context, {
     required IconData icon,
     required String title,
@@ -375,7 +294,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildSignOutButton(BuildContext context) {
+  Widget signOutButton(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return PremiumPressable(
       onTap: () => signOut(context),
@@ -418,134 +337,137 @@ class ProfileScreen extends StatelessWidget {
           buildProfileHero(context),
           const SizedBox(height: 18),
           if (profile.canPreviewRoles) ...[
-            buildSectionTitle(context, 'Режим платформы'),
-            buildActionTile(
+            sectionTitle(context, 'Режим платформы'),
+            actionTile(
               context,
               icon: Icons.switch_account_rounded,
               title: 'Переключить платформу',
               subtitle:
-                  'Сейчас: ${profile.roleTitle}. Открыть платформу руководителя, прораба или юриста',
-              onTap: () => openRolePreview(context),
+                  'Сейчас: ${profile.roleTitle}. Открыть другую профессиональную платформу',
+              onTap: () => open(context, const RolePreviewScreen()),
             ),
             const SizedBox(height: 8),
           ],
-          buildSectionTitle(context, 'Рабочие данные'),
+          sectionTitle(context, 'Рабочие данные'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
               future: CompanyRepository.fetchCompany(profile.activeCompanyId),
-              builder: (context, snapshot) => buildInfoTile(
+              builder: (context, snapshot) => infoTile(
                 context,
                 icon: Icons.apartment_rounded,
                 title: 'Компания',
-                value:
-                    snapshot.data?.name ??
+                value: snapshot.data?.name ??
                     (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
               ),
             ),
-          buildInfoTile(
+          infoTile(
             context,
             icon: Icons.person_outline,
             title: 'ФИО',
             value: profile.fullName,
           ),
-          buildInfoTile(
+          infoTile(
             context,
             icon: Icons.work_outline_rounded,
             title: 'Профессия',
             value: profile.profession,
           ),
-          buildInfoTile(
+          infoTile(
             context,
             icon: Icons.admin_panel_settings_outlined,
             title: profile.isRolePreview ? 'Открытая платформа' : 'Роль',
             value: roleDescription,
           ),
-          buildInfoTile(
+          infoTile(
             context,
             icon: Icons.email_outlined,
             title: 'Email',
             value: profile.email,
           ),
-          buildInfoTile(
+          infoTile(
             context,
             icon: Icons.apartment_outlined,
             title: 'Объект',
             value: profile.objectName,
           ),
           const SizedBox(height: 8),
-          buildSectionTitle(context, 'Уведомления'),
+          sectionTitle(context, 'Уведомления'),
           if (profile.isAdmin)
-            buildActionTile(
+            actionTile(
               context,
               icon: Icons.tune_rounded,
               title: 'Настройка уведомлений',
               subtitle:
-                  'Колокольчик, push, роли, типы событий и все напоминания компании',
-              onTap: () => openNotificationControlCenter(context),
+                  'Колокольчик, push, роли, типы событий и встроенные напоминания',
+              onTap: () => open(
+                context,
+                const NotificationControlCenterScreen(),
+              ),
             ),
-          buildActionTile(
+          actionTile(
             context,
             icon: Icons.notifications_active_outlined,
             title: 'Push-уведомления',
             subtitle:
                 'Разрешение, регистрация телефона или браузера и отключение устройства',
-            onTap: () => openPushSettings(context),
+            onTap: () => open(
+              context,
+              const PushNotificationSettingsScreen(),
+            ),
           ),
           if (PwaInstallService.isSupported) ...[
             const SizedBox(height: 8),
-            buildSectionTitle(context, 'Приложение'),
-            buildActionTile(
+            sectionTitle(context, 'Приложение'),
+            actionTile(
               context,
               icon: Icons.install_desktop_rounded,
               title: 'Установить AppСтрой',
               subtitle:
                   'Добавить на телефон или компьютер как отдельное приложение',
-              onTap: () => openPwaInstall(context),
+              onTap: () => open(context, const PwaInstallScreen()),
             ),
           ],
-          const SizedBox(height: 8),
           if (profile.isAdmin) ...[
-            buildSectionTitle(context, 'Для разработчика'),
-            buildActionTile(
-              context,
-              icon: Icons.developer_mode_rounded,
-              title: 'Панель разработчика',
-              subtitle:
-                  'Ограничения компании и объектов, наследование правил и журнал изменений',
-              onTap: () => openDeveloperPanel(context),
-            ),
             const SizedBox(height: 8),
-            buildSectionTitle(context, 'Управление компанией'),
-            buildActionTile(
+            sectionTitle(context, 'Управление компанией'),
+            actionTile(
               context,
               icon: Icons.gavel_rounded,
               title: 'Юридическая сводка',
               subtitle:
                   'Риски, согласования, решения руководителя и недельный отчёт юриста',
-              onTap: () => openLegalSummary(context),
+              onTap: () => open(
+                context,
+                LegalManagerSummaryScreen(profile: profile),
+              ),
             ),
-            buildActionTile(
+            actionTile(
               context,
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
-              subtitle:
-                  'Приглашения, роли и доступ всех пользователей компании',
-              onTap: () => openCompanyManagement(context),
+              subtitle: 'Приглашения, роли и доступ всех пользователей компании',
+              onTap: () => open(
+                context,
+                CompanyManagementScreen(companyId: profile.activeCompanyId),
+              ),
             ),
-            buildActionTile(
+            actionTile(
               context,
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
                   'Архивированные сотрудники и объекты: восстановить или удалить навсегда',
-              onTap: () => openArchive(context),
+              onTap: () => open(
+                context,
+                ArchiveManagementScreenV3(profile: profile),
+              ),
             ),
-            buildActionTile(
+            actionTile(
               context,
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
               subtitle: 'Шаблоны договоров, КС-2, КС-3 и другие формы',
-              onTap: () => openTemplateDocuments(context),
+              onTap: () => open(context, const TemplateDocumentsScreen()),
             ),
             const SizedBox(height: 8),
           ],
@@ -557,21 +479,26 @@ class ProfileScreen extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  buildSectionTitle(context, 'Рабочее пространство'),
-                  buildActionTile(
+                  sectionTitle(context, 'Рабочее пространство'),
+                  actionTile(
                     context,
                     icon: Icons.swap_horiz_rounded,
                     title: 'Сменить компанию',
                     subtitle:
                         'Переключиться между доступными рабочими пространствами',
-                    onTap: () => openCompanySwitcher(context),
+                    onTap: () => open(
+                      context,
+                      CompanySwitcherScreen(
+                        activeCompanyId: profile.activeCompanyId,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                 ],
               );
             },
           ),
-          buildSignOutButton(context),
+          signOutButton(context),
         ],
       ),
     );
