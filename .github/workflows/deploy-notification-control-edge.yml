@@ -1,16 +1,16 @@
 name: Deploy notification control edge
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/notification-control-center
+      - main
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'feature/notification-control-center' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
