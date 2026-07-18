@@ -1,0 +1,53 @@
+name: Apply notification control center
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-check:
+    if: github.head_ref == 'feature/notification-control-center' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply implementation
+        run: python3 tool/apply_notification_control_center.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Verify implementation
+        shell: bash
+        run: |
+          dart format \
+            lib/data/notification_repository.dart \
+            lib/screens/profile_screen.dart \
+            lib/screens/push_notification_settings_screen.dart \
+            lib/screens/notification_control_center_screen.dart \
+            test/role_notifications_task_photos_contract_test.dart \
+            test/notification_control_center_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --reporter compact
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit verified changes
+        shell: bash
+        run: |
+          rm tool/apply_notification_control_center.py
+          rm .github/workflows/apply-notification-control-center.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Добавить центр управления уведомлениями"
+          git push origin HEAD:feature/notification-control-center
