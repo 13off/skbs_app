@@ -153,7 +153,26 @@ jobs:
           fi
 
       - name: Analyze application
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/developer_panel_analyze.log 2>&1
+          status=$?
+          cat /tmp/developer_panel_analyze.log
+          if (( status != 0 )); then
+            {
+              echo '### Ошибки Flutter analyzer'
+              echo
+              echo '```text'
+              cat /tmp/developer_panel_analyze.log
+              echo '```'
+            } > /tmp/developer_panel_analyze_comment.md
+            gh pr comment "$PR_NUMBER" --body-file /tmp/developer_panel_analyze_comment.md
+            exit "$status"
+          fi
 
       - name: Check patch quality
         run: git diff --check
