@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('dark theme is controlled only from profile and persists locally', () {
+  test('dark theme code is preserved but hidden for the mobile release', () {
     final mainSource = File('lib/main.dart').readAsStringSync();
     final controller = File(
       'lib/app/theme_controller.dart',
@@ -18,10 +18,16 @@ void main() {
     expect(mainSource, contains('themeMode: themeController.themeMode'));
     expect(mainSource, contains('AppThemeController.instance.initialize()'));
 
+    expect(controller, contains('static const bool featureEnabled = false'));
     expect(controller, contains('SharedPreferences.getInstance()'));
     expect(controller, contains("'app_theme_mode'"));
     expect(controller, contains('ThemeMode.dark'));
     expect(controller, contains('Future<void> toggle()'));
+    expect(
+      controller,
+      contains('if (!featureEnabled)'),
+      reason: 'The saved dark preference must be ignored while disabled.',
+    );
 
     expect(darkTheme, contains('brightness: Brightness.dark'));
     expect(darkTheme, contains('navigationBarTheme'));
@@ -32,7 +38,8 @@ void main() {
     expect(profile, contains('Icons.light_mode_rounded'));
     expect(profile, contains('onPressed: controller.toggle'));
 
-    expect(appPage, isNot(contains('AppThemeController')));
-    expect(appPage, isNot(contains('Icons.dark_mode_rounded')));
+    expect(appPage, contains("title == 'Профиль'"));
+    expect(appPage, contains('!AppThemeController.featureEnabled'));
+    expect(appPage, contains('trailing: effectiveTrailing'));
   });
 }
