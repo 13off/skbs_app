@@ -25,21 +25,15 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
     objectNamesFuture = ObjectRepository.fetchObjectNames();
   }
 
-  void selectAdmin() {
-    RolePreviewController.showAdmin();
-  }
+  void selectAdmin() => RolePreviewController.showAdmin();
 
-  void selectLawyer() {
-    RolePreviewController.showLawyer();
-  }
+  void selectDeveloper() => RolePreviewController.showDeveloper();
 
-  void selectAccountant() {
-    RolePreviewController.showAccountant();
-  }
+  void selectLawyer() => RolePreviewController.showLawyer();
 
-  void selectHr() {
-    RolePreviewController.showHr();
-  }
+  void selectAccountant() => RolePreviewController.showAccountant();
+
+  void selectHr() => RolePreviewController.showHr();
 
   Future<void> selectForeman(List<String> objectNames) async {
     if (objectNames.isEmpty) {
@@ -126,16 +120,12 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                                 ),
                               ),
                             ),
-                            if (selectedNow)
-                              const Icon(
-                                Icons.check_circle_rounded,
-                                color: _roleText,
-                              )
-                            else
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: _roleMuted,
-                              ),
+                            Icon(
+                              selectedNow
+                                  ? Icons.check_circle_rounded
+                                  : Icons.chevron_right_rounded,
+                              color: selectedNow ? _roleText : _roleMuted,
+                            ),
                           ],
                         ),
                       ),
@@ -275,6 +265,15 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                     subtitle: 'Обычная платформа администратора компании.',
                     selected: preview.isAdminMode,
                     onTap: selectAdmin,
+                  ),
+                  roleCard(
+                    icon: Icons.developer_mode_rounded,
+                    title: 'Разработчик',
+                    subtitle:
+                        'Системные настройки, ИИ-диспетчер, ограничения и контроль платформы.',
+                    selected: preview.isDeveloperMode,
+                    onTap: selectDeveloper,
+                    badge: 'СИСТЕМА',
                   ),
                   roleCard(
                     icon: Icons.engineering_rounded,
