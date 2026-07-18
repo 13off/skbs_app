@@ -163,11 +163,15 @@ jobs:
           status=$?
           cat /tmp/developer_panel_analyze.log
           if (( status != 0 )); then
+            grep -E '(^|[[:space:]])(error|warning) •' /tmp/developer_panel_analyze.log > /tmp/developer_panel_analyze_short.log || true
+            if [[ ! -s /tmp/developer_panel_analyze_short.log ]]; then
+              tail -n 100 /tmp/developer_panel_analyze.log > /tmp/developer_panel_analyze_short.log
+            fi
             {
               echo '### Ошибки Flutter analyzer'
               echo
               echo '```text'
-              cat /tmp/developer_panel_analyze.log
+              cat /tmp/developer_panel_analyze_short.log
               echo '```'
             } > /tmp/developer_panel_analyze_comment.md
             gh pr comment "$PR_NUMBER" --body-file /tmp/developer_panel_analyze_comment.md
