@@ -70,13 +70,32 @@ void main() {
         'current_admin_notification_event_groups',
       ],
     );
-    expectContains('supabase/functions/dispatch-push-job/index.ts', const [
-      'AdminNotificationPreference',
-      'selected_event_groups',
-      'push_enabled',
-      'notificationEventGroup',
-      'adminAllowsPush',
-    ]);
+    expectContains(
+      'supabase/migrations/20260718153000_separate_bell_push_roles.sql',
+      const [
+        'selected_bell_roles',
+        'selected_roles = array[]::text[]',
+        'current_admin_notification_roles',
+      ],
+    );
+    expectContains(
+      'supabase/migrations/20260718153200_manager_push_routing.sql',
+      const [
+        'is_push_only',
+        'ensure_manager_push_preferences',
+        'route_manager_push_notifications',
+        'p.push_enabled = true',
+        'selected_event_groups',
+      ],
+    );
+    expectContains(
+      'supabase/migrations/20260718153300_hide_and_queue_manager_push.sql',
+      const [
+        'not is_push_only',
+        'queue_push_notification_job',
+        "m.role in ('admin','owner')",
+      ],
+    );
   });
 
   test('настройка устройства остаётся отдельной от правил компании', () {
