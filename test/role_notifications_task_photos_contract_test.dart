@@ -35,7 +35,7 @@ void main() {
     expectContains(
       'lib/screens/notification_control_center_screen.dart',
       const [
-        'Какие роли учитывать',
+        'Роли и направления',
         'Типы событий',
         'Напоминания компании',
         'Сохранить все настройки',
