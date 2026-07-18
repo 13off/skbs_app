@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
+import '../features/developer/models/task_policy.dart';
 import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
@@ -45,12 +47,23 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   bool isLoading = false;
   bool isSaving = false;
   bool isPickingPhotos = false;
+  TaskPolicy policy = TaskPolicy.defaults;
   String? deletingPhotoId;
   String? errorText;
 
   final statuses = const ['Запланировано', 'Выполнено'];
 
   bool get canEdit => TaskEditPolicy.canEditTask(widget.profile, widget.task);
+  bool get canEditDate =>
+      TaskEditPolicy.canEditDate(widget.profile, widget.task);
+  bool get canEditAxesWork =>
+      TaskEditPolicy.canEditAxesWork(widget.profile, widget.task);
+  bool get canEditAssignees =>
+      TaskEditPolicy.canEditAssignees(widget.profile, widget.task);
+  bool get canEditStatus =>
+      TaskEditPolicy.canEditStatus(widget.profile, widget.task);
+  bool get canDeleteTask =>
+      TaskEditPolicy.canDeleteTask(widget.profile, widget.task);
 
   @override
   void initState() {
@@ -128,6 +141,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         TaskRepository.fetchTaskAssigneeIds(taskId),
         TaskRepository.fetchTaskPhotos(taskId),
         TaskRepository.fetchTaskMilestoneLink(taskId),
+        DeveloperPolicyRepository.ensurePolicy(widget.task.objectName),
       ]);
 
       if (!mounted || token != _loadToken) return;
@@ -138,6 +152,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       );
       final loadedPhotos = result[2] as List<TaskPhotoData>;
       final loadedMilestoneLink = result[3] as TaskMilestoneLinkData?;
+      final loadedPolicy = result[4] as TaskPolicy;
 
       setState(() {
         employees = loadedEmployees.where((employee) {
@@ -153,6 +168,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         selectedMilestoneId = loadedMilestoneLink?.milestoneId;
         selectedChecklistItemId = loadedMilestoneLink?.checklistItemId;
         isGoalTask = loadedMilestoneLink != null;
+        policy = loadedPolicy;
         signedUrlFutures.clear();
         isLoading = false;
         errorText = null;
@@ -186,7 +202,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   Future<void> openAssigneesPicker() async {
-    if (!canEdit) return;
+    if (!canEditAssignees) return;
 
     if (employees.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -389,7 +405,14 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   Future<void> deletePhoto(TaskPhotoData photo) async {
-    if (!canEdit || deletingPhotoId != null) return;
+    if (!TaskEditPolicy.canDeletePhoto(
+          widget.profile,
+          widget.task,
+          photo.photoStage,
+        ) ||
+        deletingPhotoId != null) {
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -487,16 +510,23 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final cleanToday = TaskEditPolicy.operationalToday;
     final isPastOrToday = !taskDate.isAfter(cleanToday);
 
-    if (selectedStatus == 'Выполнено' &&
+    final afterCount = photos.where((photo) => photo.isAfter).length;
+    if (policy.requireAfterPhotoOnComplete &&
+        selectedStatus == 'Выполнено' &&
         widget.task.status != 'Выполнено' &&
-        !photos.any((photo) => photo.isAfter)) {
+        afterCount < policy.minAfterPhotos) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Добавьте хотя бы одно фото «После»')),
+        SnackBar(
+          content: Text(
+            'Добавьте фото «После»: минимум ${policy.minAfterPhotos}',
+          ),
+        ),
       );
       return;
     }
 
-    if (selectedStatus != 'Выполнено' &&
+    if (policy.requireNotDoneComment &&
+        selectedStatus != 'Выполнено' &&
         isPastOrToday &&
         notDoneComment.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -584,7 +614,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   Widget buildAssigneesBlock() {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: isLoading || !canEdit ? null : openAssigneesPicker,
+      onTap: isLoading || !canEditAssignees ? null : openAssigneesPicker,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -674,7 +704,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 ),
               ),
             ),
-            if (canEdit)
+            if (TaskEditPolicy.canDeletePhoto(
+              widget.profile,
+              widget.task,
+              photo.photoStage,
+            ))
               Positioned(
                 top: 5,
                 right: 5,
@@ -735,8 +769,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           const SizedBox(height: 6),
           Text(
             photoStage == 'before'
-                ? 'Обязательное состояние участка перед началом работ.'
-                : 'Обязательный результат после завершения работ.',
+                ? policy.requireBeforePhoto
+                      ? 'Обязательное состояние участка перед началом работ: минимум ${policy.minBeforePhotos}.'
+                      : 'Фотография участка перед началом работ — по желанию.'
+                : policy.requireAfterPhotoOnComplete
+                ? 'Обязательный результат после завершения: минимум ${policy.minAfterPhotos}.'
+                : 'Фотография результата — по желанию.',
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -789,7 +827,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       appBar: AppBar(
         title: const Text('Задача'),
         actions: [
-          if (widget.profile.isAdmin)
+          if (canDeleteTask)
             IconButton(
               tooltip: 'Удалить',
               onPressed: isSaving ? null : confirmDelete,
@@ -845,7 +883,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ],
 
           OutlinedButton.icon(
-            onPressed: isSaving || !widget.profile.isAdmin ? null : pickDate,
+            onPressed: isSaving || !canEditDate ? null : pickDate,
             icon: const Icon(Icons.calendar_month),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
@@ -855,16 +893,20 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             value: done,
-            onChanged: isSaving || !canEdit
+            onChanged: isSaving || !canEditStatus
                 ? null
                 : (value) {
+                    final afterCount = photos
+                        .where((photo) => photo.isAfter)
+                        .length;
                     if (value &&
+                        policy.requireAfterPhotoOnComplete &&
                         widget.task.status != 'Выполнено' &&
-                        !photos.any((photo) => photo.isAfter)) {
+                        afterCount < policy.minAfterPhotos) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Сначала добавьте хотя бы одно фото «После»',
+                            'Сначала добавьте фото «После»: минимум ${policy.minAfterPhotos}',
                           ),
                         ),
                       );
@@ -891,7 +933,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             const SizedBox(height: 14),
             TextField(
               controller: notDoneCommentController,
-              enabled: !isSaving && canEdit,
+              enabled: !isSaving && canEditStatus,
               minLines: 2,
               maxLines: 5,
               decoration: InputDecoration(
@@ -914,7 +956,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               objectName: widget.task.objectName,
               initialMilestoneId: selectedMilestoneId,
               initialChecklistItemId: selectedChecklistItemId,
-              canSelect: canEdit,
+              canSelect: canEditAxesWork,
               canEditChecklist: false,
               onChanged: (selection) {
                 final previousTitle = selectedChecklistTitle;
@@ -953,7 +995,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
           TextField(
             controller: axesController,
-            enabled: !isSaving && canEdit,
+            enabled: !isSaving && canEditAxesWork,
             decoration: InputDecoration(
               hintText: 'Укажите оси',
               border: OutlineInputBorder(
@@ -981,7 +1023,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             ),
             TextField(
               controller: workController,
-              enabled: !isSaving && canEdit,
+              enabled: !isSaving && canEditAxesWork,
               minLines: 3,
               maxLines: 7,
               decoration: InputDecoration(
@@ -1000,13 +1042,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           buildPhotosBlock(
             photoStage: 'before',
             title: 'Фото «До»',
-            emptyText: 'Обязательное фото «До» пока не прикреплено',
+            emptyText: policy.requireBeforePhoto
+                ? 'Обязательное фото «До» пока не прикреплено'
+                : 'Фото «До» не прикреплено',
           ),
           const SizedBox(height: 14),
           buildPhotosBlock(
             photoStage: 'after',
             title: 'Фото «После»',
-            emptyText: 'Без фото «После» задачу нельзя выполнить',
+            emptyText: policy.requireAfterPhotoOnComplete
+                ? 'Без нужного количества фото «После» задачу нельзя выполнить'
+                : 'Фото «После» не прикреплено',
           ),
 
           if (errorText != null) ...[

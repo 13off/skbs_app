@@ -6,6 +6,7 @@ import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
+import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/role_preview/role_preview_screen.dart';
@@ -128,6 +129,15 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(builder: (_) => const RolePreviewScreen()),
+    );
+  }
+
+  void openDeveloperPanel(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => DeveloperPanelScreen(profile: profile),
+      ),
     );
   }
 
@@ -407,6 +417,11 @@ class ProfileScreen extends StatelessWidget {
             value: profile.fullName,
           ),
           buildInfoTile(
+            icon: Icons.work_outline_rounded,
+            title: 'Профессия',
+            value: profile.profession,
+          ),
+          buildInfoTile(
             icon: Icons.admin_panel_settings_outlined,
             title: profile.isRolePreview ? 'Открытая платформа' : 'Роль',
             value: roleDescription,
@@ -451,6 +466,15 @@ class ProfileScreen extends StatelessWidget {
           ],
           const SizedBox(height: 8),
           if (profile.isAdmin) ...[
+            buildSectionTitle('Для разработчика'),
+            buildActionTile(
+              icon: Icons.developer_mode_rounded,
+              title: 'Панель разработчика',
+              subtitle:
+                  'Ограничения компании и объектов, наследование правил и журнал изменений',
+              onTap: () => openDeveloperPanel(context),
+            ),
+            const SizedBox(height: 8),
             buildSectionTitle('Управление компанией'),
             buildActionTile(
               icon: Icons.gavel_rounded,

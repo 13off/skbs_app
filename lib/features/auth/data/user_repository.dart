@@ -294,7 +294,7 @@ class UserRepository {
     var row = await _client
         .from('user_profiles')
         .select(
-          'id, email, full_name, role, object_name, is_active, active_company_id',
+          'id, email, full_name, role, profession, object_name, is_active, active_company_id',
         )
         .eq('id', user.id)
         .maybeSingle();
@@ -326,7 +326,7 @@ class UserRepository {
         row = await _client
             .from('user_profiles')
             .select(
-              'id, email, full_name, role, object_name, is_active, active_company_id',
+              'id, email, full_name, role, profession, object_name, is_active, active_company_id',
             )
             .eq('id', user.id)
             .maybeSingle();

@@ -185,6 +185,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
     final editable = !member.isOwner && member.userId != currentUserId;
     final subtitle = <String>[
       member.roleTitle,
+      if (member.profession.isNotEmpty) member.profession,
       if (member.objectName.isNotEmpty) member.objectName,
       if (!member.isActive) 'Доступ отключён',
     ].join(' • ');
@@ -331,6 +332,7 @@ class CompanyMemberEditorScreen extends StatefulWidget {
 class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
   late final TextEditingController fullNameController;
   late final TextEditingController emailController;
+  late final TextEditingController professionController;
   late String role;
   String? objectId;
   bool isSaving = false;
@@ -345,8 +347,12 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
       text: widget.member?.fullName ?? '',
     );
     emailController = TextEditingController(text: widget.member?.email ?? '');
+    professionController = TextEditingController(
+      text: widget.member?.profession ?? '',
+    );
     const allowedRoles = <String>{
       'admin',
+      'developer',
       'foreman',
       'lawyer',
       'accountant',
@@ -367,6 +373,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
   void dispose() {
     fullNameController.dispose();
     emailController.dispose();
+    professionController.dispose();
     super.dispose();
   }
 
@@ -498,6 +505,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
     if (isSaving) return;
     final fullName = fullNameController.text.trim();
     final email = emailController.text.trim();
+    final profession = professionController.text.trim();
     if (!isEditing && (fullName.length < 2 || !email.contains('@'))) {
       setState(() => errorText = 'Укажите имя и корректный email');
       return;
@@ -517,6 +525,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
           companyId: widget.companyId,
           member: widget.member!,
           role: role,
+          profession: profession,
           objectId: role == 'foreman' ? objectId : null,
         );
         if (mounted) Navigator.pop(context, 'Права пользователя обновлены');
@@ -526,6 +535,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
           fullName: fullName,
           email: email,
           role: role,
+          profession: profession,
           objectId: role == 'foreman' ? objectId : null,
         );
         if (!mounted) return;
@@ -583,6 +593,16 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: professionController,
+                enabled: !isSaving,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Профессия / должность',
+                  prefixIcon: Icon(Icons.work_outline_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
             ] else ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -591,6 +611,15 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                 subtitle: Text(widget.member!.email),
               ),
               const SizedBox(height: 8),
+              TextField(
+                controller: professionController,
+                enabled: !isSaving,
+                decoration: const InputDecoration(
+                  labelText: 'Профессия / должность',
+                  prefixIcon: Icon(Icons.work_outline_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
             ],
             DropdownButtonFormField<String>(
               initialValue: role,
@@ -600,6 +629,10 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               ),
               items: const [
                 DropdownMenuItem(value: 'admin', child: Text('Администратор')),
+                DropdownMenuItem(
+                  value: 'developer',
+                  child: Text('Разработчик'),
+                ),
                 DropdownMenuItem(value: 'foreman', child: Text('Прораб')),
                 DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                 DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),

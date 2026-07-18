@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 
 import '../data/employee_repository.dart';
 import '../data/task_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
+import '../features/developer/models/task_policy.dart';
 import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
@@ -24,6 +26,7 @@ class AddTaskScreen extends StatefulWidget {
   final String objectName;
   final String? initialMilestoneId;
   final String? initialChecklistItemId;
+  final bool allowAnyDate;
 
   const AddTaskScreen({
     super.key,
@@ -31,6 +34,7 @@ class AddTaskScreen extends StatefulWidget {
     required this.objectName,
     this.initialMilestoneId,
     this.initialChecklistItemId,
+    this.allowAnyDate = false,
   });
 
   @override
@@ -53,6 +57,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
   bool isLoadingEmployees = false;
   bool isPickingPhotos = false;
+  bool isLoadingPolicy = true;
+  TaskPolicy policy = TaskPolicy.defaults;
   String? errorText;
 
   @override
@@ -64,6 +70,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedChecklistItemId = widget.initialChecklistItemId;
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     loadEmployees();
+    loadPolicy();
   }
 
   @override
@@ -95,6 +102,25 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     }
 
     return selectedEmployees.map((employee) => employee.name).join(', ');
+  }
+
+  Future<void> loadPolicy() async {
+    try {
+      final loaded = await DeveloperPolicyRepository.ensurePolicy(
+        widget.objectName,
+      );
+      if (!mounted) return;
+      setState(() {
+        policy = loaded;
+        isLoadingPolicy = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        isLoadingPolicy = false;
+        errorText = 'Ошибка загрузки ограничений: $error';
+      });
+    }
   }
 
   Future<void> loadEmployees() async {
@@ -131,6 +157,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> pickDate() async {
+    if (!widget.allowAnyDate) return;
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate,
@@ -330,9 +357,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       return;
     }
 
-    if (selectedPhotos.isEmpty) {
+    if (policy.requireBeforePhoto &&
+        selectedPhotos.length < policy.minBeforePhotos) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Добавьте хотя бы одно фото «До»')),
+        SnackBar(
+          content: Text(
+            'Добавьте фото «До»: минимум ${policy.minBeforePhotos}',
+          ),
+        ),
       );
       return;
     }
@@ -435,13 +467,17 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Фото «До» — обязательно',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          Text(
+            policy.requireBeforePhoto
+                ? 'Фото «До» — обязательно'
+                : 'Фото «До» — по желанию',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Без фото «До» задача не будет создана. Можно прикрепить несколько снимков.',
+          Text(
+            policy.requireBeforePhoto
+                ? 'Нужно прикрепить минимум ${policy.minBeforePhotos}. Можно добавить несколько снимков.'
+                : 'На этом объекте задачу можно создать без фотографии.',
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -532,7 +568,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           const SizedBox(height: 16),
 
           OutlinedButton.icon(
-            onPressed: pickDate,
+            onPressed: widget.allowAnyDate ? pickDate : null,
             icon: const Icon(Icons.calendar_month),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
@@ -611,7 +647,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           SizedBox(
             height: 54,
             child: FilledButton.icon(
-              onPressed: saveTask,
+              onPressed: isLoadingPolicy ? null : saveTask,
               icon: const Icon(Icons.save),
               label: const Text('Сохранить задачу'),
             ),

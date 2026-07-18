@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../features/auth/data/user_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
 import '../models/task_item_data.dart';
 import 'app_data_sync.dart';
 import 'image_compression_service.dart';
@@ -361,6 +363,8 @@ class TaskRepository {
     TaskItemData task, {
     required String objectName,
   }) async {
+    final actorName = await UserRepository.currentActorName();
+    final policy = await DeveloperPolicyRepository.ensurePolicy(objectName);
     final row = await _client
         .from('tasks')
         .insert({
@@ -370,10 +374,10 @@ class TaskRepository {
           'work': task.work,
           'status': task.status,
           'not_done_comment': task.notDoneComment,
-          'created_by': 'Илья',
+          'created_by': actorName,
           'created_by_user_id': _client.auth.currentUser?.id,
           'is_draft': true,
-          'photo_requirements_enforced': true,
+          'photo_requirements_enforced': policy.requireBeforePhoto,
         })
         .select(
           'id, task_date, object_name, axes, work, status, not_done_comment',
@@ -389,8 +393,9 @@ class TaskRepository {
     required List<String> assigneeIds,
     required List<TaskPhotoFile> photos,
   }) async {
-    if (photos.isEmpty) {
-      throw Exception('Добавьте хотя бы одно фото «До»');
+    final policy = await DeveloperPolicyRepository.ensurePolicy(objectName);
+    if (policy.requireBeforePhoto && photos.length < policy.minBeforePhotos) {
+      throw Exception('Добавьте фото «До»: минимум ${policy.minBeforePhotos}');
     }
 
     final createdTask = await addTask(task, objectName: objectName);

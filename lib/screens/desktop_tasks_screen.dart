@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
+import '../features/developer/data/developer_policy_repository.dart';
 import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
@@ -230,14 +231,18 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
     if (objectName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Выберите конкретный объект в фильтре'),
-        ),
+        const SnackBar(content: Text('Выберите конкретный объект в фильтре')),
       );
       return;
     }
 
-    if (!TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)) {
+    await DeveloperPolicyRepository.ensurePolicy(objectName);
+
+    if (!TaskEditPolicy.canCreateForDate(
+      widget.profile,
+      selectedDate,
+      objectName: objectName,
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Прораб может добавлять задачи только на текущий день'),
@@ -252,6 +257,9 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
         builder: (_) => AddTaskScreen(
           initialDate: selectedDate,
           objectName: objectName,
+          allowAnyDate:
+              widget.profile.isAdmin ||
+              TaskEditPolicy.forObject(objectName).foremanCanCreateAnyDate,
         ),
       ),
     );
@@ -337,22 +345,24 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
   }
 
   List<String> get objectOptions {
-    final names = tasks
-        .map((task) => task.objectName.trim())
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final names =
+        tasks
+            .map((task) => task.objectName.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return names;
   }
 
   List<String> get statusOptions {
-    final statuses = tasks
-        .map((task) => task.status.trim())
-        .where((status) => status.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final statuses =
+        tasks
+            .map((task) => task.status.trim())
+            .where((status) => status.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return <String>['Все статусы', ...statuses];
   }
 
@@ -378,9 +388,9 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
     }).toList();
 
     visible.sort((first, second) {
-      final status = statusPriority(first.status).compareTo(
-        statusPriority(second.status),
-      );
+      final status = statusPriority(
+        first.status,
+      ).compareTo(statusPriority(second.status));
       if (status != 0) return status;
       final object = first.objectName.compareTo(second.objectName);
       if (object != 0) return object;
@@ -455,9 +465,8 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
           _SquareButton(
             icon: Icons.chevron_left_rounded,
             tooltip: 'Предыдущий день',
-            onTap: () => changeDate(
-              selectedDate.subtract(const Duration(days: 1)),
-            ),
+            onTap: () =>
+                changeDate(selectedDate.subtract(const Duration(days: 1))),
           ),
           const SizedBox(width: 10),
           PremiumPressable(
@@ -505,9 +514,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
           _SquareButton(
             icon: Icons.chevron_right_rounded,
             tooltip: 'Следующий день',
-            onTap: () => changeDate(
-              selectedDate.add(const Duration(days: 1)),
-            ),
+            onTap: () => changeDate(selectedDate.add(const Duration(days: 1))),
           ),
           const SizedBox(width: 10),
           OutlinedButton.icon(
@@ -923,10 +930,8 @@ class _TasksTable extends StatelessWidget {
               children: [
                 const _TaskTableHeader(),
                 ...tasks.map(
-                  (task) => _TaskTableRow(
-                    task: task,
-                    onTap: () => onOpenTask(task),
-                  ),
+                  (task) =>
+                      _TaskTableRow(task: task, onTap: () => onOpenTask(task)),
                 ),
               ],
             ),
