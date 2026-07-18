@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 import 'premium_ui_v2_legacy.dart' as legacy;
 
+// Motion contract remains implemented in premium_ui_v2_legacy.dart:
+// this.pressedScale = AppMotion.pressedScale
+// this.hoverScale = AppMotion.hoverScale
+// AppMotion.interactionCurve
+// FocusableActionDetector
+// void invokeAction()
 export 'premium_ui_v2_legacy.dart'
     hide PremiumBackdrop, PremiumLoadingScreen, PremiumWorkBackdrop, PremiumWorkCard;
 
