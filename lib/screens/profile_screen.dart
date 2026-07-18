@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../app/theme_controller.dart';
 import '../data/user_repository.dart';
 import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
@@ -18,11 +19,6 @@ import 'notification_control_center_screen.dart';
 import 'push_notification_settings_screen.dart';
 import 'pwa_install_screen.dart';
 import 'template_documents_screen.dart';
-
-const Color _profileText = Color(0xFF1F2328);
-const Color _profileMuted = Color(0xFF6B7075);
-const Color _profileSoft = Color(0xFFF1F0EC);
-const Color _profileLine = Color(0xFFE4E2DC);
 
 class ProfileScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -158,7 +154,33 @@ class ProfileScreen extends StatelessWidget {
     return '${profile.roleTitle} · просмотр администратора';
   }
 
-  Widget buildProfileHero() {
+  Widget buildThemeToggle() {
+    final controller = AppThemeController.instance;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final isDark = controller.isDark;
+        return IconButton(
+          tooltip: isDark ? 'Включить светлую тему' : 'Включить тёмную тему',
+          onPressed: controller.toggle,
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) => RotationTransition(
+              turns: Tween<double>(begin: 0.84, end: 1).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              key: ValueKey<bool>(isDark),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildProfileHero(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       radius: 28,
       child: Row(
@@ -176,7 +198,7 @@ class ProfileScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF17191C).withValues(alpha: 0.18),
+                  color: Colors.black.withValues(alpha: 0.24),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -200,8 +222,8 @@ class ProfileScreen extends StatelessWidget {
                   profile.fullName.isEmpty
                       ? 'Пользователь AppСтрой'
                       : profile.fullName,
-                  style: const TextStyle(
-                    color: _profileText,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
                   ),
@@ -209,8 +231,8 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   roleDescription,
-                  style: const TextStyle(
-                    color: _profileMuted,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -221,14 +243,14 @@ class ProfileScreen extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _profileSoft,
+              color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               profile.isRolePreview
                   ? Icons.visibility_outlined
                   : Icons.verified_user_outlined,
-              color: _profileMuted,
+              color: scheme.onSurfaceVariant,
               size: 20,
             ),
           ),
@@ -237,13 +259,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildSectionTitle(String title) {
+  Widget buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: _profileMuted,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontSize: 11,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.8,
@@ -252,11 +274,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildInfoTile({
+  Widget buildInfoTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String value,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: PremiumWorkCard(
@@ -272,8 +296,8 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: _profileMuted,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -281,8 +305,8 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     value.isEmpty ? 'Не указано' : value,
-                    style: const TextStyle(
-                      color: _profileText,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                     ),
@@ -296,12 +320,14 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget buildActionTile({
+  Widget buildActionTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: PremiumPressable(
@@ -320,8 +346,8 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: _profileText,
+                      style: TextStyle(
+                        color: scheme.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
@@ -329,8 +355,8 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: _profileMuted,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
                         height: 1.25,
                         fontWeight: FontWeight.w600,
                       ),
@@ -338,7 +364,10 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: _profileMuted),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -347,6 +376,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget buildSignOutButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return PremiumPressable(
       onTap: () => signOut(context),
       borderRadius: BorderRadius.circular(20),
@@ -354,19 +384,19 @@ class ProfileScreen extends StatelessWidget {
         height: 54,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.72),
+          color: scheme.surface.withValues(alpha: 0.78),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _profileLine),
+          border: Border.all(color: scheme.outline),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.logout_rounded, color: _profileText, size: 20),
-            SizedBox(width: 9),
+            Icon(Icons.logout_rounded, color: scheme.onSurface, size: 20),
+            const SizedBox(width: 9),
             Text(
               'Выйти',
               style: TextStyle(
-                color: _profileText,
+                color: scheme.onSurface,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -381,14 +411,16 @@ class ProfileScreen extends StatelessWidget {
     return AppPage(
       title: 'Профиль',
       subtitle: 'Аккаунт, компания и доступ к рабочим инструментам',
+      headerTrailing: buildThemeToggle(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildProfileHero(),
+          buildProfileHero(context),
           const SizedBox(height: 18),
           if (profile.canPreviewRoles) ...[
-            buildSectionTitle('Режим платформы'),
+            buildSectionTitle(context, 'Режим платформы'),
             buildActionTile(
+              context,
               icon: Icons.switch_account_rounded,
               title: 'Переключить платформу',
               subtitle:
@@ -397,49 +429,54 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-          buildSectionTitle('Рабочие данные'),
+          buildSectionTitle(context, 'Рабочие данные'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
               future: CompanyRepository.fetchCompany(profile.activeCompanyId),
               builder: (context, snapshot) => buildInfoTile(
+                context,
                 icon: Icons.apartment_rounded,
                 title: 'Компания',
                 value:
                     snapshot.data?.name ??
-                    (snapshot.hasError
-                        ? 'Не удалось загрузить'
-                        : 'Загрузка...'),
+                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
               ),
             ),
           buildInfoTile(
+            context,
             icon: Icons.person_outline,
             title: 'ФИО',
             value: profile.fullName,
           ),
           buildInfoTile(
+            context,
             icon: Icons.work_outline_rounded,
             title: 'Профессия',
             value: profile.profession,
           ),
           buildInfoTile(
+            context,
             icon: Icons.admin_panel_settings_outlined,
             title: profile.isRolePreview ? 'Открытая платформа' : 'Роль',
             value: roleDescription,
           ),
           buildInfoTile(
+            context,
             icon: Icons.email_outlined,
             title: 'Email',
             value: profile.email,
           ),
           buildInfoTile(
+            context,
             icon: Icons.apartment_outlined,
             title: 'Объект',
             value: profile.objectName,
           ),
           const SizedBox(height: 8),
-          buildSectionTitle('Уведомления'),
+          buildSectionTitle(context, 'Уведомления'),
           if (profile.isAdmin)
             buildActionTile(
+              context,
               icon: Icons.tune_rounded,
               title: 'Настройка уведомлений',
               subtitle:
@@ -447,6 +484,7 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openNotificationControlCenter(context),
             ),
           buildActionTile(
+            context,
             icon: Icons.notifications_active_outlined,
             title: 'Push-уведомления',
             subtitle:
@@ -455,8 +493,9 @@ class ProfileScreen extends StatelessWidget {
           ),
           if (PwaInstallService.isSupported) ...[
             const SizedBox(height: 8),
-            buildSectionTitle('Приложение'),
+            buildSectionTitle(context, 'Приложение'),
             buildActionTile(
+              context,
               icon: Icons.install_desktop_rounded,
               title: 'Установить AppСтрой',
               subtitle:
@@ -466,8 +505,9 @@ class ProfileScreen extends StatelessWidget {
           ],
           const SizedBox(height: 8),
           if (profile.isAdmin) ...[
-            buildSectionTitle('Для разработчика'),
+            buildSectionTitle(context, 'Для разработчика'),
             buildActionTile(
+              context,
               icon: Icons.developer_mode_rounded,
               title: 'Панель разработчика',
               subtitle:
@@ -475,8 +515,9 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openDeveloperPanel(context),
             ),
             const SizedBox(height: 8),
-            buildSectionTitle('Управление компанией'),
+            buildSectionTitle(context, 'Управление компанией'),
             buildActionTile(
+              context,
               icon: Icons.gavel_rounded,
               title: 'Юридическая сводка',
               subtitle:
@@ -484,6 +525,7 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openLegalSummary(context),
             ),
             buildActionTile(
+              context,
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
               subtitle:
@@ -491,6 +533,7 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openCompanyManagement(context),
             ),
             buildActionTile(
+              context,
               icon: Icons.inventory_2_outlined,
               title: 'Архив и удаление',
               subtitle:
@@ -498,6 +541,7 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => openArchive(context),
             ),
             buildActionTile(
+              context,
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
               subtitle: 'Шаблоны договоров, КС-2, КС-3 и другие формы',
@@ -513,8 +557,9 @@ class ProfileScreen extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  buildSectionTitle('Рабочее пространство'),
+                  buildSectionTitle(context, 'Рабочее пространство'),
                   buildActionTile(
+                    context,
                     icon: Icons.swap_horiz_rounded,
                     title: 'Сменить компанию',
                     subtitle:
@@ -540,14 +585,15 @@ class _TileIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: _profileSoft,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(15),
       ),
-      child: Icon(icon, color: _profileText, size: 21),
+      child: Icon(icon, color: scheme.onSurface, size: 21),
     );
   }
 }
