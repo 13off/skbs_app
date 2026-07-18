@@ -25,6 +25,35 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Refine guarded patch for duplicate signatures
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tool/apply_developer_panel.py')
+          text = path.read_text(encoding='utf-8')
+          first = '''replace_once(
+              'lib/features/company/data/company_repository.dart',
+              "    required String role,\\n    String? objectId,\\n  }) async {",
+              "    required String role,\\n    String profession = '',\\n    String? objectId,\\n  }) async {",
+          )'''
+          replacement = '''replace_all(
+              'lib/features/company/data/company_repository.dart',
+              "    required String role,\\n    String? objectId,\\n  }) async {",
+              "    required String role,\\n    String profession = '',\\n    String? objectId,\\n  }) async {",
+              minimum=2,
+          )'''
+          second = '''replace_once(
+              'lib/features/company/data/company_repository.dart',
+              "    required String role,\\n    String? objectId,\\n  }) async {\\n    await _client\\n",
+              "    required String role,\\n    String profession = '',\\n    String? objectId,\\n  }) async {\\n    await _client\\n",
+          )
+          '''
+          if first not in text or second not in text:
+              raise SystemExit('Не найден защитный блок сигнатур')
+          path.write_text(text.replace(first, replacement, 1).replace(second, '', 1), encoding='utf-8')
+          PY
+
       - name: Apply guarded source patches
         shell: bash
         env:
