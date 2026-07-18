@@ -10,12 +10,16 @@ class PremiumBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFAF9F6), Color(0xFFE9E6DE)],
+          colors: dark
+              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
+              : const [Color(0xFFFAF9F6), Color(0xFFE9E6DE)],
         ),
       ),
       child: Stack(
@@ -53,6 +57,11 @@ class PremiumLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final textColor = theme.colorScheme.onSurface;
+    final mutedColor = theme.colorScheme.onSurfaceVariant;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: PremiumBackdrop(
@@ -62,21 +71,27 @@ class PremiumLoadingScreen extends StatelessWidget {
               width: 300,
               padding: const EdgeInsets.fromLTRB(28, 30, 28, 26),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.68),
+                color: dark
+                    ? theme.colorScheme.surface.withValues(alpha: 0.88)
+                    : Colors.white.withValues(alpha: 0.68),
                 borderRadius: BorderRadius.circular(36),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.94),
+                  color: dark
+                      ? theme.colorScheme.outline.withValues(alpha: 0.90)
+                      : Colors.white.withValues(alpha: 0.94),
                   width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF17191C).withValues(alpha: 0.12),
+                    color: Colors.black.withValues(alpha: dark ? 0.42 : 0.12),
                     blurRadius: 46,
                     spreadRadius: -14,
                     offset: const Offset(0, 26),
                   ),
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.88),
+                    color: dark
+                        ? Colors.white.withValues(alpha: 0.025)
+                        : Colors.white.withValues(alpha: 0.88),
                     blurRadius: 18,
                     spreadRadius: -10,
                     offset: const Offset(0, -6),
@@ -86,12 +101,12 @@ class PremiumLoadingScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const PremiumBrandMark(size: 98),
+                  PremiumBrandMark(size: 98, light: dark),
                   const SizedBox(height: 24),
                   Text(
                     'AppСтрой',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.textPrimary,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: textColor,
                       fontWeight: FontWeight.w300,
                       letterSpacing: -1.1,
                     ),
@@ -100,13 +115,13 @@ class PremiumLoadingScreen extends StatelessWidget {
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMuted,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: mutedColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 22),
-                  const PremiumDots(color: AppColors.textPrimary),
+                  PremiumDots(color: textColor),
                 ],
               ),
             ),
@@ -125,6 +140,8 @@ class _GlassDrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return IgnorePointer(
       child: Container(
         width: size,
@@ -133,18 +150,28 @@ class _GlassDrop extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             center: const Alignment(-0.36, -0.42),
-            colors: [
-              Colors.white.withValues(alpha: opacity),
-              Colors.white.withValues(alpha: opacity * 0.22),
-              const Color(0xFFD5D0C4).withValues(alpha: opacity * 0.10),
-            ],
+            colors: dark
+                ? [
+                    const Color(0xFF697480).withValues(alpha: opacity * 0.22),
+                    const Color(0xFF3C444D).withValues(alpha: opacity * 0.10),
+                    Colors.transparent,
+                  ]
+                : [
+                    Colors.white.withValues(alpha: opacity),
+                    Colors.white.withValues(alpha: opacity * 0.22),
+                    const Color(0xFFD5D0C4).withValues(alpha: opacity * 0.10),
+                  ],
           ),
           border: Border.all(
-            color: Colors.white.withValues(alpha: opacity * 0.72),
+            color: dark
+                ? Colors.white.withValues(alpha: opacity * 0.08)
+                : Colors.white.withValues(alpha: opacity * 0.72),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF202328).withValues(alpha: opacity * 0.10),
+              color: Colors.black.withValues(
+                alpha: dark ? opacity * 0.24 : opacity * 0.10,
+              ),
               blurRadius: size * 0.20,
               spreadRadius: -size * 0.08,
               offset: Offset(0, size * 0.10),

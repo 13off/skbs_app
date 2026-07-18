@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app/app_dark_theme.dart';
 import 'app/app_theme.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
+import 'app/theme_controller.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
@@ -25,6 +27,8 @@ const String supabasePublishableKey = String.fromEnvironment(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await AppThemeController.instance.initialize();
 
   Object? startupError;
 
@@ -100,16 +104,27 @@ class _SkbsAppState extends State<SkbsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AppСтрой',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: appNavigatorKey,
-      navigatorObservers: [AppWebHistoryObserver()],
-      scrollBehavior: const PremiumScrollBehavior(),
-      theme: PremiumDepthTheme.apply(AppTheme.light),
-      home: widget.startupError == null
-          ? const AppBrowserBackBridge(child: AuthGate())
-          : _StartupErrorScreen(error: widget.startupError!),
+    final themeController = AppThemeController.instance;
+
+    return AnimatedBuilder(
+      animation: themeController,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'AppСтрой',
+          debugShowCheckedModeBanner: false,
+          navigatorKey: appNavigatorKey,
+          navigatorObservers: [AppWebHistoryObserver()],
+          scrollBehavior: const PremiumScrollBehavior(),
+          theme: PremiumDepthTheme.apply(AppTheme.light),
+          darkTheme: AppDarkTheme.theme,
+          themeMode: themeController.themeMode,
+          themeAnimationDuration: const Duration(milliseconds: 220),
+          themeAnimationCurve: Curves.easeOutCubic,
+          home: widget.startupError == null
+              ? const AppBrowserBackBridge(child: AuthGate())
+              : _StartupErrorScreen(error: widget.startupError!),
+        );
+      },
     );
   }
 }
@@ -121,6 +136,9 @@ class _StartupErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -131,12 +149,18 @@ class _StartupErrorScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
+                  color: dark
+                      ? theme.colorScheme.surface.withValues(alpha: 0.96)
+                      : Colors.white.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white),
+                  border: Border.all(
+                    color: dark
+                        ? theme.colorScheme.outline
+                        : Colors.white,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
+                      color: Colors.black.withValues(alpha: dark ? 0.36 : 0.10),
                       blurRadius: 40,
                       offset: const Offset(0, 18),
                     ),
@@ -145,26 +169,26 @@ class _StartupErrorScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.cloud_off_rounded,
                       size: 56,
-                      color: Color(0xFF1F2328),
+                      color: theme.colorScheme.onSurface,
                     ),
                     const SizedBox(height: 18),
                     Text(
                       'Сервер временно недоступен',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: const Color(0xFF1F2328),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'Закрой приложение и открой снова. Если ошибка повторяется, проверь интернет-соединение.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF6B7075),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
                       ),
@@ -173,8 +197,8 @@ class _StartupErrorScreen extends StatelessWidget {
                     SelectableText(
                       error.toString(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF8A4B46),
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
                         fontSize: 12,
                       ),
                     ),

@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'premium_ui_v2.dart';
-
-const Color _appText = Color(0xFF1F2328);
-
 class AppPage extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -20,7 +16,7 @@ class AppPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumWorkBackdrop(
+    return _AppPageBackdrop(
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 120),
@@ -63,6 +59,7 @@ class AppPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final action = trailing;
 
     return Row(
@@ -73,8 +70,8 @@ class AppPageHeader extends StatelessWidget {
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _appText,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
               fontSize: 20,
               height: 1.1,
               fontWeight: FontWeight.w900,
@@ -87,6 +84,59 @@ class AppPageHeader extends StatelessWidget {
           Flexible(fit: FlexFit.loose, child: action),
         ],
       ],
+    );
+  }
+}
+
+class _AppPageBackdrop extends StatelessWidget {
+  final Widget child;
+
+  const _AppPageBackdrop({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
+              : const [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: -140,
+            right: -100,
+            child: IgnorePointer(
+              child: Container(
+                width: 330,
+                height: 330,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: dark
+                        ? [
+                            const Color(0xFF4D5661).withValues(alpha: 0.24),
+                            Colors.transparent,
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.94),
+                            Colors.white.withValues(alpha: 0),
+                          ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
