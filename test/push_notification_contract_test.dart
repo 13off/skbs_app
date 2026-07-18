@@ -45,6 +45,8 @@ void main() {
       'Уведомления не должны ломать основное действие',
     ]);
     containsAll('lib/screens/profile_screen.dart', const [
+      "'Настройка уведомлений'",
+      'NotificationControlCenterScreen',
       "'Push-уведомления'",
       'PushNotificationSettingsScreen',
       "'Компания и пользователи'",
@@ -52,11 +54,20 @@ void main() {
       "'Документы'",
     ]);
     containsAll('lib/screens/push_notification_settings_screen.dart', const [
+      "'Push на устройстве'",
       "'Получать push на этом устройстве'",
       "'Разрешить и подключить'",
-      'Настройки системных push и ролевой ленты внутреннего колокольчика.',
-      'Какие роли учитывать',
+      'Общие правила задаются руководителем отдельно',
     ]);
+    containsAll(
+      'lib/screens/notification_control_center_screen.dart',
+      const [
+        'Внутренний колокольчик',
+        'Системные push',
+        'Роли и направления',
+        'Типы событий',
+      ],
+    );
     containsAll(
       'supabase/migrations/20260713123000_add_push_notification_delivery.sql',
       const [

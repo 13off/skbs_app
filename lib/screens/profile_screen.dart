@@ -13,6 +13,7 @@ import '../models/app_user_profile.dart';
 import '../services/pwa_install_service.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
+import 'notification_control_center_screen.dart';
 import 'push_notification_settings_screen.dart';
 import 'pwa_install_screen.dart';
 import 'template_documents_screen.dart';
@@ -73,9 +74,8 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (_) => CompanyManagementScreen(
-          companyId: profile.activeCompanyId,
-        ),
+        builder: (_) =>
+            CompanyManagementScreen(companyId: profile.activeCompanyId),
       ),
     );
   }
@@ -84,9 +84,8 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(
       context,
       CupertinoPageRoute(
-        builder: (_) => CompanySwitcherScreen(
-          activeCompanyId: profile.activeCompanyId,
-        ),
+        builder: (_) =>
+            CompanySwitcherScreen(activeCompanyId: profile.activeCompanyId),
       ),
     );
   }
@@ -96,6 +95,15 @@ class ProfileScreen extends StatelessWidget {
       context,
       CupertinoPageRoute(
         builder: (_) => const PushNotificationSettingsScreen(),
+      ),
+    );
+  }
+
+  void openNotificationControlCenter(BuildContext context) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => const NotificationControlCenterScreen(),
       ),
     );
   }
@@ -386,8 +394,11 @@ class ProfileScreen extends StatelessWidget {
               builder: (context, snapshot) => buildInfoTile(
                 icon: Icons.apartment_rounded,
                 title: 'Компания',
-                value: snapshot.data?.name ??
-                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
+                value:
+                    snapshot.data?.name ??
+                    (snapshot.hasError
+                        ? 'Не удалось загрузить'
+                        : 'Загрузка...'),
               ),
             ),
           buildInfoTile(
@@ -412,6 +423,14 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           buildSectionTitle('Уведомления'),
+          if (profile.isAdmin)
+            buildActionTile(
+              icon: Icons.tune_rounded,
+              title: 'Настройка уведомлений',
+              subtitle:
+                  'Колокольчик, push, роли, типы событий и все напоминания компании',
+              onTap: () => openNotificationControlCenter(context),
+            ),
           buildActionTile(
             icon: Icons.notifications_active_outlined,
             title: 'Push-уведомления',

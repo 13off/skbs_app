@@ -32,11 +32,15 @@ void main() {
       'saveSelectedNotificationRoles',
       'source_role',
     ]);
-    expectContains('lib/screens/push_notification_settings_screen.dart', const [
-      'Какие роли учитывать',
-      'Руководителю по умолчанию доступны все направления',
-      'Сохранить роли',
-    ]);
+    expectContains(
+      'lib/screens/notification_control_center_screen.dart',
+      const [
+        'Роли и направления',
+        'Типы событий',
+        'Напоминания компании',
+        'Сохранить все настройки',
+      ],
+    );
     expectContains('supabase/functions/dispatch-push-job/index.ts', const [
       'notification_role_preferences',
       'source_role',
