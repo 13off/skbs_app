@@ -1,26 +1,23 @@
 name: Fix developer panel scroll
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
+    paths:
+      - .github/workflows/fix-developer-panel-scroll.yml
 
 permissions:
   contents: write
 
 jobs:
   fix-and-validate:
-    if: startsWith(github.head_ref, 'agent/fix-developer-panel-scroll')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout feature branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: main
           fetch-depth: 0
           persist-credentials: true
           show-progress: false
@@ -135,4 +132,4 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add lib/features/developer/presentation/developer_panel_screen.dart test/developer_panel_scroll_contract_test.dart .github/workflows/fix-developer-panel-scroll.yml
           git commit -m "Исправить прокрутку панели разработчика"
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin HEAD:main
