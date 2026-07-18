@@ -12,6 +12,7 @@ import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
+import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../features/whats_new/presentation/whats_new_gate.dart';
@@ -121,6 +122,9 @@ class _MainScreenState extends State<MainScreen> {
     }
     if (profile.isHr) {
       return RecruitmentMainScreen(profile: profile);
+    }
+    if (profile.isAdmin) {
+      return ManagerMainScreen(profile: profile);
     }
     if (profile.isForeman) {
       return ForemanMainScreen(profile: profile);
