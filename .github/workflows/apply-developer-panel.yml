@@ -135,6 +135,25 @@ jobs:
             exit "$status"
           fi
 
+      - name: Fix generated dynamic constants
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('lib/screens/task_details_legacy_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          text, count = re.subn(
+              r"const SnackBar\((?=\s*content: Text\(\s*'Сначала добавьте фото «После»)",
+              'SnackBar(',
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'Ожидалась одна динамическая SnackBar, найдено: {count}')
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
