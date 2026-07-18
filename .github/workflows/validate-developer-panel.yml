@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: developer-panel-validation-${{ github.event.pull_request.number }}
@@ -39,7 +40,26 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Run regression tests
-        run: flutter test --reporter compact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
+          status=$?
+          cat /tmp/flutter-test.log
+          if (( status != 0 )); then
+            {
+              echo '### Упавшие регрессионные тесты'
+              echo
+              echo '```text'
+              tail -n 180 /tmp/flutter-test.log
+              echo '```'
+            } > /tmp/flutter-test-comment.md
+            gh pr comment "$PR_NUMBER" --body-file /tmp/flutter-test-comment.md
+            exit "$status"
+          fi
 
       - name: Build web release
         run: flutter build web --release --base-href /appstroy-web/
