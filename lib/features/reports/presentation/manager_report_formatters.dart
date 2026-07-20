@@ -37,17 +37,18 @@ class ManagerReportAnalysis {
 
   static List<String> lines(ManagerReportsCenter center) {
     final lines = <String>[];
-    final taskRate = center.trendValue('tasks_done_rate');
-    final yesterdayRate = center.trendValue('tasks_yesterday_done_rate');
-    final weekRate = center.trendValue('tasks_week_done_rate');
-    final attendanceMissing = center.metric('attendance', 'missing');
-    final yesterdayMissing = center.trendInt('attendance_missing_yesterday');
-    final missingReceipts = center.metric('payments', 'missing_receipts');
-    final legalAttention = center.metric('legal', 'overdue') +
-        center.metric('legal', 'high_risk');
-    final milestoneOverdue = center.metric('milestones', 'overdue');
+    final metrics = center.metrics;
+    final trend = center.trend;
+    final taskRate = trend.tasksDoneRate;
+    final yesterdayRate = trend.tasksYesterdayDoneRate;
+    final weekRate = trend.tasksWeekDoneRate;
+    final attendanceMissing = metrics.attendance.missing;
+    final yesterdayMissing = trend.attendanceMissingYesterday;
+    final missingReceipts = metrics.payments.monthMissingReceipts;
+    final legalAttention = metrics.legal.overdue + metrics.legal.highRisk;
+    final milestoneOverdue = metrics.milestones.overdue;
 
-    if (center.metric('tasks', 'total') == 0) {
+    if (metrics.tasks.total == 0) {
       lines.add('На выбранную дату задачи не заведены.');
     } else if (taskRate < yesterdayRate) {
       lines.add(
