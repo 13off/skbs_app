@@ -6,6 +6,9 @@ const List<String> _taskCreatePaths = <String>[
   'lib/screens/task_create/task_create_actions.dart',
   'lib/screens/task_create/task_create_sections.dart',
   'lib/screens/task_create/task_create_view.dart',
+  'lib/features/tasks/task_draft_support.dart',
+  'lib/features/tasks/presentation/task_assignee_controls.dart',
+  'lib/features/tasks/presentation/task_photo_grid.dart',
 ];
 
 String taskCreateSource() {
