@@ -154,7 +154,7 @@ class EmployeeRepository {
     required bool includeFired,
   }) async {
     const fields =
-        'id, fio, position, phone, object_name, daily_rate, is_active, comment, archived_at';
+        'id, person_id, object_id, fio, position, phone, object_name, daily_rate, is_active, comment, archived_at';
 
     late final List<dynamic> rows;
 
@@ -344,7 +344,7 @@ class EmployeeRepository {
     }
 
     const fields =
-        'id, fio, position, phone, object_name, daily_rate, is_active, comment';
+        'id, person_id, object_id, fio, position, phone, object_name, daily_rate, is_active, comment';
 
     final sourceRow = await _client
         .from('employees')
@@ -353,6 +353,10 @@ class EmployeeRepository {
         .single();
 
     final fio = sourceRow['fio']?.toString().trim() ?? employee.name.trim();
+    final sourcePersonId =
+        sourceRow['person_id']?.toString().trim() ??
+        employee.personId?.trim() ??
+        '';
 
     final existingDuplicate = await _client
         .from('employees')
@@ -372,6 +376,7 @@ class EmployeeRepository {
     final createdRow = await _client
         .from('employees')
         .insert({
+          if (sourcePersonId.isNotEmpty) 'person_id': sourcePersonId,
           'fio': fio,
           'position':
               sourceRow['position']?.toString().trim() ??
@@ -382,8 +387,7 @@ class EmployeeRepository {
           'daily_rate': sourceRow['daily_rate'] as int? ?? employee.dailyRate,
           'is_active': true,
           'comment':
-              sourceRow['comment']?.toString().trim() ??
-              employee.comment.trim(),
+              sourceRow['comment']?.toString().trim() ?? employee.comment.trim(),
           'updated_at': now,
         })
         .select(fields)
