@@ -11,13 +11,28 @@ class AiAssistantRepository {
     return <String, dynamic>{};
   }
 
+  static String _normalized(String prompt) =>
+      prompt.trim().toLowerCase().replaceAll('ё', 'е');
+
+  static bool _useActionDraft({
+    required String mode,
+    required String prompt,
+  }) {
+    if (mode.trim() != 'chat') return false;
+    final normalized = _normalized(prompt);
+    final taskCommand = RegExp(
+      r'(созда|добав|постав|назнач|сдел).*(задач|работ|армирован|бетонир|монтаж|демонтаж)',
+    ).hasMatch(normalized);
+    return taskCommand;
+  }
+
   static bool _useStructuredAssistant({
     required String mode,
     required String prompt,
   }) {
     if (mode.trim() != 'chat') return true;
 
-    final normalized = prompt.trim().toLowerCase().replaceAll('ё', 'е');
+    final normalized = _normalized(prompt);
     final timesheetOrSummary = RegExp(
       r'табел|смен|выход|отработ|сводк',
     ).hasMatch(normalized);
@@ -29,6 +44,18 @@ class AiAssistantRepository {
     ).hasMatch(normalized);
 
     return timesheetOrSummary || (documentAction && documentType);
+  }
+
+  static String functionNameFor({
+    required String mode,
+    required String prompt,
+  }) {
+    if (_useActionDraft(mode: mode, prompt: prompt)) {
+      return 'ai-action-draft';
+    }
+    return _useStructuredAssistant(mode: mode, prompt: prompt)
+        ? 'ai-assistant'
+        : 'ai-search';
   }
 
   static Future<AiAssistantResult> request({
@@ -44,12 +71,10 @@ class AiAssistantRepository {
     }
 
     final cleanPrompt = prompt.trim();
-    final functionName = _useStructuredAssistant(
+    final functionName = functionNameFor(
       mode: mode,
       prompt: cleanPrompt,
-    )
-        ? 'ai-assistant'
-        : 'ai-search';
+    );
     final requestDate = date ?? DateTime.now();
     final response = await _client.functions.invoke(
       functionName,
