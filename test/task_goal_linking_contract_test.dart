@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
+import 'support/task_repository_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
@@ -49,7 +50,7 @@ void main() {
   });
 
   test('task repository persists link and supports explicit unlinking', () {
-    final repository = source('lib/data/task_repository.dart');
+    final repository = taskRepositoryFeatureSource();
     final model = source('lib/models/task_item_data.dart');
 
     expect(repository, contains("from('task_milestone_links')"));
