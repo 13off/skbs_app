@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/employees_source.dart';
 import 'support/home_source.dart';
 import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
@@ -68,7 +69,7 @@ void main() {
     });
 
     test('люди сохраняют поиск, разделы, отчёты и позицию списка', () {
-      _containsAll('lib/screens/employees_screen.dart', const [
+      _containsAllText('сотрудники', employeesSource(), const [
         "label: 'Выплаты'",
         "label: 'Сводка'",
         "label: 'Добавить'",
