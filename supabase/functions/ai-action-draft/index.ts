@@ -14,8 +14,6 @@ type EmployeeRow = {
   fio: string;
   position: string;
   object_name: string;
-  is_active: boolean;
-  archived_at: string | null;
 };
 
 function json(body: unknown, status = 200) {
@@ -56,25 +54,34 @@ function parseBaseDate(value: unknown): Date {
     if (!Number.isNaN(parsed.getTime())) return parsed;
   }
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 }
 
 function parseRequestedDate(prompt: string, baseDate: Date): string {
   const normalized = normalize(prompt);
   const isoMatch = normalized.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
   if (isoMatch) {
-    return `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}`;
+    return `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-$
+      {isoMatch[3].padStart(2, "0")}`.replace(/\s+/g, "");
   }
 
-  const ruMatch = normalized.match(/\b(\d{1,2})[.\/](\d{1,2})(?:[.\/](20\d{2}))?\b/);
+  const ruMatch = normalized.match(
+    /\b(\d{1,2})[.\/](\d{1,2})(?:[.\/](20\d{2}))?\b/,
+  );
   if (ruMatch) {
     const year = ruMatch[3] ?? String(baseDate.getUTCFullYear());
-    return `${year}-${ruMatch[2].padStart(2, "0")}-${ruMatch[1].padStart(2, "0")}`;
+    return `${year}-${ruMatch[2].padStart(2, "0")}-$
+      {ruMatch[1].padStart(2, "0")}`.replace(/\s+/g, "");
   }
 
   const result = new Date(baseDate.getTime());
-  if (/послезавтра/.test(normalized)) result.setUTCDate(result.getUTCDate() + 2);
-  else if (/завтра/.test(normalized)) result.setUTCDate(result.getUTCDate() + 1);
+  if (/послезавтра/.test(normalized)) {
+    result.setUTCDate(result.getUTCDate() + 2);
+  } else if (/завтра/.test(normalized)) {
+    result.setUTCDate(result.getUTCDate() + 1);
+  }
   return isoDate(result);
 }
 
@@ -87,13 +94,12 @@ function tokens(value: unknown): string[] {
 
 function employeeMatches(prompt: string, employee: EmployeeRow): boolean {
   const promptTokens = new Set(tokens(prompt));
-  const nameTokens = tokens(employee.fio);
-  return nameTokens.some((token) => {
+  return tokens(employee.fio).some((nameToken) => {
     for (const promptToken of promptTokens) {
-      if (promptToken === token) return true;
+      if (promptToken === nameToken) return true;
       if (
-        Math.min(promptToken.length, token.length) >= 5 &&
-        (promptToken.startsWith(token) || token.startsWith(promptToken))
+        Math.min(promptToken.length, nameToken.length) >= 5 &&
+        (promptToken.startsWith(nameToken) || nameToken.startsWith(promptToken))
       ) {
         return true;
       }
@@ -113,23 +119,29 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function extractWork(prompt: string, matchedEmployees: EmployeeRow[]): string {
+function extractWork(prompt: string, employees: EmployeeRow[]): string {
   let result = prompt
     .replace(/\b(?:сегодня|завтра|послезавтра)\b/gi, " ")
-    .replace(/\b(?:создай|создать|добавь|добавить|поставь|поставить|назначь|назначить|сделай|сделать)\b/gi, " ")
+    .replace(
+      /\b(?:создай|создать|добавь|добавить|поставь|поставить|назначь|назначить|сделай|сделать)\b/gi,
+      " ",
+    )
     .replace(/\bзадач(?:у|и|а)?\b/gi, " ")
     .replace(/(?:по\s+)?ос(?:и|ям|ях)?\s*[:\-]?\s*[^,.;]+/gi, " ")
-    .replace(/фото\s*[«\"]?(?:до|после)[»\"]?[^,.;]*/gi, " ")
+    .replace(/фото\s*[«"]?(?:до|после)[»"]?[^,.;]*/gi, " ")
     .replace(/\bобязательн(?:о|ые|ый|ая)?\b/gi, " ");
 
-  for (const employee of matchedEmployees) {
-    const names = employee.fio
+  for (const employee of employees) {
+    const nameParts = employee.fio
       .trim()
       .split(/\s+/)
       .filter((part) => part.length >= 4)
       .sort((a, b) => b.length - a.length);
-    for (const name of names) {
-      result = result.replace(new RegExp(`\\b${escapeRegExp(name)}[а-я]*\\b`, "gi"), " ");
+    for (const part of nameParts) {
+      result = result.replace(
+        new RegExp(`\\b${escapeRegExp(part)}[а-я]*\\b`, "gi"),
+        " ",
+      );
     }
   }
 
@@ -143,83 +155,14 @@ function extractWork(prompt: string, matchedEmployees: EmployeeRow[]): string {
   return result[0].toUpperCase() + result.slice(1);
 }
 
-function documentKind(prompt: string): string {
+function isTaskCommand(prompt: string): boolean {
   const value = normalize(prompt);
-  if (/заявлен.*(?:работ|прием)/.test(value)) return "job_application";
-  if (/заявлен.*(?:зарплат|зп|перечислен)/.test(value)) return "salary_transfer_application";
-  if (/соглас.*(?:персональн|обработк)/.test(value)) return "personal_data_consent";
-  if (/трудов.*договор/.test(value)) return "employment_contract";
-  if (/служебн.*записк/.test(value)) return "service_memo";
-  if (/акт/.test(value)) return "work_act";
-  if (/табел/.test(value)) return "timesheet";
-  if (/письм/.test(value)) return "letter";
-  return "work_document";
-}
-
-function classify(prompt: string): string {
-  const value = normalize(prompt);
-  if (
+  return (
     /(?:созда|добав|постав|назнач|сдел).*задач/.test(value) ||
-    /(?:постав|назнач).*(?:работ|армирован|бетонир|монтаж|демонтаж)/.test(value)
-  ) {
-    return "create_task_draft";
-  }
-  if (/напомн|напоминан/.test(value)) return "create_reminder";
-  if (/исправ|поправ|постав.*смен|измен.*табел/.test(value)) {
-    return "prepare_timesheet_correction";
-  }
-  if (/измен|обнов.*(?:сотрудник|ставк|телефон|должност)/.test(value)) {
-    return "prepare_employee_update";
-  }
-  if (
-    /(?:подготов|состав|созда|сдел).*\b(?:документ|акт|заявлен|договор|записк|письм|табел)/.test(value)
-  ) {
-    return "prepare_document";
-  }
-  return "unknown";
-}
-
-function actionResult({
-  type,
-  title,
-  buttonLabel,
-  summary,
-  highlights,
-  warnings,
-  nextSteps,
-  scope,
-  payload,
-}: {
-  type: string;
-  title: string;
-  buttonLabel: string;
-  summary: string;
-  highlights: string[];
-  warnings: string[];
-  nextSteps: string[];
-  scope: JsonMap;
-  payload: JsonMap;
-}) {
-  return {
-    ok: true,
-    mode: "action_draft",
-    title,
-    summary,
-    highlights,
-    warnings,
-    next_steps: nextSteps,
-    scope,
-    preliminary: true,
-    ai_used: false,
-    action: {
-      id: crypto.randomUUID(),
-      type,
-      title,
-      button_label: buttonLabel,
-      confirmation_required: true,
-      payload,
-    },
-  };
+    /(?:постав|назнач).*(?:работ|армирован|бетонир|монтаж|демонтаж)/.test(
+      value,
+    )
+  );
 }
 
 Deno.serve(async (request: Request) => {
@@ -238,26 +181,33 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Сервис действий ИИ не настроен" }, 500);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
+    const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const {
       data: { user },
       error: userError,
-    } = await userClient.auth.getUser();
-    if (userError || !user) return json({ error: "Требуется повторный вход" }, 401);
+    } = await client.auth.getUser();
+    if (userError || !user) {
+      return json({ error: "Требуется повторный вход" }, 401);
+    }
 
     const input = await request.json().catch(() => ({})) as JsonMap;
     const companyId = cleanText(input.company_id, 80);
     const requestedObjectName = cleanText(input.object_name, 180);
     const prompt = cleanText(input.prompt, 4000);
     const baseDate = parseBaseDate(input.date);
-    if (!companyId || !prompt) return json({ error: "Недостаточно данных запроса" }, 400);
+    if (!companyId || !prompt) {
+      return json({ error: "Недостаточно данных запроса" }, 400);
+    }
+    if (!isTaskCommand(prompt)) {
+      return json({ error: "Этот сервер готовит только черновики задач" }, 400);
+    }
 
-    const { data: profile, error: profileError } = await userClient
+    const { data: profile, error: profileError } = await client
       .from("user_profiles")
-      .select("id, role, object_name, active_company_id, is_active")
+      .select("role, object_name, active_company_id, is_active")
       .eq("id", user.id)
       .maybeSingle();
     if (profileError) throw profileError;
@@ -268,232 +218,130 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Помощник работает только с активной компанией" }, 403);
     }
 
-    const { data: membership, error: membershipError } = await userClient
+    const { data: membership, error: membershipError } = await client
       .from("company_memberships")
-      .select("role, is_active")
+      .select("role")
       .eq("company_id", companyId)
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
     if (membershipError) throw membershipError;
-    if (!membership) return json({ error: "Нет доступа к выбранной компании" }, 403);
+    if (!membership) {
+      return json({ error: "Нет доступа к выбранной компании" }, 403);
+    }
 
     const profileRole = cleanText(profile.role, 30);
     const membershipRole = cleanText(membership.role, 30);
-    const isAdmin = profileRole === "admin" || ["owner", "admin"].includes(membershipRole);
+    const isAdmin =
+      profileRole === "admin" ||
+      membershipRole === "owner" ||
+      membershipRole === "admin";
     const assignedObjectName = cleanText(profile.object_name, 180);
-    let effectiveObjectName = isAdmin ? requestedObjectName : assignedObjectName;
+    let objectName = isAdmin ? requestedObjectName : assignedObjectName;
 
-    const { data: objectRows, error: objectError } = await userClient
+    const { data: objectRows, error: objectError } = await client
       .from("objects")
-      .select("id, name")
+      .select("name")
       .eq("company_id", companyId)
       .eq("is_active", true)
       .order("name");
     if (objectError) throw objectError;
-    const objects = objectRows ?? [];
+    const objectNames = (objectRows ?? [])
+      .map((row: any) => cleanText(row.name, 180))
+      .filter((name: string) => name.length > 0);
 
-    if (!effectiveObjectName && isAdmin) {
+    if (!objectName && isAdmin) {
       const normalizedPrompt = normalize(prompt);
-      const matchedObjects = objects.filter((object: any) => {
-        const name = normalize(object.name);
-        return name.length >= 3 && normalizedPrompt.includes(name);
-      });
-      if (matchedObjects.length === 1) effectiveObjectName = cleanText(matchedObjects[0].name, 180);
-    }
-
-    if (!isAdmin && !effectiveObjectName) {
-      return json({ error: "Прорабу не назначен объект" }, 403);
-    }
-    if (effectiveObjectName) {
-      const allowedObject = objects.some(
-        (object: any) => cleanText(object.name, 180) === effectiveObjectName,
+      const matches = objectNames.filter((name: string) =>
+        normalizedPrompt.includes(normalize(name))
       );
-      if (!allowedObject) return json({ error: "Объект недоступен" }, 403);
+      if (matches.length === 1) objectName = matches[0];
+    }
+    if (!objectName) {
+      return json({
+        ok: true,
+        title: "Нужно выбрать объект",
+        summary:
+          "Для создания задачи выбери конкретный объект на Главной или назови его в запросе.",
+        highlights: [],
+        warnings: ["Без объекта черновик задачи не открывается."],
+        next_steps: ["Выбери объект и повтори запрос."],
+        scope: { object_name: "Все доступные объекты", date: isoDate(baseDate) },
+        preliminary: true,
+        ai_used: false,
+      });
+    }
+    if (!objectNames.includes(objectName)) {
+      return json({ error: "Объект недоступен" }, 403);
     }
 
-    let employeeQuery: any = userClient
+    const { data: employeeRows, error: employeeError } = await client
       .from("employees")
-      .select("id, fio, position, object_name, is_active, archived_at")
+      .select("id, fio, position, object_name")
       .eq("company_id", companyId)
+      .eq("object_name", objectName)
       .eq("is_active", true)
       .is("archived_at", null)
       .order("fio");
-    if (effectiveObjectName) employeeQuery = employeeQuery.eq("object_name", effectiveObjectName);
-    const { data: employeeRows, error: employeeError } = await employeeQuery;
     if (employeeError) throw employeeError;
     const employees = (employeeRows ?? []) as EmployeeRow[];
-    const matchedEmployees = employees.filter((employee) => employeeMatches(prompt, employee));
+    const matchedEmployees = employees.filter((employee) =>
+      employeeMatches(prompt, employee)
+    );
 
-    const type = classify(prompt);
     const requestedDate = parseRequestedDate(prompt, baseDate);
-    const scope = {
-      object_name: effectiveObjectName || "Все доступные объекты",
-      date: requestedDate,
-    };
-
-    if (type === "create_task_draft") {
-      if (!effectiveObjectName) {
-        return json({
-          ok: true,
-          mode: "action_draft",
-          title: "Нужно выбрать объект",
-          summary: "Для создания задачи выбери конкретный объект на Главной или назови его в запросе.",
-          highlights: [],
-          warnings: ["Без объекта черновик задачи не открывается."],
-          next_steps: ["Выбери объект и повтори запрос."],
-          scope,
-          preliminary: true,
-          ai_used: false,
-        });
-      }
-
-      const axes = extractAxes(prompt);
-      const work = extractWork(prompt, matchedEmployees);
-      const beforePhotoRequested = /фото\s*[«\"]?до[»\"]?.*обяз|обяз.*фото\s*[«\"]?до/i.test(prompt);
-      return json(actionResult({
-        type,
-        title: "Черновик задачи подготовлен",
-        buttonLabel: "Открыть черновик задачи",
-        summary: `${work}. Дата: ${requestedDate}. Объект: ${effectiveObjectName}.`,
-        highlights: [
-          `Вид работ: ${work}`,
-          axes ? `Оси: ${axes}` : "Оси нужно проверить вручную",
-          matchedEmployees.length > 0
-            ? `Исполнители: ${matchedEmployees.map((employee) => employee.fio).join(", ")}`
-            : "Исполнители не сопоставлены",
-        ],
-        warnings: [
-          "ИИ ничего не сохраняет автоматически: проверь поля в обычной форме задачи.",
-          ...(beforePhotoRequested ? ["Перед сохранением потребуется добавить фото «До»."] : []),
-        ],
-        nextSteps: ["Открой черновик, проверь данные и нажми «Сохранить задачу»."],
-        scope,
-        payload: {
-          object_name: effectiveObjectName,
-          date: requestedDate,
-          axes,
-          work,
-          assignee_ids: matchedEmployees.map((employee) => employee.id),
-          assignee_names: matchedEmployees.map((employee) => employee.fio),
-          require_before_photo: beforePhotoRequested,
-          source_prompt: prompt,
-        },
-      }));
-    }
-
-    if (type === "prepare_document") {
-      const kind = documentKind(prompt);
-      return json(actionResult({
-        type,
-        title: "Черновик документа подготовлен",
-        buttonLabel: "Открыть документ",
-        summary: "Определён тип документа и рабочий контекст. Содержимое нужно проверить перед скачиванием.",
-        highlights: [
-          `Тип: ${kind}`,
-          matchedEmployees.length === 1
-            ? `Сотрудник: ${matchedEmployees[0].fio}`
-            : matchedEmployees.length > 1
-            ? "Найдено несколько сотрудников"
-            : "Сотрудник не указан",
-        ],
-        warnings: ["Юридически значимые данные и подписи требуют проверки человеком."],
-        nextSteps: ["Открой предпросмотр, проверь текст и скачай документ."],
-        scope,
-        payload: {
-          document_kind: kind,
-          object_name: effectiveObjectName,
-          date: requestedDate,
-          employee_id: matchedEmployees.length === 1 ? matchedEmployees[0].id : "",
-          employee_name: matchedEmployees.length === 1 ? matchedEmployees[0].fio : "",
-          prompt,
-        },
-      }));
-    }
-
-    if (type === "prepare_timesheet_correction") {
-      const shiftMatch = normalize(prompt).match(/(\d+(?:[.,]\d+)?)\s*(?:смен|смены)/);
-      return json(actionResult({
-        type,
-        title: "Корректировка табеля подготовлена",
-        buttonLabel: "Проверить корректировку",
-        summary: "Изменение пока не применено и потребует отдельного подтверждения.",
-        highlights: [
-          matchedEmployees.length === 1 ? `Сотрудник: ${matchedEmployees[0].fio}` : "Уточни сотрудника",
-          `Дата: ${requestedDate}`,
-          shiftMatch ? `Смены: ${shiftMatch[1].replace(",", ".")}` : "Количество смен не найдено",
-        ],
-        warnings: ["До подтверждения табель не изменяется."],
-        nextSteps: ["Проверь сотрудника, дату и количество смен."],
-        scope,
-        payload: {
-          employee_id: matchedEmployees.length === 1 ? matchedEmployees[0].id : "",
-          employee_name: matchedEmployees.length === 1 ? matchedEmployees[0].fio : "",
-          object_name: effectiveObjectName,
-          date: requestedDate,
-          shifts: shiftMatch ? Number(shiftMatch[1].replace(",", ".")) : null,
-          prompt,
-        },
-      }));
-    }
-
-    if (type === "prepare_employee_update") {
-      const rateMatch = normalize(prompt).match(/(?:ставк[^\d]*)(\d[\d\s]{2,})/);
-      return json(actionResult({
-        type,
-        title: "Изменение сотрудника подготовлено",
-        buttonLabel: "Проверить изменение",
-        summary: "Карточка сотрудника не изменена. Перед применением будут показаны старые и новые значения.",
-        highlights: [
-          matchedEmployees.length === 1 ? `Сотрудник: ${matchedEmployees[0].fio}` : "Уточни сотрудника",
-          rateMatch ? `Новая ставка: ${rateMatch[1].replace(/\s/g, "")}` : "Изменяемое поле нужно уточнить",
-        ],
-        warnings: ["Изменение потребует явного подтверждения администратора."],
-        nextSteps: ["Проверь сотрудника и новое значение."],
-        scope,
-        payload: {
-          employee_id: matchedEmployees.length === 1 ? matchedEmployees[0].id : "",
-          employee_name: matchedEmployees.length === 1 ? matchedEmployees[0].fio : "",
-          object_name: effectiveObjectName,
-          daily_rate: rateMatch ? Number(rateMatch[1].replace(/\s/g, "")) : null,
-          prompt,
-        },
-      }));
-    }
-
-    if (type === "create_reminder") {
-      return json(actionResult({
-        type,
-        title: "Напоминание подготовлено",
-        buttonLabel: "Проверить напоминание",
-        summary: "Текст напоминания подготовлен, но оно пока не создано.",
-        highlights: [`Дата: ${requestedDate}`, `Текст: ${prompt}`],
-        warnings: ["Получателей и точное время нужно проверить."],
-        nextSteps: ["Открой настройки напоминания и подтверди создание."],
-        scope,
-        payload: {
-          object_name: effectiveObjectName,
-          date: requestedDate,
-          title: "Рабочее напоминание",
-          message: prompt,
-        },
-      }));
-    }
+    const axes = extractAxes(prompt);
+    const work = extractWork(prompt, matchedEmployees);
+    const requireBeforePhoto =
+      /фото\s*[«"]?до[»"]?.*обяз|обяз.*фото\s*[«"]?до/i.test(prompt);
 
     return json({
       ok: true,
       mode: "action_draft",
-      title: "Не удалось определить действие",
-      summary: "Сформулируй, что нужно подготовить: задачу, документ, корректировку табеля, изменение сотрудника или напоминание.",
-      highlights: [],
-      warnings: ["Данные приложения не изменялись."],
-      next_steps: ["Например: «Поставь Иванову на завтра задачу армирование плиты по осям 1–5»."],
-      scope,
+      title: "Черновик задачи подготовлен",
+      summary: `${work}. Дата: ${requestedDate}. Объект: ${objectName}.`,
+      highlights: [
+        `Вид работ: ${work}`,
+        axes ? `Оси: ${axes}` : "Оси нужно проверить вручную",
+        matchedEmployees.length > 0
+          ? `Исполнители: ${matchedEmployees.map((item) => item.fio).join(", ")}`
+          : "Исполнители не сопоставлены",
+      ],
+      warnings: [
+        "ИИ ничего не сохраняет автоматически: проверь поля в обычной форме задачи.",
+        ...(requireBeforePhoto
+          ? ["Перед сохранением потребуется добавить фото «До»." ]
+          : []),
+      ],
+      next_steps: [
+        "Открой черновик, проверь данные и нажми «Сохранить задачу».",
+      ],
+      scope: { object_name: objectName, date: requestedDate },
       preliminary: true,
       ai_used: false,
+      action: {
+        id: crypto.randomUUID(),
+        type: "create_task_draft",
+        title: "Черновик задачи",
+        button_label: "Открыть черновик задачи",
+        confirmation_required: true,
+        payload: {
+          object_name: objectName,
+          date: requestedDate,
+          axes,
+          work,
+          assignee_ids: matchedEmployees.map((item) => item.id),
+          assignee_names: matchedEmployees.map((item) => item.fio),
+          require_before_photo: requireBeforePhoto,
+          source_prompt: prompt,
+        },
+      },
     });
   } catch (error) {
     console.error("ai action draft failed", error);
-    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+    return json(
+      { error: error instanceof Error ? error.message : String(error) },
+      500,
+    );
   }
 });
