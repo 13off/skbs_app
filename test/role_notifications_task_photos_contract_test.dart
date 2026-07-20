@@ -2,13 +2,22 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_details_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
-void expectContains(String path, Iterable<String> values) {
-  final text = source(path);
+void expectTextContains(
+  String label,
+  String text,
+  Iterable<String> values,
+) {
   for (final value in values) {
-    expect(text, contains(value), reason: '$path должен содержать $value');
+    expect(text, contains(value), reason: '$label должен содержать $value');
   }
+}
+
+void expectContains(String path, Iterable<String> values) {
+  expectTextContains(path, source(path), values);
 }
 
 void main() {
@@ -127,12 +136,16 @@ void main() {
       'Фото «До» — обязательно',
       'Фото «До» — по желанию',
     ]);
-    expectContains('lib/screens/task_details_legacy_screen.dart', const [
-      "photoStage: 'before'",
-      "photoStage: 'after'",
-      'policy.requireAfterPhotoOnComplete',
-      'policy.minAfterPhotos',
-      "widget.task.status != 'Выполнено'",
-    ]);
+    expectTextContains(
+      'редактор задачи',
+      taskDetailsEditorSource(),
+      const [
+        "photoStage: 'before'",
+        "photoStage: 'after'",
+        'policy.requireAfterPhotoOnComplete',
+        'policy.minAfterPhotos',
+        "widget.task.status != 'Выполнено'",
+      ],
+    );
   });
 }
