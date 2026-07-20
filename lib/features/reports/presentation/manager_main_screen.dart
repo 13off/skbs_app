@@ -38,6 +38,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
 
   int currentIndex = 0;
   int warmUpToken = 0;
+  int objectSelectionToken = 0;
   late final PageController controller;
   late final ValueNotifier<String?> selectedObjectNameNotifier;
   late final List<GlobalKey<NavigatorState>> navigatorKeys;
@@ -60,6 +61,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void didUpdateWidget(covariant ManagerMainScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      objectSelectionToken++;
       selectedObjectNameNotifier.value = null;
       ManagerReportsRepository.setPreferredObjectName(null);
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
@@ -75,6 +77,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   @override
   void dispose() {
     warmUpToken++;
+    objectSelectionToken++;
     WidgetsBinding.instance.removeObserver(this);
     AppDataSync.stop(companyId: widget.profile.activeCompanyId);
     ManagerReportsRepository.setPreferredObjectName(null);
@@ -118,9 +121,25 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void changeSelectedObject(String? objectName) {
     final next = cleanObjectName(objectName);
     if (cleanObjectName(selectedObjectNameNotifier.value) == next) return;
+
+    final token = ++objectSelectionToken;
     ManagerReportsRepository.setPreferredObjectName(next);
-    selectedObjectNameNotifier.value = next;
-    unawaited(warmUpVisibleData());
+
+    void applySelection() {
+      if (!mounted || token != objectSelectionToken) return;
+      if (cleanObjectName(selectedObjectNameNotifier.value) == next) return;
+      selectedObjectNameNotifier.value = next;
+      unawaited(warmUpVisibleData());
+    }
+
+    // Dropdown отчёта после callback ещё обновляет своё локальное состояние.
+    // Даём ему закончить текущий кадр, а затем синхронизируем остальные вкладки.
+    if (currentIndex == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => applySelection());
+      return;
+    }
+
+    applySelection();
   }
 
   Future<void> warmUpVisibleData() async {
