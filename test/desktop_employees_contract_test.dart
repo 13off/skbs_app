@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/employees_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('employees use desktop table only on wide web screens', () {
     final adaptive = source('lib/screens/adaptive_employees_screen.dart');
-    final mobile = source('lib/screens/employees_screen.dart');
+    final mobile = employeesSource();
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
