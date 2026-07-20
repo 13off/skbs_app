@@ -63,17 +63,23 @@ class AiActionConfirmationSheet extends StatelessWidget {
         if (action.boolean('require_before_photo')) {
           add('Фото', 'Фото «До» обязательно');
         }
+        break;
       case 'prepare_document':
         add('Документ', action.text('title'));
+        break;
       case 'prepare_timesheet_correction':
+        add('Текущее значение', '${action.number('current_shifts')} смены');
         add('Новое значение', '${action.number('shifts')} смены');
+        break;
       case 'prepare_employee_update':
         add('Текущая ставка', _money(action.number('current_daily_rate')));
         add('Новая ставка', _money(action.number('daily_rate')));
+        break;
       case 'create_reminder':
         add('Название', action.text('title'));
         add('Время', action.text('local_time'));
         add('Получатели', action.stringList('recipient_roles').join(', '));
+        break;
     }
 
     return rows;
