@@ -149,8 +149,9 @@ void main() {
     expect(edge, contains('.from("company_memberships")'));
     expect(edge, contains('.eq("company_id", companyId)'));
     expect(edge, contains('confirmation_required: true'));
-    expect(edge, contains('return "create_task_draft"'));
+    expect(edge, contains('type: "create_task_draft"'));
     expect(edge, contains('Открыть черновик задачи'));
+    expect(edge, contains('dateKey('));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
     expect(edge, isNot(contains('.update(')));
