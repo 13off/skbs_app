@@ -17,23 +17,13 @@ extension _EmployeesActions on _EmployeesScreenState {
 
     await loadEmployees();
     if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !scrollController.hasClients) return;
-      final position = scrollController.position;
-      final target = savedOffset
-          .clamp(position.minScrollExtent, position.maxScrollExtent)
-          .toDouble();
-      if ((position.pixels - target).abs() > .5) {
-        scrollController.jumpTo(target);
-      }
-    });
+    EmployeeDirectoryLogic.restoreScrollOffset(scrollController, savedOffset);
   }
 
   Future<void> addEmployee() async {
     final saved = await Navigator.push<bool>(
       context,
-      AppPageRoute(
+      AppPageRoute<bool>(
         builder: (_) => AddEmployeeScreen(initialObjectName: objectName),
       ),
     );
@@ -41,9 +31,9 @@ extension _EmployeesActions on _EmployeesScreenState {
   }
 
   void openPayments() {
-    Navigator.push(
+    Navigator.push<void>(
       context,
-      AppPageRoute(
+      AppPageRoute<void>(
         builder: (_) => PaymentsScreen(
           selectedObjectName: widget.selectedObjectName,
         ),
@@ -53,23 +43,7 @@ extension _EmployeesActions on _EmployeesScreenState {
 
   Future<void> downloadSummary() async {
     try {
-      final source = employees.isNotEmpty
-          ? List<Employee>.from(employees)
-          : await EmployeeRepository.fetchEmployees(
-              objectName: widget.selectedObjectName,
-              includeFired: true,
-            );
-      final ids = source
-          .map((employee) => employee.id ?? '')
-          .where((id) => id.trim().isNotEmpty)
-          .toList();
-      final privateData =
-          await EmployeePrivateDataRepository.fetchMapByEmployeeIds(ids);
-      await EmployeePrivateSummaryExporter.downloadSummary(
-        employees: source,
-        privateDataByEmployeeId: privateData,
-        objectName: widget.selectedObjectName,
-      );
+      await directoryController.downloadSummary();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -84,11 +58,5 @@ extension _EmployeesActions on _EmployeesScreenState {
     }
   }
 
-  String money(int value) {
-    final formatted = value.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => ' ',
-    );
-    return '$formatted ₽';
-  }
+  String money(int value) => EmployeeDirectoryLogic.money(value);
 }
