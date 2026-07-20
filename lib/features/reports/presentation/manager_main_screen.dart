@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../../../data/app_cache_coordinator.dart';
 import '../../../data/app_data_sync.dart';
-import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
-import '../../../data/finance_summary_repository.dart';
 import '../../../data/object_repository.dart';
-import '../../../data/payment_repository.dart';
 import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -84,28 +82,8 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void startDataSync() {
     AppDataSync.start(
       companyId: widget.profile.activeCompanyId,
-      invalidateCaches: invalidateCaches,
+      invalidateCaches: AppCacheCoordinator.invalidate,
     );
-  }
-
-  void invalidateCaches(Set<AppDataDomain> domains) {
-    final objectsChanged = domains.contains(AppDataDomain.objects);
-    final employeesChanged =
-        objectsChanged || domains.contains(AppDataDomain.employees);
-    final attendanceChanged =
-        objectsChanged || domains.contains(AppDataDomain.attendance);
-    final paymentsChanged =
-        objectsChanged || domains.contains(AppDataDomain.payments);
-    final tasksChanged = objectsChanged || domains.contains(AppDataDomain.tasks);
-
-    if (objectsChanged) ObjectRepository.clearCache();
-    if (employeesChanged) EmployeeRepository.clearCache();
-    if (attendanceChanged || paymentsChanged || employeesChanged) {
-      AttendanceRepository.clearCache();
-      FinanceSummaryRepository.clearCache();
-    }
-    if (paymentsChanged) PaymentRepository.clearCache();
-    if (tasksChanged) TaskRepository.clearTaskListCache();
   }
 
   String? cleanObjectName(String? value) {
