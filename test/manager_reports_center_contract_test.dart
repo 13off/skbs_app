@@ -11,10 +11,13 @@ void main() {
     final reports = File(
       'lib/features/reports/presentation/manager_reports_screen.dart',
     ).readAsStringSync();
-    final reportWidgets = File(
-      'lib/features/reports/presentation/manager_report_widgets.dart',
+    final reportHeader = File(
+      'lib/features/reports/presentation/manager_report_header_widgets.dart',
     ).readAsStringSync();
-    final reportUi = '$reports\n$reportWidgets';
+    final reportSections = File(
+      'lib/features/reports/presentation/manager_report_sections.dart',
+    ).readAsStringSync();
+    final reportUi = '$reports\n$reportHeader\n$reportSections';
     final repository = File(
       'lib/features/reports/data/manager_reports_repository.dart',
     ).readAsStringSync();
@@ -46,6 +49,13 @@ void main() {
     expect(reports, contains('ManagerReportFilters'));
     expect(reports, contains('ManagerReportOverview'));
     expect(reports, contains('ManagerReportSections'));
+    expect(reportSections, contains('final metrics = center.metrics'));
+    expect(reportSections, contains('metrics.attendance'));
+    expect(reportSections, contains('metrics.payments'));
+    expect(reportSections, isNot(contains('center.metric(')));
+    expect(reportSections, isNot(contains('center.decimalMetric(')));
+    expect(reportSections, isNot(contains('center.trendValue(')));
+    expect(reports, contains('forceRefresh: true'));
     expect(repository, contains('get_manager_reports_center'));
     expect(centerMigration, contains('get_manager_reports_center'));
     expect(centerMigration, contains("'dispatcher_runs'"));
