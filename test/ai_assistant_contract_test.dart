@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/home_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('home opens AI chat from a fixed bottom-right button', () {
-    final home = source('lib/screens/home_screen.dart');
+    final home = homeSource();
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );

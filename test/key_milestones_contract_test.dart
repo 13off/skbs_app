@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/home_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
@@ -42,7 +44,7 @@ void main() {
     final section = source(
       'lib/features/milestones/presentation/milestone_home_overlay.dart',
     );
-    final home = source('lib/screens/home_screen.dart');
+    final home = homeSource();
     final adaptive = source('lib/screens/adaptive_home_screen.dart');
     final desktop = source('lib/screens/adaptive_home_base_screen.dart');
     final foremanHome = source(
