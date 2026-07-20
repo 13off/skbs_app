@@ -23,6 +23,19 @@ void main() {
     expect(employee.objectId, 'object-id');
   });
 
+  test('копирование на объект сохраняет одного физического человека', () {
+    final repository = File(
+      'lib/data/employee_repository.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains('person_id, object_id'));
+    expect(repository, contains('sourcePersonId'));
+    expect(
+      repository,
+      contains("if (sourcePersonId.isNotEmpty) 'person_id': sourcePersonId"),
+    );
+  });
+
   test('миграция сохраняет старые названия и добавляет связи по ID', () {
     final migration = File(
       'supabase/migrations/20260720143000_normalize_person_object_identity.sql',
