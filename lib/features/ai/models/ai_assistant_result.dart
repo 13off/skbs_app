@@ -35,6 +35,12 @@ class AiAssistantAction {
 
   bool boolean(String key) => payload[key] == true;
 
+  num number(String key) {
+    final value = payload[key];
+    if (value is num) return value;
+    return num.tryParse(value?.toString().replaceAll(',', '.') ?? '') ?? 0;
+  }
+
   List<String> stringList(String key) {
     final value = payload[key];
     if (value is! List) return const <String>[];
