@@ -40,11 +40,16 @@ function normalize(value: unknown): string {
     .trim();
 }
 
+function dateKey(year: number | string, month: number | string, day: number | string) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function isoDate(value: Date): string {
-  const year = value.getUTCFullYear();
-  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(value.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return dateKey(
+    value.getUTCFullYear(),
+    value.getUTCMonth() + 1,
+    value.getUTCDate(),
+  );
 }
 
 function parseBaseDate(value: unknown): Date {
@@ -62,18 +67,17 @@ function parseBaseDate(value: unknown): Date {
 function parseRequestedDate(prompt: string, baseDate: Date): string {
   const normalized = normalize(prompt);
   const isoMatch = normalized.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
-  if (isoMatch) {
-    return `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-$
-      {isoMatch[3].padStart(2, "0")}`.replace(/\s+/g, "");
-  }
+  if (isoMatch) return dateKey(isoMatch[1], isoMatch[2], isoMatch[3]);
 
   const ruMatch = normalized.match(
     /\b(\d{1,2})[.\/](\d{1,2})(?:[.\/](20\d{2}))?\b/,
   );
   if (ruMatch) {
-    const year = ruMatch[3] ?? String(baseDate.getUTCFullYear());
-    return `${year}-${ruMatch[2].padStart(2, "0")}-$
-      {ruMatch[1].padStart(2, "0")}`.replace(/\s+/g, "");
+    return dateKey(
+      ruMatch[3] ?? baseDate.getUTCFullYear(),
+      ruMatch[2],
+      ruMatch[1],
+    );
   }
 
   const result = new Date(baseDate.getTime());
