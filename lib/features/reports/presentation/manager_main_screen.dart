@@ -20,6 +20,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
 
 class ManagerMainScreen extends StatefulWidget {
@@ -37,6 +38,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
 
   int currentIndex = 0;
   int warmUpToken = 0;
+  int objectSelectionToken = 0;
   late final PageController controller;
   late final ValueNotifier<String?> selectedObjectNameNotifier;
   late final List<GlobalKey<NavigatorState>> navigatorKeys;
@@ -47,6 +49,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     WidgetsBinding.instance.addObserver(this);
     controller = PageController();
     selectedObjectNameNotifier = ValueNotifier<String?>(null);
+    ManagerReportsRepository.setPreferredObjectName(null);
     navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
       pageCount,
       (_) => GlobalKey<NavigatorState>(),
@@ -58,6 +61,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void didUpdateWidget(covariant ManagerMainScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      objectSelectionToken++;
+      selectedObjectNameNotifier.value = null;
+      ManagerReportsRepository.setPreferredObjectName(null);
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
       startDataSync();
     }
@@ -71,8 +77,10 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   @override
   void dispose() {
     warmUpToken++;
+    objectSelectionToken++;
     WidgetsBinding.instance.removeObserver(this);
     AppDataSync.stop(companyId: widget.profile.activeCompanyId);
+    ManagerReportsRepository.setPreferredObjectName(null);
     controller.dispose();
     selectedObjectNameNotifier.dispose();
     super.dispose();
@@ -113,8 +121,25 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void changeSelectedObject(String? objectName) {
     final next = cleanObjectName(objectName);
     if (cleanObjectName(selectedObjectNameNotifier.value) == next) return;
-    selectedObjectNameNotifier.value = next;
-    unawaited(warmUpVisibleData());
+
+    final token = ++objectSelectionToken;
+    ManagerReportsRepository.setPreferredObjectName(next);
+
+    void applySelection() {
+      if (!mounted || token != objectSelectionToken) return;
+      if (cleanObjectName(selectedObjectNameNotifier.value) == next) return;
+      selectedObjectNameNotifier.value = next;
+      unawaited(warmUpVisibleData());
+    }
+
+    // Dropdown отчёта после callback ещё обновляет своё локальное состояние.
+    // Даём ему закончить текущий кадр, а затем синхронизируем остальные вкладки.
+    if (currentIndex == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => applySelection());
+      return;
+    }
+
+    applySelection();
   }
 
   Future<void> warmUpVisibleData() async {
@@ -220,6 +245,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
           selectedObjectName: selectedObjectName,
         ),
       2 => ManagerReportsScreen(
+          key: ValueKey<String>(
+            'manager-reports:${selectedObjectName ?? '__all__'}',
+          ),
           profile: widget.profile,
           selectedObjectName: selectedObjectName,
           onObjectChanged: changeSelectedObject,
