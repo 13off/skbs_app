@@ -12,6 +12,28 @@ void main() {
     expect(main, contains('ObjectRepository.fetchObjects'));
   });
 
+  test('новая сессия очищает кеши до навигации и прогрева', () {
+    final main = File('lib/screens/main_screen.dart').readAsStringSync();
+    final initStateStart = main.indexOf('void initState()');
+    final clearPosition = main.indexOf(
+      'clearRepositoryCaches();',
+      initStateStart,
+    );
+    final restorePosition = main.indexOf(
+      'navigationRestoreFuture = restoreNavigation();',
+      initStateStart,
+    );
+    final warmupPosition = main.indexOf(
+      'unawaited(warmUpApplication());',
+      initStateStart,
+    );
+
+    expect(initStateStart, greaterThanOrEqualTo(0));
+    expect(clearPosition, greaterThan(initStateStart));
+    expect(restorePosition, greaterThan(clearPosition));
+    expect(warmupPosition, greaterThan(restorePosition));
+  });
+
   test('смена пользователя или компании очищает ролевые кеши', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
@@ -42,6 +64,15 @@ void main() {
     );
     expect(migration, contains('sync_employee_personal_fields'));
     expect(migration, contains('sibling.person_id = new.person_id'));
+    expect(migration, contains('from public, anon, authenticated'));
+  });
+
+  test('служебный обработчик напоминаний недоступен клиенту', () {
+    final migration = File(
+      'supabase/migrations/20260720173000_close_private_reminder_executor.sql',
+    ).readAsStringSync();
+
+    expect(migration, contains('populate_developer_custom_reminders'));
     expect(migration, contains('from public, anon, authenticated'));
   });
 }
