@@ -5,15 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('chat routes free search to ai-search and keeps structured scenarios', () {
+  test('chat routes free search and keeps typed structured scenarios', () {
     final repository = source(
       'lib/features/ai/data/ai_assistant_repository.dart',
     );
 
+    expect(repository, contains("'ai-action-draft'"));
+    expect(repository, contains("'ai-document-draft'"));
     expect(repository, contains("'ai-assistant'"));
     expect(repository, contains("'ai-search'"));
-    expect(repository, contains('timesheetOrSummary'));
-    expect(repository, contains('documentAction && documentType'));
+    expect(repository, contains('_isTaskCommand'));
+    expect(repository, contains('_isDocumentCommand'));
+    expect(repository, contains("RegExp(r'табел|смен|выход|отработ|сводк')"));
   });
 
   test('universal search covers application data sources', () {
