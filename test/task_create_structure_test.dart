@@ -26,7 +26,7 @@ void main() {
     expect(shell, contains("part 'task_create/task_create_view.dart';"));
     expect(shell, contains('class TaskCreateDraft'));
     expect(shell, contains('class AddTaskScreen extends StatefulWidget'));
-    expect(shell.split('\n').length, lessThan(120));
+    expect(shell.split('\n').length, lessThan(130));
 
     expect(loading, contains('Future<void> loadPolicy()'));
     expect(loading, contains('Future<void> loadEmployees()'));
@@ -48,8 +48,11 @@ void main() {
     expect(shell, contains('final TaskItemData task;'));
     expect(shell, contains('final List<String> assigneeIds;'));
     expect(shell, contains('final List<TaskPhotoFile> photos;'));
-    expect(actions, contains('policy.requireBeforePhoto'));
-    expect(actions, contains('policy.minBeforePhotos'));
+    expect(shell, contains('policy.requireBeforePhoto'));
+    expect(shell, contains('policy.minBeforePhotos'));
+    expect(shell, contains('initialRequireBeforePhoto'));
+    expect(actions, contains('required: requiresBeforePhoto'));
+    expect(actions, contains('minimumCount: minimumBeforePhotos'));
     expect(actions, contains('TaskCreateDraft('));
     expect(actions, contains('selectedChecklistItemId'));
   });

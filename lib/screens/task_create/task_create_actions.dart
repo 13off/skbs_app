@@ -106,9 +106,9 @@ extension _TaskCreateActions on _AddTaskScreenState {
     }
 
     final photoError = TaskDraftValidation.requiredPhotos(
-      required: policy.requireBeforePhoto,
+      required: requiresBeforePhoto,
       actualCount: selectedPhotos.length,
-      minimumCount: policy.minBeforePhotos,
+      minimumCount: minimumBeforePhotos,
       stageTitle: 'До',
     );
     if (photoError != null) {
