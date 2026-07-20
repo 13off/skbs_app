@@ -2,17 +2,26 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_details_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
-void containsAll(String path, Iterable<String> fragments) {
-  final contents = source(path);
+void containsAllText(
+  String label,
+  String contents,
+  Iterable<String> fragments,
+) {
   for (final fragment in fragments) {
     expect(
       contents,
       contains(fragment),
-      reason: 'Обязательный фрагмент "$fragment" отсутствует в $path',
+      reason: 'Обязательный фрагмент "$fragment" отсутствует в $label',
     );
   }
+}
+
+void containsAll(String path, Iterable<String> fragments) {
+  containsAllText(path, source(path), fragments);
 }
 
 void main() {
@@ -37,8 +46,7 @@ void main() {
       'Прораб может добавлять задачи только на текущий день',
     ]);
 
-    const taskDetailsPath = 'lib/screens/task_details_legacy_screen.dart';
-    containsAll(taskDetailsPath, const [
+    containsAllText('редактор задачи', taskDetailsEditorSource(), const [
       'final AppUserProfile profile;',
       'bool get canEdit => TaskEditPolicy.canEditTask',
       'bool get canEditDate =>',
