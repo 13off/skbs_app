@@ -42,7 +42,9 @@ void main() {
       'lib/screens/home_screen.dart',
       'lib/screens/home/home_actions.dart',
       'lib/screens/home/home_object_actions.dart',
+      'lib/screens/home/home_sections.dart',
       'lib/screens/home/home_view.dart',
+      'lib/screens/home/home_widgets.dart',
     ].map(source).join('\n');
 
     expectFragments('главной', home, const <String>[
@@ -80,6 +82,8 @@ void main() {
       'lib/screens/timesheet/timesheet_actions.dart',
       'lib/screens/timesheet/timesheet_view.dart',
       'lib/screens/period_timesheet_screen.dart',
+      'lib/screens/period_timesheet/period_timesheet_export.dart',
+      'lib/screens/period_timesheet/period_timesheet_view.dart',
     ].map(source).join('\n');
 
     expectFragments('табеля', timesheet, const <String>[
