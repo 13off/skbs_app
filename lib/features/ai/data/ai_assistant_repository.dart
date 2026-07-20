@@ -30,6 +30,19 @@ class AiAssistantRepository {
     return action && document;
   }
 
+  static bool _isOperationalCommand(String normalized) {
+    final reminder = RegExp(r'напомн|напоминан').hasMatch(normalized);
+    final timesheetCorrection =
+        RegExp(r'(исправ|измен|поправ|постав|отмет).*(табел|смен)')
+            .hasMatch(normalized) ||
+        RegExp(r'(табел|смен).*(исправ|измен|поправ|постав|отмет)')
+            .hasMatch(normalized);
+    final employeeUpdate = RegExp(
+      r'(измен|обнов|постав).*(ставк|должност|телефон)',
+    ).hasMatch(normalized);
+    return reminder || timesheetCorrection || employeeUpdate;
+  }
+
   static bool _useStructuredAssistant({
     required String mode,
     required String prompt,
@@ -48,6 +61,7 @@ class AiAssistantRepository {
       final normalized = _normalized(prompt);
       if (_isTaskCommand(normalized)) return 'ai-action-draft';
       if (_isDocumentCommand(normalized)) return 'ai-document-draft';
+      if (_isOperationalCommand(normalized)) return 'ai-operational-draft';
     }
     return _useStructuredAssistant(mode: mode, prompt: prompt)
         ? 'ai-assistant'

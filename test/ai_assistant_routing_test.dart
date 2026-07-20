@@ -27,16 +27,39 @@ void main() {
       ),
       'ai-document-draft',
     );
+  });
+
+  test('корректировка табеля направляется в операционный сервер', () {
     expect(
       AiAssistantRepository.functionNameFor(
         mode: 'chat',
-        prompt: 'Сформируй трудовой договор для Сидорова',
+        prompt: 'Исправь Иванову табель за 20.07.2026 на 1,5 смены',
       ),
-      'ai-document-draft',
+      'ai-operational-draft',
     );
   });
 
-  test('проверка табеля остаётся в структурированном помощнике', () {
+  test('изменение сотрудника направляется в операционный сервер', () {
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Измени Иванову ставку на 7000',
+      ),
+      'ai-operational-draft',
+    );
+  });
+
+  test('напоминание направляется в операционный сервер', () {
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Напомни завтра в 9 проверить чеки',
+      ),
+      'ai-operational-draft',
+    );
+  });
+
+  test('обычная проверка табеля остаётся в структурированном помощнике', () {
     expect(
       AiAssistantRepository.functionNameFor(
         mode: 'chat',

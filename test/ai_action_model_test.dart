@@ -40,6 +40,28 @@ void main() {
     expect(action.date('date'), DateTime(2026, 7, 21));
   });
 
+  test('разбирает числовые поля из number и string', () {
+    const action = AiAssistantAction(
+      id: 'action-2',
+      type: 'prepare_timesheet_correction',
+      title: 'Корректировка',
+      buttonLabel: 'Проверить',
+      confirmationRequired: true,
+      payload: <String, dynamic>{
+        'shifts': 1.5,
+        'current_shifts': '0,5',
+        'daily_rate': '7000',
+        'invalid': 'не число',
+      },
+    );
+
+    expect(action.number('shifts'), 1.5);
+    expect(action.number('current_shifts'), 0.5);
+    expect(action.number('daily_rate'), 7000);
+    expect(action.number('invalid'), 0);
+    expect(action.number('missing'), 0);
+  });
+
   test('старый текстовый ответ остаётся совместимым', () {
     final result = AiAssistantResult.fromMap(<String, dynamic>{
       'title': 'Сводка',
