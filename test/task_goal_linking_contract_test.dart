@@ -2,13 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('new and existing tasks expose optional goal linking', () {
-    final create = source('lib/screens/add_task_screen.dart');
+    final create = taskCreateSource();
     final details = taskDetailsFeatureSource();
     final picker = source(
       'lib/features/milestones/presentation/task_milestone_picker.dart',
@@ -26,7 +27,7 @@ void main() {
   });
 
   test('goal task selects exactly one goal work without extra controls', () {
-    final create = source('lib/screens/add_task_screen.dart');
+    final create = taskCreateSource();
     final details = taskDetailsEditorSource();
     final picker = source(
       'lib/features/milestones/presentation/task_milestone_picker.dart',
