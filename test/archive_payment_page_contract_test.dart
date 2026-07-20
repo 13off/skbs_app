@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/home_source.dart';
 import 'support/timesheet_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
@@ -41,7 +42,7 @@ void main() {
     expect(appPage, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
     expect(appPage, isNot(contains('PremiumBrandMark(')));
 
-    final home = source('lib/screens/home_screen.dart');
+    final home = homeSource();
     expect(home, contains("'Главная'"));
     expect(home, contains('MilestoneHomeSection('));
     expect(home, isNot(contains("subtitle: 'Рабочая сводка")));
