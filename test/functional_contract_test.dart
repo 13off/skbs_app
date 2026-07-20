@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/employee_details_source.dart';
 import 'support/employees_source.dart';
 import 'support/home_source.dart';
 import 'support/period_timesheet_source.dart';
@@ -83,7 +84,7 @@ void main() {
     });
 
     test('карточка сотрудника сохраняет все критичные действия', () {
-      _containsAll('lib/screens/employee_details_screen.dart', const [
+      _containsAllText('карточка сотрудника', employeeDetailsSource(), const [
         "'Редактировать'",
         "'Скопировать в другой объект'",
         "'Добавить выплату'",
