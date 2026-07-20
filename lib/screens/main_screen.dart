@@ -2,13 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
+import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
+import '../data/payment_repository.dart';
+import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
+import '../features/developer/data/developer_policy_repository.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
+import '../features/reports/data/manager_reports_repository.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
@@ -42,9 +48,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void didUpdateWidget(covariant MainScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.profile.id != widget.profile.id ||
-        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
-      navigationRestoreFuture = restoreNavigation();
+    final identityChanged = oldWidget.profile.id != widget.profile.id;
+    final companyChanged =
+        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId;
+    if (!identityChanged && !companyChanged) return;
+
+    warmupToken++;
+    clearRepositoryCaches();
+    navigationRestoreFuture = restoreNavigation();
+    if (widget.profile.isAdmin || widget.profile.isForeman) {
+      unawaited(warmUpApplication());
     }
   }
 
@@ -52,6 +65,17 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     warmupToken++;
     super.dispose();
+  }
+
+  void clearRepositoryCaches() {
+    AttendanceRepository.clearCache();
+    EmployeeRepository.clearCache();
+    FinanceSummaryRepository.clearCache();
+    ObjectRepository.clearCache();
+    PaymentRepository.clearCache();
+    TaskRepository.clearTaskListCache();
+    DeveloperPolicyRepository.clearCache();
+    ManagerReportsRepository.clearCache();
   }
 
   Future<void> restoreNavigation() async {
