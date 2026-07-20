@@ -11,6 +11,10 @@ void main() {
     final reports = File(
       'lib/features/reports/presentation/manager_reports_screen.dart',
     ).readAsStringSync();
+    final reportWidgets = File(
+      'lib/features/reports/presentation/manager_report_widgets.dart',
+    ).readAsStringSync();
+    final reportUi = '$reports\n$reportWidgets';
     final repository = File(
       'lib/features/reports/data/manager_reports_repository.dart',
     ).readAsStringSync();
@@ -28,16 +32,20 @@ void main() {
     expect(main, contains('if (profile.isAdmin)'));
     expect(shell, contains("label: 'Отчёты'"));
     expect(shell, contains('ManagerReportsScreen'));
-    expect(reports, contains('Все отчёты'));
-    expect(reports, contains('Оперативные сводки'));
-    expect(reports, contains('Табель и начисления'));
-    expect(reports, contains('Сотрудники'));
-    expect(reports, contains('Задачи и выполнение'));
-    expect(reports, contains('Выплаты и бухгалтерия'));
-    expect(reports, contains('Подбор и HR'));
-    expect(reports, contains('Юридическое'));
-    expect(reports, contains('Объекты и этапы'));
-    expect(reports, contains('Только проблемные разделы'));
+    expect(reportUi, contains('Все отчёты'));
+    expect(reportUi, contains('Оперативные сводки'));
+    expect(reportUi, contains('Табель и начисления'));
+    expect(reportUi, contains('Сотрудники'));
+    expect(reportUi, contains('Задачи и выполнение'));
+    expect(reportUi, contains('Выплаты и бухгалтерия'));
+    expect(reportUi, contains('Подбор и HR'));
+    expect(reportUi, contains('Юридическое'));
+    expect(reportUi, contains('Объекты и этапы'));
+    expect(reportUi, contains('Только проблемные разделы'));
+    expect(reports.split('\n').length, lessThan(260));
+    expect(reports, contains('ManagerReportFilters'));
+    expect(reports, contains('ManagerReportOverview'));
+    expect(reports, contains('ManagerReportSections'));
     expect(repository, contains('get_manager_reports_center'));
     expect(centerMigration, contains('get_manager_reports_center'));
     expect(centerMigration, contains("'dispatcher_runs'"));
