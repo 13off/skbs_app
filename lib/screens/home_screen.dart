@@ -51,11 +51,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const String _allObjectsValue = '__all__';
-  static const String _addObjectValue = '__add_object__';
-  static const String _archiveListValue = '__archive_list__';
-  static const String _editObjectPrefix = '__edit_object__::';
-  static const String _archiveObjectPrefix = '__archive_object__::';
+  final String _allObjectsValue = '__all__';
+  final String _addObjectValue = '__add_object__';
+  final String _archiveListValue = '__archive_list__';
+  final String _editObjectPrefix = '__edit_object__::';
+  final String _archiveObjectPrefix = '__archive_object__::';
 
   Future<_HomeDashboardData>? dashboardFuture;
   Future<List<String>>? objectNamesFuture;
