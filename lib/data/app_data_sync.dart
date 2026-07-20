@@ -178,6 +178,9 @@ class AppDataSync {
       case 'tasks':
       case 'task_assignees':
       case 'task_photos':
+      case 'task_milestone_links':
+      case 'project_milestones':
+      case 'milestone_checklist_items':
         return const <AppDataDomain>{AppDataDomain.tasks};
       case 'objects':
         return const <AppDataDomain>{
@@ -190,6 +193,8 @@ class AppDataSync {
           AppDataDomain.recruitment,
         };
       case 'app_notifications':
+      case 'dispatcher_summary_runs':
+      case 'dispatcher_summary_settings':
         return const <AppDataDomain>{AppDataDomain.notifications};
       case 'companies':
       case 'company_memberships':
