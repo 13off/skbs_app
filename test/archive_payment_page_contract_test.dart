@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/employees_source.dart';
 import 'support/home_source.dart';
 import 'support/timesheet_source.dart';
 
@@ -47,19 +48,18 @@ void main() {
     expect(home, contains('MilestoneHomeSection('));
     expect(home, isNot(contains("subtitle: 'Рабочая сводка")));
 
-    for (final path in <String>[
-      'lib/screens/employees_screen.dart',
-      'lib/screens/timesheet_screen.dart',
-      'lib/screens/tasks_screen.dart',
-      'lib/screens/profile_screen.dart',
-    ]) {
-      final screen = path == 'lib/screens/timesheet_screen.dart'
-          ? timesheetSource()
-          : source(path);
+    final screens = <String, String>{
+      'lib/screens/employees_screen.dart': employeesSource(),
+      'lib/screens/timesheet_screen.dart': timesheetSource(),
+      'lib/screens/tasks_screen.dart': source('lib/screens/tasks_screen.dart'),
+      'lib/screens/profile_screen.dart': source('lib/screens/profile_screen.dart'),
+    };
+
+    for (final entry in screens.entries) {
       expect(
-        screen,
+        entry.value,
         anyOf(contains('AppPageHeader('), contains('return AppPage(')),
-        reason: '$path должен использовать единую простую шапку',
+        reason: '${entry.key} должен использовать единую простую шапку',
       );
     }
   });
