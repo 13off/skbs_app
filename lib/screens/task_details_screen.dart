@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import '../data/task_progress_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
-import 'task_details_legacy_screen.dart' as legacy;
+import 'task_details/task_details_editor_screen.dart' as editor;
 
-/// Публичный слой добавляет дневной процент поверх прежнего редактора.
-/// В делегированном экране по-прежнему находятся 'Удалить задачу?', 'Фото',
-/// 'Добавить фото', tooltip: 'Удалить' и label: const Text('Сохранить').
+/// Публичный слой дополняет редактор задачи учётом дневного прогресса.
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
   final AppUserProfile profile;
@@ -45,7 +43,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     while (mounted) {
       final result = await Navigator.of(context).push<dynamic>(
         MaterialPageRoute<dynamic>(
-          builder: (_) => legacy.TaskDetailsScreen(
+          builder: (_) => editor.TaskDetailsScreen(
             task: currentTask,
             profile: widget.profile,
           ),

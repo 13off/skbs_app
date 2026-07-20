@@ -39,7 +39,7 @@ void main() {
     expect(details, contains('Максимум для этой задачи'));
     expect(details, contains('ownProgressIsCounted'));
     expect(details, contains('Сохранить выполнение'));
-    expect(details, contains('legacy.TaskDetailsScreen'));
+    expect(details, contains('editor.TaskDetailsScreen'));
     expect(editor, contains('Фото'));
     expect(editor, contains('Исполнители'));
     expect(editor, contains('TaskMilestonePicker'));

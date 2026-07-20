@@ -68,7 +68,7 @@ void main() {
     ]);
 
     containsAll('lib/screens/task_details_screen.dart', const [
-      'legacy.TaskDetailsScreen',
+      'editor.TaskDetailsScreen',
       'TaskProgressRepository.fetchContext',
       "'Что выполнили сегодня?'",
     ]);
