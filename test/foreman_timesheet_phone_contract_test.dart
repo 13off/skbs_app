@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/timesheet_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
@@ -17,11 +19,14 @@ void main() {
   });
 
   test('both timesheets display and search the prepared position line', () {
-    final mobile = source('lib/screens/timesheet_screen.dart');
+    final mobile = timesheetSource();
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
 
     expect(mobile, contains('employee.position'));
-    expect(mobile, contains('employee.position.toLowerCase().contains(searchText)'));
+    expect(
+      mobile,
+      contains('employee.position.toLowerCase().contains(searchText)'),
+    );
     expect(desktop, contains('employee.position'));
     expect(desktop, contains('employee.position.toLowerCase().contains(query)'));
   });
