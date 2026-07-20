@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/home_source.dart';
 import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
 import 'support/timesheet_source.dart';
@@ -57,7 +58,7 @@ void main() {
     });
 
     test('главная сохраняет объекты, архив и финансовую сводку', () {
-      _containsAll('lib/screens/home_screen.dart', const [
+      _containsAllText('главная', homeSource(), const [
         "'Все объекты'",
         "'Архив объектов'",
         "'Архивировать объект'",
