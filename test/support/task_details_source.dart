@@ -6,6 +6,9 @@ const List<String> _taskDetailsEditorPaths = <String>[
   'lib/screens/task_details/task_details_actions.dart',
   'lib/screens/task_details/task_details_sections.dart',
   'lib/screens/task_details/task_details_view.dart',
+  'lib/features/tasks/task_draft_support.dart',
+  'lib/features/tasks/presentation/task_assignee_controls.dart',
+  'lib/features/tasks/presentation/task_photo_grid.dart',
 ];
 
 String taskDetailsEditorSource() {
