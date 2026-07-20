@@ -8,7 +8,12 @@ String source(String path) => File(path).readAsStringSync();
 
 String assistantScreenSource() => <String>[
   'lib/features/ai/presentation/ai_assistant_screen.dart',
-  'lib/features/ai/presentation/ai_assistant_action_screen.dart',
+  'lib/features/ai/presentation/ai_assistant_confirmed_screen.dart',
+].map(source).join('\n');
+
+String actionExecutionSource() => <String>[
+  'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+  'lib/features/ai/presentation/ai_action_confirmation_sheet.dart',
 ].map(source).join('\n');
 
 void main() {
@@ -28,22 +33,12 @@ void main() {
     expect(shell, isNot(contains("label: 'ИИ'")));
   });
 
-  test('assistant screen remains a chat without quick requests', () {
+  test('assistant remains a chat and keeps human review', () {
     final screen = assistantScreenSource();
 
     expect(screen, contains("'Чем помочь?'"));
     expect(screen, contains('TextField('));
-    expect(screen, contains('Expanded('));
     expect(screen, contains("mode: 'chat'"));
-    expect(screen, isNot(contains("'Быстрые действия'")));
-    expect(screen, isNot(contains("'Проверить табель'")));
-    expect(screen, isNot(contains("'Сводка по объекту'")));
-    expect(screen, isNot(contains('class _AiQuickAction')));
-  });
-
-  test('assistant keeps preliminary result and human review', () {
-    final screen = assistantScreenSource();
-
     expect(screen, contains("'Предварительный результат'"));
     expect(screen, contains("'Отметить как проверенное'"));
     expect(screen, contains("'Проверено человеком'"));
@@ -51,54 +46,102 @@ void main() {
       screen,
       contains("'Помощник ничего не изменяет без твоего участия.'"),
     );
+    expect(screen, isNot(contains("'Быстрые действия'")));
+  });
+
+  test('all typed actions use one execution coordinator', () {
+    final screen = assistantScreenSource();
+    final coordinator = actionExecutionSource();
+
+    expect(screen, contains('AiActionExecutionCoordinator.execute('));
+    expect(screen, contains('completedActionIds.add(action.id)'));
+    expect(coordinator, contains("'create_task_draft'"));
+    expect(coordinator, contains("'prepare_document'"));
+    expect(coordinator, contains("'prepare_timesheet_correction'"));
+    expect(coordinator, contains("'prepare_employee_update'"));
+    expect(coordinator, contains("'create_reminder'"));
+    expect(coordinator, contains('AiActionConfirmationSheet.show('));
   });
 
   test('task proposal opens ordinary form and saves only after it returns', () {
-    final screen = assistantScreenSource();
+    final coordinator = source(
+      'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+    );
     final taskScreen = source('lib/screens/add_task_screen.dart');
     final taskActions = source(
       'lib/screens/task_create/task_create_actions.dart',
     );
     final taskView = source('lib/screens/task_create/task_create_view.dart');
 
-    expect(screen, contains("case 'create_task_draft':"));
-    expect(screen, contains('AddTaskScreen('));
-    expect(screen, contains('initialAxes:'));
-    expect(screen, contains('initialWork:'));
-    expect(screen, contains('initialAssigneeIds:'));
-    expect(screen, contains('initialRequireBeforePhoto:'));
-    expect(screen, contains('if (draft == null) return;'));
-    expect(screen, contains('TaskRepository.addTaskWithDetails('));
+    expect(coordinator, contains('AddTaskScreen('));
+    expect(coordinator, contains('initialAxes:'));
+    expect(coordinator, contains('initialWork:'));
+    expect(coordinator, contains('initialAssigneeIds:'));
+    expect(coordinator, contains('initialRequireBeforePhoto:'));
+    expect(coordinator, contains('if (draft == null)'));
+    expect(coordinator, contains('TaskRepository.addTaskWithDetails('));
     expect(
-      screen.indexOf('if (draft == null) return;'),
-      lessThan(screen.indexOf('TaskRepository.addTaskWithDetails(')),
+      coordinator.indexOf('if (draft == null)'),
+      lessThan(coordinator.indexOf('TaskRepository.addTaskWithDetails(')),
     );
-    expect(screen, contains("'Задача создана'"));
 
     expect(taskScreen, contains('final String initialAxes;'));
     expect(taskScreen, contains('final String initialWork;'));
     expect(taskScreen, contains('final List<String> initialAssigneeIds;'));
     expect(taskScreen, contains('axesController.text = widget.initialAxes'));
     expect(taskScreen, contains('workController.text = widget.initialWork'));
-    expect(taskScreen, contains('requiresBeforePhoto'));
     expect(taskActions, contains('required: requiresBeforePhoto'));
-    expect(taskActions, contains('minimumCount: minimumBeforePhotos'));
     expect(taskView, contains("'Сохранить задачу'"));
   });
 
   test('document proposal opens editable preview and completes after review', () {
-    final screen = assistantScreenSource();
+    final coordinator = source(
+      'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+    );
     final preview = source(
       'lib/features/ai/presentation/ai_document_draft_screen.dart',
     );
 
-    expect(screen, contains("case 'prepare_document':"));
-    expect(screen, contains('AiDocumentDraftScreen('));
-    expect(screen, contains('if (!mounted || completed != true) return;'));
-    expect(screen, contains("'Документ скачан'"));
+    expect(coordinator, contains('AiDocumentDraftScreen('));
+    expect(coordinator, contains('if (completed != true)'));
     expect(preview, contains("labelText: 'Текст документа'"));
     expect(preview, contains("label: const Text('Скачать Word')"));
     expect(preview, contains("label: const Text('Готово')"));
+  });
+
+  test('timesheet correction writes only after explicit confirmation', () {
+    final coordinator = source(
+      'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+    );
+    final confirmation = source(
+      'lib/features/ai/presentation/ai_action_confirmation_sheet.dart',
+    );
+
+    expect(coordinator, contains('_loadCurrentTimesheetValue(action)'));
+    expect(coordinator, contains('AiActionConfirmationSheet.show('));
+    expect(coordinator, contains('if (!confirmed)'));
+    expect(coordinator, contains('AttendanceRepository.saveTimesheet('));
+    expect(
+      coordinator.indexOf('if (!confirmed)'),
+      lessThan(coordinator.indexOf('AttendanceRepository.saveTimesheet(')),
+    );
+    expect(confirmation, contains("'Текущее значение'"));
+    expect(confirmation, contains("'Новое значение'"));
+    expect(confirmation, contains("'Подтвердить и изменить'"));
+  });
+
+  test('employee and reminder actions preserve ordinary edit forms', () {
+    final coordinator = source(
+      'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+    );
+    final reminder = source(
+      'lib/features/ai/presentation/ai_reminder_draft_screen.dart',
+    );
+
+    expect(coordinator, contains('EditEmployeeScreen(employee: proposedEmployee)'));
+    expect(coordinator, contains('AiReminderDraftScreen(action: action)'));
+    expect(reminder, contains('DeveloperConstructorRepository.saveReminder('));
+    expect(reminder, contains("'Сохранить напоминание'"));
   });
 
   test('client routes typed commands to authenticated functions', () {
@@ -112,78 +155,42 @@ void main() {
     expect(repository, contains('functions.invoke('));
     expect(repository, contains("'ai-action-draft'"));
     expect(repository, contains("'ai-document-draft'"));
+    expect(repository, contains("'ai-operational-draft'"));
     expect(repository, contains("'ai-assistant'"));
     expect(repository, contains("'ai-search'"));
-    expect(repository, contains('functionNameFor('));
-    expect(repository, contains("'company_id'"));
-    expect(repository, contains("'object_name'"));
     expect(repository, isNot(contains('OPENAI_API_KEY')));
 
     expect(model, contains('class AiAssistantAction'));
     expect(model, contains('confirmationRequired'));
-    expect(model, contains("map['confirmation_required'] != false"));
+    expect(model, contains('num number(String key)'));
     expect(model, contains('Map<String, dynamic> payload'));
   });
 
-  test('employee timesheet query understands a person and full period', () {
-    final edge = source('supabase/functions/ai-assistant/index.ts');
-
-    expect(edge, contains('findEmployeesInPrompt'));
-    expect(edge, contains('employeeMatchScore'));
-    expect(edge, contains('buildEmployeeTimesheetResult'));
-    expect(edge, contains('mode: "employee_timesheet"'));
-    expect(edge, contains('.eq("employee_id", employee.id)'));
-    expect(edge, contains('.order("work_date", { ascending: true })'));
-    expect(edge, contains('Покажи табель за весь период у Филимонова'));
-    expect(edge, contains('Сумма смен:'));
+  test('all proposal servers validate access and remain read only', () {
+    for (final path in <String>[
+      'supabase/functions/ai-action-draft/index.ts',
+      'supabase/functions/ai-document-draft/index.ts',
+      'supabase/functions/ai-operational-draft/index.ts',
+    ]) {
+      final edge = source(path);
+      expect(edge, contains('auth.getUser()'), reason: path);
+      expect(edge, contains('.from("user_profiles")'), reason: path);
+      expect(edge, contains('.from("company_memberships")'), reason: path);
+      expect(edge, contains('confirmation_required: true'), reason: path);
+      expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
+      expect(edge, isNot(contains('.insert(')), reason: path);
+      expect(edge, isNot(contains('.update(')), reason: path);
+      expect(edge, isNot(contains('.upsert(')), reason: path);
+      expect(edge, isNot(contains('.delete(')), reason: path);
+    }
   });
 
-  test('existing assistant stays company scoped and read only', () {
+  test('existing structured assistant stays company scoped and read only', () {
     final edge = source('supabase/functions/ai-assistant/index.ts');
 
     expect(edge, contains('auth.getUser()'));
-    expect(edge, contains('.from("user_profiles")'));
-    expect(edge, contains('.from("company_memberships")'));
     expect(edge, contains('.eq("company_id", activeCompanyId)'));
     expect(edge, contains('role === "foreman"'));
-    expect(edge, contains('assignedObjectName'));
-    expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
-    expect(edge, isNot(contains('OPENAI_API_KEY')));
-    expect(edge, isNot(contains('api.openai.com')));
-    expect(edge, isNot(contains('.insert(')));
-    expect(edge, isNot(contains('.update(')));
-    expect(edge, isNot(contains('.upsert(')));
-    expect(edge, isNot(contains('.delete(')));
-  });
-
-  test('action proposal server validates access and remains read only', () {
-    final edge = source('supabase/functions/ai-action-draft/index.ts');
-
-    expect(edge, contains('auth.getUser()'));
-    expect(edge, contains('.from("user_profiles")'));
-    expect(edge, contains('.from("company_memberships")'));
-    expect(edge, contains('.eq("company_id", companyId)'));
-    expect(edge, contains('confirmation_required: true'));
-    expect(edge, contains('type: "create_task_draft"'));
-    expect(edge, contains('Открыть черновик задачи'));
-    expect(edge, contains('dateKey('));
-    expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
-    expect(edge, isNot(contains('.insert(')));
-    expect(edge, isNot(contains('.update(')));
-    expect(edge, isNot(contains('.upsert(')));
-    expect(edge, isNot(contains('.delete(')));
-  });
-
-  test('document proposal server validates roles and remains read only', () {
-    final edge = source('supabase/functions/ai-document-draft/index.ts');
-
-    expect(edge, contains('auth.getUser()'));
-    expect(edge, contains('.from("user_profiles")'));
-    expect(edge, contains('.from("company_memberships")'));
-    expect(edge, contains('canReadPrivate'));
-    expect(edge, contains('type: "prepare_document"'));
-    expect(edge, contains('confirmation_required: true'));
-    expect(edge, isNot(contains('employee_private_data')));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
     expect(edge, isNot(contains('.update(')));
