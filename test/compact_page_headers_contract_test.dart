@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/home_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
@@ -20,7 +22,7 @@ void main() {
   });
 
   test('home tab keeps the same plain title style', () {
-    final home = source('lib/screens/home_screen.dart');
+    final home = homeSource();
 
     expect(home, contains("'Главная'"));
     expect(home, contains('fontSize: 20'));
