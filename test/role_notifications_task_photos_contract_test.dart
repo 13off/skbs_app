@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
@@ -130,7 +131,7 @@ void main() {
       "photoStage != 'before' && photoStage != 'after'",
       "bucketName = 'task-photos'",
     ]);
-    expectContains('lib/screens/add_task_screen.dart', const [
+    expectTextContains('создание задачи', taskCreateSource(), const [
       'policy.requireBeforePhoto',
       'policy.minBeforePhotos',
       'Фото «До» — обязательно',

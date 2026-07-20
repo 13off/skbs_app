@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
 
 String _source(String path) => File(path).readAsStringSync();
@@ -26,7 +27,6 @@ void _containsAll(String path, Iterable<String> requiredFragments) {
 
 void _containsNone(String path, Iterable<String> forbiddenFragments) {
   final contents = _source(path);
-
   for (final fragment in forbiddenFragments) {
     expect(
       contents,
@@ -143,7 +143,7 @@ void main() {
         "'Добавить задачу'",
         "'Сформировать акт'",
       ]);
-      _containsAll('lib/screens/add_task_screen.dart', const [
+      _containsAllText('создание задачи', taskCreateSource(), const [
         "'Фото «До» — обязательно'",
         "'Добавить фото «До»'",
         "'Сохранить задачу'",
