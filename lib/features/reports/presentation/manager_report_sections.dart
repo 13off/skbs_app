@@ -14,213 +14,6 @@ import '../../recruitment/presentation/recruitment_dashboard_screen.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_report_formatters.dart';
 
-class ManagerReportFilters extends StatelessWidget {
-  final ManagerReportsCenter center;
-  final String? selectedObjectId;
-  final DateTime reportDate;
-  final bool onlyProblems;
-  final ValueChanged<String?> onObjectChanged;
-  final VoidCallback onPreviousDay;
-  final VoidCallback onNextDay;
-  final VoidCallback onChooseDate;
-  final ValueChanged<bool> onOnlyProblemsChanged;
-
-  const ManagerReportFilters({
-    super.key,
-    required this.center,
-    required this.selectedObjectId,
-    required this.reportDate,
-    required this.onlyProblems,
-    required this.onObjectChanged,
-    required this.onPreviousDay,
-    required this.onNextDay,
-    required this.onChooseDate,
-    required this.onOnlyProblemsChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final objectName = center.selectedObject?.name ?? 'Все объекты';
-    return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 720;
-              final objectField = DropdownButtonFormField<String>(
-                key: ValueKey<String?>(selectedObjectId),
-                initialValue: selectedObjectId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Объект отчёта',
-                  prefixIcon: Icon(Icons.apartment_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: '',
-                    child: Text('Все объекты'),
-                  ),
-                  ...center.objects.map(
-                    (object) => DropdownMenuItem<String>(
-                      value: object.id,
-                      child: Text(
-                        object.name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ],
-                onChanged: onObjectChanged,
-              );
-              final dateField = Row(
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: 'Предыдущий день',
-                    onPressed: onPreviousDay,
-                    icon: const Icon(Icons.chevron_left_rounded),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onChooseDate,
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      label: Text(managerReportDateText(reportDate)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    tooltip: 'Следующий день',
-                    onPressed: onNextDay,
-                    icon: const Icon(Icons.chevron_right_rounded),
-                  ),
-                ],
-              );
-              if (wide) {
-                return Row(
-                  children: [
-                    Expanded(flex: 3, child: objectField),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 2, child: dateField),
-                  ],
-                );
-              }
-              return Column(
-                children: [
-                  objectField,
-                  const SizedBox(height: 12),
-                  dateField,
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: onlyProblems,
-            onChanged: onOnlyProblemsChanged,
-            title: const Text(
-              'Только проблемные разделы',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              'Сейчас: $objectName · ${managerReportDateText(reportDate)}',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ManagerReportOverview extends StatelessWidget {
-  final ManagerReportsCenter center;
-
-  const ManagerReportOverview({super.key, required this.center});
-
-  @override
-  Widget build(BuildContext context) {
-    final critical = center.criticalCount;
-    final objectName = center.selectedObject?.name ?? 'Все объекты';
-    return PremiumWorkCard(
-      radius: 28,
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(17),
-                ),
-                child: Icon(
-                  critical > 0
-                      ? Icons.warning_amber_rounded
-                      : Icons.verified_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      critical > 0
-                          ? 'Требует внимания: $critical'
-                          : 'Отклонений не найдено',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$objectName · ${managerReportDateText(center.reportDate)}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          for (final line in ManagerReportAnalysis.lines(center)) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 7),
-                  child: Icon(Icons.circle, size: 6),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    line,
-                    style: const TextStyle(
-                      height: 1.35,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class ManagerReportSections extends StatelessWidget {
   final AppUserProfile profile;
   final ManagerReportsCenter center;
@@ -238,12 +31,15 @@ class ManagerReportSections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final objectName = center.selectedObject?.name;
-    final tasksPending = center.metric('tasks', 'pending');
-    final attendanceMissing = center.metric('attendance', 'missing');
-    final missingReceipts = center.metric('payments', 'missing_receipts');
-    final legalProblems = center.metric('legal', 'overdue') +
-        center.metric('legal', 'high_risk');
-    final milestoneProblems = center.metric('milestones', 'overdue');
+    final metrics = center.metrics;
+    final attendance = metrics.attendance;
+    final employees = metrics.employees;
+    final tasks = metrics.tasks;
+    final payments = metrics.payments;
+    final recruitment = metrics.recruitment;
+    final legal = metrics.legal;
+    final milestones = metrics.milestones;
+    final legalProblems = legal.overdue + legal.highRisk;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -273,22 +69,14 @@ class ManagerReportSections extends StatelessWidget {
           icon: Icons.calendar_month_outlined,
           title: 'Табель и начисления',
           subtitle: 'Смены, часы, отсутствие отметок и отчёт за период',
-          problemCount: attendanceMissing,
+          problemCount: attendance.missing,
           metrics: [
-            _ReportMetric(
-              label: 'Активных',
-              value: '${center.metric('attendance', 'active')}',
-            ),
-            _ReportMetric(
-              label: 'Отмечено',
-              value: '${center.metric('attendance', 'marked')}',
-            ),
-            _ReportMetric(label: 'Без отметки', value: '$attendanceMissing'),
+            _ReportMetric(label: 'Активных', value: '${attendance.active}'),
+            _ReportMetric(label: 'Отмечено', value: '${attendance.marked}'),
+            _ReportMetric(label: 'Без отметки', value: '${attendance.missing}'),
             _ReportMetric(
               label: 'Смен',
-              value: center
-                  .decimalMetric('attendance', 'shifts')
-                  .toStringAsFixed(1),
+              value: attendance.shifts.toStringAsFixed(1),
             ),
           ],
           details: center.detailItems('missing_attendance'),
@@ -311,18 +99,9 @@ class ManagerReportSections extends StatelessWidget {
           subtitle: 'Численность, приём, выбытие и данные по людям',
           problemCount: 0,
           metrics: [
-            _ReportMetric(
-              label: 'Активных',
-              value: '${center.metric('employees', 'active')}',
-            ),
-            _ReportMetric(
-              label: 'Добавлено',
-              value: '${center.metric('employees', 'added')}',
-            ),
-            _ReportMetric(
-              label: 'Выбыло',
-              value: '${center.metric('employees', 'archived')}',
-            ),
+            _ReportMetric(label: 'Активных', value: '${employees.active}'),
+            _ReportMetric(label: 'Добавлено', value: '${employees.added}'),
+            _ReportMetric(label: 'Выбыло', value: '${employees.archived}'),
           ],
           onOpen: () => onOpen(
             AdaptiveEmployeesScreen(
@@ -337,26 +116,15 @@ class ManagerReportSections extends StatelessWidget {
           icon: Icons.assignment_outlined,
           title: 'Задачи и выполнение',
           subtitle: 'Результат за день, проблемы и незакрытые работы',
-          problemCount: center.metric('tasks', 'problem') + tasksPending,
+          problemCount: tasks.problem + tasks.pending,
           metrics: [
-            _ReportMetric(
-              label: 'Всего',
-              value: '${center.metric('tasks', 'total')}',
-            ),
-            _ReportMetric(
-              label: 'Выполнено',
-              value: '${center.metric('tasks', 'done')}',
-            ),
-            _ReportMetric(label: 'Незакрыто', value: '$tasksPending'),
-            _ReportMetric(
-              label: 'С проблемой',
-              value: '${center.metric('tasks', 'problem')}',
-            ),
+            _ReportMetric(label: 'Всего', value: '${tasks.total}'),
+            _ReportMetric(label: 'Выполнено', value: '${tasks.done}'),
+            _ReportMetric(label: 'Незакрыто', value: '${tasks.pending}'),
+            _ReportMetric(label: 'С проблемой', value: '${tasks.problem}'),
             _ReportMetric(
               label: 'Выполнение',
-              value: managerReportPercent(
-                center.trendValue('tasks_done_rate'),
-              ),
+              value: managerReportPercent(center.trend.tasksDoneRate),
             ),
           ],
           details: center.detailItems('pending_tasks'),
@@ -373,23 +141,24 @@ class ManagerReportSections extends StatelessWidget {
           icon: Icons.payments_outlined,
           title: 'Выплаты и бухгалтерия',
           subtitle: 'Реестр выплат, суммы, чеки и начисления',
-          problemCount: missingReceipts,
+          problemCount: payments.monthMissingReceipts,
           metrics: [
             _ReportMetric(
               label: 'Операций за месяц',
-              value: '${center.metric('payments', 'month_count')}',
+              value: '${payments.monthCount}',
             ),
             _ReportMetric(
               label: 'Сумма за месяц',
-              value: managerReportMoney(
-                center.decimalMetric('payments', 'month_amount'),
-              ),
+              value: managerReportMoney(payments.monthAmount),
             ),
             _ReportMetric(
               label: 'Операций за день',
-              value: '${center.metric('payments', 'day_count')}',
+              value: '${payments.dayCount}',
             ),
-            _ReportMetric(label: 'Без чеков', value: '$missingReceipts'),
+            _ReportMetric(
+              label: 'Без чеков',
+              value: '${payments.monthMissingReceipts}',
+            ),
           ],
           details: center.detailItems('missing_receipts'),
           onOpen: () => onOpen(const AdaptiveAccountingReportsScreen()),
@@ -404,15 +173,12 @@ class ManagerReportSections extends StatelessWidget {
           metrics: [
             _ReportMetric(
               label: 'Активных кандидатов',
-              value: '${center.metric('recruitment', 'active')}',
+              value: '${recruitment.active}',
             ),
-            _ReportMetric(
-              label: 'Новых',
-              value: '${center.metric('recruitment', 'new')}',
-            ),
+            _ReportMetric(label: 'Новых', value: '${recruitment.newCount}'),
             _ReportMetric(
               label: 'Входящих',
-              value: '${center.metric('recruitment', 'incoming_messages')}',
+              value: '${recruitment.incomingMessages}',
             ),
           ],
           onOpen: () => onOpen(
@@ -432,21 +198,12 @@ class ManagerReportSections extends StatelessWidget {
           subtitle: 'Открытые вопросы, риски, просрочки и документы',
           problemCount: legalProblems,
           metrics: [
-            _ReportMetric(
-              label: 'Открыто',
-              value: '${center.metric('legal', 'open')}',
-            ),
-            _ReportMetric(
-              label: 'Просрочено',
-              value: '${center.metric('legal', 'overdue')}',
-            ),
-            _ReportMetric(
-              label: 'Высокий риск',
-              value: '${center.metric('legal', 'high_risk')}',
-            ),
+            _ReportMetric(label: 'Открыто', value: '${legal.open}'),
+            _ReportMetric(label: 'Просрочено', value: '${legal.overdue}'),
+            _ReportMetric(label: 'Высокий риск', value: '${legal.highRisk}'),
             _ReportMetric(
               label: 'Истекают документы',
-              value: '${center.metric('legal', 'expiring_documents')}',
+              value: '${legal.expiringDocuments}',
             ),
           ],
           details: center.detailItems('legal_attention'),
@@ -458,19 +215,16 @@ class ManagerReportSections extends StatelessWidget {
           icon: Icons.flag_outlined,
           title: 'Объекты и этапы',
           subtitle: 'Открытые, просроченные и ближайшие этапы работ',
-          problemCount: milestoneProblems,
+          problemCount: milestones.overdue,
           metrics: [
-            _ReportMetric(
-              label: 'Открыто',
-              value: '${center.metric('milestones', 'open')}',
-            ),
+            _ReportMetric(label: 'Открыто', value: '${milestones.open}'),
             _ReportMetric(
               label: 'Просрочено',
-              value: '${center.metric('milestones', 'overdue')}',
+              value: '${milestones.overdue}',
             ),
             _ReportMetric(
               label: 'Срок до 7 дней',
-              value: '${center.metric('milestones', 'upcoming')}',
+              value: '${milestones.upcoming}',
             ),
           ],
           details: center.detailItems('milestones_attention'),
@@ -634,12 +388,6 @@ class _ReportDetailItems extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 8),
-        child: Text('Подробных отклонений в этом разделе нет.'),
-      );
-    }
     return Column(
       children: [
         for (var index = 0; index < items.length; index++) ...[
