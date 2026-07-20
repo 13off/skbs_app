@@ -1,4 +1,4 @@
-part of '../task_details_legacy_screen.dart';
+part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsView on _TaskDetailsScreenState {
   Widget buildTaskDetailsView() {
