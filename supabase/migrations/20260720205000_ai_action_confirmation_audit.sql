@@ -30,8 +30,10 @@ create index if not exists ai_action_audit_company_status_idx
 alter table public.ai_action_audit enable row level security;
 
 revoke all on table public.ai_action_audit from anon;
-revoke update, delete on table public.ai_action_audit from authenticated;
-grant select, insert on table public.ai_action_audit to authenticated;
+revoke insert, update, delete on table public.ai_action_audit from authenticated;
+grant select on table public.ai_action_audit to authenticated;
+grant insert (company_id, action_id, action_type, object_name, proposal)
+  on public.ai_action_audit to authenticated;
 
 create policy ai_action_audit_select
 on public.ai_action_audit
