@@ -112,9 +112,14 @@ void main() {
       "'photo_requirements_enforced': policy.requireBeforePhoto",
       'policy.minBeforePhotos',
       "photoStage: 'before'",
-      "'photo_stage': photoStage",
       ".eq('is_draft', false)",
       "row['is_draft'] != true",
+      'TaskPhotoRepository.uploadPhotos(',
+    ]);
+    expectContains('lib/data/task_photo_repository.dart', const [
+      "'photo_stage': photoStage",
+      "photoStage != 'before' && photoStage != 'after'",
+      "bucketName = 'task-photos'",
     ]);
     expectContains('lib/screens/add_task_screen.dart', const [
       'policy.requireBeforePhoto',
