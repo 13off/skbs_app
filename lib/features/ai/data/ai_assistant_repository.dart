@@ -14,16 +14,20 @@ class AiAssistantRepository {
   static String _normalized(String prompt) =>
       prompt.trim().toLowerCase().replaceAll('ё', 'е');
 
-  static bool _useActionDraft({
-    required String mode,
-    required String prompt,
-  }) {
-    if (mode.trim() != 'chat') return false;
-    final normalized = _normalized(prompt);
-    final taskCommand = RegExp(
+  static bool _isTaskCommand(String normalized) {
+    return RegExp(
       r'(созда|добав|постав|назнач|сдел).*(задач|работ|армирован|бетонир|монтаж|демонтаж)',
     ).hasMatch(normalized);
-    return taskCommand;
+  }
+
+  static bool _isDocumentCommand(String normalized) {
+    final action = RegExp(
+      r'подготов|состав|напиш|созда|сдел|сформир',
+    ).hasMatch(normalized);
+    final document = RegExp(
+      r'документ|акт|заявлен|договор|соглас|служебн|записк|письм',
+    ).hasMatch(normalized);
+    return action && document;
   }
 
   static bool _useStructuredAssistant({
@@ -33,25 +37,17 @@ class AiAssistantRepository {
     if (mode.trim() != 'chat') return true;
 
     final normalized = _normalized(prompt);
-    final timesheetOrSummary = RegExp(
-      r'табел|смен|выход|отработ|сводк',
-    ).hasMatch(normalized);
-    final documentAction = RegExp(
-      r'подготов|состав|напиш|созда',
-    ).hasMatch(normalized);
-    final documentType = RegExp(
-      r'документ|акт|записк|письм|отчет',
-    ).hasMatch(normalized);
-
-    return timesheetOrSummary || (documentAction && documentType);
+    return RegExp(r'табел|смен|выход|отработ|сводк').hasMatch(normalized);
   }
 
   static String functionNameFor({
     required String mode,
     required String prompt,
   }) {
-    if (_useActionDraft(mode: mode, prompt: prompt)) {
-      return 'ai-action-draft';
+    if (mode.trim() == 'chat') {
+      final normalized = _normalized(prompt);
+      if (_isTaskCommand(normalized)) return 'ai-action-draft';
+      if (_isDocumentCommand(normalized)) return 'ai-document-draft';
     }
     return _useStructuredAssistant(mode: mode, prompt: prompt)
         ? 'ai-assistant'
