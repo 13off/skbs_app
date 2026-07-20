@@ -6,6 +6,9 @@ import '../data/task_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
 import '../features/developer/models/task_policy.dart';
 import '../features/milestones/presentation/task_milestone_picker.dart';
+import '../features/tasks/presentation/task_assignee_controls.dart';
+import '../features/tasks/presentation/task_photo_grid.dart';
+import '../features/tasks/task_draft_support.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 

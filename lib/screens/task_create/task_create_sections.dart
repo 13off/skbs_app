@@ -60,47 +60,45 @@ extension _TaskCreateSections on _AddTaskScreenState {
   }
 
   Widget buildAssigneesBlock() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: isLoadingEmployees ? null : openAssigneesPicker,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade200),
+    return TaskAssigneeSummaryCard(
+      title: isLoadingEmployees
+          ? 'Загружаем сотрудников...'
+          : assigneeTitle(),
+      subtitle: selectedEmployeeNames(),
+      enabled: !isLoadingEmployees,
+      onTap: openAssigneesPicker,
+    );
+  }
+
+  Widget buildSelectedPhotoTile(TaskPhotoFile photo) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.memory(photo.bytes, fit: BoxFit.cover),
+          ),
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.groups_outlined),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isLoadingEmployees
-                        ? 'Загружаем сотрудников...'
-                        : assigneeTitle(),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    selectedEmployeeNames(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+        Positioned(
+          top: 4,
+          right: 4,
+          child: InkWell(
+            onTap: () => removePhoto(photo),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close,
+                size: 16,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.keyboard_arrow_down),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -145,48 +143,9 @@ extension _TaskCreateSections on _AddTaskScreenState {
           ),
           if (selectedPhotos.isNotEmpty) ...[
             const SizedBox(height: 14),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: selectedPhotos.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                final photo = selectedPhotos[index];
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.memory(photo.bytes, fit: BoxFit.cover),
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: InkWell(
-                        onTap: () => removePhoto(photo),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+            TaskPhotoGrid<TaskPhotoFile>(
+              items: selectedPhotos,
+              itemBuilder: (context, photo) => buildSelectedPhotoTile(photo),
             ),
           ],
         ],

@@ -135,45 +135,11 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   }
 
   Widget buildAssigneesBlock() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: isLoading || !canEditAssignees ? null : openAssigneesPicker,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.groups_outlined),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    assigneeTitle(),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    selectedEmployeeNames(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.keyboard_arrow_down),
-          ],
-        ),
-      ),
+    return TaskAssigneeSummaryCard(
+      title: assigneeTitle(),
+      subtitle: selectedEmployeeNames(),
+      enabled: !isLoading && canEditAssignees,
+      onTap: openAssigneesPicker,
     );
   }
 
@@ -318,19 +284,9 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
             Text(emptyText),
           ] else ...[
             const SizedBox(height: 14),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: stagePhotos.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                return buildPhotoTile(stagePhotos[index]);
-              },
+            TaskPhotoGrid<TaskPhotoData>(
+              items: stagePhotos,
+              itemBuilder: (context, photo) => buildPhotoTile(photo),
             ),
           ],
         ],
