@@ -12,6 +12,21 @@ void main() {
     expect(main, contains('ObjectRepository.fetchObjects'));
   });
 
+  test('смена пользователя или компании очищает ролевые кеши', () {
+    final main = File('lib/screens/main_screen.dart').readAsStringSync();
+
+    expect(main, contains('identityChanged'));
+    expect(main, contains('companyChanged'));
+    expect(main, contains('clearRepositoryCaches()'));
+    expect(main, contains('AttendanceRepository.clearCache()'));
+    expect(main, contains('EmployeeRepository.clearCache()'));
+    expect(main, contains('ObjectRepository.clearCache()'));
+    expect(main, contains('PaymentRepository.clearCache()'));
+    expect(main, contains('TaskRepository.clearTaskListCache()'));
+    expect(main, contains('DeveloperPolicyRepository.clearCache()'));
+    expect(main, contains('ManagerReportsRepository.clearCache()'));
+  });
+
   test('один человек не получает две активные карточки на одном объекте', () {
     final migration = File(
       'supabase/migrations/20260720160000_employee_assignment_integrity.sql',
