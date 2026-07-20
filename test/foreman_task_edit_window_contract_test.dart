@@ -67,8 +67,11 @@ void main() {
 
     containsAll('lib/data/task_repository.dart', const [
       'Future<void> deleteTaskPhoto(TaskPhotoData photo)',
+      'TaskPhotoRepository.deletePhoto(photo)',
+    ]);
+    containsAll('lib/data/task_photo_repository.dart', const [
       ".from('task_photos')",
-      ".remove([photo.storagePath])",
+      'removeStoragePaths(<String>[photo.storagePath])',
       "'table': 'task_photos'",
     ]);
 
