@@ -90,7 +90,8 @@ void main() {
       'AttendanceRepository.saveTimesheet',
       "'Сохранить табель'",
       'PeriodTimesheetScreen(',
-      "'Скачать Excel'",
+      'TimesheetExcelExporter.downloadMonthlyTimesheets',
+      'downloadAllEmployeesExcel',
     ]);
   });
 
