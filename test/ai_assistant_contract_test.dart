@@ -60,6 +60,7 @@ void main() {
     final taskActions = source(
       'lib/screens/task_create/task_create_actions.dart',
     );
+    final taskView = source('lib/screens/task_create/task_create_view.dart');
 
     expect(screen, contains("action.type == 'create_task_draft'"));
     expect(screen, contains('AddTaskScreen('));
@@ -69,8 +70,10 @@ void main() {
     expect(screen, contains('initialRequireBeforePhoto:'));
     expect(screen, contains('if (draft == null) return;'));
     expect(screen, contains('TaskRepository.addTaskWithDetails('));
-    expect(screen.indexOf('if (draft == null) return;'),
-        lessThan(screen.indexOf('TaskRepository.addTaskWithDetails(')));
+    expect(
+      screen.indexOf('if (draft == null) return;'),
+      lessThan(screen.indexOf('TaskRepository.addTaskWithDetails(')),
+    );
     expect(screen, contains("'Задача создана'"));
 
     expect(taskScreen, contains('final String initialAxes;'));
@@ -81,7 +84,7 @@ void main() {
     expect(taskScreen, contains('requiresBeforePhoto'));
     expect(taskActions, contains('required: requiresBeforePhoto'));
     expect(taskActions, contains('minimumCount: minimumBeforePhotos'));
-    expect(taskActions, contains("'Сохранить задачу'"));
+    expect(taskView, contains("'Сохранить задачу'"));
   });
 
   test('client routes task commands to authenticated action function', () {
@@ -146,7 +149,7 @@ void main() {
     expect(edge, contains('.from("company_memberships")'));
     expect(edge, contains('.eq("company_id", companyId)'));
     expect(edge, contains('confirmation_required: true'));
-    expect(edge, contains('type: "create_task_draft"'));
+    expect(edge, contains('return "create_task_draft"'));
     expect(edge, contains('Открыть черновик задачи'));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
