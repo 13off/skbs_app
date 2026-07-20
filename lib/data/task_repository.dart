@@ -1,13 +1,16 @@
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../features/auth/data/user_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
 import '../models/task_item_data.dart';
 import 'app_data_sync.dart';
-import 'image_compression_service.dart';
+import 'task_photo_browser_service.dart';
+import 'task_photo_models.dart';
+import 'task_photo_repository.dart';
+
+export 'task_photo_models.dart';
 
 class TaskAssigneeData {
   final String employeeId;
@@ -34,56 +37,6 @@ class TaskAssigneeData {
   }
 }
 
-class TaskPhotoData {
-  final String id;
-  final String taskId;
-  final String storagePath;
-  final String originalName;
-  final String photoStage;
-  final DateTime createdAt;
-
-  const TaskPhotoData({
-    required this.id,
-    required this.taskId,
-    required this.storagePath,
-    required this.originalName,
-    required this.photoStage,
-    required this.createdAt,
-  });
-
-  bool get isBefore => photoStage == 'before';
-  bool get isAfter => photoStage == 'after';
-
-  factory TaskPhotoData.fromSupabase(Map<String, dynamic> json) {
-    return TaskPhotoData(
-      id: json['id']?.toString() ?? '',
-      taskId: json['task_id']?.toString() ?? '',
-      storagePath: json['storage_path']?.toString() ?? '',
-      originalName: json['original_name']?.toString() ?? 'Фото',
-      photoStage: json['photo_stage']?.toString() == 'after'
-          ? 'after'
-          : 'before',
-      createdAt:
-          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
-    );
-  }
-}
-
-class TaskPhotoFile {
-  final String originalName;
-  final String contentType;
-  final String extension;
-  final Uint8List bytes;
-
-  const TaskPhotoFile({
-    required this.originalName,
-    required this.contentType,
-    required this.extension,
-    required this.bytes,
-  });
-}
-
 class TaskMilestoneLinkData {
   final String milestoneId;
   final String checklistItemId;
@@ -96,7 +49,7 @@ class TaskMilestoneLinkData {
 
 class TaskRepository {
   static final _client = Supabase.instance.client;
-  static const taskPhotosBucket = 'task-photos';
+  static const taskPhotosBucket = TaskPhotoRepository.bucketName;
   static const Duration _tasksCacheTtl = Duration(seconds: 15);
 
   static final Map<String, _TaskListCacheEntry> _tasksCache = {};
@@ -105,15 +58,12 @@ class TaskRepository {
     final cleanDate = DateTime(date.year, date.month, date.day);
     final month = cleanDate.month.toString().padLeft(2, '0');
     final day = cleanDate.day.toString().padLeft(2, '0');
-
     return '${cleanDate.year}-$month-$day';
   }
 
   static String? cleanObjectName(String? objectName) {
     final clean = objectName?.trim();
-
     if (clean == null || clean.isEmpty) return null;
-
     return clean;
   }
 
@@ -181,7 +131,6 @@ class TaskRepository {
     required String? objectName,
   }) {
     final objectPart = cleanObjectName(objectName) ?? '__all__';
-
     return '${_dateKey(date)}::$objectPart';
   }
 
@@ -194,27 +143,11 @@ class TaskRepository {
   }
 
   static String extensionFromFileName(String name) {
-    final dotIndex = name.lastIndexOf('.');
-
-    if (dotIndex == -1 || dotIndex == name.length - 1) return '';
-
-    final extension = name.substring(dotIndex + 1).toLowerCase();
-
-    final allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
-
-    if (!allowedExtensions.contains(extension)) return '';
-
-    return extension;
+    return TaskPhotoBrowserService.extensionFromFileName(name);
   }
 
   static Uint8List bytesFromReaderResult(Object? result) {
-    if (result is Uint8List) return result;
-
-    if (result is ByteBuffer) {
-      return Uint8List.view(result);
-    }
-
-    throw Exception('Не удалось прочитать фото');
+    return TaskPhotoBrowserService.bytesFromReaderResult(result);
   }
 
   static String safePhotoStoragePath({
@@ -223,67 +156,16 @@ class TaskRepository {
     required TaskPhotoFile photo,
     required int index,
   }) {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final extension = photo.extension.isEmpty ? 'jpg' : photo.extension;
-
-    return '$taskId/$photoStage/${timestamp}_$index.$extension';
+    return TaskPhotoRepository.safeStoragePath(
+      taskId: taskId,
+      photoStage: photoStage,
+      photo: photo,
+      index: index,
+    );
   }
 
-  static Future<List<TaskPhotoFile>> pickPhotoFiles() async {
-    final input = html.FileUploadInputElement()
-      ..multiple = true
-      ..accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
-
-    input.click();
-
-    await input.onChange.first;
-
-    final files = input.files;
-
-    if (files == null || files.isEmpty) {
-      return <TaskPhotoFile>[];
-    }
-
-    final photos = <TaskPhotoFile>[];
-
-    for (final file in files) {
-      final extension = extensionFromFileName(file.name);
-
-      if (extension.isEmpty) {
-        throw Exception(
-          'Можно загрузить только JPG, PNG или WEBP: ${file.name}',
-        );
-      }
-
-      final reader = html.FileReader();
-
-      reader.readAsArrayBuffer(file);
-
-      await reader.onLoad.first;
-
-      final originalBytes = bytesFromReaderResult(reader.result);
-      final compressedPhoto =
-          await ImageCompressionService.compressHtmlImageFile(
-            file: file,
-            originalBytes: originalBytes,
-            originalName: file.name,
-            maxDimension: 1600,
-            jpegQuality: 0.82,
-          );
-
-      photos.add(
-        TaskPhotoFile(
-          originalName: file.name,
-          contentType: compressedPhoto.contentType,
-          extension: compressedPhoto.extension.isEmpty
-              ? extension
-              : compressedPhoto.extension,
-          bytes: compressedPhoto.bytes,
-        ),
-      );
-    }
-
-    return photos;
+  static Future<List<TaskPhotoFile>> pickPhotoFiles() {
+    return TaskPhotoBrowserService.pickPhotoFiles();
   }
 
   static Future<List<TaskItemData>> fetchTasksForDate(
@@ -349,7 +231,6 @@ class TaskRepository {
               ? visibleRows
               : visibleRows.where((row) {
                   final rowObject = row['object_name']?.toString().trim();
-
                   return rowObject == cleanObject;
                 }).toList();
 
@@ -435,13 +316,9 @@ class TaskRepository {
     } catch (_) {
       try {
         final draftPhotos = await fetchTaskPhotos(taskId);
-        final paths = draftPhotos
-            .map((photo) => photo.storagePath)
-            .where((path) => path.trim().isNotEmpty)
-            .toList();
-        if (paths.isNotEmpty) {
-          await _client.storage.from(taskPhotosBucket).remove(paths);
-        }
+        await TaskPhotoRepository.removeStoragePaths(
+          draftPhotos.map((photo) => photo.storagePath),
+        );
       } catch (_) {
         // Удаление черновика продолжится даже при недоступности Storage.
       }
@@ -479,7 +356,6 @@ class TaskRepository {
     if (task.id == null) return;
 
     await _client.from('tasks').delete().eq('id', task.id!);
-
     clearTaskListCache();
     _notifyTasksChanged(task);
   }
@@ -493,9 +369,9 @@ class TaskRepository {
         .eq('task_id', taskId)
         .order('created_at', ascending: true);
 
-    return rows.map<TaskAssigneeData>((row) {
-      return TaskAssigneeData.fromSupabase(row);
-    }).toList();
+    return rows
+        .map<TaskAssigneeData>((row) => TaskAssigneeData.fromSupabase(row))
+        .toList();
   }
 
   static Future<List<String>> fetchTaskAssigneeIds(String taskId) async {
@@ -523,9 +399,7 @@ class TaskRepository {
   ) {
     final first = cleanAssigneeIdSet(firstIds);
     final second = cleanAssigneeIdSet(secondIds);
-
     if (first.length != second.length) return false;
-
     return first.every(second.contains);
   }
 
@@ -536,13 +410,14 @@ class TaskRepository {
     await _client.from('task_assignees').delete().eq('task_id', taskId);
 
     final cleanIds = cleanAssigneeIdSet(assigneeIds);
-
     if (cleanIds.isEmpty) return;
 
-    final rows = cleanIds.map((employeeId) {
-      return {'task_id': taskId, 'employee_id': employeeId};
-    }).toList();
-
+    final rows = cleanIds
+        .map((employeeId) => {
+              'task_id': taskId,
+              'employee_id': employeeId,
+            })
+        .toList();
     await _client.from('task_assignees').insert(rows);
   }
 
@@ -559,122 +434,33 @@ class TaskRepository {
     );
   }
 
-  static Future<List<TaskPhotoData>> fetchTaskPhotos(String taskId) async {
-    final rows = await _client
-        .from('task_photos')
-        .select(
-          'id, task_id, storage_path, original_name, photo_stage, created_at',
-        )
-        .eq('task_id', taskId)
-        .order('created_at', ascending: false);
-
-    return rows.map<TaskPhotoData>((row) {
-      return TaskPhotoData.fromSupabase(row);
-    }).toList();
+  static Future<List<TaskPhotoData>> fetchTaskPhotos(String taskId) {
+    return TaskPhotoRepository.fetchPhotos(taskId);
   }
 
   static Future<List<TaskPhotoData>> uploadPhotosForTask({
     required String taskId,
     required List<TaskPhotoFile> photos,
     required String photoStage,
-  }) async {
-    if (photos.isEmpty) return <TaskPhotoData>[];
-    if (photoStage != 'before' && photoStage != 'after') {
-      throw ArgumentError.value(photoStage, 'photoStage');
-    }
-
-    final rowsToInsert = <Map<String, String>>[];
-    final uploadedPaths = <String>[];
-
-    try {
-      for (var i = 0; i < photos.length; i++) {
-        final photo = photos[i];
-        final path = safePhotoStoragePath(
-          taskId: taskId,
-          photoStage: photoStage,
-          photo: photo,
-          index: i + 1,
-        );
-
-        await _client.storage
-            .from(taskPhotosBucket)
-            .uploadBinary(
-              path,
-              photo.bytes,
-              fileOptions: FileOptions(
-                contentType: photo.contentType,
-                upsert: false,
-              ),
-            );
-
-        uploadedPaths.add(path);
-        rowsToInsert.add({
-          'task_id': taskId,
-          'storage_path': path,
-          'original_name': photo.originalName,
-          'photo_stage': photoStage,
-        });
-      }
-
-      final rows = await _client
-          .from('task_photos')
-          .insert(rowsToInsert)
-          .select(
-            'id, task_id, storage_path, original_name, photo_stage, created_at',
-          );
-
-      return rows.map<TaskPhotoData>((row) {
-        return TaskPhotoData.fromSupabase(row);
-      }).toList();
-    } catch (_) {
-      if (uploadedPaths.isNotEmpty) {
-        try {
-          await _client.storage.from(taskPhotosBucket).remove(uploadedPaths);
-        } catch (_) {
-          // Служебная очистка удалит оставшиеся файлы.
-        }
-      }
-      rethrow;
-    }
-  }
-
-  static Future<void> deleteTaskPhoto(TaskPhotoData photo) async {
-    final deletedRows = await _client
-        .from('task_photos')
-        .delete()
-        .eq('id', photo.id)
-        .eq('task_id', photo.taskId)
-        .select('id');
-
-    if (deletedRows.isEmpty) {
-      throw Exception('Фото уже удалено или редактирование закрыто');
-    }
-
-    try {
-      await _client.storage.from(taskPhotosBucket).remove([photo.storagePath]);
-    } catch (_) {
-      // Запись уже удалена. Оставшийся файл можно убрать служебной очисткой.
-    }
-
-    AppDataSync.notifyLocal(
-      const <AppDataDomain>{AppDataDomain.tasks},
-      context: <String, dynamic>{
-        'table': 'task_photos',
-        'task_id': photo.taskId,
-      },
+  }) {
+    return TaskPhotoRepository.uploadPhotos(
+      taskId: taskId,
+      photos: photos,
+      photoStage: photoStage,
     );
   }
 
-  static Future<String> createTaskPhotoSignedUrl(TaskPhotoData photo) async {
-    return _client.storage
-        .from(taskPhotosBucket)
-        .createSignedUrl(photo.storagePath, 60 * 10);
+  static Future<void> deleteTaskPhoto(TaskPhotoData photo) {
+    return TaskPhotoRepository.deletePhoto(photo);
+  }
+
+  static Future<String> createTaskPhotoSignedUrl(TaskPhotoData photo) {
+    return TaskPhotoRepository.createSignedUrl(photo);
   }
 
   static Future<void> openTaskPhoto(TaskPhotoData photo) async {
     final url = await createTaskPhotoSignedUrl(photo);
-
-    html.window.open(url, '_blank');
+    TaskPhotoBrowserService.openUrl(url);
   }
 }
 
@@ -682,5 +468,8 @@ class _TaskListCacheEntry {
   final List<TaskItemData> tasks;
   final DateTime createdAt;
 
-  const _TaskListCacheEntry({required this.tasks, required this.createdAt});
+  const _TaskListCacheEntry({
+    required this.tasks,
+    required this.createdAt,
+  });
 }
