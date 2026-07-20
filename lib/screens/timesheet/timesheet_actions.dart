@@ -24,32 +24,23 @@ extension _TimesheetActions on _TimesheetScreenState {
   }
 
   double shiftValueFor(Employee employee) {
-    final employeeId = employee.id;
-    if (employeeId == null) return 0.0;
-    return shiftValuesByEmployeeId[employeeId] ?? 0.0;
+    return timesheetDraft.valueFor(employee.id);
   }
 
   void setShiftValue(Employee employee, double value) {
-    final employeeId = employee.id;
-    if (employeeId == null) return;
-
-    final currentValue = shiftValuesByEmployeeId[employeeId] ?? 0.0;
-    if (currentValue == value) return;
-
-    setState(() {
-      shiftValuesByEmployeeId[employeeId] = value;
-      hasUnsavedChanges = true;
-    });
+    final nextDraft = timesheetDraft.withValue(employee.id, value);
+    if (identical(nextDraft, timesheetDraft)) return;
+    setState(() => timesheetDraft = nextDraft);
   }
 
   double totalShiftsFor(List<Employee> employees) {
-    return employees.fold<double>(0, (sum, employee) {
-      return sum + shiftValueFor(employee);
-    });
+    return timesheetDraft.totalFor(employees.map((employee) => employee.id));
   }
 
   int workedCountFor(List<Employee> employees) {
-    return employees.where((employee) => shiftValueFor(employee) > 0).length;
+    return timesheetDraft.workedCountFor(
+      employees.map((employee) => employee.id),
+    );
   }
 
   List<Employee> filterEmployees(List<Employee> employees) {
@@ -64,9 +55,7 @@ extension _TimesheetActions on _TimesheetScreenState {
   Future<void> changeDate(DateTime newDate) async {
     setState(() {
       selectedDate = DateTime(newDate.year, newDate.month, newDate.day);
-      shiftValuesByEmployeeId = <String, double>{};
-      originalShiftValuesByEmployeeId = <String, double>{};
-      hasUnsavedChanges = false;
+      timesheetDraft = TimesheetDraft.empty();
       hasPendingRemoteAttendance = false;
     });
     await loadAttendance();
@@ -90,30 +79,19 @@ extension _TimesheetActions on _TimesheetScreenState {
     required List<Employee> employees,
     required double value,
   }) {
-    var changed = false;
-    final nextValues = Map<String, double>.from(shiftValuesByEmployeeId);
-
-    for (final employee in employees) {
-      final employeeId = employee.id;
-      if (employeeId == null) continue;
-      final currentValue = nextValues[employeeId] ?? 0.0;
-      if (currentValue == value) continue;
-      nextValues[employeeId] = value;
-      changed = true;
-    }
-
-    if (!changed) return;
-    setState(() {
-      shiftValuesByEmployeeId = nextValues;
-      hasUnsavedChanges = true;
-    });
+    final nextDraft = timesheetDraft.withValues(
+      employees.map((employee) => employee.id),
+      value,
+    );
+    if (identical(nextDraft, timesheetDraft)) return;
+    setState(() => timesheetDraft = nextDraft);
   }
 
   Future<void> showShiftPicker(Employee employee) async {
     final employeeId = employee.id;
     if (employeeId == null) return;
 
-    final currentValue = shiftValuesByEmployeeId[employeeId] ?? 0.0;
+    final currentValue = timesheetDraft.valueFor(employeeId);
     var selectedValue = currentValue;
 
     await showModalBottomSheet<void>(
@@ -211,17 +189,12 @@ extension _TimesheetActions on _TimesheetScreenState {
       await AttendanceRepository.saveTimesheet(
         date: selectedDate,
         employees: allEmployees,
-        shiftValuesByEmployeeId: shiftValuesByEmployeeId,
-        originalShiftValuesByEmployeeId: originalShiftValuesByEmployeeId,
+        shiftValuesByEmployeeId: timesheetDraft.values,
+        originalShiftValuesByEmployeeId: timesheetDraft.originalValues,
       );
 
       if (!mounted) return;
-      setState(() {
-        originalShiftValuesByEmployeeId = Map<String, double>.from(
-          shiftValuesByEmployeeId,
-        );
-        hasUnsavedChanges = false;
-      });
+      setState(() => timesheetDraft = timesheetDraft.markSaved());
 
       final workedCount = workedCountFor(allEmployees);
       final totalShifts = totalShiftsFor(allEmployees);
