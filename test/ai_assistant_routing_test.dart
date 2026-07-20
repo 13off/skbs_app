@@ -12,6 +12,30 @@ void main() {
     );
   });
 
+  test('команда подготовки документа направляется в сервер документов', () {
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Подготовь заявление на работу для Иванова',
+      ),
+      'ai-document-draft',
+    );
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Составь служебную записку по отсутствующим чекам',
+      ),
+      'ai-document-draft',
+    );
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Сформируй трудовой договор для Сидорова',
+      ),
+      'ai-document-draft',
+    );
+  });
+
   test('проверка табеля остаётся в структурированном помощнике', () {
     expect(
       AiAssistantRepository.functionNameFor(
