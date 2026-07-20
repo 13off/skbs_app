@@ -35,11 +35,8 @@ extension _TimesheetLoading on _TimesheetScreenState {
       );
 
       if (!mounted || generation != attendanceLoadGeneration) return;
-
       setState(() {
-        shiftValuesByEmployeeId = Map<String, double>.from(values);
-        originalShiftValuesByEmployeeId = Map<String, double>.from(values);
-        hasUnsavedChanges = false;
+        timesheetDraft = TimesheetDraft.fromValues(values);
       });
     } catch (error) {
       if (!mounted || generation != attendanceLoadGeneration) return;
