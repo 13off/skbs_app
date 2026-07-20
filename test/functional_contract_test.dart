@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/employees_source.dart';
 import 'support/home_source.dart';
+import 'support/period_timesheet_source.dart';
 import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
 import 'support/timesheet_source.dart';
@@ -108,7 +109,7 @@ void main() {
         "'Сохранить табель'",
         'child: buildEmployeeRow(employee)',
       ]);
-      _containsAll('lib/screens/period_timesheet_screen.dart', const [
+      _containsAllText('месячный табель', periodTimesheetSource(), const [
         "'Скачать Excel'",
         "'Скачать общий табель'",
         "'Скачать табель сотрудника'",
