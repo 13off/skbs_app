@@ -114,15 +114,15 @@ extension _TaskCreateSections on _AddTaskScreenState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            policy.requireBeforePhoto
+            requiresBeforePhoto
                 ? 'Фото «До» — обязательно'
                 : 'Фото «До» — по желанию',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
-            policy.requireBeforePhoto
-                ? 'Нужно прикрепить минимум ${policy.minBeforePhotos}. Можно добавить несколько снимков.'
+            requiresBeforePhoto
+                ? 'Нужно прикрепить минимум $minimumBeforePhotos. Можно добавить несколько снимков.'
                 : 'На этом объекте задачу можно создать без фотографии.',
           ),
           const SizedBox(height: 12),
