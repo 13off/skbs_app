@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/shell/presentation/persistent_tab_shell.dart';
 import '../../../features/shell/presentation/premium_main_screen.dart'
     as premium;
 import '../../../features/tasks/task_edit_policy.dart';
@@ -47,9 +48,7 @@ class _ForemanDesktopMainScreen extends StatefulWidget {
 
 class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   static const int pageCount = 4;
-  int currentIndex = 0;
-  late final PageController controller;
-  late final List<GlobalKey<NavigatorState>> navigatorKeys;
+  late final PersistentTabController tabs;
 
   String? get objectName {
     final value = widget.profile.objectName.trim();
@@ -59,72 +58,44 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   @override
   void initState() {
     super.initState();
-    controller = PageController();
-    navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
-      pageCount,
-      (_) => GlobalKey<NavigatorState>(),
-    );
+    tabs = PersistentTabController(pageCount: pageCount);
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    tabs.dispose();
     super.dispose();
   }
 
   Widget rootPage(int index) {
     return switch (index) {
       0 => ForemanDesktopHomeScreen(
-        profile: widget.profile,
-        selectedObjectName: objectName,
-        onOpenTimesheet: openTimesheet,
-        onOpenTasks: openTasks,
-        onOpenTask: openTask,
-        onAddTask: addTask,
-      ),
+          profile: widget.profile,
+          selectedObjectName: objectName,
+          onOpenTimesheet: openTimesheet,
+          onOpenTasks: openTasks,
+          onOpenTask: openTask,
+          onAddTask: addTask,
+        ),
       1 => ForemanDesktopTasksScreen(
-        profile: widget.profile,
-        selectedObjectName: objectName,
-      ),
+          profile: widget.profile,
+          selectedObjectName: objectName,
+        ),
       2 => AdaptiveTimesheetScreen(
-        profile: widget.profile,
-        selectedObjectName: objectName,
-      ),
+          profile: widget.profile,
+          selectedObjectName: objectName,
+        ),
       3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
 
-  Widget tabNavigator(int index) {
-    return Navigator(
-      key: navigatorKeys[index],
-      onGenerateRoute: (settings) => CupertinoPageRoute<void>(
-        settings: settings,
-        builder: (_) => rootPage(index),
-      ),
-    );
-  }
-
-  Future<void> select(int index) async {
-    if (index == currentIndex) {
-      final navigator = navigatorKeys[index].currentState;
-      if (navigator != null && navigator.canPop()) {
-        navigator.popUntil((route) => route.isFirst);
-      }
-      return;
-    }
-    await controller.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
-  }
+  Future<void> select(int index) => tabs.select(index);
 
   Future<NavigatorState?> selectNavigator(int index) async {
-    await select(index);
+    final navigator = await tabs.selectNavigator(index);
     if (!mounted) return null;
-    await WidgetsBinding.instance.endOfFrame;
-    return navigatorKeys[index].currentState;
+    return navigator;
   }
 
   Future<void> openTasks() => select(1);
@@ -173,54 +144,34 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
     }
   }
 
-  Future<bool> handleBack() async {
-    final navigator = navigatorKeys[currentIndex].currentState;
-    if (navigator != null && navigator.canPop()) {
-      navigator.pop();
-      return false;
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: handleBack,
-      child: Scaffold(
-        body: PageView.builder(
-          controller: controller,
-          itemCount: pageCount,
-          allowImplicitScrolling: true,
-          onPageChanged: (index) => setState(() => currentIndex = index),
-          itemBuilder: (context, index) => tabNavigator(index),
+    return PersistentTabShell(
+      controller: tabs,
+      returnToFirstTabOnBack: false,
+      items: const <ProfessionalBottomNavigationItem>[
+        ProfessionalBottomNavigationItem(
+          label: 'Смена',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home_rounded,
         ),
-        bottomNavigationBar: ProfessionalBottomNavigation(
-          items: const <ProfessionalBottomNavigationItem>[
-            ProfessionalBottomNavigationItem(
-              label: 'Смена',
-              icon: Icons.home_outlined,
-              selectedIcon: Icons.home_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Задачи',
-              icon: Icons.assignment_outlined,
-              selectedIcon: Icons.assignment_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Табель',
-              icon: Icons.fact_check_outlined,
-              selectedIcon: Icons.fact_check_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Профиль',
-              icon: Icons.person_outline_rounded,
-              selectedIcon: Icons.person_rounded,
-            ),
-          ],
-          selectedIndex: currentIndex,
-          onSelected: select,
+        ProfessionalBottomNavigationItem(
+          label: 'Задачи',
+          icon: Icons.assignment_outlined,
+          selectedIcon: Icons.assignment_rounded,
         ),
-      ),
+        ProfessionalBottomNavigationItem(
+          label: 'Табель',
+          icon: Icons.fact_check_outlined,
+          selectedIcon: Icons.fact_check_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Профиль',
+          icon: Icons.person_outline_rounded,
+          selectedIcon: Icons.person_rounded,
+        ),
+      ],
+      tabBuilder: (context, index) => rootPage(index),
     );
   }
 }
