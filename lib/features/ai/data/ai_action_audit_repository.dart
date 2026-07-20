@@ -43,15 +43,11 @@ class AiActionAuditRepository {
   }
 
   static Future<void> markConfirmed(String auditId) {
-    return _update(
-      auditId,
-      status: 'confirmed',
-      confirmedAt: DateTime.now(),
-    );
+    return _transition(auditId, status: 'confirmed');
   }
 
   static Future<void> markCancelled(String auditId) {
-    return _update(auditId, status: 'cancelled');
+    return _transition(auditId, status: 'cancelled');
   }
 
   static Future<void> markCompleted(
@@ -59,55 +55,44 @@ class AiActionAuditRepository {
     String? targetEntityType,
     String? targetEntityId,
   }) {
-    return _update(
+    return _transition(
       auditId,
       status: 'completed',
-      completedAt: DateTime.now(),
       targetEntityType: targetEntityType,
       targetEntityId: targetEntityId,
     );
   }
 
   static Future<void> markFailed(String auditId, Object error) {
-    return _update(
+    final cleanError = error.toString().replaceFirst('Exception: ', '').trim();
+    return _transition(
       auditId,
       status: 'failed',
-      completedAt: DateTime.now(),
-      errorText: error.toString().replaceFirst('Exception: ', '').trim(),
+      errorText: cleanError.length > 1000
+          ? cleanError.substring(0, 1000)
+          : cleanError,
     );
   }
 
-  static Future<void> _update(
+  static Future<void> _transition(
     String auditId, {
     required String status,
-    DateTime? confirmedAt,
-    DateTime? completedAt,
     String? targetEntityType,
     String? targetEntityId,
     String? errorText,
-  }) async {
+  ) async {
     final cleanId = auditId.trim();
     if (cleanId.isEmpty) return;
-    final cleanError = errorText?.trim() ?? '';
-    final limitedError = cleanError.length > 1000
-        ? cleanError.substring(0, 1000)
-        : cleanError;
 
-    await _client
-        .from('ai_action_audit')
-        .update(<String, dynamic>{
-          'status': status,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-          if (confirmedAt != null)
-            'confirmed_at': confirmedAt.toUtc().toIso8601String(),
-          if (completedAt != null)
-            'completed_at': completedAt.toUtc().toIso8601String(),
-          if (targetEntityType?.trim().isNotEmpty == true)
-            'target_entity_type': targetEntityType!.trim(),
-          if (targetEntityId?.trim().isNotEmpty == true)
-            'target_entity_id': targetEntityId!.trim(),
-          if (limitedError.isNotEmpty) 'error_text': limitedError,
-        })
-        .eq('id', cleanId);
+    await _client.rpc<dynamic>(
+      'transition_ai_action_audit',
+      params: <String, dynamic>{
+        'p_audit_id': cleanId,
+        'p_status': status,
+        'p_target_entity_type': targetEntityType?.trim(),
+        'p_target_entity_id': targetEntityId?.trim(),
+        'p_error_text': errorText?.trim(),
+      },
+    );
   }
 }
