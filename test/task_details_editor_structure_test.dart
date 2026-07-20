@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const editorPath =
       'lib/screens/task_details/task_details_editor_screen.dart';
+  const legacyPath = 'lib/screens/task_details_legacy_screen.dart';
 
   test('редактор задачи разделён по ответственности', () {
     final shell = File(editorPath).readAsStringSync();
@@ -21,6 +22,7 @@ void main() {
       'lib/screens/task_details/task_details_view.dart',
     ).readAsStringSync();
 
+    expect(File(legacyPath).existsSync(), isFalse);
     expect(shell, contains("part 'task_details_loading.dart';"));
     expect(shell, contains("part 'task_details_actions.dart';"));
     expect(shell, contains("part 'task_details_sections.dart';"));
@@ -49,6 +51,7 @@ void main() {
     expect(shell, contains('required this.profile'));
     expect(facade, contains('editor.TaskDetailsScreen'));
     expect(facade, isNot(contains('legacy.TaskDetailsScreen')));
+    expect(facade, isNot(contains('task_details_legacy_screen.dart')));
     expect(actions, contains("Navigator.pop(context, updatedTask)"));
     expect(actions, contains("Navigator.pop(context, 'delete')"));
     expect(actions, contains('TaskEditPolicy.canDeletePhoto('));
