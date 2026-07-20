@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/timesheet_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
   test('timesheet switches to desktop table only on wide web', () {
     final adaptive = source('lib/screens/adaptive_timesheet_screen.dart');
-    final mobile = source('lib/screens/timesheet_screen.dart');
+    final mobile = timesheetSource();
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
