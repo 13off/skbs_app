@@ -39,6 +39,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    // Репозитории используют статические кеши. Новый MainScreen может быть
+    // создан после выхода, смены пользователя или компании без вызова
+    // didUpdateWidget у прежнего экземпляра, поэтому очищаем их до прогрева.
+    clearRepositoryCaches();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
       unawaited(warmUpApplication());
