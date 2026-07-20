@@ -19,122 +19,13 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
   Future<void> openAssigneesPicker() async {
     if (!canEditAssignees) return;
 
-    if (employees.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('На объекте нет сотрудников')),
-      );
-      return;
-    }
-
-    final tempSelectedIds = Set<String>.from(selectedAssigneeIds);
-    final result = await showModalBottomSheet<Set<String>>(
+    final result = await showTaskAssigneePicker(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Container(
-                margin: const EdgeInsets.all(12),
-                padding: const EdgeInsets.all(18),
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.82,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade400,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Исполнители',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView(
-                        children: employees.map((employee) {
-                          final employeeId = employee.id!;
-                          final selected = tempSelectedIds.contains(employeeId);
-                          return CheckboxListTile(
-                            value: selected,
-                            onChanged: (value) {
-                              setModalState(() {
-                                if (value == true) {
-                                  tempSelectedIds.add(employeeId);
-                                } else {
-                                  tempSelectedIds.remove(employeeId);
-                                }
-                              });
-                            },
-                            title: Text(
-                              employee.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            subtitle: Text(employee.position),
-                            controlAffinity: ListTileControlAffinity.leading,
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setModalState(tempSelectedIds.clear);
-                            },
-                            child: const Text('Очистить'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              Navigator.pop(context, tempSelectedIds);
-                            },
-                            child: const Text('Готово'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      employees: employees,
+      selectedIds: selectedAssigneeIds,
     );
-
     if (!mounted || result == null) return;
+
     setState(() {
       selectedAssigneeIds
         ..clear()
@@ -273,21 +164,25 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
   }
 
   void changeMilestone(TaskMilestoneSelection selection) {
-    final previousTitle = selectedChecklistTitle;
-    setState(() {
-      isGoalTask = selection.goalMode;
-      selectedMilestoneId = selection.milestoneId;
-      selectedChecklistItemId = selection.checklistItemId;
-      selectedChecklistTitle = selection.checklistTitle;
+    final next = TaskMilestoneDraftController.apply(
+      selection: selection,
+      currentWorkText: workController.text,
+      previousChecklistTitle: selectedChecklistTitle,
+    );
 
-      final nextTitle = selection.checklistTitle?.trim() ?? '';
-      if (selection.isLinked && nextTitle.isNotEmpty) {
-        workController.text = nextTitle;
-      } else if (previousTitle != null &&
-          workController.text.trim() == previousTitle.trim()) {
-        workController.clear();
-      }
+    setState(() {
+      isGoalTask = next.goalMode;
+      selectedMilestoneId = next.milestoneId;
+      selectedChecklistItemId = next.checklistItemId;
+      selectedChecklistTitle = next.checklistTitle;
+      workController.text = next.workText;
     });
+  }
+
+  void showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> saveChanges() async {
@@ -308,17 +203,23 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
 
     if (taskId == null || taskId.isEmpty) return;
 
-    if (axes.isEmpty || (!linkedToGoal && work.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(axes.isEmpty ? 'Заполни оси' : 'Укажи вид работ')),
-      );
+    final coreError = TaskDraftValidation.coreFields(
+      axes: axes,
+      work: work,
+      linkedToGoal: linkedToGoal,
+    );
+    if (coreError != null) {
+      showValidationError(coreError);
       return;
     }
 
-    if (linkedToGoal && (selectedChecklistItemId == null || goalWork.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выбери работу по цели')),
-      );
+    final goalError = TaskDraftValidation.goalLink(
+      linkedToGoal: linkedToGoal,
+      checklistItemId: selectedChecklistItemId,
+      goalWork: goalWork,
+    );
+    if (goalError != null) {
+      showValidationError(goalError);
       return;
     }
 
@@ -329,18 +230,16 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     );
     final isPastOrToday = !taskDate.isAfter(TaskEditPolicy.operationalToday);
     final afterCount = photos.where((photo) => photo.isAfter).length;
-
-    if (policy.requireAfterPhotoOnComplete &&
-        selectedStatus == 'Выполнено' &&
-        widget.task.status != 'Выполнено' &&
-        afterCount < policy.minAfterPhotos) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Добавьте фото «После»: минимум ${policy.minAfterPhotos}',
-          ),
-        ),
-      );
+    final photoError = TaskDraftValidation.requiredPhotos(
+      required: policy.requireAfterPhotoOnComplete &&
+          selectedStatus == 'Выполнено' &&
+          widget.task.status != 'Выполнено',
+      actualCount: afterCount,
+      minimumCount: policy.minAfterPhotos,
+      stageTitle: 'После',
+    );
+    if (photoError != null) {
+      showValidationError(photoError);
       return;
     }
 
@@ -348,11 +247,7 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
         selectedStatus != 'Выполнено' &&
         isPastOrToday &&
         notDoneComment.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Укажи причину, почему задача не выполнена'),
-        ),
-      );
+      showValidationError('Укажи причину, почему задача не выполнена');
       return;
     }
 
