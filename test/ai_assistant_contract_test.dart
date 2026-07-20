@@ -38,7 +38,7 @@ void main() {
     expect(screen, isNot(contains("'Быстрые действия'")));
     expect(screen, isNot(contains("'Проверить табель'")));
     expect(screen, isNot(contains("'Сводка по объекту'")));
-    expect(screen, isNot(contains('class _AiQuickAction'));
+    expect(screen, isNot(contains('class _AiQuickAction')));
   });
 
   test('assistant keeps preliminary result and human review', () {
