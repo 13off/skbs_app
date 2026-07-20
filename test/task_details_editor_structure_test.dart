@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  const editorPath =
+      'lib/screens/task_details/task_details_editor_screen.dart';
+
   test('редактор задачи разделён по ответственности', () {
-    final shell = File(
-      'lib/screens/task_details_legacy_screen.dart',
-    ).readAsStringSync();
+    final shell = File(editorPath).readAsStringSync();
     final loading = File(
       'lib/screens/task_details/task_details_loading.dart',
     ).readAsStringSync();
@@ -20,13 +21,14 @@ void main() {
       'lib/screens/task_details/task_details_view.dart',
     ).readAsStringSync();
 
-    expect(shell, contains("part 'task_details/task_details_loading.dart';"));
-    expect(shell, contains("part 'task_details/task_details_actions.dart';"));
-    expect(shell, contains("part 'task_details/task_details_sections.dart';"));
-    expect(shell, contains("part 'task_details/task_details_view.dart';"));
+    expect(shell, contains("part 'task_details_loading.dart';"));
+    expect(shell, contains("part 'task_details_actions.dart';"));
+    expect(shell, contains("part 'task_details_sections.dart';"));
+    expect(shell, contains("part 'task_details_view.dart';"));
     expect(shell, contains('class TaskDetailsScreen extends StatefulWidget'));
     expect(shell.split('\n').length, lessThan(150));
 
+    expect(loading, contains("part of 'task_details_editor_screen.dart';"));
     expect(loading, contains('Future<void> loadTaskDetails()'));
     expect(actions, contains('Future<void> addPhotos(String photoStage)'));
     expect(actions, contains('Future<void> saveChanges()'));
@@ -37,15 +39,16 @@ void main() {
   });
 
   test('публичный контракт экрана и возврата сохранения сохранён', () {
-    final shell = File(
-      'lib/screens/task_details_legacy_screen.dart',
-    ).readAsStringSync();
+    final shell = File(editorPath).readAsStringSync();
     final actions = File(
       'lib/screens/task_details/task_details_actions.dart',
     ).readAsStringSync();
+    final facade = File('lib/screens/task_details_screen.dart').readAsStringSync();
 
     expect(shell, contains('required this.task'));
     expect(shell, contains('required this.profile'));
+    expect(facade, contains('editor.TaskDetailsScreen'));
+    expect(facade, isNot(contains('legacy.TaskDetailsScreen')));
     expect(actions, contains("Navigator.pop(context, updatedTask)"));
     expect(actions, contains("Navigator.pop(context, 'delete')"));
     expect(actions, contains('TaskEditPolicy.canDeletePhoto('));
