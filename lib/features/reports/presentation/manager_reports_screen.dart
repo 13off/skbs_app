@@ -6,7 +6,8 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_reports_repository.dart';
-import 'manager_report_widgets.dart';
+import 'manager_report_header_widgets.dart';
+import 'manager_report_sections.dart';
 
 class ManagerReportsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -46,15 +47,16 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   }
 
   Future<void> reload() async {
-    final next = fetchReports();
+    final next = fetchReports(forceRefresh: true);
     setState(() => future = next);
     await next;
   }
 
-  Future<ManagerReportsCenter> fetchReports() {
+  Future<ManagerReportsCenter> fetchReports({bool forceRefresh = false}) {
     return ManagerReportsRepository.fetch(
       objectId: selectedObjectId,
       reportDate: reportDate,
+      forceRefresh: forceRefresh,
     );
   }
 
