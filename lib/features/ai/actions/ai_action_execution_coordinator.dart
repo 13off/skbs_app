@@ -108,9 +108,11 @@ class AiActionExecutionCoordinator {
     final employeeId = action.text('employee_id');
     final date = action.date('date');
     if (employeeId.isEmpty || date == null) return;
-    final current = await AttendanceRepository.fetchTimesheet(
-      date: date,
-      employeeIds: <String>[employeeId],
+    final objectName = action.text('object_name');
+    final current = await AttendanceRepository.fetchShiftValuesForDate(
+      date,
+      objectName: objectName.isEmpty ? null : objectName,
+      forceRefresh: true,
     );
     action.payload['current_shifts'] = current[employeeId] ?? 0.0;
   }
@@ -192,6 +194,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final employeeId = action.text('employee_id');
+    final objectName = action.text('object_name');
     final date = action.date('date');
     final newShifts = action.number('shifts').toDouble();
     final currentShifts = action.number('current_shifts').toDouble();
@@ -199,10 +202,29 @@ class AiActionExecutionCoordinator {
       throw StateError('Не хватает сотрудника или даты корректировки');
     }
 
+    final employees = await EmployeeRepository.fetchEmployees(
+      objectName: objectName.isEmpty ? null : objectName,
+      includeFired: true,
+      forceRefresh: true,
+    );
+    Employee? employee;
+    for (final item in employees) {
+      if (item.id == employeeId) {
+        employee = item;
+        break;
+      }
+    }
+    if (employee == null) {
+      throw StateError('Сотрудник для корректировки табеля не найден');
+    }
+
     await AttendanceRepository.saveTimesheet(
       date: date,
-      originalValues: <String, double>{employeeId: currentShifts},
-      newValues: <String, double>{employeeId: newShifts},
+      employees: <Employee>[employee],
+      shiftValuesByEmployeeId: <String, double>{employeeId: newShifts},
+      originalShiftValuesByEmployeeId: <String, double>{
+        employeeId: currentShifts,
+      },
     );
     return AiActionExecutionResult(
       completed: true,
