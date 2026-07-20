@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/app_data_sync.dart';
+import '../../../data/object_repository.dart';
 import '../../dispatcher/data/dispatcher_summary_repository.dart';
 
 class ManagerReportObjectOption {
@@ -106,7 +107,10 @@ class ManagerReportsCenter {
     return _asDouble(section(sectionKey)[valueKey]);
   }
 
-  int get criticalCount => _asInt(metrics['critical_count']);
+  int get criticalCount => _asInt(metrics['issues_count'] ?? metrics['critical_count']);
+
+  int get criticalOnlyCount =>
+      _asInt(metrics['critical_only_count'] ?? metrics['critical_count']);
 
   int get attentionCount => _asInt(metrics['attention_count']);
 
@@ -127,7 +131,15 @@ class ManagerReportsRepository {
   static final Map<String, Future<ManagerReportsCenter>> _requests =
       <String, Future<ManagerReportsCenter>>{};
   static StreamSubscription<AppDataChange>? _dataChangesSubscription;
+  static String? _preferredObjectName;
   static int _cacheGeneration = 0;
+
+  static void setPreferredObjectName(String? value) {
+    final clean = _cleanObjectName(value);
+    if (_sameObjectName(_preferredObjectName, clean)) return;
+    _preferredObjectName = clean;
+    clearCache();
+  }
 
   static void clearCache() {
     _cache.clear();
@@ -141,9 +153,11 @@ class ManagerReportsRepository {
     bool forceRefresh = false,
   }) async {
     _ensureDataChangesSubscription();
-    final cleanObjectId = _cleanObjectId(objectId);
+    final directObjectId = _cleanObjectId(objectId);
+    final resolvedObjectId =
+        directObjectId ?? await _resolvePreferredObjectId();
     final cacheKey = _cacheKey(
-      objectId: cleanObjectId,
+      objectId: resolvedObjectId,
       reportDate: reportDate,
     );
     final cached = _cache[cacheKey];
@@ -156,7 +170,7 @@ class ManagerReportsRepository {
 
     final generation = _cacheGeneration;
     final request = _load(
-      objectId: cleanObjectId,
+      objectId: resolvedObjectId,
       reportDate: reportDate,
     );
     _requests[cacheKey] = request;
@@ -191,6 +205,19 @@ class ManagerReportsRepository {
     return ManagerReportsCenter.fromJson(_map(result));
   }
 
+  static Future<String?> _resolvePreferredObjectId() async {
+    final preferredName = _preferredObjectName;
+    if (preferredName == null) return null;
+
+    final objects = await ObjectRepository.fetchObjects();
+    for (final object in objects) {
+      if (_sameObjectName(object.name, preferredName)) {
+        return _cleanObjectId(object.id);
+      }
+    }
+    return null;
+  }
+
   static void _ensureDataChangesSubscription() {
     _dataChangesSubscription ??= AppDataSync.changes.listen((change) {
       if (change.affectsAny(const <AppDataDomain>{
@@ -212,6 +239,16 @@ class ManagerReportsRepository {
   static String? _cleanObjectId(String? value) {
     final clean = value?.trim();
     return clean == null || clean.isEmpty ? null : clean;
+  }
+
+  static String? _cleanObjectName(String? value) {
+    final clean = value?.trim();
+    return clean == null || clean.isEmpty ? null : clean;
+  }
+
+  static bool _sameObjectName(String? first, String? second) {
+    return _cleanObjectName(first)?.toLowerCase() ==
+        _cleanObjectName(second)?.toLowerCase();
   }
 
   static String _cacheKey({
