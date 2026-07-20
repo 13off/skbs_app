@@ -34,6 +34,10 @@ class AddTaskScreen extends StatefulWidget {
   final String objectName;
   final String? initialMilestoneId;
   final String? initialChecklistItemId;
+  final String initialAxes;
+  final String initialWork;
+  final List<String> initialAssigneeIds;
+  final bool initialRequireBeforePhoto;
   final bool allowAnyDate;
 
   const AddTaskScreen({
@@ -42,6 +46,10 @@ class AddTaskScreen extends StatefulWidget {
     required this.objectName,
     this.initialMilestoneId,
     this.initialChecklistItemId,
+    this.initialAxes = '',
+    this.initialWork = '',
+    this.initialAssigneeIds = const <String>[],
+    this.initialRequireBeforePhoto = false,
     this.allowAnyDate = false,
   });
 
@@ -69,6 +77,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   TaskPolicy policy = TaskPolicy.defaults;
   String? errorText;
 
+  bool get requiresBeforePhoto =>
+      policy.requireBeforePhoto || widget.initialRequireBeforePhoto;
+
+  int get minimumBeforePhotos {
+    if (!requiresBeforePhoto) return 0;
+    return policy.requireBeforePhoto ? policy.minBeforePhotos : 1;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +92,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
+    axesController.text = widget.initialAxes.trim();
+    workController.text = widget.initialWork.trim();
+    selectedAssigneeIds.addAll(
+      widget.initialAssigneeIds.where((id) => id.trim().isNotEmpty),
+    );
     loadEmployees();
     loadPolicy();
   }
