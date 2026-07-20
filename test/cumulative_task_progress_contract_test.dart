@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_details_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
@@ -31,16 +33,16 @@ void main() {
 
   test('task completion asks for todays contribution and protects remainder', () {
     final details = source('lib/screens/task_details_screen.dart');
-    final legacy = source('lib/screens/task_details_legacy_screen.dart');
+    final editor = taskDetailsEditorSource();
 
     expect(details, contains('Что выполнили сегодня?'));
     expect(details, contains('Максимум для этой задачи'));
     expect(details, contains('ownProgressIsCounted'));
     expect(details, contains('Сохранить выполнение'));
     expect(details, contains('legacy.TaskDetailsScreen'));
-    expect(legacy, contains('Фото'));
-    expect(legacy, contains('Исполнители'));
-    expect(legacy, contains('TaskMilestonePicker'));
+    expect(editor, contains('Фото'));
+    expect(editor, contains('Исполнители'));
+    expect(editor, contains('TaskMilestonePicker'));
   });
 
   test('act contains daily, checklist and goal percentages', () {

@@ -2,18 +2,26 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/task_details_source.dart';
+
 String _source(String path) => File(path).readAsStringSync();
 
-void _containsAll(String path, Iterable<String> requiredFragments) {
-  final contents = _source(path);
-
+void _containsAllText(
+  String label,
+  String contents,
+  Iterable<String> requiredFragments,
+) {
   for (final fragment in requiredFragments) {
     expect(
       contents,
       contains(fragment),
-      reason: 'Обязательный элемент "$fragment" исчез из $path',
+      reason: 'Обязательный элемент "$fragment" исчез из $label',
     );
   }
+}
+
+void _containsAll(String path, Iterable<String> requiredFragments) {
+  _containsAllText(path, _source(path), requiredFragments);
 }
 
 void _containsNone(String path, Iterable<String> forbiddenFragments) {
@@ -140,7 +148,7 @@ void main() {
         "'Добавить фото «До»'",
         "'Сохранить задачу'",
       ]);
-      _containsAll('lib/screens/task_details_legacy_screen.dart', const [
+      _containsAllText('редактор задачи', taskDetailsEditorSource(), const [
         "title: 'Фото «До»'",
         "title: 'Фото «После»'",
         "tooltip: 'Удалить'",
