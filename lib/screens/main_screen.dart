@@ -2,11 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../data/app_state.dart';
-import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
-import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
@@ -79,20 +76,17 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> warmUpApplication() async {
     final token = ++warmupToken;
-    final today = AppState.today;
     final objectName = initialObjectName;
     try {
+      // Справочники имеют объединение одинаковых активных запросов. Задачи и
+      // табель загружаются рабочими экранами: параллельный прогрев раньше
+      // создавал повторные запросы в момент запуска приложения.
       await Future.wait<dynamic>([
         EmployeeRepository.fetchEmployees(
           objectName: objectName,
           includeFired: true,
         ),
         ObjectRepository.fetchObjects(),
-        AttendanceRepository.fetchShiftValuesForDate(
-          today,
-          objectName: objectName,
-        ),
-        TaskRepository.fetchTasksForDate(today, objectName: objectName),
       ]).timeout(_maximumWarmup);
       if (!mounted || token != warmupToken) return;
     } catch (_) {
