@@ -2,19 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../data/attendance_repository.dart';
+import '../data/app_cache_coordinator.dart';
 import '../data/employee_repository.dart';
-import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
-import '../data/payment_repository.dart';
-import '../data/task_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
-import '../features/developer/data/developer_policy_repository.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
-import '../features/reports/data/manager_reports_repository.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
@@ -42,7 +37,7 @@ class _MainScreenState extends State<MainScreen> {
     // Репозитории используют статические кеши. Новый MainScreen может быть
     // создан после выхода, смены пользователя или компании без вызова
     // didUpdateWidget у прежнего экземпляра, поэтому очищаем их до прогрева.
-    clearRepositoryCaches();
+    AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
       unawaited(warmUpApplication());
@@ -58,7 +53,7 @@ class _MainScreenState extends State<MainScreen> {
     if (!identityChanged && !companyChanged) return;
 
     warmupToken++;
-    clearRepositoryCaches();
+    AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
       unawaited(warmUpApplication());
@@ -69,17 +64,6 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     warmupToken++;
     super.dispose();
-  }
-
-  void clearRepositoryCaches() {
-    AttendanceRepository.clearCache();
-    EmployeeRepository.clearCache();
-    FinanceSummaryRepository.clearCache();
-    ObjectRepository.clearCache();
-    PaymentRepository.clearCache();
-    TaskRepository.clearTaskListCache();
-    DeveloperPolicyRepository.clearCache();
-    ManagerReportsRepository.clearCache();
   }
 
   Future<void> restoreNavigation() async {
