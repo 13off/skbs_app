@@ -226,6 +226,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
           selectedObjectName: selectedObjectName,
         ),
       2 => ManagerReportsScreen(
+          key: ValueKey<String>(
+            'manager-reports:${selectedObjectName ?? '__all__'}',
+          ),
           profile: widget.profile,
           selectedObjectName: selectedObjectName,
           onObjectChanged: changeSelectedObject,
