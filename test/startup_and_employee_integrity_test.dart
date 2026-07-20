@@ -16,7 +16,7 @@ void main() {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
     final initStateStart = main.indexOf('void initState()');
     final clearPosition = main.indexOf(
-      'clearRepositoryCaches();',
+      'AppCacheCoordinator.clearAll();',
       initStateStart,
     );
     final restorePosition = main.indexOf(
@@ -36,17 +36,20 @@ void main() {
 
   test('смена пользователя или компании очищает ролевые кеши', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
+    final coordinator = File(
+      'lib/data/app_cache_coordinator.dart',
+    ).readAsStringSync();
 
     expect(main, contains('identityChanged'));
     expect(main, contains('companyChanged'));
-    expect(main, contains('clearRepositoryCaches()'));
-    expect(main, contains('AttendanceRepository.clearCache()'));
-    expect(main, contains('EmployeeRepository.clearCache()'));
-    expect(main, contains('ObjectRepository.clearCache()'));
-    expect(main, contains('PaymentRepository.clearCache()'));
-    expect(main, contains('TaskRepository.clearTaskListCache()'));
-    expect(main, contains('DeveloperPolicyRepository.clearCache()'));
-    expect(main, contains('ManagerReportsRepository.clearCache()'));
+    expect(main, contains('AppCacheCoordinator.clearAll()'));
+    expect(coordinator, contains('AttendanceRepository.clearCache()'));
+    expect(coordinator, contains('EmployeeRepository.clearCache()'));
+    expect(coordinator, contains('ObjectRepository.clearCache()'));
+    expect(coordinator, contains('PaymentRepository.clearCache()'));
+    expect(coordinator, contains('TaskRepository.clearTaskListCache()'));
+    expect(coordinator, contains('DeveloperPolicyRepository.clearCache()'));
+    expect(coordinator, contains('ManagerReportsRepository.clearCache()'));
   });
 
   test('один человек не получает две активные карточки на одном объекте', () {
