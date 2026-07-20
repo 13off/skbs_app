@@ -1,5 +1,7 @@
 class Employee {
   final String? id;
+  final String? personId;
+  final String? objectId;
   final String name;
   final String position;
   final String status;
@@ -14,6 +16,8 @@ class Employee {
     this.position,
     this.status, {
     this.id,
+    this.personId,
+    this.objectId,
     this.phone = '',
     this.objectName = 'Мурманск',
     this.dailyRate = 6000,
@@ -34,6 +38,8 @@ class Employee {
       positionWithContact,
       'не отмечен',
       id: json['id'] as String?,
+      personId: json['person_id'] as String?,
+      objectId: json['object_id'] as String?,
       phone: phone,
       objectName: json['object_name'] as String? ?? 'Мурманск',
       dailyRate: json['daily_rate'] as int? ?? 6000,
