@@ -20,6 +20,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
 
 class ManagerMainScreen extends StatefulWidget {
@@ -47,6 +48,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     WidgetsBinding.instance.addObserver(this);
     controller = PageController();
     selectedObjectNameNotifier = ValueNotifier<String?>(null);
+    ManagerReportsRepository.setPreferredObjectName(null);
     navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
       pageCount,
       (_) => GlobalKey<NavigatorState>(),
@@ -58,6 +60,8 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void didUpdateWidget(covariant ManagerMainScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      selectedObjectNameNotifier.value = null;
+      ManagerReportsRepository.setPreferredObjectName(null);
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
       startDataSync();
     }
@@ -73,6 +77,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     warmUpToken++;
     WidgetsBinding.instance.removeObserver(this);
     AppDataSync.stop(companyId: widget.profile.activeCompanyId);
+    ManagerReportsRepository.setPreferredObjectName(null);
     controller.dispose();
     selectedObjectNameNotifier.dispose();
     super.dispose();
@@ -113,6 +118,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   void changeSelectedObject(String? objectName) {
     final next = cleanObjectName(objectName);
     if (cleanObjectName(selectedObjectNameNotifier.value) == next) return;
+    ManagerReportsRepository.setPreferredObjectName(next);
     selectedObjectNameNotifier.value = next;
     unawaited(warmUpVisibleData());
   }
