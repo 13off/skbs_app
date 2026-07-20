@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/timesheet_source.dart';
+
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
@@ -50,7 +52,9 @@ void main() {
       'lib/screens/tasks_screen.dart',
       'lib/screens/profile_screen.dart',
     ]) {
-      final screen = source(path);
+      final screen = path == 'lib/screens/timesheet_screen.dart'
+          ? timesheetSource()
+          : source(path);
       expect(
         screen,
         anyOf(contains('AppPageHeader('), contains('return AppPage(')),
@@ -60,7 +64,7 @@ void main() {
   });
 
   test('timesheet date uses the same premium press motion as tasks', () {
-    final timesheet = source('lib/screens/timesheet_screen.dart');
+    final timesheet = timesheetSource();
     expect(timesheet, contains('Widget buildDateArrow'));
     expect(timesheet, contains('PremiumPressable('));
     expect(timesheet, contains('borderRadius: BorderRadius.circular(20)'));
