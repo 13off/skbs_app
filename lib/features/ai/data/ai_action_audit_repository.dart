@@ -31,7 +31,6 @@ class AiActionAuditRepository {
             'confirmation_required': action.confirmationRequired,
             'payload': action.payload,
           },
-          'status': 'proposed',
         })
         .select('id, status')
         .single();
@@ -80,7 +79,7 @@ class AiActionAuditRepository {
     String? targetEntityType,
     String? targetEntityId,
     String? errorText,
-  ) async {
+  }) async {
     final cleanId = auditId.trim();
     if (cleanId.isEmpty) return;
 
