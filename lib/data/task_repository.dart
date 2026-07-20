@@ -6,46 +6,15 @@ import '../features/auth/data/user_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
 import '../models/task_item_data.dart';
 import 'app_data_sync.dart';
+import 'task_assignee_repository.dart';
+import 'task_milestone_link_repository.dart';
 import 'task_photo_browser_service.dart';
 import 'task_photo_models.dart';
 import 'task_photo_repository.dart';
 
+export 'task_assignee_repository.dart' show TaskAssigneeData;
+export 'task_milestone_link_repository.dart' show TaskMilestoneLinkData;
 export 'task_photo_models.dart';
-
-class TaskAssigneeData {
-  final String employeeId;
-  final String employeeName;
-  final String position;
-
-  const TaskAssigneeData({
-    required this.employeeId,
-    required this.employeeName,
-    required this.position,
-  });
-
-  factory TaskAssigneeData.fromSupabase(Map<String, dynamic> json) {
-    final employeeRaw = json['employees'];
-    final employee = employeeRaw is Map<String, dynamic>
-        ? employeeRaw
-        : <String, dynamic>{};
-
-    return TaskAssigneeData(
-      employeeId: json['employee_id']?.toString() ?? '',
-      employeeName: employee['fio']?.toString() ?? 'Сотрудник',
-      position: employee['position']?.toString() ?? '',
-    );
-  }
-}
-
-class TaskMilestoneLinkData {
-  final String milestoneId;
-  final String checklistItemId;
-
-  const TaskMilestoneLinkData({
-    required this.milestoneId,
-    required this.checklistItemId,
-  });
-}
 
 class TaskRepository {
   static final _client = Supabase.instance.client;
@@ -73,46 +42,12 @@ class TaskRepository {
 
   static Future<TaskMilestoneLinkData?> fetchTaskMilestoneLink(
     String taskId,
-  ) async {
-    final row = await _client
-        .from('task_milestone_links')
-        .select('milestone_id, checklist_item_id')
-        .eq('task_id', taskId)
-        .maybeSingle();
-
-    if (row == null) return null;
-    final milestoneId = row['milestone_id']?.toString().trim() ?? '';
-    final checklistItemId = row['checklist_item_id']?.toString().trim() ?? '';
-    if (milestoneId.isEmpty || checklistItemId.isEmpty) return null;
-
-    return TaskMilestoneLinkData(
-      milestoneId: milestoneId,
-      checklistItemId: checklistItemId,
-    );
+  ) {
+    return TaskMilestoneLinkRepository.fetchLink(taskId);
   }
 
-  static Future<void> saveTaskMilestoneLink(TaskItemData task) async {
-    final taskId = task.id?.trim() ?? '';
-    if (taskId.isEmpty) return;
-
-    final milestoneId = task.milestoneId;
-    final checklistItemId = task.checklistItemId;
-
-    // null means that the link was not loaded and must stay untouched.
-    if (milestoneId == null && checklistItemId == null) return;
-
-    final cleanMilestoneId = milestoneId?.trim() ?? '';
-    final cleanChecklistItemId = checklistItemId?.trim() ?? '';
-    if (cleanMilestoneId.isEmpty || cleanChecklistItemId.isEmpty) {
-      await _client.from('task_milestone_links').delete().eq('task_id', taskId);
-      return;
-    }
-
-    await _client.from('task_milestone_links').upsert({
-      'task_id': taskId,
-      'milestone_id': cleanMilestoneId,
-      'checklist_item_id': cleanChecklistItemId,
-    }, onConflict: 'task_id');
+  static Future<void> saveTaskMilestoneLink(TaskItemData task) {
+    return TaskMilestoneLinkRepository.saveLink(task);
   }
 
   static void _notifyTasksChanged(TaskItemData task) {
@@ -183,22 +118,22 @@ class TaskRepository {
 
     final rows = cleanObject == null
         ? await _client
-              .from('tasks')
-              .select(
-                'id, task_date, object_name, axes, work, status, not_done_comment',
-              )
-              .eq('task_date', _dateKey(date))
-              .eq('is_draft', false)
-              .order('created_at', ascending: true)
+            .from('tasks')
+            .select(
+              'id, task_date, object_name, axes, work, status, not_done_comment',
+            )
+            .eq('task_date', _dateKey(date))
+            .eq('is_draft', false)
+            .order('created_at', ascending: true)
         : await _client
-              .from('tasks')
-              .select(
-                'id, task_date, object_name, axes, work, status, not_done_comment',
-              )
-              .eq('task_date', _dateKey(date))
-              .eq('is_draft', false)
-              .eq('object_name', cleanObject)
-              .order('created_at', ascending: true);
+            .from('tasks')
+            .select(
+              'id, task_date, object_name, axes, work, status, not_done_comment',
+            )
+            .eq('task_date', _dateKey(date))
+            .eq('is_draft', false)
+            .eq('object_name', cleanObject)
+            .order('created_at', ascending: true);
 
     final tasks = rows
         .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
@@ -208,7 +143,6 @@ class TaskRepository {
       tasks: _copyTasks(tasks),
       createdAt: DateTime.now(),
     );
-
     return _copyTasks(tasks);
   }
 
@@ -224,20 +158,18 @@ class TaskRepository {
         .eq('task_date', _dateKey(date))
         .order('created_at', ascending: true)
         .map((rows) {
-          final visibleRows = rows
-              .where((row) => row['is_draft'] != true)
-              .toList();
-          final filteredRows = cleanObject == null
-              ? visibleRows
-              : visibleRows.where((row) {
-                  final rowObject = row['object_name']?.toString().trim();
-                  return rowObject == cleanObject;
-                }).toList();
+      final visibleRows = rows.where((row) => row['is_draft'] != true).toList();
+      final filteredRows = cleanObject == null
+          ? visibleRows
+          : visibleRows.where((row) {
+              final rowObject = row['object_name']?.toString().trim();
+              return rowObject == cleanObject;
+            }).toList();
 
-          return filteredRows
-              .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
-              .toList();
-        });
+      return filteredRows
+          .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
+          .toList();
+    });
   }
 
   static Future<TaskItemData> addTask(
@@ -284,7 +216,10 @@ class TaskRepository {
     if (taskId == null || taskId.isEmpty) return createdTask;
 
     try {
-      await saveTaskAssignees(taskId: taskId, assigneeIds: assigneeIds);
+      await TaskAssigneeRepository.saveAssignees(
+        taskId: taskId,
+        assigneeIds: assigneeIds,
+      );
       await uploadPhotosForTask(
         taskId: taskId,
         photos: photos,
@@ -292,7 +227,7 @@ class TaskRepository {
       );
 
       final createdWithLink = task.copyWith(id: taskId);
-      await saveTaskMilestoneLink(createdWithLink);
+      await TaskMilestoneLinkRepository.saveLink(createdWithLink);
 
       final finalized = await _client
           .from('tasks')
@@ -347,7 +282,7 @@ class TaskRepository {
         })
         .eq('id', task.id!);
 
-    await saveTaskMilestoneLink(task);
+    await TaskMilestoneLinkRepository.saveLink(task);
     clearTaskListCache();
     _notifyTasksChanged(task);
   }
@@ -360,77 +295,44 @@ class TaskRepository {
     _notifyTasksChanged(task);
   }
 
-  static Future<List<TaskAssigneeData>> fetchTaskAssignees(
-    String taskId,
-  ) async {
-    final rows = await _client
-        .from('task_assignees')
-        .select('employee_id, employees(fio, position)')
-        .eq('task_id', taskId)
-        .order('created_at', ascending: true);
-
-    return rows
-        .map<TaskAssigneeData>((row) => TaskAssigneeData.fromSupabase(row))
-        .toList();
+  static Future<List<TaskAssigneeData>> fetchTaskAssignees(String taskId) {
+    return TaskAssigneeRepository.fetchAssignees(taskId);
   }
 
-  static Future<List<String>> fetchTaskAssigneeIds(String taskId) async {
-    final rows = await _client
-        .from('task_assignees')
-        .select('employee_id')
-        .eq('task_id', taskId);
-
-    return rows
-        .map<String>((row) => row['employee_id']?.toString() ?? '')
-        .where((id) => id.isNotEmpty)
-        .toList();
+  static Future<List<String>> fetchTaskAssigneeIds(String taskId) {
+    return TaskAssigneeRepository.fetchAssigneeIds(taskId);
   }
 
   static Set<String> cleanAssigneeIdSet(Iterable<String> assigneeIds) {
-    return assigneeIds
-        .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
-        .toSet();
+    return TaskAssigneeRepository.cleanIdSet(assigneeIds);
   }
 
   static bool sameAssigneeIds(
     Iterable<String> firstIds,
     Iterable<String> secondIds,
   ) {
-    final first = cleanAssigneeIdSet(firstIds);
-    final second = cleanAssigneeIdSet(secondIds);
-    if (first.length != second.length) return false;
-    return first.every(second.contains);
+    return TaskAssigneeRepository.sameIds(firstIds, secondIds);
   }
 
   static Future<void> saveTaskAssignees({
     required String taskId,
     required List<String> assigneeIds,
-  }) async {
-    await _client.from('task_assignees').delete().eq('task_id', taskId);
-
-    final cleanIds = cleanAssigneeIdSet(assigneeIds);
-    if (cleanIds.isEmpty) return;
-
-    final rows = cleanIds
-        .map((employeeId) => {
-              'task_id': taskId,
-              'employee_id': employeeId,
-            })
-        .toList();
-    await _client.from('task_assignees').insert(rows);
+  }) {
+    return TaskAssigneeRepository.saveAssignees(
+      taskId: taskId,
+      assigneeIds: assigneeIds,
+    );
   }
 
   static Future<void> saveTaskAssigneesIfChanged({
     required String taskId,
     required Iterable<String> previousAssigneeIds,
     required Iterable<String> nextAssigneeIds,
-  }) async {
-    if (sameAssigneeIds(previousAssigneeIds, nextAssigneeIds)) return;
-
-    await saveTaskAssignees(
+  }) {
+    return TaskAssigneeRepository.saveIfChanged(
       taskId: taskId,
-      assigneeIds: cleanAssigneeIdSet(nextAssigneeIds).toList(),
+      previousAssigneeIds: previousAssigneeIds,
+      nextAssigneeIds: nextAssigneeIds,
     );
   }
 
