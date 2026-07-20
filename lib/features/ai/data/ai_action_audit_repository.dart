@@ -88,6 +88,10 @@ class AiActionAuditRepository {
   }) async {
     final cleanId = auditId.trim();
     if (cleanId.isEmpty) return;
+    final cleanError = errorText?.trim() ?? '';
+    final limitedError = cleanError.length > 1000
+        ? cleanError.substring(0, 1000)
+        : cleanError;
 
     await _client
         .from('ai_action_audit')
@@ -102,11 +106,7 @@ class AiActionAuditRepository {
             'target_entity_type': targetEntityType!.trim(),
           if (targetEntityId?.trim().isNotEmpty == true)
             'target_entity_id': targetEntityId!.trim(),
-          if (errorText?.trim().isNotEmpty == true)
-            'error_text': errorText!.trim().substring(
-              0,
-              errorText.trim().length.clamp(0, 1000),
-            ),
+          if (limitedError.isNotEmpty) 'error_text': limitedError,
         })
         .eq('id', cleanId);
   }
