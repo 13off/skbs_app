@@ -10,6 +10,7 @@ import '../../../screens/add_task_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/ai_assistant_repository.dart';
 import '../models/ai_assistant_result.dart';
+import 'ai_document_draft_screen.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -118,11 +119,50 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   Future<void> runAction(int index, AiAssistantAction action) async {
-    if (action.type == 'create_task_draft') {
-      await openTaskDraft(index, action);
+    switch (action.type) {
+      case 'create_task_draft':
+        await openTaskDraft(index, action);
+        return;
+      case 'prepare_document':
+        await openDocumentDraft(index, action);
+        return;
+      default:
+        showMessage(
+          'Это действие пока доступно только для предварительного просмотра',
+        );
+    }
+  }
+
+  Future<void> openDocumentDraft(
+    int index,
+    AiAssistantAction action,
+  ) async {
+    if (runningActionIds.contains(action.id) ||
+        completedActionIds.contains(action.id)) {
       return;
     }
-    showMessage('Это действие пока доступно только для предварительного просмотра');
+
+    setState(() => runningActionIds.add(action.id));
+    try {
+      final completed = await Navigator.of(context).push<bool>(
+        CupertinoPageRoute<bool>(
+          builder: (_) => AiDocumentDraftScreen(
+            profile: widget.profile,
+            action: action,
+          ),
+        ),
+      );
+      if (!mounted || completed != true) return;
+      setState(() {
+        completedActionIds.add(action.id);
+        if (index >= 0 && index < entries.length) {
+          entries[index].reviewed = true;
+        }
+      });
+      showMessage('Документ проверен и скачан');
+    } finally {
+      if (mounted) setState(() => runningActionIds.remove(action.id));
+    }
   }
 
   Future<void> openTaskDraft(int index, AiAssistantAction action) async {
@@ -192,6 +232,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     } finally {
       if (mounted) setState(() => runningActionIds.remove(action.id));
     }
+  }
+
+  String completedActionLabel(AiAssistantAction action) {
+    return switch (action.type) {
+      'create_task_draft' => 'Задача создана',
+      'prepare_document' => 'Документ скачан',
+      _ => 'Действие завершено',
+    };
   }
 
   Widget buildEmptyState() {
@@ -309,7 +357,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Icon(completed ? Icons.verified_rounded : Icons.edit_note_rounded),
-      label: Text(completed ? 'Задача создана' : action.buttonLabel),
+      label: Text(
+        completed ? completedActionLabel(action) : action.buttonLabel,
+      ),
     );
   }
 
@@ -607,10 +657,7 @@ class _ResultSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(color: color, fontWeight: FontWeight.w900),
               ),
             ],
           ),

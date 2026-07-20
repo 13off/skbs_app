@@ -38,7 +38,6 @@ void main() {
     expect(screen, isNot(contains("'Быстрые действия'")));
     expect(screen, isNot(contains("'Проверить табель'")));
     expect(screen, isNot(contains("'Сводка по объекту'")));
-    expect(screen, isNot(contains("'Подготовить документ'")));
     expect(screen, isNot(contains('class _AiQuickAction')));
   });
 
@@ -62,7 +61,7 @@ void main() {
     );
     final taskView = source('lib/screens/task_create/task_create_view.dart');
 
-    expect(screen, contains("action.type == 'create_task_draft'"));
+    expect(screen, contains("case 'create_task_draft':"));
     expect(screen, contains('AddTaskScreen('));
     expect(screen, contains('initialAxes:'));
     expect(screen, contains('initialWork:'));
@@ -87,7 +86,22 @@ void main() {
     expect(taskView, contains("'Сохранить задачу'"));
   });
 
-  test('client routes task commands to authenticated action function', () {
+  test('document proposal opens editable preview and completes after review', () {
+    final screen = assistantScreenSource();
+    final preview = source(
+      'lib/features/ai/presentation/ai_document_draft_screen.dart',
+    );
+
+    expect(screen, contains("case 'prepare_document':"));
+    expect(screen, contains('AiDocumentDraftScreen('));
+    expect(screen, contains('if (!mounted || completed != true) return;'));
+    expect(screen, contains("'Документ скачан'"));
+    expect(preview, contains("labelText: 'Текст документа'"));
+    expect(preview, contains("label: const Text('Скачать Word')"));
+    expect(preview, contains("label: const Text('Готово')"));
+  });
+
+  test('client routes typed commands to authenticated functions', () {
     final repository = source(
       'lib/features/ai/data/ai_assistant_repository.dart',
     );
@@ -97,6 +111,7 @@ void main() {
 
     expect(repository, contains('functions.invoke('));
     expect(repository, contains("'ai-action-draft'"));
+    expect(repository, contains("'ai-document-draft'"));
     expect(repository, contains("'ai-assistant'"));
     expect(repository, contains("'ai-search'"));
     expect(repository, contains('functionNameFor('));
@@ -152,6 +167,23 @@ void main() {
     expect(edge, contains('type: "create_task_draft"'));
     expect(edge, contains('Открыть черновик задачи'));
     expect(edge, contains('dateKey('));
+    expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
+    expect(edge, isNot(contains('.insert(')));
+    expect(edge, isNot(contains('.update(')));
+    expect(edge, isNot(contains('.upsert(')));
+    expect(edge, isNot(contains('.delete(')));
+  });
+
+  test('document proposal server validates roles and remains read only', () {
+    final edge = source('supabase/functions/ai-document-draft/index.ts');
+
+    expect(edge, contains('auth.getUser()'));
+    expect(edge, contains('.from("user_profiles")'));
+    expect(edge, contains('.from("company_memberships")'));
+    expect(edge, contains('canReadPrivate'));
+    expect(edge, contains('type: "prepare_document"'));
+    expect(edge, contains('confirmation_required: true'));
+    expect(edge, isNot(contains('employee_private_data')));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
     expect(edge, isNot(contains('.update(')));
