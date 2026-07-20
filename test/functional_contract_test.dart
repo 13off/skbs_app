@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/task_create_source.dart';
 import 'support/task_details_source.dart';
+import 'support/timesheet_source.dart';
 
 String _source(String path) => File(path).readAsStringSync();
 
@@ -98,7 +99,7 @@ void main() {
     });
 
     test('табель сохраняет быстрый ввод, ручной ввод и отчёты', () {
-      _containsAll('lib/screens/timesheet_screen.dart', const [
+      _containsAllText('табель', timesheetSource(), const [
         "title: 'Табель'",
         "label: const Text('Отчет')",
         "'Сохранить изменения'",
