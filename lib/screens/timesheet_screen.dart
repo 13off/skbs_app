@@ -9,6 +9,7 @@ import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
+import '../features/timesheet/models/timesheet_draft.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../widgets/app_page.dart';
@@ -38,13 +39,10 @@ class TimesheetScreen extends StatefulWidget {
 class _TimesheetScreenState extends State<TimesheetScreen> {
   DateTime selectedDate = AppState.today;
   Future<List<Employee>>? employeesFuture;
-
-  Map<String, double> shiftValuesByEmployeeId = <String, double>{};
-  Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
+  TimesheetDraft timesheetDraft = TimesheetDraft.empty();
 
   bool isAttendanceLoading = false;
   bool isSaving = false;
-  bool hasUnsavedChanges = false;
   String? errorText;
   bool hasPendingRemoteAttendance = false;
   int attendanceLoadGeneration = 0;
@@ -53,6 +51,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   final TextEditingController searchController = TextEditingController();
 
   final List<double> quickShiftOptions = const <double>[0, 0.5, 1, 1.5, 2];
+
+  bool get hasUnsavedChanges => timesheetDraft.hasChanges;
 
   List<double> get allShiftOptions {
     return List<double>.generate(31, (index) => index / 10);
