@@ -32,14 +32,22 @@ void main() {
 
   test('desktop employees provide filters, document state and clickable rows', () {
     final adaptive = source('lib/screens/adaptive_employees_screen.dart');
+    final controller = source(
+      'lib/screens/employees/employee_directory_controller.dart',
+    );
     final desktop = source('lib/screens/desktop_employees_view.dart');
 
+    expect(adaptive, contains('EmployeeDirectoryController('));
+    expect(adaptive, contains('loadPrivateData: true'));
     expect(
-      adaptive,
+      controller,
       contains('EmployeePrivateDataRepository.fetchMapByEmployeeIds'),
     );
     expect(adaptive, contains('EmployeeDetailsScreen('));
-    expect(adaptive, contains('EmployeePrivateSummaryExporter.downloadSummary'));
+    expect(
+      controller,
+      contains('EmployeePrivateSummaryExporter.downloadSummary'),
+    );
 
     expect(desktop, contains('BoxConstraints(maxWidth: 1400)'));
     expect(desktop, contains("label: 'Объект'"));
