@@ -33,6 +33,18 @@ class AppCacheCoordinator {
     AppCacheArea.managerReports,
   };
 
+  static const Set<AppDataDomain> _managerReportDomains = <AppDataDomain>{
+    AppDataDomain.attendance,
+    AppDataDomain.payments,
+    AppDataDomain.employees,
+    AppDataDomain.tasks,
+    AppDataDomain.objects,
+    AppDataDomain.notifications,
+    AppDataDomain.company,
+    AppDataDomain.legal,
+    AppDataDomain.recruitment,
+  };
+
   static Set<AppCacheArea> areasFor(Set<AppDataDomain> domains) {
     if (domains.isEmpty) return const <AppCacheArea>{};
     if (domains.contains(AppDataDomain.company)) return allAreas;
@@ -59,7 +71,7 @@ class AppCacheCoordinator {
     if (paymentsChanged) areas.add(AppCacheArea.payments);
     if (tasksChanged) areas.add(AppCacheArea.tasks);
 
-    if (domains.any(_affectsManagerReports)) {
+    if (domains.any(_managerReportDomains.contains)) {
       areas.add(AppCacheArea.managerReports);
     }
 
@@ -100,19 +112,5 @@ class AppCacheCoordinator {
     if (selected.contains(AppCacheArea.managerReports)) {
       ManagerReportsRepository.clearCache();
     }
-  }
-
-  static bool _affectsManagerReports(AppDataDomain domain) {
-    return switch (domain) {
-      AppDataDomain.attendance ||
-      AppDataDomain.payments ||
-      AppDataDomain.employees ||
-      AppDataDomain.tasks ||
-      AppDataDomain.objects ||
-      AppDataDomain.notifications ||
-      AppDataDomain.company ||
-      AppDataDomain.legal ||
-      AppDataDomain.recruitment => true,
-    };
   }
 }
