@@ -79,6 +79,14 @@ class _AiOperationalReportScreenState
     )} ₽';
   }
 
+  String fileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    final kilobytes = bytes / 1024;
+    if (kilobytes < 1024) return '${kilobytes.toStringAsFixed(1)} КБ';
+    final megabytes = kilobytes / 1024;
+    return '${megabytes.toStringAsFixed(1)} МБ';
+  }
+
   String documentType(String value) {
     return switch (value) {
       'passport' => 'Паспорт',
@@ -113,14 +121,15 @@ class _AiOperationalReportScreenState
         action: widget.action,
         companyId: widget.profile.activeCompanyId,
       );
-      CandidatePackageService.download(result);
+      await CandidatePackageService.download(result);
       if (!mounted) return;
       setState(() {
-        packageMessage = 'ZIP скачан: ${result.includedFiles} файлов. '
+        packageMessage = 'ZIP сохранён: ${result.includedFiles} файлов, '
+            '${fileSize(result.archiveBytes)}. '
             'Предупреждений: ${result.warnings.length}.';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пакет кандидата собран и скачан')),
+        const SnackBar(content: Text('Пакет кандидата собран и сохранён')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -219,18 +228,59 @@ class _AiOperationalReportScreenState
               children: [
                 Text(
                   widget.action.text('full_name'),
-                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text('Должность: ${widget.action.text('position_title').isEmpty ? 'Не указана' : widget.action.text('position_title')}'),
-                Text('Телефон: ${widget.action.text('phone').isEmpty ? 'Не указан' : widget.action.text('phone')}'),
-                Text('Гражданство: ${widget.action.text('citizenship').isEmpty ? 'Не указано' : widget.action.text('citizenship')}'),
-                Text('Дата готовности: ${widget.action.text('ready_date').isEmpty ? 'Не указана' : widget.action.text('ready_date')}'),
-                Text('Согласие на обработку данных: ${consent ? 'получено' : 'не подтверждено'}'),
+                Text(
+                  'Должность: '
+                  '${widget.action.text('position_title').isEmpty ? 'Не указана' : widget.action.text('position_title')}',
+                ),
+                Text(
+                  'Телефон: '
+                  '${widget.action.text('phone').isEmpty ? 'Не указан' : widget.action.text('phone')}',
+                ),
+                Text(
+                  'Гражданство: '
+                  '${widget.action.text('citizenship').isEmpty ? 'Не указано' : widget.action.text('citizenship')}',
+                ),
+                Text(
+                  'Дата готовности: '
+                  '${widget.action.text('ready_date').isEmpty ? 'Не указана' : widget.action.text('ready_date')}',
+                ),
+                Text(
+                  'Согласие на обработку данных: '
+                  '${consent ? 'получено' : 'не подтверждено'}',
+                ),
               ],
             ),
           ),
         ),
+        if (!consent) ...[
+          const SizedBox(height: 10),
+          const Card(
+            elevation: 0,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.privacy_tip_outlined),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Скачивание закрыто, пока в карточке кандидата не '
+                      'подтверждено согласие на обработку персональных данных.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         const Text(
           'Полученные файлы',
@@ -244,7 +294,9 @@ class _AiOperationalReportScreenState
             (row) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.check_circle_outline),
-              title: Text(documentType(row['document_type']?.toString() ?? '')),
+              title: Text(
+                documentType(row['document_type']?.toString() ?? ''),
+              ),
               subtitle: Text(row['original_name']?.toString() ?? ''),
             ),
           ),
@@ -266,7 +318,8 @@ class _AiOperationalReportScreenState
           ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: buildingPackage ? null : downloadCandidatePackage,
+          onPressed:
+              buildingPackage || !consent ? null : downloadCandidatePackage,
           icon: buildingPackage
               ? const SizedBox(
                   width: 18,
@@ -277,7 +330,9 @@ class _AiOperationalReportScreenState
           label: Text(
             buildingPackage
                 ? 'Собираем пакет…'
-                : 'Скачать пакет кандидата ZIP',
+                : consent
+                    ? 'Скачать пакет кандидата ZIP'
+                    : 'Нужно согласие кандидата',
           ),
         ),
         if (packageMessage != null) ...[
