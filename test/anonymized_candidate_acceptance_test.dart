@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skbs_app/features/documents/data/employer_docx_profile_service.dart';
 import 'package:skbs_app/features/documents/data/exact_docx_service.dart';
 import 'package:skbs_app/features/recruitment/models/candidate_onboarding_models.dart';
 import 'package:skbs_app/features/recruitment/models/employee_mobilization_models.dart';
@@ -50,10 +51,15 @@ void main() {
 
   test('обезличенный комплект форм полностью собирается', () {
     for (final code in candidateOnboardingFormCodes) {
-      final result = ExactDocxService.build(
+      final raw = ExactDocxService.build(
         templateCode: code,
         values: values,
         fileBaseName: 'ТЕСТ_${candidateOnboardingFormTitle(code)}',
+      );
+      final result = EmployerDocxProfileService.apply(
+        source: raw,
+        employerName: 'Тестовая организация',
+        representativeName: 'Тестовый Представитель',
       );
       expect(result.missingFields, isEmpty, reason: code);
       expect(result.bytes, isNotEmpty, reason: code);
@@ -62,7 +68,9 @@ void main() {
       expect(document, isNotNull, reason: code);
       final xml = utf8.decode(document!.content as List<int>);
       expect(xml, contains('Тестов Тест Тестович'), reason: code);
+      expect(xml, contains('Тестовая организация'), reason: code);
       expect(xml, isNot(contains('ООО «СКБС»')), reason: code);
+      expect(xml, isNot(contains('Ермолиной О.Б.')), reason: code);
     }
   });
 
