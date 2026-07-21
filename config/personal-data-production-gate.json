@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "real_personal_documents_enabled": false,
+  "status": "blocked",
+  "approved_by": "",
+  "approved_at": "",
+  "evidence": {
+    "russian_storage_location_confirmed": false,
+    "data_controller_details_approved": false,
+    "personal_data_consent_approved": false,
+    "retention_and_deletion_policy_approved": false,
+    "download_audit_log_verified": false,
+    "backup_and_restore_tested": false,
+    "access_offboarding_tested": false,
+    "incident_response_owner_assigned": false
+  },
+  "notes": "До закрытия всех пунктов разрешены только тестовые, обезличенные или специально маркированные копии документов. Изменение real_personal_documents_enabled на true без доказательств должно блокироваться CI."
+}
