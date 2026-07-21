@@ -5,6 +5,8 @@ import '../../../features/documents/data/document_template_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
+import '../../compliance/data/company_compliance_repository.dart';
+import '../../compliance/models/company_compliance_models.dart';
 import '../data/developer_policy_repository.dart';
 
 class DeveloperReadinessScreen extends StatefulWidget {
@@ -52,11 +54,49 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
     }
   }
 
+  _ReadinessCheck complianceCheck(CompanyComplianceSnapshot? snapshot) {
+    if (snapshot == null) {
+      return const _ReadinessCheck(
+        title: 'Реальные персональные документы',
+        description:
+            'Проверяет профиль работодателя, юридическое утверждение и восемь доказательств production gate.',
+        status: _ReadinessStatus.failed,
+        result: 'Не удалось прочитать compliance-настройки',
+      );
+    }
+    if (snapshot.realDocumentsAllowed) {
+      return const _ReadinessCheck(
+        title: 'Реальные персональные документы',
+        description:
+            'Профиль работодателя утверждён, доказательства закрыты, серверный gate разрешает реальные документы.',
+        status: _ReadinessStatus.ok,
+        result: 'Production gate: OPEN',
+      );
+    }
+    return _ReadinessCheck(
+      title: 'Реальные персональные документы',
+      description:
+          'До открытия gate разрешены только тестовые или обезличенные записи. Сервер блокирует реальные ZIP, просмотр и загрузку подписанных экземпляров.',
+      status: _ReadinessStatus.blocked,
+      result: 'Production gate: BLOCKED · '
+          '${snapshot.gate.completedEvidenceCount}/8 доказательств · '
+          'формы ${snapshot.employer.legalDocumentsApproved ? 'утверждены' : 'не утверждены'}',
+    );
+  }
+
   Future<void> runChecks() async {
     if (mounted) setState(() => loading = true);
     final companyId = widget.profile.activeCompanyId.trim();
     final now = DateTime.now();
     final month = now.month.toString().padLeft(2, '0');
+    CompanyComplianceSnapshot? compliance;
+    try {
+      if (companyId.isNotEmpty) {
+        compliance = await CompanyComplianceRepository.fetchSnapshot(companyId);
+      }
+    } catch (_) {
+      compliance = null;
+    }
 
     final results = <_ReadinessCheck>[
       await check(
@@ -127,13 +167,7 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
           }
         },
       ),
-      const _ReadinessCheck(
-        title: 'Реальные персональные документы',
-        description:
-            'Паспорта, СНИЛС, ИНН и банковские документы остаются заблокированы до подтверждения российского хранения, сроков, аудита и процедур удаления.',
-        status: _ReadinessStatus.blocked,
-        result: 'Production gate: BLOCKED',
-      ),
+      complianceCheck(compliance),
       const _ReadinessCheck(
         title: 'Web/PWA после публикации',
         description:
