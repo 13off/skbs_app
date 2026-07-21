@@ -8,6 +8,8 @@ on:
     paths:
       - lib/**
       - test/**
+      - supabase/functions/**
+      - supabase/migrations/**
       - pubspec.yaml
       - pubspec.lock
       - .fvmrc
@@ -87,3 +89,68 @@ jobs:
           path: /tmp/flutter-test.log
           if-no-files-found: error
           retention-days: 3
+
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check changed Edge Functions
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ]; then
+            git diff --name-only "$BASE_SHA"...HEAD -- supabase/functions \
+              | grep -E '\.tsx?$' > /tmp/edge-files.txt || true
+          else
+            find supabase/functions -type f -name '*.ts' -print \
+              > /tmp/edge-files.txt
+          fi
+
+          if [ ! -s /tmp/edge-files.txt ]; then
+            echo "Edge Functions were not changed."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            echo "deno check $file"
+            deno check "$file"
+          done < /tmp/edge-files.txt
+
+      - name: Guard changed SQL migrations
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ]; then
+            git diff --name-only "$BASE_SHA"...HEAD -- supabase/migrations \
+              | grep -E '\.sql$' > /tmp/migration-files.txt || true
+          else
+            find supabase/migrations -type f -name '*.sql' -print \
+              > /tmp/migration-files.txt
+          fi
+
+          if [ ! -s /tmp/migration-files.txt ]; then
+            echo "SQL migrations were not changed."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            test -s "$file"
+            if grep -nE '^(<<<<<<<|=======|>>>>>>>)' "$file"; then
+              echo "Conflict marker found in $file"
+              exit 1
+            fi
+          done < /tmp/migration-files.txt

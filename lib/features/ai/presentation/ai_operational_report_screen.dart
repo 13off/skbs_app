@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../features/documents/data/document_template_repository.dart';
 import '../../../features/documents/models/document_template.dart';
+import '../../../features/recruitment/data/candidate_package_service.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/payments_screen.dart';
 import '../models/ai_assistant_result.dart';
@@ -26,6 +27,8 @@ class _AiOperationalReportScreenState
     extends State<AiOperationalReportScreen> {
   List<DocumentTemplateRecord> templates = const [];
   bool loadingTemplates = false;
+  bool buildingPackage = false;
+  String? packageMessage;
 
   bool get isCandidate =>
       widget.action.type == 'prepare_candidate_documents';
@@ -76,11 +79,20 @@ class _AiOperationalReportScreenState
     )} ₽';
   }
 
+  String fileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    final kilobytes = bytes / 1024;
+    if (kilobytes < 1024) return '${kilobytes.toStringAsFixed(1)} КБ';
+    final megabytes = kilobytes / 1024;
+    return '${megabytes.toStringAsFixed(1)} МБ';
+  }
+
   String documentType(String value) {
     return switch (value) {
       'passport' => 'Паспорт',
       'snils' => 'СНИЛС',
       'inn' => 'ИНН',
+      'bank_details' => 'Банковские реквизиты',
       _ => value.isEmpty ? 'Документ' : value,
     };
   }
@@ -95,6 +107,38 @@ class _AiOperationalReportScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось открыть форму: $error')),
       );
+    }
+  }
+
+  Future<void> downloadCandidatePackage() async {
+    if (buildingPackage) return;
+    setState(() {
+      buildingPackage = true;
+      packageMessage = null;
+    });
+    try {
+      final result = await CandidatePackageService.build(
+        action: widget.action,
+        companyId: widget.profile.activeCompanyId,
+      );
+      await CandidatePackageService.download(result);
+      if (!mounted) return;
+      setState(() {
+        packageMessage = 'ZIP сохранён: ${result.includedFiles} файлов, '
+            '${fileSize(result.archiveBytes)}. '
+            'Предупреждений: ${result.warnings.length}.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пакет кандидата собран и сохранён')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        packageMessage = 'Не удалось собрать пакет: '
+            '${error.toString().replaceFirst('Exception: ', '')}';
+      });
+    } finally {
+      if (mounted) setState(() => buildingPackage = false);
     }
   }
 
@@ -184,17 +228,59 @@ class _AiOperationalReportScreenState
               children: [
                 Text(
                   widget.action.text('full_name'),
-                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text('Должность: ${widget.action.text('position_title').isEmpty ? 'Не указана' : widget.action.text('position_title')}'),
-                Text('Телефон: ${widget.action.text('phone').isEmpty ? 'Не указан' : widget.action.text('phone')}'),
-                Text('Гражданство: ${widget.action.text('citizenship').isEmpty ? 'Не указано' : widget.action.text('citizenship')}'),
-                Text('Согласие на обработку данных: ${consent ? 'получено' : 'не подтверждено'}'),
+                Text(
+                  'Должность: '
+                  '${widget.action.text('position_title').isEmpty ? 'Не указана' : widget.action.text('position_title')}',
+                ),
+                Text(
+                  'Телефон: '
+                  '${widget.action.text('phone').isEmpty ? 'Не указан' : widget.action.text('phone')}',
+                ),
+                Text(
+                  'Гражданство: '
+                  '${widget.action.text('citizenship').isEmpty ? 'Не указано' : widget.action.text('citizenship')}',
+                ),
+                Text(
+                  'Дата готовности: '
+                  '${widget.action.text('ready_date').isEmpty ? 'Не указана' : widget.action.text('ready_date')}',
+                ),
+                Text(
+                  'Согласие на обработку данных: '
+                  '${consent ? 'получено' : 'не подтверждено'}',
+                ),
               ],
             ),
           ),
         ),
+        if (!consent) ...[
+          const SizedBox(height: 10),
+          const Card(
+            elevation: 0,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.privacy_tip_outlined),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Скачивание закрыто, пока в карточке кандидата не '
+                      'подтверждено согласие на обработку персональных данных.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         const Text(
           'Полученные файлы',
@@ -208,7 +294,9 @@ class _AiOperationalReportScreenState
             (row) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.check_circle_outline),
-              title: Text(documentType(row['document_type']?.toString() ?? '')),
+              title: Text(
+                documentType(row['document_type']?.toString() ?? ''),
+              ),
               subtitle: Text(row['original_name']?.toString() ?? ''),
             ),
           ),
@@ -229,6 +317,32 @@ class _AiOperationalReportScreenState
             ),
           ),
         const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed:
+              buildingPackage || !consent ? null : downloadCandidatePackage,
+          icon: buildingPackage
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.folder_zip_outlined),
+          label: Text(
+            buildingPackage
+                ? 'Собираем пакет…'
+                : consent
+                    ? 'Скачать пакет кандидата ZIP'
+                    : 'Нужно согласие кандидата',
+          ),
+        ),
+        if (packageMessage != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            packageMessage!,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ],
+        const SizedBox(height: 18),
         const Text(
           'Исходные формы',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
@@ -248,15 +362,14 @@ class _AiOperationalReportScreenState
               subtitle: Text(
                 enabled ? 'Действующая форма' : 'Требует утверждения',
               ),
-              trailing: enabled
-                  ? const Icon(Icons.open_in_new)
-                  : null,
+              trailing: enabled ? const Icon(Icons.open_in_new) : null,
               onTap: enabled ? () => openTemplate(template) : null,
             );
           }),
         const SizedBox(height: 12),
         const Text(
-          'Паспортные реквизиты и содержимое файлов не передавались ИИ.',
+          'Паспортные реквизиты и содержимое файлов не передавались ИИ. '
+          'ZIP собирается локально после повторной проверки RLS.',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ],

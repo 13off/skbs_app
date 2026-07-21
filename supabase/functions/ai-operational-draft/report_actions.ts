@@ -144,7 +144,7 @@ export async function buildReportAction({
     const { data: candidateRows, error: candidateError } = await client
       .from("recruitment_applications")
       .select(
-        "id, full_name, phone, citizenship, position_title, status, consent_personal_data, object_id",
+        "id, full_name, phone, citizenship, position_title, status, ready_date, consent_personal_data, object_id",
       )
       .eq("company_id", companyId)
       .is("archived_at", null)
@@ -198,6 +198,7 @@ export async function buildReportAction({
         citizenship: candidate.citizenship,
         position_title: candidate.position_title,
         status: candidate.status,
+        ready_date: candidate.ready_date,
         consent_personal_data: candidate.consent_personal_data,
         existing_documents: existingDocuments,
         missing_documents: missingDocuments,

@@ -21,6 +21,7 @@ export type CandidateRow = {
   citizenship: string;
   position_title: string;
   status: string;
+  ready_date: string | null;
   consent_personal_data: boolean;
   object_id: string | null;
 };
