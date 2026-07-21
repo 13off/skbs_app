@@ -79,7 +79,7 @@ void main() {
     expect(service, contains('candidate.isTestRecord'));
     expect(service, contains('employer.employerDetails'));
     expect(service, isNot(contains("'ООО «СКБС»'")));
-    expect(service, isNot(contains('Ермолиной'));
+    expect(service, isNot(contains('Ермолиной')));
   });
 
   test('доступ к подписанным документам журналируется и блокируется gate', () {
