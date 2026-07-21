@@ -97,7 +97,7 @@ void main() {
     expect(screen, contains("status: 'hired'"));
     expect(screen, contains('Дубликаты по ФИО'));
     expect(screen, contains("action.boolean('consent_personal_data')"));
-    expect(screen, isNot(contains('.from(\'employees\').insert'));
+    expect(screen, isNot(contains(".from('employees').insert")));
   });
 
   test('генератор DOCX не содержит браузерного API', () {
