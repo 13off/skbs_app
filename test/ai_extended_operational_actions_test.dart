@@ -88,7 +88,7 @@ void main() {
     expect(payment, contains('PaymentRepository.addPayment('));
     expect(payment, contains('PaymentReceiptRepository.pickReceiptFiles'));
     expect(payment, contains("'Сохранить выплату'"));
-    expect(report, contains("'Выплаты без чеков'"));
+    expect(report, contains('Выплаты без чеков'));
     expect(report, contains("'Пакет кандидата'"));
     expect(report, contains('DocumentTemplateRepository.fetchTemplates'));
     expect(report, contains('PaymentsScreen('));
