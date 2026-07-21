@@ -28,7 +28,8 @@ void main() {
     expect(edge, contains('.from("company_memberships")'));
     expect(edge, contains('.eq("company_id", companyId)'));
     expect(edge, contains('isForeman ? assignedObject : requestedObject'));
-    expect(edge, contains('Изменение сотрудника доступно руководителю'));
+    expect(edge, contains('Работа с сотрудниками доступна руководителю или HR'));
+    expect(edge, contains('Выплаты доступны руководителю или бухгалтеру'));
     expect(
       edge,
       contains('Системные напоминания доступны руководителю или разработчику'),
