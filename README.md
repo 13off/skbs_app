@@ -1,17 +1,76 @@
-# skbs_app
+# AppСтрой
 
-A new Flutter project.
+AppСтрой — рабочая система ООО «СКБС» для управления сотрудниками, объектами, табелем, задачами, выплатами, подбором, документами, отчётами и уведомлениями.
 
-## Getting Started
+Приложение написано на Flutter и работает как web/PWA, Android-приложение и внутренняя desktop-сборка. Backend построен на Supabase: PostgreSQL, Auth, Row Level Security, Storage, Realtime и Edge Functions.
 
-This project is a starting point for a Flutter application.
+## Основные модули
 
-A few resources to get you started if this is your first Flutter project:
+- сотрудники и назначения по объектам;
+- ежедневный и месячный табель;
+- задачи, исполнители, этапы и фотографии;
+- выплаты и подтверждающие чеки;
+- центр отчётов руководителя;
+- подбор кандидатов и Telegram-контур;
+- юридические документы и напоминания;
+- версионные шаблоны документов;
+- ИИ-помощник с подтверждением и аудитом действий;
+- системная платформа разработчика и ограничения объектов.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Роли
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Приложение предоставляет отдельные рабочие платформы для руководителя, разработчика, прораба, HR, бухгалтера и юриста. Доступ определяется не только интерфейсом: сервер повторно проверяет пользователя, активную компанию, членство, роль и объект.
+
+Подробности: [docs/roles-and-permissions.md](docs/roles-and-permissions.md).
+
+## Быстрый запуск
+
+Требования:
+
+- Flutter из `.fvmrc`;
+- зависимости из `pubspec.lock`;
+- доступ к настроенному Supabase-проекту.
+
+```bash
+flutter pub get --enforce-lockfile
+flutter analyze --no-fatal-infos --no-fatal-warnings
+flutter test
+flutter run -d chrome
+```
+
+Production web-сборка:
+
+```bash
+flutter build web --release --base-href /appstroy-web/
+```
+
+Публичный клиент использует только publishable key. `service_role`, секреты Telegram, push и другие закрытые ключи не должны попадать в Flutter-код, GitHub или web-сборку.
+
+## Проверки перед слиянием
+
+PR Check выполняет:
+
+- Flutter analyze;
+- все regression tests;
+- release web-build;
+- `deno check` изменённых Edge Functions;
+- базовую защиту SQL-миграций.
+
+Изменения базы дополнительно проверяются в транзакции, Supabase Advisors и под реальными ролями. Изменение интерфейса не считается защитой данных: источником истины остаются RLS, RPC и Edge Functions.
+
+## Документация
+
+- [Архитектура](docs/architecture.md)
+- [Роли и права](docs/roles-and-permissions.md)
+- [Деплой](docs/deployment.md)
+- [Edge Functions](docs/edge-functions.md)
+- [Персональные данные](docs/personal-data.md)
+- [Чек-лист релиза](docs/release-checklist.md)
+
+## Важные правила разработки
+
+1. Не менять рабочие процессы, роли, дизайн или данные в рамках технического рефакторинга.
+2. Любое действие ИИ, которое может изменить данные, проходит явное подтверждение и аудит.
+3. Кадровые и банковские данные обрабатываются локально через существующие репозитории и RLS; они не передаются генеративному ИИ.
+4. Миграции должны быть совместимы с установленными PWA и мобильными версиями.
+5. Крупные изменения выполняются отдельной веткой и PR; production обновляется только после зелёного CI.
