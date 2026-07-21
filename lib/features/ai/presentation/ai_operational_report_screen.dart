@@ -1,12 +1,15 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../../../data/employee_repository.dart';
 import '../../../features/documents/data/document_template_repository.dart';
 import '../../../features/documents/models/document_template.dart';
 import '../../../features/recruitment/data/candidate_package_service.dart';
+import '../../../features/recruitment/data/recruitment_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/payments_screen.dart';
 import '../models/ai_assistant_result.dart';
+import 'ai_employee_draft_screen.dart';
 
 class AiOperationalReportScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -28,6 +31,8 @@ class _AiOperationalReportScreenState
   List<DocumentTemplateRecord> templates = const [];
   bool loadingTemplates = false;
   bool buildingPackage = false;
+  bool creatingEmployee = false;
+  bool candidateConverted = false;
   String? packageMessage;
 
   bool get isCandidate =>
@@ -45,6 +50,7 @@ class _AiOperationalReportScreenState
   @override
   void initState() {
     super.initState();
+    candidateConverted = widget.action.text('status') == 'hired';
     if (isCandidate) loadTemplates();
   }
 
@@ -89,9 +95,11 @@ class _AiOperationalReportScreenState
 
   String documentType(String value) {
     return switch (value) {
-      'passport' => 'Паспорт',
+      'passport' || 'passport_main' => 'Паспорт',
+      'registration' => 'Регистрация',
       'snils' => 'СНИЛС',
       'inn' => 'ИНН',
+      'policy' => 'Медицинский полис',
       'bank_details' => 'Банковские реквизиты',
       _ => value.isEmpty ? 'Документ' : value,
     };
@@ -126,10 +134,10 @@ class _AiOperationalReportScreenState
       setState(() {
         packageMessage = 'ZIP сохранён: ${result.includedFiles} файлов, '
             '${fileSize(result.archiveBytes)}. '
-            'Предупреждений: ${result.warnings.length}.';
+            'Проверить предупреждений: ${result.warnings.length}.';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пакет кандидата собран и сохранён')),
+        const SnackBar(content: Text('Кадровый пакет собран и сохранён')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -139,6 +147,100 @@ class _AiOperationalReportScreenState
       });
     } finally {
       if (mounted) setState(() => buildingPackage = false);
+    }
+  }
+
+  String _digits(String value) => value.replaceAll(RegExp(r'\D'), '');
+
+  Future<void> createEmployeeFromCandidate() async {
+    if (creatingEmployee || candidateConverted) return;
+    if (!widget.action.boolean('consent_personal_data')) {
+      setState(() {
+        packageMessage = 'Сначала подтверди согласие кандидата на обработку данных.';
+      });
+      return;
+    }
+
+    setState(() {
+      creatingEmployee = true;
+      packageMessage = null;
+    });
+    try {
+      final fullName = widget.action.text('full_name');
+      final phone = widget.action.text('phone');
+      final employees = await EmployeeRepository.fetchEmployees(
+        includeFired: true,
+        forceRefresh: true,
+      );
+      final normalizedName = fullName.trim().toLowerCase();
+      final phoneDigits = _digits(phone);
+      final duplicate = employees.any((employee) {
+        final sameName = employee.name.trim().toLowerCase() == normalizedName;
+        final samePhone = phoneDigits.length >= 10 &&
+            _digits(employee.phone).endsWith(
+              phoneDigits.substring(phoneDigits.length - 10),
+            );
+        return sameName || samePhone;
+      });
+      if (duplicate) {
+        if (!mounted) return;
+        setState(() {
+          packageMessage = 'Сотрудник с таким ФИО или телефоном уже существует. '
+              'Новая карточка не создана.';
+        });
+        return;
+      }
+
+      final draftAction = AiAssistantAction(
+        id: 'candidate-${widget.action.text('application_id')}',
+        type: 'create_employee_draft',
+        title: 'Создать сотрудника из кандидата',
+        buttonLabel: 'Проверить карточку',
+        confirmationRequired: true,
+        payload: <String, dynamic>{
+          'fio': fullName,
+          'position': widget.action.text('position_title'),
+          'phone': phone,
+          'object_name': widget.action.text('object_name'),
+          'daily_rate': 6000,
+          'comment': 'Создан из подбора. Заявка: '
+              '${widget.action.text('application_id')}',
+        },
+      );
+      if (!mounted) return;
+      final employeeId = await Navigator.of(context).push<String>(
+        CupertinoPageRoute<String>(
+          builder: (_) => AiEmployeeDraftScreen(action: draftAction),
+        ),
+      );
+      if (employeeId == null || employeeId.isEmpty || !mounted) return;
+
+      try {
+        await RecruitmentRepository.updateStatus(
+          companyId: widget.profile.activeCompanyId,
+          applicationId: widget.action.text('application_id'),
+          status: 'hired',
+        );
+        if (!mounted) return;
+        setState(() {
+          candidateConverted = true;
+          packageMessage = 'Сотрудник создан, заявка переведена в статус «Оформлен».';
+        });
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          candidateConverted = true;
+          packageMessage = 'Сотрудник создан, но статус заявки не обновился: $error';
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        packageMessage = 'Не удалось подготовить сотрудника: '
+            '${error.toString().replaceFirst('Exception: ', '')}';
+      });
+    } finally {
+      if (mounted) setState(() => creatingEmployee = false);
     }
   }
 
@@ -215,7 +317,7 @@ class _AiOperationalReportScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Пакет кандидата',
+          'Оформление кандидата',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 14),
@@ -237,6 +339,10 @@ class _AiOperationalReportScreenState
                 Text(
                   'Должность: '
                   '${widget.action.text('position_title').isEmpty ? 'Не указана' : widget.action.text('position_title')}',
+                ),
+                Text(
+                  'Объект: '
+                  '${widget.action.text('object_name').isEmpty ? 'Не указан' : widget.action.text('object_name')}',
                 ),
                 Text(
                   'Телефон: '
@@ -271,8 +377,8 @@ class _AiOperationalReportScreenState
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Скачивание закрыто, пока в карточке кандидата не '
-                      'подтверждено согласие на обработку персональных данных.',
+                      'Скачивание и создание сотрудника закрыты, пока в карточке '
+                      'кандидата не подтверждено согласие на обработку данных.',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -331,12 +437,43 @@ class _AiOperationalReportScreenState
             buildingPackage
                 ? 'Собираем пакет…'
                 : consent
-                    ? 'Скачать пакет кандидата ZIP'
+                    ? 'Скачать кадровый пакет ZIP'
                     : 'Нужно согласие кандидата',
           ),
         ),
+        const SizedBox(height: 10),
+        FilledButton.tonalIcon(
+          onPressed: creatingEmployee || !consent || candidateConverted
+              ? null
+              : createEmployeeFromCandidate,
+          icon: creatingEmployee
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  candidateConverted
+                      ? Icons.check_circle_outline
+                      : Icons.person_add_alt_1_outlined,
+                ),
+          label: Text(
+            creatingEmployee
+                ? 'Проверяем карточку…'
+                : candidateConverted
+                    ? 'Кандидат уже оформлен'
+                    : 'Создать сотрудника из кандидата',
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'ФИО, телефон, должность и объект переносятся в обычный черновик. '
+          'Сохранение выполняется только после ручной проверки. Дубликаты по ФИО '
+          'или телефону блокируются.',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         if (packageMessage != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             packageMessage!,
             style: const TextStyle(fontWeight: FontWeight.w700),
@@ -389,9 +526,9 @@ class _AiOperationalReportScreenState
           const SizedBox(height: 24),
           SizedBox(
             height: 52,
-            child: FilledButton.icon(
+            child: FilledButton.tonalIcon(
               onPressed: () => Navigator.pop(context, true),
-              icon: const Icon(Icons.verified_outlined),
+              icon: const Icon(Icons.check_circle_outline),
               label: const Text('Проверено'),
             ),
           ),
