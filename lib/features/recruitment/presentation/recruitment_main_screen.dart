@@ -7,6 +7,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import 'recruitment_applications_screen.dart';
 import 'recruitment_dashboard_screen.dart';
+import 'recruitment_onboarding_screen.dart';
 
 class RecruitmentMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -18,7 +19,7 @@ class RecruitmentMainScreen extends StatefulWidget {
 }
 
 class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
-  static const int pageCount = 3;
+  static const int pageCount = 4;
 
   int currentIndex = 0;
   late final PageController controller;
@@ -48,11 +49,12 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
   Widget rootPage(int index) {
     return switch (index) {
       0 => RecruitmentDashboardScreen(
-        profile: widget.profile,
-        onOpenApplications: () => select(1),
-      ),
+          profile: widget.profile,
+          onOpenApplications: () => select(1),
+        ),
       1 => RecruitmentApplicationsScreen(profile: widget.profile),
-      2 => ProfileScreen(profile: widget.profile),
+      2 => RecruitmentOnboardingScreen(profile: widget.profile),
+      3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -118,6 +120,11 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
               label: 'Заявки',
               icon: Icons.view_kanban_outlined,
               selectedIcon: Icons.view_kanban_rounded,
+            ),
+            ProfessionalBottomNavigationItem(
+              label: 'Оформление',
+              icon: Icons.assignment_ind_outlined,
+              selectedIcon: Icons.assignment_ind_rounded,
             ),
             ProfessionalBottomNavigationItem(
               label: 'Профиль',
