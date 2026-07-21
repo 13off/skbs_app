@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/ai_operational_source.dart';
+
 void main() {
   test('operational server prepares all supported typed actions', () {
-    final edge = File(
-      'supabase/functions/ai-operational-draft/index.ts',
-    ).readAsStringSync();
+    final edge = aiOperationalSource();
 
     expect(edge, contains('return "create_reminder"'));
     expect(edge, contains('return "prepare_timesheet_correction"'));
@@ -19,9 +19,7 @@ void main() {
   });
 
   test('operational server enforces company role and object scope', () {
-    final edge = File(
-      'supabase/functions/ai-operational-draft/index.ts',
-    ).readAsStringSync();
+    final edge = aiOperationalSource();
 
     expect(edge, contains('auth.getUser()'));
     expect(edge, contains('.from("user_profiles")'));
@@ -38,9 +36,7 @@ void main() {
   });
 
   test('operational server is read only and uses user JWT', () {
-    final edge = File(
-      'supabase/functions/ai-operational-draft/index.ts',
-    ).readAsStringSync();
+    final edge = aiOperationalSource();
 
     expect(edge, contains('Authorization: authorization'));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
