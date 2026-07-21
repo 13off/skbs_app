@@ -28,6 +28,38 @@ abstract final class CandidateOnboardingRepository {
     );
   }
 
+  static Future<bool> _isTestApplication({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    final row = await _client
+        .from('recruitment_applications')
+        .select('is_test_record')
+        .eq('company_id', companyId)
+        .eq('id', applicationId)
+        .maybeSingle();
+    return row?['is_test_record'] == true;
+  }
+
+  static Future<void> _assertDocumentAccessAllowed({
+    required String companyId,
+    required String applicationId,
+  }) async {
+    if (await _isTestApplication(
+      companyId: companyId,
+      applicationId: applicationId,
+    )) {
+      return;
+    }
+    final compliance = await CompanyComplianceRepository.fetchSnapshot(companyId);
+    if (!compliance.realDocumentsAllowed) {
+      throw StateError(
+        'Production gate персональных данных закрыт. Реальные подписанные '
+        'документы нельзя загружать или открывать.',
+      );
+    }
+  }
+
   static Future<List<CandidateOnboardingCandidate>> fetchCandidates({
     required String companyId,
   }) async {
@@ -137,6 +169,10 @@ abstract final class CandidateOnboardingRepository {
     required String fileName,
     required String mimeType,
   }) async {
+    await _assertDocumentAccessAllowed(
+      companyId: form.companyId,
+      applicationId: form.applicationId,
+    );
     if (bytes.isEmpty) throw StateError('Выбран пустой файл');
     if (bytes.length > maxSignedFileBytes) {
       throw StateError('Подписанный файл больше 20 МБ');
@@ -191,6 +227,10 @@ abstract final class CandidateOnboardingRepository {
     if (!form.hasSignedFile) {
       throw StateError('Подписанный экземпляр ещё не загружен');
     }
+    await _assertDocumentAccessAllowed(
+      companyId: form.companyId,
+      applicationId: form.applicationId,
+    );
     await CompanyComplianceRepository.logAccess(
       companyId: form.companyId,
       action: 'view',
