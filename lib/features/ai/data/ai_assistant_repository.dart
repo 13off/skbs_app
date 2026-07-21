@@ -45,6 +45,18 @@ class AiAssistantRepository {
     ).hasMatch(normalized);
   }
 
+  static bool _isTimesheetAudit(String normalized) {
+    return RegExp(
+          r'(найд|покаж|проверь|есть ли).*(расхожд|ошиб|проблем|пропуск|пуст).*(табел|смен)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(расхожд|ошиб|проблем|пропуск|пуст).*(табел|смен)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(кому|у кого).*(нет|не хватает|нул).*(смен|табел)',
+        ).hasMatch(normalized);
+  }
+
   static bool _isOperationalCommand(String normalized) {
     final reminder = RegExp(r'напомн|напоминан').hasMatch(normalized);
     final timesheetCorrection =
@@ -70,6 +82,7 @@ class AiAssistantRepository {
     ).hasMatch(normalized);
     return reminder ||
         timesheetCorrection ||
+        _isTimesheetAudit(normalized) ||
         employeeUpdate ||
         employeeCreate ||
         payment ||

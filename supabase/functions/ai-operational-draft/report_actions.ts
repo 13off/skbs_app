@@ -2,11 +2,37 @@ import {
   actionResponse,
   clean,
   type CandidateRow,
+  dateKey,
   type EmployeeRow,
   json,
   nameMatches,
   requestedMonth,
 } from "./shared.ts";
+
+type AttendanceAuditState = {
+  employee: EmployeeRow;
+  recordedDays: number;
+  totalShifts: number;
+  invalidEntries: Array<{ date: string; reason: string }>;
+};
+
+type AttendanceAuditIssue = {
+  severity: "critical" | "attention";
+  issue_type: "invalid_entries" | "no_entries" | "no_worked_shifts";
+  employee_id: string;
+  employee_name: string;
+  object_name: string;
+  total_shifts: number;
+  recorded_days: number;
+  details: Array<{ date: string; reason: string }>;
+  message: string;
+};
+
+function endOfMonth(month: string): string {
+  const [yearText, monthText] = month.split("-");
+  const value = new Date(Date.UTC(Number(yearText), Number(monthText), 0));
+  return dateKey(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
+}
 
 export async function buildReportAction({
   client,
@@ -102,6 +128,156 @@ export async function buildReportAction({
       objectName,
       date,
       payload: { month, object_name: objectName, rows, source_prompt: prompt },
+    }));
+  }
+
+  if (actionKind === "find_timesheet_gaps") {
+    const month = requestedMonth(prompt, base);
+    const startDate = `${month}-01`;
+    const endDate = endOfMonth(month);
+    const states = new Map<string, AttendanceAuditState>(
+      employees.map((employee) => [
+        employee.id,
+        {
+          employee,
+          recordedDays: 0,
+          totalShifts: 0,
+          invalidEntries: [],
+        },
+      ]),
+    );
+    const employeeIds = [...states.keys()];
+
+    if (employeeIds.length > 0) {
+      let attendanceQuery = client
+        .from("attendance")
+        .select("employee_id, work_date, object_name, status, shifts")
+        .eq("company_id", companyId)
+        .gte("work_date", startDate)
+        .lte("work_date", endDate)
+        .in("employee_id", employeeIds)
+        .order("work_date");
+      if (objectName) attendanceQuery = attendanceQuery.eq("object_name", objectName);
+      const { data: attendanceRows, error: attendanceError } = await attendanceQuery;
+      if (attendanceError) throw attendanceError;
+
+      for (const row of attendanceRows ?? []) {
+        const state = states.get(clean(row.employee_id, 80));
+        if (!state) continue;
+        const shifts = Number(row.shifts ?? 0);
+        const status = clean(row.status, 40);
+        const workDate = clean(row.work_date, 10);
+        state.recordedDays++;
+        if (Number.isFinite(shifts)) state.totalShifts += shifts;
+
+        const reasons: string[] = [];
+        if (!Number.isFinite(shifts) || shifts < 0 || shifts > 3) {
+          reasons.push(`значение смен вне диапазона 0–3: ${row.shifts ?? "пусто"}`);
+        }
+        if (status === "worked" && (!Number.isFinite(shifts) || shifts <= 0)) {
+          reasons.push("статус «worked», но смены равны нулю");
+        }
+        if (status === "no_show" && Number.isFinite(shifts) && shifts > 0) {
+          reasons.push("статус «no_show», но указаны отработанные смены");
+        }
+        for (const reason of reasons) {
+          state.invalidEntries.push({ date: workDate, reason });
+        }
+      }
+    }
+
+    const issues = [...states.values()].flatMap<AttendanceAuditIssue>(
+      (state): AttendanceAuditIssue[] => {
+        if (state.invalidEntries.length > 0) {
+          return [{
+            severity: "critical",
+            issue_type: "invalid_entries",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: state.totalShifts,
+            recorded_days: state.recordedDays,
+            details: state.invalidEntries,
+            message: `${state.invalidEntries.length} некорректных отметок`,
+          }];
+        }
+        if (state.recordedDays === 0) {
+          return [{
+            severity: "attention",
+            issue_type: "no_entries",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: 0,
+            recorded_days: 0,
+            details: [],
+            message: "за период нет ни одной отметки табеля",
+          }];
+        }
+        if (state.totalShifts <= 0) {
+          return [{
+            severity: "attention",
+            issue_type: "no_worked_shifts",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: state.totalShifts,
+            recorded_days: state.recordedDays,
+            details: [],
+            message: "отметки есть, но отработанных смен нет",
+          }];
+        }
+        return [];
+      },
+    );
+    issues.sort((left, right) => {
+      if (left.severity !== right.severity) {
+        return left.severity === "critical" ? -1 : 1;
+      }
+      return left.employee_name.localeCompare(right.employee_name, "ru");
+    });
+    const criticalCount = issues.filter((item) => item.severity === "critical").length;
+    const attentionCount = issues.length - criticalCount;
+    const preview = issues.slice(0, 12).map(
+      (item) => `${item.employee_name}: ${item.message}`,
+    );
+    const highlights = [
+      `Период: ${month}`,
+      `Проверено сотрудников: ${employees.length}`,
+      `Критичные несоответствия: ${criticalCount}`,
+      `Требуют внимания: ${attentionCount}`,
+      objectName ? `Объект: ${objectName}` : "Все доступные объекты",
+      ...preview,
+    ];
+    if (issues.length > preview.length) {
+      highlights.push(`Ещё сотрудников: ${issues.length - preview.length}`);
+    }
+
+    return json(actionResponse({
+      type: "open_period_timesheet",
+      title: issues.length === 0
+        ? "Табель проверен"
+        : "В табеле есть контрольные вопросы",
+      button: "Открыть месячный табель",
+      summary: issues.length === 0
+        ? `За ${month} явных проблем не найдено.`
+        : `За ${month}: критичных ${criticalCount}, требуют внимания ${attentionCount}.`,
+      highlights,
+      warnings: [
+        "Отсутствие отметок или нулевые смены показаны как контрольный вопрос, а не подтверждённая ошибка: приложение не знает плановый график и дату фактического выхода.",
+        "Проверка ничего не изменяет. После подтверждения откроется штатный месячный табель на нужном периоде.",
+      ],
+      objectName,
+      date,
+      payload: {
+        month,
+        object_name: objectName,
+        audit_kind: actionKind,
+        critical_count: criticalCount,
+        attention_count: attentionCount,
+        issues,
+        source_prompt: prompt,
+      },
     }));
   }
 

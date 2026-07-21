@@ -11,6 +11,8 @@ void main() {
       'Добавь сотрудника Иванов Иван на объект Мурманск как бетонщик',
       'Подготовь выплату Иванову 15000 рублей',
       'Найди выплаты без чеков за июль',
+      'Покажи расхождения табеля за июль',
+      'У кого нет смен за июнь',
       'Открой месячный табель за июль',
       'Сформируй акт выполненных работ за 20.07.2026',
       'Собери пакет документов кандидата Петрова',
@@ -40,6 +42,7 @@ void main() {
       'create_employee_draft',
       'prepare_payment',
       'find_missing_receipts',
+      'find_timesheet_gaps',
       'open_period_timesheet',
       'prepare_work_act',
       'prepare_candidate_documents',
@@ -52,6 +55,8 @@ void main() {
     expect(edge, contains('isHr'));
     expect(edge, contains('consent_personal_data'));
     expect(edge, contains('payment_receipts'));
+    expect(edge, contains('.from("attendance")'));
+    expect(edge, contains('.eq("company_id", companyId)'));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
     expect(edge, isNot(contains('.update(')));
