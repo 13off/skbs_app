@@ -11,7 +11,8 @@ class DeveloperDemoCenterScreen extends StatefulWidget {
       _DeveloperDemoCenterScreenState();
 }
 
-class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
+class _DeveloperDemoCenterScreenState
+    extends State<DeveloperDemoCenterScreen> {
   int selectedIndex = 0;
 
   static const scenarios = <_DemoScenario>[
@@ -31,11 +32,13 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
         'Показать задачу с фото до/после и ограничениями прораба.',
         'Завершить демонстрацию отчётом руководителя.',
       ],
-      proof: 'Руководитель видит одну систему вместо чатов, бумажного табеля и разрозненных таблиц.',
+      proof:
+          'Руководитель видит одну систему вместо чатов, бумажного табеля и разрозненных таблиц.',
     ),
     _DemoScenario(
       title: 'Кандидат → сотрудник',
-      promise: 'Оформление человека без повторного ввода и потери документов.',
+      promise:
+          'Оформление человека без повторного ввода и потери документов.',
       icon: Icons.badge_outlined,
       metrics: <_DemoMetric>[
         _DemoMetric('Кандидат', '1 тестовый'),
@@ -49,7 +52,8 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
         'Создать карточку сотрудника через проверяемый черновик.',
         'Закрыть маршрут выхода на объект и показать уведомления ролям.',
       ],
-      proof: 'HR один раз вводит данные и видит, чего не хватает до полного оформления и выхода.',
+      proof:
+          'HR один раз вводит данные и видит, чего не хватает до полного оформления и выхода.',
     ),
     _DemoScenario(
       title: 'Табель и выплаты',
@@ -67,7 +71,8 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
         'Открыть выплату без чека и несовпадение объекта.',
         'Подчеркнуть, что система только выявляет проблемы, а решение подтверждает человек.',
       ],
-      proof: 'Бухгалтер и руководитель быстрее находят ошибки до расчёта и спорных выплат.',
+      proof:
+          'Бухгалтер и руководитель быстрее находят ошибки до расчёта и спорных выплат.',
     ),
   ];
 
@@ -101,7 +106,9 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
     final selected = selectedIndex == index;
     return Expanded(
       child: Padding(
-        padding: EdgeInsets.only(right: index == scenarios.length - 1 ? 0 : 8),
+        padding: EdgeInsets.only(
+          right: index == scenarios.length - 1 ? 0 : 8,
+        ),
         child: PremiumPressable(
           onTap: () => setState(() => selectedIndex = index),
           borderRadius: BorderRadius.circular(20),
@@ -153,7 +160,10 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
         children: [
           Text(
             item.value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
@@ -204,7 +214,7 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.35,
-                        fontWeight: FontWeight.w650,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -290,7 +300,7 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
           banner(),
           const SizedBox(height: 14),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: scenarios.indexed
                 .map((entry) => scenarioSelector(entry.$2, entry.$1))
                 .toList(growable: false),
