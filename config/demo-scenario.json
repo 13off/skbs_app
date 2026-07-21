@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "mode": "synthetic_only",
+  "contains_personal_data": false,
+  "uses_production_company": false,
+  "uses_production_storage": false,
+  "watermark": "ДЕМО · ДАННЫЕ ВЫМЫШЛЕНЫ",
+  "company": {
+    "name": "ООО «Демонстрационная стройка»",
+    "objects": [
+      {
+        "name": "Демо-объект Север",
+        "address": "Вымышленный адрес 1",
+        "employees": 24
+      },
+      {
+        "name": "Демо-объект Центр",
+        "address": "Вымышленный адрес 2",
+        "employees": 19
+      }
+    ]
+  },
+  "candidate": {
+    "full_name": "Тестов Алексей Сергеевич",
+    "phone": "+7 000 000-00-00",
+    "position": "Бетонщик-арматурщик",
+    "is_test_record": true,
+    "documents": "synthetic_marked_copies_only"
+  },
+  "operational_audit": {
+    "month": "2026-07",
+    "employees_checked": 43,
+    "critical_count": 1,
+    "attention_count": 3,
+    "automatic_writes": 0
+  },
+  "forbidden_during_demo": [
+    "real_passports",
+    "real_phone_numbers",
+    "real_bank_details",
+    "real_payment_amounts",
+    "production_signed_documents"
+  ]
+}

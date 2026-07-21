@@ -8,6 +8,7 @@ import '../../../screens/period_timesheet_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../payments/data/payment_report_exporter.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
@@ -38,7 +39,8 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
   }
 
   DateTime get firstDay => DateTime(selectedMonth.year, selectedMonth.month, 1);
-  DateTime get lastDay => DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+  DateTime get lastDay =>
+      DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
   String? get selectedObjectName =>
       selectedObjectNameFromScope(selectedObjectScope);
 
@@ -84,7 +86,9 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
       RegExp(r'\s+'),
       ' ',
     );
-    return cleanName.isNotEmpty ? cleanName : employee.id ?? employee.objectName;
+    return cleanName.isNotEmpty
+        ? cleanName
+        : employee.id ?? employee.objectName;
   }
 
   Future<List<PaymentReportEmployeeOption>> reportEmployees() async {
@@ -98,7 +102,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
       final id = employee.id?.trim();
       if (id == null || id.isEmpty) continue;
       final key = employeeKey(employee);
-      final draft = drafts.putIfAbsent(key, () => _ReportEmployeeDraft(employee));
+      final draft = drafts.putIfAbsent(
+        key,
+        () => _ReportEmployeeDraft(employee),
+      );
       draft.employeeIds.add(id);
       if (employee.objectName.trim().isNotEmpty) {
         draft.objects.add(employee.objectName.trim());
@@ -156,6 +163,20 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
       CupertinoPageRoute<void>(
         builder: (_) => PeriodTimesheetScreen(
           selectedObjectName: selectedObjectName,
+          initialMonth: selectedMonth,
+        ),
+      ),
+    );
+  }
+
+  void openAudit() {
+    if (selectedObjectScope == null) return;
+    Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => OperationalAuditLauncherScreen(
+          initialMonth: selectedMonth,
+          initialObjectName: selectedObjectName,
         ),
       ),
     );
@@ -216,7 +237,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                 ),
                 Text(
                   accountingMonth(selectedMonth),
-                  style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -262,7 +286,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -307,7 +334,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
           const SizedBox(height: 4),
           Text(
             '${rows.length} операций · ${accountingMoney(total)} · без чека: $withoutReceipt',
-            style: const TextStyle(color: accountingMuted, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: accountingMuted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 10),
           if (rows.isEmpty)
@@ -355,6 +385,13 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
           monthPanel(),
           const SizedBox(height: 14),
           reportAction(
+            icon: Icons.fact_check_outlined,
+            title: 'Единый контроль',
+            subtitle:
+                'Найти расхождения табеля, начислений, выплат, чеков и объектов',
+            onTap: selectedObjectScope == null ? null : openAudit,
+          ),
+          reportAction(
             icon: Icons.download_outlined,
             title: 'Отчёт по выплатам',
             subtitle: 'Скачать XLSX по всем сотрудникам за выбранный месяц',
@@ -389,7 +426,10 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                       children: [
                         Text('Не удалось загрузить реестр: ${snapshot.error}'),
                         const SizedBox(height: 10),
-                        FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                        FilledButton(
+                          onPressed: refresh,
+                          child: const Text('Повторить'),
+                        ),
                       ],
                     ),
                   ),

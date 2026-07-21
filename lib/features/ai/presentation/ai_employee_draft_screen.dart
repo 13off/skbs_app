@@ -39,7 +39,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
     );
     final rate = widget.action.number('daily_rate').round();
     dailyRateController = TextEditingController(
-      text: (rate > 0 ? rate : 6000).toString(),
+      text: rate > 0 ? rate.toString() : '',
     );
     commentController = TextEditingController(
       text: widget.action.text('comment'),
@@ -140,7 +140,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'ИИ только заполнил черновик. Сотрудник появится в базе после кнопки «Сохранить сотрудника».',
+              'Помощник переносит только известные данные. Ставка и объект требуют ручной проверки перед сохранением.',
             ),
             const SizedBox(height: 18),
             if (loadingObjects)
@@ -214,8 +214,17 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Ставка за смену',
+                helperText: 'Обязательное поле: проверь по согласованным условиям',
                 prefixIcon: Icon(Icons.payments_outlined),
               ),
+              validator: (value) {
+                final rate = int.tryParse(
+                  (value ?? '').replaceAll(' ', '').trim(),
+                );
+                return rate == null || rate <= 0
+                    ? 'Введите согласованную ставку'
+                    : null;
+              },
             ),
             const SizedBox(height: 14),
             TextFormField(

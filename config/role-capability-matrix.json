@@ -1,10 +1,12 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "principles": {
     "server_is_authoritative": true,
     "active_company_required": true,
     "active_membership_required": true,
-    "role_preview_never_changes_server_identity": true
+    "role_preview_never_changes_server_identity": true,
+    "live_acceptance_requires_real_role_account": true,
+    "acceptance_is_read_only": true
   },
   "roles": [
     {
@@ -22,7 +24,17 @@
         "recruitment.manage",
         "reports.read",
         "company.manage"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "objects",
+        "required_permissions": [
+          "recruitment.applications.view",
+          "accounting.payments.view",
+          "legal.documents.view",
+          "personal_data.compliance.view"
+        ],
+        "forbidden_permissions": []
+      }
     },
     {
       "role": "developer",
@@ -37,7 +49,17 @@
         "constructor.manage",
         "roles.preview",
         "reports.read"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "company_task_policies",
+        "required_permissions": [
+          "recruitment.applications.view",
+          "accounting.payments.view",
+          "legal.documents.view",
+          "personal_data.compliance.edit"
+        ],
+        "forbidden_permissions": []
+      }
     },
     {
       "role": "foreman",
@@ -54,7 +76,19 @@
         "payments.read",
         "recruitment.private.read",
         "objects.manage"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "tasks",
+        "requires_assigned_object": true,
+        "required_permissions": [
+          "recruitment.mobilization.view"
+        ],
+        "forbidden_permissions": [
+          "accounting.payments.view",
+          "recruitment.documents.view",
+          "personal_data.compliance.view"
+        ]
+      }
     },
     {
       "role": "hr",
@@ -70,7 +104,20 @@
       "denied": [
         "payments.manage",
         "object_policies.manage"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "recruitment_applications",
+        "required_permissions": [
+          "recruitment.applications.view",
+          "recruitment.documents.edit",
+          "recruitment.mobilization.edit",
+          "personal_data.compliance.view"
+        ],
+        "forbidden_permissions": [
+          "accounting.payments.view",
+          "legal.documents.edit"
+        ]
+      }
     },
     {
       "role": "accountant",
@@ -87,7 +134,20 @@
       "denied": [
         "candidate_documents.manage",
         "objects.manage"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "payments",
+        "required_permissions": [
+          "accounting.attendance.view",
+          "accounting.payments.view",
+          "accounting.payments.edit",
+          "recruitment.mobilization.view"
+        ],
+        "forbidden_permissions": [
+          "recruitment.documents.edit",
+          "legal.documents.edit"
+        ]
+      }
     },
     {
       "role": "lawyer",
@@ -103,7 +163,20 @@
       "denied": [
         "candidate_documents.private.read",
         "payments.private.read"
-      ]
+      ],
+      "acceptance": {
+        "live_probe_table": "legal_documents",
+        "required_permissions": [
+          "legal.documents.view",
+          "legal.documents.edit",
+          "personal_data.compliance.view",
+          "personal_data.compliance.edit"
+        ],
+        "forbidden_permissions": [
+          "accounting.payments.view",
+          "recruitment.documents.edit"
+        ]
+      }
     }
   ]
 }

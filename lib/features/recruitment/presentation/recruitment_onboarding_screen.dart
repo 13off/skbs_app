@@ -68,11 +68,13 @@ class _RecruitmentOnboardingScreenState
               text: 'Не удалось загрузить оформление: ${snapshot.error}',
             );
           }
-          final candidates = snapshot.data ?? const <CandidateOnboardingCandidate>[];
+          final candidates =
+              snapshot.data ?? const <CandidateOnboardingCandidate>[];
           if (candidates.isEmpty) {
             return const _MessageCard(
               icon: Icons.assignment_turned_in_outlined,
-              text: 'Нет кандидатов на этапе оформления. Здесь появятся одобренные, прибывшие и оформленные сотрудники.',
+              text:
+                  'Нет кандидатов на этапе оформления. Здесь появятся одобренные, прибывшие и оформленные сотрудники.',
             );
           }
           return Column(
@@ -121,19 +123,34 @@ class _RecruitmentOnboardingScreenState
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  candidate.fullName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        candidate.fullName,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                    if (candidate.isTestRecord)
+                                      const _SmallBadge(
+                                        label: 'ТЕСТ',
+                                        color: Color(0xFF8A5A12),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   <String>[
                                     candidate.positionTitle,
                                     candidate.objectName,
-                                  ].where((value) => value.trim().isNotEmpty).join(' · '),
+                                  ]
+                                      .where(
+                                        (value) => value.trim().isNotEmpty,
+                                      )
+                                      .join(' · '),
                                   style: TextStyle(
                                     color: Theme.of(context)
                                         .colorScheme
@@ -145,7 +162,7 @@ class _RecruitmentOnboardingScreenState
                                 Text(
                                   candidate.isLinkedToEmployee
                                       ? 'Карточка сотрудника связана'
-                                      : 'Нужно создать или связать сотрудника',
+                                      : 'Следующий шаг: создать сотрудника',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
@@ -226,6 +243,7 @@ class _CandidateOnboardingDetailScreenState
       status: 'hired',
       readyDate: candidate.readyDate,
       consentPersonalData: candidate.consentPersonalData,
+      isTestRecord: candidate.isTestRecord,
     );
   }
 
@@ -234,7 +252,10 @@ class _CandidateOnboardingDetailScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+          error
+              .toString()
+              .replaceFirst('Bad state: ', '')
+              .replaceFirst('Exception: ', ''),
         ),
       ),
     );
@@ -288,7 +309,7 @@ class _CandidateOnboardingDetailScreenState
           'position': candidate.positionTitle,
           'phone': candidate.phone,
           'object_name': candidate.objectName,
-          'daily_rate': 6000,
+          'daily_rate': 0,
           'comment': 'Создан из подбора. Заявка: ${candidate.id}',
         },
       );
@@ -344,7 +365,9 @@ class _CandidateOnboardingDetailScreenState
         'image/webp',
       ],
     );
-    final file = await openFile(acceptedTypeGroups: const <XTypeGroup>[group]);
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[group],
+    );
     if (file == null) return;
     setState(() => busyFormCode = form.formCode);
     try {
@@ -388,6 +411,28 @@ class _CandidateOnboardingDetailScreenState
     return 'image/jpeg';
   }
 
+  String nextStep(List<CandidateOnboardingForm> forms) {
+    if (!candidate.consentPersonalData) {
+      return 'Подтвердить согласие кандидата на обработку данных';
+    }
+    if (!candidate.isLinkedToEmployee) {
+      return 'Создать сотрудника и вручную проверить объект и ставку';
+    }
+    if (forms.length < candidateOnboardingFormCodes.length) {
+      return 'Сформировать полный комплект ZIP';
+    }
+    final missing = forms.fold<int>(
+      0,
+      (sum, form) => sum + form.missingFields.length,
+    );
+    if (missing > 0) return 'Заполнить $missing обязательных полей перед подписью';
+    final notPrinted = forms.where((form) => !form.isPrinted && !form.isSigned);
+    if (notPrinted.isNotEmpty) return 'Распечатать оставшиеся формы';
+    final notSigned = forms.where((form) => !form.isSigned).length;
+    if (notSigned > 0) return 'Загрузить подписанные экземпляры: осталось $notSigned';
+    return 'Кадровый комплект завершён — перейти к выходу на объект';
+  }
+
   Widget candidateCard() {
     return PremiumWorkCard(
       radius: 24,
@@ -395,25 +440,37 @@ class _CandidateOnboardingDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            candidate.fullName,
-            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  candidate.fullName,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (candidate.isTestRecord)
+                const _SmallBadge(
+                  label: 'ТЕСТОВАЯ ЗАПИСЬ',
+                  color: Color(0xFF8A5A12),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text('${candidate.positionTitle} · ${candidate.objectName}'),
-          const SizedBox(height: 5),
-          Text(
-            candidate.consentPersonalData
-                ? 'Согласие на обработку данных подтверждено'
-                : 'Согласие на обработку данных не подтверждено',
-            style: const TextStyle(fontWeight: FontWeight.w800),
+          const SizedBox(height: 7),
+          _InlineStatus(
+            ok: candidate.consentPersonalData,
+            okText: 'Согласие подтверждено',
+            pendingText: 'Нет подтверждённого согласия',
           ),
-          const SizedBox(height: 5),
-          Text(
-            candidate.isLinkedToEmployee
-                ? 'Связан с карточкой сотрудника'
-                : 'Карточка сотрудника ещё не создана',
-            style: const TextStyle(fontWeight: FontWeight.w800),
+          const SizedBox(height: 6),
+          _InlineStatus(
+            ok: candidate.isLinkedToEmployee,
+            okText: 'Карточка сотрудника связана',
+            pendingText: 'Карточка сотрудника ещё не создана',
           ),
           const SizedBox(height: 14),
           if (!candidate.isLinkedToEmployee)
@@ -428,6 +485,101 @@ class _CandidateOnboardingDetailScreenState
                   : const Icon(Icons.person_add_alt_1_outlined),
               label: const Text('Создать сотрудника без повторного ввода'),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget progressCard(List<CandidateOnboardingForm> forms) {
+    final generated = forms.length;
+    final printed = forms.where((form) => form.isPrinted || form.isSigned).length;
+    final signed = forms.where((form) => form.isSigned).length;
+    final missing = forms.fold<int>(
+      0,
+      (sum, form) => sum + form.missingFields.length,
+    );
+    final completeSteps = <bool>[
+      candidate.consentPersonalData,
+      candidate.isLinkedToEmployee,
+      generated == candidateOnboardingFormCodes.length,
+      generated > 0 && printed == generated,
+      generated > 0 && signed == generated,
+    ].where((value) => value).length;
+    final progress = completeSteps / 5;
+
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(17),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.route_outlined, size: 26),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Готовность оформления',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                ),
+              ),
+              Text(
+                '$completeSteps/5',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(value: progress, minHeight: 8),
+          const SizedBox(height: 13),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ProgressBadge(
+                label: 'Согласие',
+                complete: candidate.consentPersonalData,
+              ),
+              _ProgressBadge(
+                label: 'Сотрудник',
+                complete: candidate.isLinkedToEmployee,
+              ),
+              _ProgressBadge(
+                label: 'Формы $generated/4',
+                complete: generated == 4,
+              ),
+              _ProgressBadge(
+                label: 'Печать $printed/$generated',
+                complete: generated > 0 && printed == generated,
+              ),
+              _ProgressBadge(
+                label: 'Подписи $signed/$generated',
+                complete: generated > 0 && signed == generated,
+              ),
+            ],
+          ),
+          if (missing > 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Блокер: не заполнено обязательных полей — $missing',
+              style: const TextStyle(
+                color: Color(0xFF8A5A12),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              'Следующий шаг: ${nextStep(forms)}',
+              style: const TextStyle(height: 1.35, fontWeight: FontWeight.w900),
+            ),
+          ),
         ],
       ),
     );
@@ -508,7 +660,9 @@ class _CandidateOnboardingDetailScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.upload_file_outlined),
-                    label: Text(form.isSigned ? 'Заменить файл' : 'Загрузить подпись'),
+                    label: Text(
+                      form.isSigned ? 'Заменить файл' : 'Загрузить подпись',
+                    ),
                   ),
                 if (form.hasSignedFile)
                   TextButton.icon(
@@ -539,6 +693,13 @@ class _CandidateOnboardingDetailScreenState
         children: [
           candidateCard(),
           const SizedBox(height: 14),
+          FutureBuilder<List<CandidateOnboardingForm>>(
+            future: formsFuture,
+            builder: (context, snapshot) => progressCard(
+              snapshot.data ?? const <CandidateOnboardingForm>[],
+            ),
+          ),
+          const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: building ? null : buildPackage,
             icon: building
@@ -549,7 +710,9 @@ class _CandidateOnboardingDetailScreenState
                   )
                 : const Icon(Icons.folder_zip_outlined),
             label: Text(
-              building ? 'Собираем комплект…' : 'Сформировать полный комплект ZIP',
+              building
+                  ? 'Собираем комплект…'
+                  : 'Сформировать полный комплект ZIP',
             ),
           ),
           if (lastWarnings.isNotEmpty) ...[
@@ -578,11 +741,13 @@ class _CandidateOnboardingDetailScreenState
                   text: 'Не удалось загрузить формы: ${snapshot.error}',
                 );
               }
-              final forms = snapshot.data ?? const <CandidateOnboardingForm>[];
+              final forms =
+                  snapshot.data ?? const <CandidateOnboardingForm>[];
               if (forms.isEmpty) {
                 return const _MessageCard(
                   icon: Icons.description_outlined,
-                  text: 'Сначала сформируй полный комплект. После этого появятся статусы печати и подписания.',
+                  text:
+                      'Сначала сформируй полный комплект. После этого появятся статусы печати и подписания.',
                 );
               }
               final byCode = <String, CandidateOnboardingForm>{
@@ -604,6 +769,95 @@ class _CandidateOnboardingDetailScreenState
   }
 }
 
+class _InlineStatus extends StatelessWidget {
+  final bool ok;
+  final String okText;
+  final String pendingText;
+
+  const _InlineStatus({
+    required this.ok,
+    required this.okText,
+    required this.pendingText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ok ? const Color(0xFF2E7D52) : const Color(0xFF8A5A12);
+    return Row(
+      children: [
+        Icon(
+          ok ? Icons.check_circle_outline : Icons.pending_outlined,
+          size: 18,
+          color: color,
+        ),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            ok ? okText : pendingText,
+            style: TextStyle(color: color, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressBadge extends StatelessWidget {
+  final String label;
+  final bool complete;
+
+  const _ProgressBadge({required this.label, required this.complete});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = complete ? const Color(0xFF2E7D52) : const Color(0xFF8A5A12);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            complete ? Icons.check_rounded : Icons.more_horiz_rounded,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _SmallBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+}
+
 class _SafetyNotice extends StatelessWidget {
   const _SafetyNotice();
 
@@ -611,7 +865,8 @@ class _SafetyNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _MessageCard(
       icon: Icons.privacy_tip_outlined,
-      text: 'До открытия production gate используй только обезличенные или тестовые копии. '
+      text:
+          'До открытия production gate используй только обезличенные или тестовые копии. '
           'Согласие и трудовой договор перед реальным подписанием должны пройти юридическое утверждение.',
     );
   }
