@@ -2,19 +2,20 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:universal_html/html.dart' as html;
 
 class ExactDocxTemplateInfo {
   final String code;
   final String title;
   final String originalSha256;
   final List<String> requiredFields;
+  final bool legalReviewRequired;
 
   const ExactDocxTemplateInfo({
     required this.code,
     required this.title,
     required this.originalSha256,
     required this.requiredFields,
+    this.legalReviewRequired = false,
   });
 }
 
@@ -71,10 +72,68 @@ class ExactDocxService {
     ],
   );
 
+  static const personalDataConsent = ExactDocxTemplateInfo(
+    code: 'personal_data_consent',
+    title: 'Согласие на обработку персональных данных',
+    originalSha256:
+        '20405bf4424884ebad315d6b3d74ee5d7f62dc4ee306056e1a3bfc3fb79b079e',
+    legalReviewRequired: true,
+    requiredFields: <String>[
+      'employee_full_name',
+      'passport_series',
+      'passport_number',
+      'passport_issued_by',
+      'passport_issued_date',
+      'passport_department_code',
+      'living_address',
+      'employee_phone',
+      'document_date',
+      'employee_short_name',
+      'employer_name',
+      'employer_address',
+    ],
+  );
+
+  static const employmentContract = ExactDocxTemplateInfo(
+    code: 'employment_contract',
+    title: 'Трудовой договор',
+    originalSha256:
+        '9d0fdbb32df89d846f9ccda2bda14711bba6ac6441319dabe3b9bca12c969d4d',
+    legalReviewRequired: true,
+    requiredFields: <String>[
+      'contract_number',
+      'document_date',
+      'contract_city',
+      'employer_name',
+      'employer_representative',
+      'employer_basis',
+      'employee_full_name',
+      'employee_position',
+      'work_address',
+      'employment_date',
+      'work_schedule',
+      'salary_terms',
+      'employee_birth_date',
+      'employee_birth_place',
+      'passport_series',
+      'passport_number',
+      'passport_issued_by',
+      'passport_issued_date',
+      'passport_department_code',
+      'registration_address',
+      'employee_phone',
+      'employee_inn',
+      'employee_snils',
+      'employer_details',
+    ],
+  );
+
   static ExactDocxTemplateInfo? templateFor(String code) {
     return switch (code.trim()) {
       'employment_application' => employmentApplication,
       'salary_transfer_application' => salaryTransferApplication,
+      'personal_data_consent' => personalDataConsent,
+      'employment_contract' => employmentContract,
       _ => null,
     };
   }
@@ -99,6 +158,8 @@ class ExactDocxService {
     final body = switch (template.code) {
       'employment_application' => _employmentBody(normalizedValues),
       'salary_transfer_application' => _salaryBody(normalizedValues),
+      'personal_data_consent' => _consentBody(normalizedValues),
+      'employment_contract' => _contractBody(normalizedValues),
       _ => throw UnsupportedError(template.code),
     };
     final documentXml = _document(body);
@@ -120,21 +181,6 @@ class ExactDocxService {
       missingFields: missing,
       fileName: '${_safeFileName(fileBaseName)}.docx',
     );
-  }
-
-  static void download(ExactDocxResult result) {
-    final blob = html.Blob(
-      <Object>[result.bytes],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    );
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    try {
-      html.AnchorElement(href: url)
-        ..download = result.fileName
-        ..click();
-    } finally {
-      html.Url.revokeObjectUrl(url);
-    }
   }
 
   static ArchiveFile _textFile(String path, String value) {
@@ -203,6 +249,9 @@ class ExactDocxService {
         count,
         _paragraph(''),
       ).join();
+
+  static String _heading(String text) =>
+      _paragraph(_run(text, bold: true), align: 'center', after: 180);
 
   static String _employmentBody(Map<String, String> values) {
     final fullName = _value(values, 'employee_full_name');
@@ -284,6 +333,150 @@ class ExactDocxService {
     ].join();
   }
 
+  static String _consentBody(Map<String, String> values) {
+    final fullName = _value(values, 'employee_full_name');
+    final series = _value(values, 'passport_series');
+    final number = _value(values, 'passport_number');
+    final issuedBy = _value(values, 'passport_issued_by');
+    final issuedDate = _value(values, 'passport_issued_date');
+    final departmentCode = _value(values, 'passport_department_code');
+    final livingAddress = _value(values, 'living_address');
+    final phone = _value(values, 'employee_phone');
+    final employerName = _value(values, 'employer_name');
+    final employerAddress = _value(values, 'employer_address');
+    final documentDate = _value(values, 'document_date');
+    final shortName = _value(values, 'employee_short_name');
+
+    const categories = <String>[
+      'фамилия, имя, отчество; пол, возраст, дата и место рождения;',
+      'паспортные данные, адрес регистрации и фактического проживания, телефон;',
+      'сведения об образовании, квалификации, трудовом стаже и воинской обязанности;',
+      'СНИЛС, ИНН, сведения о приёме, переводе, увольнении, рабочем времени и доходах;',
+      'иные сведения, содержащиеся в трудовом договоре и кадровых документах.',
+    ];
+
+    return <String>[
+      _paragraph(
+        _run('СОГЛАСИЕ НА ХРАНЕНИЕ И ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ', bold: true, size: 28),
+        align: 'center',
+        after: 300,
+      ),
+      _paragraph(
+        '${_run('Я, ', preserve: true)}${_run(fullName)}${_run(', паспорт: серия ', preserve: true)}'
+        '${_run(series)}${_run(' № ', preserve: true)}${_run(number)}${_run(', выдан ', preserve: true)}'
+        '${_run(issuedBy)}${_run(', дата выдачи ', preserve: true)}${_run(issuedDate)}'
+        '${_run(', код подразделения ', preserve: true)}${_run(departmentCode)}${_run(', проживающий по адресу: ', preserve: true)}'
+        '${_run(livingAddress)}${_run(', телефон: ', preserve: true)}${_run(phone)}${_run(', в соответствии со статьёй 9 Федерального закона от 27.07.2006 № 152-ФЗ даю согласие ', preserve: true)}'
+        '${_run(employerName)}${_run(', расположенному по адресу: ', preserve: true)}${_run(employerAddress)}'
+        '${_run(', на хранение и обработку моих персональных данных.', preserve: true)}',
+        firstLine: 709,
+        after: 180,
+      ),
+      _paragraph(_run('К моим персональным данным относится следующая информация:', bold: true), after: 100),
+      ...categories.map((item) => _paragraph(_run('— $item'), firstLine: 360, after: 60)),
+      _paragraph(
+        _run(
+          'Согласен на сбор, систематизацию, накопление, хранение, уточнение, использование, обезличивание, блокирование и уничтожение персональных данных с использованием средств автоматизации и без них в целях оформления и сопровождения трудовых отношений, исполнения требований законодательства, расчёта и выплаты заработной платы.',
+        ),
+        firstLine: 709,
+        after: 160,
+      ),
+      _paragraph(
+        _run(
+          'Передача допускается в объёме, необходимом для исполнения закона и договора, налоговым органам, государственным внебюджетным фондам, банкам и иным уполномоченным лицам. Срок хранения определяется законодательством и номенклатурой дел работодателя.',
+        ),
+        firstLine: 709,
+        after: 160,
+      ),
+      _paragraph(
+        _run(
+          'Согласие действует с момента подписания и может быть отозвано письменным заявлением, если дальнейшая обработка не требуется по закону. Обязуюсь своевременно сообщать об изменении предоставленных сведений.',
+        ),
+        firstLine: 709,
+        after: 300,
+      ),
+      _borderlessSignatureTable(
+        left: '$documentDate г.',
+        right: '________________ / $shortName /',
+      ),
+      _paragraph(_run('Перед подписанием проверить реквизиты оператора персональных данных и сроки хранения.', size: 20), after: 0),
+      '<w:p/>',
+      _section(pageWidth: 11906, pageHeight: 16838),
+    ].join();
+  }
+
+  static String _contractBody(Map<String, String> values) {
+    final contractNumber = _value(values, 'contract_number');
+    final documentDate = _value(values, 'document_date');
+    final city = _value(values, 'contract_city');
+    final employerName = _value(values, 'employer_name');
+    final representative = _value(values, 'employer_representative');
+    final basis = _value(values, 'employer_basis');
+    final employee = _value(values, 'employee_full_name');
+    final position = _value(values, 'employee_position');
+    final workAddress = _value(values, 'work_address');
+    final employmentDate = _value(values, 'employment_date');
+    final schedule = _value(values, 'work_schedule');
+    final salary = _value(values, 'salary_terms');
+    final birthDate = _value(values, 'employee_birth_date');
+    final birthPlace = _value(values, 'employee_birth_place');
+    final passportSeries = _value(values, 'passport_series');
+    final passportNumber = _value(values, 'passport_number');
+    final passportIssuedBy = _value(values, 'passport_issued_by');
+    final passportIssuedDate = _value(values, 'passport_issued_date');
+    final departmentCode = _value(values, 'passport_department_code');
+    final registrationAddress = _value(values, 'registration_address');
+    final phone = _value(values, 'employee_phone');
+    final inn = _value(values, 'employee_inn');
+    final snils = _value(values, 'employee_snils');
+    final employerDetails = _value(values, 'employer_details');
+
+    return <String>[
+      _paragraph(_run('ТРУДОВОЙ ДОГОВОР № $contractNumber', bold: true, size: 28), align: 'center', after: 220),
+      _borderlessSignatureTable(left: 'г. $city', right: '$documentDate г.'),
+      _paragraph(
+        '${_run(employerName)}${_run(' в лице ', preserve: true)}${_run(representative)}'
+        '${_run(', действующего на основании ', preserve: true)}${_run(basis)}'
+        '${_run(', именуемый в дальнейшем «Работодатель», с одной стороны, и гражданин ', preserve: true)}'
+        '${_run(employee)}${_run(', именуемый в дальнейшем «Работник», с другой стороны, заключили настоящий договор.', preserve: true)}',
+        firstLine: 709,
+        after: 180,
+      ),
+      _heading('1. ПРЕДМЕТ ДОГОВОРА'),
+      _paragraph(_run('1.1. Работник принимается на должность $position по основному месту работы.'), firstLine: 360, after: 80),
+      _paragraph(_run('1.2. Место выполнения работы: $workAddress.'), firstLine: 360, after: 80),
+      _paragraph(_run('1.3. Дата начала работы: $employmentDate. Договор действует до его прекращения в порядке, установленном законодательством Российской Федерации.'), firstLine: 360, after: 160),
+      _heading('2. ПРАВА И ОБЯЗАННОСТИ РАБОТНИКА'),
+      _paragraph(_run('2.1. Работник имеет права, предусмотренные Трудовым кодексом Российской Федерации, включая право на обусловленную договором работу, безопасное рабочее место, отдых, своевременную выплату заработной платы и обязательное социальное страхование.'), firstLine: 360, after: 100),
+      _paragraph(_run('2.2. Работник обязан добросовестно исполнять трудовые обязанности, выполнять законные распоряжения руководителей, соблюдать правила внутреннего трудового распорядка, требования охраны труда, бережно относиться к имуществу Работодателя и не разглашать охраняемую законом и договором информацию.'), firstLine: 360, after: 160),
+      _heading('3. ПРАВА И ОБЯЗАННОСТИ РАБОТОДАТЕЛЯ'),
+      _paragraph(_run('3.1. Работодатель вправе требовать исполнения трудовых обязанностей, поощрять Работника и привлекать его к ответственности в порядке, установленном законодательством.'), firstLine: 360, after: 100),
+      _paragraph(_run('3.2. Работодатель обязан предоставить работу, обеспечить безопасные условия и необходимые средства, вести учёт рабочего времени, выплачивать заработную плату в полном размере и соблюдать требования законодательства о труде и персональных данных.'), firstLine: 360, after: 160),
+      _heading('4. РЕЖИМ ТРУДА И ОТДЫХА'),
+      _paragraph(_run('4.1. Работнику устанавливается следующий режим: $schedule. Конкретное распределение рабочего времени и дней отдыха определяется графиком и локальными актами с соблюдением требований законодательства.'), firstLine: 360, after: 160),
+      _heading('5. УСЛОВИЯ ОПЛАТЫ ТРУДА'),
+      _paragraph(_run('5.1. Условия оплаты труда: $salary. Сроки и порядок выплаты определяются законодательством, локальными актами и соглашениями сторон.'), firstLine: 360, after: 100),
+      _paragraph(_run('5.2. Компенсационные и стимулирующие выплаты начисляются при наличии оснований и в порядке, установленном Работодателем и законодательством.'), firstLine: 360, after: 160),
+      _heading('6. ОТВЕТСТВЕННОСТЬ И РАЗРЕШЕНИЕ СПОРОВ'),
+      _paragraph(_run('6.1. Стороны несут ответственность в соответствии с Трудовым кодексом Российской Федерации и иными нормативными актами. Споры разрешаются путём переговоров, а при недостижении соглашения — в установленном законом порядке.'), firstLine: 360, after: 160),
+      _heading('7. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ'),
+      _paragraph(_run('7.1. Договор составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для каждой стороны. Изменения оформляются письменным соглашением.'), firstLine: 360, after: 180),
+      _heading('8. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН'),
+      _detailsTable(<(String, String)>[
+        ('Работодатель', '$employerName\n$employerDetails'),
+        ('Работник', '$employee\nДата рождения: $birthDate\nМесто рождения: $birthPlace\nПаспорт: $passportSeries № $passportNumber\nВыдан: $passportIssuedBy, $passportIssuedDate\nКод подразделения: $departmentCode\nАдрес регистрации: $registrationAddress\nТелефон: $phone\nИНН: $inn\nСНИЛС: $snils'),
+      ]),
+      _blank(),
+      _borderlessSignatureTable(
+        left: 'Работодатель: ________________',
+        right: 'Работник: ________________ / $employee /',
+      ),
+      _paragraph(_run('Работник получил один экземпляр договора: ________________ / $employee /', size: 20), after: 0),
+      '<w:p/>',
+      _section(pageWidth: 11906, pageHeight: 16838),
+    ].join();
+  }
+
   static String _detailsTable(List<(String, String)> rows) {
     final body = rows.map((row) => _detailsRow(row.$1, row.$2)).join();
     return '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/>'
@@ -306,10 +499,14 @@ class ExactDocxService {
         '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
         '<w:right w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
         '</w:tcBorders>';
+    final lines = value.split('\n');
+    final paragraphs = lines
+        .map((line) => _paragraph(_run(line, bold: labelCell, size: labelCell ? 22 : null)))
+        .join();
     return '<w:tc><w:tcPr><w:tcW w:w="${labelCell ? 3685 : 5953}" '
         'w:type="dxa"/>$borders'
         '${labelCell ? '<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>' : ''}'
-        '</w:tcPr>${_paragraph(_run(value, bold: labelCell, size: labelCell ? 22 : null))}</w:tc>';
+        '</w:tcPr>$paragraphs</w:tc>';
   }
 
   static String _borderlessSignatureTable({
