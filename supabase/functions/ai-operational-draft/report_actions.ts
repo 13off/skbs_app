@@ -186,48 +186,50 @@ export async function buildReportAction({
       }
     }
 
-    const issues: AttendanceAuditIssue[] = [...states.values()].flatMap((state) => {
-      if (state.invalidEntries.length > 0) {
-        return [{
-          severity: "critical" as const,
-          issue_type: "invalid_entries" as const,
-          employee_id: state.employee.id,
-          employee_name: state.employee.fio,
-          object_name: state.employee.object_name,
-          total_shifts: state.totalShifts,
-          recorded_days: state.recordedDays,
-          details: state.invalidEntries,
-          message: `${state.invalidEntries.length} некорректных отметок`,
-        }];
-      }
-      if (state.recordedDays === 0) {
-        return [{
-          severity: "attention" as const,
-          issue_type: "no_entries" as const,
-          employee_id: state.employee.id,
-          employee_name: state.employee.fio,
-          object_name: state.employee.object_name,
-          total_shifts: 0,
-          recorded_days: 0,
-          details: [],
-          message: "за период нет ни одной отметки табеля",
-        }];
-      }
-      if (state.totalShifts <= 0) {
-        return [{
-          severity: "attention" as const,
-          issue_type: "no_worked_shifts" as const,
-          employee_id: state.employee.id,
-          employee_name: state.employee.fio,
-          object_name: state.employee.object_name,
-          total_shifts: state.totalShifts,
-          recorded_days: state.recordedDays,
-          details: [],
-          message: "отметки есть, но отработанных смен нет",
-        }];
-      }
-      return [];
-    });
+    const issues = [...states.values()].flatMap<AttendanceAuditIssue>(
+      (state): AttendanceAuditIssue[] => {
+        if (state.invalidEntries.length > 0) {
+          return [{
+            severity: "critical",
+            issue_type: "invalid_entries",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: state.totalShifts,
+            recorded_days: state.recordedDays,
+            details: state.invalidEntries,
+            message: `${state.invalidEntries.length} некорректных отметок`,
+          }];
+        }
+        if (state.recordedDays === 0) {
+          return [{
+            severity: "attention",
+            issue_type: "no_entries",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: 0,
+            recorded_days: 0,
+            details: [],
+            message: "за период нет ни одной отметки табеля",
+          }];
+        }
+        if (state.totalShifts <= 0) {
+          return [{
+            severity: "attention",
+            issue_type: "no_worked_shifts",
+            employee_id: state.employee.id,
+            employee_name: state.employee.fio,
+            object_name: state.employee.object_name,
+            total_shifts: state.totalShifts,
+            recorded_days: state.recordedDays,
+            details: [],
+            message: "отметки есть, но отработанных смен нет",
+          }];
+        }
+        return [];
+      },
+    );
     issues.sort((left, right) => {
       if (left.severity !== right.severity) {
         return left.severity === "critical" ? -1 : 1;
