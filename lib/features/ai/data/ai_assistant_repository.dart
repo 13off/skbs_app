@@ -30,6 +30,21 @@ class AiAssistantRepository {
     return action && document;
   }
 
+  static bool _isCandidatePackage(String normalized) {
+    return RegExp(
+          r'(пакет|комплект).*(документ).*(кандидат|соискател)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(подготов|собер|проверь).*(документ).*(кандидат|соискател)',
+        ).hasMatch(normalized);
+  }
+
+  static bool _isWorkAct(String normalized) {
+    return RegExp(
+      r'(сформир|подготов|созда|сдел).*(акт).*(выполн|работ|задач)',
+    ).hasMatch(normalized);
+  }
+
   static bool _isOperationalCommand(String normalized) {
     final reminder = RegExp(r'напомн|напоминан').hasMatch(normalized);
     final timesheetCorrection =
@@ -53,14 +68,6 @@ class AiAssistantRepository {
     final periodTimesheet = RegExp(
       r'(открой|покаж|собер|сформир).*(месячн|за месяц|период).*(табел)',
     ).hasMatch(normalized);
-    final workAct = RegExp(
-      r'(сформир|подготов|созда|сдел).*(акт).*(выполн|работ|задач)',
-    ).hasMatch(normalized);
-    final candidatePackage = RegExp(
-      r'(пакет|комплект).*(документ).*(кандидат|соискател)',
-    ).hasMatch(normalized) ||
-        RegExp(r'(подготов|собер|проверь).*(документ).*(кандидат|соискател)')
-            .hasMatch(normalized);
     return reminder ||
         timesheetCorrection ||
         employeeUpdate ||
@@ -68,8 +75,8 @@ class AiAssistantRepository {
         payment ||
         missingReceipts ||
         periodTimesheet ||
-        workAct ||
-        candidatePackage;
+        _isWorkAct(normalized) ||
+        _isCandidatePackage(normalized);
   }
 
   static bool _useStructuredAssistant({
@@ -89,6 +96,11 @@ class AiAssistantRepository {
     if (mode.trim() == 'chat') {
       final normalized = _normalized(prompt);
       if (_isTaskCommand(normalized)) return 'ai-action-draft';
+      if (_isDocumentCommand(normalized) &&
+          !_isCandidatePackage(normalized) &&
+          !_isWorkAct(normalized)) {
+        return 'ai-document-draft';
+      }
       if (_isOperationalCommand(normalized)) return 'ai-operational-draft';
       if (_isDocumentCommand(normalized)) return 'ai-document-draft';
     }
