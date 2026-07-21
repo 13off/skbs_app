@@ -1,10 +1,13 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../features/documents/data/document_template_repository.dart';
+import '../../../features/documents/data/exact_docx_service.dart';
 import '../../../features/documents/models/document_template.dart';
 import '../../../models/app_user_profile.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_document_draft_screen.dart';
+import 'ai_exact_document_screen.dart';
 
 class AiDocumentTemplateScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -39,6 +42,11 @@ class _AiDocumentTemplateScreenState extends State<AiDocumentTemplateScreen> {
       'employment_contract' => 'employment_contract',
       _ => null,
     };
+  }
+
+  bool get exactTemplateAvailable {
+    final code = templateCode;
+    return code != null && ExactDocxService.templateFor(code) != null;
   }
 
   Future<void> loadSource() async {
@@ -81,19 +89,35 @@ class _AiDocumentTemplateScreenState extends State<AiDocumentTemplateScreen> {
     }
   }
 
+  Future<void> openExactDocument() async {
+    final code = templateCode;
+    if (code == null || !exactTemplateAvailable) return;
+    final completed = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute<bool>(
+        builder: (_) => AiExactDocumentScreen(
+          profile: widget.profile,
+          action: widget.action,
+          templateCode: code,
+        ),
+      ),
+    );
+    if (!mounted || completed != true) return;
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         AiDocumentDraftScreen(profile: widget.profile, action: widget.action),
-        if (loadingSource || sourceVersion != null)
+        if (loadingSource || sourceVersion != null || exactTemplateAvailable)
           Positioned(
             right: 14,
             top: MediaQuery.paddingOf(context).top + kToolbarHeight + 12,
             child: Material(
               color: Theme.of(context).colorScheme.surface,
               elevation: 3,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(22),
               child: loadingSource
                   ? const Padding(
                       padding: EdgeInsets.all(13),
@@ -103,10 +127,25 @@ class _AiDocumentTemplateScreenState extends State<AiDocumentTemplateScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     )
-                  : TextButton.icon(
-                      onPressed: openSource,
-                      icon: const Icon(Icons.description_outlined),
-                      label: const Text('Исходная форма'),
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Wrap(
+                        spacing: 2,
+                        children: [
+                          if (sourceVersion != null)
+                            TextButton.icon(
+                              onPressed: openSource,
+                              icon: const Icon(Icons.description_outlined),
+                              label: const Text('Исходная форма'),
+                            ),
+                          if (exactTemplateAvailable)
+                            FilledButton.icon(
+                              onPressed: openExactDocument,
+                              icon: const Icon(Icons.edit_document),
+                              label: const Text('Заполнить оригинал DOCX'),
+                            ),
+                        ],
+                      ),
                     ),
             ),
           ),
