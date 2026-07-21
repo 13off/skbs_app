@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "principles": {
+    "server_is_authoritative": true,
+    "active_company_required": true,
+    "active_membership_required": true,
+    "role_preview_never_changes_server_identity": true
+  },
+  "roles": [
+    {
+      "role": "admin",
+      "title": "Администратор",
+      "platform": "ManagerMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": true,
+      "capabilities": [
+        "objects.manage",
+        "employees.manage",
+        "attendance.manage",
+        "tasks.manage",
+        "payments.manage",
+        "recruitment.manage",
+        "reports.read",
+        "company.manage"
+      ]
+    },
+    {
+      "role": "developer",
+      "title": "Разработчик",
+      "platform": "DeveloperMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": true,
+      "capabilities": [
+        "system.inspect",
+        "dispatcher.manage",
+        "object_policies.manage",
+        "constructor.manage",
+        "roles.preview",
+        "reports.read"
+      ]
+    },
+    {
+      "role": "foreman",
+      "title": "Прораб",
+      "platform": "ForemanMainScreen",
+      "object_scope": "assigned_object",
+      "can_preview_roles": false,
+      "capabilities": [
+        "attendance.assigned_object",
+        "tasks.assigned_object",
+        "employees.assigned_object.read"
+      ],
+      "denied": [
+        "payments.read",
+        "recruitment.private.read",
+        "objects.manage"
+      ]
+    },
+    {
+      "role": "hr",
+      "title": "HR-менеджер",
+      "platform": "RecruitmentMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": false,
+      "capabilities": [
+        "recruitment.manage",
+        "candidate_documents.manage",
+        "employees.create"
+      ],
+      "denied": [
+        "payments.manage",
+        "object_policies.manage"
+      ]
+    },
+    {
+      "role": "accountant",
+      "server_aliases": ["accounting"],
+      "title": "Бухгалтер",
+      "platform": "AccountingMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": false,
+      "capabilities": [
+        "payments.manage",
+        "payment_receipts.manage",
+        "employees.payment_fields.read"
+      ],
+      "denied": [
+        "candidate_documents.manage",
+        "objects.manage"
+      ]
+    },
+    {
+      "role": "lawyer",
+      "title": "Юрист",
+      "platform": "LegalMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": false,
+      "capabilities": [
+        "legal.manage",
+        "employees.directory.read",
+        "objects.directory.read"
+      ],
+      "denied": [
+        "candidate_documents.private.read",
+        "payments.private.read"
+      ]
+    }
+  ]
+}
