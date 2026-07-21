@@ -17,6 +17,7 @@ import '../models/ai_assistant_result.dart';
 import '../presentation/ai_action_confirmation_sheet.dart';
 import '../presentation/ai_document_template_screen.dart';
 import '../presentation/ai_employee_draft_screen.dart';
+import '../presentation/ai_operational_audit_screen.dart';
 import '../presentation/ai_operational_report_screen.dart';
 import '../presentation/ai_payment_draft_screen.dart';
 import '../presentation/ai_reminder_draft_screen.dart';
@@ -87,6 +88,8 @@ class AiActionExecutionCoordinator {
           await _prepareEmployeeUpdate(context, action),
         'create_employee_draft' => await _createEmployee(context, action),
         'prepare_payment' => await _preparePayment(context, action),
+        'find_operational_anomalies' =>
+          await _openOperationalAudit(context, action),
         'find_missing_receipts' || 'prepare_candidate_documents' =>
           await _openOperationalReport(context, profile, action),
         'open_period_timesheet' => await _openPeriodTimesheet(context, action),
@@ -238,6 +241,24 @@ class AiActionExecutionCoordinator {
       message: 'Выплата сохранена',
       targetEntityType: 'payment',
       targetEntityId: paymentId,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _openOperationalAudit(
+    BuildContext context,
+    AiAssistantAction action,
+  ) async {
+    final completed = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute<bool>(
+        builder: (_) => AiOperationalAuditScreen(action: action),
+      ),
+    );
+    if (completed != true) return const AiActionExecutionResult.cancelled();
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Контрольный отчёт табеля и выплат проверен',
+      targetEntityType: 'operational_audit',
+      targetEntityId: action.text('month'),
     );
   }
 
