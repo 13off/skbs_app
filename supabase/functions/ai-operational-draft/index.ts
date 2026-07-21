@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+import { buildOperationalAudit } from "./operational_audit.ts";
 import { buildPeopleAction } from "./people_actions.ts";
 import { buildReportAction } from "./report_actions.ts";
 import {
@@ -11,6 +12,7 @@ import {
   json,
   kind,
   nameMatches,
+  normalized,
   requestedDate,
 } from "./shared.ts";
 
@@ -85,7 +87,7 @@ Deno.serve(async (request: Request) => {
     const isAdmin = roles.has("admin") || roles.has("owner");
     const isDeveloper = roles.has("developer");
     const isHr = roles.has("hr");
-    const isAccounting = roles.has("accounting");
+    const isAccounting = roles.has("accounting") || roles.has("accountant");
     const isForeman = roles.has("foreman");
     const assignedObject = clean(profile.object_name, 180);
     const objectName = isForeman ? assignedObject : requestedObject;
@@ -93,7 +95,14 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Прорабу не назначен объект" }, 403);
     }
 
-    const actionKind = kind(prompt);
+    const promptValue = normalized(prompt);
+    const wantsOperationalAudit =
+      /(?:единый|общий|операционн).*(?:аудит|контрол|проверк).*(?:табел|смен|выплат|чек)/.test(promptValue) ||
+      /(?:проверь|сверь|найди).*(?:табел|смен).*(?:выплат|чек)/.test(promptValue) ||
+      /(?:проверь|сверь|найди).*(?:выплат|чек).*(?:табел|смен)/.test(promptValue);
+    const actionKind = wantsOperationalAudit
+      ? "find_operational_anomalies"
+      : kind(prompt);
     if (actionKind === "unknown") {
       return json({ error: "Не удалось определить операционное действие" }, 400);
     }
@@ -109,7 +118,11 @@ Deno.serve(async (request: Request) => {
       );
     }
     if (
-      ["prepare_payment", "find_missing_receipts"].includes(actionKind) &&
+      [
+        "prepare_payment",
+        "find_missing_receipts",
+        "find_operational_anomalies",
+      ].includes(actionKind) &&
       !isAdmin &&
       !isAccounting &&
       !isDeveloper
@@ -152,6 +165,18 @@ Deno.serve(async (request: Request) => {
     );
     const employee = matchedEmployees.length === 1 ? matchedEmployees[0] : null;
     const date = requestedDate(prompt, base);
+
+    if (actionKind === "find_operational_anomalies") {
+      return await buildOperationalAudit({
+        client,
+        companyId,
+        objectName,
+        date,
+        base,
+        prompt,
+        employees,
+      });
+    }
 
     const peopleResult = buildPeopleAction({
       actionKind,

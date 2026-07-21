@@ -32,6 +32,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
       'prepare_employee_update' => 'Открыть изменение сотрудника?',
       'create_employee_draft' => 'Открыть карточку нового сотрудника?',
       'prepare_payment' => 'Открыть черновик выплаты?',
+      'find_operational_anomalies' => 'Открыть контрольный отчёт?',
       'find_missing_receipts' => 'Открыть список выплат без чеков?',
       'open_period_timesheet' => 'Открыть месячный табель?',
       'prepare_work_act' => 'Открыть черновик акта?',
@@ -44,6 +45,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
   String get confirmationLabel {
     return switch (action.type) {
       'prepare_timesheet_correction' => 'Подтвердить и изменить',
+      'find_operational_anomalies' ||
       'find_missing_receipts' ||
       'open_period_timesheet' ||
       'prepare_work_act' ||
@@ -97,6 +99,11 @@ class AiActionConfirmationSheet extends StatelessWidget {
         add('Сумма', _money(action.number('amount')));
         add('Тип', _paymentType(action.text('payment_type')));
         add('Чек', 'Нужно проверить перед сохранением');
+        break;
+      case 'find_operational_anomalies':
+        add('Период', action.text('month'));
+        add('Критичные', '${action.number('critical_count').round()}');
+        add('Требуют внимания', '${action.number('attention_count').round()}');
         break;
       case 'find_missing_receipts':
         add('Период', action.text('month'));
