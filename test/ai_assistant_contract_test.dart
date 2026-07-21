@@ -169,7 +169,7 @@ void main() {
     expect(repository, contains("'ai-operational-draft'"));
     expect(repository, contains("'ai-assistant'"));
     expect(repository, contains("'ai-search'"));
-    expect(repository, isNot(contains('OPENAI_API_KEY'));
+    expect(repository, isNot(contains('OPENAI_API_KEY')));
 
     expect(model, contains('class AiAssistantAction'));
     expect(model, contains('confirmationRequired'));
