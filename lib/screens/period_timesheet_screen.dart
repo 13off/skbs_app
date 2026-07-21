@@ -6,6 +6,7 @@ import '../data/timesheet_excel_exporter.dart';
 import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import 'add_payment_screen.dart';
+import 'period_timesheet/period_timesheet_launch_intent.dart';
 import 'period_timesheet/period_timesheet_report.dart';
 
 part 'period_timesheet/period_timesheet_export.dart';
@@ -17,8 +18,13 @@ part 'period_timesheet/period_timesheet_view.dart';
 
 class PeriodTimesheetScreen extends StatefulWidget {
   final String? selectedObjectName;
+  final DateTime? initialMonth;
 
-  const PeriodTimesheetScreen({super.key, required this.selectedObjectName});
+  const PeriodTimesheetScreen({
+    super.key,
+    required this.selectedObjectName,
+    this.initialMonth,
+  });
 
   @override
   State<PeriodTimesheetScreen> createState() => _PeriodTimesheetScreenState();
@@ -38,8 +44,10 @@ class _PeriodTimesheetScreenState extends State<PeriodTimesheetScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    selectedMonth = DateTime(now.year, now.month, 1);
+    final pendingMonth = PeriodTimesheetLaunchIntent.take();
+    final requestedMonth = widget.initialMonth ?? pendingMonth;
+    final base = requestedMonth ?? DateTime.now();
+    selectedMonth = DateTime(base.year, base.month, 1);
     loadReport();
   }
 
