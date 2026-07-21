@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/ai_operational_source.dart';
 import 'support/home_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
@@ -177,21 +178,29 @@ void main() {
   });
 
   test('all proposal servers validate access and remain read only', () {
-    for (final path in <String>[
-      'supabase/functions/ai-action-draft/index.ts',
-      'supabase/functions/ai-document-draft/index.ts',
-      'supabase/functions/ai-operational-draft/index.ts',
-    ]) {
-      final edge = source(path);
-      expect(edge, contains('auth.getUser()'), reason: path);
-      expect(edge, contains('.from("user_profiles")'), reason: path);
-      expect(edge, contains('.from("company_memberships")'), reason: path);
-      expect(edge, contains('confirmation_required: true'), reason: path);
-      expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
-      expect(edge, isNot(contains('.insert(')), reason: path);
-      expect(edge, isNot(contains('.update(')), reason: path);
-      expect(edge, isNot(contains('.upsert(')), reason: path);
-      expect(edge, isNot(contains('.delete(')), reason: path);
+    final sources = <String, String>{
+      'ai-action-draft': source('supabase/functions/ai-action-draft/index.ts'),
+      'ai-document-draft': source(
+        'supabase/functions/ai-document-draft/index.ts',
+      ),
+      'ai-operational-draft': aiOperationalSource(),
+    };
+
+    for (final entry in sources.entries) {
+      final edge = entry.value;
+      expect(edge, contains('auth.getUser()'), reason: entry.key);
+      expect(edge, contains('.from("user_profiles")'), reason: entry.key);
+      expect(edge, contains('.from("company_memberships")'), reason: entry.key);
+      expect(edge, contains('confirmation_required: true'), reason: entry.key);
+      expect(
+        edge,
+        isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
+        reason: entry.key,
+      );
+      expect(edge, isNot(contains('.insert(')), reason: entry.key);
+      expect(edge, isNot(contains('.update(')), reason: entry.key);
+      expect(edge, isNot(contains('.upsert(')), reason: entry.key);
+      expect(edge, isNot(contains('.delete(')), reason: entry.key);
     }
   });
 

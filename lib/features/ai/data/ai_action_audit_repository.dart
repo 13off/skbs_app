@@ -104,6 +104,12 @@ class AiActionAuditRecord {
       'prepare_document' => 'Подготовка документа',
       'prepare_timesheet_correction' => 'Корректировка табеля',
       'prepare_employee_update' => 'Изменение сотрудника',
+      'create_employee_draft' => 'Добавление сотрудника',
+      'prepare_payment' => 'Подготовка выплаты',
+      'find_missing_receipts' => 'Проверка отсутствующих чеков',
+      'open_period_timesheet' => 'Месячный табель',
+      'prepare_work_act' => 'Акт выполненных работ',
+      'prepare_candidate_documents' => 'Пакет документов кандидата',
       'create_reminder' => 'Создание напоминания',
       _ => type.isEmpty ? 'Действие ИИ' : type,
     };
