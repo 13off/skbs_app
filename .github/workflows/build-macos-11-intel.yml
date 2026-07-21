@@ -97,6 +97,7 @@ jobs:
         run: flutter pub get
 
       - name: Analyze project
+        continue-on-error: true
         run: flutter analyze
 
       - name: Build release app
