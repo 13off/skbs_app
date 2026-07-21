@@ -161,7 +161,12 @@ for select
 to authenticated
 using (
   bucket_id = 'document-templates'
-  and (select public.is_company_member(((storage.foldername(name))[1])::uuid))
+  and case
+    when coalesce((storage.foldername(name))[1], '')
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    then (select public.is_company_member(((storage.foldername(name))[1])::uuid))
+    else false
+  end
 );
 
 create policy document_templates_storage_insert
@@ -170,7 +175,12 @@ for insert
 to authenticated
 with check (
   bucket_id = 'document-templates'
-  and ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+  and case
+    when coalesce((storage.foldername(name))[1], '')
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    then ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+    else false
+  end
   and (select public.current_user_role()) in ('admin', 'developer', 'hr')
 );
 
@@ -180,12 +190,22 @@ for update
 to authenticated
 using (
   bucket_id = 'document-templates'
-  and ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+  and case
+    when coalesce((storage.foldername(name))[1], '')
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    then ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+    else false
+  end
   and (select public.current_user_role()) in ('admin', 'developer', 'hr')
 )
 with check (
   bucket_id = 'document-templates'
-  and ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+  and case
+    when coalesce((storage.foldername(name))[1], '')
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    then ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+    else false
+  end
   and (select public.current_user_role()) in ('admin', 'developer', 'hr')
 );
 
@@ -195,23 +215,62 @@ for delete
 to authenticated
 using (
   bucket_id = 'document-templates'
-  and ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+  and case
+    when coalesce((storage.foldername(name))[1], '')
+      ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    then ((storage.foldername(name))[1])::uuid = (select public.current_user_company_id())
+    else false
+  end
   and (select public.current_user_role()) in ('admin', 'developer', 'hr')
 );
 
-with template_seed(id, code, title, category, description, status) as (
-  values
-    ('10000000-0000-4000-8000-000000000001'::uuid, 'employment_application', 'Заявление на работу', 'hr', 'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.', 'active'),
-    ('10000000-0000-4000-8000-000000000002'::uuid, 'salary_transfer_application', 'Заявление о перечислении зарплаты', 'hr', 'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.', 'active'),
-    ('10000000-0000-4000-8000-000000000003'::uuid, 'personal_data_consent', 'Согласие на обработку персональных данных', 'hr', 'Требуется загрузить и утвердить форму ООО «СКБС». Чужие формы не используются.', 'review'),
-    ('10000000-0000-4000-8000-000000000004'::uuid, 'employment_contract', 'Трудовой договор', 'hr', 'Требуется загрузить и утвердить действующую форму ООО «СКБС». Типовой чужой договор не используется.', 'review')
-)
 insert into public.document_templates (
-  id, company_id, code, title, category, description, status, created_by
+  company_id,
+  code,
+  title,
+  category,
+  description,
+  status,
+  created_by
 )
-select id, null, code, title, category, description, status, null
-from template_seed
-on conflict (id) do update set
+values
+  (
+    null,
+    'employment_application',
+    'Заявление на работу',
+    'hr',
+    'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.',
+    'active',
+    null
+  ),
+  (
+    null,
+    'salary_transfer_application',
+    'Заявление о перечислении зарплаты',
+    'hr',
+    'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.',
+    'active',
+    null
+  ),
+  (
+    null,
+    'personal_data_consent',
+    'Согласие на обработку персональных данных',
+    'hr',
+    'Требуется загрузить и утвердить форму ООО «СКБС». Чужие формы не используются.',
+    'review',
+    null
+  ),
+  (
+    null,
+    'employment_contract',
+    'Трудовой договор',
+    'hr',
+    'Требуется загрузить и утвердить действующую форму ООО «СКБС». Типовой чужой договор не используется.',
+    'review',
+    null
+  )
+on conflict (code) where company_id is null do update set
   title = excluded.title,
   category = excluded.category,
   description = excluded.description,
@@ -219,55 +278,65 @@ on conflict (id) do update set
   updated_at = now();
 
 insert into public.document_template_versions (
-  id, template_id, company_id, version_no, file_name, mime_type,
-  source_kind, external_url, field_schema, notes, is_approved, created_by
+  template_id,
+  company_id,
+  version_no,
+  file_name,
+  mime_type,
+  source_kind,
+  external_url,
+  field_schema,
+  notes,
+  is_approved,
+  created_by
 )
-values
-  (
-    '20000000-0000-4000-8000-000000000001'::uuid,
-    '10000000-0000-4000-8000-000000000001'::uuid,
-    null,
-    1,
-    'Заявление_на_работу.docx',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'external',
-    'https://drive.google.com/file/d/1QGZrmV2aaHA4oBA6QElv2w8aPAU6N59a/view',
-    '{}'::jsonb,
-    'Подключён оригинал из рабочего Drive. Форму не менять.',
-    true,
-    null
-  ),
-  (
-    '20000000-0000-4000-8000-000000000002'::uuid,
-    '10000000-0000-4000-8000-000000000002'::uuid,
-    null,
-    1,
-    'Заявление_о_перечислении_ЗП.docx',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'external',
-    'https://drive.google.com/file/d/1KJYAaHyv3dmipPnuSL_NDT5_z_K8dYN3/view',
-    '{}'::jsonb,
-    'Подключён оригинал из рабочего Drive. Форму не менять.',
-    true,
-    null
-  )
-on conflict (id) do update set
+select
+  template.id,
+  null,
+  1,
+  seed.file_name,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'external',
+  seed.external_url,
+  '{}'::jsonb,
+  'Подключён оригинал из рабочего Drive. Форму не менять.',
+  true,
+  null
+from (
+  values
+    (
+      'employment_application',
+      'Заявление_на_работу.docx',
+      'https://drive.google.com/file/d/1QGZrmV2aaHA4oBA6QElv2w8aPAU6N59a/view'
+    ),
+    (
+      'salary_transfer_application',
+      'Заявление_о_перечислении_ЗП.docx',
+      'https://drive.google.com/file/d/1KJYAaHyv3dmipPnuSL_NDT5_z_K8dYN3/view'
+    )
+) as seed(code, file_name, external_url)
+join public.document_templates template
+  on template.company_id is null
+  and template.code = seed.code
+on conflict (template_id, version_no) do update set
   file_name = excluded.file_name,
   mime_type = excluded.mime_type,
   source_kind = excluded.source_kind,
+  asset_path = null,
+  storage_path = null,
   external_url = excluded.external_url,
   notes = excluded.notes,
   is_approved = excluded.is_approved;
 
-update public.document_templates
-set current_version_id = case code
-  when 'employment_application' then '20000000-0000-4000-8000-000000000001'::uuid
-  when 'salary_transfer_application' then '20000000-0000-4000-8000-000000000002'::uuid
-  else current_version_id
-end,
-updated_at = now()
-where company_id is null
-  and code in ('employment_application', 'salary_transfer_application');
+update public.document_templates template
+set
+  current_version_id = version.id,
+  updated_at = now()
+from public.document_template_versions version
+where template.company_id is null
+  and template.code in ('employment_application', 'salary_transfer_application')
+  and version.template_id = template.id
+  and version.version_no = 1;
 
 comment on table public.document_templates is
   'Company-scoped and connected document template catalogue.';
