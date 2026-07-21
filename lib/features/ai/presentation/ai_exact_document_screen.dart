@@ -1,3 +1,4 @@
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -207,13 +208,23 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
       final result = ExactDocxService.build(
         templateCode: widget.templateCode,
         values: currentValues,
-        fileBaseName: '${widget.templateCode}_${controllers['employee_full_name']?.text ?? ''}',
+        fileBaseName:
+            '${widget.templateCode}_${controllers['employee_full_name']?.text ?? ''}',
       );
-      ExactDocxService.download(result);
+      final baseName = result.fileName.replaceFirst(
+        RegExp(r'\.docx$', caseSensitive: false),
+        '',
+      );
+      await FileSaver.instance.saveFile(
+        name: baseName,
+        bytes: result.bytes,
+        ext: 'docx',
+        mimeType: MimeType.microsoftWord,
+      );
       if (!mounted) return;
       setState(() => downloaded = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Оригинальный DOCX заполнен и скачан')),
+        const SnackBar(content: Text('Оригинальный DOCX заполнен и сохранён')),
       );
     } catch (error) {
       if (!mounted) return;
