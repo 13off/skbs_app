@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import 'adaptive_accounting_dashboard_screen.dart';
 import 'adaptive_accounting_payments_screen.dart';
 import 'adaptive_accounting_reports_screen.dart';
@@ -18,7 +19,7 @@ class AccountingMainScreen extends StatefulWidget {
 }
 
 class _AccountingMainScreenState extends State<AccountingMainScreen> {
-  static const int pageCount = 4;
+  static const int pageCount = 5;
 
   int currentIndex = 0;
   late final PageController controller;
@@ -49,7 +50,10 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
         ),
       1 => const AdaptiveAccountingPaymentsScreen(),
       2 => const AdaptiveAccountingReportsScreen(),
-      3 => ProfileScreen(profile: widget.profile),
+      3 => OperationalAuditLauncherScreen(
+          initialObjectName: widget.profile.objectName,
+        ),
+      4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -119,6 +123,11 @@ class _AccountingMainScreenState extends State<AccountingMainScreen> {
               label: 'Отчёты',
               icon: Icons.summarize_outlined,
               selectedIcon: Icons.summarize_rounded,
+            ),
+            ProfessionalBottomNavigationItem(
+              label: 'Контроль',
+              icon: Icons.fact_check_outlined,
+              selectedIcon: Icons.fact_check_rounded,
             ),
             ProfessionalBottomNavigationItem(
               label: 'Профиль',
