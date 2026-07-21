@@ -125,20 +125,66 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
     controllers.clear();
 
     final documentDate = widget.action.date('date') ?? DateTime.now();
+    final fullName = employee?.name ?? widget.action.text('employee_name');
     final employmentDate = _firstNotEmpty(<String>[
       privateData?.employmentStartDate ?? '',
       widget.action.text('employment_date'),
       DateFormat('dd.MM.yyyy').format(documentDate),
     ]);
     final values = <String, String>{
-      'employee_full_name': employee?.name ?? widget.action.text('employee_name'),
-      'employee_short_name': _shortName(
-        employee?.name ?? widget.action.text('employee_name'),
-      ),
+      'employee_full_name': fullName,
+      'employee_short_name': _shortName(fullName),
       'employee_position':
           employee?.position ?? widget.action.text('position_title'),
       'employment_date': employmentDate,
       'document_date': DateFormat('dd.MM.yyyy').format(documentDate),
+      'employee_phone': _firstNotEmpty(<String>[
+        privateData?.phone ?? '',
+        employee?.phone ?? '',
+        widget.action.text('phone'),
+      ]),
+      'employee_birth_date': privateData?.birthDate ?? '',
+      'employee_birth_place': privateData?.birthPlace ?? '',
+      'passport_series': privateData?.passportSeries ?? '',
+      'passport_number': privateData?.passportNumber ?? '',
+      'passport_issued_by': privateData?.passportIssuedBy ?? '',
+      'passport_issued_date': privateData?.passportIssuedDate ?? '',
+      'passport_department_code': privateData?.passportDepartmentCode ?? '',
+      'registration_address': privateData?.registrationAddress ?? '',
+      'living_address': _firstNotEmpty(<String>[
+        privateData?.livingAddress ?? '',
+        privateData?.registrationAddress ?? '',
+      ]),
+      'employee_inn': privateData?.inn ?? '',
+      'employee_snils': privateData?.snils ?? '',
+      'contract_number': _firstNotEmpty(<String>[
+        privateData?.contractNumber ?? '',
+        widget.action.text('contract_number'),
+      ]),
+      'contract_city': widget.action.text('contract_city'),
+      'employer_name': _firstNotEmpty(<String>[
+        widget.action.text('employer_name'),
+        'ООО «СКБС»',
+      ]),
+      'employer_representative': _firstNotEmpty(<String>[
+        widget.action.text('employer_representative'),
+        'генерального директора Ермолиной О.Б.',
+      ]),
+      'employer_basis': _firstNotEmpty(<String>[
+        widget.action.text('employer_basis'),
+        'Устава',
+      ]),
+      'employer_address': widget.action.text('employer_address'),
+      'employer_details': widget.action.text('employer_details'),
+      'work_address': _firstNotEmpty(<String>[
+        widget.action.text('work_address'),
+        widget.action.text('object_name'),
+      ]),
+      'work_schedule': _firstNotEmpty(<String>[
+        widget.action.text('work_schedule'),
+        'согласно утверждённому графику работы',
+      ]),
+      'salary_terms': widget.action.text('salary_terms'),
       'bank_account': privateData?.bankAccount ?? '',
       'bank_name': privateData?.bankName ?? '',
       'bank_bik': privateData?.bankBik ?? '',
@@ -224,7 +270,7 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
       if (!mounted) return;
       setState(() => downloaded = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Оригинальный DOCX заполнен и сохранён')),
+        const SnackBar(content: Text('DOCX заполнен и сохранён')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -241,6 +287,28 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
       'employee_position' => 'Должность',
       'employment_date' => 'Дата приёма',
       'document_date' => 'Дата документа',
+      'employee_phone' => 'Телефон',
+      'employee_birth_date' => 'Дата рождения',
+      'employee_birth_place' => 'Место рождения',
+      'passport_series' => 'Серия паспорта',
+      'passport_number' => 'Номер паспорта',
+      'passport_issued_by' => 'Кем выдан паспорт',
+      'passport_issued_date' => 'Дата выдачи паспорта',
+      'passport_department_code' => 'Код подразделения',
+      'registration_address' => 'Адрес регистрации',
+      'living_address' => 'Адрес проживания',
+      'employee_inn' => 'ИНН сотрудника',
+      'employee_snils' => 'СНИЛС сотрудника',
+      'contract_number' => 'Номер договора',
+      'contract_city' => 'Город заключения договора',
+      'employer_name' => 'Работодатель',
+      'employer_representative' => 'Представитель работодателя',
+      'employer_basis' => 'Основание полномочий',
+      'employer_address' => 'Адрес работодателя',
+      'employer_details' => 'Реквизиты работодателя',
+      'work_address' => 'Место работы',
+      'work_schedule' => 'Режим работы',
+      'salary_terms' => 'Условия оплаты труда',
       'bank_account' => 'Расчётный счёт',
       'bank_name' => 'Наименование банка',
       'bank_bik' => 'БИК',
@@ -265,7 +333,22 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
       'bank_kpp' ||
       'bank_okpo' ||
       'bank_ogrn' => TextInputType.number,
+      'employee_phone' => TextInputType.phone,
       _ => TextInputType.text,
+    };
+  }
+
+  int _maxLines(String field) {
+    return switch (field) {
+      'passport_issued_by' ||
+      'registration_address' ||
+      'living_address' ||
+      'employer_address' ||
+      'employer_details' ||
+      'work_address' ||
+      'work_schedule' ||
+      'salary_terms' => 3,
+      _ => 1,
     };
   }
 
@@ -290,18 +373,20 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Оригинальная форма ООО «СКБС»',
-                                style: TextStyle(
+                              Text(
+                                info?.legalReviewRequired == true
+                                    ? 'Рабочий кадровый черновик'
+                                    : 'Оригинальная форма ООО «СКБС»',
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Структура, таблицы и поля формы сохраняются. '
-                                'Реквизиты подставляются локально и не передаются ИИ. '
-                                'Подпись и отправка не выполняются.',
+                                info?.legalReviewRequired == true
+                                    ? 'Форма собрана по проверенному исходнику. Перед подписанием проверь реквизиты работодателя, условия договора и действующую редакцию. Закрытые данные подставляются локально и не передаются ИИ.'
+                                    : 'Структура, таблицы и поля формы сохраняются. Реквизиты подставляются локально и не передаются ИИ. Подпись и отправка не выполняются.',
                                 style: TextStyle(
                                   color: Theme.of(context)
                                       .colorScheme
@@ -322,6 +407,8 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
                           TextField(
                             controller: entry.value,
                             keyboardType: _keyboardType(entry.key),
+                            minLines: 1,
+                            maxLines: _maxLines(entry.key),
                             decoration: InputDecoration(
                               labelText: _fieldTitle(entry.key),
                               border: const OutlineInputBorder(),
@@ -357,7 +444,7 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
                           label: Text(
                             building
                                 ? 'Собираем DOCX…'
-                                : 'Скачать заполненный оригинал',
+                                : 'Скачать заполненный документ',
                           ),
                         ),
                         if (downloaded) ...[
