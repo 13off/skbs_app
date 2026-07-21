@@ -121,7 +121,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
           }
           final data = response.data;
           if (data is! Map || data['error'] != null) {
-            throw Exception(data is Map ? data['error'] ?? 'Некорректный ответ' : 'Некорректный ответ');
+            throw Exception(
+              data is Map ? data['error'] ?? 'Некорректный ответ' : 'Некорректный ответ',
+            );
           }
         },
       ),
@@ -263,13 +265,11 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
     return AppPage(
       title: 'Готовность и диагностика',
       subtitle: 'Безопасные read-only проверки production-контура',
-      actions: [
-        IconButton(
-          tooltip: 'Проверить снова',
-          onPressed: loading ? null : runChecks,
-          icon: const Icon(Icons.refresh_rounded),
-        ),
-      ],
+      headerTrailing: IconButton(
+        tooltip: 'Проверить снова',
+        onPressed: loading ? null : runChecks,
+        icon: const Icon(Icons.refresh_rounded),
+      ),
       child: loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
