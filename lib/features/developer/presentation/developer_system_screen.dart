@@ -9,6 +9,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../company/presentation/company_management_screen.dart';
 import 'developer_constructor_screen.dart';
+import 'developer_readiness_screen.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -148,6 +149,17 @@ class DeveloperSystemScreen extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
               ),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.health_and_safety_outlined,
+            title: 'Готовность и диагностика',
+            subtitle:
+                'Проверить сессию, RLS, базу, ограничения, шаблоны, Edge Function и production-gates.',
+            onTap: () => open(
+              context,
+              DeveloperReadinessScreen(profile: profile),
             ),
           ),
           actionCard(
