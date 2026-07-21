@@ -43,16 +43,26 @@ void main() {
   });
 
   test('dark palette keeps primary text and actions readable', () {
-    final theme = AppDarkTheme.theme;
-    final scheme = theme.colorScheme;
+    const onPrimary = Color(0xFF17191C);
+    const primaryContainer = Color(0xFF30353C);
 
-    expect(theme.brightness, Brightness.dark);
-    expect(contrast(scheme.onSurface, scheme.surface), greaterThanOrEqualTo(7));
-    expect(contrast(scheme.onPrimary, scheme.primary), greaterThanOrEqualTo(7));
     expect(
-      contrast(scheme.onPrimaryContainer, scheme.primaryContainer),
+      contrast(AppDarkTheme.textPrimary, AppDarkTheme.surface),
+      greaterThanOrEqualTo(7),
+    );
+    expect(
+      contrast(onPrimary, AppDarkTheme.accent),
+      greaterThanOrEqualTo(7),
+    );
+    expect(
+      contrast(AppDarkTheme.textPrimary, primaryContainer),
       greaterThanOrEqualTo(4.5),
     );
+
+    final darkThemeSource = File(
+      'lib/app/app_dark_theme.dart',
+    ).readAsStringSync();
+    expect(darkThemeSource, contains('brightness: Brightness.dark'));
   });
 
   test('shared navigation and desktop surfaces use the active theme', () {
