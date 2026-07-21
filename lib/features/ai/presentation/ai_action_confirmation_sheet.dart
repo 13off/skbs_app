@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../screens/period_timesheet/period_timesheet_launch_intent.dart';
 import '../models/ai_assistant_result.dart';
 
 class AiActionConfirmationSheet extends StatelessWidget {
@@ -149,6 +150,13 @@ class AiActionConfirmationSheet extends StatelessWidget {
     };
   }
 
+  void _confirm(BuildContext context) {
+    if (action.type == 'open_period_timesheet') {
+      PeriodTimesheetLaunchIntent.setFromYearMonth(action.text('month'));
+    }
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -242,7 +250,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => _confirm(context),
                       child: Text(confirmationLabel),
                     ),
                   ),
