@@ -86,12 +86,16 @@ void main() {
     final repository = File(
       'lib/features/recruitment/data/candidate_onboarding_repository.dart',
     ).readAsStringSync();
+    final complianceRepository = File(
+      'lib/features/compliance/data/company_compliance_repository.dart',
+    ).readAsStringSync();
 
     expect(repository, contains('_assertDocumentAccessAllowed'));
     expect(repository, contains("action: 'generate'"));
-    expect(repository, contains("action: 'upload'"));
+    expect(repository, contains("action: replacing ? 'replace' : 'upload'"));
     expect(repository, contains("action: 'view'"));
-    expect(repository, contains('personal_data_access_log'));
+    expect(repository, contains('CompanyComplianceRepository.logAccess'));
+    expect(complianceRepository, contains("from('personal_data_access_log')"));
   });
 
   test('миграции создают защищённый compliance и mobilization контур', () {
