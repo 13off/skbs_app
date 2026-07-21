@@ -31,9 +31,10 @@ create table if not exists public.document_template_versions (
   version_no integer not null check (version_no > 0),
   file_name text not null,
   mime_type text not null,
-  source_kind text not null check (source_kind in ('asset', 'storage')),
+  source_kind text not null check (source_kind in ('asset', 'storage', 'external')),
   asset_path text,
   storage_path text,
+  external_url text,
   field_schema jsonb not null default '{}'::jsonb,
   notes text not null default '',
   is_approved boolean not null default false,
@@ -41,9 +42,11 @@ create table if not exists public.document_template_versions (
   created_at timestamptz not null default now(),
   unique (template_id, version_no),
   check (
-    (source_kind = 'asset' and asset_path is not null and storage_path is null)
+    (source_kind = 'asset' and asset_path is not null and storage_path is null and external_url is null)
     or
-    (source_kind = 'storage' and storage_path is not null and asset_path is null)
+    (source_kind = 'storage' and storage_path is not null and asset_path is null and external_url is null)
+    or
+    (source_kind = 'external' and external_url is not null and asset_path is null and storage_path is null)
   )
 );
 
@@ -198,8 +201,8 @@ using (
 
 with template_seed(id, code, title, category, description, status) as (
   values
-    ('10000000-0000-4000-8000-000000000001'::uuid, 'employment_application', 'Заявление на работу', 'hr', 'Официальный пустой бланк ООО «СКБС».', 'active'),
-    ('10000000-0000-4000-8000-000000000002'::uuid, 'salary_transfer_application', 'Заявление о перечислении зарплаты', 'hr', 'Официальный пустой бланк ООО «СКБС».', 'active'),
+    ('10000000-0000-4000-8000-000000000001'::uuid, 'employment_application', 'Заявление на работу', 'hr', 'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.', 'active'),
+    ('10000000-0000-4000-8000-000000000002'::uuid, 'salary_transfer_application', 'Заявление о перечислении зарплаты', 'hr', 'Официальный пустой бланк ООО «СКБС» из рабочего Google Drive.', 'active'),
     ('10000000-0000-4000-8000-000000000003'::uuid, 'personal_data_consent', 'Согласие на обработку персональных данных', 'hr', 'Требуется загрузить и утвердить форму ООО «СКБС». Чужие формы не используются.', 'review'),
     ('10000000-0000-4000-8000-000000000004'::uuid, 'employment_contract', 'Трудовой договор', 'hr', 'Требуется загрузить и утвердить действующую форму ООО «СКБС». Типовой чужой договор не используется.', 'review')
 )
@@ -217,7 +220,7 @@ on conflict (id) do update set
 
 insert into public.document_template_versions (
   id, template_id, company_id, version_no, file_name, mime_type,
-  source_kind, asset_path, field_schema, notes, is_approved, created_by
+  source_kind, external_url, field_schema, notes, is_approved, created_by
 )
 values
   (
@@ -227,10 +230,10 @@ values
     1,
     'Заявление_на_работу.docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'asset',
-    'assets/templates/Заявление_на_работу.docx',
+    'external',
+    'https://drive.google.com/file/d/1QGZrmV2aaHA4oBA6QElv2w8aPAU6N59a/view',
     '{}'::jsonb,
-    'Исходный бланк ООО «СКБС». Форму не менять.',
+    'Подключён оригинал из рабочего Drive. Форму не менять.',
     true,
     null
   ),
@@ -241,17 +244,18 @@ values
     1,
     'Заявление_о_перечислении_ЗП.docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'asset',
-    'assets/templates/Заявление_о_перечислении_ЗП.docx',
+    'external',
+    'https://drive.google.com/file/d/1KJYAaHyv3dmipPnuSL_NDT5_z_K8dYN3/view',
     '{}'::jsonb,
-    'Исходный бланк ООО «СКБС». Форму не менять.',
+    'Подключён оригинал из рабочего Drive. Форму не менять.',
     true,
     null
   )
 on conflict (id) do update set
   file_name = excluded.file_name,
   mime_type = excluded.mime_type,
-  asset_path = excluded.asset_path,
+  source_kind = excluded.source_kind,
+  external_url = excluded.external_url,
   notes = excluded.notes,
   is_approved = excluded.is_approved;
 
@@ -266,6 +270,6 @@ where company_id is null
   and code in ('employment_application', 'salary_transfer_application');
 
 comment on table public.document_templates is
-  'Company-scoped and bundled document template catalogue.';
+  'Company-scoped and connected document template catalogue.';
 comment on table public.document_template_versions is
   'Immutable source-file versions for document templates.';
