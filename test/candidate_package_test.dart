@@ -49,13 +49,17 @@ void main() {
 
     expect(result.fileName, 'Пакет_Иванов_Иван_Иванович_20260721.zip');
     expect(result.includedFiles, 4);
+    expect(result.sourceBytes, 6);
+    expect(result.archiveBytes, greaterThan(0));
     final archive = ZipDecoder().decodeBytes(result.bytes);
     final paths = archive.files.map((file) => file.name).toList();
     expect(paths, contains('00_ПРОВЕРИТЬ_ПЕРЕД_ПЕЧАТЬЮ.txt'));
     expect(
-      paths.any((path) => path.startsWith(
-        '01_Сформированные_формы/Заявление_на_работу_',
-      )),
+      paths.any(
+        (path) => path.startsWith(
+          '01_Сформированные_формы/Заявление_на_работу_',
+        ),
+      ),
       isTrue,
     );
     expect(
@@ -119,6 +123,41 @@ void main() {
     );
   });
 
+  test('имена вложений очищаются и не повторяются без обозначения', () {
+    final result = CandidatePackageArchive.build(
+      action: action,
+      generatedAt: DateTime(2026, 7, 21),
+      warnings: const <String>[],
+      attachments: <CandidatePackageAttachment>[
+        CandidatePackageAttachment(
+          documentType: 'passport',
+          fileName: '../passport.pdf',
+          bytes: Uint8List.fromList(<int>[1]),
+        ),
+        CandidatePackageAttachment(
+          documentType: 'passport',
+          fileName: 'passport.pdf',
+          bytes: Uint8List.fromList(<int>[2]),
+        ),
+      ],
+    );
+    final paths = ZipDecoder()
+        .decodeBytes(result.bytes)
+        .files
+        .map((file) => file.name)
+        .toList();
+
+    expect(
+      paths,
+      contains('02_Полученные_документы/01_passport.pdf'),
+    );
+    expect(
+      paths,
+      contains('02_Полученные_документы/02_passport_2.pdf'),
+    );
+    expect(paths.any((path) => path.contains('..')), isFalse);
+  });
+
   test('файлы кандидата читаются только клиентом после RLS', () {
     final repository = File(
       'lib/features/recruitment/data/candidate_document_repository.dart',
@@ -130,20 +169,37 @@ void main() {
       'lib/features/ai/presentation/ai_operational_report_screen.dart',
     ).readAsStringSync();
     final edge = <String>[
-      File('supabase/functions/ai-operational-draft/shared.ts').readAsStringSync(),
-      File('supabase/functions/ai-operational-draft/report_actions.ts')
-          .readAsStringSync(),
+      File(
+        'supabase/functions/ai-operational-draft/shared.ts',
+      ).readAsStringSync(),
+      File(
+        'supabase/functions/ai-operational-draft/report_actions.ts',
+      ).readAsStringSync(),
     ].join('\n');
 
     expect(repository, contains(".from('recruitment_documents')"));
     expect(repository, contains('.storage.from(file.bucket).download'));
     expect(repository, contains(".eq('is_test_copy', false)"));
     expect(service, contains('CandidateDocumentRepository.download'));
+    expect(service, contains("action.boolean('consent_personal_data')"));
+    expect(service, contains('kIsWeb'));
+    expect(service, contains('FileSaver.instance.saveFile'));
+    expect(service, isNot(contains('universal_html')));
     expect(screen, contains("'Скачать пакет кандидата ZIP'"));
+    expect(screen, contains('Нужно согласие кандидата'));
     expect(screen, contains('ZIP собирается локально'));
     expect(edge, contains('ready_date'));
     expect(edge, isNot(contains('storage_path')));
     expect(edge, isNot(contains('storage_bucket')));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
+  });
+
+  test('CI проверяет изменения Edge Functions', () {
+    final workflow = File(
+      '.github/workflows/pr-check.yml',
+    ).readAsStringSync();
+
+    expect(workflow, contains('supabase/functions/**'));
+    expect(workflow, contains('deno check'));
   });
 }
