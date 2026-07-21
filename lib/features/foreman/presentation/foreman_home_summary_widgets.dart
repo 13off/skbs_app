@@ -42,7 +42,7 @@ class ForemanShiftIdentity extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: specialistLine),
+        side: BorderSide(color: specialistLine),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -59,7 +59,7 @@ class ForemanShiftIdentity extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.lock_outline_rounded,
                       color: specialistMuted,
                     ),
@@ -69,13 +69,13 @@ class ForemanShiftIdentity extends StatelessWidget {
                         objectName.isEmpty ? 'Объект не назначен' : objectName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: specialistText,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                    const SpecialistStatusPill(
+                    SpecialistStatusPill(
                       label: 'Объект прораба',
                       color: specialistMuted,
                     ),
@@ -94,14 +94,14 @@ class ForemanShiftIdentity extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_month_outlined,
                     color: specialistMuted,
                   ),
                   const SizedBox(width: 10),
                   Text(
                     dateText(AppState.today),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: specialistMuted,
                       fontWeight: FontWeight.w800,
                     ),

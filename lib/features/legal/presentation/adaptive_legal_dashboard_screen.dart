@@ -172,7 +172,7 @@ class _DesktopLegalDashboardScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'Подписание, сроки, исправления и согласования',
             style: TextStyle(
               color: specialistMuted,
@@ -250,7 +250,7 @@ class _DesktopLegalDashboardScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'Высокие риски, просрочки и вопросы руководителю',
             style: TextStyle(
               color: specialistMuted,

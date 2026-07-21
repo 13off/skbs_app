@@ -64,7 +64,7 @@ class ForemanTaskToolbar extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(26),
-        side: const BorderSide(color: specialistLine),
+        side: BorderSide(color: specialistLine),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -90,7 +90,7 @@ class ForemanTaskToolbar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.calendar_month_outlined, color: specialistMuted),
+                    Icon(Icons.calendar_month_outlined, color: specialistMuted),
                     const SizedBox(width: 10),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -98,14 +98,14 @@ class ForemanTaskToolbar extends StatelessWidget {
                       children: [
                         Text(
                           DateFormat('dd.MM.yyyy').format(selectedDate),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: specialistText,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
                           longDate(selectedDate),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: specialistMuted,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -174,7 +174,7 @@ class ForemanTaskFilters extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(26),
-        side: const BorderSide(color: specialistLine),
+        side: BorderSide(color: specialistLine),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -204,7 +204,7 @@ class ForemanTaskFilters extends StatelessWidget {
               children: [
                 Expanded(
                   child: InputDecorator(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Объект',
                       prefixIcon: Icon(Icons.lock_outline_rounded),
                       filled: true,
@@ -222,7 +222,7 @@ class ForemanTaskFilters extends StatelessWidget {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: status == 'Все статусы' ? null : status,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Статус',
                       filled: true,
                       fillColor: specialistSoft,
@@ -246,7 +246,7 @@ class ForemanTaskFilters extends StatelessWidget {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: assignee,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Исполнитель',
                       filled: true,
                       fillColor: specialistSoft,

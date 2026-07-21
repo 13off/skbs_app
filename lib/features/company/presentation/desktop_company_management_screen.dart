@@ -530,7 +530,7 @@ class _DesktopCompanyManagementScreenState
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: specialistText,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -539,7 +539,7 @@ class _DesktopCompanyManagementScreenState
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: specialistMuted,
                     fontWeight: FontWeight.w600,
                   ),
@@ -627,7 +627,7 @@ class _DesktopCompanyManagementScreenState
               color: specialistMuted,
             ),
             editable
-                ? const Icon(
+                ? Icon(
                     Icons.chevron_right_rounded,
                     color: specialistMuted,
                   )

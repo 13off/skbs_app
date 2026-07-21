@@ -59,7 +59,7 @@ class ForemanTodayTasks extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,7 +163,7 @@ class ForemanOverdueTasks extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(4, 2, 4, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

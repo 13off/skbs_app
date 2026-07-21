@@ -493,7 +493,7 @@ class _DesktopAccountingPaymentsScreenState
           ),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               color: specialistMuted,
               fontWeight: FontWeight.w600,
             ),
