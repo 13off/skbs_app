@@ -20,6 +20,7 @@ void main() {
       'phone': '+7 999 000-00-00',
       'citizenship': 'РФ',
       'position_title': 'Бетонщик',
+      'object_name': 'Мурманск',
       'status': 'documents',
       'ready_date': '2026-08-01',
       'consent_personal_data': true,
@@ -28,14 +29,14 @@ void main() {
     },
   );
 
-  test('ZIP содержит заполненное заявление, манифест и полученные файлы', () {
+  test('ZIP содержит четыре формы, манифест и полученные файлы', () {
     final result = CandidatePackageArchive.build(
       action: action,
       generatedAt: DateTime(2026, 7, 21, 10, 30),
       warnings: const <String>[],
       attachments: <CandidatePackageAttachment>[
         CandidatePackageAttachment(
-          documentType: 'passport',
+          documentType: 'passport_main',
           fileName: 'passport.pdf',
           bytes: Uint8List.fromList(<int>[1, 2, 3]),
         ),
@@ -48,35 +49,44 @@ void main() {
     );
 
     expect(result.fileName, 'Пакет_Иванов_Иван_Иванович_20260721.zip');
-    expect(result.includedFiles, 4);
+    expect(result.includedFiles, 7);
     expect(result.sourceBytes, 6);
     expect(result.archiveBytes, greaterThan(0));
     final archive = ZipDecoder().decodeBytes(result.bytes);
     final paths = archive.files.map((file) => file.name).toList();
     expect(paths, contains('00_ПРОВЕРИТЬ_ПЕРЕД_ПЕЧАТЬЮ.txt'));
+    expect(paths.where((path) => path.endsWith('.docx')).length, 4);
+    expect(
+      paths.any((path) => path.contains('Заявление_на_работу_')),
+      isTrue,
+    );
+    expect(
+      paths.any((path) => path.contains('Заявление_о_перечислении_зарплаты_')),
+      isTrue,
+    );
     expect(
       paths.any(
-        (path) => path.startsWith(
-          '01_Сформированные_формы/Заявление_на_работу_',
+        (path) => path.contains(
+          'Согласие_на_обработку_персональных_данных_',
         ),
       ),
       isTrue,
     );
     expect(
-      paths,
-      contains('02_Полученные_документы/01_passport.pdf'),
+      paths.any((path) => path.contains('Трудовой_договор_')),
+      isTrue,
     );
-    expect(
-      paths,
-      contains('02_Полученные_документы/02_snils.jpg'),
-    );
+    expect(paths, contains('02_Полученные_документы/01_passport.pdf'));
+    expect(paths, contains('02_Полученные_документы/02_snils.jpg'));
 
     final manifest = archive.findFile('00_ПРОВЕРИТЬ_ПЕРЕД_ПЕЧАТЬЮ.txt');
     final manifestText = utf8.decode(manifest!.content as List<int>);
     expect(manifestText, contains('Иванов Иван Иванович'));
     expect(manifestText, contains('Дата готовности: 2026-08-01'));
+    expect(manifestText, contains('Объект: Мурманск'));
     expect(manifestText, contains('— ИНН'));
-    expect(manifestText, contains('не добавлено без банковских реквизитов'));
+    expect(manifestText, contains('Заявление о перечислении зарплаты: добавлено'));
+    expect(manifestText, contains('проверить'));
     expect(manifestText, contains('Документы не подписаны и не отправлены'));
   });
 
@@ -89,7 +99,7 @@ void main() {
     );
     final package = ZipDecoder().decodeBytes(result.bytes);
     final docx = package.files.firstWhere(
-      (file) => file.name.endsWith('.docx'),
+      (file) => file.name.contains('Заявление_на_работу_'),
     );
     final nested = ZipDecoder().decodeBytes(docx.content as List<int>);
     final document = nested.findFile('word/document.xml');
@@ -101,25 +111,26 @@ void main() {
     expect(xml, isNot(contains('{{')));
   });
 
-  test('пакет не выдумывает зарплатную форму без реквизитов', () {
+  test('неизвестные реквизиты остаются пустыми линиями', () {
     final result = CandidatePackageArchive.build(
       action: action,
       generatedAt: DateTime(2026, 7, 21),
       warnings: const <String>[],
       attachments: const <CandidatePackageAttachment>[],
     );
-    final paths = ZipDecoder()
-        .decodeBytes(result.bytes)
-        .files
-        .map((file) => file.name)
-        .toList();
+    final package = ZipDecoder().decodeBytes(result.bytes);
+    final salary = package.files.firstWhere(
+      (file) => file.name.contains('Заявление_о_перечислении_зарплаты_'),
+    );
+    final nested = ZipDecoder().decodeBytes(salary.content as List<int>);
+    final document = nested.findFile('word/document.xml');
+    final xml = utf8.decode(document!.content as List<int>);
 
-    expect(paths.any((path) => path.contains('перечислен')), isFalse);
+    expect(xml, contains('________________'));
+    expect(result.warnings.any((item) => item.contains('банковские')), isTrue);
     expect(
-      result.warnings,
-      contains(
-        'Заявление на перечисление зарплаты не включено без проверенных банковских реквизитов кандидата.',
-      ),
+      result.warnings.any((item) => item.contains('рабочими черновиками')),
+      isTrue,
     );
   });
 
@@ -130,12 +141,12 @@ void main() {
       warnings: const <String>[],
       attachments: <CandidatePackageAttachment>[
         CandidatePackageAttachment(
-          documentType: 'passport',
+          documentType: 'passport_main',
           fileName: '../passport.pdf',
           bytes: Uint8List.fromList(<int>[1]),
         ),
         CandidatePackageAttachment(
-          documentType: 'passport',
+          documentType: 'passport_main',
           fileName: 'passport.pdf',
           bytes: Uint8List.fromList(<int>[2]),
         ),
@@ -147,14 +158,8 @@ void main() {
         .map((file) => file.name)
         .toList();
 
-    expect(
-      paths,
-      contains('02_Полученные_документы/01_passport.pdf'),
-    );
-    expect(
-      paths,
-      contains('02_Полученные_документы/02_passport_2.pdf'),
-    );
+    expect(paths, contains('02_Полученные_документы/01_passport.pdf'));
+    expect(paths, contains('02_Полученные_документы/02_passport_2.pdf'));
     expect(paths.any((path) => path.contains('..')), isFalse);
   });
 
@@ -184,11 +189,14 @@ void main() {
     expect(service, contains("action.boolean('consent_personal_data')"));
     expect(service, contains('kIsWeb'));
     expect(service, contains('FileSaver.instance.saveFile'));
-    expect(service, isNot(contains('universal_html')));
-    expect(screen, contains("'Скачать пакет кандидата ZIP'"));
+    expect(service, isNot(contains('universal_html'));
+    expect(screen, contains("'Скачать кадровый пакет ZIP'"));
+    expect(screen, contains('Создать сотрудника из кандидата'));
     expect(screen, contains('Нужно согласие кандидата'));
     expect(screen, contains('ZIP собирается локально'));
     expect(edge, contains('ready_date'));
+    expect(edge, contains('passport_main'));
+    expect(edge, contains('object_name: candidateObjectName'));
     expect(edge, isNot(contains('storage_path')));
     expect(edge, isNot(contains('storage_bucket')));
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
