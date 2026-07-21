@@ -3,13 +3,15 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('HR получает отдельную вкладку оформления', () {
+  test('HR получает отдельные вкладки оформления и выхода', () {
     final main = File(
       'lib/features/recruitment/presentation/recruitment_main_screen.dart',
     ).readAsStringSync();
     expect(main, contains('RecruitmentOnboardingScreen'));
+    expect(main, contains('RecruitmentMobilizationScreen'));
     expect(main, contains("label: 'Оформление'"));
-    expect(main, contains('pageCount = 4'));
+    expect(main, contains("label: 'Выход'"));
+    expect(main, contains('pageCount = 5'));
   });
 
   test('оформление сохраняет четыре независимых статуса форм', () {
@@ -33,6 +35,7 @@ void main() {
     expect(repository, contains('maxSignedFileBytes'));
     expect(repository, contains('.uploadBinary('));
     expect(repository, contains('.createSignedUrl('));
+    expect(repository, contains('_assertDocumentAccessAllowed'));
     expect(repository, isNot(contains('getPublicUrl')));
     expect(repository, isNot(contains('service_role')));
   });
@@ -46,6 +49,7 @@ void main() {
     expect(service, contains("'bank_account'"));
     expect(service, contains("'employee_snils'"));
     expect(service, contains('ExactDocxService.build'));
+    expect(service, contains('EmployerDocxProfileService.apply'));
     expect(service, contains('candidateOnboardingFormCodes'));
     expect(service, contains('ТЕСТ_'));
   });
@@ -64,15 +68,20 @@ void main() {
     expect(screen, isNot(contains(".from('employees').insert")));
   });
 
-  test('реальные документы не объявлены готовыми без legal review', () {
+  test('реальные документы блокируются runtime gate до legal approval', () {
     final service = File(
       'lib/features/recruitment/data/candidate_onboarding_package_service.dart',
     ).readAsStringSync();
-    final screen = File(
-      'lib/features/recruitment/presentation/recruitment_onboarding_screen.dart',
+    final repository = File(
+      'lib/features/recruitment/data/candidate_onboarding_repository.dart',
     ).readAsStringSync();
-    expect(service, contains('юридического утверждения'));
-    expect(screen, contains('production gate'));
-    expect(screen, contains('обезличенные или тестовые копии'));
+    final compliance = File(
+      'lib/features/compliance/presentation/company_compliance_screen.dart',
+    ).readAsStringSync();
+    expect(service, contains('compliance.realDocumentsAllowed'));
+    expect(service, contains('не утверждены юристом'));
+    expect(repository, contains('_assertDocumentAccessAllowed'));
+    expect(compliance, contains('Production gate персональных данных'));
+    expect(compliance, contains('тестовые и обезличенные записи'));
   });
 }

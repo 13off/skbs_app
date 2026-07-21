@@ -7,6 +7,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import 'recruitment_applications_screen.dart';
 import 'recruitment_dashboard_screen.dart';
+import 'recruitment_mobilization_screen.dart';
 import 'recruitment_onboarding_screen.dart';
 
 class RecruitmentMainScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class RecruitmentMainScreen extends StatefulWidget {
 }
 
 class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
-  static const int pageCount = 4;
+  static const int pageCount = 5;
 
   int currentIndex = 0;
   late final PageController controller;
@@ -54,7 +55,8 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
         ),
       1 => RecruitmentApplicationsScreen(profile: widget.profile),
       2 => RecruitmentOnboardingScreen(profile: widget.profile),
-      3 => ProfileScreen(profile: widget.profile),
+      3 => RecruitmentMobilizationScreen(profile: widget.profile),
+      4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -125,6 +127,11 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
               label: 'Оформление',
               icon: Icons.assignment_ind_outlined,
               selectedIcon: Icons.assignment_ind_rounded,
+            ),
+            ProfessionalBottomNavigationItem(
+              label: 'Выход',
+              icon: Icons.flight_takeoff_outlined,
+              selectedIcon: Icons.flight_takeoff_rounded,
             ),
             ProfessionalBottomNavigationItem(
               label: 'Профиль',

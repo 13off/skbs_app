@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/employee_private_data_repository.dart';
+import '../../compliance/data/company_compliance_repository.dart';
+import '../../documents/data/employer_docx_profile_service.dart';
 import '../../documents/data/exact_docx_service.dart';
 import '../models/candidate_onboarding_candidate.dart';
 import '../models/candidate_onboarding_models.dart';
@@ -46,13 +48,29 @@ abstract final class CandidateOnboardingPackageService {
       );
     }
 
+    final compliance = await CompanyComplianceRepository.fetchSnapshot(
+      candidate.companyId,
+    );
+    if (!candidate.isTestRecord && !compliance.realDocumentsAllowed) {
+      throw StateError(
+        'Production gate персональных данных закрыт. Для реального кандидата '
+        'нужно утвердить профиль работодателя и закрыть все доказательства gate.',
+      );
+    }
+
     final warnings = <String>[];
     final archive = Archive();
     final missingFieldsByForm = <String, List<String>>{};
     var includedFiles = 0;
     var totalBytes = 0;
 
-    final privateData = candidate.employeeId.isEmpty
+    if (candidate.isTestRecord) {
+      warnings.add(
+        'ТЕСТОВЫЙ РЕЖИМ: комплект нельзя использовать для реального трудоустройства.',
+      );
+    }
+
+    final privateData = candidate.isTestRecord || candidate.employeeId.isEmpty
         ? null
         : await EmployeePrivateDataRepository.fetchByEmployeeId(
             candidate.employeeId,
@@ -68,6 +86,7 @@ abstract final class CandidateOnboardingPackageService {
       dailyRate = (row?['daily_rate'] as num?)?.round() ?? 0;
     }
 
+    final employer = compliance.employer;
     final now = DateTime.now();
     final documentDate = DateFormat('dd.MM.yyyy').format(now);
     final readyDate = privateData?.employmentStartDate.trim().isNotEmpty == true
@@ -82,6 +101,10 @@ abstract final class CandidateOnboardingPackageService {
     final livingAddress = privateData?.livingAddress.trim().isNotEmpty == true
         ? privateData!.livingAddress.trim()
         : registrationAddress;
+    final representative = <String>[
+      employer.representativePosition.trim(),
+      employer.representativeName.trim(),
+    ].where((item) => item.isNotEmpty).join(' ');
 
     final values = <String, String>{
       'employee_full_name': candidate.fullName,
@@ -91,15 +114,16 @@ abstract final class CandidateOnboardingPackageService {
       'employment_date': readyDate,
       'document_date': documentDate,
       'work_address': candidate.objectName,
-      'employer_name': 'ООО «СКБС»',
-      'employer_representative': 'генерального директора Ермолиной О.Б.',
-      'employer_basis': 'Устава',
-      'work_schedule': 'согласно утверждённому графику работы',
-      'salary_terms': dailyRate > 0
-          ? 'дневная ставка $dailyRate ₽, начисление по данным табеля'
-          : '',
+      'employer_name': employer.legalName,
+      'employer_representative': representative,
+      'employer_basis': employer.representativeBasis,
+      'work_schedule': employer.workSchedule,
+      'salary_terms': _salaryTerms(
+        employer.salaryTermsTemplate,
+        dailyRate,
+      ),
       'contract_number': privateData?.contractNumber ?? '',
-      'contract_city': '',
+      'contract_city': employer.contractCity,
       'employee_birth_date': privateData?.birthDate ?? '',
       'employee_birth_place': privateData?.birthPlace ?? '',
       'passport_series': privateData?.passportSeries ?? '',
@@ -122,20 +146,25 @@ abstract final class CandidateOnboardingPackageService {
       'bank_swift': privateData?.bankSwift ?? '',
       'bank_address': privateData?.bankAddress ?? '',
       'bank_office_address': privateData?.bankOfficeAddress ?? '',
-      'employer_address': '',
-      'employer_details': '',
+      'employer_address': employer.legalAddress,
+      'employer_details': employer.employerDetails,
     };
 
     for (final code in candidateOnboardingFormCodes) {
-      final generated = ExactDocxService.build(
+      final raw = ExactDocxService.build(
         templateCode: code,
         values: values,
         fileBaseName: '${candidateOnboardingFormTitle(code)}_${candidate.fullName}',
       );
+      final generated = EmployerDocxProfileService.apply(
+        source: raw,
+        employerName: employer.legalName,
+        representativeName: employer.representativeName,
+      );
       missingFieldsByForm[code] = generated.missingFields;
       _addBytes(
         archive,
-        '01_Формы/${generated.fileName}',
+        '01_Формы/${candidate.isTestRecord ? 'ТЕСТ_' : ''}${generated.fileName}',
         generated.bytes,
       );
       includedFiles++;
@@ -145,19 +174,14 @@ abstract final class CandidateOnboardingPackageService {
       companyId: candidate.companyId,
       applicationId: candidate.id,
     );
-    final realDocuments = documents
-        .where((item) => item.isStored && !item.isTestCopy)
+    final selectedDocuments = documents
+        .where(
+          (item) => item.isStored &&
+              (candidate.isTestRecord ? item.isTestCopy : !item.isTestCopy),
+        )
         .toList(growable: false);
-    final testDocuments = documents
-        .where((item) => item.isStored && item.isTestCopy)
-        .toList(growable: false);
-    final selectedDocuments = realDocuments.isNotEmpty
-        ? realDocuments
-        : testDocuments;
-    if (realDocuments.isEmpty && testDocuments.isNotEmpty) {
-      warnings.add(
-        'В пакет добавлены только тестовые копии документов. Они не подходят для реального оформления.',
-      );
+    if (candidate.isTestRecord && selectedDocuments.isEmpty) {
+      warnings.add('У тестовой записи нет тестовых копий исходных документов.');
     }
 
     final usedNames = <String>{};
@@ -201,14 +225,21 @@ abstract final class CandidateOnboardingPackageService {
       warnings.add(
         'Кандидат ещё не связан с сотрудником: паспортные и банковские реквизиты в формах не подставлены.',
       );
-    } else if (privateData == null) {
+    } else if (!candidate.isTestRecord && privateData == null) {
       warnings.add(
         'У сотрудника нет закрытой карточки личных данных: часть полей форм осталась пустой.',
       );
     }
-    warnings.add(
-      'Согласие и трудовой договор требуют юридического утверждения реквизитов работодателя перед реальным подписанием.',
-    );
+    if (!employer.legalDocumentsApproved) {
+      warnings.add(
+        'Согласие и трудовой договор не утверждены юристом. Реальное подписание запрещено.',
+      );
+    }
+    if (!employer.hasRequiredEmployerDetails) {
+      warnings.add(
+        'В профиле работодателя заполнены не все обязательные реквизиты.',
+      );
+    }
 
     final manifest = _manifest(
       candidate: candidate,
@@ -216,6 +247,8 @@ abstract final class CandidateOnboardingPackageService {
       missingFieldsByForm: missingFieldsByForm,
       warnings: warnings,
       selectedDocuments: selectedDocuments,
+      employerName: employer.legalName,
+      gateEnabled: compliance.realDocumentsAllowed,
     );
     _addBytes(
       archive,
@@ -234,7 +267,8 @@ abstract final class CandidateOnboardingPackageService {
     }
     return CandidateOnboardingPackageResult(
       bytes: bytes,
-      fileName: 'Кадровый_комплект_${_safeName(candidate.fullName)}_'
+      fileName: '${candidate.isTestRecord ? 'ТЕСТ_' : ''}'
+          'Кадровый_комплект_${_safeName(candidate.fullName)}_'
           '${DateFormat('yyyyMMdd').format(now)}.zip',
       missingFieldsByForm: Map<String, List<String>>.unmodifiable(
         missingFieldsByForm,
@@ -259,6 +293,8 @@ abstract final class CandidateOnboardingPackageService {
     required Map<String, List<String>> missingFieldsByForm,
     required List<String> warnings,
     required List<RecruitmentDocument> selectedDocuments,
+    required String employerName,
+    required bool gateEnabled,
   }) {
     final forms = candidateOnboardingFormCodes.map((code) {
       final missing = missingFieldsByForm[code] ?? const <String>[];
@@ -275,6 +311,9 @@ abstract final class CandidateOnboardingPackageService {
         : warnings.map((item) => '— $item').join('\n');
     return '''КАДРОВЫЙ КОМПЛЕКТ КАНДИДАТА
 
+Режим: ${candidate.isTestRecord ? 'ТЕСТОВЫЙ' : 'РЕАЛЬНЫЙ'}
+Production gate: ${gateEnabled ? 'ОТКРЫТ' : 'ЗАКРЫТ'}
+Работодатель: ${employerName.trim().isEmpty ? 'не заполнен' : employerName}
 Кандидат: ${candidate.fullName}
 Должность: ${candidate.positionTitle}
 Объект: ${candidate.objectName}
@@ -299,6 +338,16 @@ $warningText
 4. Загрузить подписанные экземпляры в AppСтрой.
 5. Не использовать тестовые копии для реального оформления.
 ''';
+  }
+
+  static String _salaryTerms(String template, int dailyRate) {
+    final clean = template.trim();
+    if (clean.isNotEmpty) {
+      return clean.replaceAll('{daily_rate}', dailyRate > 0 ? '$dailyRate' : '');
+    }
+    return dailyRate > 0
+        ? 'дневная ставка $dailyRate ₽, начисление по данным табеля'
+        : '';
   }
 
   static void _addBytes(Archive archive, String path, Uint8List bytes) {

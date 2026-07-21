@@ -8,6 +8,7 @@ import '../../../screens/template_documents_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../company/presentation/company_management_screen.dart';
+import '../../compliance/presentation/company_compliance_screen.dart';
 import 'developer_constructor_screen.dart';
 import 'developer_readiness_screen.dart';
 
@@ -160,6 +161,17 @@ class DeveloperSystemScreen extends StatelessWidget {
             onTap: () => open(
               context,
               DeveloperReadinessScreen(profile: profile),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.policy_outlined,
+            title: 'Работодатель и персональные данные',
+            subtitle:
+                'Заполнить юридические реквизиты, утвердить формы и управлять серверным production gate.',
+            onTap: () => open(
+              context,
+              CompanyComplianceScreen(profile: profile),
             ),
           ),
           actionCard(
