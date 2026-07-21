@@ -1,9 +1,6 @@
 name: Build macOS 11 Intel
 
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
