@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/app_data_sync.dart';
+import '../../compliance/data/company_compliance_repository.dart';
 import '../models/candidate_onboarding_candidate.dart';
 import '../models/candidate_onboarding_models.dart';
 
@@ -36,7 +37,8 @@ abstract final class CandidateOnboardingRepository {
         .from('recruitment_applications')
         .select(
           'id, company_id, employee_id, full_name, phone, citizenship, '
-          'position_title, status, ready_date, consent_personal_data, objects(name)',
+          'position_title, status, ready_date, consent_personal_data, '
+          'is_test_record, objects(name)',
         )
         .eq('company_id', cleanCompanyId)
         .isFilter('archived_at', null)
@@ -100,6 +102,17 @@ abstract final class CandidateOnboardingRepository {
           rows,
           onConflict: 'company_id,application_id,form_code',
         );
+    await CompanyComplianceRepository.logAccess(
+      companyId: candidate.companyId,
+      action: 'generate',
+      entityType: 'candidate_onboarding_package',
+      entityId: candidate.id,
+      metadata: <String, dynamic>{
+        'employee_id': candidate.employeeId,
+        'is_test_record': candidate.isTestRecord,
+        'forms': candidateOnboardingFormCodes,
+      },
+    );
     _notify(candidate.id);
   }
 
@@ -137,6 +150,7 @@ abstract final class CandidateOnboardingRepository {
           fileOptions: FileOptions(contentType: mimeType, upsert: false),
         );
     final now = DateTime.now().toUtc().toIso8601String();
+    final replacing = form.hasSignedFile;
     try {
       await _client
           .from('recruitment_onboarding_forms')
@@ -153,6 +167,19 @@ abstract final class CandidateOnboardingRepository {
           })
           .eq('company_id', form.companyId)
           .eq('id', form.id);
+      await CompanyComplianceRepository.logAccess(
+        companyId: form.companyId,
+        action: replacing ? 'replace' : 'upload',
+        entityType: 'candidate_onboarding_form',
+        entityId: form.id,
+        filePath: path,
+        metadata: <String, dynamic>{
+          'application_id': form.applicationId,
+          'form_code': form.formCode,
+          'mime_type': mimeType,
+          'size_bytes': bytes.length,
+        },
+      );
     } catch (_) {
       await _client.storage.from(storageBucket).remove(<String>[path]);
       rethrow;
@@ -160,13 +187,39 @@ abstract final class CandidateOnboardingRepository {
     _notify(form.applicationId);
   }
 
-  static Future<String> signedUrl(CandidateOnboardingForm form) {
+  static Future<String> signedUrl(CandidateOnboardingForm form) async {
     if (!form.hasSignedFile) {
       throw StateError('Подписанный экземпляр ещё не загружен');
     }
+    await CompanyComplianceRepository.logAccess(
+      companyId: form.companyId,
+      action: 'view',
+      entityType: 'candidate_onboarding_form',
+      entityId: form.id,
+      filePath: form.storagePath,
+      metadata: <String, dynamic>{
+        'application_id': form.applicationId,
+        'form_code': form.formCode,
+      },
+    );
     return _client.storage
         .from(form.storageBucket)
         .createSignedUrl(form.storagePath, 300);
+  }
+
+  static Future<void> setTestRecord({
+    required CandidateOnboardingCandidate candidate,
+    required bool isTestRecord,
+  }) async {
+    await _client
+        .from('recruitment_applications')
+        .update(<String, dynamic>{
+          'is_test_record': isTestRecord,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('company_id', candidate.companyId)
+        .eq('id', candidate.id);
+    _notify(candidate.id);
   }
 
   static Future<void> linkEmployee({
@@ -208,7 +261,9 @@ abstract final class CandidateOnboardingRepository {
     final cleanName = name.trim().toLowerCase();
     final index = cleanName.lastIndexOf('.');
     if (index >= 0 && index < cleanName.length - 1) {
-      final ext = cleanName.substring(index + 1).replaceAll(RegExp(r'[^a-z0-9]'), '');
+      final ext = cleanName
+          .substring(index + 1)
+          .replaceAll(RegExp(r'[^a-z0-9]'), '');
       if (<String>{'pdf', 'jpg', 'jpeg', 'png', 'webp', 'docx'}.contains(ext)) {
         return ext == 'jpeg' ? 'jpg' : ext;
       }
