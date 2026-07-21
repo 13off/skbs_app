@@ -29,6 +29,12 @@ class AiActionConfirmationSheet extends StatelessWidget {
       'prepare_document' => 'Открыть черновик документа?',
       'prepare_timesheet_correction' => 'Изменить табель?',
       'prepare_employee_update' => 'Открыть изменение сотрудника?',
+      'create_employee_draft' => 'Открыть карточку нового сотрудника?',
+      'prepare_payment' => 'Открыть черновик выплаты?',
+      'find_missing_receipts' => 'Открыть список выплат без чеков?',
+      'open_period_timesheet' => 'Открыть месячный табель?',
+      'prepare_work_act' => 'Открыть черновик акта?',
+      'prepare_candidate_documents' => 'Открыть пакет кандидата?',
       'create_reminder' => 'Открыть настройки напоминания?',
       _ => 'Подтвердить действие?',
     };
@@ -37,6 +43,10 @@ class AiActionConfirmationSheet extends StatelessWidget {
   String get confirmationLabel {
     return switch (action.type) {
       'prepare_timesheet_correction' => 'Подтвердить и изменить',
+      'find_missing_receipts' ||
+      'open_period_timesheet' ||
+      'prepare_work_act' ||
+      'prepare_candidate_documents' => 'Подтвердить и открыть',
       _ => 'Подтвердить и продолжить',
     };
   }
@@ -53,6 +63,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
 
     add('Объект', action.text('object_name'));
     add('Сотрудник', action.text('employee_name'));
+    add('Кандидат', action.text('full_name'));
     add('Дата', _date(action.text('date')));
 
     switch (action.type) {
@@ -75,6 +86,32 @@ class AiActionConfirmationSheet extends StatelessWidget {
         add('Текущая ставка', _money(action.number('current_daily_rate')));
         add('Новая ставка', _money(action.number('daily_rate')));
         break;
+      case 'create_employee_draft':
+        add('ФИО', action.text('fio'));
+        add('Должность', action.text('position'));
+        add('Телефон', action.text('phone'));
+        add('Ставка', _money(action.number('daily_rate')));
+        break;
+      case 'prepare_payment':
+        add('Сумма', _money(action.number('amount')));
+        add('Тип', _paymentType(action.text('payment_type')));
+        add('Чек', 'Нужно проверить перед сохранением');
+        break;
+      case 'find_missing_receipts':
+        add('Период', action.text('month'));
+        add('Найдено', '${_listLength('rows')}');
+        break;
+      case 'open_period_timesheet':
+        add('Период', action.text('month'));
+        break;
+      case 'prepare_work_act':
+        add('Состав', 'Только выполненные задачи');
+        break;
+      case 'prepare_candidate_documents':
+        add('Должность', action.text('position_title'));
+        add('Получено файлов', '${_listLength('existing_documents')}');
+        add('Не хватает', action.stringList('missing_documents').join(', '));
+        break;
       case 'create_reminder':
         add('Название', action.text('title'));
         add('Время', action.text('local_time'));
@@ -83,6 +120,11 @@ class AiActionConfirmationSheet extends StatelessWidget {
     }
 
     return rows;
+  }
+
+  int _listLength(String key) {
+    final value = action.payload[key];
+    return value is List ? value.length : 0;
   }
 
   String _date(String value) {
@@ -97,6 +139,14 @@ class AiActionConfirmationSheet extends StatelessWidget {
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
       (_) => ' ',
     )} ₽';
+  }
+
+  String _paymentType(String value) {
+    return switch (value) {
+      'salary' => 'Заработная плата',
+      'fine' => 'Штраф',
+      _ => 'Аванс',
+    };
   }
 
   @override
@@ -135,7 +185,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
               Text(
                 writesImmediately
                     ? 'После подтверждения указанная запись будет сохранена в приложении.'
-                    : 'После подтверждения откроется обычная форма или предпросмотр. Действие завершится только после твоей проверки.',
+                    : 'После подтверждения откроется обычная форма, отчёт или предпросмотр. Запись создастся только после твоей проверки.',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   height: 1.4,
