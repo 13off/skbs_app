@@ -13,7 +13,7 @@ import '../../../screens/edit_employee_screen.dart';
 import '../data/ai_action_audit_repository.dart';
 import '../models/ai_assistant_result.dart';
 import '../presentation/ai_action_confirmation_sheet.dart';
-import '../presentation/ai_document_draft_screen.dart';
+import '../presentation/ai_document_template_screen.dart';
 import '../presentation/ai_reminder_draft_screen.dart';
 
 class AiActionExecutionResult {
@@ -176,7 +176,7 @@ class AiActionExecutionCoordinator {
   ) async {
     final completed = await Navigator.of(context).push<bool>(
       CupertinoPageRoute<bool>(
-        builder: (_) => AiDocumentDraftScreen(
+        builder: (_) => AiDocumentTemplateScreen(
           profile: profile,
           action: action,
         ),

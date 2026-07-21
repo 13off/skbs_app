@@ -193,7 +193,10 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Шаблоны документов',
             subtitle:
                 'Системные формы договоров, актов и кадровых документов.',
-            onTap: () => open(context, const TemplateDocumentsScreen()),
+            onTap: () => open(
+              context,
+              TemplateDocumentsScreen(profile: profile),
+            ),
           ),
         ],
       ),

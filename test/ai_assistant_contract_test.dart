@@ -94,16 +94,23 @@ void main() {
     expect(taskView, contains("'Сохранить задачу'"));
   });
 
-  test('document proposal opens editable preview and completes after review', () {
+  test('document proposal keeps editable preview and connects source form', () {
     final coordinator = source(
       'lib/features/ai/actions/ai_action_execution_coordinator.dart',
+    );
+    final wrapper = source(
+      'lib/features/ai/presentation/ai_document_template_screen.dart',
     );
     final preview = source(
       'lib/features/ai/presentation/ai_document_draft_screen.dart',
     );
 
-    expect(coordinator, contains('AiDocumentDraftScreen('));
+    expect(coordinator, contains('AiDocumentTemplateScreen('));
     expect(coordinator, contains('if (completed != true)'));
+    expect(wrapper, contains('AiDocumentDraftScreen('));
+    expect(wrapper, contains("'Исходная форма'"));
+    expect(wrapper, contains('DocumentTemplateRepository.fetchTemplates'));
+    expect(wrapper, contains('DocumentTemplateRepository.downloadVersion'));
     expect(preview, contains("labelText: 'Текст документа'"));
     expect(preview, contains("label: const Text('Скачать Word')"));
     expect(preview, contains("label: const Text('Готово')"));
@@ -138,7 +145,10 @@ void main() {
       'lib/features/ai/presentation/ai_reminder_draft_screen.dart',
     );
 
-    expect(coordinator, contains('EditEmployeeScreen(employee: proposedEmployee)'));
+    expect(
+      coordinator,
+      contains('EditEmployeeScreen(employee: proposedEmployee)'),
+    );
     expect(coordinator, contains('AiReminderDraftScreen(action: action)'));
     expect(reminder, contains('DeveloperConstructorRepository.saveReminder('));
     expect(reminder, contains("'Сохранить напоминание'"));

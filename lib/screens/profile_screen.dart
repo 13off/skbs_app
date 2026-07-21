@@ -466,8 +466,12 @@ class ProfileScreen extends StatelessWidget {
               context,
               icon: Icons.folder_copy_outlined,
               title: 'Документы',
-              subtitle: 'Шаблоны договоров, КС-2, КС-3 и другие формы',
-              onTap: () => open(context, const TemplateDocumentsScreen()),
+              subtitle:
+                  'Действующие исходники, версии и загрузка утверждённых форм',
+              onTap: () => open(
+                context,
+                TemplateDocumentsScreen(profile: profile),
+              ),
             ),
             const SizedBox(height: 8),
           ],
@@ -520,7 +524,7 @@ class _TileIcon extends StatelessWidget {
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(15),
       ),
-      child: Icon(icon, color: scheme.onSurface, size: 21),
+      child: Icon(icon, color: scheme.onSurfaceVariant, size: 21),
     );
   }
 }
