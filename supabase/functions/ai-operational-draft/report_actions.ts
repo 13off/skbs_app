@@ -12,9 +12,20 @@ import {
 type AttendanceAuditState = {
   employee: EmployeeRow;
   recordedDays: number;
-  workedDays: number;
   totalShifts: number;
   invalidEntries: Array<{ date: string; reason: string }>;
+};
+
+type AttendanceAuditIssue = {
+  severity: "critical" | "attention";
+  issue_type: "invalid_entries" | "no_entries" | "no_worked_shifts";
+  employee_id: string;
+  employee_name: string;
+  object_name: string;
+  total_shifts: number;
+  recorded_days: number;
+  details: Array<{ date: string; reason: string }>;
+  message: string;
 };
 
 function endOfMonth(month: string): string {
@@ -130,7 +141,6 @@ export async function buildReportAction({
         {
           employee,
           recordedDays: 0,
-          workedDays: 0,
           totalShifts: 0,
           invalidEntries: [],
         },
@@ -159,7 +169,6 @@ export async function buildReportAction({
         const workDate = clean(row.work_date, 10);
         state.recordedDays++;
         if (Number.isFinite(shifts)) state.totalShifts += shifts;
-        if (Number.isFinite(shifts) && shifts > 0) state.workedDays++;
 
         const reasons: string[] = [];
         if (!Number.isFinite(shifts) || shifts < 0 || shifts > 3) {
@@ -177,11 +186,11 @@ export async function buildReportAction({
       }
     }
 
-    const issues = [...states.values()].flatMap((state) => {
+    const issues: AttendanceAuditIssue[] = [...states.values()].flatMap((state) => {
       if (state.invalidEntries.length > 0) {
         return [{
-          severity: "critical",
-          issue_type: "invalid_entries",
+          severity: "critical" as const,
+          issue_type: "invalid_entries" as const,
           employee_id: state.employee.id,
           employee_name: state.employee.fio,
           object_name: state.employee.object_name,
@@ -193,8 +202,8 @@ export async function buildReportAction({
       }
       if (state.recordedDays === 0) {
         return [{
-          severity: "attention",
-          issue_type: "no_entries",
+          severity: "attention" as const,
+          issue_type: "no_entries" as const,
           employee_id: state.employee.id,
           employee_name: state.employee.fio,
           object_name: state.employee.object_name,
@@ -206,8 +215,8 @@ export async function buildReportAction({
       }
       if (state.totalShifts <= 0) {
         return [{
-          severity: "attention",
-          issue_type: "no_worked_shifts",
+          severity: "attention" as const,
+          issue_type: "no_worked_shifts" as const,
           employee_id: state.employee.id,
           employee_name: state.employee.fio,
           object_name: state.employee.object_name,
@@ -220,7 +229,7 @@ export async function buildReportAction({
       return [];
     });
     issues.sort((left, right) => {
-      if (left.severity != right.severity) {
+      if (left.severity !== right.severity) {
         return left.severity === "critical" ? -1 : 1;
       }
       return left.employee_name.localeCompare(right.employee_name, "ru");
@@ -230,6 +239,17 @@ export async function buildReportAction({
     const preview = issues.slice(0, 12).map(
       (item) => `${item.employee_name}: ${item.message}`,
     );
+    const highlights = [
+      `Период: ${month}`,
+      `Проверено сотрудников: ${employees.length}`,
+      `Критичные несоответствия: ${criticalCount}`,
+      `Требуют внимания: ${attentionCount}`,
+      objectName ? `Объект: ${objectName}` : "Все доступные объекты",
+      ...preview,
+    ];
+    if (issues.length > preview.length) {
+      highlights.push(`Ещё сотрудников: ${issues.length - preview.length}`);
+    }
 
     return json(actionResponse({
       type: "open_period_timesheet",
@@ -240,16 +260,7 @@ export async function buildReportAction({
       summary: issues.length === 0
         ? `За ${month} явных проблем не найдено.`
         : `За ${month}: критичных ${criticalCount}, требуют внимания ${attentionCount}.`,
-      highlights: [
-        `Период: ${month}`,
-        `Проверено сотрудников: ${employees.length}`,
-        `Критичные несоответствия: ${criticalCount}`,
-        `Требуют внимания: ${attentionCount}`,
-        objectName ? `Объект: ${objectName}` : "Все доступные объекты",
-        ...preview,
-        if (issues.length > preview.length)
-          `Ещё сотрудников: ${issues.length - preview.length}`,
-      ],
+      highlights,
       warnings: [
         "Отсутствие отметок или нулевые смены показаны как контрольный вопрос, а не подтверждённая ошибка: приложение не знает плановый график и дату фактического выхода.",
         "Проверка ничего не изменяет. После подтверждения откроется штатный месячный табель на нужном периоде.",
