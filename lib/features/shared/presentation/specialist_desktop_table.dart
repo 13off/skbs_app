@@ -46,7 +46,7 @@ class SpecialistDesktopTable extends StatelessWidget {
                 column.label.toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: specialistMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
@@ -80,7 +80,7 @@ class SpecialistDesktopTable extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(18, 15, 18, 13),
                     child: cellsRow(const <Widget>[], header: true),
                   ),
-                  const Divider(height: 1, color: specialistLine),
+                  Divider(height: 1, color: specialistLine),
                   ...List<Widget>.generate(rows.length, (index) {
                     final row = rows[index];
                     return Column(
@@ -99,7 +99,7 @@ class SpecialistDesktopTable extends StatelessWidget {
                           ),
                         ),
                         if (index != rows.length - 1)
-                          const Divider(
+                          Divider(
                             height: 1,
                             indent: 18,
                             endIndent: 18,

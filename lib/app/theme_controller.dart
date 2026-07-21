@@ -6,9 +6,7 @@ class AppThemeController extends ChangeNotifier {
 
   static final AppThemeController instance = AppThemeController._();
 
-  // Код тёмной темы сохраняется для следующего этапа, но в мобильном релизе
-  // функция временно выключена.
-  static const bool featureEnabled = false;
+  static const bool featureEnabled = true;
   static const String _preferenceKey = 'app_theme_mode';
 
   ThemeMode _themeMode = ThemeMode.light;
@@ -17,11 +15,6 @@ class AppThemeController extends ChangeNotifier {
   bool get isDark => _themeMode == ThemeMode.dark;
 
   Future<void> initialize() async {
-    if (!featureEnabled) {
-      _themeMode = ThemeMode.light;
-      return;
-    }
-
     try {
       final preferences = await SharedPreferences.getInstance();
       final stored = preferences.getString(_preferenceKey);
@@ -32,14 +25,6 @@ class AppThemeController extends ChangeNotifier {
   }
 
   Future<void> setDark(bool value) async {
-    if (!featureEnabled) {
-      if (_themeMode != ThemeMode.light) {
-        _themeMode = ThemeMode.light;
-        notifyListeners();
-      }
-      return;
-    }
-
     final next = value ? ThemeMode.dark : ThemeMode.light;
     if (_themeMode == next) return;
 

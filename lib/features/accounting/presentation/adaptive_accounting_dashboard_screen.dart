@@ -196,7 +196,7 @@ class _DesktopAccountingDashboardScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'Сотрудники с наибольшей суммой к выплате',
             style: TextStyle(
               color: specialistMuted,
@@ -212,7 +212,7 @@ class _DesktopAccountingDashboardScreenState
           ...data.largestBalances.map(
             (row) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: specialistSoft,
                 child: Icon(Icons.person_outline, color: specialistText),
               ),
@@ -260,7 +260,7 @@ class _DesktopAccountingDashboardScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'Операции без подтверждающего файла',
             style: TextStyle(
               color: specialistMuted,

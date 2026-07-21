@@ -45,7 +45,7 @@ Future<void> showDesktopInvitationLink(
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Старая активная ссылка для этого email автоматически отменена. Передайте новую ссылку только приглашённому человеку.',
               style: TextStyle(
                 color: specialistMuted,
@@ -284,7 +284,7 @@ class _DesktopCompanyMemberDialogState
                       isEditing
                           ? 'Права пользователя'
                           : 'Пригласить пользователя',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: specialistText,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -302,7 +302,7 @@ class _DesktopCompanyMemberDialogState
                 isEditing
                     ? 'Измените роль и назначенный объект.'
                     : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера и HR.',
-                style: const TextStyle(
+                style: TextStyle(
                   color: specialistMuted,
                   fontWeight: FontWeight.w600,
                 ),
@@ -365,7 +365,7 @@ class _DesktopCompanyMemberDialogState
                             ),
                             Text(
                               widget.member!.email,
-                              style: const TextStyle(color: specialistMuted),
+                              style: TextStyle(color: specialistMuted),
                             ),
                           ],
                         ),

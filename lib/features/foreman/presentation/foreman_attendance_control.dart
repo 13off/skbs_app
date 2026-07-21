@@ -30,7 +30,7 @@ class ForemanAttendanceControl extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -84,7 +84,7 @@ class ForemanAttendanceControl extends StatelessWidget {
             ...absent.take(8).map(
               (employee) => ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(
+                leading: CircleAvatar(
                   backgroundColor: specialistSoft,
                   child: Icon(Icons.person_outline, color: specialistText),
                 ),

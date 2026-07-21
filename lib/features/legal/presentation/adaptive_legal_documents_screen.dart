@@ -396,17 +396,18 @@ class _Summary extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color color;
+  final Color? color;
 
   const _Summary({
     required this.icon,
     required this.label,
     required this.value,
-    this.color = specialistMuted,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? specialistMuted;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
@@ -417,18 +418,18 @@ class _Summary extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: 18, color: effectiveColor),
           const SizedBox(width: 8),
           Text(
             '$label: ',
-            style: const TextStyle(
+            style: TextStyle(
               color: specialistMuted,
               fontWeight: FontWeight.w700,
             ),
           ),
           Text(
             value,
-            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900),
           ),
         ],
       ),
