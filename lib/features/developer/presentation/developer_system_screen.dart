@@ -7,10 +7,13 @@ import '../../../screens/push_notification_settings_screen.dart';
 import '../../../screens/template_documents_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
+import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../company/presentation/company_management_screen.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
 import 'developer_constructor_screen.dart';
+import 'developer_demo_center_screen.dart';
 import 'developer_readiness_screen.dart';
+import 'developer_role_acceptance_screen.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -144,7 +147,7 @@ class DeveloperSystemScreen extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
             child: Text(
-              'СИСТЕМНЫЕ РАЗДЕЛЫ',
+              'КОНТРОЛЬ И ПРИЁМКА',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
@@ -161,6 +164,50 @@ class DeveloperSystemScreen extends StatelessWidget {
             onTap: () => open(
               context,
               DeveloperReadinessScreen(profile: profile),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.verified_user_outlined,
+            title: 'Ролевая приёмка',
+            subtitle:
+                'Проверить фактические JWT, permissions, запреты, Data API и объектные границы каждой профессии.',
+            onTap: () => open(
+              context,
+              DeveloperRoleAcceptanceScreen(profile: profile),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.fact_check_outlined,
+            title: 'Контроль табеля и выплат',
+            subtitle:
+                'Запустить единый read-only аудит месяца и объекта без команды в ИИ-чате.',
+            onTap: () => open(
+              context,
+              OperationalAuditLauncherScreen(
+                initialObjectName: profile.objectName,
+              ),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.play_circle_outline_rounded,
+            title: 'Демонстрационный центр',
+            subtitle:
+                'Показать AppСтрой клиенту на полностью вымышленных данных, не открывая рабочую компанию.',
+            onTap: () => open(context, const DeveloperDemoCenterScreen()),
+          ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
+            child: Text(
+              'СИСТЕМНЫЕ РАЗДЕЛЫ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
             ),
           ),
           actionCard(
