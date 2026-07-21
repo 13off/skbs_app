@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme_controller.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
 const double specialistDesktopBreakpoint = 1050;
-const Color specialistText = Color(0xFF1F2328);
-const Color specialistMuted = Color(0xFF6B7075);
-const Color specialistLine = Color(0xFFE3E5E8);
-const Color specialistSoft = Color(0xFFF1F2F4);
+Color get specialistText => AppThemeController.instance.isDark
+    ? const Color(0xFFF1F3F5)
+    : const Color(0xFF1F2328);
+Color get specialistMuted => AppThemeController.instance.isDark
+    ? const Color(0xFFA9AFB7)
+    : const Color(0xFF6B7075);
+Color get specialistLine => AppThemeController.instance.isDark
+    ? const Color(0xFF343941)
+    : const Color(0xFFE3E5E8);
+Color get specialistSoft => AppThemeController.instance.isDark
+    ? const Color(0xFF22262C)
+    : const Color(0xFFF1F2F4);
 const Color specialistSuccess = Color(0xFF2E7D52);
 const Color specialistWarning = Color(0xFF9A6816);
 const Color specialistDanger = Color(0xFF9A403A);
@@ -87,6 +96,8 @@ class SpecialistMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final effectiveAccent = accent ?? scheme.onSurfaceVariant;
     final content = PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(17),
@@ -96,10 +107,10 @@ class SpecialistMetricCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: (accent ?? specialistMuted).withValues(alpha: 0.10),
+              color: effectiveAccent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: accent ?? specialistText),
+            child: Icon(icon, color: accent ?? scheme.onSurface),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -110,8 +121,8 @@ class SpecialistMetricCard extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: specialistText,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontSize: 23,
                     fontWeight: FontWeight.w900,
                   ),
@@ -120,8 +131,8 @@ class SpecialistMetricCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: specialistText,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -130,8 +141,8 @@ class SpecialistMetricCard extends StatelessWidget {
                     hint!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: specialistMuted,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -140,7 +151,7 @@ class SpecialistMetricCard extends StatelessWidget {
             ),
           ),
           if (onTap != null)
-            const Icon(Icons.chevron_right_rounded, color: specialistMuted),
+            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
         ],
       ),
     );
@@ -168,7 +179,7 @@ class SpecialistStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effective = color ?? specialistMuted;
+    final effective = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -219,6 +230,7 @@ class SpecialistMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       radius: 26,
       padding: const EdgeInsets.all(30),
@@ -227,13 +239,13 @@ class SpecialistMessageCard extends StatelessWidget {
           if (loading)
             const CircularProgressIndicator()
           else
-            Icon(icon, size: 42, color: specialistMuted),
+            Icon(icon, size: 42, color: scheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: specialistText,
+            style: TextStyle(
+              color: scheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
@@ -243,8 +255,8 @@ class SpecialistMessageCard extends StatelessWidget {
             Text(
               description!,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: specialistMuted,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
               ),
@@ -262,14 +274,20 @@ class SpecialistMessageCard extends StatelessWidget {
 
 Widget specialistCellText(
   String value, {
-  Color color = specialistText,
+  Color? color,
   FontWeight weight = FontWeight.w700,
   int maxLines = 2,
 }) {
-  return Text(
-    value.trim().isEmpty ? '—' : value,
-    maxLines: maxLines,
-    overflow: TextOverflow.ellipsis,
-    style: TextStyle(color: color, fontWeight: weight, height: 1.25),
+  return Builder(
+    builder: (context) => Text(
+      value.trim().isEmpty ? '—' : value,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: color ?? Theme.of(context).colorScheme.onSurface,
+        fontWeight: weight,
+        height: 1.25,
+      ),
+    ),
   );
 }
