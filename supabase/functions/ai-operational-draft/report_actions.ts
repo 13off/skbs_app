@@ -157,6 +157,19 @@ export async function buildReportAction({
     if (!candidate) {
       return json({ error: "Укажи одного кандидата из подбора" }, 400);
     }
+
+    let candidateObjectName = "";
+    if (candidate.object_id) {
+      const { data: objectRow, error: objectError } = await client
+        .from("objects")
+        .select("name")
+        .eq("company_id", companyId)
+        .eq("id", candidate.object_id)
+        .maybeSingle();
+      if (objectError) throw objectError;
+      candidateObjectName = clean(objectRow?.name, 180);
+    }
+
     const { data: documentRows, error: documentError } = await client
       .from("recruitment_documents")
       .select("document_type, original_name, mime_type")
@@ -172,7 +185,7 @@ export async function buildReportAction({
     const existingTypes = new Set(
       existingDocuments.map((row: any) => clean(row.document_type, 80)),
     );
-    const required = ["passport", "snils", "inn"];
+    const required = ["passport_main", "snils", "inn"];
     const missingDocuments = required.filter((type) => !existingTypes.has(type));
     return json(actionResponse({
       type: actionKind,
@@ -183,13 +196,14 @@ export async function buildReportAction({
       highlights: [
         `Кандидат: ${candidate.full_name}`,
         `Должность: ${candidate.position_title || "Не указана"}`,
+        `Объект: ${candidateObjectName || "Не указан"}`,
         `Получено файлов: ${existingDocuments.length}`,
         `Не хватает: ${missingDocuments.length}`,
       ],
       warnings: [
-        "Персональные реквизиты не передаются ИИ. Пакет показывает только статус и исходные формы.",
+        "Персональные реквизиты не передаются ИИ. Пакет собирается локально после повторной проверки доступа.",
       ],
-      objectName,
+      objectName: candidateObjectName,
       date,
       payload: {
         application_id: candidate.id,
@@ -197,6 +211,7 @@ export async function buildReportAction({
         phone: candidate.phone,
         citizenship: candidate.citizenship,
         position_title: candidate.position_title,
+        object_name: candidateObjectName,
         status: candidate.status,
         ready_date: candidate.ready_date,
         consent_personal_data: candidate.consent_personal_data,
