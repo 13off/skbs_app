@@ -1,0 +1,156 @@
+name: Build macOS 11 Intel
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-intel:
+    name: AppStroy for macOS 11.7 (Intel)
+    runs-on: macos-13
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter 3.44.2 (x64)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          architecture: x64
+          cache: true
+
+      - name: Show toolchain
+        run: |
+          flutter --version
+          xcodebuild -version
+          uname -a
+
+      - name: Enable and generate macOS platform
+        run: |
+          flutter config --enable-macos-desktop
+          flutter create \
+            --platforms=macos \
+            --org ru.appstroy \
+            --project-name skbs_app \
+            .
+
+      - name: Configure macOS 11 compatibility and app identity
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          project = Path('macos/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text(encoding='utf-8')
+          text = re.sub(
+              r'MACOSX_DEPLOYMENT_TARGET = [^;]+;',
+              'MACOSX_DEPLOYMENT_TARGET = 11.0;',
+              text,
+          )
+          project.write_text(text, encoding='utf-8')
+
+          config = Path('macos/Runner/Configs/AppInfo.xcconfig')
+          text = config.read_text(encoding='utf-8')
+          text = re.sub(r'^PRODUCT_NAME = .*$', 'PRODUCT_NAME = AppStroy', text, flags=re.M)
+          text = re.sub(
+              r'^PRODUCT_BUNDLE_IDENTIFIER = .*$',
+              'PRODUCT_BUNDLE_IDENTIFIER = ru.appstroy.desktop',
+              text,
+              flags=re.M,
+          )
+          text = re.sub(
+              r'^PRODUCT_COPYRIGHT = .*$',
+              'PRODUCT_COPYRIGHT = Copyright © 2026 AppStroy. All rights reserved.',
+              text,
+              flags=re.M,
+          )
+          config.write_text(text, encoding='utf-8')
+          PY
+
+          for entitlement in \
+            macos/Runner/DebugProfile.entitlements \
+            macos/Runner/Release.entitlements; do
+            /usr/libexec/PlistBuddy -c \
+              'Add :com.apple.security.network.client bool true' \
+              "$entitlement" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c \
+              'Set :com.apple.security.network.client true' \
+              "$entitlement"
+
+            /usr/libexec/PlistBuddy -c \
+              'Add :com.apple.security.files.user-selected.read-write bool true' \
+              "$entitlement" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c \
+              'Set :com.apple.security.files.user-selected.read-write true' \
+              "$entitlement"
+          done
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze project
+        run: flutter analyze
+
+      - name: Build release app
+        run: |
+          flutter build macos \
+            --release \
+            --build-name=1.2.0 \
+            --build-number=3
+
+      - name: Verify Intel binary and minimum macOS version
+        run: |
+          APP='build/macos/Build/Products/Release/AppStroy.app'
+          test -d "$APP"
+          file "$APP/Contents/MacOS/AppStroy"
+          lipo -info "$APP/Contents/MacOS/AppStroy"
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' \
+            "$APP/Contents/Info.plist"
+
+      - name: Ad-hoc sign app
+        run: |
+          APP='build/macos/Build/Products/Release/AppStroy.app'
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Package ZIP and DMG
+        run: |
+          set -euo pipefail
+          APP='build/macos/Build/Products/Release/AppStroy.app'
+          OUT='build/macos/distribution'
+          mkdir -p "$OUT/dmg"
+
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$APP" \
+            "$OUT/AppStroy-macOS-11.7-Intel.zip"
+
+          cp -R "$APP" "$OUT/dmg/"
+          ln -s /Applications "$OUT/dmg/Applications"
+          hdiutil create \
+            -volname 'AppStroy' \
+            -srcfolder "$OUT/dmg" \
+            -ov \
+            -format UDZO \
+            "$OUT/AppStroy-macOS-11.7-Intel.dmg"
+          rm -rf "$OUT/dmg"
+
+          shasum -a 256 \
+            "$OUT/AppStroy-macOS-11.7-Intel.zip" \
+            "$OUT/AppStroy-macOS-11.7-Intel.dmg" \
+            > "$OUT/SHA256SUMS.txt"
+
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppStroy-macOS-11.7-Intel
+          path: build/macos/distribution/*
+          if-no-files-found: error
+          retention-days: 14
