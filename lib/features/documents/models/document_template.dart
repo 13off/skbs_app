@@ -8,6 +8,7 @@ class DocumentTemplateVersion {
   final String sourceKind;
   final String assetPath;
   final String storagePath;
+  final String externalUrl;
   final Map<String, dynamic> fieldSchema;
   final String notes;
   final bool isApproved;
@@ -23,6 +24,7 @@ class DocumentTemplateVersion {
     required this.sourceKind,
     required this.assetPath,
     required this.storagePath,
+    required this.externalUrl,
     required this.fieldSchema,
     required this.notes,
     required this.isApproved,
@@ -41,6 +43,7 @@ class DocumentTemplateVersion {
       sourceKind: map['source_kind']?.toString() ?? 'asset',
       assetPath: map['asset_path']?.toString() ?? '',
       storagePath: map['storage_path']?.toString() ?? '',
+      externalUrl: map['external_url']?.toString() ?? '',
       fieldSchema: map['field_schema'] is Map
           ? Map<String, dynamic>.from(map['field_schema'] as Map)
           : const <String, dynamic>{},
@@ -53,6 +56,7 @@ class DocumentTemplateVersion {
 
   bool get isAsset => sourceKind == 'asset';
   bool get isStorage => sourceKind == 'storage';
+  bool get isExternal => sourceKind == 'external';
 
   List<String> get contentControls {
     final value = fieldSchema['content_controls'];
