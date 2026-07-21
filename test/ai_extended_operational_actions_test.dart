@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/ai/data/ai_assistant_repository.dart';
 
+import 'support/ai_operational_source.dart';
+
 void main() {
   test('новые команды направляются в операционный сервер', () {
     for (final prompt in const <String>[
@@ -32,9 +34,7 @@ void main() {
   });
 
   test('операционный сервер проверяет роли и остаётся read only', () {
-    final edge = File(
-      'supabase/functions/ai-operational-draft/index.ts',
-    ).readAsStringSync();
+    final edge = aiOperationalSource();
 
     for (final type in const <String>[
       'create_employee_draft',
