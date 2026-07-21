@@ -45,8 +45,8 @@ class DocumentTemplateRepository {
           .from('document_template_versions')
           .select(
             'id, template_id, company_id, version_no, file_name, mime_type, '
-            'source_kind, asset_path, storage_path, field_schema, notes, '
-            'is_approved, created_at',
+            'source_kind, asset_path, storage_path, external_url, field_schema, '
+            'notes, is_approved, created_at',
           )
           .inFilter('template_id', templateIds)
           .order('version_no', ascending: false);
@@ -85,6 +85,13 @@ class DocumentTemplateRepository {
   }
 
   static Future<void> downloadVersion(DocumentTemplateVersion version) async {
+    if (version.isExternal) {
+      if (version.externalUrl.isEmpty) {
+        throw StateError('У подключенного оригинала отсутствует ссылка');
+      }
+      html.window.open(version.externalUrl, '_blank');
+      return;
+    }
     if (version.isAsset) {
       final data = await rootBundle.load(version.assetPath);
       _downloadBytes(
@@ -113,7 +120,9 @@ class DocumentTemplateRepository {
       label: 'Шаблоны документов',
       extensions: <String>['docx', 'odt'],
     );
-    final file = await openFile(acceptedTypeGroups: const <XTypeGroup>[typeGroup]);
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[typeGroup],
+    );
     if (file == null) return null;
 
     final extension = _extension(file.name);
@@ -193,8 +202,8 @@ class DocumentTemplateRepository {
           })
           .select(
             'id, template_id, company_id, version_no, file_name, mime_type, '
-            'source_kind, asset_path, storage_path, field_schema, notes, '
-            'is_approved, created_at',
+            'source_kind, asset_path, storage_path, external_url, field_schema, '
+            'notes, is_approved, created_at',
           )
           .single();
       final version = DocumentTemplateVersion.fromMap(versionRow);
@@ -222,7 +231,7 @@ class DocumentTemplateRepository {
     required bool approve,
   }) async {
     if (template.isGlobal) {
-      throw StateError('Встроенный шаблон нельзя изменить');
+      throw StateError('Подключенный глобальный шаблон нельзя изменить');
     }
     if (version.templateId != template.id) {
       throw StateError('Версия не относится к выбранному шаблону');
