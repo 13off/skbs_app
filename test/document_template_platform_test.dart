@@ -40,17 +40,14 @@ void main() {
   });
 
   test('анализатор находит content-control теги в DOCX', () {
+    final xmlBytes = utf8.encode(
+      '<w:document><w:sdtPr><w:tag w:val="employee_name"/>'
+      '</w:sdtPr><w:sdtPr><w:tag w:val="position"/></w:sdtPr>'
+      '</w:document>',
+    );
     final archive = Archive()
       ..addFile(
-        ArchiveFile(
-          'word/document.xml',
-          100,
-          utf8.encode(
-            '<w:document><w:sdtPr><w:tag w:val="employee_name"/>'
-            '</w:sdtPr><w:sdtPr><w:tag w:val="position"/></w:sdtPr>'
-            '</w:document>',
-          ),
-        ),
+        ArchiveFile('word/document.xml', xmlBytes.length, xmlBytes),
       );
     final bytes = Uint8List.fromList(ZipEncoder().encode(archive)!);
 
@@ -85,8 +82,14 @@ void main() {
     expect(repository, contains('createSignedUrl'));
     expect(repository, contains('version.externalUrl'));
 
-    expect(migration, contains('create table if not exists public.document_templates'));
-    expect(migration, contains('create table if not exists public.document_template_versions'));
+    expect(
+      migration,
+      contains('create table if not exists public.document_templates'),
+    );
+    expect(
+      migration,
+      contains('create table if not exists public.document_template_versions'),
+    );
     expect(migration, contains("'document-templates'"));
     expect(migration, contains('document_templates_select'));
     expect(migration, contains('document_template_versions_insert'));
