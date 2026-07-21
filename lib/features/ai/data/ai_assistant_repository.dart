@@ -25,7 +25,7 @@ class AiAssistantRepository {
       r'подготов|состав|напиш|созда|сдел|сформир',
     ).hasMatch(normalized);
     final document = RegExp(
-      r'документ|акт|заявлен|договор|соглас|служебн|записк|письм',
+      r'документ|заявлен|договор|соглас|служебн|записк|письм',
     ).hasMatch(normalized);
     return action && document;
   }
@@ -40,7 +40,36 @@ class AiAssistantRepository {
     final employeeUpdate = RegExp(
       r'(измен|обнов|постав).*(ставк|должност|телефон)',
     ).hasMatch(normalized);
-    return reminder || timesheetCorrection || employeeUpdate;
+    final employeeCreate = RegExp(
+      r'(добав|созда|оформ).*(сотрудник|работник|человек)',
+    ).hasMatch(normalized);
+    final payment = RegExp(
+      r'(подготов|добав|созда|провед|внес).*(выплат|аванс|зарплат|штраф)',
+    ).hasMatch(normalized);
+    final missingReceipts = RegExp(
+      r'(найд|покаж|проверь|какие).*(чек).*(нет|отсутств|не прикреп|без)',
+    ).hasMatch(normalized) ||
+        RegExp(r'(нет|отсутств|без).*(чек)').hasMatch(normalized);
+    final periodTimesheet = RegExp(
+      r'(открой|покаж|собер|сформир).*(месячн|за месяц|период).*(табел)',
+    ).hasMatch(normalized);
+    final workAct = RegExp(
+      r'(сформир|подготов|созда|сдел).*(акт).*(выполн|работ|задач)',
+    ).hasMatch(normalized);
+    final candidatePackage = RegExp(
+      r'(пакет|комплект).*(документ).*(кандидат|соискател)',
+    ).hasMatch(normalized) ||
+        RegExp(r'(подготов|собер|проверь).*(документ).*(кандидат|соискател)')
+            .hasMatch(normalized);
+    return reminder ||
+        timesheetCorrection ||
+        employeeUpdate ||
+        employeeCreate ||
+        payment ||
+        missingReceipts ||
+        periodTimesheet ||
+        workAct ||
+        candidatePackage;
   }
 
   static bool _useStructuredAssistant({
@@ -60,8 +89,8 @@ class AiAssistantRepository {
     if (mode.trim() == 'chat') {
       final normalized = _normalized(prompt);
       if (_isTaskCommand(normalized)) return 'ai-action-draft';
-      if (_isDocumentCommand(normalized)) return 'ai-document-draft';
       if (_isOperationalCommand(normalized)) return 'ai-operational-draft';
+      if (_isDocumentCommand(normalized)) return 'ai-document-draft';
     }
     return _useStructuredAssistant(mode: mode, prompt: prompt)
         ? 'ai-assistant'
