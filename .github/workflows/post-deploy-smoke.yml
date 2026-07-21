@@ -1,0 +1,180 @@
+name: Post-deploy web smoke
+
+on:
+  workflow_run:
+    workflows:
+      - Build and publish web
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-web-smoke
+  cancel-in-progress: true
+
+env:
+  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
+  API_BASE_URL: https://api.appstroy-web.ru
+
+jobs:
+  production-smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout source marker
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Resolve expected source commit
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            expected="${{ github.event.workflow_run.head_sha }}"
+          else
+            expected="$(git rev-parse HEAD)"
+          fi
+          printf 'full=%s\n' "$expected" >> "$GITHUB_OUTPUT"
+          printf 'short=%s\n' "${expected:0:12}" >> "$GITHUB_OUTPUT"
+          printf 'Expected source: %s\n' "$expected" | tee smoke-report.txt
+
+      - name: Wait for published commit
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.source.outputs.full }}
+          EXPECTED_SHORT: ${{ steps.source.outputs.short }}
+        run: |
+          set -euo pipefail
+          success=false
+          for attempt in $(seq 1 24); do
+            cache_key="${GITHUB_RUN_ID}-${attempt}"
+            index_file="$(mktemp)"
+            marker_file="$(mktemp)"
+            index_code="$(curl --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+              -sS -o "$index_file" -w '%{http_code}' \
+              -H 'Cache-Control: no-cache' \
+              "${APP_PUBLIC_URL}?smoke=${cache_key}" || true)"
+            marker_code="$(curl --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+              -sS -o "$marker_file" -w '%{http_code}' \
+              -H 'Cache-Control: no-cache' \
+              "${APP_PUBLIC_URL}downloads/web-source-commit.txt?smoke=${cache_key}" || true)"
+            marker="$(tr -d '\r\n[:space:]' < "$marker_file" 2>/dev/null || true)"
+            printf 'Attempt %s: index=%s marker=%s source=%s\n' \
+              "$attempt" "$index_code" "$marker_code" "${marker:-missing}" | tee -a smoke-report.txt
+            if [ "$index_code" = "200" ] && \
+               [ "$marker_code" = "200" ] && \
+               [ "$marker" = "$EXPECTED_SHA" ] && \
+               grep -q "flutter_bootstrap.js?v=${EXPECTED_SHORT}" "$index_file"; then
+              success=true
+              break
+            fi
+            sleep 10
+          done
+          if [ "$success" != "true" ]; then
+            echo '::error::Опубликованная web/PWA не дошла до ожидаемого commit' | tee -a smoke-report.txt
+            exit 1
+          fi
+
+      - name: Validate PWA assets
+        shell: bash
+        env:
+          EXPECTED_SHORT: ${{ steps.source.outputs.short }}
+        run: |
+          set -euo pipefail
+          cache_key="${GITHUB_RUN_ID}-assets"
+          curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 40 -fsS \
+            -H 'Cache-Control: no-cache' \
+            "${APP_PUBLIC_URL}manifest.json?smoke=${cache_key}" > manifest.json
+          curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 40 -fsS \
+            -H 'Cache-Control: no-cache' \
+            "${APP_PUBLIC_URL}flutter_bootstrap.js?smoke=${cache_key}" > flutter_bootstrap.js
+          curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 40 -fsS \
+            -H 'Cache-Control: no-cache' \
+            "${APP_PUBLIC_URL}flutter_service_worker.js?smoke=${cache_key}" > flutter_service_worker.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path('manifest.json').read_text(encoding='utf-8'))
+          if not str(manifest.get('name', '')).strip():
+              raise SystemExit('manifest.json: отсутствует name')
+          icons = manifest.get('icons')
+          if not isinstance(icons, list) or not icons:
+              raise SystemExit('manifest.json: отсутствуют icons')
+          if not Path('flutter_bootstrap.js').read_text(encoding='utf-8').strip():
+              raise SystemExit('flutter_bootstrap.js пуст')
+          if not Path('flutter_service_worker.js').read_text(encoding='utf-8').strip():
+              raise SystemExit('flutter_service_worker.js пуст')
+          PY
+          grep -q "main.dart.js?v=${EXPECTED_SHORT}" flutter_bootstrap.js
+          printf 'PWA assets: OK\n' | tee -a smoke-report.txt
+
+      - name: Validate Russian API proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          health_code="$(curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+            -sS -o auth-health.json -w '%{http_code}' \
+            "${API_BASE_URL}/auth/v1/health" || true)"
+          printf 'Auth health HTTP: %s\n' "$health_code" | tee -a smoke-report.txt
+          if [ "$health_code" != "200" ]; then
+            echo '::error::Российский API-прокси не прошёл auth health' | tee -a smoke-report.txt
+            exit 1
+          fi
+
+      - name: Verify Edge Function rejects anonymous access
+        shell: bash
+        run: |
+          set -euo pipefail
+          edge_code="$(curl --connect-timeout 10 --max-time 30 -sS \
+            -o edge-anonymous.json -w '%{http_code}' \
+            -X POST -H 'Content-Type: application/json' \
+            --data '{"company_id":"00000000-0000-0000-0000-000000000000","prompt":"проверка"}' \
+            "${API_BASE_URL}/functions/v1/ai-operational-draft" || true)"
+          printf 'Anonymous Edge HTTP: %s\n' "$edge_code" | tee -a smoke-report.txt
+          case "$edge_code" in
+            401|403) ;;
+            *)
+              echo '::error::Edge Function не подтвердила JWT-защиту' | tee -a smoke-report.txt
+              exit 1
+              ;;
+          esac
+
+      - name: Write smoke summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## AppСтрой web/PWA smoke'
+            echo
+            echo "- Source commit: \`${{ steps.source.outputs.full }}\`"
+            echo "- Public URL: ${APP_PUBLIC_URL}"
+            echo "- API proxy: ${API_BASE_URL}"
+            echo
+            echo '```text'
+            test -f smoke-report.txt && cat smoke-report.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-pwa-smoke-${{ steps.source.outputs.short }}
+          path: |
+            smoke-report.txt
+            auth-health.json
+            edge-anonymous.json
+            manifest.json
+            flutter_bootstrap.js
+          if-no-files-found: warn
+          retention-days: 7
