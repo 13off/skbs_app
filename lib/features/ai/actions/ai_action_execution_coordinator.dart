@@ -8,12 +8,17 @@ import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/employee.dart';
+import '../../../screens/act_preview_screen.dart';
 import '../../../screens/add_task_screen.dart';
 import '../../../screens/edit_employee_screen.dart';
+import '../../../screens/period_timesheet_screen.dart';
 import '../data/ai_action_audit_repository.dart';
 import '../models/ai_assistant_result.dart';
 import '../presentation/ai_action_confirmation_sheet.dart';
 import '../presentation/ai_document_template_screen.dart';
+import '../presentation/ai_employee_draft_screen.dart';
+import '../presentation/ai_operational_report_screen.dart';
+import '../presentation/ai_payment_draft_screen.dart';
 import '../presentation/ai_reminder_draft_screen.dart';
 
 class AiActionExecutionResult {
@@ -80,6 +85,12 @@ class AiActionExecutionCoordinator {
         'prepare_timesheet_correction' => await _correctTimesheet(action),
         'prepare_employee_update' =>
           await _prepareEmployeeUpdate(context, action),
+        'create_employee_draft' => await _createEmployee(context, action),
+        'prepare_payment' => await _preparePayment(context, action),
+        'find_missing_receipts' || 'prepare_candidate_documents' =>
+          await _openOperationalReport(context, profile, action),
+        'open_period_timesheet' => await _openPeriodTimesheet(context, action),
+        'prepare_work_act' => await _prepareWorkAct(context, action),
         'create_reminder' => await _createReminder(context, action),
         _ => throw UnsupportedError(
             'Действие «${action.type}» пока не поддерживается',
@@ -187,6 +198,125 @@ class AiActionExecutionCoordinator {
       completed: true,
       message: 'Документ проверен и скачан',
       targetEntityType: 'document_download',
+    );
+  }
+
+  static Future<AiActionExecutionResult> _createEmployee(
+    BuildContext context,
+    AiAssistantAction action,
+  ) async {
+    final employeeId = await Navigator.of(context).push<String>(
+      CupertinoPageRoute<String>(
+        builder: (_) => AiEmployeeDraftScreen(action: action),
+      ),
+    );
+    if (employeeId == null || employeeId.isEmpty) {
+      return const AiActionExecutionResult.cancelled();
+    }
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Сотрудник создан',
+      targetEntityType: 'employee',
+      targetEntityId: employeeId,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _preparePayment(
+    BuildContext context,
+    AiAssistantAction action,
+  ) async {
+    final paymentId = await Navigator.of(context).push<String>(
+      CupertinoPageRoute<String>(
+        builder: (_) => AiPaymentDraftScreen(action: action),
+      ),
+    );
+    if (paymentId == null || paymentId.isEmpty) {
+      return const AiActionExecutionResult.cancelled();
+    }
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Выплата сохранена',
+      targetEntityType: 'payment',
+      targetEntityId: paymentId,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _openOperationalReport(
+    BuildContext context,
+    AppUserProfile profile,
+    AiAssistantAction action,
+  ) async {
+    final completed = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute<bool>(
+        builder: (_) => AiOperationalReportScreen(
+          profile: profile,
+          action: action,
+        ),
+      ),
+    );
+    if (completed != true) return const AiActionExecutionResult.cancelled();
+    return AiActionExecutionResult(
+      completed: true,
+      message: action.type == 'find_missing_receipts'
+          ? 'Список выплат без чеков проверен'
+          : 'Пакет кандидата проверен',
+      targetEntityType: action.type == 'find_missing_receipts'
+          ? 'payment_receipt_report'
+          : 'candidate_document_package',
+      targetEntityId: action.text('application_id').isEmpty
+          ? null
+          : action.text('application_id'),
+    );
+  }
+
+  static Future<AiActionExecutionResult> _openPeriodTimesheet(
+    BuildContext context,
+    AiAssistantAction action,
+  ) async {
+    final objectName = action.text('object_name');
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => PeriodTimesheetScreen(
+          selectedObjectName: objectName.isEmpty ? null : objectName,
+        ),
+      ),
+    );
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Месячный табель открыт для проверки',
+      targetEntityType: 'period_timesheet',
+      targetEntityId: action.text('month'),
+    );
+  }
+
+  static Future<AiActionExecutionResult> _prepareWorkAct(
+    BuildContext context,
+    AiAssistantAction action,
+  ) async {
+    final date = action.date('date') ?? DateTime.now();
+    final objectName = action.text('object_name');
+    final tasks = await TaskRepository.fetchTasksForDate(
+      date,
+      objectName: objectName.isEmpty ? null : objectName,
+      forceRefresh: true,
+    );
+    final completed = tasks
+        .where((task) => task.status == 'Выполнено')
+        .toList(growable: false);
+    if (completed.isEmpty) {
+      throw StateError('За выбранную дату нет выполненных задач для акта');
+    }
+    if (!context.mounted) return const AiActionExecutionResult.cancelled();
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => ActPreviewScreen(tasks: completed, date: date),
+      ),
+    );
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Черновик акта открыт для проверки',
+      targetEntityType: 'work_act',
+      targetEntityId: _dateKey(date),
     );
   }
 
