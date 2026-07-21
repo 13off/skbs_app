@@ -143,7 +143,7 @@ class _DeveloperRoleAcceptanceScreenState
             'Платформа: ${result.scenario.platform}\n'
             'Область: ${result.scenario.objectScope}\n'
             'Серверная роль текущего входа: ${result.serverRole}',
-            style: const TextStyle(height: 1.4, fontWeight: FontWeight.w650),
+            style: const TextStyle(height: 1.4, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 14),
           Wrap(
