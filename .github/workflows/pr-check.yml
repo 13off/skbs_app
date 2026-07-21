@@ -105,6 +105,7 @@ jobs:
           deno-version: v2.x
 
       - name: Check changed Edge Functions
+        id: edge-check
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -123,10 +124,20 @@ jobs:
             exit 0
           fi
 
+          : > /tmp/deno-check.log
           while IFS= read -r file; do
-            echo "deno check $file"
-            deno check "$file"
+            echo "deno check $file" | tee -a /tmp/deno-check.log
+            set +e
+            deno check "$file" >> /tmp/deno-check.log 2>&1
+            status=$?
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "--- Deno check failure ---"
+              tail -n 160 /tmp/deno-check.log
+              exit "$status"
+            fi
           done < /tmp/edge-files.txt
+          tail -n 40 /tmp/deno-check.log
 
       - name: Guard changed SQL migrations
         shell: bash
@@ -154,3 +165,12 @@ jobs:
               exit 1
             fi
           done < /tmp/migration-files.txt
+
+      - name: Upload failing Deno log
+        if: failure() && steps.edge-check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-check-log
+          path: /tmp/deno-check.log
+          if-no-files-found: error
+          retention-days: 3
