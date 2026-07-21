@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/employee_private_data_repository.dart';
 import '../../compliance/data/company_compliance_repository.dart';
+import '../../documents/data/employer_docx_profile_service.dart';
 import '../../documents/data/exact_docx_service.dart';
 import '../models/candidate_onboarding_candidate.dart';
 import '../models/candidate_onboarding_models.dart';
@@ -150,10 +151,15 @@ abstract final class CandidateOnboardingPackageService {
     };
 
     for (final code in candidateOnboardingFormCodes) {
-      final generated = ExactDocxService.build(
+      final raw = ExactDocxService.build(
         templateCode: code,
         values: values,
         fileBaseName: '${candidateOnboardingFormTitle(code)}_${candidate.fullName}',
+      );
+      final generated = EmployerDocxProfileService.apply(
+        source: raw,
+        employerName: employer.legalName,
+        representativeName: employer.representativeName,
       );
       missingFieldsByForm[code] = generated.missingFields;
       _addBytes(
