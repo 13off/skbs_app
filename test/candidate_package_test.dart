@@ -127,7 +127,14 @@ void main() {
     final xml = utf8.decode(document!.content as List<int>);
 
     expect(xml, contains('________________'));
-    expect(result.warnings.any((item) => item.contains('банковские')), isTrue);
+    expect(
+      result.warnings.any(
+        (item) => item.contains(
+          'Заявление о перечислении зарплаты содержит незаполненные поля',
+        ),
+      ),
+      isTrue,
+    );
     expect(
       result.warnings.any((item) => item.contains('рабочими черновиками')),
       isTrue,
