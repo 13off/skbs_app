@@ -1,1 +1,1 @@
-export 'ai_assistant_confirmed_screen.dart';
+export 'ai_assistant_shell_screen.dart';
