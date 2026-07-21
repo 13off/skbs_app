@@ -24,13 +24,17 @@ class CandidatePackageResult {
   final String fileName;
   final int includedFiles;
   final List<String> warnings;
+  final int sourceBytes;
 
   const CandidatePackageResult({
     required this.bytes,
     required this.fileName,
     required this.includedFiles,
     required this.warnings,
+    this.sourceBytes = 0,
   });
+
+  int get archiveBytes => bytes.length;
 }
 
 class CandidatePackageArchive {
@@ -40,6 +44,7 @@ class CandidatePackageArchive {
     required AiAssistantAction action,
     required List<CandidatePackageAttachment> attachments,
     required List<String> warnings,
+    int? sourceBytes,
     DateTime? generatedAt,
   }) {
     final fullName = action.text('full_name');
@@ -82,26 +87,31 @@ class CandidatePackageArchive {
       includedFiles++;
     }
 
+    final usedAttachmentNames = <String>{};
     for (var index = 0; index < attachments.length; index++) {
       final attachment = attachments[index];
-      final name = _safeName(
+      final safeName = _safeName(
         attachment.fileName.isEmpty
             ? '${attachment.documentType}_${index + 1}'
             : attachment.fileName,
       );
+      final uniqueName = _uniqueName(safeName, usedAttachmentNames);
       _addBytes(
         archive,
-        '02_Полученные_документы/${(index + 1).toString().padLeft(2, '0')}_$name',
+        '02_Полученные_документы/'
+        '${(index + 1).toString().padLeft(2, '0')}_$uniqueName',
         attachment.bytes,
       );
       includedFiles++;
     }
 
     packageWarnings.add(
-      'Заявление на перечисление зарплаты не включено без проверенных банковских реквизитов кандидата.',
+      'Заявление на перечисление зарплаты не включено без проверенных '
+      'банковских реквизитов кандидата.',
     );
     packageWarnings.add(
-      'Согласие и трудовой договор будут включаться после утверждения точных форм ООО «СКБС».',
+      'Согласие и трудовой договор будут включаться после утверждения '
+      'точных форм ООО «СКБС».',
     );
 
     final manifest = _manifest(
@@ -125,9 +135,12 @@ class CandidatePackageArchive {
 
     return CandidatePackageResult(
       bytes: Uint8List.fromList(encoded),
-      fileName: 'Пакет_${_safeName(fullName)}_${DateFormat('yyyyMMdd').format(now)}.zip',
+      fileName:
+          'Пакет_${_safeName(fullName)}_${DateFormat('yyyyMMdd').format(now)}.zip',
       includedFiles: includedFiles,
-      warnings: packageWarnings,
+      warnings: List<String>.unmodifiable(packageWarnings),
+      sourceBytes: sourceBytes ??
+          attachments.fold<int>(0, (sum, file) => sum + file.bytes.length),
     );
   }
 
@@ -141,8 +154,10 @@ class CandidatePackageArchive {
     final existing = attachments.isEmpty
         ? '— файлы не получены'
         : attachments
-            .map((file) => '— ${_documentTitle(file.documentType)}: '
-                '${file.fileName.isEmpty ? 'без названия' : file.fileName}')
+            .map(
+              (file) => '— ${_documentTitle(file.documentType)}: '
+                  '${file.fileName.isEmpty ? 'без названия' : file.fileName}',
+            )
             .join('\n');
     final missing = action.stringList('missing_documents');
     final missingText = missing.isEmpty
@@ -205,10 +220,27 @@ ${warnings.map((item) => '— $item').join('\n')}
 
   static String _safeName(String value) {
     final clean = value.trim().isEmpty ? 'file' : value.trim();
-    return clean
+    final normalized = clean
+        .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '_')
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), '_')
-        .replaceAll(RegExp(r'_+'), '_');
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^[._ ]+|[._ ]+$'), '');
+    return normalized.isEmpty ? 'file' : normalized;
+  }
+
+  static String _uniqueName(String name, Set<String> usedNames) {
+    if (usedNames.add(name.toLowerCase())) return name;
+    final dotIndex = name.lastIndexOf('.');
+    final hasExtension = dotIndex > 0 && dotIndex < name.length - 1;
+    final base = hasExtension ? name.substring(0, dotIndex) : name;
+    final extension = hasExtension ? name.substring(dotIndex) : '';
+    var suffix = 2;
+    while (true) {
+      final candidate = '${base}_$suffix$extension';
+      if (usedNames.add(candidate.toLowerCase())) return candidate;
+      suffix++;
+    }
   }
 
   static String _documentTitle(String value) {
