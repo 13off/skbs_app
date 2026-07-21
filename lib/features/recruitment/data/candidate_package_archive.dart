@@ -61,31 +61,65 @@ class CandidatePackageArchive {
       fallback: documentDate,
     );
     final position = action.text('position_title');
+    final objectName = action.text('object_name');
     final packageWarnings = List<String>.from(warnings);
+    final formStates = <String, List<String>>{};
 
-    if (position.isEmpty) {
-      packageWarnings.add(
-        'Заявление на работу не создано: у кандидата не указана должность.',
-      );
-    } else {
-      final employment = ExactDocxService.build(
-        templateCode: 'employment_application',
-        fileBaseName: 'Заявление_на_работу_$fullName',
-        values: <String, String>{
-          'employee_full_name': fullName,
-          'employee_short_name': _shortName(fullName),
-          'employee_position': position,
-          'employment_date': employmentDate,
-          'document_date': documentDate,
-        },
-      );
-      _addBytes(
-        archive,
-        '01_Сформированные_формы/${employment.fileName}',
-        employment.bytes,
-      );
-      includedFiles++;
+    final common = <String, String>{
+      'employee_full_name': fullName,
+      'employee_short_name': _shortName(fullName),
+      'employee_position': position,
+      'employee_phone': action.text('phone'),
+      'employment_date': employmentDate,
+      'document_date': documentDate,
+      'work_address': objectName,
+      'employer_name': 'ООО «СКБС»',
+      'employer_representative': 'генерального директора Ермолиной О.Б.',
+      'employer_basis': 'Устава',
+      'work_schedule': 'согласно утверждённому графику работы',
+    };
+
+    includedFiles += _addGeneratedForm(
+      archive: archive,
+      templateCode: 'employment_application',
+      fileBaseName: 'Заявление_на_работу_$fullName',
+      values: common,
+      formStates: formStates,
+    );
+    includedFiles += _addGeneratedForm(
+      archive: archive,
+      templateCode: 'salary_transfer_application',
+      fileBaseName: 'Заявление_о_перечислении_зарплаты_$fullName',
+      values: common,
+      formStates: formStates,
+    );
+    includedFiles += _addGeneratedForm(
+      archive: archive,
+      templateCode: 'personal_data_consent',
+      fileBaseName: 'Согласие_на_обработку_персональных_данных_$fullName',
+      values: common,
+      formStates: formStates,
+    );
+    includedFiles += _addGeneratedForm(
+      archive: archive,
+      templateCode: 'employment_contract',
+      fileBaseName: 'Трудовой_договор_$fullName',
+      values: common,
+      formStates: formStates,
+    );
+
+    for (final entry in formStates.entries) {
+      if (entry.value.isNotEmpty) {
+        packageWarnings.add(
+          '${_formTitle(entry.key)} содержит незаполненные поля: '
+          '${entry.value.map(_fieldTitle).join(', ')}.',
+        );
+      }
     }
+    packageWarnings.add(
+      'Согласие и трудовой договор являются рабочими черновиками: перед '
+      'подписанием проверь реквизиты работодателя, условия труда и действующую редакцию.',
+    );
 
     final usedAttachmentNames = <String>{};
     for (var index = 0; index < attachments.length; index++) {
@@ -105,21 +139,12 @@ class CandidatePackageArchive {
       includedFiles++;
     }
 
-    packageWarnings.add(
-      'Заявление на перечисление зарплаты не включено без проверенных '
-      'банковских реквизитов кандидата.',
-    );
-    packageWarnings.add(
-      'Согласие и трудовой договор будут включаться после утверждения '
-      'точных форм ООО «СКБС».',
-    );
-
     final manifest = _manifest(
       action: action,
       generatedAt: now,
       attachments: attachments,
       warnings: packageWarnings,
-      employmentIncluded: position.isNotEmpty,
+      formStates: formStates,
     );
     _addBytes(
       archive,
@@ -144,12 +169,33 @@ class CandidatePackageArchive {
     );
   }
 
+  static int _addGeneratedForm({
+    required Archive archive,
+    required String templateCode,
+    required String fileBaseName,
+    required Map<String, String> values,
+    required Map<String, List<String>> formStates,
+  }) {
+    final result = ExactDocxService.build(
+      templateCode: templateCode,
+      fileBaseName: fileBaseName,
+      values: values,
+    );
+    formStates[templateCode] = result.missingFields;
+    _addBytes(
+      archive,
+      '01_Сформированные_формы/${result.fileName}',
+      result.bytes,
+    );
+    return 1;
+  }
+
   static String _manifest({
     required AiAssistantAction action,
     required DateTime generatedAt,
     required List<CandidatePackageAttachment> attachments,
     required List<String> warnings,
-    required bool employmentIncluded,
+    required Map<String, List<String>> formStates,
   }) {
     final existing = attachments.isEmpty
         ? '— файлы не получены'
@@ -163,11 +209,22 @@ class CandidatePackageArchive {
     final missingText = missing.isEmpty
         ? '— базовый комплект по данным приложения собран'
         : missing.map((item) => '— ${_documentTitle(item)}').join('\n');
+    final forms = <String>[
+      'employment_application',
+      'salary_transfer_application',
+      'personal_data_consent',
+      'employment_contract',
+    ].map((code) {
+      final fields = formStates[code] ?? const <String>[];
+      return '— ${_formTitle(code)}: добавлено'
+          '${fields.isEmpty ? '' : ', проверить ${fields.length} полей'}';
+    }).join('\n');
 
     return '''ПАКЕТ ДОКУМЕНТОВ КАНДИДАТА
 
 Кандидат: ${action.text('full_name')}
 Должность: ${action.text('position_title').isEmpty ? 'не указана' : action.text('position_title')}
+Объект: ${action.text('object_name').isEmpty ? 'не указан' : action.text('object_name')}
 Телефон: ${action.text('phone').isEmpty ? 'не указан' : action.text('phone')}
 Гражданство: ${action.text('citizenship').isEmpty ? 'не указано' : action.text('citizenship')}
 Статус: ${action.text('status').isEmpty ? 'не указан' : action.text('status')}
@@ -176,10 +233,7 @@ class CandidatePackageArchive {
 Сформировано: ${DateFormat('dd.MM.yyyy HH:mm').format(generatedAt)}
 
 СФОРМИРОВАННЫЕ ФОРМЫ
-— Заявление на работу: ${employmentIncluded ? 'добавлено' : 'не добавлено'}
-— Заявление на перечисление зарплаты: не добавлено без банковских реквизитов
-— Согласие на обработку данных: ожидается утверждённая точная форма
-— Трудовой договор: ожидается утверждённая точная форма
+$forms
 
 ПОЛУЧЕННЫЕ ДОКУМЕНТЫ
 $existing
@@ -191,8 +245,57 @@ $missingText
 ${warnings.map((item) => '— $item').join('\n')}
 
 ВАЖНО
-Документы не подписаны и не отправлены. Перед печатью проверь ФИО, должность, даты, комплектность и содержимое каждого файла.
+Документы не подписаны и не отправлены. Перед печатью проверь ФИО, паспортные данные, банковские реквизиты, должность, объект, даты, условия труда, реквизиты работодателя и содержимое каждого файла.
 ''';
+  }
+
+  static String _formTitle(String code) {
+    return switch (code) {
+      'employment_application' => 'Заявление на работу',
+      'salary_transfer_application' => 'Заявление о перечислении зарплаты',
+      'personal_data_consent' => 'Согласие на обработку персональных данных',
+      'employment_contract' => 'Трудовой договор',
+      _ => code,
+    };
+  }
+
+  static String _fieldTitle(String field) {
+    return switch (field) {
+      'employee_full_name' => 'ФИО',
+      'employee_short_name' => 'инициалы',
+      'employee_position' => 'должность',
+      'employee_phone' => 'телефон',
+      'employment_date' => 'дата приёма',
+      'contract_number' => 'номер договора',
+      'contract_city' => 'город договора',
+      'work_address' => 'место работы',
+      'salary_terms' => 'условия оплаты',
+      'passport_series' => 'серия паспорта',
+      'passport_number' => 'номер паспорта',
+      'passport_issued_by' => 'кем выдан паспорт',
+      'passport_issued_date' => 'дата выдачи паспорта',
+      'passport_department_code' => 'код подразделения',
+      'registration_address' => 'адрес регистрации',
+      'living_address' => 'адрес проживания',
+      'employee_birth_date' => 'дата рождения',
+      'employee_birth_place' => 'место рождения',
+      'employee_inn' => 'ИНН',
+      'employee_snils' => 'СНИЛС',
+      'bank_account' => 'счёт',
+      'bank_name' => 'банк',
+      'bank_bik' => 'БИК',
+      'bank_corr_account' => 'корр. счёт',
+      'bank_inn' => 'ИНН банка',
+      'bank_kpp' => 'КПП банка',
+      'bank_okpo' => 'ОКПО банка',
+      'bank_ogrn' => 'ОГРН банка',
+      'bank_swift' => 'SWIFT',
+      'bank_address' => 'адрес банка',
+      'bank_office_address' => 'адрес отделения',
+      'employer_address' => 'адрес работодателя',
+      'employer_details' => 'реквизиты работодателя',
+      _ => field,
+    };
   }
 
   static void _addBytes(Archive archive, String path, Uint8List bytes) {
@@ -245,9 +348,11 @@ ${warnings.map((item) => '— $item').join('\n')}
 
   static String _documentTitle(String value) {
     return switch (value.trim()) {
-      'passport' => 'Паспорт',
+      'passport' || 'passport_main' => 'Паспорт',
+      'registration' => 'Регистрация',
       'snils' => 'СНИЛС',
       'inn' => 'ИНН',
+      'policy' => 'Медицинский полис',
       'bank_details' => 'Банковские реквизиты',
       '' => 'Документ',
       _ => value,
