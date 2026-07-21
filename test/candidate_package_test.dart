@@ -189,7 +189,7 @@ void main() {
     expect(service, contains("action.boolean('consent_personal_data')"));
     expect(service, contains('kIsWeb'));
     expect(service, contains('FileSaver.instance.saveFile'));
-    expect(service, isNot(contains('universal_html'));
+    expect(service, isNot(contains('universal_html')));
     expect(screen, contains("'Скачать кадровый пакет ZIP'"));
     expect(screen, contains('Создать сотрудника из кандидата'));
     expect(screen, contains('Нужно согласие кандидата'));
