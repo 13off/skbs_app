@@ -106,6 +106,18 @@ void main() {
     expect(wrapper, contains("label: const Text('Исходная форма')"));
   });
 
+  test('заполненный DOCX сохраняется на поддерживаемых платформах', () {
+    final screen = File(
+      'lib/features/ai/presentation/ai_exact_document_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains("import 'package:file_saver/file_saver.dart'"));
+    expect(screen, contains('await FileSaver.instance.saveFile'));
+    expect(screen, contains('MimeType.microsoftWord'));
+    expect(screen, contains("ext: 'docx'"));
+    expect(screen, isNot(contains('ExactDocxService.download(result)'));
+  });
+
   test('исходные SHA-256 зафиксированы', () {
     expect(
       ExactDocxService.employmentApplication.originalSha256,
