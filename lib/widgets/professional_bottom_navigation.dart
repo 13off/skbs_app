@@ -106,22 +106,25 @@ class _ProfessionalBottomNavigationState
   }
 
   Widget buildIcon(
+    BuildContext context,
     ProfessionalBottomNavigationItem item,
     bool selected,
     bool isDesktop,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final indicator = scheme.primary;
     return AnimatedContainer(
       duration: AppMotion.regular,
       curve: AppMotion.interactionCurve,
       width: isDesktop ? 36 : 31,
       height: isDesktop ? 36 : 30,
       decoration: BoxDecoration(
-        color: selected ? AppColors.accent : Colors.transparent,
+        color: selected ? indicator : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.16),
+                  color: indicator.withValues(alpha: 0.18),
                   blurRadius: 15,
                   spreadRadius: -5,
                   offset: const Offset(0, 7),
@@ -137,7 +140,7 @@ class _ProfessionalBottomNavigationState
           selected ? item.selectedIcon : item.icon,
           key: ValueKey('${item.label}-$selected'),
           size: isDesktop ? 20 : 18,
-          color: selected ? Colors.white : AppColors.textMuted,
+          color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
         ),
       ),
     );
@@ -149,12 +152,13 @@ class _ProfessionalBottomNavigationState
     bool selected,
     bool isDesktop,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return AnimatedDefaultTextStyle(
       duration: AppMotion.regular,
       curve: AppMotion.interactionCurve,
       style:
           Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: selected ? AppColors.textPrimary : AppColors.textMuted,
+            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             fontSize: isDesktop ? 13 : 10.0,
             letterSpacing: isDesktop ? -0.1 : -0.2,
@@ -171,6 +175,9 @@ class _ProfessionalBottomNavigationState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final duration = animationsDisabled ? Duration.zero : AppMotion.regular;
@@ -186,7 +193,7 @@ class _ProfessionalBottomNavigationState
       key: const ValueKey('professional-bottom-navigation'),
       height: totalHeight,
       child: Material(
-        color: AppColors.background,
+        color: theme.scaffoldBackgroundColor,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             isDesktop ? 28 : 12,
@@ -204,14 +211,14 @@ class _ProfessionalBottomNavigationState
                 height: panelHeight,
                 padding: EdgeInsets.all(isDesktop ? 8 : 7),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.97),
+                  color: scheme.surface.withValues(alpha: dark ? 0.97 : 0.96),
                   borderRadius: BorderRadius.circular(isDesktop ? 23 : 26),
                   border: Border.all(
-                    color: AppColors.border.withValues(alpha: 0.96),
+                    color: scheme.outline.withValues(alpha: dark ? 0.90 : 0.70),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF17191C).withValues(alpha: 0.10),
+                      color: Colors.black.withValues(alpha: dark ? 0.36 : 0.10),
                       blurRadius: isDesktop ? 30 : 24,
                       spreadRadius: -9,
                       offset: Offset(0, isDesktop ? 14 : 11),
@@ -243,13 +250,13 @@ class _ProfessionalBottomNavigationState
                             ),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? AppColors.surfaceSoft
+                                  ? scheme.surfaceContainerHighest
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(17),
                               border: selected
                                   ? Border.all(
-                                      color: AppColors.border.withValues(
-                                        alpha: 0.92,
+                                      color: scheme.outline.withValues(
+                                        alpha: dark ? 0.90 : 0.62,
                                       ),
                                     )
                                   : null,
@@ -258,7 +265,7 @@ class _ProfessionalBottomNavigationState
                                 ? Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      buildIcon(item, selected, true),
+                                      buildIcon(context, item, selected, true),
                                       const SizedBox(width: 10),
                                       Flexible(
                                         child: buildLabel(
@@ -273,7 +280,7 @@ class _ProfessionalBottomNavigationState
                                 : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      buildIcon(item, selected, false),
+                                      buildIcon(context, item, selected, false),
                                       const SizedBox(height: 1),
                                       buildLabel(
                                         context,
