@@ -10,6 +10,7 @@ class CandidateOnboardingCandidate {
   final String status;
   final DateTime? readyDate;
   final bool consentPersonalData;
+  final bool isTestRecord;
 
   const CandidateOnboardingCandidate({
     required this.id,
@@ -23,6 +24,7 @@ class CandidateOnboardingCandidate {
     required this.status,
     required this.readyDate,
     required this.consentPersonalData,
+    this.isTestRecord = false,
   });
 
   factory CandidateOnboardingCandidate.fromMap(Map<String, dynamic> map) {
@@ -43,6 +45,7 @@ class CandidateOnboardingCandidate {
       status: map['status']?.toString() ?? 'new',
       readyDate: readyText.isEmpty ? null : DateTime.tryParse(readyText)?.toLocal(),
       consentPersonalData: map['consent_personal_data'] == true,
+      isTestRecord: map['is_test_record'] == true,
     );
   }
 
