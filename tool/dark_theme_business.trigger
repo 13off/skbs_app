@@ -1,1 +1,1 @@
-apply archive and payments adaptive colors
+apply archive and payments adaptive colors retry 2
