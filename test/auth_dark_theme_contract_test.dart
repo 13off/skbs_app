@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
+  // Тема не должна менять существующий порядок входа, регистрации и приглашений.
   test('login uses adaptive card fields keyboard and errors', () {
     final screen = source(
       'lib/features/auth/presentation/premium_login_screen_v2.dart',
@@ -19,6 +20,7 @@ void main() {
     expect(screen, contains('AppAdaptivePalette.success'));
     expect(screen, contains('AppAdaptivePalette.isDark'));
     expect(screen, contains('UserRepository.signIn('));
+    expect(screen, contains('CompanySignupScreen()'));
     expect(screen, contains("label: 'Войти в систему'"));
     expect(screen, isNot(contains('fillColor: Colors.white')));
     expect(
@@ -49,7 +51,7 @@ void main() {
     expect(screen, isNot(contains('AppColors.textMuted')));
   });
 
-  test('auth status message follows the selected theme', () {
+  test('auth status message follows theme and keeps routing order', () {
     final gate = source(
       'lib/features/auth/presentation/premium_auth_gate_v2.dart',
     );
@@ -59,7 +61,11 @@ void main() {
     expect(gate, contains('AppAdaptivePalette.border'));
     expect(gate, contains('AppAdaptivePalette.textPrimary'));
     expect(gate, contains('AppAdaptivePalette.textMuted'));
+    expect(gate, contains('UserRepository.verifyPendingInvitationLink()'));
+    expect(gate, contains('UserRepository.applyPendingInvitationCompany()'));
     expect(gate, contains('UserRepository.fetchCurrentProfile('));
+    expect(gate, contains('SetInvitationPasswordScreen('));
+    expect(gate, contains('MainScreen(profile: currentProfile)'));
     expect(gate, isNot(contains('Colors.white.withValues(alpha: 0.82)')));
     expect(gate, isNot(contains('AppColors.textPrimary')));
     expect(gate, isNot(contains('AppColors.textMuted')));
@@ -77,6 +83,7 @@ void main() {
     expect(screen, contains('AppAdaptivePalette.danger'));
     expect(screen, contains('AppAdaptivePalette.isDark'));
     expect(screen, contains('UserRepository.setInvitationPassword(password)'));
+    expect(screen, contains('await widget.onCompleted()'));
     expect(screen, contains("label: 'Сохранить пароль'"));
     expect(screen, isNot(contains('Colors.white.withValues(alpha: 0.86)')));
     expect(screen, isNot(contains('Color(0xFF874540)')));
