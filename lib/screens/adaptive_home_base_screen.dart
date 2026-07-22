@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
@@ -23,9 +24,9 @@ import 'desktop_home_widgets.dart';
 import 'desktop_object_management_dialog.dart';
 import 'home_screen.dart';
 
-const Color _desktopText = Color(0xFF1F2328);
-const Color _desktopMuted = Color(0xFF6B7075);
-const Color _desktopSuccess = Color(0xFF22C55E);
+Color get _desktopText => AppAdaptivePalette.textPrimary;
+Color get _desktopMuted => AppAdaptivePalette.textMuted;
+Color get _desktopSuccess => AppAdaptivePalette.success;
 
 class AdaptiveHomeScreen extends StatelessWidget {
   static const double desktopBreakpoint = 1050;
@@ -292,7 +293,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Период выплат',
                           style: TextStyle(
@@ -305,7 +306,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       IconButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         tooltip: 'Закрыть',
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(Icons.close_rounded),
                       ),
                     ],
                   ),
@@ -329,13 +330,13 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                             ),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? const Color(0xFFF2F3F5)
-                                  : Colors.white,
+                                  ? AppAdaptivePalette.selectedSurface
+                                  : AppAdaptivePalette.surfaceElevated,
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
                                 color: selected
-                                    ? _desktopText
-                                    : const Color(0xFFE6E8EB),
+                                    ? AppAdaptivePalette.accent
+                                    : AppAdaptivePalette.border,
                               ),
                             ),
                             child: Row(
@@ -350,14 +351,13 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                                 Expanded(
                                   child: Text(
                                     period.pickerTitle(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: _desktopText,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
-                                if (selected)
-                                  const Icon(Icons.check_circle_rounded),
+                                if (selected) Icon(Icons.check_circle_rounded),
                               ],
                             ),
                           ),
@@ -460,7 +460,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                         IconButton(
                           onPressed: refresh,
                           tooltip: 'Обновить данные',
-                          icon: const Icon(Icons.refresh_rounded),
+                          icon: Icon(Icons.refresh_rounded),
                         ),
                         NotificationBell(
                           selectedObjectName: widget.selectedObjectName,
@@ -484,7 +484,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                           const SizedBox(width: 12),
                           OutlinedButton.icon(
                             onPressed: showObjectManager,
-                            icon: const Icon(Icons.settings_outlined),
+                            icon: Icon(Icons.settings_outlined),
                             label: const Text('Управление объектами'),
                           ),
                         ],
@@ -622,9 +622,9 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
             child: FloatingActionButton.extended(
               heroTag: 'desktop-home-ai-assistant',
               onPressed: openAiAssistant,
-              backgroundColor: _desktopText,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.auto_awesome_rounded),
+              backgroundColor: AppAdaptivePalette.accentStrong,
+              foregroundColor: AppAdaptivePalette.onAccent,
+              icon: Icon(Icons.auto_awesome_rounded),
               label: const Text('ИИ-помощник'),
             ),
           ),

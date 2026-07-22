@@ -3,14 +3,18 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../models/task_item_data.dart';
 import '../widgets/premium_ui.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _line = Color(0xFFE6E8EB);
-const Color _soft = Color(0xFFF2F3F5);
-const Color _success = Color(0xFF22C55E);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _line => AppAdaptivePalette.border;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _surface => AppAdaptivePalette.surface;
+Color get _surfaceElevated => AppAdaptivePalette.surfaceElevated;
+Color get _input => AppAdaptivePalette.inputSurface;
+Color get _success => AppAdaptivePalette.success;
 
 class DesktopObjectSelector extends StatefulWidget {
   final List<String> objectNames;
@@ -87,9 +91,7 @@ class _DesktopObjectSelectorState extends State<DesktopObjectSelector>
     if (renderBox == null || !renderBox.hasSize) return;
 
     final targetSize = renderBox.size;
-    final menuWidth = math
-        .min(math.max(targetSize.width, 420), 560)
-        .toDouble();
+    final menuWidth = math.min(math.max(targetSize.width, 420), 560).toDouble();
     final overlay = Overlay.of(context);
 
     menuEntry = OverlayEntry(
@@ -122,7 +124,7 @@ class _DesktopObjectSelectorState extends State<DesktopObjectSelector>
                   constraints: BoxConstraints(maxHeight: maxHeight),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _surfaceElevated,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: _line),
                     boxShadow: [
@@ -138,7 +140,7 @@ class _DesktopObjectSelectorState extends State<DesktopObjectSelector>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.fromLTRB(10, 8, 10, 10),
                         child: Text(
                           'Выберите объект',
@@ -230,10 +232,12 @@ class DesktopObjectMenuItem extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 54),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? _soft : Colors.white,
+            color: selected
+                ? AppAdaptivePalette.selectedSurface
+                : _surfaceElevated,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? _text : Colors.transparent,
+              color: selected ? AppAdaptivePalette.accent : Colors.transparent,
             ),
           ),
           child: Row(
@@ -245,14 +249,19 @@ class DesktopObjectMenuItem extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              if (selected) const Icon(Icons.check_circle_rounded, size: 21),
+              if (selected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 21,
+                  color: AppAdaptivePalette.accent,
+                ),
             ],
           ),
         ),
@@ -292,10 +301,7 @@ class DesktopSelectorShell extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _text,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(color: _text, fontWeight: FontWeight.w900),
             ),
           ),
           if (trailing != null) Icon(trailing, color: _muted),
@@ -309,11 +315,7 @@ class DesktopDateChip extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
 
-  const DesktopDateChip({
-    super.key,
-    required this.text,
-    required this.onTap,
-  });
+  const DesktopDateChip({super.key, required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -326,24 +328,21 @@ class DesktopDateChip extends StatelessWidget {
           height: 54,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _input,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: _line),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_month_outlined, color: _muted),
+              Icon(Icons.calendar_month_outlined, color: _muted),
               const SizedBox(width: 9),
               Text(
                 text,
-                style: const TextStyle(
-                  color: _muted,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w800),
               ),
               const SizedBox(width: 9),
-              const Icon(Icons.refresh_rounded, size: 18, color: _muted),
+              Icon(Icons.refresh_rounded, size: 18, color: _muted),
             ],
           ),
         ),
@@ -402,17 +401,10 @@ class DesktopMetricCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: _text,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 19,
-                  color: _muted,
-                ),
+                Icon(Icons.arrow_forward_rounded, size: 19, color: _muted),
               ],
             ),
             const SizedBox(height: 22),
@@ -430,10 +422,7 @@ class DesktopMetricCard extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               detail,
-              style: const TextStyle(
-                color: _muted,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 18),
             ClipRRect(
@@ -450,7 +439,7 @@ class DesktopMetricCard extends StatelessWidget {
               footer,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -487,7 +476,7 @@ class DesktopTasksCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -512,7 +501,7 @@ class DesktopTasksCard extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: onOpenTasks,
-                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                icon: Icon(Icons.open_in_new_rounded, size: 18),
                 label: const Text('Все задачи'),
               ),
             ],
@@ -560,7 +549,7 @@ class DesktopTasksCard extends StatelessWidget {
                                     : task.work.trim(),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _text,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -570,7 +559,7 @@ class DesktopTasksCard extends StatelessWidget {
                                 '${task.objectName} · ${task.axes.trim().isEmpty ? 'оси не указаны' : task.axes}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _muted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -582,14 +571,14 @@ class DesktopTasksCard extends StatelessWidget {
                         const SizedBox(width: 10),
                         Text(
                           task.status,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _muted,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right_rounded, color: _muted),
+                        Icon(Icons.chevron_right_rounded, color: _muted),
                       ],
                     ),
                   ),
@@ -657,10 +646,7 @@ class DesktopFinanceCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 periodTitle,
-                style: const TextStyle(
-                  color: _muted,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -699,7 +685,7 @@ class DesktopFinanceCard extends StatelessWidget {
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onPickPeriod,
-            icon: const Icon(Icons.tune_rounded),
+            icon: Icon(Icons.tune_rounded),
             label: const Text('Выбрать другой период'),
           ),
         ],
@@ -727,10 +713,7 @@ class DesktopFinanceRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
         ),
         Text(
@@ -750,11 +733,7 @@ class DesktopEmptyState extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const DesktopEmptyState({
-    super.key,
-    required this.icon,
-    required this.text,
-  });
+  const DesktopEmptyState({super.key, required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -767,10 +746,7 @@ class DesktopEmptyState extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -794,7 +770,7 @@ class DesktopErrorState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 42, color: _muted),
+              Icon(Icons.cloud_off_outlined, size: 42, color: _muted),
               const SizedBox(height: 14),
               const Text(
                 'Не удалось загрузить главную',
@@ -813,7 +789,7 @@ class DesktopErrorState extends StatelessWidget {
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded),
+                icon: Icon(Icons.refresh_rounded),
                 label: const Text('Повторить'),
               ),
             ],

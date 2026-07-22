@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
@@ -17,13 +18,16 @@ import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _line = Color(0xFFE6E8EB);
-const Color _soft = Color(0xFFF2F3F5);
-const Color _success = Color(0xFF66766A);
-const Color _planned = Color(0xFF66717C);
-const Color _problem = Color(0xFF8A6259);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _line => AppAdaptivePalette.border;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _surface => AppAdaptivePalette.surface;
+Color get _surfaceElevated => AppAdaptivePalette.surfaceElevated;
+Color get _input => AppAdaptivePalette.inputSurface;
+Color get _success => AppAdaptivePalette.success;
+Color get _planned => AppAdaptivePalette.accent;
+Color get _problem => AppAdaptivePalette.warning;
 
 class DesktopTasksScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -449,7 +453,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
       trailing: IconButton(
         onPressed: () => loadTasks(forceRefresh: true),
         tooltip: 'Обновить задачи',
-        icon: const Icon(Icons.refresh_rounded),
+        icon: Icon(Icons.refresh_rounded),
       ),
     );
   }
@@ -483,7 +487,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.calendar_month_outlined, color: _muted),
+                  Icon(Icons.calendar_month_outlined, color: _muted),
                   const SizedBox(width: 10),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -491,14 +495,14 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
                     children: [
                       Text(
                         shortDate(selectedDate),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _text,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       Text(
                         longDate(selectedDate),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _muted,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -521,21 +525,21 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             onPressed: isSameDate(selectedDate, AppState.today)
                 ? null
                 : () => changeDate(AppState.today),
-            icon: const Icon(Icons.today_outlined),
+            icon: Icon(Icons.today_outlined),
             label: const Text('Сегодня'),
           ),
           const Spacer(),
           if (widget.profile.isAdmin) ...[
             OutlinedButton.icon(
               onPressed: sourceForAct.isEmpty ? null : openActPreview,
-              icon: const Icon(Icons.description_outlined),
+              icon: Icon(Icons.description_outlined),
               label: const Text('Сформировать акт'),
             ),
             const SizedBox(width: 10),
           ],
           FilledButton.icon(
             onPressed: canCreateTask ? openAddTaskScreen : null,
-            icon: const Icon(Icons.add_rounded),
+            icon: Icon(Icons.add_rounded),
             label: const Text('Добавить задачу'),
           ),
         ],
@@ -611,7 +615,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Поиск по работе, осям, объекту или комментарию...',
-                prefixIcon: const Icon(Icons.search_rounded),
+                prefixIcon: Icon(Icons.search_rounded),
                 suffixIcon: searchController.text.isEmpty
                     ? null
                     : IconButton(
@@ -619,17 +623,17 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
                           searchController.clear();
                           setState(() {});
                         },
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(Icons.close_rounded),
                       ),
                 filled: true,
-                fillColor: _soft,
+                fillColor: _input,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: _line),
+                  borderSide: BorderSide(color: _line),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: _line),
+                  borderSide: BorderSide(color: _line),
                 ),
               ),
             ),
@@ -660,7 +664,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
           const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: clearFilters,
-            icon: const Icon(Icons.filter_alt_off_outlined),
+            icon: Icon(Icons.filter_alt_off_outlined),
             label: const Text('Сбросить'),
           ),
         ],
@@ -670,7 +674,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
   Widget buildContent() {
     if (isLoading && tasks.isEmpty) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.hourglass_top_rounded,
         title: 'Загружаем задачи',
         description: 'Получаем работы за выбранную дату.',
@@ -689,7 +693,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
     }
 
     if (tasks.isEmpty) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.assignment_outlined,
         title: 'На эту дату задач нет',
         description: 'Выберите другую дату или добавьте новую задачу.',
@@ -820,7 +824,7 @@ class _MetricCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _muted,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -829,7 +833,7 @@ class _MetricCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 25,
                     fontWeight: FontWeight.w900,
@@ -839,7 +843,7 @@ class _MetricCard extends StatelessWidget {
                   detail,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _muted,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -886,19 +890,20 @@ class _FilterDropdown extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: _soft,
+        fillColor: _input,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: _line),
+          borderSide: BorderSide(color: _line),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: _line),
+          borderSide: BorderSide(color: _line),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String?>(
+          dropdownColor: _surfaceElevated,
           value: selectedValue,
           isExpanded: true,
           items: items,
@@ -951,7 +956,7 @@ class _TaskTableHeader extends StatelessWidget {
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       color: _soft,
-      child: const Row(
+      child: Row(
         children: [
           SizedBox(width: 150, child: _HeaderText('Статус')),
           SizedBox(width: 410, child: _HeaderText('Работа')),
@@ -974,7 +979,7 @@ class _HeaderText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: _muted,
         fontSize: 12,
         fontWeight: FontWeight.w900,
@@ -1021,8 +1026,8 @@ class _TaskTableRow extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: _surface,
           border: Border(bottom: BorderSide(color: _line)),
         ),
         child: Row(
@@ -1071,7 +1076,7 @@ class _TaskTableRow extends StatelessWidget {
                 task.work.trim().isEmpty ? 'Работа без названия' : task.work,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _text,
                   fontWeight: FontWeight.w900,
                   height: 1.25,
@@ -1084,10 +1089,7 @@ class _TaskTableRow extends StatelessWidget {
                 task.axes.trim().isEmpty ? 'Не указаны' : task.axes,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _muted,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
               ),
             ),
             SizedBox(
@@ -1096,10 +1098,7 @@ class _TaskTableRow extends StatelessWidget {
                 task.objectName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _text,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(color: _text, fontWeight: FontWeight.w800),
               ),
             ),
             Expanded(
@@ -1107,7 +1106,7 @@ class _TaskTableRow extends StatelessWidget {
                 comment.isEmpty ? '—' : comment,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _muted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1133,7 +1132,7 @@ class _MessageCard extends StatelessWidget {
   final VoidCallback? onAction;
   final bool loading;
 
-  const _MessageCard({
+  _MessageCard({
     required this.icon,
     required this.title,
     required this.description,
@@ -1156,7 +1155,7 @@ class _MessageCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 19,
               fontWeight: FontWeight.w900,
@@ -1166,7 +1165,7 @@ class _MessageCard extends StatelessWidget {
           Text(
             description,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _muted, fontWeight: FontWeight.w600),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
           ),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 18),
