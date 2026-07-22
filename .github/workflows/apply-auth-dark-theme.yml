@@ -1,0 +1,90 @@
+name: Apply auth dark theme patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/auth_dark_theme.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-auth-dark-theme-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Prepare pull request branch
+        run: git switch -C "${GITHUB_HEAD_REF}"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply auth color patch
+        run: python3 tool/apply_auth_dark_theme.py
+
+      - name: Format changed sources
+        run: |
+          dart format \
+            lib/features/auth/presentation/premium_auth_gate_v2.dart \
+            lib/features/auth/presentation/premium_login_screen_v2.dart \
+            lib/features/auth/presentation/company_signup_screen.dart \
+            lib/features/auth/presentation/set_invitation_password_screen.dart \
+            test/auth_dark_theme_contract_test.dart
+
+      - name: Run targeted contract
+        run: flutter test test/auth_dark_theme_contract_test.dart
+
+      - name: Analyze source
+        id: analyzer
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > analyzer.log 2>&1
+          status=$?
+          cat analyzer.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload analyzer log
+        if: steps.analyzer.outputs.status != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-dark-theme-analyzer-log
+          path: analyzer.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Fail on analyzer errors
+        if: steps.analyzer.outputs.status != '0'
+        run: exit 1
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f .github/workflows/apply-auth-dark-theme.yml
+          rm -f tool/apply_auth_dark_theme.py
+          rm -f tool/auth_dark_theme.trigger
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: исправлена тёмная тема авторизации
+          file_pattern: .
