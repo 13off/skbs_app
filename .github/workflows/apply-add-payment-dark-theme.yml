@@ -1,0 +1,66 @@
+name: Apply add payment dark theme patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/add_payment_dark_theme.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-add-payment-dark-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Prepare pull request branch
+        run: git switch -C "${GITHUB_HEAD_REF}"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply color patch
+        run: python3 tool/apply_add_payment_dark_theme.py
+
+      - name: Format sources
+        run: |
+          dart format \
+            lib/screens/add_payment_screen.dart \
+            test/add_payment_dark_theme_contract_test.dart
+
+      - name: Run targeted contract
+        run: flutter test test/add_payment_dark_theme_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f .github/workflows/apply-add-payment-dark-theme.yml
+          rm -f tool/apply_add_payment_dark_theme.py
+          rm -f tool/add_payment_dark_theme.trigger
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: исправлена тёмная тема добавления выплаты
+          file_pattern: .
