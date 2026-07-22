@@ -1,17 +1,46 @@
 from pathlib import Path
 
-path = Path(__file__).resolve().parents[1] / (
-    'lib/features/payments/presentation/widgets/payment_report_sheet.dart'
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def replace(path_value: str, old: str, new: str) -> None:
+    path = ROOT / path_value
+    text = path.read_text(encoding='utf-8')
+    if old not in text:
+        raise RuntimeError(f'Marker is missing: {path_value}')
+    path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+
+replace(
+    'lib/features/recruitment/presentation/recruitment_archive_screen.dart',
+    "const Text(\n                    'Не удалось загрузить архив',",
+    "Text(\n                    'Не удалось загрузить архив',",
 )
-text = path.read_text(encoding='utf-8')
-old = (
-    "const Text(\n"
-    "                  'Сначала выбери объект или «Все объекты», затем период и сотрудника.',"
+
+replace(
+    'lib/features/recruitment/presentation/recruitment_dashboard_screen.dart',
+    'Color color = _text,',
+    'Color color = AppAdaptivePalette.telegramBlue,',
 )
-new = (
-    "Text(\n"
-    "                  'Сначала выбери объект или «Все объекты», затем период и сотрудника.',"
+replace(
+    'lib/features/recruitment/presentation/recruitment_dashboard_screen.dart',
+    "const Text(\n                    'Не удалось загрузить HR-сводку',",
+    "Text(\n                    'Не удалось загрузить HR-сводку',",
 )
-if old not in text:
-    raise RuntimeError('Payment report const marker is missing')
-path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+replace(
+    'lib/screens/desktop_timesheet_screen.dart',
+    'this.accent = _text,',
+    'this.accent = AppAdaptivePalette.telegramBlue,',
+)
+
+replace(
+    'lib/screens/object_management_screen.dart',
+    "const Text(\n            'Объекты',",
+    "Text(\n            'Объекты',",
+)
+replace(
+    'lib/screens/object_management_screen.dart',
+    "child: const Text(\n                  'Объекты пока не найдены',",
+    "child: Text(\n                  'Объекты пока не найдены',",
+)
