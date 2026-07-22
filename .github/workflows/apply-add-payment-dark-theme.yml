@@ -47,7 +47,28 @@ jobs:
             test/add_payment_dark_theme_contract_test.dart
 
       - name: Run targeted contract
-        run: flutter test test/add_payment_dark_theme_contract_test.dart
+        id: targeted
+        shell: bash
+        run: |
+          set +e
+          flutter test test/add_payment_dark_theme_contract_test.dart > targeted-test.log 2>&1
+          status=$?
+          cat targeted-test.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload targeted test log
+        if: steps.targeted.outputs.status != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: add-payment-dark-targeted-test-log
+          path: targeted-test.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Fail on targeted test errors
+        if: steps.targeted.outputs.status != '0'
+        run: exit 1
 
       - name: Analyze source
         id: analyzer
@@ -78,6 +99,7 @@ jobs:
           rm -f .github/workflows/apply-add-payment-dark-theme.yml
           rm -f tool/apply_add_payment_dark_theme.py
           rm -f tool/add_payment_dark_theme.trigger
+          rm -f targeted-test.log analyzer.log
 
       - name: Commit validated patch
         uses: stefanzweifel/git-auto-commit-action@v6
