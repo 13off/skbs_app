@@ -196,7 +196,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                   ],
                 ),
                 SizedBox(height: 6),
-                const Text(
+                Text(
                   'Сначала выбери объект или «Все объекты», затем период и сотрудника.',
                   style: TextStyle(
                     color: _sheetMuted,
