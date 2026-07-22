@@ -3,7 +3,7 @@ name: Apply full UI theme and back patch
 on:
   push:
     branches:
-      - agent/full-ui-theme-back
+      - agent/full-ui-theme-back-clean
     paths:
       - tool/apply_full_ui_theme_back.py
       - .github/workflows/apply-full-ui-theme-back.yml
@@ -17,24 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/full-ui-theme-back
+          ref: agent/full-ui-theme-back-clean
           fetch-depth: 0
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
 
       - name: Apply targeted UI patch
         run: python3 tool/apply_full_ui_theme_back.py
-
-      - name: Format only changed Dart files
-        shell: bash
-        run: |
-          mapfile -t files < <(git diff --name-only --diff-filter=ACM -- '*.dart')
-          if [ ${#files[@]} -gt 0 ]; then
-            dart format "${files[@]}"
-          fi
 
       - name: Commit only targeted changes
         shell: bash
@@ -48,4 +35,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${files[@]}"
           git commit -m "полностью исправлены тёмная тема и возврат назад"
-          git push origin HEAD:agent/full-ui-theme-back
+          git push origin HEAD:agent/full-ui-theme-back-clean
