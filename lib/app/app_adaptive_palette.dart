@@ -22,14 +22,13 @@ abstract final class AppAdaptivePalette {
   static const telegramBlueStrong = Color(0xFF2278BF);
   static const darkAccentSoft = Color(0xFF203A52);
   static const darkSelectedSurface = Color(0xFF1D3448);
-  static const darkDisabledSurface = Color(0xFF1C2733);
-  static const darkDisabledText = Color(0xFF657383);
+  static const darkDisabledSurface = Color(0xFF22303D);
+  static const darkDisabledText = Color(0xFF8DA1B4);
   static const darkSuccess = Color(0xFF4FAE6E);
   static const darkWarning = Color(0xFFF0A44B);
   static const darkDanger = Color(0xFFE05D6F);
 
-  static Color get background =>
-      isDark ? darkBackground : AppColors.background;
+  static Color get background => isDark ? darkBackground : AppColors.background;
 
   static Color get surface => isDark ? darkSurface : AppColors.surface;
 
@@ -39,8 +38,7 @@ abstract final class AppAdaptivePalette {
   static Color get surfaceSoft =>
       isDark ? darkSurfaceSoft : AppColors.surfaceSoft;
 
-  static Color get inputSurface =>
-      isDark ? darkInputSurface : Colors.white;
+  static Color get inputSurface => isDark ? darkInputSurface : Colors.white;
 
   static Color get navigationSurface =>
       isDark ? darkSurface : AppColors.surface;
@@ -51,8 +49,7 @@ abstract final class AppAdaptivePalette {
   static Color get textPrimary =>
       isDark ? darkTextPrimary : AppColors.textPrimary;
 
-  static Color get textMuted =>
-      isDark ? darkTextMuted : AppColors.textMuted;
+  static Color get textMuted => isDark ? darkTextMuted : AppColors.textMuted;
 
   static Color get textFaint =>
       isDark ? darkTextFaint : const Color(0xFF8F9499);
@@ -66,8 +63,7 @@ abstract final class AppAdaptivePalette {
 
   static Color get onAccent => Colors.white;
 
-  static Color get accentSoft =>
-      isDark ? darkAccentSoft : AppColors.accentSoft;
+  static Color get accentSoft => isDark ? darkAccentSoft : AppColors.accentSoft;
 
   static Color get disabledSurface =>
       isDark ? darkDisabledSurface : const Color(0xFFE2E3E4);
@@ -75,14 +71,11 @@ abstract final class AppAdaptivePalette {
   static Color get disabledText =>
       isDark ? darkDisabledText : const Color(0xFF8F9499);
 
-  static Color get success =>
-      isDark ? darkSuccess : const Color(0xFF22C55E);
+  static Color get success => isDark ? darkSuccess : const Color(0xFF22C55E);
 
-  static Color get warning =>
-      isDark ? darkWarning : const Color(0xFFF59E0B);
+  static Color get warning => isDark ? darkWarning : const Color(0xFFF59E0B);
 
-  static Color get danger =>
-      isDark ? darkDanger : const Color(0xFFDC2626);
+  static Color get danger => isDark ? darkDanger : const Color(0xFFDC2626);
 
   static Color get info => accent;
 

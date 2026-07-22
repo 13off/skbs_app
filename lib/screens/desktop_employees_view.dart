@@ -2,19 +2,23 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/employee_private_data.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _line = Color(0xFFE6E8EB);
-const Color _soft = Color(0xFFF2F3F5);
-const Color _success = Color(0xFF238A52);
-const Color _warning = Color(0xFF9A6A16);
-const Color _danger = Color(0xFF9D3E38);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _line => AppAdaptivePalette.border;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _surface => AppAdaptivePalette.surface;
+Color get _surfaceElevated => AppAdaptivePalette.surfaceElevated;
+Color get _input => AppAdaptivePalette.inputSurface;
+Color get _success => AppAdaptivePalette.success;
+Color get _warning => AppAdaptivePalette.warning;
+Color get _danger => AppAdaptivePalette.danger;
 
 class DesktopEmployeesView extends StatefulWidget {
   final AppUserProfile profile;
@@ -75,26 +79,28 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
   String clean(String value) => value.trim();
 
   List<String> objectOptions() {
-    final result = widget.employees
-        .expand(
-          (employee) => employee.objectName
-              .split(',')
-              .map(clean)
-              .where((value) => value.isNotEmpty),
-        )
-        .toSet()
-        .toList()
-      ..sort();
+    final result =
+        widget.employees
+            .expand(
+              (employee) => employee.objectName
+                  .split(',')
+                  .map(clean)
+                  .where((value) => value.isNotEmpty),
+            )
+            .toSet()
+            .toList()
+          ..sort();
     return result;
   }
 
   List<String> positionOptions() {
-    final result = widget.employees
-        .map((employee) => clean(employee.position))
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final result =
+        widget.employees
+            .map((employee) => clean(employee.position))
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return result;
   }
 
@@ -125,10 +131,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
 
   bool matchesObject(Employee employee, String objectFilter) {
     if (objectFilter.isEmpty) return true;
-    return employee.objectName
-        .split(',')
-        .map(clean)
-        .contains(objectFilter);
+    return employee.objectName.split(',').map(clean).contains(objectFilter);
   }
 
   List<Employee> filteredEmployees() {
@@ -152,7 +155,8 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
       }
 
       if (!matchesObject(employee, objectFilter)) return false;
-      if (positionFilter.isNotEmpty && employee.position.trim() != positionFilter) {
+      if (positionFilter.isNotEmpty &&
+          employee.position.trim() != positionFilter) {
         return false;
       }
 
@@ -203,8 +207,9 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
   @override
   Widget build(BuildContext context) {
     final visible = filteredEmployees();
-    final activeCount =
-        widget.employees.where((employee) => employee.isActive).length;
+    final activeCount = widget.employees
+        .where((employee) => employee.isActive)
+        .length;
     final readyCount = widget.employees
         .where((employee) => documentState(employee) == _DocumentState.ready)
         .length;
@@ -234,10 +239,10 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           trailing: IconButton(
                             onPressed: widget.onRefresh,
                             tooltip: 'Обновить сотрудников',
-                            icon: const Icon(Icons.refresh_rounded),
+                            icon: Icon(Icons.refresh_rounded),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _ActionBar(
                           totalCount: widget.employees.length,
                           activeCount: activeCount,
@@ -247,7 +252,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           onDownloadSummary: widget.onDownloadSummary,
                           onAddEmployee: widget.onAddEmployee,
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _FiltersCard(
                           searchController: searchController,
                           objectOptions: objectOptions(),
@@ -272,9 +277,9 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           },
                           onClear: clearFilters,
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         if (widget.loading && widget.employees.isNotEmpty)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(bottom: 12),
                             child: LinearProgressIndicator(minHeight: 3),
                           ),
@@ -293,7 +298,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
 
   Widget _buildContent(List<Employee> visible) {
     if (widget.loading && widget.employees.isEmpty) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.groups_outlined,
         title: 'Загружаем сотрудников',
         loading: true,
@@ -311,7 +316,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
     }
 
     if (widget.employees.isEmpty) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.person_add_alt_1_outlined,
         title: 'Сотрудников пока нет',
         description: 'Добавьте первого сотрудника, чтобы начать работу.',
@@ -387,22 +392,22 @@ class _ActionBar extends StatelessWidget {
             ),
           ),
           if (canManage) ...[
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             OutlinedButton.icon(
               onPressed: onOpenPayments,
-              icon: const Icon(Icons.payments_outlined),
+              icon: Icon(Icons.payments_outlined),
               label: const Text('Выплаты'),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             OutlinedButton.icon(
               onPressed: onDownloadSummary,
-              icon: const Icon(Icons.table_view_outlined),
+              icon: Icon(Icons.table_view_outlined),
               label: const Text('Сводка'),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             FilledButton.icon(
               onPressed: onAddEmployee,
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              icon: Icon(Icons.person_add_alt_1_rounded),
               label: const Text('Добавить'),
             ),
           ],
@@ -436,20 +441,14 @@ class _SummaryChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 19, color: _muted),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             '$label: ',
-            style: const TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: _text,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: _text, fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -510,7 +509,7 @@ class _FiltersCard extends StatelessWidget {
             onChanged: onSearchChanged,
             decoration: InputDecoration(
               hintText: 'Поиск по ФИО, должности, телефону или объекту',
-              prefixIcon: const Icon(Icons.search_rounded),
+              prefixIcon: Icon(Icons.search_rounded),
               suffixIcon: searchController.text.isEmpty
                   ? null
                   : IconButton(
@@ -519,21 +518,21 @@ class _FiltersCard extends StatelessWidget {
                         onSearchChanged('');
                       },
                       tooltip: 'Очистить поиск',
-                      icon: const Icon(Icons.close_rounded),
+                      icon: Icon(Icons.close_rounded),
                     ),
               filled: true,
-              fillColor: _soft,
+              fillColor: _input,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: _line),
+                borderSide: BorderSide(color: _line),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: _line),
+                borderSide: BorderSide(color: _line),
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -544,7 +543,7 @@ class _FiltersCard extends StatelessWidget {
                 label: 'Объект',
                 value: objectValue,
                 items: <DropdownMenuItem<String>>[
-                  const DropdownMenuItem(value: '', child: Text('Все объекты')),
+                  DropdownMenuItem(value: '', child: Text('Все объекты')),
                   ...objectOptions.map(
                     (object) => DropdownMenuItem(
                       value: object,
@@ -559,7 +558,7 @@ class _FiltersCard extends StatelessWidget {
                 label: 'Должность',
                 value: positionValue,
                 items: <DropdownMenuItem<String>>[
-                  const DropdownMenuItem(value: '', child: Text('Все должности')),
+                  DropdownMenuItem(value: '', child: Text('Все должности')),
                   ...positionOptions.map(
                     (position) => DropdownMenuItem(
                       value: position,
@@ -595,7 +594,7 @@ class _FiltersCard extends StatelessWidget {
               if (hasFilters)
                 TextButton.icon(
                   onPressed: onClear,
-                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  icon: Icon(Icons.filter_alt_off_outlined),
                   label: const Text('Сбросить'),
                 ),
             ],
@@ -626,23 +625,24 @@ class _FilterField extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
+        dropdownColor: _surfaceElevated,
         initialValue: value,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _input,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 12,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _line),
+            borderSide: BorderSide(color: _line),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _line),
+            borderSide: BorderSide(color: _line),
           ),
         ),
         items: items,
@@ -711,11 +711,11 @@ class _TableHeader extends StatelessWidget {
     return Container(
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _soft,
         border: Border(bottom: BorderSide(color: _line)),
       ),
-      child: const Row(
+      child: Row(
         children: [
           _HeaderCell(flex: 4, text: 'Сотрудник'),
           _HeaderCell(flex: 2, text: 'Должность'),
@@ -745,7 +745,7 @@ class _HeaderCell extends StatelessWidget {
         text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           color: _muted,
           fontSize: 12,
           fontWeight: FontWeight.w900,
@@ -782,11 +782,11 @@ class _EmployeeRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           color: mutedRow
-              ? const Color(0xFFEDEEEF)
+              ? AppAdaptivePalette.disabledSurface
               : shaded
-                  ? const Color(0xFFFAFAFA)
-                  : Colors.white,
-          border: const Border(bottom: BorderSide(color: _line)),
+              ? _surfaceElevated
+              : _surface,
+          border: Border(bottom: BorderSide(color: _line)),
         ),
         child: Row(
           children: [
@@ -797,17 +797,17 @@ class _EmployeeRow extends StatelessWidget {
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: mutedRow
-                        ? const Color(0xFFD9DADC)
+                        ? AppAdaptivePalette.disabledSurface
                         : _soft,
                     foregroundColor: _text,
                     child: Text(
                       employee.name.trim().isEmpty
                           ? '?'
                           : employee.name.trim().characters.first,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       employee.name.trim().isEmpty
@@ -842,7 +842,7 @@ class _EmployeeRow extends StatelessWidget {
                 child: _EmploymentBadge(active: employee.isActive),
               ),
             ),
-            const SizedBox(
+            SizedBox(
               width: 34,
               child: Icon(Icons.chevron_right_rounded, color: _muted),
             ),
@@ -871,7 +871,7 @@ class _TextCell extends StatelessWidget {
           value,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             color: _text,
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -891,21 +891,25 @@ class _DocumentBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (state) {
       case _DocumentState.ready:
-        return const _Badge(
+        return _Badge(
           label: 'Готово',
           icon: Icons.check_circle_outline_rounded,
           foreground: _success,
-          background: Color(0xFFE8F5ED),
+          background: AppAdaptivePalette.isDark
+              ? _success.withValues(alpha: 0.16)
+              : const Color(0xFFE8F5ED),
         );
       case _DocumentState.partial:
-        return const _Badge(
+        return _Badge(
           label: 'Частично',
           icon: Icons.pending_actions_outlined,
           foreground: _warning,
-          background: Color(0xFFFFF4DC),
+          background: AppAdaptivePalette.isDark
+              ? _warning.withValues(alpha: 0.16)
+              : const Color(0xFFFFF4DC),
         );
       case _DocumentState.missing:
-        return const _Badge(
+        return _Badge(
           label: 'Нет данных',
           icon: Icons.folder_off_outlined,
           foreground: _muted,
@@ -927,8 +931,12 @@ class _EmploymentBadge extends StatelessWidget {
       icon: active ? Icons.person_outline_rounded : Icons.archive_outlined,
       foreground: active ? _success : _danger,
       background: active
-          ? const Color(0xFFE8F5ED)
-          : const Color(0xFFF7E8E7),
+          ? (AppAdaptivePalette.isDark
+                ? _success.withValues(alpha: 0.16)
+                : const Color(0xFFE8F5ED))
+          : (AppAdaptivePalette.isDark
+                ? _danger.withValues(alpha: 0.16)
+                : const Color(0xFFF7E8E7)),
     );
   }
 }
@@ -958,7 +966,7 @@ class _Badge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: foreground),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
@@ -1001,30 +1009,27 @@ class _MessageCard extends StatelessWidget {
             const CircularProgressIndicator()
           else
             Icon(icon, size: 42, color: _muted),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
           ),
           if (description != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               description!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _muted),
+              style: TextStyle(color: _muted),
             ),
           ],
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
+            SizedBox(height: 18),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],
       ),
