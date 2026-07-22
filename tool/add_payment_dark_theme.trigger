@@ -1,1 +1,1 @@
-apply adaptive add payment screen retry 4 strict
+apply adaptive add payment screen retry 5
