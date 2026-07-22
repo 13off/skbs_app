@@ -121,9 +121,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void scrollToBottom() {
@@ -262,7 +262,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Icon(completed ? Icons.verified_rounded : Icons.fact_check_outlined),
+          : Icon(
+              completed ? Icons.verified_rounded : Icons.fact_check_outlined,
+            ),
       label: Text(completed ? completedLabel(action) : action.buttonLabel),
     );
   }
@@ -444,7 +446,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     final hasConversation = entries.isNotEmpty || isSending;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('ИИ-помощник')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('ИИ-помощник'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,

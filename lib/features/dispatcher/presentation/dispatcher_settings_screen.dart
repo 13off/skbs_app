@@ -156,9 +156,7 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
       confirmText: 'Выбрать',
     );
     if (result == null || !mounted) return;
-    setState(
-      () => settings = settings.copyWith(localTime: formatTime(result)),
-    );
+    setState(() => settings = settings.copyWith(localTime: formatTime(result)));
   }
 
   Widget sectionTitle(String title, String subtitle) {
@@ -219,7 +217,8 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
             decoration: const InputDecoration(
               labelText: 'Объект сводки',
               prefixIcon: Icon(Icons.apartment_rounded),
-              helperText: 'Задачи, табель и остальные данные берутся только с этого объекта.',
+              helperText:
+                  'Задачи, табель и остальные данные берутся только с этого объекта.',
             ),
             items: objects
                 .map(
@@ -266,8 +265,10 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: DispatcherSummaryRepository.timezoneTitles
-                    .containsKey(settings.timezone)
+            value:
+                DispatcherSummaryRepository.timezoneTitles.containsKey(
+                  settings.timezone,
+                )
                 ? settings.timezone
                 : 'Europe/Moscow',
             decoration: const InputDecoration(
@@ -360,11 +361,12 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
                   ? null
                   : (value) {
                       final next = Set<String>.from(settings.recipientRoles);
-                      value == true ? next.add(entry.key) : next.remove(entry.key);
+                      value == true
+                          ? next.add(entry.key)
+                          : next.remove(entry.key);
                       setState(
-                        () => settings = settings.copyWith(
-                          recipientRoles: next,
-                        ),
+                        () =>
+                            settings = settings.copyWith(recipientRoles: next),
                       );
                     },
               title: Text(
@@ -438,55 +440,65 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
   }
 
   Widget contentCard() {
-    final items = <({String title, String subtitle, bool value, void Function(bool) update})>[
-      (
-        title: 'Задачи',
-        subtitle: 'Выполнено, незакрыто и задачи с проблемами.',
-        value: settings.includeTasks,
-        update: (value) => settings = settings.copyWith(includeTasks: value),
-      ),
-      (
-        title: 'Табель',
-        subtitle: 'Выходы, смены и сотрудники без отметки.',
-        value: settings.includeAttendance,
-        update: (value) =>
-            settings = settings.copyWith(includeAttendance: value),
-      ),
-      (
-        title: 'Сотрудники',
-        subtitle: 'Активные и добавленные за день.',
-        value: settings.includeEmployees,
-        update: (value) =>
-            settings = settings.copyWith(includeEmployees: value),
-      ),
-      (
-        title: 'Выплаты',
-        subtitle: 'Выплаты сотрудникам выбранного объекта и чеки.',
-        value: settings.includePayments,
-        update: (value) =>
-            settings = settings.copyWith(includePayments: value),
-      ),
-      (
-        title: 'Подбор персонала',
-        subtitle: 'Кандидаты, назначенные на выбранный объект.',
-        value: settings.includeRecruitment,
-        update: (value) =>
-            settings = settings.copyWith(includeRecruitment: value),
-      ),
-      (
-        title: 'Юридическое',
-        subtitle: 'Вопросы и документы, привязанные к объекту.',
-        value: settings.includeLegal,
-        update: (value) => settings = settings.copyWith(includeLegal: value),
-      ),
-      (
-        title: 'Цели и этапы',
-        subtitle: 'Открытые и просроченные этапы объекта.',
-        value: settings.includeMilestones,
-        update: (value) =>
-            settings = settings.copyWith(includeMilestones: value),
-      ),
-    ];
+    final items =
+        <
+          ({
+            String title,
+            String subtitle,
+            bool value,
+            void Function(bool) update,
+          })
+        >[
+          (
+            title: 'Задачи',
+            subtitle: 'Выполнено, незакрыто и задачи с проблемами.',
+            value: settings.includeTasks,
+            update: (value) =>
+                settings = settings.copyWith(includeTasks: value),
+          ),
+          (
+            title: 'Табель',
+            subtitle: 'Выходы, смены и сотрудники без отметки.',
+            value: settings.includeAttendance,
+            update: (value) =>
+                settings = settings.copyWith(includeAttendance: value),
+          ),
+          (
+            title: 'Сотрудники',
+            subtitle: 'Активные и добавленные за день.',
+            value: settings.includeEmployees,
+            update: (value) =>
+                settings = settings.copyWith(includeEmployees: value),
+          ),
+          (
+            title: 'Выплаты',
+            subtitle: 'Выплаты сотрудникам выбранного объекта и чеки.',
+            value: settings.includePayments,
+            update: (value) =>
+                settings = settings.copyWith(includePayments: value),
+          ),
+          (
+            title: 'Подбор персонала',
+            subtitle: 'Кандидаты, назначенные на выбранный объект.',
+            value: settings.includeRecruitment,
+            update: (value) =>
+                settings = settings.copyWith(includeRecruitment: value),
+          ),
+          (
+            title: 'Юридическое',
+            subtitle: 'Вопросы и документы, привязанные к объекту.',
+            value: settings.includeLegal,
+            update: (value) =>
+                settings = settings.copyWith(includeLegal: value),
+          ),
+          (
+            title: 'Цели и этапы',
+            subtitle: 'Открытые и просроченные этапы объекта.',
+            value: settings.includeMilestones,
+            update: (value) =>
+                settings = settings.copyWith(includeMilestones: value),
+          ),
+        ];
     return PremiumWorkCard(
       radius: 26,
       padding: const EdgeInsets.all(18),
@@ -557,14 +569,18 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    run.objectName.isEmpty ? 'Старая сводка без объекта' : run.objectName,
+                    run.objectName.isEmpty
+                        ? 'Старая сводка без объекта'
+                        : run.objectName,
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
                 Text(
                   statusTitle(run.status),
                   style: TextStyle(
-                    color: run.status == 'failed' ? Colors.red : const Color(0xFF6B7075),
+                    color: run.status == 'failed'
+                        ? Colors.red
+                        : const Color(0xFF6B7075),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -592,6 +608,7 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'ИИ-диспетчер',
+      showBackButton: true,
       subtitle: 'Ежедневная сводка по одному выбранному объекту',
       headerTrailing: IconButton(
         tooltip: 'Обновить',

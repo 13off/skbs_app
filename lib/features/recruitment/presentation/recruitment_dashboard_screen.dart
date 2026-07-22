@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
+
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -9,11 +11,11 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _success = Color(0xFF2E7D52);
-const Color _warning = Color(0xFF9A6816);
-const Color _danger = Color(0xFF9A403A);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _success => AppAdaptivePalette.success;
+Color get _warning => AppAdaptivePalette.warning;
+Color get _danger => AppAdaptivePalette.danger;
 
 class RecruitmentDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -91,25 +93,22 @@ class _RecruitmentDashboardScreenState
               ),
               child: Icon(icon, color: color),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Text(
               '$value',
-              style: const TextStyle(
+              style: TextStyle(
                 color: _text,
                 fontSize: 28,
                 height: 1,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 5),
+            SizedBox(height: 5),
             Text(
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _muted,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -123,9 +122,9 @@ class _RecruitmentDashboardScreenState
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.72),
+          color: AppAdaptivePalette.surfaceElevated,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white),
+          border: Border.all(color: AppAdaptivePalette.border),
         ),
         child: Row(
           children: [
@@ -136,9 +135,9 @@ class _RecruitmentDashboardScreenState
                 color: const Color(0xFFF1F2F4),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const Icon(Icons.person_search_rounded, color: _text),
+              child: Icon(Icons.person_search_rounded, color: _text),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,12 +146,9 @@ class _RecruitmentDashboardScreenState
                     application.fullName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _text,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     <String>[
                       if (application.vacancy.isNotEmpty) application.vacancy,
@@ -161,7 +157,7 @@ class _RecruitmentDashboardScreenState
                     ].join(' • '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _muted,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -170,22 +166,22 @@ class _RecruitmentDashboardScreenState
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   application.statusTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(
                   formatDate(application.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _muted,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -207,14 +203,14 @@ class _RecruitmentDashboardScreenState
       headerTrailing: IconButton(
         tooltip: 'Обновить',
         onPressed: refresh,
-        icon: const Icon(Icons.refresh_rounded),
+        icon: Icon(Icons.refresh_rounded),
       ),
       child: FutureBuilder<RecruitmentDashboardData>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 100),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -225,8 +221,8 @@ class _RecruitmentDashboardScreenState
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline_rounded, size: 42),
-                  const SizedBox(height: 10),
+                  Icon(Icons.error_outline_rounded, size: 42),
+                  SizedBox(height: 10),
                   const Text(
                     'Не удалось загрузить HR-сводку',
                     style: TextStyle(
@@ -235,13 +231,13 @@ class _RecruitmentDashboardScreenState
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: _muted),
+                    style: TextStyle(color: _muted),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   FilledButton(
                     onPressed: refresh,
                     child: const Text('Повторить'),
@@ -269,7 +265,7 @@ class _RecruitmentDashboardScreenState
                     label: 'Новые',
                     value: data.count('new'),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   metric(
                     icon: Icons.description_outlined,
                     label: 'Ждём документы',
@@ -278,7 +274,7 @@ class _RecruitmentDashboardScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Row(
                 children: [
                   metric(
@@ -287,7 +283,7 @@ class _RecruitmentDashboardScreenState
                     value: data.count('problems'),
                     color: _danger,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   metric(
                     icon: Icons.flight_takeoff_outlined,
                     label: 'Готовы к вылету',
@@ -296,7 +292,7 @@ class _RecruitmentDashboardScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Row(
                 children: [
                   metric(
@@ -305,7 +301,7 @@ class _RecruitmentDashboardScreenState
                     value: data.count('tickets'),
                     color: _warning,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   metric(
                     icon: Icons.how_to_reg_outlined,
                     label: 'Оформлены',
@@ -314,16 +310,16 @@ class _RecruitmentDashboardScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: widget.onOpenApplications,
-                icon: const Icon(Icons.view_kanban_outlined),
+                icon: Icon(Icons.view_kanban_outlined),
                 label: Text('Все заявки · ${data.total}'),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Последние заявки',
                       style: TextStyle(
@@ -339,12 +335,12 @@ class _RecruitmentDashboardScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               if (latest.isEmpty)
                 PremiumWorkCard(
                   radius: 24,
                   padding: const EdgeInsets.all(24),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.inbox_outlined, size: 40, color: _muted),
                       SizedBox(height: 10),

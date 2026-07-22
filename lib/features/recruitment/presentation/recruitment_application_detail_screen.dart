@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
+
+import '../../../app/app_adaptive_palette.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -16,10 +18,10 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 
-const Color _detailText = Color(0xFF1F2328);
-const Color _detailMuted = Color(0xFF6B7075);
-const Color _detailSoft = Color(0xFFF1F2F4);
-const Color _detailSuccess = Color(0xFF2E7D52);
+Color get _detailText => AppAdaptivePalette.textPrimary;
+Color get _detailMuted => AppAdaptivePalette.textMuted;
+Color get _detailSoft => AppAdaptivePalette.surfaceSoft;
+Color get _detailSuccess => AppAdaptivePalette.success;
 
 class RecruitmentApplicationDetailScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -435,7 +437,7 @@ class _RecruitmentApplicationDetailScreenState
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _detailText,
                 fontSize: 19,
                 fontWeight: FontWeight.w900,
@@ -456,23 +458,23 @@ class _RecruitmentApplicationDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 20, color: _detailMuted),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _detailMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _detailText,
                     fontWeight: FontWeight.w800,
                   ),
@@ -512,27 +514,27 @@ class _RecruitmentApplicationDetailScreenState
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           infoRow(Icons.work_outline_rounded, 'Вакансия', application.vacancy),
           infoRow(Icons.apartment_outlined, 'Объект', application.objectName),
           infoRow(Icons.badge_outlined, 'Опыт', application.experience),
           if (application.comment.isNotEmpty)
             infoRow(Icons.notes_rounded, 'Комментарий HR', application.comment),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: application.phone.isEmpty ? null : callCandidate,
-                  icon: const Icon(Icons.phone_outlined),
+                  icon: Icon(Icons.phone_outlined),
                   label: const Text('Позвонить'),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: application.phone.isEmpty ? null : copyPhone,
-                  icon: const Icon(Icons.copy_rounded),
+                  icon: Icon(Icons.copy_rounded),
                   label: const Text('Копировать номер'),
                 ),
               ),
@@ -583,19 +585,19 @@ class _RecruitmentApplicationDetailScreenState
                               : _detailSuccess,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               document.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _detailText,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 3),
+                            SizedBox(height: 3),
                             Text(
                               waiting
                                   ? 'Файл обрабатывается'
@@ -606,7 +608,7 @@ class _RecruitmentApplicationDetailScreenState
                                       ).isNotEmpty)
                                         formatBytes(document.sizeBytes),
                                     ].join(' · '),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _detailMuted,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -617,7 +619,7 @@ class _RecruitmentApplicationDetailScreenState
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -631,25 +633,25 @@ class _RecruitmentApplicationDetailScreenState
                                   title: downloadName(document),
                                   isImage: document.isImage,
                                 ),
-                          icon: const Icon(Icons.open_in_new_rounded),
+                          icon: Icon(Icons.open_in_new_rounded),
                           label: const Text('Открыть'),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: FilledButton.tonalIcon(
                           onPressed: waiting || downloading
                               ? null
                               : () => downloadDocument(document),
                           icon: downloading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 17,
                                   height: 17,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.download_rounded),
+                              : Icon(Icons.download_rounded),
                           label: const Text('Скачать'),
                         ),
                       ),
@@ -697,12 +699,12 @@ class _RecruitmentApplicationDetailScreenState
                       ? null
                       : () => downloadAllDocuments(documents),
                   icon: downloadingArchive
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.folder_zip_outlined),
+                      : Icon(Icons.folder_zip_outlined),
                   label: Text(
                     downloadingArchive
                         ? 'Собираем архив...'
@@ -710,7 +712,7 @@ class _RecruitmentApplicationDetailScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
             ...documents.map(documentCard),
           ],
@@ -751,14 +753,14 @@ class _RecruitmentApplicationDetailScreenState
             if (message.text.isNotEmpty)
               Text(
                 message.text,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _detailText,
                   height: 1.35,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             if (message.hasAttachment) ...[
-              if (message.text.isNotEmpty) const SizedBox(height: 8),
+              if (message.text.isNotEmpty) SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
@@ -777,7 +779,7 @@ class _RecruitmentApplicationDetailScreenState
                           size: 20,
                           color: _detailMuted,
                         ),
-                        const SizedBox(width: 7),
+                        SizedBox(width: 7),
                         Expanded(
                           child: Text(
                             message.isStoredAttachment
@@ -785,7 +787,7 @@ class _RecruitmentApplicationDetailScreenState
                                 : 'Вложение обрабатывается',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _detailText,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -794,7 +796,7 @@ class _RecruitmentApplicationDetailScreenState
                         ),
                       ],
                     ),
-                    const SizedBox(height: 7),
+                    SizedBox(height: 7),
                     Row(
                       children: [
                         Expanded(
@@ -811,10 +813,7 @@ class _RecruitmentApplicationDetailScreenState
                                     ),
                                   )
                                 : null,
-                            icon: const Icon(
-                              Icons.visibility_outlined,
-                              size: 18,
-                            ),
+                            icon: Icon(Icons.visibility_outlined, size: 18),
                             label: const Text('Открыть'),
                           ),
                         ),
@@ -825,14 +824,14 @@ class _RecruitmentApplicationDetailScreenState
                                 ? () => downloadMessageAttachment(message)
                                 : null,
                             icon: downloading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 16,
                                     height: 16,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(Icons.download_rounded, size: 18),
+                                : Icon(Icons.download_rounded, size: 18),
                             label: const Text('Скачать'),
                           ),
                         ),
@@ -842,12 +841,12 @@ class _RecruitmentApplicationDetailScreenState
                 ),
               ),
             ],
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Align(
               alignment: Alignment.centerRight,
               child: Text(
                 '${inbound ? 'Кандидат' : 'HR'} · ${formatDate(message.createdAt)}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: _detailMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -924,7 +923,7 @@ class _RecruitmentApplicationDetailScreenState
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: Color(0xFFE1E4E8))),
             ),
@@ -942,7 +941,7 @@ class _RecruitmentApplicationDetailScreenState
                           onSubmitted: (_) => sendMessage(),
                           decoration: InputDecoration(
                             hintText: 'Сообщение',
-                            prefixIcon: const Icon(Icons.telegram),
+                            prefixIcon: Icon(Icons.telegram),
                             filled: true,
                             fillColor: const Color(0xFFF3F5F7),
                             border: OutlineInputBorder(
@@ -952,7 +951,7 @@ class _RecruitmentApplicationDetailScreenState
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       SizedBox(
                         width: 48,
                         height: 48,
@@ -963,14 +962,14 @@ class _RecruitmentApplicationDetailScreenState
                           ),
                           onPressed: sending ? null : sendMessage,
                           child: sending
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.send_rounded),
+                              : Icon(Icons.send_rounded),
                         ),
                       ),
                     ],
@@ -990,39 +989,40 @@ class _RecruitmentApplicationDetailScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Кандидат',
+      showBackButton: true,
       subtitle: '',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Изменить данные',
         onPressed: () => Navigator.pop(context, 'edit'),
-        icon: const Icon(Icons.edit_outlined),
+        icon: Icon(Icons.edit_outlined),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             widget.application.fullName,
-            style: const TextStyle(
+            style: TextStyle(
               color: _detailText,
               fontSize: 23,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           summaryCard(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           sectionTitle(
             'Документы',
             trailing: IconButton(
               tooltip: 'Обновить',
               onPressed: refresh,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.refresh_rounded),
             ),
           ),
           documentsSection(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           sectionTitle('Переписка'),
           conversationSection(),
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
         ],
       ),
     );
@@ -1065,7 +1065,7 @@ class _RecruitmentImageViewer extends StatelessWidget {
                 child: IconButton(
                   tooltip: 'Назад',
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_rounded,
                     color: Colors.black,
                     size: 27,
@@ -1081,7 +1081,7 @@ class _RecruitmentImageViewer extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -1114,10 +1114,10 @@ class _DetailPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: _detailMuted),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: _detailMuted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -1147,11 +1147,11 @@ class _DetailMessage extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, color: _detailMuted),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _detailMuted,
                 height: 1.35,
                 fontWeight: FontWeight.w600,

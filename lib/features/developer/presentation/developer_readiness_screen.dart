@@ -78,7 +78,8 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
       description:
           'До открытия gate разрешены только тестовые или обезличенные записи. Сервер блокирует реальные ZIP, просмотр и загрузку подписанных экземпляров.',
       status: _ReadinessStatus.blocked,
-      result: 'Production gate: BLOCKED · '
+      result:
+          'Production gate: BLOCKED · '
           '${snapshot.gate.completedEvidenceCount}/8 доказательств · '
           'формы ${snapshot.employer.legalDocumentsApproved ? 'утверждены' : 'не утверждены'}',
     );
@@ -111,14 +112,16 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Активная компания',
         'Все системные проверки должны выполняться только внутри выбранной компании.',
         () async {
-          if (companyId.isEmpty) throw Exception('Активная компания не выбрана');
+          if (companyId.isEmpty)
+            throw Exception('Активная компания не выбрана');
         },
       ),
       await check(
         'RLS объектов',
         'Выполняет минимальный пользовательский запрос без service role.',
         () async {
-          if (companyId.isEmpty) throw Exception('Активная компания не выбрана');
+          if (companyId.isEmpty)
+            throw Exception('Активная компания не выбрана');
           await client
               .from('objects')
               .select('id')
@@ -137,7 +140,8 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Шаблоны документов',
         'Проверяет доступ к каталогу шаблонов через текущую роль и RLS.',
         () async {
-          if (companyId.isEmpty) throw Exception('Активная компания не выбрана');
+          if (companyId.isEmpty)
+            throw Exception('Активная компания не выбрана');
           await DocumentTemplateRepository.fetchTemplates(companyId: companyId);
         },
       ),
@@ -145,14 +149,16 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Edge Function и JWT',
         'Запрашивает только read-only черновик месячного табеля.',
         () async {
-          if (companyId.isEmpty) throw Exception('Активная компания не выбрана');
+          if (companyId.isEmpty)
+            throw Exception('Активная компания не выбрана');
           final response = await client.functions.invoke(
             'ai-operational-draft',
             body: <String, dynamic>{
               'mode': 'chat',
               'company_id': companyId,
               'object_name': widget.profile.objectName.trim(),
-              'date': '${now.year}-$month-${now.day.toString().padLeft(2, '0')}',
+              'date':
+                  '${now.year}-$month-${now.day.toString().padLeft(2, '0')}',
               'prompt': 'Открой месячный табель за $month.${now.year}',
             },
           );
@@ -162,7 +168,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
           final data = response.data;
           if (data is! Map || data['error'] != null) {
             throw Exception(
-              data is Map ? data['error'] ?? 'Некорректный ответ' : 'Некорректный ответ',
+              data is Map
+                  ? data['error'] ?? 'Некорректный ответ'
+                  : 'Некорректный ответ',
             );
           }
         },
@@ -239,7 +247,10 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
   Widget checkCard(_ReadinessCheck item) {
     final scheme = Theme.of(context).colorScheme;
     final (icon, color) = switch (item.status) {
-      _ReadinessStatus.ok => (Icons.check_circle_outline, const Color(0xFF2E7D52)),
+      _ReadinessStatus.ok => (
+        Icons.check_circle_outline,
+        const Color(0xFF2E7D52),
+      ),
       _ReadinessStatus.failed => (Icons.error_outline, scheme.error),
       _ReadinessStatus.blocked => (Icons.lock_outline, const Color(0xFF9A6816)),
       _ReadinessStatus.external => (Icons.cloud_sync_outlined, scheme.primary),
@@ -298,6 +309,7 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Готовность и диагностика',
+      showBackButton: true,
       subtitle: 'Безопасные read-only проверки production-контура',
       headerTrailing: IconButton(
         tooltip: 'Проверить снова',

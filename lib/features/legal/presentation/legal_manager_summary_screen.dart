@@ -15,7 +15,8 @@ class LegalManagerSummaryScreen extends StatefulWidget {
   const LegalManagerSummaryScreen({super.key, required this.profile});
 
   @override
-  State<LegalManagerSummaryScreen> createState() => _LegalManagerSummaryScreenState();
+  State<LegalManagerSummaryScreen> createState() =>
+      _LegalManagerSummaryScreenState();
 }
 
 class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
@@ -33,7 +34,12 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
     await next;
   }
 
-  Widget summaryTile(String title, int count, IconData icon, VoidCallback onTap) {
+  Widget summaryTile(
+    String title,
+    int count,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: PremiumPressable(
@@ -47,12 +53,29 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(color: const Color(0xFFF0F1F3), borderRadius: BorderRadius.circular(15)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F1F3),
+                  borderRadius: BorderRadius.circular(15),
+                ),
                 child: Icon(icon),
               ),
               const SizedBox(width: 13),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900))),
-              Text('$count', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(width: 5),
               const Icon(Icons.chevron_right_rounded),
             ],
@@ -65,7 +88,10 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Юридическая сводка')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Юридическая сводка'),
+      ),
       body: AppPage(
         title: 'Юридическая сводка',
         subtitle: 'Риски, решения, согласования и недельный отчёт юриста',
@@ -74,7 +100,12 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               if (snapshot.hasError) return Text('Ошибка: ${snapshot.error}');
-              return const PremiumWorkCard(child: Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())));
+              return const PremiumWorkCard(
+                child: Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
             }
             final data = snapshot.data!;
             final report = data.latestReport;
@@ -87,7 +118,10 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   () => Navigator.push<void>(
                     context,
                     CupertinoPageRoute<void>(
-                      builder: (_) => LegalMattersScreen(profile: widget.profile, managerOnly: true),
+                      builder: (_) => LegalMattersScreen(
+                        profile: widget.profile,
+                        managerOnly: true,
+                      ),
                     ),
                   ),
                 ),
@@ -98,7 +132,10 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   () => Navigator.push<void>(
                     context,
                     CupertinoPageRoute<void>(
-                      builder: (_) => LegalMattersScreen(profile: widget.profile, highRiskOnly: true),
+                      builder: (_) => LegalMattersScreen(
+                        profile: widget.profile,
+                        highRiskOnly: true,
+                      ),
                     ),
                   ),
                 ),
@@ -106,13 +143,26 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   'Ожидают подписи',
                   data.awaitingSignature.length,
                   Icons.draw_outlined,
-                  () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => const LegalDocumentsScreen(initialStatus: LegalDocumentStatus.awaitingSignature))),
+                  () => Navigator.push<void>(
+                    context,
+                    CupertinoPageRoute<void>(
+                      builder: (_) => const LegalDocumentsScreen(
+                        initialStatus: LegalDocumentStatus.awaitingSignature,
+                      ),
+                    ),
+                  ),
                 ),
                 summaryTile(
                   'Истекают или просрочены',
                   data.expiring.length,
                   Icons.event_busy_outlined,
-                  () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => const LegalDocumentsScreen(attentionOnly: true))),
+                  () => Navigator.push<void>(
+                    context,
+                    CupertinoPageRoute<void>(
+                      builder: (_) =>
+                          const LegalDocumentsScreen(attentionOnly: true),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 PremiumWorkCard(
@@ -121,17 +171,33 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Последний недельный отчёт', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      const Text(
+                        'Последний недельный отчёт',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       if (report == null)
                         const Text('Юрист ещё не отправлял недельный отчёт')
                       else ...[
-                        Text('Статус: ${report.status == 'submitted' ? 'Отправлен' : 'Черновик'}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(
+                          'Статус: ${report.status == 'submitted' ? 'Отправлен' : 'Черновик'}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                         const SizedBox(height: 8),
-                        Text(report.authorComment.isEmpty ? 'Комментарий не добавлен' : report.authorComment),
+                        Text(
+                          report.authorComment.isEmpty
+                              ? 'Комментарий не добавлен'
+                              : report.authorComment,
+                        ),
                         if (report.managerDecisions.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          const Text('Нужны решения:', style: TextStyle(fontWeight: FontWeight.w900)),
+                          const Text(
+                            'Нужны решения:',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
                           const SizedBox(height: 4),
                           Text(report.managerDecisions),
                         ],
@@ -144,7 +210,9 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   onPressed: refresh,
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Обновить'),
-                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                 ),
               ],
             );

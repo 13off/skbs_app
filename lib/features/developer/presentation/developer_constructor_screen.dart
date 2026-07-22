@@ -122,9 +122,9 @@ class _DeveloperConstructorScreenState
       await DeveloperConstructorRepository.saveReminder(edited);
       await load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Напоминание сохранено')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Напоминание сохранено')));
       }
     });
   }
@@ -172,10 +172,7 @@ class _DeveloperConstructorScreenState
     });
   }
 
-  Future<void> toggleReminder(
-    DeveloperReminderRule rule,
-    bool enabled,
-  ) async {
+  Future<void> toggleReminder(DeveloperReminderRule rule, bool enabled) async {
     await guarded(() async {
       await DeveloperConstructorRepository.saveReminder(
         rule.copyWith(enabled: enabled),
@@ -206,7 +203,9 @@ class _DeveloperConstructorScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Удалить параметр?'),
-        content: Text('Ключ «${setting.key}» перестанет быть доступен системе.'),
+        content: Text(
+          'Ключ «${setting.key}» перестанет быть доступен системе.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -263,7 +262,8 @@ class _DeveloperConstructorScreenState
 
           Future<void> pickOnce() async {
             final now = DateTime.now();
-            final current = draft.runOnceAt ?? now.add(const Duration(hours: 1));
+            final current =
+                draft.runOnceAt ?? now.add(const Duration(hours: 1));
             final date = await showDatePicker(
               context: context,
               initialDate: current,
@@ -292,7 +292,11 @@ class _DeveloperConstructorScreenState
           }
 
           return AlertDialog(
-            title: Text(initial.id.isEmpty ? 'Новое напоминание' : 'Настройка напоминания'),
+            title: Text(
+              initial.id.isEmpty
+                  ? 'Новое напоминание'
+                  : 'Настройка напоминания',
+            ),
             content: SizedBox(
               width: 620,
               child: SingleChildScrollView(
@@ -316,11 +320,22 @@ class _DeveloperConstructorScreenState
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       value: draft.scheduleType,
-                      decoration: const InputDecoration(labelText: 'Расписание'),
+                      decoration: const InputDecoration(
+                        labelText: 'Расписание',
+                      ),
                       items: const [
-                        DropdownMenuItem(value: 'daily', child: Text('Каждый выбранный день')),
-                        DropdownMenuItem(value: 'weekly', child: Text('По выбранным дням недели')),
-                        DropdownMenuItem(value: 'once', child: Text('Один раз')),
+                        DropdownMenuItem(
+                          value: 'daily',
+                          child: Text('Каждый выбранный день'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'weekly',
+                          child: Text('По выбранным дням недели'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'once',
+                          child: Text('Один раз'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value == null) return;
@@ -356,7 +371,9 @@ class _DeveloperConstructorScreenState
                             label: Text(entry.value),
                             onSelected: (value) {
                               final next = Set<int>.from(draft.weekdays);
-                              value ? next.add(entry.key) : next.remove(entry.key);
+                              value
+                                  ? next.add(entry.key)
+                                  : next.remove(entry.key);
                               setDialogState(
                                 () => draft = draft.copyWith(weekdays: next),
                               );
@@ -366,25 +383,40 @@ class _DeveloperConstructorScreenState
                       ),
                     ],
                     const SizedBox(height: 14),
-                    const Text('Получатели', style: TextStyle(fontWeight: FontWeight.w900)),
+                    const Text(
+                      'Получатели',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 7,
                       runSpacing: 7,
-                      children: DeveloperConstructorRepository.roleTitles.entries.map((entry) {
-                        final selected = draft.recipientRoles.contains(entry.key);
-                        return FilterChip(
-                          selected: selected,
-                          label: Text(entry.value),
-                          onSelected: (value) {
-                            final next = Set<String>.from(draft.recipientRoles);
-                            value ? next.add(entry.key) : next.remove(entry.key);
-                            setDialogState(
-                              () => draft = draft.copyWith(recipientRoles: next),
+                      children: DeveloperConstructorRepository
+                          .roleTitles
+                          .entries
+                          .map((entry) {
+                            final selected = draft.recipientRoles.contains(
+                              entry.key,
                             );
-                          },
-                        );
-                      }).toList(),
+                            return FilterChip(
+                              selected: selected,
+                              label: Text(entry.value),
+                              onSelected: (value) {
+                                final next = Set<String>.from(
+                                  draft.recipientRoles,
+                                );
+                                value
+                                    ? next.add(entry.key)
+                                    : next.remove(entry.key);
+                                setDialogState(
+                                  () => draft = draft.copyWith(
+                                    recipientRoles: next,
+                                  ),
+                                );
+                              },
+                            );
+                          })
+                          .toList(),
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -400,13 +432,21 @@ class _DeveloperConstructorScreenState
                       decoration: const InputDecoration(labelText: 'Приоритет'),
                       items: const [
                         DropdownMenuItem(value: 'low', child: Text('Низкий')),
-                        DropdownMenuItem(value: 'normal', child: Text('Обычный')),
+                        DropdownMenuItem(
+                          value: 'normal',
+                          child: Text('Обычный'),
+                        ),
                         DropdownMenuItem(value: 'high', child: Text('Высокий')),
-                        DropdownMenuItem(value: 'critical', child: Text('Критический')),
+                        DropdownMenuItem(
+                          value: 'critical',
+                          child: Text('Критический'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) {
-                          setDialogState(() => draft = draft.copyWith(priority: value));
+                          setDialogState(
+                            () => draft = draft.copyWith(priority: value),
+                          );
                         }
                       },
                     ),
@@ -438,12 +478,19 @@ class _DeveloperConstructorScreenState
               FilledButton(
                 onPressed: () {
                   final name = nameController.text.trim();
-                  if (name.isEmpty || draft.recipientRoles.isEmpty ||
-                      (draft.scheduleType != 'once' && draft.weekdays.isEmpty) ||
+                  if (name.isEmpty ||
+                      draft.recipientRoles.isEmpty ||
+                      (draft.scheduleType != 'once' &&
+                          draft.weekdays.isEmpty) ||
                       (!draft.inAppEnabled && !draft.pushEnabled) ||
-                      (draft.scheduleType == 'once' && draft.runOnceAt == null)) {
+                      (draft.scheduleType == 'once' &&
+                          draft.runOnceAt == null)) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      const SnackBar(content: Text('Заполни название, расписание, получателей и канал доставки')),
+                      const SnackBar(
+                        content: Text(
+                          'Заполни название, расписание, получателей и канал доставки',
+                        ),
+                      ),
                     );
                     return;
                   }
@@ -475,7 +522,9 @@ class _DeveloperConstructorScreenState
     var draft = initial;
     final keyController = TextEditingController(text: initial.key);
     final nameController = TextEditingController(text: initial.name);
-    final descriptionController = TextEditingController(text: initial.description);
+    final descriptionController = TextEditingController(
+      text: initial.description,
+    );
     final categoryController = TextEditingController(text: initial.category);
     final valueController = TextEditingController(
       text: initial.valueType == 'json'
@@ -486,7 +535,11 @@ class _DeveloperConstructorScreenState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(initial.id.isEmpty ? 'Новый системный параметр' : 'Системный параметр'),
+          title: Text(
+            initial.id.isEmpty
+                ? 'Новый системный параметр'
+                : 'Системный параметр',
+          ),
           content: SizedBox(
             width: 600,
             child: SingleChildScrollView(
@@ -519,17 +572,27 @@ class _DeveloperConstructorScreenState
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: draft.valueType,
-                    decoration: const InputDecoration(labelText: 'Тип значения'),
+                    decoration: const InputDecoration(
+                      labelText: 'Тип значения',
+                    ),
                     items: const [
-                      DropdownMenuItem(value: 'boolean', child: Text('Переключатель')),
+                      DropdownMenuItem(
+                        value: 'boolean',
+                        child: Text('Переключатель'),
+                      ),
                       DropdownMenuItem(value: 'text', child: Text('Текст')),
                       DropdownMenuItem(value: 'number', child: Text('Число')),
                       DropdownMenuItem(value: 'time', child: Text('Время')),
-                      DropdownMenuItem(value: 'json', child: Text('JSON / структура')),
+                      DropdownMenuItem(
+                        value: 'json',
+                        child: Text('JSON / структура'),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) {
-                        setDialogState(() => draft = draft.copyWith(valueType: value));
+                        setDialogState(
+                          () => draft = draft.copyWith(valueType: value),
+                        );
                       }
                     },
                   ),
@@ -563,9 +626,12 @@ class _DeveloperConstructorScreenState
               onPressed: () {
                 final key = keyController.text.trim().toLowerCase();
                 final name = nameController.text.trim();
-                if (!RegExp(r'^[a-z][a-z0-9_.-]{1,79}$').hasMatch(key) || name.isEmpty) {
+                if (!RegExp(r'^[a-z][a-z0-9_.-]{1,79}$').hasMatch(key) ||
+                    name.isEmpty) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Проверь название и системный ключ')),
+                    const SnackBar(
+                      content: Text('Проверь название и системный ключ'),
+                    ),
                   );
                   return;
                 }
@@ -580,7 +646,11 @@ class _DeveloperConstructorScreenState
                   }
                 } catch (_) {
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Значение не соответствует выбранному типу')),
+                    const SnackBar(
+                      content: Text(
+                        'Значение не соответствует выбранному типу',
+                      ),
+                    ),
                   );
                   return;
                 }
@@ -624,14 +694,31 @@ class _DeveloperConstructorScreenState
               contentPadding: EdgeInsets.zero,
               value: rule.enabled,
               onChanged: busy ? null : (value) => toggleReminder(rule, value),
-              title: Text(rule.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-              subtitle: Text(rule.body.isEmpty ? 'Без дополнительного текста' : rule.body),
+              title: Text(
+                rule.name,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              subtitle: Text(
+                rule.body.isEmpty ? 'Без дополнительного текста' : rule.body,
+              ),
             ),
-            Text(scheduleText(rule), style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              scheduleText(rule),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 4),
-            Text('Получатели: ${recipientsText(rule)}', style: const TextStyle(color: Color(0xFF6B7075))),
+            Text(
+              'Получатели: ${recipientsText(rule)}',
+              style: const TextStyle(color: Color(0xFF6B7075)),
+            ),
             if (rule.objectName.isNotEmpty)
-              Text('Объект: ${rule.objectName}', style: const TextStyle(color: Color(0xFF6B7075))),
+              Text(
+                'Объект: ${rule.objectName}',
+                style: const TextStyle(color: Color(0xFF6B7075)),
+              ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -672,15 +759,27 @@ class _DeveloperConstructorScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(setting.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+                  Text(
+                    setting.name,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
                   const SizedBox(height: 3),
-                  Text(setting.key, style: const TextStyle(color: Color(0xFF6B7075), fontFamily: 'monospace')),
+                  Text(
+                    setting.key,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7075),
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                   if (setting.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(setting.description),
                   ],
                   const SizedBox(height: 5),
-                  Text('${setting.category} · ${setting.valueType} · ${setting.value}', style: const TextStyle(color: Color(0xFF6B7075))),
+                  Text(
+                    '${setting.category} · ${setting.valueType} · ${setting.value}',
+                    style: const TextStyle(color: Color(0xFF6B7075)),
+                  ),
                 ],
               ),
             ),
@@ -714,9 +813,21 @@ class _DeveloperConstructorScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: Color(0xFF6B7075), height: 1.35)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7075),
+                    height: 1.35,
+                  ),
+                ),
               ],
             ),
           ),
@@ -734,6 +845,7 @@ class _DeveloperConstructorScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Конструктор',
+      showBackButton: true,
       subtitle: 'Создание напоминаний и системных параметров без правок в коде',
       headerTrailing: IconButton(
         tooltip: 'Обновить',
@@ -749,7 +861,10 @@ class _DeveloperConstructorScreenState
                   PremiumWorkCard(
                     radius: 22,
                     padding: const EdgeInsets.all(15),
-                    child: Text(errorText!, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      errorText!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -773,7 +888,9 @@ class _DeveloperConstructorScreenState
                 if (settings.isEmpty)
                   const PremiumWorkCard(
                     radius: 22,
-                    child: Text('Пользовательских системных параметров пока нет.'),
+                    child: Text(
+                      'Пользовательских системных параметров пока нет.',
+                    ),
                   )
                 else
                   ...settings.map(settingCard),

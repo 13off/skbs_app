@@ -93,18 +93,15 @@ class _DeveloperRoleAcceptanceScreenState
     return ChoiceChip(
       selected: active,
       label: Text(scenario.title),
-      avatar: Icon(
-        switch (scenario.role) {
-          'admin' => Icons.admin_panel_settings_outlined,
-          'developer' => Icons.developer_mode_outlined,
-          'foreman' => Icons.engineering_outlined,
-          'hr' => Icons.person_search_outlined,
-          'accountant' => Icons.calculate_outlined,
-          'lawyer' => Icons.gavel_outlined,
-          _ => Icons.person_outline,
-        },
-        size: 18,
-      ),
+      avatar: Icon(switch (scenario.role) {
+        'admin' => Icons.admin_panel_settings_outlined,
+        'developer' => Icons.developer_mode_outlined,
+        'foreman' => Icons.engineering_outlined,
+        'hr' => Icons.person_search_outlined,
+        'accountant' => Icons.calculate_outlined,
+        'lawyer' => Icons.gavel_outlined,
+        _ => Icons.person_outline,
+      }, size: 18),
       onSelected: (_) => selectRole(scenario.role),
     );
   }
@@ -227,6 +224,7 @@ class _DeveloperRoleAcceptanceScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Ролевая приёмка',
+      showBackButton: true,
       subtitle: 'Фактические JWT, permissions, Data API и RLS каждой профессии',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Проверить снова',

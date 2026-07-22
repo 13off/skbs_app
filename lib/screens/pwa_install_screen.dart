@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../services/pwa_install_service.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
@@ -29,7 +31,8 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
       isInstalling = false;
       switch (result) {
         case 'accepted':
-          message = 'Установка подтверждена. AppСтрой появится среди приложений.';
+          message =
+              'Установка подтверждена. AppСтрой появится среди приложений.';
           break;
         case 'installed':
           message = 'AppСтрой уже запущен как установленное приложение.';
@@ -51,6 +54,7 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Установка AppСтрой'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -71,13 +75,13 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                     width: 62,
                     height: 62,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F0EC),
+                      color: AppAdaptivePalette.surfaceSoft,
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: const Icon(
                       Icons.install_desktop_rounded,
                       size: 30,
-                      color: Color(0xFF34373B),
+                      color: AppAdaptivePalette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -85,10 +89,10 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                     installed
                         ? 'Приложение уже установлено'
                         : 'Установить AppСтрой',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF1F2328),
+                      color: AppAdaptivePalette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -96,10 +100,10 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                     installed
                         ? 'Вы открыли AppСтрой в отдельном режиме приложения.'
                         : canPrompt
-                            ? 'Браузер готов показать системное окно установки.'
-                            : PwaInstallService.manualInstruction,
-                    style: const TextStyle(
-                      color: Color(0xFF6B7075),
+                        ? 'Браузер готов показать системное окно установки.'
+                        : PwaInstallService.manualInstruction,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
                       height: 1.4,
                       fontWeight: FontWeight.w600,
                     ),
@@ -125,8 +129,8 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                         installed
                             ? 'Уже установлено'
                             : canPrompt
-                                ? 'Установить приложение'
-                                : 'Как установить',
+                            ? 'Установить приложение'
+                            : 'Как установить',
                       ),
                     ),
                   ),
@@ -146,8 +150,8 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                     Expanded(
                       child: Text(
                         message!,
-                        style: const TextStyle(
-                          color: Color(0xFF5F646A),
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
                           height: 1.4,
                           fontWeight: FontWeight.w700,
                         ),
@@ -199,13 +203,13 @@ class _BenefitRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 21, color: const Color(0xFF50555A)),
+        Icon(icon, size: 21, color: AppAdaptivePalette.textMuted),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: Color(0xFF5F646A),
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w700,
             ),

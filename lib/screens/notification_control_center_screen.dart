@@ -404,6 +404,7 @@ class _NotificationControlCenterScreenState
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Настройка уведомлений'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

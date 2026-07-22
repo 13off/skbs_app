@@ -65,6 +65,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Уведомления'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -132,8 +133,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
             return Column(
               children: notifications.map((notification) {
-                final isFocused =
-                    notification.id == widget.focusNotificationId;
+                final isFocused = notification.id == widget.focusNotificationId;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: PremiumWorkCard(

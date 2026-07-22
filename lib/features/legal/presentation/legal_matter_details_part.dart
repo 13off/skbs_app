@@ -4,10 +4,15 @@ class LegalMatterDetailsScreen extends StatefulWidget {
   final LegalMatter matter;
   final bool canDecide;
 
-  const LegalMatterDetailsScreen({super.key, required this.matter, this.canDecide = false});
+  const LegalMatterDetailsScreen({
+    super.key,
+    required this.matter,
+    this.canDecide = false,
+  });
 
   @override
-  State<LegalMatterDetailsScreen> createState() => _LegalMatterDetailsScreenState();
+  State<LegalMatterDetailsScreen> createState() =>
+      _LegalMatterDetailsScreenState();
 }
 
 class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
@@ -31,8 +36,22 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 125, child: Text(label, style: const TextStyle(color: Color(0xFF6B7075), fontWeight: FontWeight.w700))),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))),
+          SizedBox(
+            width: 125,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF6B7075),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
         ],
       ),
     );
@@ -41,7 +60,9 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
   Future<void> edit() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
+      CupertinoPageRoute<bool>(
+        builder: (_) => LegalMatterEditorScreen(matter: matter),
+      ),
     );
     if (saved == true) {
       final fresh = await LegalRepository.fetchMatter(matter.id);
@@ -55,16 +76,33 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(approved ? 'Согласовать решение' : 'Отклонить решение'),
-        content: TextField(controller: controller, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Комментарий руководителя')),
+        content: TextField(
+          controller: controller,
+          minLines: 2,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: 'Комментарий руководителя',
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Подтвердить')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Подтвердить'),
+          ),
         ],
       ),
     );
     controller.dispose();
     if (comment == null) return;
-    await LegalRepository.decideMatter(matterId: matter.id, approved: approved, comment: comment);
+    await LegalRepository.decideMatter(
+      matterId: matter.id,
+      approved: approved,
+      comment: comment,
+    );
     final fresh = await LegalRepository.fetchMatter(matter.id);
     if (mounted) setState(() => matter = fresh);
   }
@@ -73,8 +111,12 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Юридический вопрос'),
-        actions: [if (!widget.canDecide) IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined))],
+        actions: [
+          if (!widget.canDecide)
+            IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined)),
+        ],
       ),
       body: AppPage(
         title: matter.title,
@@ -109,7 +151,9 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                       onPressed: () => decide(false),
                       icon: const Icon(Icons.close_rounded),
                       label: const Text('Отклонить'),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -118,7 +162,9 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                       onPressed: () => decide(true),
                       icon: const Icon(Icons.check_rounded),
                       label: const Text('Согласовать'),
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                      ),
                     ),
                   ),
                 ],

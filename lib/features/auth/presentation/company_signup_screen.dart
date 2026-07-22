@@ -36,7 +36,8 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   String friendlyError(Object error) {
     if (error is AuthException) {
       final text = error.message.toLowerCase();
-      if (text.contains('already registered') || text.contains('already exists')) {
+      if (text.contains('already registered') ||
+          text.contains('already exists')) {
         return 'Пользователь с таким email уже зарегистрирован';
       }
       if (text.contains('password')) {
@@ -131,7 +132,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Создать компанию')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Создать компанию'),
+      ),
       body: PremiumBackdrop(
         child: SafeArea(
           top: false,
@@ -163,10 +167,11 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                           Text(
                             'Рабочее пространство за минуту',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textPrimary,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -209,7 +214,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                             enabled: !isLoading,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.name],
-                            decoration: decoration('Ваше имя', Icons.person_outline),
+                            decoration: decoration(
+                              'Ваше имя',
+                              Icons.person_outline,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
@@ -218,7 +226,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
-                            decoration: decoration('Email', Icons.alternate_email),
+                            decoration: decoration(
+                              'Email',
+                              Icons.alternate_email,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
@@ -231,7 +242,9 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                               'Пароль',
                               Icons.lock_outline,
                               suffix: IconButton(
-                                tooltip: passwordVisible ? 'Скрыть пароль' : 'Показать пароль',
+                                tooltip: passwordVisible
+                                    ? 'Скрыть пароль'
+                                    : 'Показать пароль',
                                 onPressed: () => setState(
                                   () => passwordVisible = !passwordVisible,
                                 ),
@@ -302,10 +315,11 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                           Text(
                             'Первые 14 дней — пробный период. Банковская карта не требуется.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: AppColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
@@ -325,10 +339,7 @@ class _SignupBenefit extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _SignupBenefit({
-    required this.icon,
-    required this.label,
-  });
+  const _SignupBenefit({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {

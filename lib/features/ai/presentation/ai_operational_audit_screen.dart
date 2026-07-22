@@ -23,11 +23,7 @@ class AiOperationalAuditScreen extends StatelessWidget {
     final value = action.text('month');
     final match = RegExp(r'^(20\d{2})-(0[1-9]|1[0-2])$').firstMatch(value);
     if (match == null) return null;
-    return DateTime(
-      int.parse(match.group(1)!),
-      int.parse(match.group(2)!),
-      1,
-    );
+    return DateTime(int.parse(match.group(1)!), int.parse(match.group(2)!), 1);
   }
 
   String get objectName => action.text('object_name');
@@ -193,7 +189,10 @@ class AiOperationalAuditScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Контроль табеля и выплат')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Контроль табеля и выплат'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

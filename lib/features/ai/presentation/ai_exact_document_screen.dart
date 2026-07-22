@@ -115,10 +115,7 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
     return null;
   }
 
-  void _fillControllers(
-    Employee? employee,
-    EmployeePrivateData? privateData,
-  ) {
+  void _fillControllers(Employee? employee, EmployeePrivateData? privateData) {
     for (final controller in controllers.values) {
       controller.dispose();
     }
@@ -225,8 +222,8 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
   }
 
   Map<String, String> get currentValues => <String, String>{
-        for (final entry in controllers.entries) entry.key: entry.value.text.trim(),
-      };
+    for (final entry in controllers.entries) entry.key: entry.value.text.trim(),
+  };
 
   List<String> get missingFields {
     final values = currentValues;
@@ -240,7 +237,8 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
     final missing = missingFields;
     if (missing.isNotEmpty) {
       setState(() {
-        errorText = 'Заполни обязательные поля: '
+        errorText =
+            'Заполни обязательные поля: '
             '${missing.map(_fieldTitle).join(', ')}';
       });
       return;
@@ -269,9 +267,9 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
       );
       if (!mounted) return;
       setState(() => downloaded = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('DOCX заполнен и сохранён')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('DOCX заполнен и сохранён')));
     } catch (error) {
       if (!mounted) return;
       setState(() => errorText = 'Не удалось собрать DOCX: $error');
@@ -356,107 +354,111 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
   Widget build(BuildContext context) {
     final info = template;
     return Scaffold(
-      appBar: AppBar(title: Text(info?.title ?? 'Заполнение DOCX')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: Text(info?.title ?? 'Заполнение DOCX'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : errorText != null && controllers.isEmpty
-                  ? _buildFatalError()
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
-                      children: [
-                        PremiumWorkCard(
-                          radius: 24,
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                info?.legalReviewRequired == true
-                                    ? 'Рабочий кадровый черновик'
-                                    : 'Оригинальная форма ООО «СКБС»',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                info?.legalReviewRequired == true
-                                    ? 'Форма собрана по проверенному исходнику. Перед подписанием проверь реквизиты работодателя, условия договора и действующую редакцию. Закрытые данные подставляются локально и не передаются ИИ.'
-                                    : 'Структура, таблицы и поля формы сохраняются. Реквизиты подставляются локально и не передаются ИИ. Подпись и отправка не выполняются.',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                  height: 1.45,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              SelectableText(
-                                'SHA-256 исходника: ${info?.originalSha256 ?? ''}',
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        for (final entry in controllers.entries) ...[
-                          TextField(
-                            controller: entry.value,
-                            keyboardType: _keyboardType(entry.key),
-                            minLines: 1,
-                            maxLines: _maxLines(entry.key),
-                            decoration: InputDecoration(
-                              labelText: _fieldTitle(entry.key),
-                              border: const OutlineInputBorder(),
-                              errorText: entry.value.text.trim().isEmpty &&
-                                      errorText != null
-                                  ? 'Заполни поле'
-                                  : null,
-                            ),
-                            onChanged: (_) {
-                              if (errorText != null) {
-                                setState(() => errorText = null);
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        if (errorText != null) ...[
+              ? _buildFatalError()
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+                  children: [
+                    PremiumWorkCard(
+                      radius: 24,
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            errorText!,
-                            style: const TextStyle(color: Colors.red),
+                            info?.legalReviewRequired == true
+                                ? 'Рабочий кадровый черновик'
+                                : 'Оригинальная форма ООО «СКБС»',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                        ],
-                        FilledButton.icon(
-                          onPressed: building ? null : downloadExactDocx,
-                          icon: building
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.download_outlined),
-                          label: Text(
-                            building
-                                ? 'Собираем DOCX…'
-                                : 'Скачать заполненный документ',
+                          const SizedBox(height: 8),
+                          Text(
+                            info?.legalReviewRequired == true
+                                ? 'Форма собрана по проверенному исходнику. Перед подписанием проверь реквизиты работодателя, условия договора и действующую редакцию. Закрытые данные подставляются локально и не передаются ИИ.'
+                                : 'Структура, таблицы и поля формы сохраняются. Реквизиты подставляются локально и не передаются ИИ. Подпись и отправка не выполняются.',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
                           ),
-                        ),
-                        if (downloaded) ...[
-                          const SizedBox(height: 10),
-                          OutlinedButton.icon(
-                            onPressed: () => Navigator.pop(context, true),
-                            icon: const Icon(Icons.check_circle_outline),
-                            label: const Text('Готово'),
+                          const SizedBox(height: 8),
+                          SelectableText(
+                            'SHA-256 исходника: ${info?.originalSha256 ?? ''}',
+                            style: const TextStyle(fontSize: 11),
                           ),
                         ],
-                      ],
+                      ),
                     ),
+                    const SizedBox(height: 14),
+                    for (final entry in controllers.entries) ...[
+                      TextField(
+                        controller: entry.value,
+                        keyboardType: _keyboardType(entry.key),
+                        minLines: 1,
+                        maxLines: _maxLines(entry.key),
+                        decoration: InputDecoration(
+                          labelText: _fieldTitle(entry.key),
+                          border: const OutlineInputBorder(),
+                          errorText:
+                              entry.value.text.trim().isEmpty &&
+                                  errorText != null
+                              ? 'Заполни поле'
+                              : null,
+                        ),
+                        onChanged: (_) {
+                          if (errorText != null) {
+                            setState(() => errorText = null);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (errorText != null) ...[
+                      Text(
+                        errorText!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    FilledButton.icon(
+                      onPressed: building ? null : downloadExactDocx,
+                      icon: building
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.download_outlined),
+                      label: Text(
+                        building
+                            ? 'Собираем DOCX…'
+                            : 'Скачать заполненный документ',
+                      ),
+                    ),
+                    if (downloaded) ...[
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(context, true),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text('Готово'),
+                      ),
+                    ],
+                  ],
+                ),
         ),
       ),
     );

@@ -629,7 +629,10 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Архив и удаление')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Архив и удаление'),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 34),
         children: [

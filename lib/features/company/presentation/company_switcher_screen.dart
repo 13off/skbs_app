@@ -10,10 +10,7 @@ import '../data/company_repository.dart';
 class CompanySwitcherScreen extends StatefulWidget {
   final String activeCompanyId;
 
-  const CompanySwitcherScreen({
-    super.key,
-    required this.activeCompanyId,
-  });
+  const CompanySwitcherScreen({super.key, required this.activeCompanyId});
 
   @override
   State<CompanySwitcherScreen> createState() => _CompanySwitcherScreenState();
@@ -78,9 +75,7 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Не удалось загрузить компании',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -119,10 +114,7 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 9,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         leading: Container(
           width: 44,
           height: 44,
@@ -156,7 +148,10 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Выбрать компанию')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Выбрать компанию'),
+      ),
       body: PremiumBackdrop(
         child: FutureBuilder<List<CompanySummary>>(
           future: companiesFuture,
@@ -226,9 +221,7 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF2F1),
                             borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                              color: const Color(0xFFF0D2CF),
-                            ),
+                            border: Border.all(color: const Color(0xFFF0D2CF)),
                           ),
                           child: Text(
                             errorText!,
@@ -252,4 +245,3 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
     );
   }
 }
-

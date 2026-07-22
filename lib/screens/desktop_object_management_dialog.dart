@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../data/object_repository.dart';
 import '../widgets/premium_ui.dart';
 import 'desktop_home_widgets.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _line = Color(0xFFE6E8EB);
-const Color _soft = Color(0xFFF2F3F5);
-const Color _danger = Color(0xFF9D3E38);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _line => AppAdaptivePalette.border;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _danger => AppAdaptivePalette.danger;
 
 class DesktopObjectManagementDialog extends StatefulWidget {
   final String? selectedObjectName;
@@ -246,7 +248,7 @@ class _DesktopObjectManagementDialogState
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -271,19 +273,19 @@ class _DesktopObjectManagementDialogState
                   ),
                   FilledButton.icon(
                     onPressed: busy ? null : addObject,
-                    icon: const Icon(Icons.add_business_outlined),
+                    icon: Icon(Icons.add_business_outlined),
                     label: const Text('Добавить объект'),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   IconButton(
                     onPressed: busy ? null : () => Navigator.pop(context),
                     tooltip: 'Закрыть',
-                    icon: const Icon(Icons.close_rounded),
+                    icon: Icon(Icons.close_rounded),
                   ),
                 ],
               ),
               if (errorText != null) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -292,14 +294,14 @@ class _DesktopObjectManagementDialogState
                   ),
                   child: Text(
                     errorText!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _danger,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Expanded(
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
@@ -309,7 +311,7 @@ class _DesktopObjectManagementDialogState
                             title: 'Активные объекты',
                             count: activeObjects.length,
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           if (activeObjects.isEmpty)
                             const DesktopEmptyState(
                               icon: Icons.business_outlined,
@@ -326,8 +328,8 @@ class _DesktopObjectManagementDialogState
                                   ),
                                   decoration: BoxDecoration(
                                     color: selected == objectName
-                                        ? _soft
-                                        : Colors.white,
+                                        ? AppAdaptivePalette.selectedSurface
+                                        : AppAdaptivePalette.surfaceElevated,
                                     borderRadius: BorderRadius.circular(18),
                                     border: Border.all(
                                       color: selected == objectName
@@ -337,22 +339,22 @@ class _DesktopObjectManagementDialogState
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.business_outlined,
                                         color: _muted,
                                       ),
-                                      const SizedBox(width: 12),
+                                      SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           objectName,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: _text,
                                             fontWeight: FontWeight.w900,
                                           ),
                                         ),
                                       ),
                                       if (selected == objectName)
-                                        const Padding(
+                                        Padding(
                                           padding: EdgeInsets.only(right: 8),
                                           child: Text(
                                             'Выбран',
@@ -375,28 +377,28 @@ class _DesktopObjectManagementDialogState
                                             ? null
                                             : () => renameObject(objectName),
                                         tooltip: 'Переименовать',
-                                        icon: const Icon(Icons.edit_outlined),
+                                        icon: Icon(Icons.edit_outlined),
                                       ),
                                       IconButton(
                                         onPressed: busy
                                             ? null
                                             : () => archiveObject(objectName),
                                         tooltip: 'Архивировать',
-                                        icon: const Icon(Icons.archive_outlined),
+                                        icon: Icon(Icons.archive_outlined),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-                          const SizedBox(height: 18),
+                          SizedBox(height: 18),
                           ObjectSectionTitle(
                             title: 'Архив',
                             count: archivedObjects.length,
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           if (archivedObjects.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 14),
                               child: Text(
                                 'Архив пуст',
@@ -422,15 +424,15 @@ class _DesktopObjectManagementDialogState
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.inventory_2_outlined,
                                         color: _muted,
                                       ),
-                                      const SizedBox(width: 12),
+                                      SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           objectName,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: _text,
                                             fontWeight: FontWeight.w800,
                                           ),
@@ -440,7 +442,7 @@ class _DesktopObjectManagementDialogState
                                         onPressed: busy
                                             ? null
                                             : () => restoreObject(objectName),
-                                        icon: const Icon(
+                                        icon: Icon(
                                           Icons.restore_rounded,
                                           size: 18,
                                         ),
@@ -455,7 +457,7 @@ class _DesktopObjectManagementDialogState
                       ),
               ),
               if (busy) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 const LinearProgressIndicator(),
               ],
             ],
@@ -483,7 +485,7 @@ class ObjectSectionTitle extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 16,
               fontWeight: FontWeight.w900,
@@ -498,10 +500,7 @@ class ObjectSectionTitle extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: const TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w900),
           ),
         ),
       ],

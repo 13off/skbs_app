@@ -145,6 +145,7 @@ class _OperationalAuditLauncherScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Контроль табеля и выплат',
+      showBackButton: true,
       subtitle: 'Прямой read-only аудит без команды в чате',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,7 +210,8 @@ class _OperationalAuditLauncherScreenState
                     ],
                     onChanged: running
                         ? null
-                        : (value) => setState(() => selectedObjectScope = value),
+                        : (value) =>
+                              setState(() => selectedObjectScope = value),
                   ),
                 if (errorText != null) ...[
                   const SizedBox(height: 12),

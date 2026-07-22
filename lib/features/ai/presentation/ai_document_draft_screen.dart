@@ -23,8 +23,7 @@ class AiDocumentDraftScreen extends StatefulWidget {
   });
 
   @override
-  State<AiDocumentDraftScreen> createState() =>
-      _AiDocumentDraftScreenState();
+  State<AiDocumentDraftScreen> createState() => _AiDocumentDraftScreenState();
 }
 
 class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
@@ -85,9 +84,11 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
       }
       if (employee == null && employeeName.isNotEmpty) {
         final normalizedName = employeeName.trim().toLowerCase();
-        final matches = employees.where((item) {
-          return item.name.trim().toLowerCase() == normalizedName;
-        }).toList(growable: false);
+        final matches = employees
+            .where((item) {
+              return item.name.trim().toLowerCase() == normalizedName;
+            })
+            .toList(growable: false);
         if (matches.length == 1) employee = matches.single;
       }
 
@@ -138,9 +139,9 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
   void downloadWord() {
     final body = bodyController.text.trim();
     if (body.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Документ пустой')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Документ пустой')));
       return;
     }
 
@@ -150,9 +151,9 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
       fileBaseName: fileBaseName,
     );
     setState(() => downloaded = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Word-файл скачан')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Word-файл скачан')));
   }
 
   Widget buildMissingFields() {
@@ -182,7 +183,10 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Черновик документа')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Черновик документа'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,
@@ -229,7 +233,8 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
                         ),
                         const SizedBox(height: 16),
                         buildMissingFields(),
-                        if (missingFields.isNotEmpty) const SizedBox(height: 16),
+                        if (missingFields.isNotEmpty)
+                          const SizedBox(height: 16),
                         TextField(
                           controller: titleController,
                           decoration: InputDecoration(

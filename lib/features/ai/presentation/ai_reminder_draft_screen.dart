@@ -6,10 +6,7 @@ import '../models/ai_assistant_result.dart';
 class AiReminderDraftScreen extends StatefulWidget {
   final AiAssistantAction action;
 
-  const AiReminderDraftScreen({
-    super.key,
-    required this.action,
-  });
+  const AiReminderDraftScreen({super.key, required this.action});
 
   @override
   State<AiReminderDraftScreen> createState() => _AiReminderDraftScreenState();
@@ -135,7 +132,10 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Новое напоминание')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Новое напоминание'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -192,26 +192,26 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: DeveloperConstructorRepository.roleTitles.entries.map(
-              (entry) {
-                final selected = recipientRoles.contains(entry.key);
-                return FilterChip(
-                  selected: selected,
-                  label: Text(entry.value),
-                  onSelected: saving
-                      ? null
-                      : (value) {
-                          setState(() {
-                            if (value) {
-                              recipientRoles.add(entry.key);
-                            } else {
-                              recipientRoles.remove(entry.key);
-                            }
-                          });
-                        },
-                );
-              },
-            ).toList(),
+            children: DeveloperConstructorRepository.roleTitles.entries.map((
+              entry,
+            ) {
+              final selected = recipientRoles.contains(entry.key);
+              return FilterChip(
+                selected: selected,
+                label: Text(entry.value),
+                onSelected: saving
+                    ? null
+                    : (value) {
+                        setState(() {
+                          if (value) {
+                            recipientRoles.add(entry.key);
+                          } else {
+                            recipientRoles.remove(entry.key);
+                          }
+                        });
+                      },
+              );
+            }).toList(),
           ),
           const SizedBox(height: 14),
           SwitchListTile(

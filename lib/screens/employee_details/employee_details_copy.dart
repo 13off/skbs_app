@@ -3,13 +3,14 @@ part of '../employee_details_screen.dart';
 extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
   Future<String?> pickTargetObject(List<String> objectNames) async {
     final currentObjectName = employee.objectName.trim();
-    final objects = objectNames
-        .map((objectName) => objectName.trim())
-        .where((objectName) => objectName.isNotEmpty)
-        .where((objectName) => objectName != currentObjectName)
-        .toSet()
-        .toList()
-      ..sort();
+    final objects =
+        objectNames
+            .map((objectName) => objectName.trim())
+            .where((objectName) => objectName.isNotEmpty)
+            .where((objectName) => objectName != currentObjectName)
+            .toSet()
+            .toList()
+          ..sort();
 
     if (objects.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -28,9 +29,9 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppAdaptivePalette.surfaceElevated,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppAdaptivePalette.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.10),
@@ -66,7 +67,7 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(sheetContext),
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close),
                       ),
                     ],
                   ),
@@ -76,7 +77,7 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
                     child: Text(
                       employee.name,
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: AppAdaptivePalette.textMuted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -95,24 +96,26 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F8FA),
+                              color: AppAdaptivePalette.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.grey.shade200),
+                              border: Border.all(
+                                color: AppAdaptivePalette.border,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.apartment_outlined),
+                                Icon(Icons.apartment_outlined),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     objectName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right),
+                                Icon(Icons.chevron_right),
                               ],
                             ),
                           ),
@@ -166,9 +169,9 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка копирования: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка копирования: $error')));
     } finally {
       if (mounted) setState(() => isCopyingEmployee = false);
     }

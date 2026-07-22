@@ -511,7 +511,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('История выплат')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('История выплат'),
+      ),
       body: RefreshIndicator(
         onRefresh: () => loadHistory(forceRefresh: true),
         child: ListView(

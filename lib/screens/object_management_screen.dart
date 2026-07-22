@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
 
-const Color _bg = Color(0xFFF7F8FA);
-const Color _card = Color(0xFFFFFFFF);
-const Color _softCard = Color(0xFFF2F3F5);
-const Color _line = Color(0xFFE6E8EB);
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _accent = Color(0xFF8F9499);
+Color get _bg => AppAdaptivePalette.background;
+Color get _card => AppAdaptivePalette.surfaceElevated;
+Color get _softCard => AppAdaptivePalette.surfaceSoft;
+Color get _line => AppAdaptivePalette.border;
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _accent => AppAdaptivePalette.textFaint;
 
 class ObjectManagementScreen extends StatefulWidget {
   final String? selectedObjectName;
@@ -176,7 +178,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         Row(
                           children: [
                             Expanded(
@@ -184,7 +186,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                                 isEdit
                                     ? 'Редактировать объект'
                                     : 'Новый объект',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _text,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
@@ -197,11 +199,11 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                                   : () {
                                       Navigator.pop(context);
                                     },
-                              icon: const Icon(Icons.close),
+                              icon: Icon(Icons.close),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         TextFormField(
                           controller: controller,
                           enabled: !isSaving,
@@ -210,7 +212,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                             labelText: 'Название объекта',
                             hintText: isEdit ? currentName : 'Например: Талнах',
                             border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.business_outlined),
+                            prefixIcon: Icon(Icons.business_outlined),
                           ),
                           validator: (value) {
                             final text = value?.trim() ?? '';
@@ -230,23 +232,23 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                           },
                         ),
                         if (sheetErrorText != null) ...[
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           Text(
                             sheetErrorText!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: FilledButton.icon(
                             onPressed: isSaving ? null : save,
                             icon: isSaving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
@@ -402,22 +404,22 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
               letterSpacing: -0.8,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Текущий выбор: ${objectTitle(widget.selectedObjectName)}',
-            style: const TextStyle(
+            style: TextStyle(
               color: _muted,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 52,
             child: FilledButton.icon(
               onPressed: isLoading || isMutating ? null : addObject,
-              icon: const Icon(Icons.add_business_outlined),
+              icon: Icon(Icons.add_business_outlined),
               label: const Text('Добавить объект'),
             ),
           ),
@@ -452,7 +454,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
               color: isSelected ? _accent : _text,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: InkWell(
               onTap: () {
@@ -465,16 +467,16 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                     objectName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _text,
                       fontWeight: FontWeight.w900,
                       fontSize: 17,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     isSelected ? 'Выбран сейчас' : 'Нажми, чтобы выбрать',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _muted,
                       fontWeight: FontWeight.w600,
                     ),
@@ -490,7 +492,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                 : () {
                     renameObject(objectName);
                   },
-            icon: const Icon(Icons.edit_outlined),
+            icon: Icon(Icons.edit_outlined),
           ),
           IconButton(
             tooltip: 'Удалить',
@@ -499,7 +501,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                 : () {
                     deleteObject(objectName);
                   },
-            icon: const Icon(Icons.delete_outline),
+            icon: Icon(Icons.delete_outline),
           ),
         ],
       ),
@@ -510,15 +512,19 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Управление объектами'),
+      ),
       body: RefreshIndicator(
         onRefresh: loadObjects,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
           children: [
             buildHeader(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             if (isLoading || isMutating)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(bottom: 14),
                 child: LinearProgressIndicator(),
               ),
@@ -533,7 +539,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                 ),
                 child: Text(
                   errorText!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.w700,
                   ),

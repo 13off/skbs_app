@@ -6,7 +6,8 @@ class LegalMatterEditorScreen extends StatefulWidget {
   const LegalMatterEditorScreen({super.key, this.matter});
 
   @override
-  State<LegalMatterEditorScreen> createState() => _LegalMatterEditorScreenState();
+  State<LegalMatterEditorScreen> createState() =>
+      _LegalMatterEditorScreenState();
 }
 
 class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
@@ -44,12 +45,12 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
       status = item.status;
       dueAt = item.dueAt;
       employeeId = item.employeeId.isEmpty ? null : item.employeeId;
-      objectId = item.objectId.isEmpty
-          ? allObjectsScopeValue
-          : item.objectId;
+      objectId = item.objectId.isEmpty ? allObjectsScopeValue : item.objectId;
       counterpartyId = item.counterpartyId.isEmpty ? null : item.counterpartyId;
       documentId = item.documentId.isEmpty ? null : item.documentId;
-      responsibleId = item.responsibleUserId.isEmpty ? null : item.responsibleUserId;
+      responsibleId = item.responsibleUserId.isEmpty
+          ? null
+          : item.responsibleUserId;
       foremanAction = item.requiresForemanAction;
       managerDecision = item.requiresManagerDecision;
     }
@@ -84,7 +85,10 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
   }
 
   DropdownMenuItem<String> directoryItem(LegalDirectoryItem item) {
-    return DropdownMenuItem(value: item.id, child: Text(item.title, overflow: TextOverflow.ellipsis));
+    return DropdownMenuItem(
+      value: item.id,
+      child: Text(item.title, overflow: TextOverflow.ellipsis),
+    );
   }
 
   String dateText(DateTime? value) {
@@ -95,7 +99,9 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
   Future<void> save() async {
     if (saving) return;
     if (titleController.text.trim().length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Укажите название вопроса')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Укажите название вопроса')));
       return;
     }
     setState(() => saving = true);
@@ -123,7 +129,10 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
       );
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось сохранить: $error')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Не удалось сохранить: $error')));
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -159,7 +168,12 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.matter == null ? 'Новый вопрос' : 'Редактировать вопрос')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: Text(
+          widget.matter == null ? 'Новый вопрос' : 'Редактировать вопрос',
+        ),
+      ),
       body: AppPage(
         title: widget.matter == null ? 'Новый вопрос' : 'Юридический вопрос',
         subtitle: 'Риск, ответственный, срок и необходимые действия',
@@ -168,16 +182,22 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               if (snapshot.hasError) return Text('Ошибка: ${snapshot.error}');
-              return const PremiumWorkCard(child: Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())));
+              return const PremiumWorkCard(
+                child: Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
             }
             final data = snapshot.data!;
             final availableEmployees = employeesForObject(data);
-            final objectFieldValue = isAllObjectsScope(objectId) ||
+            final objectFieldValue =
+                isAllObjectsScope(objectId) ||
                     data.objects.any((item) => item.id == objectId)
                 ? objectId
                 : null;
-            final employeeFieldValue = availableEmployees
-                    .any((item) => item.id == employeeId)
+            final employeeFieldValue =
+                availableEmployees.any((item) => item.id == employeeId)
                 ? employeeId
                 : null;
             return Column(
@@ -187,29 +207,79 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
                   padding: const EdgeInsets.all(18),
                   child: Column(
                     children: [
-                      TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Название')),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Название',
+                        ),
+                      ),
                       const SizedBox(height: 12),
-                      TextField(controller: descriptionController, minLines: 3, maxLines: 6, decoration: const InputDecoration(labelText: 'Описание', alignLabelWithHint: true)),
+                      TextField(
+                        controller: descriptionController,
+                        minLines: 3,
+                        maxLines: 6,
+                        decoration: const InputDecoration(
+                          labelText: 'Описание',
+                          alignLabelWithHint: true,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: type,
-                        decoration: const InputDecoration(labelText: 'Тип вопроса'),
-                        items: LegalMatterType.values.map((value) => DropdownMenuItem(value: value, child: Text(LegalMatterType.title(value)))).toList(),
-                        onChanged: saving ? null : (value) => setState(() => type = value ?? LegalMatterType.task),
+                        decoration: const InputDecoration(
+                          labelText: 'Тип вопроса',
+                        ),
+                        items: LegalMatterType.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(LegalMatterType.title(value)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(
+                                () => type = value ?? LegalMatterType.task,
+                              ),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: risk,
-                        decoration: const InputDecoration(labelText: 'Уровень риска'),
-                        items: LegalRiskLevel.values.map((value) => DropdownMenuItem(value: value, child: Text(LegalRiskLevel.title(value)))).toList(),
-                        onChanged: saving ? null : (value) => setState(() => risk = value ?? LegalRiskLevel.medium),
+                        decoration: const InputDecoration(
+                          labelText: 'Уровень риска',
+                        ),
+                        items: LegalRiskLevel.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(LegalRiskLevel.title(value)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(
+                                () => risk = value ?? LegalRiskLevel.medium,
+                              ),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: status,
                         decoration: const InputDecoration(labelText: 'Статус'),
-                        items: LegalMatterStatus.values.map((value) => DropdownMenuItem(value: value, child: Text(LegalMatterStatus.title(value)))).toList(),
-                        onChanged: saving ? null : (value) => setState(() => status = value ?? LegalMatterStatus.open),
+                        items: LegalMatterStatus.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(LegalMatterStatus.title(value)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(
+                                () => status = value ?? LegalMatterStatus.open,
+                              ),
                       ),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -236,10 +306,19 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
                   child: Column(
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: data.responsible.any((item) => item.id == responsibleId) ? responsibleId : null,
-                        decoration: const InputDecoration(labelText: 'Ответственный'),
+                        initialValue:
+                            data.responsible.any(
+                              (item) => item.id == responsibleId,
+                            )
+                            ? responsibleId
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Ответственный',
+                        ),
                         items: data.responsible.map(directoryItem).toList(),
-                        onChanged: saving ? null : (value) => setState(() => responsibleId = value),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() => responsibleId = value),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
@@ -258,21 +337,23 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
                         onChanged: saving
                             ? null
                             : (value) => setState(() {
-                                  objectId = value;
-                                  employeeId = null;
-                                }),
+                                objectId = value;
+                                employeeId = null;
+                              }),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        key: ValueKey('legal-matter-employee-${objectId ?? 'none'}'),
+                        key: ValueKey(
+                          'legal-matter-employee-${objectId ?? 'none'}',
+                        ),
                         initialValue: employeeFieldValue,
                         decoration: InputDecoration(
                           labelText: 'Сотрудник',
                           hintText: objectId == null
                               ? 'Сначала выберите объект'
                               : availableEmployees.isEmpty
-                                  ? 'На выбранном объекте нет сотрудников'
-                                  : 'Выберите сотрудника',
+                              ? 'На выбранном объекте нет сотрудников'
+                              : 'Выберите сотрудника',
                         ),
                         items: availableEmployees
                             .map(
@@ -291,17 +372,53 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        initialValue: data.counterparties.any((item) => item.id == counterpartyId) ? counterpartyId : null,
-                        decoration: const InputDecoration(labelText: 'Контрагент'),
-                        items: data.counterparties.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name, overflow: TextOverflow.ellipsis))).toList(),
-                        onChanged: saving ? null : (value) => setState(() => counterpartyId = value),
+                        initialValue:
+                            data.counterparties.any(
+                              (item) => item.id == counterpartyId,
+                            )
+                            ? counterpartyId
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Контрагент',
+                        ),
+                        items: data.counterparties
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item.id,
+                                child: Text(
+                                  item.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() => counterpartyId = value),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        initialValue: data.documents.any((item) => item.id == documentId) ? documentId : null,
-                        decoration: const InputDecoration(labelText: 'Связанный документ'),
-                        items: data.documents.map((item) => DropdownMenuItem(value: item.id, child: Text(item.title, overflow: TextOverflow.ellipsis))).toList(),
-                        onChanged: saving ? null : (value) => setState(() => documentId = value),
+                        initialValue:
+                            data.documents.any((item) => item.id == documentId)
+                            ? documentId
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Связанный документ',
+                        ),
+                        items: data.documents
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item.id,
+                                child: Text(
+                                  item.title,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() => documentId = value),
                       ),
                     ],
                   ),
@@ -312,31 +429,62 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
                   padding: const EdgeInsets.all(18),
                   child: Column(
                     children: [
-                      TextField(controller: actionsController, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Необходимые действия', alignLabelWithHint: true)),
+                      TextField(
+                        controller: actionsController,
+                        minLines: 2,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          labelText: 'Необходимые действия',
+                          alignLabelWithHint: true,
+                        ),
+                      ),
                       const SizedBox(height: 12),
-                      TextField(controller: resultController, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Результат', alignLabelWithHint: true)),
+                      TextField(
+                        controller: resultController,
+                        minLines: 2,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          labelText: 'Результат',
+                          alignLabelWithHint: true,
+                        ),
+                      ),
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Требуется действие прораба'),
                         value: foremanAction,
-                        onChanged: saving ? null : (value) => setState(() => foremanAction = value),
+                        onChanged: saving
+                            ? null
+                            : (value) => setState(() => foremanAction = value),
                       ),
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Требуется решение руководителя'),
                         value: managerDecision,
-                        onChanged: saving ? null : (value) => setState(() => managerDecision = value),
+                        onChanged: saving
+                            ? null
+                            : (value) =>
+                                  setState(() => managerDecision = value),
                       ),
                       if (managerDecision) ...[
                         const SizedBox(height: 8),
-                        TextField(controller: managerQuestionController, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Вопрос руководителю', alignLabelWithHint: true)),
+                        TextField(
+                          controller: managerQuestionController,
+                          minLines: 2,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            labelText: 'Вопрос руководителю',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
                       ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
                 PremiumActionButton(
-                  label: widget.matter == null ? 'Создать вопрос' : 'Сохранить вопрос',
+                  label: widget.matter == null
+                      ? 'Создать вопрос'
+                      : 'Сохранить вопрос',
                   icon: Icons.save_outlined,
                   onPressed: saving ? null : save,
                   isLoading: saving,

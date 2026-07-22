@@ -4,6 +4,7 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
   Widget buildTaskDetailsView() {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Задача'),
         actions: [
           if (canDeleteTask)
@@ -30,10 +31,7 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 16),
-          if (!canEdit) ...[
-            buildLockedNotice(),
-            const SizedBox(height: 14),
-          ],
+          if (!canEdit) ...[buildLockedNotice(), const SizedBox(height: 14)],
           OutlinedButton.icon(
             onPressed: isSaving || !canEditDate ? null : pickDate,
             icon: const Icon(Icons.calendar_month),

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+
+import '../../../app/app_adaptive_palette.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
 
-const Color _billingText = Color(0xFF1F2328);
-const Color _billingMuted = Color(0xFF6B7075);
-const Color _billingSoft = Color(0xFFF1F0EC);
-const Color _billingLine = Color(0xFFE4E2DC);
-const Color _billingAccent = Color(0xFF646A70);
+Color get _billingText => AppAdaptivePalette.textPrimary;
+Color get _billingMuted => AppAdaptivePalette.textMuted;
+Color get _billingSoft => AppAdaptivePalette.surfaceSoft;
+Color get _billingLine => AppAdaptivePalette.border;
+Color get _billingAccent => AppAdaptivePalette.textMuted;
 
 class CompanyPlansScreen extends StatefulWidget {
   final CompanyDashboard dashboard;
@@ -126,12 +128,11 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
   Future<void> submitRequest(CompanyBillingPlan plan) async {
     if (isSubmitting) return;
 
-    final email = Supabase.instance.client.auth.currentUser?.email?.trim() ?? '';
+    final email =
+        Supabase.instance.client.auth.currentUser?.email?.trim() ?? '';
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('В профиле не найден email для связи'),
-        ),
+        const SnackBar(content: Text('В профиле не найден email для связи')),
       );
       return;
     }
@@ -185,9 +186,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -228,13 +227,13 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                   borderRadius: BorderRadius.circular(17),
                   border: Border.all(color: _billingLine),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.workspace_premium_outlined,
                   color: _billingText,
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,10 +246,10 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(
                       currentPlanTitle(company),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _billingText,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -261,21 +260,18 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 7,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
                 color: _billingSoft,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
                 billingStatusTitle(company),
-                style: const TextStyle(
+                style: TextStyle(
                   color: _billingMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -283,18 +279,19 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           _UsageLine(
             icon: Icons.groups_outlined,
             label: 'Пользователи',
             value: '${widget.dashboard.members.length} из ${company.seatLimit}',
             progress: memberProgress,
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _UsageLine(
             icon: Icons.apartment_outlined,
             label: 'Объекты',
-            value: '${widget.dashboard.objects.length} из ${company.objectLimit}',
+            value:
+                '${widget.dashboard.objects.length} из ${company.objectLimit}',
             progress: objectProgress,
           ),
         ],
@@ -311,23 +308,23 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
       tint: _billingSoft,
       child: Row(
         children: [
-          const Icon(Icons.mark_email_read_outlined, color: _billingAccent),
-          const SizedBox(width: 12),
+          Icon(Icons.mark_email_read_outlined, color: _billingAccent),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   request.statusTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _billingText,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(
                   'Тариф: ${requestPlanName(request, plans)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _billingMuted,
                     fontWeight: FontWeight.w700,
                   ),
@@ -371,7 +368,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                         children: [
                           Text(
                             plan.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _billingText,
                               fontSize: 21,
                               fontWeight: FontWeight.w900,
@@ -379,14 +376,13 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                           ),
                           if (isRecommended)
                             const _PlanBadge(text: 'Рекомендуем'),
-                          if (isCurrent)
-                            const _PlanBadge(text: 'Текущий'),
+                          if (isCurrent) const _PlanBadge(text: 'Текущий'),
                         ],
                       ),
-                      const SizedBox(height: 5),
+                      SizedBox(height: 5),
                       Text(
                         plan.description,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _billingMuted,
                           height: 1.3,
                           fontWeight: FontWeight.w600,
@@ -395,11 +391,11 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   formatPrice(plan.monthlyPriceRub),
                   textAlign: TextAlign.end,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _billingText,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
@@ -407,7 +403,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -426,23 +422,23 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 15),
+            SizedBox(height: 15),
             ...plan.features.map(
               (feature) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.check_circle_outline_rounded,
                       color: _billingAccent,
                       size: 19,
                     ),
-                    const SizedBox(width: 9),
+                    SizedBox(width: 9),
                     Expanded(
                       child: Text(
                         feature,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _billingText,
                           fontWeight: FontWeight.w700,
                         ),
@@ -452,7 +448,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             PremiumActionButton(
               label: isInternal
                   ? 'Внутренний доступ активен'
@@ -480,14 +476,15 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Тариф и лимиты'),
-        backgroundColor: const Color(0xFFFAF9F6),
+        backgroundColor: AppAdaptivePalette.background,
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             tooltip: 'Обновить',
             onPressed: isSubmitting ? null : refresh,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -511,16 +508,16 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline_rounded, size: 36),
-                        const SizedBox(height: 10),
+                        Icon(Icons.error_outline_rounded, size: 36),
+                        SizedBox(height: 10),
                         Text(
                           'Не удалось загрузить тарифы: ${snapshot.error}',
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         FilledButton.icon(
                           onPressed: refresh,
-                          icon: const Icon(Icons.refresh_rounded),
+                          icon: Icon(Icons.refresh_rounded),
                           label: const Text('Повторить'),
                         ),
                       ],
@@ -543,10 +540,10 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                       children: [
                         buildCurrentPlanCard(),
                         if (data.openRequest != null) ...[
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
                           buildRequestCard(data.openRequest!, data.plans),
                         ],
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         const Text(
                           'Тарифы для компаний',
                           style: TextStyle(
@@ -556,7 +553,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                             letterSpacing: -0.4,
                           ),
                         ),
-                        const SizedBox(height: 7),
+                        SizedBox(height: 7),
                         const Text(
                           'На всех тарифах доступны все функции AppСтрой. '
                           'Отличаются только лимиты и сопровождение.',
@@ -566,14 +563,14 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         ...data.plans.map(
                           (plan) => buildPlanCard(
                             plan: plan,
                             openRequest: data.openRequest,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         const Text(
                           'Заявка не списывает деньги. До подключения эквайринга '
                           'активация тарифа выполняется после согласования.',
@@ -602,10 +599,7 @@ class _CompanyPlansData {
   final List<CompanyBillingPlan> plans;
   final CompanyPlanRequest? openRequest;
 
-  const _CompanyPlansData({
-    required this.plans,
-    required this.openRequest,
-  });
+  const _CompanyPlansData({required this.plans, required this.openRequest});
 }
 
 class _UsageLine extends StatelessWidget {
@@ -628,11 +622,11 @@ class _UsageLine extends StatelessWidget {
         Row(
           children: [
             Icon(icon, color: _billingMuted, size: 20),
-            const SizedBox(width: 9),
+            SizedBox(width: 9),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _billingMuted,
                   fontWeight: FontWeight.w700,
                 ),
@@ -640,14 +634,14 @@ class _UsageLine extends StatelessWidget {
             ),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _billingText,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
@@ -681,10 +675,10 @@ class _LimitChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: _billingMuted, size: 16),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               color: _billingText,
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -712,7 +706,7 @@ class _PlanBadge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           color: _billingMuted,
           fontSize: 11,
           fontWeight: FontWeight.w900,

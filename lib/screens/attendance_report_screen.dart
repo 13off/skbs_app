@@ -179,7 +179,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Отчёт по табелю')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Отчёт по табелю'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

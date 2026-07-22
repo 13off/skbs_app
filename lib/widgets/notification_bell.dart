@@ -2,17 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
 import '../features/dispatcher/presentation/dispatcher_summary_details_screen.dart';
 import 'premium_ui_v2.dart';
 
-const Color _card = Color(0xFFFFFFFF);
-const Color _softCard = Color(0xFFF2F3F5);
-const Color _line = Color(0xFFE6E8EB);
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _accent = Color(0xFF8F9499);
+Color get _card => AppAdaptivePalette.surfaceElevated;
+Color get _softCard => AppAdaptivePalette.surfaceSoft;
+Color get _line => AppAdaptivePalette.border;
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _accent => AppAdaptivePalette.textFaint;
 
 class NotificationBell extends StatefulWidget {
   final String? selectedObjectName;
@@ -77,7 +79,8 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   Future<bool> confirmClear(BuildContext context) async {
-    final isAllObjects = widget.selectedObjectName == null ||
+    final isAllObjects =
+        widget.selectedObjectName == null ||
         widget.selectedObjectName!.trim().isEmpty;
     final result = await showDialog<bool>(
       context: context,
@@ -160,10 +163,10 @@ class _NotificationBellState extends State<NotificationBell> {
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Уведомления',
                           style: TextStyle(
@@ -175,16 +178,16 @@ class _NotificationBellState extends State<NotificationBell> {
                       ),
                       TextButton.icon(
                         onPressed: clearCurrentNotifications,
-                        icon: const Icon(Icons.delete_sweep_outlined),
+                        icon: Icon(Icons.delete_sweep_outlined),
                         label: const Text('Очистить'),
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(sheetContext),
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -192,20 +195,20 @@ class _NotificationBellState extends State<NotificationBell> {
                               widget.selectedObjectName!.trim().isEmpty
                           ? 'Последние изменения по всем объектам'
                           : 'Последние изменения: ${widget.selectedObjectName!.trim()}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _muted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Flexible(
                     child: FutureBuilder<List<AppNotification>>(
                       future: notificationsFuture,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Padding(
+                          return Padding(
                             padding: EdgeInsets.all(28),
                             child: Center(child: CircularProgressIndicator()),
                           );
@@ -341,10 +344,7 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
   final String timeText;
 
-  const _NotificationTile({
-    required this.notification,
-    required this.timeText,
-  });
+  const _NotificationTile({required this.notification, required this.timeText});
 
   @override
   Widget build(BuildContext context) {
@@ -373,13 +373,13 @@ class _NotificationTile extends StatelessWidget {
               isDispatcherSummary
                   ? Icons.analytics_outlined
                   : isUnread
-                      ? Icons.notifications_active_outlined
-                      : Icons.history,
+                  ? Icons.notifications_active_outlined
+                  : Icons.history,
               color: _accent,
               size: 22,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,17 +389,17 @@ class _NotificationTile extends StatelessWidget {
                     Expanded(
                       child: Text(
                         notification.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _text,
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       timeText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _muted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -408,17 +408,17 @@ class _NotificationTile extends StatelessWidget {
                   ],
                 ),
                 if (isUnread) ...[
-                  const SizedBox(height: 7),
+                  SizedBox(height: 7),
                   const _NotificationChip(
                     icon: Icons.fiber_new_outlined,
                     text: 'Новое',
                   ),
                 ],
                 if (notification.body.trim().isNotEmpty) ...[
-                  const SizedBox(height: 7),
+                  SizedBox(height: 7),
                   Text(
                     notification.body.trim(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _text,
                       height: 1.25,
                       fontWeight: FontWeight.w600,
@@ -426,7 +426,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                 ],
                 if (isDispatcherSummary) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   FilledButton.tonalIcon(
                     onPressed: () {
                       Navigator.of(context).push(
@@ -437,11 +437,11 @@ class _NotificationTile extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.analytics_outlined, size: 19),
+                    icon: Icon(Icons.analytics_outlined, size: 19),
                     label: const Text('Разобрать отклонения'),
                   ),
                 ],
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
@@ -487,12 +487,12 @@ class _NotificationChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: _muted, size: 15),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Flexible(
             child: Text(
               text,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -526,21 +526,21 @@ class _NotificationMessage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: _accent, size: 34),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: _muted,
               height: 1.3,
               fontWeight: FontWeight.w600,

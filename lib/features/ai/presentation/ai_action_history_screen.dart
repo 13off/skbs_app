@@ -61,22 +61,26 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
 
   List<AiActionAuditRecord> get visibleRecords {
     final query = searchController.text.trim().toLowerCase();
-    return records.where((record) {
-      if (statusFilter != 'all' && record.status != statusFilter) return false;
-      if (typeFilter != 'all' && record.actionType != typeFilter) return false;
-      if (query.isEmpty) return true;
-      final haystack = <String>[
-        record.title,
-        record.actorLabel,
-        record.objectName,
-        record.actionType,
-        record.targetEntityType,
-        record.targetEntityId,
-        record.errorText,
-        jsonEncode(record.payload),
-      ].join(' ').toLowerCase();
-      return haystack.contains(query);
-    }).toList(growable: false);
+    return records
+        .where((record) {
+          if (statusFilter != 'all' && record.status != statusFilter)
+            return false;
+          if (typeFilter != 'all' && record.actionType != typeFilter)
+            return false;
+          if (query.isEmpty) return true;
+          final haystack = <String>[
+            record.title,
+            record.actorLabel,
+            record.objectName,
+            record.actionType,
+            record.targetEntityType,
+            record.targetEntityId,
+            record.errorText,
+            jsonEncode(record.payload),
+          ].join(' ').toLowerCase();
+          return haystack.contains(query);
+        })
+        .toList(growable: false);
   }
 
   Set<String> get actionTypes => records
@@ -184,15 +188,23 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   ),
                   const SizedBox(height: 12),
                   _detailLine('Статус', statusTitle(record.status)),
-                  _detailLine('Тип', AiActionAuditRecord.actionTypeTitle(record.actionType)),
+                  _detailLine(
+                    'Тип',
+                    AiActionAuditRecord.actionTypeTitle(record.actionType),
+                  ),
                   _detailLine('Пользователь', record.actorLabel),
                   _detailLine('Дата', formatDate(record.createdAt)),
                   _detailLine(
                     'Объект',
-                    record.objectName.isEmpty ? 'Все доступные объекты' : record.objectName,
+                    record.objectName.isEmpty
+                        ? 'Все доступные объекты'
+                        : record.objectName,
                   ),
                   if (record.confirmedAt != null)
-                    _detailLine('Подтверждено', formatDate(record.confirmedAt!)),
+                    _detailLine(
+                      'Подтверждено',
+                      formatDate(record.confirmedAt!),
+                    ),
                   if (record.completedAt != null)
                     _detailLine('Завершено', formatDate(record.completedAt!)),
                   if (record.targetEntityType.isNotEmpty)
@@ -213,7 +225,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                     const Text('Данные предложения отсутствуют')
                   else
                     ...record.payload.entries.map(
-                      (entry) => _detailLine(entry.key, payloadValue(entry.value)),
+                      (entry) =>
+                          _detailLine(entry.key, payloadValue(entry.value)),
                     ),
                   const SizedBox(height: 16),
                   SelectableText(
@@ -309,13 +322,26 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   decoration: const InputDecoration(labelText: 'Статус'),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('Все статусы')),
-                    DropdownMenuItem(value: 'proposed', child: Text('Предложено')),
-                    DropdownMenuItem(value: 'confirmed', child: Text('Подтверждено')),
-                    DropdownMenuItem(value: 'completed', child: Text('Выполнено')),
-                    DropdownMenuItem(value: 'cancelled', child: Text('Отменено')),
+                    DropdownMenuItem(
+                      value: 'proposed',
+                      child: Text('Предложено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'confirmed',
+                      child: Text('Подтверждено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'completed',
+                      child: Text('Выполнено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'cancelled',
+                      child: Text('Отменено'),
+                    ),
                     DropdownMenuItem(value: 'failed', child: Text('Ошибка')),
                   ],
-                  onChanged: (value) => setState(() => statusFilter = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => statusFilter = value ?? 'all'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -324,7 +350,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   initialValue: typeFilter,
                   decoration: const InputDecoration(labelText: 'Действие'),
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('Все действия')),
+                    const DropdownMenuItem(
+                      value: 'all',
+                      child: Text('Все действия'),
+                    ),
                     ...actionTypes.map(
                       (type) => DropdownMenuItem(
                         value: type,
@@ -335,7 +364,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() => typeFilter = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => typeFilter = value ?? 'all'),
                 ),
               ),
             ],
@@ -374,17 +404,26 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   children: [
                     Text(
                       record.title,
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       '${statusTitle(record.status)} • ${formatDate(record.createdAt)}',
-                      style: TextStyle(color: color, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       '${record.actorLabel}${record.objectName.isEmpty ? '' : ' • ${record.objectName}'}',
-                      style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (record.errorText.isNotEmpty) ...[
                       const SizedBox(height: 7),
@@ -392,7 +431,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                         record.errorText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF874540), fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Color(0xFF874540),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],
@@ -411,6 +453,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
     final visible = visibleRecords;
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Журнал действий ИИ'),
         actions: [
           IconButton(
@@ -444,7 +487,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                     child: Text(
                       'В журнале пока нет подходящих действий.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   )
                 else

@@ -125,7 +125,10 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
       'fine': 'Штраф',
     };
     return Scaffold(
-      appBar: AppBar(title: const Text('Черновик выплаты')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Черновик выплаты'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

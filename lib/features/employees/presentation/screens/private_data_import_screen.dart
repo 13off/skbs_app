@@ -132,7 +132,10 @@ class _PrivateDataImportScreenState extends State<PrivateDataImportScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Импорт личных данных')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Импорт личных данных'),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

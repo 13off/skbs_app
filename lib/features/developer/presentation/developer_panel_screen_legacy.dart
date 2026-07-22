@@ -189,6 +189,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Панель разработчика'),
         actions: [
           IconButton(
@@ -202,7 +203,10 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : center == null
-            ? _ErrorState(message: errorText ?? 'Настройки недоступны', retry: load)
+            ? _ErrorState(
+                message: errorText ?? 'Настройки недоступны',
+                retry: load,
+              )
             : LayoutBuilder(
                 builder: (context, constraints) {
                   final desktop = constraints.maxWidth >= 1000;
@@ -247,7 +251,10 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                   Expanded(
                     child: Text(
                       'Область настроек',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],
@@ -391,7 +398,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                 ),
               _switch(
                 title: 'Разрешить удалять фото «До»',
-                subtitle: 'Только прорабу; администратор и разработчик не ограничиваются',
+                subtitle:
+                    'Только прорабу; администратор и разработчик не ограничиваются',
                 value: editing.foremanCanDeleteBeforePhotos,
                 onChanged: (value) => update(
                   (policy) =>
@@ -411,7 +419,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
               _sectionTitle('Создание и срок редактирования'),
               _switch(
                 title: 'Создавать задачи на другие даты',
-                subtitle: 'По умолчанию прораб создаёт задачи только на сегодня',
+                subtitle:
+                    'По умолчанию прораб создаёт задачи только на сегодня',
                 value: editing.foremanCanCreateAnyDate,
                 onChanged: (value) => update(
                   (policy) => policy.copyWith(foremanCanCreateAnyDate: value),
@@ -419,7 +428,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
               ),
               _switch(
                 title: 'Редактировать прошедшие задачи',
-                subtitle: 'Разблокирует старые задачи в пределах выбранного срока',
+                subtitle:
+                    'Разблокирует старые задачи в пределах выбранного срока',
                 value: editing.foremanCanEditPastTasks,
                 onChanged: (value) => update(
                   (policy) => policy.copyWith(foremanCanEditPastTasks: value),
@@ -605,7 +615,10 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
               child: Text(
                 '$value',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
             IconButton(
@@ -653,7 +666,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                         return switch (value) {
                           'unlimited' => policy.copyWith(editWindowDays: null),
                           'days' => policy.copyWith(
-                            editWindowDays: policy.editWindowDays == null ||
+                            editWindowDays:
+                                policy.editWindowDays == null ||
                                     policy.editWindowDays == 0
                                 ? 7
                                 : policy.editWindowDays,
@@ -668,9 +682,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
               _counter(
                 title: 'Дней после даты задачи',
                 value: editing.editWindowDays ?? 7,
-                onChanged: (value) => update(
-                  (policy) => policy.copyWith(editWindowDays: value),
-                ),
+                onChanged: (value) =>
+                    update((policy) => policy.copyWith(editWindowDays: value)),
               ),
             ],
           ],

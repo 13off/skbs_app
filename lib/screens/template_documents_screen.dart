@@ -24,7 +24,9 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
   String categoryFilter = 'all';
 
   bool get canManage =>
-      widget.profile.isAdmin || widget.profile.isHr || widget.profile.isDeveloper;
+      widget.profile.isAdmin ||
+      widget.profile.isHr ||
+      widget.profile.isDeveloper;
 
   bool get canApprove => widget.profile.isAdmin || widget.profile.isDeveloper;
 
@@ -65,18 +67,20 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
 
   List<DocumentTemplateRecord> get visibleTemplates {
     final query = searchController.text.trim().toLowerCase();
-    return templates.where((template) {
-      if (categoryFilter != 'all' && template.category != categoryFilter) {
-        return false;
-      }
-      if (query.isEmpty) return true;
-      return <String>[
-        template.title,
-        template.description,
-        template.code,
-        template.categoryTitle,
-      ].join(' ').toLowerCase().contains(query);
-    }).toList(growable: false);
+    return templates
+        .where((template) {
+          if (categoryFilter != 'all' && template.category != categoryFilter) {
+            return false;
+          }
+          if (query.isEmpty) return true;
+          return <String>[
+            template.title,
+            template.description,
+            template.code,
+            template.categoryTitle,
+          ].join(' ').toLowerCase().contains(query);
+        })
+        .toList(growable: false);
   }
 
   Set<String> get categories =>
@@ -135,7 +139,10 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                   children: [
                     const Text(
                       'Новая версия шаблона',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(template.title),
@@ -300,7 +307,9 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                                 } catch (error) {
                                   if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Ошибка активации: $error')),
+                                    SnackBar(
+                                      content: Text('Ошибка активации: $error'),
+                                    ),
                                   );
                                 }
                               }
@@ -310,7 +319,9 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                                 value: 'download',
                                 child: Text('Скачать исходник'),
                               ),
-                              if (canApprove && !template.isGlobal && !isCurrent)
+                              if (canApprove &&
+                                  !template.isGlobal &&
+                                  !isCurrent)
                                 const PopupMenuItem(
                                   value: 'activate',
                                   child: Text('Сделать действующей'),
@@ -365,7 +376,10 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                     const SizedBox(height: 5),
                     Text(
                       '${statusTitle(template)} • ${template.isGlobal ? 'встроенный' : 'версия компании'}',
-                      style: TextStyle(color: color, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -428,6 +442,7 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
     final visible = visibleTemplates;
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Шаблоны документов'),
         actions: [
           IconButton(

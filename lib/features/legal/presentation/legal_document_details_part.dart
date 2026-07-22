@@ -6,10 +6,12 @@ class LegalDocumentDetailsScreen extends StatefulWidget {
   const LegalDocumentDetailsScreen({super.key, required this.document});
 
   @override
-  State<LegalDocumentDetailsScreen> createState() => _LegalDocumentDetailsScreenState();
+  State<LegalDocumentDetailsScreen> createState() =>
+      _LegalDocumentDetailsScreenState();
 }
 
-class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen> {
+class _LegalDocumentDetailsScreenState
+    extends State<LegalDocumentDetailsScreen> {
   late LegalDocument document;
   late Future<List<LegalFile>> filesFuture;
   bool uploading = false;
@@ -35,9 +37,20 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: Color(0xFF6B7075), fontWeight: FontWeight.w700)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF6B7075),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
         ],
       ),
     );
@@ -46,7 +59,9 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
   Future<void> edit() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => LegalDocumentEditorScreen(document: document)),
+      CupertinoPageRoute<bool>(
+        builder: (_) => LegalDocumentEditorScreen(document: document),
+      ),
     );
     if (saved == true) {
       final fresh = await LegalRepository.fetchDocument(document.id);
@@ -59,10 +74,19 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
     if (companyId.isEmpty || uploading) return;
     setState(() => uploading = true);
     try {
-      await LegalRepository.pickAndUploadFiles(companyId: companyId, documentId: document.id);
-      if (mounted) setState(() => filesFuture = LegalRepository.fetchDocumentFiles(document.id));
+      await LegalRepository.pickAndUploadFiles(
+        companyId: companyId,
+        documentId: document.id,
+      );
+      if (mounted)
+        setState(
+          () => filesFuture = LegalRepository.fetchDocumentFiles(document.id),
+        );
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка загрузки: $error')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка загрузки: $error')));
     } finally {
       if (mounted) setState(() => uploading = false);
     }
@@ -72,8 +96,11 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Карточка документа'),
-        actions: [IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined))],
+        actions: [
+          IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined)),
+        ],
       ),
       body: AppPage(
         title: document.title,
@@ -107,22 +134,31 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Файлы и версии', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const Text(
+                    'Файлы и версии',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
                   const SizedBox(height: 10),
                   FutureBuilder<List<LegalFile>>(
                     future: filesFuture,
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                      if (!snapshot.hasData)
+                        return const Center(child: CircularProgressIndicator());
                       final files = snapshot.data!;
-                      if (files.isEmpty) return const Text('Файлы пока не добавлены');
+                      if (files.isEmpty)
+                        return const Text('Файлы пока не добавлены');
                       return Column(
-                        children: files.map((file) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.attach_file_rounded),
-                          title: Text(file.originalName),
-                          trailing: const Icon(Icons.open_in_new_rounded),
-                          onTap: () => LegalRepository.openFile(file),
-                        )).toList(),
+                        children: files
+                            .map(
+                              (file) => ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.attach_file_rounded),
+                                title: Text(file.originalName),
+                                trailing: const Icon(Icons.open_in_new_rounded),
+                                onTap: () => LegalRepository.openFile(file),
+                              ),
+                            )
+                            .toList(),
                       );
                     },
                   ),
@@ -130,7 +166,11 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
                   OutlinedButton.icon(
                     onPressed: uploading ? null : upload,
                     icon: uploading
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.upload_file_outlined),
                     label: const Text('Добавить файлы'),
                   ),

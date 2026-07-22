@@ -82,9 +82,8 @@ class _RecruitmentMobilizationScreenState
                     onTap: () async {
                       await Navigator.of(context).push<void>(
                         CupertinoPageRoute<void>(
-                          builder: (_) => EmployeeMobilizationDetailScreen(
-                            entry: entry,
-                          ),
+                          builder: (_) =>
+                              EmployeeMobilizationDetailScreen(entry: entry),
                         ),
                       );
                       refresh();
@@ -126,9 +125,9 @@ class _RecruitmentMobilizationScreenState
                                 Text(
                                   '${entry.candidate.positionTitle} · ${entry.candidate.objectName}',
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -206,15 +205,15 @@ class _EmployeeMobilizationDetailScreenState
   }
 
   int get completedSteps => <bool>[
-        ticketBooked,
-        arrivalConfirmed,
-        accommodationConfirmed,
-        medicalCleared,
-        clothingIssued,
-        safetyInducted,
-        objectAssigned,
-        attendanceEnabled,
-      ].where((value) => value).length;
+    ticketBooked,
+    arrivalConfirmed,
+    accommodationConfirmed,
+    medicalCleared,
+    clothingIssued,
+    safetyInducted,
+    objectAssigned,
+    attendanceEnabled,
+  ].where((value) => value).length;
 
   String formatDate(DateTime? value) {
     if (value == null) return 'Не выбрана';
@@ -241,7 +240,10 @@ class _EmployeeMobilizationDetailScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+          error
+              .toString()
+              .replaceFirst('Bad state: ', '')
+              .replaceFirst('Exception: ', ''),
         ),
       ),
     );
@@ -312,6 +314,7 @@ class _EmployeeMobilizationDetailScreenState
     final candidate = widget.entry.candidate;
     return AppPage(
       title: 'Выход сотрудника',
+      showBackButton: true,
       subtitle: '${candidate.fullName} · ${candidate.objectName}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -324,7 +327,10 @@ class _EmployeeMobilizationDetailScreenState
               children: [
                 Text(
                   candidate.fullName,
-                  style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text('${candidate.positionTitle} · ${candidate.objectName}'),

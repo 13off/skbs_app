@@ -199,7 +199,10 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Документы')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Документы'),
+      ),
       body: RefreshIndicator(
         onRefresh: () => loadDocuments(showLoader: false),
         child: ListView(

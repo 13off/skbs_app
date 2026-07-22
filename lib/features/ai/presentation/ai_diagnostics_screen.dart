@@ -61,7 +61,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
         companyId: widget.profile.activeCompanyId,
         limit: 1,
       );
-      return history.isEmpty ? 'Доступ подтверждён, записей пока нет' : 'Доступ подтверждён';
+      return history.isEmpty
+          ? 'Доступ подтверждён, записей пока нет'
+          : 'Доступ подтверждён';
     });
 
     await _run('Каталог шаблонов', () async {
@@ -133,10 +135,7 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
     });
   }
 
-  Future<void> _run(
-    String title,
-    Future<String> Function() operation,
-  ) async {
+  Future<void> _run(String title, Future<String> Function() operation) async {
     try {
       final details = await operation();
       _append(_DiagnosticResult.success(title: title, details: details));
@@ -158,11 +157,18 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final passed = results.where((item) => item.state == _DiagnosticState.success).length;
-    final failed = results.where((item) => item.state == _DiagnosticState.failure).length;
+    final passed = results
+        .where((item) => item.state == _DiagnosticState.success)
+        .length;
+    final failed = results
+        .where((item) => item.state == _DiagnosticState.failure)
+        .length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Диагностика ИИ')),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text('Диагностика ИИ'),
+      ),
       body: PremiumWorkBackdrop(
         child: ListView(
           padding: const EdgeInsets.all(18),
@@ -183,7 +189,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                     style: TextStyle(height: 1.45, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 14),
-                  Text('Область: ${effectiveObjectName ?? 'все доступные объекты'}'),
+                  Text(
+                    'Область: ${effectiveObjectName ?? 'все доступные объекты'}',
+                  ),
                   if (results.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text('Успешно: $passed • Ошибок: $failed'),
@@ -200,7 +208,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.health_and_safety_outlined),
-                      label: Text(isRunning ? 'Проверяем…' : 'Запустить диагностику'),
+                      label: Text(
+                        isRunning ? 'Проверяем…' : 'Запустить диагностику',
+                      ),
                     ),
                   ),
                 ],
@@ -231,14 +241,20 @@ class _DiagnosticResult {
     required this.state,
   });
 
-  const _DiagnosticResult.success({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.success);
+  const _DiagnosticResult.success({
+    required String title,
+    required String details,
+  }) : this._(title: title, details: details, state: _DiagnosticState.success);
 
-  const _DiagnosticResult.warning({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.warning);
+  const _DiagnosticResult.warning({
+    required String title,
+    required String details,
+  }) : this._(title: title, details: details, state: _DiagnosticState.warning);
 
-  const _DiagnosticResult.failure({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.failure);
+  const _DiagnosticResult.failure({
+    required String title,
+    required String details,
+  }) : this._(title: title, details: details, state: _DiagnosticState.failure);
 }
 
 class _DiagnosticCard extends StatelessWidget {
@@ -271,9 +287,15 @@ class _DiagnosticCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(result.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  result.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 5),
-                SelectableText(result.details, style: const TextStyle(height: 1.4)),
+                SelectableText(
+                  result.details,
+                  style: const TextStyle(height: 1.4),
+                ),
               ],
             ),
           ),
