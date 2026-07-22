@@ -54,7 +54,9 @@ void main() {
     );
 
     expect(view, contains('AdaptiveDetailBody('));
-    expect(view, contains('final desktop = constraints.maxWidth >= 920'));
+    expect(view, contains('if (constraints.maxWidth < 980)'));
+    expect(view, contains('Expanded(flex: 6, child: primary)'));
+    expect(view, contains('Expanded(flex: 5, child: media)'));
     expect(view, contains('leading: const BackButton()'));
     expect(sections, contains('AppAdaptivePalette.surfaceSoft'));
     expect(assignees, contains('AppAdaptivePalette.surfaceElevated'));
