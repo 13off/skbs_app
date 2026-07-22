@@ -1,0 +1,79 @@
+name: Apply secondary desktop UI cleanup
+
+on:
+  push:
+    branches:
+      - agent/desktop-secondary-ui-cleanup
+    paths:
+      - tool/apply_secondary_ui_cleanup.py
+      - .github/workflows/apply-secondary-ui-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/desktop-secondary-ui-cleanup
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Apply targeted UI patch
+        run: python3 tool/apply_secondary_ui_cleanup.py
+
+      - name: Format changed Dart sources
+        run: |
+          dart format \
+            lib/widgets/adaptive_detail_body.dart \
+            lib/screens/employee_documents_screen.dart \
+            lib/screens/employee_comments_screen.dart \
+            lib/screens/payment_history_screen.dart \
+            lib/screens/employee_timesheet_screen.dart \
+            lib/screens/period_timesheet_screen.dart \
+            lib/screens/period_timesheet/period_timesheet_period_picker.dart \
+            lib/screens/task_details/task_details_editor_screen.dart \
+            lib/screens/task_details/task_details_view.dart \
+            lib/screens/task_details/task_details_sections.dart \
+            lib/features/tasks/presentation/task_assignee_controls.dart \
+            lib/features/milestones/presentation/task_milestone_picker.dart \
+            lib/screens/desktop_employees_view.dart \
+            lib/features/shared/presentation/specialist_desktop_ui.dart \
+            lib/features/company/presentation/desktop_company_management_screen.dart \
+            lib/features/legal/presentation/adaptive_legal_matters_screen.dart \
+            lib/features/legal/presentation/legal_matters_screen.dart \
+            lib/features/legal/presentation/legal_manager_summary_screen.dart \
+            lib/features/legal/presentation/legal_dashboard_screen.dart
+
+      - name: Commit targeted UI sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/widgets/adaptive_detail_body.dart \
+            lib/screens/employee_documents_screen.dart \
+            lib/screens/employee_comments_screen.dart \
+            lib/screens/payment_history_screen.dart \
+            lib/screens/employee_timesheet_screen.dart \
+            lib/screens/period_timesheet_screen.dart \
+            lib/screens/period_timesheet/period_timesheet_period_picker.dart \
+            lib/screens/task_details/task_details_editor_screen.dart \
+            lib/screens/task_details/task_details_view.dart \
+            lib/screens/task_details/task_details_sections.dart \
+            lib/features/tasks/presentation/task_assignee_controls.dart \
+            lib/features/milestones/presentation/task_milestone_picker.dart \
+            lib/screens/desktop_employees_view.dart \
+            lib/features/shared/presentation/specialist_desktop_ui.dart \
+            lib/features/company/presentation/desktop_company_management_screen.dart \
+            lib/features/legal/presentation/adaptive_legal_matters_screen.dart \
+            lib/features/legal/presentation/legal_matters_screen.dart \
+            lib/features/legal/presentation/legal_manager_summary_screen.dart \
+            lib/features/legal/presentation/legal_dashboard_screen.dart
+          git commit -m "исправлены вторичные экраны на ПК"
+          git push origin HEAD:agent/desktop-secondary-ui-cleanup
