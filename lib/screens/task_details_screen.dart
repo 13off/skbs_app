@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/task_progress_repository.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
@@ -196,7 +197,7 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
             Text(
               'Накоплено по пункту: '
               '${widget.contextData.itemProgressPercent}% из 100%.',
-              style: const TextStyle(color: Color(0xFF6B7075)),
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
             ),
             const SizedBox(height: 18),
             Row(
@@ -248,8 +249,9 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F5),
+                color: AppAdaptivePalette.surfaceSoft,
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppAdaptivePalette.border),
               ),
               child: Text(
                 maxAllowed <= 0
