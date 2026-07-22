@@ -65,7 +65,11 @@ void main() {
     expect(dialogs, contains('foregroundColor: specialistText'));
     expect(
       dialogs,
-      isNot(contains('backgroundColor: Colors.white,\n                        child: Icon(Icons.person_outline)')),
+      isNot(
+        contains(
+          'backgroundColor: Colors.white,\n                        child: Icon(Icons.person_outline)',
+        ),
+      ),
     );
   });
 }

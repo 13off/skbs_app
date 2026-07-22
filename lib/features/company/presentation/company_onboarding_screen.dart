@@ -8,10 +8,7 @@ import '../../../widgets/premium_ui.dart';
 class CompanyOnboardingScreen extends StatefulWidget {
   final Future<void> Function() onCompleted;
 
-  const CompanyOnboardingScreen({
-    super.key,
-    required this.onCompleted,
-  });
+  const CompanyOnboardingScreen({super.key, required this.onCompleted});
 
   @override
   State<CompanyOnboardingScreen> createState() =>
@@ -107,9 +104,9 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                       Text(
                         'Завершите настройку',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppAdaptivePalette.textPrimary,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(

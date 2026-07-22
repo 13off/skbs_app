@@ -10,10 +10,7 @@ import '../data/company_repository.dart';
 class CompanySwitcherScreen extends StatefulWidget {
   final String activeCompanyId;
 
-  const CompanySwitcherScreen({
-    super.key,
-    required this.activeCompanyId,
-  });
+  const CompanySwitcherScreen({super.key, required this.activeCompanyId});
 
   @override
   State<CompanySwitcherScreen> createState() => _CompanySwitcherScreenState();
@@ -83,9 +80,9 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                 Text(
                   'Не удалось загрузить компании',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppAdaptivePalette.textPrimary,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -126,10 +123,7 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 9,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         leading: Container(
           width: 44,
           height: 44,

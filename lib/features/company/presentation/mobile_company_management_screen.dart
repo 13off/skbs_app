@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
 import 'company_plans_screen.dart';
@@ -100,9 +100,9 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.86),
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: AppAdaptivePalette.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -119,8 +119,8 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF0F1F3),
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.surfaceSoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.apartment_rounded),
@@ -134,14 +134,14 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                       dashboard.company.name,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
+                        color: AppAdaptivePalette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       planTitle(dashboard.company),
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -192,17 +192,17 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
 
     return Card(
       elevation: 0,
-      color: Colors.white.withValues(alpha: 0.84),
+      color: AppAdaptivePalette.surfaceElevated,
       margin: const EdgeInsets.only(bottom: 9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Colors.white),
+        side: BorderSide(color: AppAdaptivePalette.border),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFFF0F1F3),
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppAdaptivePalette.surfaceSoft,
+          foregroundColor: AppAdaptivePalette.textPrimary,
           child: Text(
             (member.fullName.isNotEmpty ? member.fullName : member.email)
                 .characters
@@ -212,7 +212,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
         ),
         title: Text(
           member.fullName.isEmpty ? member.email : member.fullName,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
         subtitle: Text(
           member.email == member.fullName
@@ -246,8 +246,8 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting &&
                 !snapshot.hasData) {
-              return const Center(
-                child: PremiumDots(color: AppColors.textPrimary),
+              return Center(
+                child: PremiumDots(color: AppAdaptivePalette.textPrimary),
               );
             }
             if (snapshot.hasError) {
@@ -287,10 +287,10 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
                 ),
                 if (dashboard.objects.isEmpty) ...[
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Чтобы пригласить прораба, сначала добавьте объект на вкладке «Главная».',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted),
+                    style: TextStyle(color: AppAdaptivePalette.textMuted),
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -400,25 +400,26 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               children: [
                 Text(
                   '$description\n\nПолучатель: $email',
-                  style: const TextStyle(height: 1.4),
+                  style: TextStyle(height: 1.4),
                 ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F2F3),
+                    color: AppAdaptivePalette.surfaceSoft,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppAdaptivePalette.border),
                   ),
                   child: SelectableText(
                     result.inviteUrl,
-                    style: const TextStyle(fontSize: 13, height: 1.35),
+                    style: TextStyle(fontSize: 13, height: 1.35),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Передайте эту ссылку только приглашённому человеку.',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppAdaptivePalette.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -468,8 +469,8 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF874540),
-              foregroundColor: Colors.white,
+              backgroundColor: AppAdaptivePalette.danger,
+              foregroundColor: AppAdaptivePalette.onAccent,
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.person_remove_outlined),
@@ -689,8 +690,8 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               Text(
                 errorText!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF874540),
+                style: TextStyle(
+                  color: AppAdaptivePalette.danger,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -706,8 +707,10 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF874540),
-                  side: const BorderSide(color: Color(0xFFB88A85)),
+                  foregroundColor: AppAdaptivePalette.danger,
+                  side: BorderSide(
+                    color: AppAdaptivePalette.danger.withValues(alpha: 0.55),
+                  ),
                   minimumSize: const Size.fromHeight(54),
                 ),
                 onPressed: isSaving ? null : removeMember,
@@ -733,17 +736,18 @@ class _Metric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F5),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
-          Text(label, style: const TextStyle(color: AppColors.textMuted)),
+          Text(label, style: TextStyle(color: AppAdaptivePalette.textMuted)),
         ],
       ),
     );

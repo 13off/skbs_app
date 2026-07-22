@@ -346,9 +346,10 @@ class _DesktopCompanyMemberDialogState
                   ),
                   child: Row(
                     children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.person_outline),
+                      CircleAvatar(
+                        backgroundColor: specialistSoft,
+                        foregroundColor: specialistText,
+                        child: const Icon(Icons.person_outline),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
