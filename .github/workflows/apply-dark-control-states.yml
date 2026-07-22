@@ -1,0 +1,44 @@
+name: Apply dark control states
+
+on:
+  push:
+    branches:
+      - agent/dark-control-states
+    paths:
+      - tool/apply_dark_control_states.py
+      - .github/workflows/apply-dark-control-states.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/dark-control-states
+          fetch-depth: 0
+
+      - name: Apply control-state patch
+        run: python3 tool/apply_dark_control_states.py
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/screens/desktop_timesheet_screen.dart \
+            lib/features/foreman/presentation/foreman_home_summary_widgets.dart \
+            lib/widgets/notification_bell.dart \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart
+
+      - name: Commit targeted UI changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/screens/desktop_timesheet_screen.dart \
+            lib/features/foreman/presentation/foreman_home_summary_widgets.dart \
+            lib/widgets/notification_bell.dart \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          git commit -m "убраны белые активные контролы тёмной темы"
+          git push origin HEAD:agent/dark-control-states
