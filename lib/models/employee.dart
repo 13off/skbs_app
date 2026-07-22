@@ -28,19 +28,15 @@ class Employee {
   factory Employee.fromSupabase(Map<String, dynamic> json) {
     final phone = json['phone'] as String? ?? '';
     final position = json['position'] as String? ?? '';
-    final positionWithContact = <String>[
-      position.trim(),
-      if (phone.trim().isNotEmpty) phone.trim(),
-    ].where((value) => value.isNotEmpty).join(' • ');
 
     return Employee(
       json['fio'] as String? ?? '',
-      positionWithContact,
+      position.trim(),
       'не отмечен',
       id: json['id'] as String?,
       personId: json['person_id'] as String?,
       objectId: json['object_id'] as String?,
-      phone: phone,
+      phone: phone.trim(),
       objectName: json['object_name'] as String? ?? 'Мурманск',
       dailyRate: json['daily_rate'] as int? ?? 6000,
       isActive: json['is_active'] as bool? ?? true,
