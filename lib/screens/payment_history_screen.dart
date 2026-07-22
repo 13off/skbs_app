@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
+import '../widgets/adaptive_detail_body.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   final Employee employee;
@@ -91,13 +93,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Color paymentTypeColor(String value) {
     switch (value) {
       case 'fine':
-        return Colors.red.shade700;
+        return AppAdaptivePalette.danger;
       case 'salary':
-        return Colors.green.shade700;
+        return AppAdaptivePalette.success;
       case 'advance':
-        return Colors.orange.shade700;
+        return AppAdaptivePalette.warning;
       default:
-        return Colors.grey.shade700;
+        return AppAdaptivePalette.textMuted;
     }
   }
 
@@ -312,9 +314,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,7 +329,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           Text(
             '${widget.employee.position} • ${widget.employee.objectName}',
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppAdaptivePalette.textMuted,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -425,9 +427,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +487,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 child: Text(
                   periodTitle(payment),
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: AppAdaptivePalette.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -497,7 +499,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
             Text(
               comment,
               style: TextStyle(
-                color: Colors.grey.shade800,
+                color: AppAdaptivePalette.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -512,44 +514,67 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('История выплат')),
-      body: RefreshIndicator(
+        leading: const BackButton(),
+        title: const Text('История выплат'),
+      ),
+      body: AdaptiveDetailBody(
         onRefresh: () => loadHistory(forceRefresh: true),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            buildEmployeeHeader(),
-            const SizedBox(height: 16),
-            if (isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: LinearProgressIndicator(),
+        desktopMaxWidth: 1220,
+        children: [
+          buildEmployeeHeader(),
+          const SizedBox(height: 18),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: LinearProgressIndicator(),
+            ),
+          if (errorText != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                errorText!,
+                style: TextStyle(color: AppAdaptivePalette.danger),
               ),
-            if (errorText != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          if (!isLoading && payments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Center(
                 child: Text(
-                  errorText!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            if (!isLoading && payments.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: Text(
-                    'История выплат пустая',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  'История выплат пустая',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              )
-            else
-              ...payments.map(buildPaymentCard),
-          ],
-        ),
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final desktop = constraints.maxWidth >= 980;
+                if (!desktop) {
+                  return Column(
+                    children: payments.map(buildPaymentCard).toList(),
+                  );
+                }
+                const gap = 14.0;
+                final width = (constraints.maxWidth - gap) / 2;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: payments
+                      .map(
+                        (payment) => SizedBox(
+                          width: width,
+                          child: buildPaymentCard(payment),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+        ],
       ),
     );
   }

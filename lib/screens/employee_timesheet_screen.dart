@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/attendance_repository.dart';
 import '../data/timesheet_excel_exporter.dart';
 import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
+import '../widgets/adaptive_detail_body.dart';
 
 class EmployeeTimesheetScreen extends StatefulWidget {
   final Employee employee;
@@ -136,8 +138,9 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                 margin: const EdgeInsets.all(12),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: AppAdaptivePalette.surfaceElevated,
                   borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppAdaptivePalette.border),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -146,7 +149,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                       width: 44,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade400,
+                        color: AppAdaptivePalette.textFaint,
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
@@ -233,15 +236,16 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer
-                                  : Colors.grey.shade100,
+                                  ? AppAdaptivePalette.accentStrong
+                                  : AppAdaptivePalette.surfaceSoft,
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               monthName(month),
                               style: TextStyle(
+                                color: isSelected
+                                    ? AppAdaptivePalette.onAccent
+                                    : AppAdaptivePalette.textPrimary,
                                 fontWeight: isSelected
                                     ? FontWeight.w900
                                     : FontWeight.w600,
@@ -317,27 +321,55 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.employee.name,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 4),
-          Text('${widget.employee.position} • ${widget.employee.objectName}'),
-          const SizedBox(height: 14),
-          Text('Месяц: $monthTitle'),
-          Text('Смен: ${formatShift(currentRow?.totalShifts ?? 0)}'),
-          Text('Начислено: ${formatMoney(currentRow?.accrued ?? 0)}'),
-          Text('Выплачено: ${formatMoney(currentRow?.paid ?? 0)}'),
-          Text('Остаток: ${formatMoney(currentRow?.balance ?? 0)}'),
+          Text(
+            '${widget.employee.position} • ${widget.employee.objectName}',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _TimesheetSummaryChip(label: 'Месяц', value: monthTitle),
+              _TimesheetSummaryChip(
+                label: 'Смен',
+                value: formatShift(currentRow?.totalShifts ?? 0),
+              ),
+              _TimesheetSummaryChip(
+                label: 'Начислено',
+                value: formatMoney(currentRow?.accrued ?? 0),
+              ),
+              _TimesheetSummaryChip(
+                label: 'Выплачено',
+                value: formatMoney(currentRow?.paid ?? 0),
+              ),
+              _TimesheetSummaryChip(
+                label: 'Остаток',
+                value: formatMoney(currentRow?.balance ?? 0),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -351,86 +383,199 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     }
 
     if (errorText != null) {
-      return Text(errorText!, style: const TextStyle(color: Colors.red));
+      return Text(
+        errorText!,
+        style: TextStyle(color: AppAdaptivePalette.danger),
+      );
     }
 
     if (currentRow == null) {
-      return const Center(child: Text('По этому сотруднику нет данных'));
+      return Center(
+        child: Text(
+          'По этому сотруднику нет данных',
+          style: TextStyle(color: AppAdaptivePalette.textMuted),
+        ),
+      );
     }
 
-    return Column(
-      children: days.map((day) {
-        final shift = currentRow.shiftForDay(day);
-        final date = DateTime(selectedMonth.year, selectedMonth.month, day);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1050
+            ? 3
+            : constraints.maxWidth >= 720
+            ? 2
+            : 1;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
-        return Card(
-          elevation: 0,
-          color: shift > 0 ? Colors.green.shade50 : Colors.grey.shade100,
-          child: ListTile(
-            leading: Icon(
-              shift > 0
-                  ? Icons.check_circle_outline
-                  : Icons.remove_circle_outline,
-              color: shift > 0 ? Colors.green : Colors.grey,
-            ),
-            title: Text(formatDate(date)),
-            trailing: Text(
-              formatShift(shift),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: shift > 0 ? Colors.green.shade800 : Colors.grey,
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: days.map((day) {
+            final shift = currentRow.shiftForDay(day);
+            final date = DateTime(selectedMonth.year, selectedMonth.month, day);
+            final worked = shift > 0;
+
+            return SizedBox(
+              width: width,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: worked
+                      ? AppAdaptivePalette.success.withValues(alpha: 0.13)
+                      : AppAdaptivePalette.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: worked
+                        ? AppAdaptivePalette.success.withValues(alpha: 0.42)
+                        : AppAdaptivePalette.border,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      worked
+                          ? Icons.check_circle_outline
+                          : Icons.remove_circle_outline,
+                      color: worked
+                          ? AppAdaptivePalette.success
+                          : AppAdaptivePalette.textMuted,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        formatDate(date),
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      formatShift(shift),
+                      style: TextStyle(
+                        color: worked
+                            ? AppAdaptivePalette.success
+                            : AppAdaptivePalette.textMuted,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
+    );
+  }
+
+  Widget buildControls() {
+    final canDownload = row != null && !isLoading && !isExporting;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 50,
+          child: OutlinedButton.icon(
+            onPressed: isLoading || isExporting ? null : pickMonth,
+            icon: const Icon(Icons.calendar_month),
+            label: Text(monthTitle),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 50,
+          child: FilledButton.icon(
+            onPressed: canDownload ? downloadExcel : null,
+            icon: isExporting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download),
+            label: const Text('Скачать Excel'),
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final canDownload = row != null && !isLoading && !isExporting;
-
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Индивидуальный табель')),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
+        leading: const BackButton(),
+        title: const Text('Индивидуальный табель'),
+      ),
+      body: AdaptiveDetailBody(
+        desktopMaxWidth: 1240,
         children: [
-          buildSummary(),
-
-          const SizedBox(height: 14),
-
-          SizedBox(
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: isLoading || isExporting ? null : pickMonth,
-              icon: const Icon(Icons.calendar_month),
-              label: Text(monthTitle),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 900) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    buildSummary(),
+                    const SizedBox(height: 14),
+                    buildControls(),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: buildSummary()),
+                  const SizedBox(width: 16),
+                  SizedBox(width: 300, child: buildControls()),
+                ],
+              );
+            },
           ),
-
-          const SizedBox(height: 10),
-
-          SizedBox(
-            height: 50,
-            child: FilledButton.icon(
-              onPressed: canDownload ? downloadExcel : null,
-              icon: isExporting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download),
-              label: const Text('Скачать Excel'),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
+          const SizedBox(height: 18),
           buildDaysList(),
         ],
+      ),
+    );
+  }
+}
+
+class _TimesheetSummaryChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _TimesheetSummaryChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surfaceSoft,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

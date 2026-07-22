@@ -78,7 +78,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   Future<void> openEditor([LegalMatter? matter]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
+      CupertinoPageRoute<bool>(
+        builder: (_) => LegalMatterEditorScreen(matter: matter),
+      ),
     );
     if (saved == true && mounted) refresh();
   }
@@ -87,10 +89,8 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(
-          matter: matter,
-          canDecide: managerMode,
-        ),
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) refresh();
@@ -100,6 +100,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: managerMode ? 'Решения и риски' : 'Вопросы и риски',
+      showBackButton: Navigator.of(context).canPop(),
       subtitle: managerMode
           ? 'Юридические вопросы, по которым требуется решение руководителя'
           : 'Претензии, нарушения, споры, задачи и риски компании',
@@ -122,7 +123,10 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                   decoration: InputDecoration(
                     hintText: 'Поиск по вопросам',
                     prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(onPressed: refresh, icon: const Icon(Icons.arrow_forward_rounded)),
+                    suffixIcon: IconButton(
+                      onPressed: refresh,
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                    ),
                   ),
                   onSubmitted: (_) => refresh(),
                 ),
@@ -147,13 +151,28 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 if (snapshot.hasError) {
-                  return PremiumWorkCard(child: Padding(padding: const EdgeInsets.all(22), child: Text('Ошибка: ${snapshot.error}')));
+                  return PremiumWorkCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(22),
+                      child: Text('Ошибка: ${snapshot.error}'),
+                    ),
+                  );
                 }
-                return const PremiumWorkCard(child: Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())));
+                return const PremiumWorkCard(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
               }
               final matters = snapshot.data!;
               if (matters.isEmpty) {
-                return const PremiumWorkCard(child: Padding(padding: EdgeInsets.all(30), child: Center(child: Text('Вопросы не найдены'))));
+                return const PremiumWorkCard(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Center(child: Text('Вопросы не найдены')),
+                  ),
+                );
               }
               return Column(
                 children: matters.map((matter) {
@@ -178,27 +197,55 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: matter.isHighRisk ? const Color(0xFFF4E9E7) : const Color(0xFFF0F1F3),
+                                color: matter.isHighRisk
+                                    ? const Color(0xFFF4E9E7)
+                                    : const Color(0xFFF0F1F3),
                                 borderRadius: BorderRadius.circular(15),
                               ),
-                              child: Icon(matter.isHighRisk ? Icons.warning_amber_rounded : Icons.gavel_outlined),
+                              child: Icon(
+                                matter.isHighRisk
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.gavel_outlined,
+                              ),
                             ),
                             const SizedBox(width: 13),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(matter.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                                  Text(
+                                    matter.title,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
                                   const SizedBox(height: 5),
-                                  Text(meta.join(' • '), style: const TextStyle(color: Color(0xFF5F646A), fontWeight: FontWeight.w700)),
+                                  Text(
+                                    meta.join(' • '),
+                                    style: const TextStyle(
+                                      color: Color(0xFF5F646A),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                   if (matter.needsManager) ...[
                                     const SizedBox(height: 7),
-                                    const Text('Требуется решение руководителя', style: TextStyle(color: Color(0xFF874540), fontSize: 12, fontWeight: FontWeight.w900)),
+                                    const Text(
+                                      'Требуется решение руководителя',
+                                      style: TextStyle(
+                                        color: Color(0xFF874540),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
                                   ],
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A8F94)),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFF8A8F94),
+                            ),
                           ],
                         ),
                       ),

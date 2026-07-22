@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/employee_documents_repository.dart';
 import '../models/employee.dart';
+import '../widgets/adaptive_detail_body.dart';
 
 class EmployeeDocumentsScreen extends StatefulWidget {
   final Employee employee;
@@ -168,31 +170,98 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
     }
 
     if (documents.isEmpty) {
-      return const Center(child: Text('Документы пока не загружены'));
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 44),
+        child: Center(
+          child: Text(
+            'Документы пока не загружены',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
     }
 
     return Column(
       children: documents.map((document) {
-        return Card(
-          elevation: 0,
-          color: const Color(0xFFFFEEE7),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surfaceElevated,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppAdaptivePalette.border),
           ),
           child: ListTile(
-            leading: const Icon(Icons.description_outlined),
+            leading: Icon(
+              Icons.description_outlined,
+              color: AppAdaptivePalette.accent,
+            ),
             title: Text(
               document.name,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            subtitle: Text(formatDate(document.updatedAt)),
-            trailing: const Icon(Icons.open_in_new),
-            onTap: () {
-              openDocument(document);
-            },
+            subtitle: Text(
+              formatDate(document.updatedAt),
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
+            ),
+            trailing: Icon(
+              Icons.open_in_new,
+              color: AppAdaptivePalette.textMuted,
+            ),
+            onTap: () => openDocument(document),
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget buildUploadCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Загрузка файлов',
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Можно загрузить PDF, Word, Excel, JPG, PNG, WEBP, TXT.',
+            style: TextStyle(color: AppAdaptivePalette.textMuted),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: isUploading ? null : uploadDocuments,
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: const Text('Загрузить документы'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -200,69 +269,66 @@ class _EmployeeDocumentsScreenState extends State<EmployeeDocumentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Документы')),
-      body: RefreshIndicator(
+        leading: const BackButton(),
+        title: const Text('Документы'),
+      ),
+      body: AdaptiveDetailBody(
         onRefresh: () => loadDocuments(showLoader: false),
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            Text(
-              widget.employee.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+        desktopMaxWidth: 1180,
+        children: [
+          Text(
+            widget.employee.name,
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 4),
-            Text('${widget.employee.position} • ${widget.employee.objectName}'),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${widget.employee.position} • ${widget.employee.objectName}',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final desktop = constraints.maxWidth >= 900;
+              final upload = buildUploadCard();
+              final list = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (errorText != null) ...[
+                    Text(
+                      errorText!,
+                      style: TextStyle(color: AppAdaptivePalette.danger),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  buildDocumentsList(),
+                ],
+              );
 
-            const SizedBox(height: 18),
+              if (!desktop) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [upload, const SizedBox(height: 18), list],
+                );
+              }
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
+              return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Загрузка файлов',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Можно загрузить PDF, Word, Excel, JPG, PNG, WEBP, TXT.',
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton.icon(
-                      onPressed: isUploading ? null : uploadDocuments,
-                      icon: isUploading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.upload_file),
-                      label: const Text('Загрузить документы'),
-                    ),
-                  ),
+                  SizedBox(width: 380, child: upload),
+                  const SizedBox(width: 20),
+                  Expanded(child: list),
                 ],
-              ),
-            ),
-
-            if (errorText != null) ...[
-              const SizedBox(height: 12),
-              Text(errorText!, style: const TextStyle(color: Colors.red)),
-            ],
-
-            const SizedBox(height: 18),
-
-            buildDocumentsList(),
-          ],
-        ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

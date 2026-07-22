@@ -126,10 +126,8 @@ class _DesktopLegalMattersScreenState
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(
-          matter: matter,
-          canDecide: managerMode,
-        ),
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) await refresh();
@@ -370,10 +368,7 @@ class _DesktopLegalMattersScreenState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    specialistCellText(
-                      matter.title,
-                      weight: FontWeight.w900,
-                    ),
+                    specialistCellText(matter.title, weight: FontWeight.w900),
                     if (matter.description.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       specialistCellText(
@@ -392,15 +387,13 @@ class _DesktopLegalMattersScreenState
                 ),
                 SpecialistStatusPill(
                   label: matter.statusTitle,
-                  color: matter.status == LegalMatterStatus.closed ||
+                  color:
+                      matter.status == LegalMatterStatus.closed ||
                           matter.status == LegalMatterStatus.resolved
                       ? specialistSuccess
                       : specialistMuted,
                 ),
-                specialistCellText(
-                  matter.objectName,
-                  color: specialistMuted,
-                ),
+                specialistCellText(matter.objectName, color: specialistMuted),
                 SpecialistStatusPill(
                   label: date(matter.dueAt),
                   color: matter.isOverdue ? specialistDanger : specialistMuted,
@@ -420,8 +413,8 @@ class _DesktopLegalMattersScreenState
                         matter.decisionStatus == 'approved'
                             ? 'Согласовано'
                             : matter.decisionStatus == 'rejected'
-                                ? 'Отклонено'
-                                : 'Не требуется',
+                            ? 'Отклонено'
+                            : 'Не требуется',
                         color: specialistMuted,
                         maxLines: 1,
                       ),
@@ -479,6 +472,7 @@ class _DesktopLegalMattersScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-matters',
           title: managerMode ? 'Решения и риски' : 'Юридические вопросы',
+          showBackButton: Navigator.of(context).canPop(),
           subtitle: managerMode
               ? 'Вопросы, по которым требуется решение руководителя'
               : 'Претензии, нарушения, споры, задачи и риски компании',
@@ -543,7 +537,10 @@ class _Summary extends StatelessWidget {
           ),
           Text(
             value,
-            style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: effectiveColor,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),

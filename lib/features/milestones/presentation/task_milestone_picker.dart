@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
+
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
 
@@ -186,9 +188,9 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: FutureBuilder<List<ProjectMilestone>>(
         future: milestonesFuture,
@@ -231,7 +233,7 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
                 linkedToGoal
                     ? 'Выбери цель и одну конкретную работу.'
                     : 'Без привязки к цели.',
-                style: const TextStyle(color: Color(0xFF6B7075)),
+                style: TextStyle(color: AppAdaptivePalette.textMuted),
               ),
               if (linkedToGoal) ...[
                 const SizedBox(height: 14),

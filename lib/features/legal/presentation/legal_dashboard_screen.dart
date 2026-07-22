@@ -11,7 +11,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
-import 'legal_matters_screen.dart';
+import 'adaptive_legal_matters_screen.dart';
 import 'legal_weekly_report_screen.dart';
 
 class LegalDashboardScreen extends StatefulWidget {
@@ -64,9 +64,10 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
     Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => LegalMattersScreen(
+        builder: (_) => AdaptiveLegalMattersScreen(
           highRiskOnly: highRiskOnly,
           managerOnly: managerOnly,
+          profile: widget.profile,
         ),
       ),
     );
@@ -168,7 +169,11 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.description_outlined),
-              title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               subtitle: Text('${item.statusTitle} • ${item.expiryTitle}'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => openDocuments(),
@@ -178,7 +183,11 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.gavel_outlined),
-              title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               subtitle: Text('${item.riskTitle} риск • ${item.statusTitle}'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => openMatters(),
@@ -220,7 +229,10 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                    FilledButton(
+                      onPressed: refresh,
+                      child: const Text('Повторить'),
+                    ),
                   ],
                 ),
               ),

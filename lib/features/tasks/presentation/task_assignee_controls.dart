@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../models/employee.dart';
 
 Future<Set<String>?> showTaskAssigneePicker({
@@ -8,9 +9,9 @@ Future<Set<String>?> showTaskAssigneePicker({
   required Set<String> selectedIds,
 }) async {
   if (employees.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('На объекте нет сотрудников')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('На объекте нет сотрудников')));
     return null;
   }
 
@@ -30,7 +31,7 @@ Future<Set<String>?> showTaskAssigneePicker({
                 maxHeight: MediaQuery.of(context).size.height * 0.82,
               ),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: AppAdaptivePalette.surfaceElevated,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Column(
@@ -40,7 +41,7 @@ Future<Set<String>?> showTaskAssigneePicker({
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
+                      color: AppAdaptivePalette.textFaint,
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
@@ -143,9 +144,9 @@ class TaskAssigneeSummaryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: AppAdaptivePalette.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppAdaptivePalette.border),
         ),
         child: Row(
           children: [
@@ -163,11 +164,7 @@ class TaskAssigneeSummaryCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
