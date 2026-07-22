@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/app_state.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import 'foreman_workspace_models.dart';
@@ -88,7 +89,7 @@ class ForemanShiftIdentity extends StatelessWidget {
               height: 54,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppAdaptivePalette.surfaceElevated,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: specialistLine),
               ),

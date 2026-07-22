@@ -1209,9 +1209,11 @@ class _ShiftButton extends StatelessWidget {
         height: 38,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? _text : _soft,
+          color: selected ? AppAdaptivePalette.accentStrong : _soft,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? _text : _line),
+          border: Border.all(
+            color: selected ? AppAdaptivePalette.accent : _line,
+          ),
         ),
         child: Text(
           label,
