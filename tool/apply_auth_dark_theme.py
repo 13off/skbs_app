@@ -62,8 +62,10 @@ patch(
             'color: Colors.white.withValues(alpha: 0.72),',
             'color: AppAdaptivePalette.surface.withValues(\n                                  alpha: AppAdaptivePalette.isDark ? 0.12 : 0.72,\n                                ),',
         ),
-        ('keyboardAppearance: Brightness.light,',
-         'keyboardAppearance: AppAdaptivePalette.isDark\n                                      ? Brightness.dark\n                                      : Brightness.light,'),
+        (
+            'keyboardAppearance: Brightness.light,',
+            'keyboardAppearance: AppAdaptivePalette.isDark\n                                      ? Brightness.dark\n                                      : Brightness.light,',
+        ),
         (
             'color: const Color(0xFFFFF2F1),',
             'color: AppAdaptivePalette.danger.withValues(alpha: 0.12),',
@@ -81,10 +83,7 @@ patch(
         ('const inputTextStyle = TextStyle(', 'final inputTextStyle = TextStyle('),
         ('const TextStyle(', 'TextStyle('),
         ('const BoxDecoration(', 'BoxDecoration('),
-        (
-            'const Icon(\n                                                   Icons.info_outline_rounded,',
-            'Icon(\n                                                   Icons.info_outline_rounded,',
-        ),
+        ('const Icon(', 'Icon('),
     ],
 )
 
@@ -119,12 +118,11 @@ patch(
         ),
         ('color: Color(0xFFA64F49)', 'color: AppAdaptivePalette.danger'),
         ('color: Color(0xFF874540)', 'color: AppAdaptivePalette.danger'),
-        ('color: const Color(0xFFF1F2F3),',
-         'color: AppAdaptivePalette.surfaceSoft,'),
-        ('const TextStyle(', 'TextStyle('),
         (
-            'const Icon(\n                                     Icons.info_outline_rounded,',
-            'Icon(\n                                     Icons.info_outline_rounded,',
+            'color: const Color(0xFFF1F2F3),',
+            'color: AppAdaptivePalette.surfaceSoft,',
         ),
+        ('const TextStyle(', 'TextStyle('),
+        ('const Icon(', 'Icon('),
     ],
 )
