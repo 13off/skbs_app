@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../app/app_theme.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
@@ -106,29 +107,29 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      labelStyle: const TextStyle(
-        color: AppColors.textMuted,
+      labelStyle: TextStyle(
+        color: AppAdaptivePalette.textMuted,
         fontWeight: FontWeight.w600,
       ),
-      floatingLabelStyle: const TextStyle(
-        color: AppColors.textPrimary,
+      floatingLabelStyle: TextStyle(
+        color: AppAdaptivePalette.textPrimary,
         fontWeight: FontWeight.w700,
       ),
       hintStyle: TextStyle(
-        color: AppColors.textMuted.withValues(alpha: 0.72),
+        color: AppAdaptivePalette.textMuted.withValues(alpha: 0.72),
         fontWeight: FontWeight.w500,
       ),
-      prefixIcon: Icon(icon, color: AppColors.textMuted),
+      prefixIcon: Icon(icon, color: AppAdaptivePalette.textMuted),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.88),
+      fillColor: AppAdaptivePalette.inputSurface,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    const inputTextStyle = TextStyle(
-      color: AppColors.textPrimary,
+    final inputTextStyle = TextStyle(
+      color: AppAdaptivePalette.textPrimary,
       fontSize: 16,
       height: 1.25,
       fontWeight: FontWeight.w700,
@@ -171,10 +172,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(26, 28, 26, 24),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.80),
+                            color: AppAdaptivePalette.surfaceElevated,
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.92),
+                              color: AppAdaptivePalette.border,
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -185,7 +186,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 offset: const Offset(0, 24),
                               ),
                               BoxShadow(
-                                color: Colors.white.withValues(alpha: 0.72),
+                                color: AppAdaptivePalette.surface.withValues(
+                                  alpha: AppAdaptivePalette.isDark
+                                      ? 0.12
+                                      : 0.72,
+                                ),
                                 blurRadius: 2,
                                 offset: const Offset(0, 1),
                               ),
@@ -203,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       .textTheme
                                       .headlineMedium
                                       ?.copyWith(
-                                        color: AppColors.textPrimary,
+                                        color: AppAdaptivePalette.textPrimary,
                                         fontSize: 31,
                                         fontWeight: FontWeight.w300,
                                         letterSpacing: -1.2,
@@ -215,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
-                                        color: AppColors.textMuted,
+                                        color: AppAdaptivePalette.textMuted,
                                         fontWeight: FontWeight.w600,
                                       ),
                                 ),
@@ -226,8 +231,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   enabled: !isLoading,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
-                                  keyboardAppearance: Brightness.light,
-                                  cursorColor: AppColors.textPrimary,
+                                  keyboardAppearance: AppAdaptivePalette.isDark
+                                      ? Brightness.dark
+                                      : Brightness.light,
+                                  cursorColor: AppAdaptivePalette.textPrimary,
                                   style: inputTextStyle,
                                   autofillHints: const [
                                     AutofillHints.username,
@@ -250,8 +257,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   obscureText: !isPasswordVisible,
                                   obscuringCharacter: '●',
                                   textInputAction: TextInputAction.done,
-                                  keyboardAppearance: Brightness.light,
-                                  cursorColor: AppColors.textPrimary,
+                                  keyboardAppearance: AppAdaptivePalette.isDark
+                                      ? Brightness.dark
+                                      : Brightness.light,
+                                  cursorColor: AppAdaptivePalette.textPrimary,
                                   style: inputTextStyle,
                                   autofillHints: const [AutofillHints.password],
                                   decoration: fieldDecoration(
@@ -276,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ? Icons.visibility_off_outlined
                                               : Icons.visibility_outlined,
                                           key: ValueKey(isPasswordVisible),
-                                          color: AppColors.textMuted,
+                                          color: AppAdaptivePalette.textMuted,
                                         ),
                                       ),
                                     ),
@@ -299,19 +308,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                               vertical: 12,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFFF2F1),
+                                              color: AppAdaptivePalette.danger
+                                                  .withValues(alpha: 0.12),
                                               borderRadius:
                                                   BorderRadius.circular(15),
                                               border: Border.all(
-                                                color: const Color(0xFFF0D2CF),
+                                                color: AppAdaptivePalette.danger
+                                                    .withValues(alpha: 0.32),
                                               ),
                                             ),
                                             child: Row(
                                               children: [
-                                                const Icon(
+                                                Icon(
                                                   Icons.info_outline_rounded,
                                                   size: 19,
-                                                  color: Color(0xFFA64F49),
+                                                  color:
+                                                      AppAdaptivePalette.danger,
                                                 ),
                                                 const SizedBox(width: 10),
                                                 Expanded(
@@ -349,7 +361,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     onPressed: isLoading
                                         ? null
                                         : openCompanyRegistration,
-                                    icon: const Icon(Icons.add_business_rounded),
+                                    icon: Icon(Icons.add_business_rounded),
                                     label: const Text('Создать компанию'),
                                   ),
                                 ),
@@ -360,8 +372,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     Container(
                                       width: 6,
                                       height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF3A8B61),
+                                      decoration: BoxDecoration(
+                                        color: AppAdaptivePalette.success,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -372,7 +384,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           .textTheme
                                           .bodySmall
                                           ?.copyWith(
-                                            color: AppColors.textMuted,
+                                            color: AppAdaptivePalette.textMuted,
                                             fontWeight: FontWeight.w600,
                                           ),
                                     ),

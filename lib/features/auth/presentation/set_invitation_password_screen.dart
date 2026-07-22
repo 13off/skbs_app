@@ -7,10 +7,7 @@ import '../../../widgets/premium_ui.dart';
 class SetInvitationPasswordScreen extends StatefulWidget {
   final Future<void> Function() onCompleted;
 
-  const SetInvitationPasswordScreen({
-    super.key,
-    required this.onCompleted,
-  });
+  const SetInvitationPasswordScreen({super.key, required this.onCompleted});
 
   @override
   State<SetInvitationPasswordScreen> createState() =>
@@ -97,9 +94,9 @@ class _SetInvitationPasswordScreenState
                       Text(
                         'Придумайте пароль',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppAdaptivePalette.textPrimary,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(

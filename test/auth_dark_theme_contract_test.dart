@@ -21,7 +21,10 @@ void main() {
     expect(screen, contains('UserRepository.signIn('));
     expect(screen, contains("label: 'Войти в систему'"));
     expect(screen, isNot(contains('fillColor: Colors.white')));
-    expect(screen, isNot(contains('color: Colors.white.withValues(alpha: 0.80)')));
+    expect(
+      screen,
+      isNot(contains('color: Colors.white.withValues(alpha: 0.80)')),
+    );
     expect(screen, isNot(contains('keyboardAppearance: Brightness.light')));
     expect(screen, isNot(contains('AppColors.textPrimary')));
     expect(screen, isNot(contains('AppColors.textMuted')));
