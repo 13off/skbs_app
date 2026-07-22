@@ -1,8 +1,8 @@
 AppСтрой mobile release
-version: 1.2.0+3
-previous mobile release: 1.1.0+2
-release date: 2026-07-18
-features: AI dispatcher daily summary and developer profession platform
-backend: dispatcher scheduler and notification routing active
-dark theme: temporarily disabled, source preserved
+version: 1.3.0+4
+previous mobile release: 1.2.0+3
+release date: 2026-07-22
+features: dark theme, adaptive splash and icons, desktop interface, task restrictions, action audit and recycle bin
+backend: per-object task policies, protected task action journal and safe task restore active
+dark theme: enabled with theme-aware native and PWA launch screens
 what's new: shown once after sign-in
