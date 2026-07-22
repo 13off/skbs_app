@@ -44,12 +44,14 @@ class PremiumBackdrop extends StatelessWidget {
       );
     }
 
-    return const _LightPremiumBackdrop();
+    return _LightPremiumBackdrop(child: child);
   }
 }
 
 class _LightPremiumBackdrop extends StatelessWidget {
-  const _LightPremiumBackdrop();
+  final Widget child;
+
+  const _LightPremiumBackdrop({required this.child});
 
   @override
   Widget build(BuildContext context) {
