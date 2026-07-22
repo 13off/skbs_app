@@ -53,7 +53,28 @@ jobs:
         run: flutter test test/company_dark_theme_contract_test.dart
 
       - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        id: analyzer
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > analyzer.log 2>&1
+          status=$?
+          cat analyzer.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload analyzer log
+        if: steps.analyzer.outputs.status != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: company-dark-theme-analyzer-log
+          path: analyzer.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Fail on analyzer errors
+        if: steps.analyzer.outputs.status != '0'
+        run: exit 1
 
       - name: Remove temporary patch files
         run: |
