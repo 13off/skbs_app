@@ -162,12 +162,31 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
     }
   }
 
-  List<Employee> preparedEmployees() {
-    return directoryController.preparedEmployees(
-      sortSelectedObject: true,
-      sortDuplicateGroupsByObject: false,
-      caseInsensitiveNameSort: true,
+  Employee prepareForDesktopDirectory(Employee employee) {
+    return Employee(
+      employee.name,
+      employee.positionTitle,
+      employee.status,
+      id: employee.id,
+      personId: employee.personId,
+      objectId: employee.objectId,
+      phone: employee.phone,
+      objectName: employee.objectName,
+      dailyRate: employee.dailyRate,
+      isActive: employee.isActive,
+      comment: employee.comment,
     );
+  }
+
+  List<Employee> preparedEmployees() {
+    return directoryController
+        .preparedEmployees(
+          sortSelectedObject: true,
+          sortDuplicateGroupsByObject: false,
+          caseInsensitiveNameSort: true,
+        )
+        .map(prepareForDesktopDirectory)
+        .toList(growable: false);
   }
 
   @override
