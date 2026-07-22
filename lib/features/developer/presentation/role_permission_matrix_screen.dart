@@ -24,9 +24,8 @@ class _RolePermissionMatrixScreenState
   String selectedScope = companyScope;
   String selectedMobileRole = 'foreman';
 
-  String? get selectedObjectId => selectedScope == companyScope
-      ? null
-      : selectedScope;
+  String? get selectedObjectId =>
+      selectedScope == companyScope ? null : selectedScope;
 
   @override
   void initState() {
@@ -49,10 +48,8 @@ class _RolePermissionMatrixScreenState
           selectedMobileRole = value.roles
               .firstWhere(
                 (role) => role.code != 'owner',
-                orElse: () => const RolePermissionRole(
-                  code: 'foreman',
-                  title: 'Прораб',
-                ),
+                orElse: () =>
+                    const RolePermissionRole(code: 'foreman', title: 'Прораб'),
               )
               .code;
         }
@@ -98,9 +95,9 @@ class _RolePermissionMatrixScreenState
       );
       if (!mounted) return;
       setState(() => center = value);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Право сохранено')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Право сохранено')));
     } catch (error) {
       if (mounted) setState(() => errorText = cleanError(error));
     } finally {
@@ -148,13 +145,11 @@ class _RolePermissionMatrixScreenState
       title: 'Матрица ролей',
       subtitle: 'Права компании и отдельные исключения по объектам',
       showBackButton: true,
-      actions: [
-        IconButton(
-          tooltip: 'Обновить',
-          onPressed: loading || busyKey != null ? null : load,
-          icon: const Icon(Icons.refresh_rounded),
-        ),
-      ],
+      headerTrailing: IconButton(
+        tooltip: 'Обновить',
+        onPressed: loading || busyKey != null ? null : load,
+        icon: const Icon(Icons.refresh_rounded),
+      ),
       child: loading
           ? const Padding(
               padding: EdgeInsets.symmetric(vertical: 80),
@@ -193,7 +188,10 @@ class _RolePermissionMatrixScreenState
               ),
             ],
             const SizedBox(height: 16),
-            if (desktop) buildDesktopMatrix(value) else buildMobileMatrix(value),
+            if (desktop)
+              buildDesktopMatrix(value)
+            else
+              buildMobileMatrix(value),
             const SizedBox(height: 18),
             buildAudit(value),
           ],
@@ -320,7 +318,9 @@ class _RolePermissionMatrixScreenState
                     horizontalMargin: 10,
                     columnSpacing: 18,
                     columns: [
-                      const DataColumn(label: SizedBox(width: 270, child: Text('Право'))),
+                      const DataColumn(
+                        label: SizedBox(width: 270, child: Text('Право')),
+                      ),
                       ...value.roles.map(
                         (role) => DataColumn(
                           label: SizedBox(
@@ -328,7 +328,9 @@ class _RolePermissionMatrixScreenState
                             child: Text(
                               role.title,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                         ),
@@ -346,7 +348,9 @@ class _RolePermissionMatrixScreenState
                                 children: [
                                   Text(
                                     permission.title,
-                                    style: const TextStyle(fontWeight: FontWeight.w800),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                   if (permission.description.isNotEmpty) ...[
                                     const SizedBox(height: 3),
@@ -355,7 +359,9 @@ class _RolePermissionMatrixScreenState
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                         fontSize: 11,
                                       ),
                                     ),
@@ -438,7 +444,10 @@ class _RolePermissionMatrixScreenState
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       entry.key,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -551,7 +560,9 @@ class _RolePermissionMatrixScreenState
           if (value.audit.isEmpty)
             Text(
               'Матрица ещё не изменялась.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             )
           else
             ...value.audit.take(20).map((entry) {
@@ -629,7 +640,10 @@ class _MobilePermissionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
