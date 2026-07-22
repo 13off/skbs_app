@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/app_cache_coordinator.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
@@ -162,13 +163,16 @@ class _MainScreenState extends State<MainScreen> {
       future: navigationRestoreFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Material(
-            color: Color(0xFFF8F7F3),
+          return Material(
+            color: AppAdaptivePalette.background,
             child: Center(
               child: SizedBox(
                 width: 30,
                 height: 30,
-                child: CircularProgressIndicator(strokeWidth: 3),
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppAdaptivePalette.accent,
+                ),
               ),
             ),
           );
@@ -192,7 +196,7 @@ class _RolePreviewFrame extends StatelessWidget {
         : '';
 
     return Material(
-      color: const Color(0xFFF8F7F3),
+      color: AppAdaptivePalette.background,
       child: Column(
         children: [
           SafeArea(
@@ -200,15 +204,17 @@ class _RolePreviewFrame extends StatelessWidget {
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1F2328),
-                border: Border(bottom: BorderSide(color: Color(0xFF353A40))),
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.surfaceElevated,
+                border: Border(
+                  bottom: BorderSide(color: AppAdaptivePalette.border),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.visibility_outlined,
-                    color: Colors.white,
+                    color: AppAdaptivePalette.textPrimary,
                     size: 20,
                   ),
                   const SizedBox(width: 9),
@@ -217,8 +223,8 @@ class _RolePreviewFrame extends StatelessWidget {
                       'Режим: ${profile.roleTitle}$objectText',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -226,7 +232,7 @@ class _RolePreviewFrame extends StatelessWidget {
                   TextButton(
                     onPressed: RolePreviewController.showAdmin,
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppAdaptivePalette.accent,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       visualDensity: VisualDensity.compact,
                     ),

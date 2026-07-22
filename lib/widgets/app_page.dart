@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
-
 import '../app/theme_controller.dart';
 
 class AppPage extends StatelessWidget {
+  static const double desktopBreakpoint = 1050;
+
   final String title;
   final String subtitle;
   final Widget child;
@@ -28,15 +29,27 @@ class AppPage extends StatelessWidget {
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
         : headerTrailing;
+    final navigator = Navigator.maybeOf(context);
+    final effectiveShowBackButton =
+        showBackButton || (navigator?.canPop() ?? false);
+    final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
+    final horizontalPadding = isDesktop ? 28.0 : 14.0;
+    final topPadding = isDesktop ? 24.0 : 12.0;
+    final maxContentWidth = isDesktop ? 1180.0 : 720.0;
 
     return _AppPageBackdrop(
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 120),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            topPadding,
+            horizontalPadding,
+            120,
+          ),
           children: [
             Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
+                constraints: BoxConstraints(maxWidth: maxContentWidth),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -44,10 +57,10 @@ class AppPage extends StatelessWidget {
                       title: title,
                       subtitle: subtitle,
                       trailing: effectiveTrailing,
-                      showBackButton: showBackButton,
+                      showBackButton: effectiveShowBackButton,
                       onBack: onBack,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: isDesktop ? 18 : 14),
                     child,
                   ],
                 ),

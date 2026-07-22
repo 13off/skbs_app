@@ -25,6 +25,24 @@ class Employee {
     this.comment = '',
   });
 
+  String get positionTitle {
+    final cleanPosition = position.trim();
+    final cleanPhone = phone.trim();
+    if (cleanPhone.isEmpty) return cleanPosition;
+
+    final contactSuffix = ' • $cleanPhone';
+    if (!cleanPosition.endsWith(contactSuffix)) return cleanPosition;
+
+    return cleanPosition
+        .substring(0, cleanPosition.length - contactSuffix.length)
+        .trim();
+  }
+
+  String get positionWithContact => <String>[
+    positionTitle,
+    if (phone.trim().isNotEmpty) phone.trim(),
+  ].where((value) => value.isNotEmpty).join(' • ');
+
   factory Employee.fromSupabase(Map<String, dynamic> json) {
     final phone = json['phone'] as String? ?? '';
     final position = json['position'] as String? ?? '';
@@ -40,7 +58,7 @@ class Employee {
       id: json['id'] as String?,
       personId: json['person_id'] as String?,
       objectId: json['object_id'] as String?,
-      phone: phone,
+      phone: phone.trim(),
       objectName: json['object_name'] as String? ?? 'Мурманск',
       dailyRate: json['daily_rate'] as int? ?? 6000,
       isActive: json['is_active'] as bool? ?? true,
