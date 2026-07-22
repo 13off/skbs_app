@@ -1,1 +1,1 @@
-apply adaptive candidate detail
+apply adaptive candidate detail retry 2
