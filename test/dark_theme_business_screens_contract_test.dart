@@ -49,5 +49,10 @@ void main() {
     expect(payments, isNot(contains('color: Colors.white,')));
     expect(payments, isNot(contains('AppColors.textPrimary')));
     expect(payments, isNot(contains('AppColors.textMuted')));
+
+    // Сохраняем прежний функциональный контракт кнопок и заголовка.
+    expect(payments, contains("label: const Text('Отчёт')"));
+    expect(payments, contains("label: const Text('Добавить')"));
+    expect(payments, contains("title: const Text('Выплаты')"));
   });
 }
