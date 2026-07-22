@@ -62,8 +62,6 @@ update(
             'borderSide: const BorderSide(color: Colors.white),',
             'borderSide: BorderSide(color: AppAdaptivePalette.border),',
         ),
-        ('color: const Color(0xFF8A4B46)', 'color: AppAdaptivePalette.danger'),
-        ('color: const Color(0xFF3F6B56)', 'color: AppAdaptivePalette.success'),
         ('balanceColor = const Color(0xFF8A4B46);', 'balanceColor = AppAdaptivePalette.danger;'),
         ('balanceColor = const Color(0xFF3F6B56);', 'balanceColor = AppAdaptivePalette.success;'),
         (
