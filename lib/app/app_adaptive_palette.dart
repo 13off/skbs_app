@@ -19,7 +19,7 @@ abstract final class AppAdaptivePalette {
   static const darkTextMuted = Color(0xFFA5B3C1);
   static const darkTextFaint = Color(0xFF708499);
   static const telegramBlue = Color(0xFF3390EC);
-  static const telegramBlueStrong = Color(0xFF237BC4);
+  static const telegramBlueStrong = Color(0xFF2278BF);
   static const darkAccentSoft = Color(0xFF203A52);
   static const darkSelectedSurface = Color(0xFF1D3448);
   static const darkDisabledSurface = Color(0xFF1C2733);
