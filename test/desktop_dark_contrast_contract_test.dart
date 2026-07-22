@@ -87,9 +87,9 @@ void main() {
     ]) {
       final source = File(path).readAsStringSync();
       expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
-      expect(source, isNot(contains('.insert(')), reason: path);
-      expect(source, isNot(contains('.update(')), reason: path);
-      expect(source, isNot(contains('.delete(')), reason: path);
+      expect(source, isNot(contains('Supabase.instance.client')), reason: path);
+      expect(source, isNot(contains(".from('")), reason: path);
+      expect(source, isNot(contains('.rpc(')), reason: path);
     }
   });
 }
