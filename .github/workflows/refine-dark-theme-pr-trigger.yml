@@ -1,0 +1,44 @@
+name: Trigger refined dark theme patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/refine-dark-theme-apply.yml
+      - .github/workflows/refine-dark-theme-pr-trigger.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/refine-dark-theme
+          show-progress: false
+      - name: Extract and apply embedded patch
+        shell: bash
+        run: |
+          awk '/^H4s/{capture=1} /^PATCH$/{capture=0} capture' \
+            .github/workflows/refine-dark-theme-apply.yml \
+            > /tmp/refine-dark-theme.patch.gz.b64
+          base64 --decode /tmp/refine-dark-theme.patch.gz.b64 \
+            > /tmp/refine-dark-theme.patch.gz
+          gunzip -c /tmp/refine-dark-theme.patch.gz \
+            > /tmp/refine-dark-theme.patch
+          git apply --check /tmp/refine-dark-theme.patch
+          git apply /tmp/refine-dark-theme.patch
+          rm .github/workflows/refine-dark-theme-apply.yml
+          rm .github/workflows/refine-dark-theme-pr-trigger.yml
+      - name: Commit refined dark theme
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить контраст и поверхности тёмной темы"
+          git push origin HEAD:agent/refine-dark-theme
