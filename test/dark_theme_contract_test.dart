@@ -42,20 +42,27 @@ void main() {
     expect(profile, contains('onPressed: controller.toggle'));
   });
 
-  test('dark palette keeps primary text and actions readable', () {
-    const onPrimary = Color(0xFF17191C);
-    const primaryContainer = Color(0xFF30353C);
+  test('telegram-like dark palette is readable and avoids pure black', () {
+    expect(AppDarkTheme.background, const Color(0xFF0E1621));
+    expect(AppDarkTheme.surface, const Color(0xFF17212B));
+    expect(AppDarkTheme.accent, const Color(0xFF3390EC));
+    expect(AppDarkTheme.accentStrong, const Color(0xFF2278BF));
+    expect(AppDarkTheme.background, isNot(Colors.black));
 
     expect(
-      contrast(AppDarkTheme.textPrimary, AppDarkTheme.surface),
+      contrast(AppDarkTheme.textPrimary, AppDarkTheme.background),
       greaterThanOrEqualTo(7),
     );
     expect(
-      contrast(onPrimary, AppDarkTheme.accent),
-      greaterThanOrEqualTo(7),
+      contrast(AppDarkTheme.textMuted, AppDarkTheme.background),
+      greaterThanOrEqualTo(4.5),
     );
     expect(
-      contrast(AppDarkTheme.textPrimary, primaryContainer),
+      contrast(Colors.white, AppDarkTheme.accentStrong),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      contrast(AppDarkTheme.accent, AppDarkTheme.background),
       greaterThanOrEqualTo(4.5),
     );
 
@@ -63,23 +70,40 @@ void main() {
       'lib/app/app_dark_theme.dart',
     ).readAsStringSync();
     expect(darkThemeSource, contains('brightness: Brightness.dark'));
+    expect(darkThemeSource, contains('backgroundColor: accentStrong'));
+    expect(darkThemeSource, contains('indicatorColor: accentSoft'));
   });
 
-  test('shared navigation and desktop surfaces use the active theme', () {
+  test('shared navigation uses blue selected states and flat dark surfaces', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
+    ).readAsStringSync();
+    final surfaces = File(
+      'lib/widgets/premium_ui_v2.dart',
+    ).readAsStringSync();
+    final surfacesV3 = File(
+      'lib/widgets/premium_surfaces_v3.dart',
     ).readAsStringSync();
     final desktop = File(
       'lib/features/shared/presentation/specialist_desktop_ui.dart',
     ).readAsStringSync();
 
-    expect(navigation, contains('final scheme = theme.colorScheme'));
-    expect(navigation, contains('scheme.surface.withValues'));
-    expect(navigation, contains('scheme.onPrimary'));
+    expect(navigation, contains('color: scheme.surface'));
+    expect(navigation, contains('scheme.primary.withValues(alpha: 0.11)'));
     expect(
       navigation,
-      isNot(contains('color: Colors.white.withValues(alpha: 0.97)')),
+      contains('color: selected ? scheme.primary : scheme.onSurfaceVariant'),
     );
+    expect(navigation, isNot(contains('scheme.onPrimary')));
+
+    expect(surfaces, contains('theme.scaffoldBackgroundColor'));
+    expect(surfaces, contains('theme.colorScheme.outlineVariant'));
+    expect(surfaces, contains('const Color(0xFF2278BF)'));
+    expect(
+      surfaces,
+      isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
+    );
+    expect(surfacesV3, contains('theme.colorScheme.primary.withValues(alpha: 0.09)'));
 
     expect(desktop, contains("import '../../../app/theme_controller.dart';"));
     expect(desktop, contains('AppThemeController.instance.isDark'));
@@ -88,8 +112,12 @@ void main() {
 
   test('dark theme remains a presentation-only change', () {
     final changedSources = <String>[
+      'lib/app/app_adaptive_palette.dart',
+      'lib/app/app_dark_theme.dart',
       'lib/app/theme_controller.dart',
       'lib/widgets/professional_bottom_navigation.dart',
+      'lib/widgets/premium_surfaces_v3.dart',
+      'lib/widgets/premium_ui_v2.dart',
       'lib/features/shared/presentation/specialist_desktop_ui.dart',
     ];
 

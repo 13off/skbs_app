@@ -112,26 +112,10 @@ class _ProfessionalBottomNavigationState
     bool isDesktop,
   ) {
     final scheme = Theme.of(context).colorScheme;
-    final indicator = scheme.primary;
-    return AnimatedContainer(
-      duration: AppMotion.regular,
-      curve: AppMotion.interactionCurve,
-      width: isDesktop ? 36 : 31,
-      height: isDesktop ? 36 : 30,
-      decoration: BoxDecoration(
-        color: selected ? indicator : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  color: indicator.withValues(alpha: 0.18),
-                  blurRadius: 15,
-                  spreadRadius: -5,
-                  offset: const Offset(0, 7),
-                ),
-              ]
-            : const [],
-      ),
+
+    return SizedBox(
+      width: isDesktop ? 34 : 31,
+      height: isDesktop ? 34 : 30,
       child: AnimatedSwitcher(
         duration: AppMotion.regular,
         switchInCurve: AppMotion.enterCurve,
@@ -139,8 +123,8 @@ class _ProfessionalBottomNavigationState
         child: Icon(
           selected ? item.selectedIcon : item.icon,
           key: ValueKey('${item.label}-$selected'),
-          size: isDesktop ? 20 : 18,
-          color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+          size: isDesktop ? 21 : 20,
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
         ),
       ),
     );
@@ -152,15 +136,17 @@ class _ProfessionalBottomNavigationState
     bool selected,
     bool isDesktop,
   ) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return AnimatedDefaultTextStyle(
       duration: AppMotion.regular,
       curve: AppMotion.interactionCurve,
       style:
-          Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+          theme.textTheme.labelSmall?.copyWith(
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            fontSize: isDesktop ? 13 : 10.0,
+            fontSize: isDesktop ? 13 : 10.5,
             letterSpacing: isDesktop ? -0.1 : -0.2,
           ) ??
           const TextStyle(),
@@ -209,19 +195,21 @@ class _ProfessionalBottomNavigationState
               child: Container(
                 key: const ValueKey('professional-bottom-navigation-panel'),
                 height: panelHeight,
-                padding: EdgeInsets.all(isDesktop ? 8 : 7),
+                padding: EdgeInsets.all(isDesktop ? 7 : 6),
                 decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: dark ? 0.97 : 0.96),
-                  borderRadius: BorderRadius.circular(isDesktop ? 23 : 26),
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(isDesktop ? 21 : 24),
                   border: Border.all(
-                    color: scheme.outline.withValues(alpha: dark ? 0.90 : 0.70),
+                    color: scheme.outlineVariant.withValues(
+                      alpha: dark ? 0.95 : 0.72,
+                    ),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: dark ? 0.36 : 0.10),
-                      blurRadius: isDesktop ? 30 : 24,
-                      spreadRadius: -9,
-                      offset: Offset(0, isDesktop ? 14 : 11),
+                      color: Colors.black.withValues(alpha: dark ? 0.22 : 0.08),
+                      blurRadius: isDesktop ? 20 : 18,
+                      spreadRadius: -10,
+                      offset: Offset(0, isDesktop ? 10 : 8),
                     ),
                   ],
                 ),
@@ -239,7 +227,7 @@ class _ProfessionalBottomNavigationState
                           onTap: () => handleSelected(index),
                           pressedScale: 0.97,
                           hoverScale: isDesktop ? AppMotion.hoverScale : 1,
-                          borderRadius: BorderRadius.circular(17),
+                          borderRadius: BorderRadius.circular(16),
                           child: AnimatedContainer(
                             duration: duration,
                             curve: AppMotion.interactionCurve,
@@ -250,13 +238,13 @@ class _ProfessionalBottomNavigationState
                             ),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? scheme.surfaceContainerHighest
+                                  ? scheme.primary.withValues(alpha: 0.11)
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(17),
+                              borderRadius: BorderRadius.circular(16),
                               border: selected
                                   ? Border.all(
-                                      color: scheme.outline.withValues(
-                                        alpha: dark ? 0.90 : 0.62,
+                                      color: scheme.primary.withValues(
+                                        alpha: dark ? 0.22 : 0.16,
                                       ),
                                     )
                                   : null,
@@ -266,7 +254,7 @@ class _ProfessionalBottomNavigationState
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       buildIcon(context, item, selected, true),
-                                      const SizedBox(width: 10),
+                                      const SizedBox(width: 9),
                                       Flexible(
                                         child: buildLabel(
                                           context,
