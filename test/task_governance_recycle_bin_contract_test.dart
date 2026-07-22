@@ -38,23 +38,24 @@ void main() {
     expect(migration, contains('with check (false)'));
   });
 
-  test('developer navigation exposes task control center', () {
+  test('developer navigation exposes unified control center', () {
     final navigation = source(
       'lib/features/developer/presentation/developer_main_screen.dart',
     );
     final screen = source(
-      'lib/features/developer/presentation/task_governance_screen.dart',
+      'lib/features/developer/presentation/data_governance_screen.dart',
     );
 
     expect(navigation, contains('static const int pageCount = 6;'));
     expect(navigation, contains("label: 'Права'"));
-    expect(navigation, contains('const TaskGovernanceScreen()'));
+    expect(navigation, contains('const DataGovernanceScreen()'));
     expect(navigation, contains("label: 'Контроль'"));
 
-    expect(screen, contains("title: 'Контроль задач'"));
-    expect(screen, contains("title: 'Корзина задач'"));
-    expect(screen, contains("title: 'Журнал действий'"));
-    expect(screen, contains("const Text('Восстановить')"));
+    expect(screen, contains("title: 'Контроль данных'"));
+    expect(screen, contains("label: Text('Корзина')"));
+    expect(screen, contains("label: Text('Журнал')"));
+    expect(screen, contains("label: const Text('Восстановить')"));
+    expect(screen, contains('DataGovernanceRepository.restore'));
   });
 
   test('delete confirmation explains recovery and retained data', () {
