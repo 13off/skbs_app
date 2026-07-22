@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/app_cache_coordinator.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
@@ -26,12 +27,12 @@ part 'home/home_sections.dart';
 part 'home/home_view.dart';
 part 'home/home_widgets.dart';
 
-const Color _card = Color(0xFFFFFFFF);
-const Color _softCard = Color(0xFFF2F3F5);
-const Color _line = Color(0xFFE6E8EB);
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _accent = Color(0xFF8F9499);
+Color get _card => AppAdaptivePalette.surface;
+Color get _softCard => AppAdaptivePalette.surfaceSoft;
+Color get _line => AppAdaptivePalette.border;
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _accent => AppAdaptivePalette.accent;
 const Color _success = Color(0xFF22C55E);
 
 class HomeScreen extends StatefulWidget {

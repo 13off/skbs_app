@@ -7,7 +7,7 @@ extension _EmployeesSections on _EmployeesScreenState {
     required VoidCallback onTap,
     bool primary = false,
   }) {
-    final foreground = primary ? Colors.white : _accent;
+    final foreground = primary ? AppAdaptivePalette.onAccent : _text;
     final background = primary ? _accent : _soft;
 
     return PremiumPressable(
@@ -97,15 +97,15 @@ extension _EmployeesSections on _EmployeesScreenState {
         fillColor: _card,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(22),
-          borderSide: const BorderSide(color: _line),
+          borderSide: BorderSide(color: _line),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(22),
-          borderSide: const BorderSide(color: _line),
+          borderSide: BorderSide(color: _line),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(22),
-          borderSide: const BorderSide(color: _accent, width: 1.4),
+          borderSide: BorderSide(color: _accent, width: 1.4),
         ),
       ),
     );
@@ -128,10 +128,10 @@ extension _EmployeesSections on _EmployeesScreenState {
         child: Container(
           decoration: BoxDecoration(
             color: fired
-                ? const Color(0xFFE9EAEB)
-                : Colors.white.withValues(alpha: 0.88),
+                ? AppAdaptivePalette.surfaceSoft
+                : AppAdaptivePalette.surfaceElevated,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: fired ? const Color(0xFFD7D8DA) : _line),
+            border: Border.all(color: _line),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.035),
@@ -147,7 +147,7 @@ extension _EmployeesSections on _EmployeesScreenState {
               vertical: 10,
             ),
             leading: CircleAvatar(
-              backgroundColor: fired ? const Color(0xFFD9DADC) : _soft,
+              backgroundColor: _soft,
               foregroundColor: _text,
               child: Text(
                 employee.name.trim().isEmpty
@@ -162,7 +162,7 @@ extension _EmployeesSections on _EmployeesScreenState {
                   child: Text(
                     employee.name,
                     style: TextStyle(
-                      color: fired ? const Color(0xFF686C70) : _text,
+                      color: fired ? AppAdaptivePalette.textMuted : _text,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -174,13 +174,13 @@ extension _EmployeesSections on _EmployeesScreenState {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDADBDD),
+                      color: AppAdaptivePalette.surfaceSoft,
                       borderRadius: BorderRadius.circular(100),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Уволен',
                       style: TextStyle(
-                        color: Color(0xFF565A5E),
+                        color: AppAdaptivePalette.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),
@@ -190,9 +190,21 @@ extension _EmployeesSections on _EmployeesScreenState {
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 5),
-              child: Text(subtitle),
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  color: fired
+                      ? AppAdaptivePalette.textFaint
+                      : AppAdaptivePalette.textMuted,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Icon(
+              Icons.chevron_right,
+              color: AppAdaptivePalette.textFaint,
+            ),
           ),
         ),
       ),
@@ -203,7 +215,7 @@ extension _EmployeesSections on _EmployeesScreenState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (fired) Divider(height: 30, color: Colors.grey.shade300),
+        if (fired) Divider(height: 30, color: AppAdaptivePalette.border),
         Padding(
           padding: EdgeInsets.only(top: fired ? 22 : 0, bottom: 10),
           child: Row(
@@ -211,13 +223,13 @@ extension _EmployeesSections on _EmployeesScreenState {
               Icon(
                 fired ? Icons.archive_outlined : Icons.groups_outlined,
                 size: 20,
-                color: fired ? Colors.grey.shade700 : _text,
+                color: fired ? AppAdaptivePalette.textMuted : _text,
               ),
               const SizedBox(width: 8),
               Text(
                 '$title: ${items.length}',
                 style: TextStyle(
-                  color: fired ? Colors.grey.shade700 : _text,
+                  color: fired ? AppAdaptivePalette.textMuted : _text,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
@@ -230,7 +242,7 @@ extension _EmployeesSections on _EmployeesScreenState {
             padding: const EdgeInsets.only(bottom: 14),
             child: Text(
               'Активных сотрудников нет',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
             ),
           )
         else

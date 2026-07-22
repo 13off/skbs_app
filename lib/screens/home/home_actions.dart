@@ -31,7 +31,7 @@ extension _HomeActions on _HomeScreenState {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Период выплат',
                         style: TextStyle(
@@ -84,14 +84,14 @@ extension _HomeActions on _HomeScreenState {
                                 Expanded(
                                   child: Text(
                                     period.pickerTitle(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: _text,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
                                 if (isSelected)
-                                  const Icon(
+                                  Icon(
                                     Icons.check_circle,
                                     color: _accent,
                                   ),
@@ -133,8 +133,8 @@ extension _HomeActions on _HomeScreenState {
       heroTag: 'home-ai-assistant',
       onPressed: () => openAiAssistant(context),
       tooltip: 'ИИ-помощник',
-      backgroundColor: _text,
-      foregroundColor: Colors.white,
+      backgroundColor: AppAdaptivePalette.accentSoft,
+      foregroundColor: AppAdaptivePalette.textPrimary,
       elevation: 8,
       child: const Icon(Icons.auto_awesome_rounded),
     );

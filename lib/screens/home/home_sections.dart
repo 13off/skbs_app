@@ -29,7 +29,7 @@ extension _HomeSections on _HomeScreenState {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 'Главная',
                 style: TextStyle(
@@ -51,7 +51,7 @@ extension _HomeSections on _HomeScreenState {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_month_outlined,
                     color: _muted,
                     size: 16,
@@ -59,7 +59,7 @@ extension _HomeSections on _HomeScreenState {
                   const SizedBox(width: 7),
                   Text(
                     'Сегодня, ${dateText(today)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _muted,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,

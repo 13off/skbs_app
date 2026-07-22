@@ -59,13 +59,13 @@ extension _TimesheetView on _TimesheetScreenState {
                               ),
                             ),
                           if (visibleEmployees.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 30),
                               child: Center(
                                 child: Text(
                                   'Сотрудники не найдены',
                                   style: TextStyle(
-                                    color: AppColors.textMuted,
+                                    color: AppAdaptivePalette.textMuted,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -87,10 +87,10 @@ extension _TimesheetView on _TimesheetScreenState {
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.82),
+                      color: AppAdaptivePalette.surface,
                       border: Border(
                         top: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.94),
+                          color: AppAdaptivePalette.border,
                         ),
                       ),
                     ),

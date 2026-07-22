@@ -34,11 +34,11 @@ extension _TimesheetSections on _TimesheetScreenState {
         width: 46,
         height: 46,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F0EC),
+          color: AppAdaptivePalette.surfaceSoft,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4E2DC)),
+          border: Border.all(color: AppAdaptivePalette.border),
         ),
-        child: Icon(icon, color: AppColors.textPrimary, size: 24),
+        child: Icon(icon, color: AppAdaptivePalette.textPrimary, size: 24),
       ),
     );
   }
@@ -69,16 +69,16 @@ extension _TimesheetSections on _TimesheetScreenState {
                   horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F0EC),
+                  color: AppAdaptivePalette.surfaceSoft,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE4E2DC)),
+                  border: Border.all(color: AppAdaptivePalette.border),
                 ),
                 child: Column(
                   children: [
                     Text(
                       shortDate(selectedDate),
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.4,
@@ -87,8 +87,8 @@ extension _TimesheetSections on _TimesheetScreenState {
                     const SizedBox(height: 3),
                     Text(
                       weekDayName(selectedDate),
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -122,22 +122,22 @@ extension _TimesheetSections on _TimesheetScreenState {
           Container(
             width: 42,
             height: 42,
-            decoration: const BoxDecoration(
-              color: AppColors.accentSoft,
+            decoration: BoxDecoration(
+              color: AppAdaptivePalette.accentSoft,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.groups_outlined,
               size: 21,
-              color: AppColors.textPrimary,
+              color: AppAdaptivePalette.textPrimary,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               'Вышли сегодня',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: AppAdaptivePalette.textMuted,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -148,16 +148,16 @@ extension _TimesheetSections on _TimesheetScreenState {
             children: [
               Text(
                 '$visibleWorked / ${visibleEmployees.length}',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: AppAdaptivePalette.textPrimary,
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 '${formatShift(totalShifts)} смен',
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: AppAdaptivePalette.textMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -185,19 +185,19 @@ extension _TimesheetSections on _TimesheetScreenState {
                 icon: const Icon(Icons.close),
               ),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.86),
+        fillColor: AppAdaptivePalette.inputSurface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(color: AppAdaptivePalette.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: AppColors.textPrimary,
+          borderSide: BorderSide(
+            color: AppAdaptivePalette.textPrimary,
             width: 1.3,
           ),
         ),
@@ -212,11 +212,11 @@ extension _TimesheetSections on _TimesheetScreenState {
       padding: const EdgeInsets.all(15),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               'Быстрый ввод',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: AppAdaptivePalette.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
@@ -263,8 +263,8 @@ extension _TimesheetSections on _TimesheetScreenState {
       padding: const EdgeInsets.all(15),
       radius: 22,
       tint: hasWorked
-          ? const Color(0xFFEDEEEB)
-          : Colors.white.withValues(alpha: 0.86),
+          ? AppAdaptivePalette.accentSoft
+          : AppAdaptivePalette.inputSurface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -276,8 +276,8 @@ extension _TimesheetSections on _TimesheetScreenState {
                   children: [
                     Text(
                       employee.name,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
@@ -285,8 +285,8 @@ extension _TimesheetSections on _TimesheetScreenState {
                     const SizedBox(height: 4),
                     Text(
                       employee.position,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -299,14 +299,16 @@ extension _TimesheetSections on _TimesheetScreenState {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
                   color: hasWorked
-                      ? AppColors.textPrimary
-                      : AppColors.accentSoft,
+                      ? AppAdaptivePalette.accent
+                      : AppAdaptivePalette.accentSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   formatShift(shifts),
                   style: TextStyle(
-                    color: hasWorked ? Colors.white : AppColors.textMuted,
+                    color: hasWorked
+                        ? AppAdaptivePalette.onAccent
+                        : AppAdaptivePalette.textMuted,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
