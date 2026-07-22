@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js@2.110.8/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2.110.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -262,8 +262,11 @@ Deno.serve(async (request: Request) => {
 
       const employees = employeesResult.data ?? [];
       const attendance = attendanceResult.data ?? [];
-      const attendanceByEmployee = new Map(
-        attendance.map((row: any) => [String(row.employee_id), row]),
+      const attendanceByEmployee = new Map<string, any>(
+        attendance.map((row: any): [string, any] => [
+          String(row.employee_id),
+          row,
+        ]),
       );
       const absent = employees.filter((employee: any) => {
         const row = attendanceByEmployee.get(String(employee.id));
