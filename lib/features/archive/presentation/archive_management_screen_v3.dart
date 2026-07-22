@@ -190,7 +190,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Удалить выбранное навсегда?'),
+          title: Text('Удалить выбранное навсегда?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +366,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
               onChanged: isBusy
                   ? null
                   : (value) => selectAllVisible(value == true),
-              title: const Text(
+              title: Text(
                 'Выбрать все',
                 style: TextStyle(
                   color: _archiveText,
@@ -436,7 +436,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
 
   Widget buildContent() {
     if (isLoading) {
-      return const PremiumWorkCard(
+      return PremiumWorkCard(
         radius: 24,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 40),
@@ -480,7 +480,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
         : visibleObjects();
 
     if (items.isEmpty) {
-      return const PremiumWorkCard(
+      return PremiumWorkCard(
         radius: 24,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 34),
@@ -603,7 +603,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Архив и удаление'),
+        title: Text('Архив и удаление'),
         backgroundColor: AppAdaptivePalette.background,
         surfaceTintColor: Colors.transparent,
       ),

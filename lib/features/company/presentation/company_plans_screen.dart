@@ -150,11 +150,11 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Отмена'),
+              child: Text('Отмена'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Отправить заявку'),
+              child: Text('Отправить заявку'),
             ),
           ],
         );
@@ -241,7 +241,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Текущий тариф',
                       style: TextStyle(
                         color: _billingMuted,
@@ -483,7 +483,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Тариф и лимиты'),
+        title: Text('Тариф и лимиты'),
         backgroundColor: AppAdaptivePalette.background,
         surfaceTintColor: Colors.transparent,
         actions: [
@@ -524,7 +524,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                         FilledButton.icon(
                           onPressed: refresh,
                           icon: Icon(Icons.refresh_rounded),
-                          label: const Text('Повторить'),
+                          label: Text('Повторить'),
                         ),
                       ],
                     ),
@@ -550,7 +550,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                           buildRequestCard(data.openRequest!, data.plans),
                         ],
                         SizedBox(height: 24),
-                        const Text(
+                        Text(
                           'Тарифы для компаний',
                           style: TextStyle(
                             color: _billingText,
@@ -560,7 +560,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                           ),
                         ),
                         SizedBox(height: 7),
-                        const Text(
+                        Text(
                           'На всех тарифах доступны все функции AppСтрой. '
                           'Отличаются только лимиты и сопровождение.',
                           style: TextStyle(
@@ -577,7 +577,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                           ),
                         ),
                         SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Заявка не списывает деньги. До подключения эквайринга '
                           'активация тарифа выполняется после согласования.',
                           textAlign: TextAlign.center,
@@ -657,7 +657,7 @@ class _UsageLine extends StatelessWidget {
             minHeight: 6,
             value: progress,
             backgroundColor: _billingSoft,
-            valueColor: const AlwaysStoppedAnimation<Color>(_billingAccent),
+            valueColor: AlwaysStoppedAnimation<Color>(_billingAccent),
           ),
         ),
       ],

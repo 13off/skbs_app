@@ -77,7 +77,7 @@ class _PwaInstallScreenState extends State<PwaInstallScreen> {
                       color: AppAdaptivePalette.surfaceSoft,
                       borderRadius: BorderRadius.circular(22),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.install_desktop_rounded,
                       size: 30,
                       color: AppAdaptivePalette.textPrimary,

@@ -309,7 +309,7 @@ class _NotificationBellState extends State<NotificationBell> {
             ),
             child: Stack(
               children: [
-                const Center(
+                Center(
                   child: Icon(
                     Icons.notifications_none_outlined,
                     color: _text,
