@@ -19,17 +19,19 @@ class PremiumBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
-              : const [Color(0xFFF9F8F5), Color(0xFFECEAE4)],
-        ),
-      ),
+      decoration: dark
+          ? BoxDecoration(color: theme.scaffoldBackgroundColor)
+          : const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF9F8F5), Color(0xFFECEAE4)],
+              ),
+            ),
       child: child,
     );
   }
@@ -42,39 +44,65 @@ class PremiumWorkBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
-              : const [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+
+    if (!dark) {
+      return DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
+          ),
         ),
-      ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              top: -140,
+              right: -100,
+              child: IgnorePointer(
+                child: Container(
+                  width: 330,
+                  height: 330,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: 0.94),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            child,
+          ],
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Positioned(
-            top: -140,
-            right: -100,
+            top: -180,
+            right: -140,
             child: IgnorePointer(
               child: Container(
-                width: 330,
-                height: 330,
+                width: 360,
+                height: 360,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: dark
-                        ? [
-                            const Color(0xFF4D5661).withValues(alpha: 0.24),
-                            Colors.transparent,
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.94),
-                            Colors.white.withValues(alpha: 0),
-                          ],
+                    colors: [
+                      theme.colorScheme.primary.withValues(alpha: 0.10),
+                      theme.colorScheme.primary.withValues(alpha: 0),
+                    ],
                   ),
                 ),
               ),
@@ -107,46 +135,41 @@ class PremiumWorkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
-    final surface = theme.colorScheme.surface;
 
     return Container(
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: tint,
-        gradient: tint == null
+        color: dark ? (tint ?? theme.colorScheme.surface) : tint,
+        gradient: !dark && tint == null
             ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: dark
-                    ? [
-                        surface.withValues(alpha: 0.97),
-                        const Color(0xFF16191D).withValues(alpha: 0.94),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.91),
-                        Colors.white.withValues(alpha: 0.72),
-                      ],
+                colors: [
+                  Colors.white.withValues(alpha: 0.91),
+                  Colors.white.withValues(alpha: 0.72),
+                ],
               )
             : null,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: dark
-              ? theme.colorScheme.outline.withValues(alpha: 0.86)
+              ? theme.colorScheme.outlineVariant
               : Colors.white.withValues(alpha: 0.94),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.34 : 0.075),
-            blurRadius: 28,
-            spreadRadius: -12,
-            offset: const Offset(0, 16),
+            color: Colors.black.withValues(alpha: dark ? 0.20 : 0.075),
+            blurRadius: dark ? 18 : 28,
+            spreadRadius: dark ? -10 : -12,
+            offset: Offset(0, dark ? 9 : 16),
           ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: dark ? 0.025 : 0.78),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
+          if (!dark)
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.78),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
         ],
       ),
       child: child,
@@ -196,7 +219,7 @@ class PremiumLoadingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  legacy.PremiumDots(color: theme.colorScheme.onSurface),
+                  legacy.PremiumDots(color: theme.colorScheme.primary),
                 ],
               ),
             ),
