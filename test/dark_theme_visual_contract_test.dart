@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Контракт фиксирует именно дефекты, найденные на мобильных скриншотах.
   test('dark mobile screens use the adaptive palette', () {
     for (final path in <String>[
       'lib/screens/home_screen.dart',
@@ -33,7 +34,9 @@ void main() {
     ).readAsStringSync();
     expect(timesheet, isNot(contains('Colors.white.withValues(alpha: 0.82)')));
 
-    final tasks = File('lib/screens/mobile_tasks_screen.dart').readAsStringSync();
+    final tasks = File(
+      'lib/screens/mobile_tasks_screen.dart',
+    ).readAsStringSync();
     expect(tasks, isNot(contains('const Color _tasksText')));
   });
 }
