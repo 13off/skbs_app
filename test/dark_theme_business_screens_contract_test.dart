@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
+  // Эти проверки защищают именно рабочие поверхности, а не декоративный
+  // белый текст на акцентных кнопках.
   test('archive uses adaptive surfaces and text colors', () {
     final archive = source(
       'lib/features/archive/presentation/archive_management_screen.dart',
