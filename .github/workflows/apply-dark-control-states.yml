@@ -23,14 +23,6 @@ jobs:
       - name: Apply control-state patch
         run: python3 tool/apply_dark_control_states.py
 
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/screens/desktop_timesheet_screen.dart \
-            lib/features/foreman/presentation/foreman_home_summary_widgets.dart \
-            lib/widgets/notification_bell.dart \
-            lib/features/recruitment/presentation/recruitment_applications_screen.dart
-
       - name: Commit targeted UI changes
         run: |
           git config user.name "github-actions[bot]"
