@@ -14,6 +14,10 @@ replacements = [
         'style: const TextStyle(color: Colors.red),',
         'style: TextStyle(color: AppAdaptivePalette.danger),',
     ),
+    (
+        'Text(errorText!, style: const TextStyle(color: Colors.red)),',
+        'Text(\n              errorText!,\n              style: TextStyle(color: AppAdaptivePalette.danger),\n            ),',
+    ),
     ('color: Colors.grey.shade100,', 'color: AppAdaptivePalette.surfaceSoft,'),
     (
         'border: Border.all(color: Colors.grey.shade200),',
