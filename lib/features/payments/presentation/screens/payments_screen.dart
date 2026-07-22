@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
-import '../../../../app/app_theme.dart';
+import '../../../../app/app_adaptive_palette.dart';
 import '../../../../data/app_data_sync.dart';
 import '../../../../data/attendance_repository.dart';
 import '../../../../models/employee.dart';
@@ -320,16 +320,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         children: [
           IconButton.filledTonal(
             onPressed: isLoading ? null : () => changeMonth(-1),
-            icon: const Icon(Icons.chevron_left),
+            icon: Icon(Icons.chevron_left),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Период выплат',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppAdaptivePalette.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.2,
@@ -339,8 +339,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 Text(
                   monthTitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
@@ -351,7 +351,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           const SizedBox(width: 10),
           IconButton.filledTonal(
             onPressed: isLoading ? null : () => changeMonth(1),
-            icon: const Icon(Icons.chevron_right),
+            icon: Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -365,10 +365,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Сводка за период',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppAdaptivePalette.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -406,7 +406,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       controller: searchController,
       decoration: InputDecoration(
         hintText: 'Поиск по ФИО, должности или объекту',
-        prefixIcon: const Icon(Icons.search),
+        prefixIcon: Icon(Icons.search),
         suffixIcon: searchController.text.isEmpty
             ? null
             : IconButton(
@@ -414,22 +414,22 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   searchController.clear();
                   setState(() {});
                 },
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close),
               ),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.86),
+        fillColor: AppAdaptivePalette.inputSurface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: BorderSide(color: AppAdaptivePalette.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: AppColors.textPrimary,
+          borderSide: BorderSide(
+            color: AppAdaptivePalette.textPrimary,
             width: 1.3,
           ),
         ),
@@ -446,13 +446,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final String balanceTitle;
 
     if (balance > 0) {
-      balanceColor = AppColors.textPrimary;
+      balanceColor = AppAdaptivePalette.textPrimary;
       balanceTitle = 'Остаток';
     } else if (balance < 0) {
-      balanceColor = const Color(0xFF8A4B46);
+      balanceColor = AppAdaptivePalette.danger;
       balanceTitle = 'Переплата';
     } else {
-      balanceColor = const Color(0xFF3F6B56);
+      balanceColor = AppAdaptivePalette.success;
       balanceTitle = 'Закрыто';
     }
 
@@ -468,13 +468,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               Container(
                 width: 42,
                 height: 42,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentSoft,
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.accentSoft,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person_outline,
-                  color: AppColors.textPrimary,
+                  color: AppAdaptivePalette.textPrimary,
                   size: 21,
                 ),
               ),
@@ -485,8 +485,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   children: [
                     Text(
                       employee.name,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
@@ -494,8 +494,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${employee.position} • ${row.objectTitle}',
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -536,8 +536,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               onPressed: row.employeeIds.isEmpty || isLoading
                   ? null
                   : () => openPaymentHistory(row),
-              icon: const Icon(Icons.history, size: 18),
-              label: const Text('История выплат'),
+              icon: Icon(Icons.history, size: 18),
+              label: Text('История выплат'),
             ),
           ),
         ],
@@ -547,7 +547,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   Widget buildReportAction() {
     if (isExportingReport) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(horizontal: 10),
         child: SizedBox(
           width: 20,
@@ -564,8 +564,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      icon: const Icon(Icons.download_outlined, size: 18),
-      label: const Text('Отчёт'),
+      icon: Icon(Icons.download_outlined, size: 18),
+      label: Text('Отчёт'),
     );
   }
 
@@ -579,8 +579,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text('Добавить'),
+        icon: Icon(Icons.add, size: 18),
+        label: Text('Добавить'),
       ),
     );
   }
@@ -594,7 +594,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       appBar: AppBar(
         leading: const BackButton(),
         backgroundColor: Colors.transparent,
-        title: const Text('Выплаты'),
+        title: Text('Выплаты'),
         actions: [buildReportAction(), buildAddAction()],
       ),
       body: PremiumWorkBackdrop(
@@ -616,7 +616,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                       buildSearch(),
                       const SizedBox(height: 16),
                       if (isLoading)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           child: LinearProgressIndicator(),
                         ),
@@ -625,17 +625,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child: Text(
                             errorText!,
-                            style: const TextStyle(color: Colors.red),
+                            style: TextStyle(color: AppAdaptivePalette.danger),
                           ),
                         ),
                       if (!isLoading && visibleRows.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
                           child: Center(
                             child: Text(
                               'Сотрудники не найдены',
                               style: TextStyle(
-                                color: AppColors.textMuted,
+                                color: AppAdaptivePalette.textMuted,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -746,9 +746,9 @@ class _MoneySummaryItem extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE1E2DF)),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -756,7 +756,7 @@ class _MoneySummaryItem extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: AppAdaptivePalette.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -764,7 +764,7 @@ class _MoneySummaryItem extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -785,9 +785,9 @@ class _MoneyLine extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1E2DF)),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +795,7 @@ class _MoneyLine extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: AppAdaptivePalette.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),

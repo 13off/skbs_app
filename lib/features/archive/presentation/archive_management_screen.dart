@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../data/permanent_deletion_repository.dart';
@@ -151,7 +151,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              icon: const Icon(
+              icon: Icon(
                 Icons.warning_amber_rounded,
                 color: Color(0xFF9D3E38),
                 size: 38,
@@ -167,7 +167,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                     const SizedBox(height: 18),
                     Text(
                       'Для подтверждения введите: $confirmationPhrase',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -199,7 +199,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                   onPressed: phraseMatches
                       ? () => Navigator.pop(dialogContext, true)
                       : null,
-                  icon: const Icon(Icons.delete_forever_rounded),
+                  icon: Icon(Icons.delete_forever_rounded),
                   label: const Text('Удалить навсегда'),
                 ),
               ],
@@ -374,9 +374,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
         Container(
           padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            color: AppColors.surfaceSoft,
+            color: AppAdaptivePalette.surfaceSoft,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppAdaptivePalette.border),
           ),
           child: Row(
             children: [
@@ -417,10 +417,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
               child: FilterChip(
                 selected: !showArchived,
                 label: const Text('Активные'),
-                avatar: const Icon(
-                  Icons.check_circle_outline_rounded,
-                  size: 18,
-                ),
+                avatar: Icon(Icons.check_circle_outline_rounded, size: 18),
                 onSelected: (_) => setState(() => showArchived = false),
               ),
             ),
@@ -429,7 +426,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
               child: FilterChip(
                 selected: showArchived,
                 label: const Text('Архив'),
-                avatar: const Icon(Icons.inventory_2_outlined, size: 18),
+                avatar: Icon(Icons.inventory_2_outlined, size: 18),
                 onSelected: (_) => setState(() => showArchived = true),
               ),
             ),
@@ -437,7 +434,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
             IconButton.filledTonal(
               tooltip: 'Обновить',
               onPressed: isLoading ? null : loadData,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.refresh_rounded),
             ),
           ],
         ),
@@ -448,7 +445,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
             hintText: category == _ArchiveCategory.employees
                 ? 'Поиск сотрудника'
                 : 'Поиск объекта',
-            prefixIcon: const Icon(Icons.search_rounded),
+            prefixIcon: Icon(Icons.search_rounded),
             suffixIcon: searchController.text.isEmpty
                 ? null
                 : IconButton(
@@ -456,7 +453,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                       searchController.clear();
                       setState(() {});
                     },
-                    icon: const Icon(Icons.close_rounded),
+                    icon: Icon(Icons.close_rounded),
                   ),
           ),
           onChanged: (_) => setState(() {}),
@@ -487,7 +484,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                     : () => setEmployeeArchived(employee, true),
                 icon: isBusy
                     ? const _SmallLoader()
-                    : const Icon(Icons.archive_outlined, size: 18),
+                    : Icon(Icons.archive_outlined, size: 18),
                 label: const Text('В архив'),
               ),
             ]
@@ -496,7 +493,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                 onPressed: isBusy
                     ? null
                     : () => setEmployeeArchived(employee, false),
-                icon: const Icon(Icons.restore_rounded, size: 18),
+                icon: Icon(Icons.restore_rounded, size: 18),
                 label: const Text('Вернуть'),
               ),
               IconButton.filledTonal(
@@ -506,7 +503,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                     : () => deleteEmployeeForever(employee),
                 icon: isBusy
                     ? const _SmallLoader()
-                    : const Icon(Icons.delete_forever_outlined),
+                    : Icon(Icons.delete_forever_outlined),
               ),
             ],
     );
@@ -527,7 +524,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                 onPressed: isBusy
                     ? null
                     : () => setObjectArchived(objectName, false),
-                icon: const Icon(Icons.restore_rounded, size: 18),
+                icon: Icon(Icons.restore_rounded, size: 18),
                 label: const Text('Вернуть'),
               ),
               IconButton.filledTonal(
@@ -537,7 +534,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                     : () => deleteObjectForever(objectName),
                 icon: isBusy
                     ? const _SmallLoader()
-                    : const Icon(Icons.delete_forever_outlined),
+                    : Icon(Icons.delete_forever_outlined),
               ),
             ]
           : [
@@ -547,7 +544,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                     : () => setObjectArchived(objectName, true),
                 icon: isBusy
                     ? const _SmallLoader()
-                    : const Icon(Icons.archive_outlined, size: 18),
+                    : Icon(Icons.archive_outlined, size: 18),
                 label: const Text('В архив'),
               ),
             ],
@@ -567,13 +564,13 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
         padding: const EdgeInsets.symmetric(vertical: 50),
         child: Column(
           children: [
-            const Icon(Icons.error_outline_rounded, size: 42),
+            Icon(Icons.error_outline_rounded, size: 42),
             const SizedBox(height: 12),
             Text(errorText!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: loadData,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.refresh_rounded),
               label: const Text('Повторить'),
             ),
           ],
@@ -595,13 +592,13 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                   ? Icons.inventory_2_outlined
                   : Icons.search_off_rounded,
               size: 48,
-              color: AppColors.textMuted,
+              color: AppAdaptivePalette.textMuted,
             ),
             const SizedBox(height: 12),
             Text(
               showArchived ? 'Архив пуст' : 'Ничего не найдено',
-              style: const TextStyle(
-                color: AppColors.textMuted,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -630,7 +627,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Архив и удаление')),
+        leading: const BackButton(),
+        title: const Text('Архив и удаление'),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 34),
         children: [
@@ -643,9 +642,9 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppAdaptivePalette.surface,
                       borderRadius: BorderRadius.circular(26),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: AppAdaptivePalette.border),
                     ),
                     child: buildTopControls(),
                   ),
@@ -677,7 +676,7 @@ class _CategoryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.accent : Colors.transparent,
+      color: selected ? AppAdaptivePalette.accent : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -690,7 +689,9 @@ class _CategoryButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 19,
-                color: selected ? Colors.white : AppColors.textMuted,
+                color: selected
+                    ? AppAdaptivePalette.onAccent
+                    : AppAdaptivePalette.textMuted,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -698,7 +699,9 @@ class _CategoryButton extends StatelessWidget {
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: selected ? Colors.white : AppColors.textPrimary,
+                    color: selected
+                        ? AppAdaptivePalette.onAccent
+                        : AppAdaptivePalette.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -729,9 +732,9 @@ class _ArchiveCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppAdaptivePalette.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.035),
@@ -749,11 +752,11 @@ class _ArchiveCard extends StatelessWidget {
               Container(
                 width: 46,
                 height: 46,
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceSoft,
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.surfaceSoft,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: AppColors.textPrimary),
+                child: Icon(icon, color: AppAdaptivePalette.textPrimary),
               ),
               const SizedBox(width: 13),
               Expanded(
@@ -762,7 +765,7 @@ class _ArchiveCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -771,8 +774,8 @@ class _ArchiveCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
                           height: 1.35,
                         ),
                       ),

@@ -10,7 +10,10 @@ void main() {
       'lib/features/archive/presentation/archive_management_screen.dart',
     );
 
-    expect(archive, contains("import '../../../app/app_adaptive_palette.dart';"));
+    expect(
+      archive,
+      contains("import '../../../app/app_adaptive_palette.dart';"),
+    );
     expect(archive, contains('AppAdaptivePalette.surface'));
     expect(archive, contains('AppAdaptivePalette.surfaceSoft'));
     expect(archive, contains('AppAdaptivePalette.border'));
