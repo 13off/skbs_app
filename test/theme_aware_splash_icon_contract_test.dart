@@ -62,4 +62,13 @@ void main() {
     expect(styles31, contains('android:windowSplashScreenAnimatedIcon'));
     expect(darkLauncher, contains('@color/app_icon_dark_background'));
   });
+
+  test('native theme resources are compiled by a dedicated Android check', () {
+    final workflow = source('.github/workflows/android-theme-check.yml');
+
+    expect(workflow, contains('name: Android Theme Check'));
+    expect(workflow, contains('flutter build apk --debug'));
+    expect(workflow, contains('- android/**'));
+    expect(workflow, contains('- lib/app/theme_platform_sync*.dart'));
+  });
 }
