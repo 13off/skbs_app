@@ -27,7 +27,7 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Apply deterministic patch
+      - name: Apply deterministic contrast cleanup
         run: python3 tool/apply_desktop_dark_contrast.py
 
       - name: Format changed Dart files
@@ -53,5 +53,5 @@ jobs:
             lib/screens/desktop_home_widgets.dart \
             lib/screens/desktop_employees_view.dart \
             lib/screens/desktop_tasks_screen.dart
-          git commit -m "исправлен контраст desktop-темы"
+          git commit -m "дочищен контраст desktop-темы"
           git push origin HEAD:agent/desktop-dark-contrast
