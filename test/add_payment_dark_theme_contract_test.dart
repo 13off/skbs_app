@@ -25,8 +25,14 @@ void main() {
     expect(screen, isNot(contains('color: Colors.grey.shade100')));
     expect(screen, isNot(contains('color: Colors.grey.shade700')));
     expect(screen, isNot(contains('color: Colors.white,')));
-    expect(screen, isNot(contains('border: Border.all(color: Colors.grey.shade200)')));
-    expect(screen, isNot(contains('border: Border.all(color: Colors.grey.shade300)')));
+    expect(
+      screen,
+      isNot(contains('border: Border.all(color: Colors.grey.shade200)')),
+    );
+    expect(
+      screen,
+      isNot(contains('border: Border.all(color: Colors.grey.shade300)')),
+    );
     expect(screen, isNot(contains('TextStyle(color: Colors.red)')));
   });
 }
