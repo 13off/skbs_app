@@ -7,6 +7,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../dispatcher/presentation/dispatcher_settings_screen.dart';
 import 'developer_panel_screen.dart';
 import 'developer_system_screen.dart';
+import 'role_permission_matrix_screen.dart';
 import 'task_governance_screen.dart';
 
 class DeveloperMainScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class DeveloperMainScreen extends StatefulWidget {
 }
 
 class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
-  static const int pageCount = 5;
+  static const int pageCount = 6;
 
   int currentIndex = 0;
   late final PageController controller;
@@ -46,8 +47,9 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
       0 => DeveloperSystemScreen(profile: widget.profile),
       1 => const DispatcherSettingsScreen(),
       2 => DeveloperPanelScreen(profile: widget.profile),
-      3 => const TaskGovernanceScreen(),
-      4 => ProfileScreen(profile: widget.profile),
+      3 => const RolePermissionMatrixScreen(),
+      4 => const TaskGovernanceScreen(),
+      5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -115,6 +117,11 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
               label: 'Ограничения',
               icon: Icons.rule_outlined,
               selectedIcon: Icons.rule_rounded,
+            ),
+            ProfessionalBottomNavigationItem(
+              label: 'Права',
+              icon: Icons.admin_panel_settings_outlined,
+              selectedIcon: Icons.admin_panel_settings_rounded,
             ),
             ProfessionalBottomNavigationItem(
               label: 'Контроль',
