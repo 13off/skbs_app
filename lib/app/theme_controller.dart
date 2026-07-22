@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'theme_platform_sync.dart';
+
 class AppThemeController extends ChangeNotifier {
   AppThemeController._();
 
@@ -22,6 +24,8 @@ class AppThemeController extends ChangeNotifier {
     } catch (_) {
       _themeMode = ThemeMode.light;
     }
+
+    await AppThemePlatformSync.apply(isDark: isDark);
   }
 
   Future<void> setDark(bool value) async {
@@ -37,6 +41,8 @@ class AppThemeController extends ChangeNotifier {
     } catch (_) {
       // Тема уже применена в текущем запуске; сбой хранилища не блокирует UI.
     }
+
+    await AppThemePlatformSync.apply(isDark: value);
   }
 
   Future<void> toggle() => setDark(!isDark);
