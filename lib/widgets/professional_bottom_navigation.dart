@@ -170,7 +170,7 @@ class _ProfessionalBottomNavigationState
     final screenWidth = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final isDesktop = screenWidth >= 880;
-    final panelHeight = isDesktop ? 70.0 : 70.0;
+    final panelHeight = isDesktop ? 72.0 : 72.0;
     final topSpacing = isDesktop ? 8.0 : 4.0;
     final bottomSpacing = isDesktop ? 14.0 : 10.0;
     final totalHeight = panelHeight + topSpacing + bottomSpacing + bottomInset;
