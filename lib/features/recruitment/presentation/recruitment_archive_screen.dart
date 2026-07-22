@@ -333,7 +333,7 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                 children: [
                   Icon(Icons.error_outline_rounded, size: 40),
                   SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Не удалось загрузить архив',
                     style: TextStyle(
                       color: _archiveText,

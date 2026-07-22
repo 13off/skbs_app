@@ -935,7 +935,7 @@ class _MetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    this.accent = _text,
+    this.accent = AppAdaptivePalette.telegramBlue,
   });
 
   @override

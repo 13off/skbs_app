@@ -75,7 +75,7 @@ class _RecruitmentDashboardScreenState
     required IconData icon,
     required String label,
     required int value,
-    Color color = _text,
+    Color color = AppAdaptivePalette.telegramBlue,
   }) {
     return Expanded(
       child: PremiumWorkCard(
@@ -229,7 +229,7 @@ class _RecruitmentDashboardScreenState
                 children: [
                   Icon(Icons.error_outline_rounded, size: 42),
                   SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Не удалось загрузить HR-сводку',
                     style: TextStyle(
                       color: _text,

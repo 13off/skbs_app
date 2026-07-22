@@ -394,7 +394,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Объекты',
             style: TextStyle(
               color: _text,
@@ -553,7 +553,7 @@ class _ObjectManagementScreenState extends State<ObjectManagementScreen> {
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: _line),
                 ),
-                child: const Text(
+                child: Text(
                   'Объекты пока не найдены',
                   style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
                 ),
