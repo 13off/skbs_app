@@ -196,8 +196,8 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                   const Text(
                     'Проверяются текущая JWT-сессия, RLS, журнал, шаблоны '
                     'и получение предварительных ответов edge-функций. '
-                    'Диагностика не подтверждает, не сохраняет и не '
-                    'выполняет действия.',
+                    'Диагностика не подтверждает, не сохраняет и не выполняет '
+                    'действия.',
                     style: TextStyle(
                       height: 1.45,
                       fontWeight: FontWeight.w600,
