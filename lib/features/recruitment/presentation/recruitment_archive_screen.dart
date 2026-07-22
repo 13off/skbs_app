@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
+
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -9,10 +11,10 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 
-const Color _archiveText = Color(0xFF1F2328);
-const Color _archiveMuted = Color(0xFF6B7075);
-const Color _archiveDanger = Color(0xFF9A403A);
-const Color _archiveSoft = Color(0xFFF1F2F4);
+Color get _archiveText => AppAdaptivePalette.textPrimary;
+Color get _archiveMuted => AppAdaptivePalette.textMuted;
+Color get _archiveDanger => AppAdaptivePalette.danger;
+Color get _archiveSoft => AppAdaptivePalette.surfaceSoft;
 
 class RecruitmentArchiveScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -177,10 +179,10 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: _archiveMuted),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: _archiveMuted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -212,25 +214,25 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                     color: _archiveSoft,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.inventory_2_outlined,
                     color: _archiveMuted,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         application.fullName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _archiveText,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3),
                       Text(
                         <String>[
                           if (application.vacancy.isNotEmpty)
@@ -238,7 +240,7 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                           if (application.objectName.isNotEmpty)
                             application.objectName,
                         ].join(' • '),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _archiveMuted,
                           fontWeight: FontWeight.w700,
                         ),
@@ -246,11 +248,11 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 if (archivedAt != null)
                   Text(
                     formatDate(archivedAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _archiveMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -258,7 +260,7 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -269,29 +271,29 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                   infoPill(Icons.phone_outlined, application.phone),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: isBusy ? null : () => restore(application),
-                    icon: const Icon(Icons.restore_rounded),
+                    icon: Icon(Icons.restore_rounded),
                     label: const Text('Восстановить'),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 IconButton.filledTonal(
                   tooltip: 'Удалить навсегда',
                   onPressed: isBusy
                       ? null
                       : () => deletePermanently(application),
                   icon: isBusy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.delete_forever_outlined),
+                      : Icon(Icons.delete_forever_outlined),
                   color: _archiveDanger,
                 ),
               ],
@@ -306,18 +308,19 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Архив заявок',
+      showBackButton: true,
       subtitle: '',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Назад к заявкам',
         onPressed: () => Navigator.pop(context),
-        icon: const Icon(Icons.close_rounded),
+        icon: Icon(Icons.close_rounded),
       ),
       child: FutureBuilder<List<RecruitmentApplication>>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 90),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -328,8 +331,8 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline_rounded, size: 40),
-                  const SizedBox(height: 10),
+                  Icon(Icons.error_outline_rounded, size: 40),
+                  SizedBox(height: 10),
                   const Text(
                     'Не удалось загрузить архив',
                     style: TextStyle(
@@ -338,13 +341,13 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: _archiveMuted),
+                    style: TextStyle(color: _archiveMuted),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   FilledButton(
                     onPressed: refresh,
                     child: const Text('Повторить'),
@@ -364,45 +367,45 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: 'Найти заявку в архиве',
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: Icon(Icons.search_rounded),
                   suffixIcon: searchController.text.isEmpty
                       ? null
                       : IconButton(
                           onPressed: searchController.clear,
-                          icon: const Icon(Icons.close_rounded),
+                          icon: Icon(Icons.close_rounded),
                         ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (filtered.isEmpty)
                 PremiumWorkCard(
                   radius: 24,
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.inventory_2_outlined,
                         size: 42,
                         color: _archiveMuted,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         applications.isEmpty
                             ? 'Архив пуст'
                             : 'Ничего не найдено',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _archiveText,
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Text(
                         applications.isEmpty
                             ? 'Здесь появятся заявки, которые вы уберёте из рабочего списка.'
                             : 'Измените поисковый запрос.',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _archiveMuted,
                           height: 1.35,
                           fontWeight: FontWeight.w600,

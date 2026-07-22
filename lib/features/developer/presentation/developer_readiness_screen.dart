@@ -298,6 +298,7 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Готовность и диагностика',
+      showBackButton: true,
       subtitle: 'Безопасные read-only проверки production-контура',
       headerTrailing: IconButton(
         tooltip: 'Проверить снова',

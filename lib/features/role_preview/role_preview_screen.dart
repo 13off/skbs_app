@@ -251,6 +251,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
       builder: (context, preview, _) {
         return AppPage(
           title: 'Режим платформы',
+      showBackButton: true,
           subtitle:
               'Реальная роль администратора не меняется. Меняется только интерфейс, который вы видите.',
           child: FutureBuilder<List<String>>(

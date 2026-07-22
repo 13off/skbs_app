@@ -108,7 +108,8 @@ class _LegalMemberInvitationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Пригласить специалиста')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Пригласить специалиста')),
       body: AppPage(
         title: 'Новый специалист',
         subtitle: 'Юрист или бухгалтер получает отдельный рабочий раздел без доступа к лишним данным',

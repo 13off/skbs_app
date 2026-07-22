@@ -356,7 +356,8 @@ class _AiExactDocumentScreenState extends State<AiExactDocumentScreen> {
   Widget build(BuildContext context) {
     final info = template;
     return Scaffold(
-      appBar: AppBar(title: Text(info?.title ?? 'Заполнение DOCX')),
+      appBar: AppBar(
+        leading: const BackButton(),title: Text(info?.title ?? 'Заполнение DOCX')),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,

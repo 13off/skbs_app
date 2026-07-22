@@ -102,7 +102,8 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Недельный отчёт')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Недельный отчёт')),
       body: AppPage(
         title: 'Отчёт юриста',
         subtitle: 'Автоматический черновик можно дополнить и отправить руководителю',

@@ -182,7 +182,8 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Черновик документа')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Черновик документа')),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,

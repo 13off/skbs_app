@@ -428,6 +428,7 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
     final visible = visibleTemplates;
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Шаблоны документов'),
         actions: [
           IconButton(

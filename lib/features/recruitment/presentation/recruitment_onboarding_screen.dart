@@ -682,6 +682,7 @@ class _CandidateOnboardingDetailScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Кадровый комплект',
+      showBackButton: true,
       subtitle: 'Один ввод данных, четыре формы и контроль подписей',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Обновить',

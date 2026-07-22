@@ -517,6 +517,7 @@ class _AiOperationalReportScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: Text(isCandidate ? 'Документы кандидата' : 'Проверка чеков'),
       ),
       body: ListView(

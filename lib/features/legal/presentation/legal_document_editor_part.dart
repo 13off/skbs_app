@@ -193,7 +193,8 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.document == null ? 'Новый документ' : 'Редактировать документ')),
+      appBar: AppBar(
+        leading: const BackButton(),title: Text(widget.document == null ? 'Новый документ' : 'Редактировать документ')),
       body: AppPage(
         title: widget.document == null ? 'Новый документ' : 'Документ',
         subtitle: 'Основные сведения, связи, сроки и следующий шаг',

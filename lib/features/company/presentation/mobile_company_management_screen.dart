@@ -230,6 +230,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Компания и пользователи'),
         actions: [
           IconButton(
@@ -563,6 +564,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: Text(
           isEditing ? 'Права пользователя' : 'Пригласить пользователя',
         ),

@@ -159,7 +159,8 @@ class _LegalMatterEditorScreenState extends State<LegalMatterEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.matter == null ? 'Новый вопрос' : 'Редактировать вопрос')),
+      appBar: AppBar(
+        leading: const BackButton(),title: Text(widget.matter == null ? 'Новый вопрос' : 'Редактировать вопрос')),
       body: AppPage(
         title: widget.matter == null ? 'Новый вопрос' : 'Юридический вопрос',
         subtitle: 'Риск, ответственный, срок и необходимые действия',

@@ -592,6 +592,7 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'ИИ-диспетчер',
+      showBackButton: true,
       subtitle: 'Ежедневная сводка по одному выбранному объекту',
       headerTrailing: IconButton(
         tooltip: 'Обновить',

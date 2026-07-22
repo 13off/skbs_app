@@ -135,7 +135,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Новое напоминание')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Новое напоминание')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

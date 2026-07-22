@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
+
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -11,9 +13,9 @@ import '../models/recruitment_models.dart';
 import 'recruitment_application_detail_screen.dart';
 import 'recruitment_archive_screen.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _soft = Color(0xFFF1F2F4);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
 
 class RecruitmentApplicationsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -210,7 +212,7 @@ class _RecruitmentApplicationsScreenState
       label: Text(label),
       onSelected: (_) => setState(() => status = value),
       labelStyle: TextStyle(
-        color: selected ? Colors.white : _text,
+        color: selected ? AppAdaptivePalette.onAccent : _text,
         fontWeight: FontWeight.w800,
       ),
       selectedColor: _text,
@@ -250,24 +252,24 @@ class _RecruitmentApplicationsScreenState
                     ),
                     child: Icon(Icons.person_search_rounded, color: accent),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           application.fullName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _text,
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         if (details.isNotEmpty) ...[
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
                             details.join(' • '),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _muted,
                               fontWeight: FontWeight.w700,
                             ),
@@ -276,19 +278,19 @@ class _RecruitmentApplicationsScreenState
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         formatDate(application.createdAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _muted,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       IconButton(
                         tooltip: 'В архив',
                         visualDensity: VisualDensity.compact,
@@ -296,20 +298,20 @@ class _RecruitmentApplicationsScreenState
                             ? null
                             : () => archiveApplication(application),
                         icon: archiveBusyIds.contains(application.id)
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.inventory_2_outlined),
+                            : Icon(Icons.inventory_2_outlined),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -330,7 +332,7 @@ class _RecruitmentApplicationsScreenState
                     ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               DropdownButtonFormField<String>(
                 initialValue: recruitmentStatuses.contains(application.status)
                     ? application.status
@@ -370,13 +372,13 @@ class _RecruitmentApplicationsScreenState
           IconButton.filledTonal(
             tooltip: 'Архив заявок',
             onPressed: openArchive,
-            icon: const Icon(Icons.inventory_2_outlined),
+            icon: Icon(Icons.inventory_2_outlined),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           IconButton.filledTonal(
             tooltip: 'Добавить кандидата',
             onPressed: openEditor,
-            icon: const Icon(Icons.add_rounded),
+            icon: Icon(Icons.add_rounded),
           ),
         ],
       ),
@@ -385,7 +387,7 @@ class _RecruitmentApplicationsScreenState
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 90),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -409,32 +411,32 @@ class _RecruitmentApplicationsScreenState
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: 'ФИО, телефон, вакансия или объект',
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: Icon(Icons.search_rounded),
                   suffixIcon: searchController.text.isEmpty
                       ? null
                       : IconButton(
                           onPressed: searchController.clear,
-                          icon: const Icon(Icons.close_rounded),
+                          icon: Icon(Icons.close_rounded),
                         ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
                     filterChip('all', 'Все'),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     ...recruitmentStages.expand(
                       (item) => <Widget>[
                         filterChip(item, recruitmentStageTitle(item)),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (filtered.isEmpty)
                 _MessageCard(
                   icon: Icons.person_search_outlined,
@@ -593,7 +595,7 @@ class _RecruitmentApplicationEditorState
         maxHeight: MediaQuery.sizeOf(context).height * 0.92,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F7F3),
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
@@ -606,7 +608,7 @@ class _RecruitmentApplicationEditorState
                   widget.application == null
                       ? 'Новый кандидат'
                       : 'Карточка кандидата',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
@@ -615,11 +617,11 @@ class _RecruitmentApplicationEditorState
               ),
               IconButton(
                 onPressed: saving ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
+                icon: Icon(Icons.close_rounded),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Flexible(
             child: ListView(
               shrinkWrap: true,
@@ -632,7 +634,7 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: phoneController,
                   enabled: !saving,
@@ -642,7 +644,7 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: citizenshipController,
                   enabled: !saving,
@@ -651,7 +653,7 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.public_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: vacancyController,
                   enabled: !saving,
@@ -661,7 +663,7 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.work_outline_rounded),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: objectController,
                   enabled: !saving,
@@ -670,7 +672,7 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.apartment_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: experienceController,
                   enabled: !saving,
@@ -680,24 +682,24 @@ class _RecruitmentApplicationEditorState
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  leading: const Icon(Icons.flight_takeoff_outlined),
+                  leading: Icon(Icons.flight_takeoff_outlined),
                   title: const Text('Дата выезда'),
                   subtitle: Text(dateText(departureDate)),
                   trailing: departureDate == null
-                      ? const Icon(Icons.chevron_right_rounded)
+                      ? Icon(Icons.chevron_right_rounded)
                       : IconButton(
                           tooltip: 'Очистить дату',
                           onPressed: saving
                               ? null
                               : () => setState(() => departureDate = null),
-                          icon: const Icon(Icons.close_rounded),
+                          icon: Icon(Icons.close_rounded),
                         ),
                   onTap: saving ? null : chooseDepartureDate,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: recruitmentStatuses.contains(status)
                       ? status
@@ -718,7 +720,7 @@ class _RecruitmentApplicationEditorState
                       ? null
                       : (value) => setState(() => status = value ?? 'new'),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: commentController,
                   enabled: !saving,
@@ -730,28 +732,28 @@ class _RecruitmentApplicationEditorState
                   ),
                 ),
                 if (errorText != null) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Text(
                     errorText!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF9A403A),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 SizedBox(
                   height: 52,
                   child: FilledButton.icon(
                     onPressed: saving ? null : save,
                     icon: saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.save_outlined),
+                        : Icon(Icons.save_outlined),
                     label: Text(saving ? 'Сохраняем...' : 'Сохранить'),
                   ),
                 ),
@@ -782,10 +784,10 @@ class _InfoPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: _muted),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: _muted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -818,28 +820,28 @@ class _MessageCard extends StatelessWidget {
       child: Column(
         children: [
           Icon(icon, size: 40, color: _muted),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: _muted,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
           ),
           if (action != null) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             FilledButton(
               onPressed: () async => action!(),
               child: const Text('Продолжить'),

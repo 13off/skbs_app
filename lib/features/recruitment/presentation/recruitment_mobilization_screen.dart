@@ -312,6 +312,7 @@ class _EmployeeMobilizationDetailScreenState
     final candidate = widget.entry.candidate;
     return AppPage(
       title: 'Выход сотрудника',
+      showBackButton: true,
       subtitle: '${candidate.fullName} · ${candidate.objectName}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

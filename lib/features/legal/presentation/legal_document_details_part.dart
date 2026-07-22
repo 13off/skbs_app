@@ -72,6 +72,7 @@ class _LegalDocumentDetailsScreenState extends State<LegalDocumentDetailsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Карточка документа'),
         actions: [IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined))],
       ),

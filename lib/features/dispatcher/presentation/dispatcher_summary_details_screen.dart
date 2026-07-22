@@ -264,6 +264,7 @@ class _DispatcherSummaryDetailsScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Разбор сводки',
+      showBackButton: true,
       subtitle: 'Из чего сложились отклонения ИИ-диспетчера',
       headerTrailing: IconButton(
         tooltip: 'Обновить',

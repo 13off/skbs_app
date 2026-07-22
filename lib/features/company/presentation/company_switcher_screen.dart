@@ -156,7 +156,8 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Выбрать компанию')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Выбрать компанию')),
       body: PremiumBackdrop(
         child: FutureBuilder<List<CompanySummary>>(
           future: companiesFuture,

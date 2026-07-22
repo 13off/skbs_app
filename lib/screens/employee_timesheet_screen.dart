@@ -392,7 +392,8 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     final canDownload = row != null && !isLoading && !isExporting;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Индивидуальный табель')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Индивидуальный табель')),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [

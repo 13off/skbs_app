@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../app/theme_controller.dart';
 
 class AppPage extends StatelessWidget {
@@ -7,6 +9,8 @@ class AppPage extends StatelessWidget {
   final String subtitle;
   final Widget child;
   final Widget? headerTrailing;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   const AppPage({
     super.key,
@@ -14,6 +18,8 @@ class AppPage extends StatelessWidget {
     required this.subtitle,
     required this.child,
     this.headerTrailing,
+    this.showBackButton = false,
+    this.onBack,
   });
 
   @override
@@ -38,6 +44,8 @@ class AppPage extends StatelessWidget {
                       title: title,
                       subtitle: subtitle,
                       trailing: effectiveTrailing,
+                      showBackButton: showBackButton,
+                      onBack: onBack,
                     ),
                     const SizedBox(height: 14),
                     child,
@@ -56,12 +64,16 @@ class AppPageHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget? trailing;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   const AppPageHeader({
     super.key,
     required this.title,
     required this.subtitle,
     this.trailing,
+    this.showBackButton = false,
+    this.onBack,
   });
 
   @override
@@ -72,6 +84,12 @@ class AppPageHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        if (showBackButton) ...[
+          BackButton(
+            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 4),
+        ],
         Expanded(
           child: Text(
             title,
@@ -110,7 +128,10 @@ class _AppPageBackdrop extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: dark
-              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
+              ? const [
+                  AppAdaptivePalette.darkBackground,
+                  AppAdaptivePalette.darkSurface,
+                ]
               : const [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
         ),
       ),
@@ -129,7 +150,7 @@ class _AppPageBackdrop extends StatelessWidget {
                   gradient: RadialGradient(
                     colors: dark
                         ? [
-                            const Color(0xFF4D5661).withValues(alpha: 0.24),
+                            AppAdaptivePalette.telegramBlue.withValues(alpha: 0.12),
                             Colors.transparent,
                           ]
                         : [

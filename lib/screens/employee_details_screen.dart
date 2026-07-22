@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../data/employee_archive_repository.dart';
 import '../data/employee_repository.dart';
 import '../models/app_user_profile.dart';

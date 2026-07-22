@@ -65,6 +65,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Уведомления'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

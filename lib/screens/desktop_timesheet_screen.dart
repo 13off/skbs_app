@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+
+import '../app/app_adaptive_palette.dart';
 import 'package:intl/intl.dart';
 
 import '../data/app_data_sync.dart';
@@ -14,12 +16,12 @@ import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import 'period_timesheet_screen.dart';
 
-const Color _text = Color(0xFF1F2328);
-const Color _muted = Color(0xFF6B7075);
-const Color _line = Color(0xFFE6E8EB);
-const Color _soft = Color(0xFFF2F3F5);
-const Color _worked = Color(0xFF66766A);
-const Color _warning = Color(0xFF8A6259);
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _muted => AppAdaptivePalette.textMuted;
+Color get _line => AppAdaptivePalette.border;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _worked => AppAdaptivePalette.success;
+Color get _warning => AppAdaptivePalette.warning;
 
 class DesktopTimesheetScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -331,13 +333,13 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                   children: [
                     Text(
                       'Смена: ${formatShift(selected)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _text,
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: 18),
                     Slider(
                       value: selected.clamp(0, 3),
                       min: 0,
@@ -470,7 +472,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: Text('Отчет по табелю — $objectTitle')),
+          appBar: AppBar(
+        leading: const BackButton(),title: Text('Отчет по табелю — $objectTitle')),
           body: PeriodTimesheetScreen(
             selectedObjectName: widget.selectedObjectName,
           ),
@@ -494,7 +497,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 ? () => changeDate(selectedDate.subtract(const Duration(days: 1)))
                 : null,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           PremiumPressable(
             onTap: enabled ? pickDate : null,
             borderRadius: BorderRadius.circular(18),
@@ -509,8 +512,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_month_outlined, color: _muted),
-                  const SizedBox(width: 11),
+                  Icon(Icons.calendar_month_outlined, color: _muted),
+                  SizedBox(width: 11),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -518,7 +521,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                       children: [
                         Text(
                           shortDate(selectedDate),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _text,
                             fontWeight: FontWeight.w900,
                           ),
@@ -527,7 +530,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                           longDate(selectedDate),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _muted,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -540,7 +543,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           _SquareButton(
             icon: Icons.chevron_right_rounded,
             tooltip: 'Следующий день',
@@ -548,26 +551,26 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 ? () => changeDate(selectedDate.add(const Duration(days: 1)))
                 : null,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: enabled && !isSameDate(selectedDate, AppState.today)
                 ? () => changeDate(AppState.today)
                 : null,
-            icon: const Icon(Icons.today_outlined),
+            icon: Icon(Icons.today_outlined),
             label: const Text('Сегодня'),
           ),
           const Spacer(),
           if (widget.profile.isAdmin)
             OutlinedButton.icon(
               onPressed: openReport,
-              icon: const Icon(Icons.analytics_outlined),
+              icon: Icon(Icons.analytics_outlined),
               label: const Text('Отчёт'),
             ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           IconButton(
             onPressed: enabled ? () => loadData(forceRefresh: true) : null,
             tooltip: 'Обновить табель',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -591,7 +594,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             icon: Icons.groups_outlined,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Вышли',
@@ -600,7 +603,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             accent: _worked,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Не вышли',
@@ -609,7 +612,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             accent: _warning,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Всего смен',
@@ -636,7 +639,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Поиск по ФИО, должности или объекту',
-                prefixIcon: const Icon(Icons.search_rounded),
+                prefixIcon: Icon(Icons.search_rounded),
                 suffixIcon: searchController.text.isEmpty
                     ? null
                     : IconButton(
@@ -644,7 +647,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                           searchController.clear();
                           setState(() {});
                         },
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(Icons.close_rounded),
                       ),
                 filled: true,
                 fillColor: _soft,
@@ -655,7 +658,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: _DropdownShell(
@@ -685,7 +688,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: _DropdownShell(
@@ -711,20 +714,20 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           FilledButton.tonalIcon(
             onPressed: visible.isEmpty || isLoading || isSaving
                 ? null
                 : () => setVisibleShifts(visible, 1),
-            icon: const Icon(Icons.done_all_rounded),
+            icon: Icon(Icons.done_all_rounded),
             label: const Text('Всем 1'),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           FilledButton.tonalIcon(
             onPressed: visible.isEmpty || isLoading || isSaving
                 ? null
                 : () => setVisibleShifts(visible, 0),
-            icon: const Icon(Icons.remove_done_rounded),
+            icon: Icon(Icons.remove_done_rounded),
             label: const Text('Всем 0'),
           ),
         ],
@@ -742,7 +745,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           children: [
             const _TableHeader(),
             if (visible.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child: Text(
                   'Сотрудники не найдены',
@@ -794,18 +797,18 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                             subtitle:
                                 'ПК-вид · быстрый ввод смен за выбранную дату • $objectTitle',
                           ),
-                          const SizedBox(height: 18),
+                          SizedBox(height: 18),
                           buildToolbar(),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           buildMetrics(visible),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           buildFilters(visible),
                           if (isLoading || isSaving) ...[
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             const LinearProgressIndicator(),
                           ],
                           if (errorText != null) ...[
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(13),
                               decoration: BoxDecoration(
@@ -814,14 +817,14 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                               ),
                               child: Text(
                                 errorText!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _warning,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ],
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           buildTable(visible),
                         ],
                       ),
@@ -835,8 +838,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(28, 10, 28, 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  border: const Border(top: BorderSide(color: _line)),
+                  color: AppAdaptivePalette.surfaceElevated,
+                  border: Border(top: BorderSide(color: _line)),
                 ),
                 child: Center(
                   child: ConstrainedBox(
@@ -861,14 +864,14 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                                 ? null
                                 : saveTimesheet,
                             icon: isSaving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Icon(Icons.save_outlined),
+                                : Icon(Icons.save_outlined),
                             label: Text(
                               hasUnsavedChanges
                                   ? 'Сохранить изменения'
@@ -951,14 +954,14 @@ class _MetricCard extends StatelessWidget {
             ),
             child: Icon(icon, color: accent, size: 21),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -966,7 +969,7 @@ class _MetricCard extends StatelessWidget {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _muted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1000,7 +1003,7 @@ class _DropdownShell extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: _muted),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(child: DropdownButtonHideUnderline(child: child)),
         ],
       ),
@@ -1017,7 +1020,7 @@ class _TableHeader extends StatelessWidget {
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       color: _soft,
-      child: const Row(
+      child: Row(
         children: [
           Expanded(flex: 4, child: _HeaderText('Сотрудник')),
           Expanded(flex: 2, child: _HeaderText('Объект')),
@@ -1038,7 +1041,7 @@ class _HeaderText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: _muted,
         fontSize: 12,
         fontWeight: FontWeight.w900,
@@ -1071,7 +1074,7 @@ class _TimesheetRow extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 72),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: _line)),
       ),
       child: Row(
@@ -1100,13 +1103,13 @@ class _TimesheetRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 11),
+                SizedBox(width: 11),
                 Expanded(
                   child: Text(
                     employee.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _text,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1121,7 +1124,7 @@ class _TimesheetRow extends StatelessWidget {
               employee.objectName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _muted,
                 fontWeight: FontWeight.w700,
               ),
@@ -1133,7 +1136,7 @@ class _TimesheetRow extends StatelessWidget {
               employee.position,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _muted,
                 fontWeight: FontWeight.w700,
               ),
@@ -1213,7 +1216,7 @@ class _ShiftButton extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : _muted,
+            color: selected ? AppAdaptivePalette.onAccent : _muted,
             fontSize: 12,
             fontWeight: FontWeight.w900,
           ),

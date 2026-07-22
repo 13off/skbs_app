@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
+
 import '../models/task_item_data.dart';
 import 'premium_ui_v2.dart';
 
-const Color _taskText = Color(0xFF1F2328);
-const Color _taskMuted = Color(0xFF6B7075);
-const Color _taskSoft = Color(0xFFF1F0EC);
-const Color _taskLine = Color(0xFFE4E2DC);
+Color get _taskText => AppAdaptivePalette.textPrimary;
+Color get _taskMuted => AppAdaptivePalette.textMuted;
+Color get _taskSoft => AppAdaptivePalette.surfaceSoft;
+Color get _taskLine => AppAdaptivePalette.border;
 
 class TaskTile extends StatelessWidget {
   final TaskItemData task;
@@ -59,37 +61,37 @@ class TaskTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _taskLine),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.architecture_outlined,
                   color: _taskText,
                   size: 22,
                 ),
               ),
-              const SizedBox(width: 13),
+              SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       task.axes,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _taskText,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5),
                     Text(
                       task.work,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _taskMuted,
                         height: 1.3,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 11),
+                    SizedBox(height: 11),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -106,7 +108,7 @@ class TaskTile extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(statusIcon, color: color, size: 15),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Text(
                             task.status,
                             style: TextStyle(
@@ -121,8 +123,8 @@ class TaskTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Padding(
+              SizedBox(width: 8),
+              Padding(
                 padding: EdgeInsets.only(top: 10),
                 child: Icon(
                   Icons.chevron_right_rounded,

@@ -138,6 +138,7 @@ class DeveloperSystemScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Система',
+      showBackButton: true,
       subtitle: 'Общие настройки AppСтрой без правок в коде',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

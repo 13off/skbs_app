@@ -227,6 +227,7 @@ class _DeveloperRoleAcceptanceScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Ролевая приёмка',
+      showBackButton: true,
       subtitle: 'Фактические JWT, permissions, Data API и RLS каждой профессии',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Проверить снова',
