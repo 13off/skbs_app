@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../app/app_theme.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
@@ -250,10 +251,7 @@ class _AuthGateState extends State<AuthGate> {
       layoutBuilder: (currentChild, previousChildren) {
         return Stack(
           fit: StackFit.expand,
-          children: <Widget>[
-            ...previousChildren,
-            ?currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         );
       },
       transitionBuilder: (child, animation) {
@@ -308,11 +306,9 @@ class _AuthMessageScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(26),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.82),
+                    color: AppAdaptivePalette.surfaceElevated,
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.94),
-                    ),
+                    border: Border.all(color: AppAdaptivePalette.border),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF17191C).withValues(alpha: 0.12),
@@ -329,18 +325,21 @@ class _AuthMessageScreen extends StatelessWidget {
                       Container(
                         width: 52,
                         height: 52,
-                        decoration: const BoxDecoration(
-                          color: AppColors.accentSoft,
+                        decoration: BoxDecoration(
+                          color: AppAdaptivePalette.accentSoft,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(icon, color: AppColors.textPrimary),
+                        child: Icon(
+                          icon,
+                          color: AppAdaptivePalette.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       Text(
                         title,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: AppAdaptivePalette.textPrimary,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -349,7 +348,7 @@ class _AuthMessageScreen extends StatelessWidget {
                         message,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textMuted,
+                          color: AppAdaptivePalette.textMuted,
                         ),
                       ),
                       const SizedBox(height: 22),

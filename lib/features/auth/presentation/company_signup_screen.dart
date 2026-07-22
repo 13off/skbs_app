@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
 
@@ -36,7 +36,8 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   String friendlyError(Object error) {
     if (error is AuthException) {
       final text = error.message.toLowerCase();
-      if (text.contains('already registered') || text.contains('already exists')) {
+      if (text.contains('already registered') ||
+          text.contains('already exists')) {
         return 'Пользователь с таким email уже зарегистрирован';
       }
       if (text.contains('password')) {
@@ -121,10 +122,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   InputDecoration decoration(String label, IconData icon, {Widget? suffix}) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: AppColors.textMuted),
+      prefixIcon: Icon(icon, color: AppAdaptivePalette.textMuted),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.90),
+      fillColor: AppAdaptivePalette.inputSurface,
     );
   }
 
@@ -132,7 +133,9 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Создать компанию')),
+        leading: const BackButton(),
+        title: const Text('Создать компанию'),
+      ),
       body: PremiumBackdrop(
         child: SafeArea(
           top: false,
@@ -145,9 +148,9 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.84),
+                      color: AppAdaptivePalette.surfaceElevated,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Colors.white),
+                      border: Border.all(color: AppAdaptivePalette.border),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.08),
@@ -164,10 +167,11 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                           Text(
                             'Рабочее пространство за минуту',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppAdaptivePalette.textPrimary,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -210,7 +214,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                             enabled: !isLoading,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.name],
-                            decoration: decoration('Ваше имя', Icons.person_outline),
+                            decoration: decoration(
+                              'Ваше имя',
+                              Icons.person_outline,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
@@ -219,7 +226,10 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
-                            decoration: decoration('Email', Icons.alternate_email),
+                            decoration: decoration(
+                              'Email',
+                              Icons.alternate_email,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
@@ -232,7 +242,9 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                               'Пароль',
                               Icons.lock_outline,
                               suffix: IconButton(
-                                tooltip: passwordVisible ? 'Скрыть пароль' : 'Показать пароль',
+                                tooltip: passwordVisible
+                                    ? 'Скрыть пароль'
+                                    : 'Показать пароль',
                                 onPressed: () => setState(
                                   () => passwordVisible = !passwordVisible,
                                 ),
@@ -265,25 +277,29 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFF2F1),
+                                color: AppAdaptivePalette.danger.withValues(
+                                  alpha: 0.12,
+                                ),
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
-                                  color: const Color(0xFFF0D2CF),
+                                  color: AppAdaptivePalette.danger.withValues(
+                                    alpha: 0.32,
+                                  ),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.info_outline_rounded,
                                     size: 19,
-                                    color: Color(0xFFA64F49),
+                                    color: AppAdaptivePalette.danger,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       errorText!,
-                                      style: const TextStyle(
-                                        color: Color(0xFF874540),
+                                      style: TextStyle(
+                                        color: AppAdaptivePalette.danger,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -303,10 +319,11 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
                           Text(
                             'Первые 14 дней — пробный период. Банковская карта не требуется.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: AppAdaptivePalette.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
@@ -326,29 +343,26 @@ class _SignupBenefit extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _SignupBenefit({
-    required this.icon,
-    required this.label,
-  });
+  const _SignupBenefit({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F2F3),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.textPrimary),
+          Icon(icon, size: 16, color: AppAdaptivePalette.textPrimary),
           const SizedBox(width: 6),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textPrimary,
+              color: AppAdaptivePalette.textPrimary,
               fontWeight: FontWeight.w800,
             ),
           ),
