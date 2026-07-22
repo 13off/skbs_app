@@ -310,12 +310,12 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Flexible(
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: periods.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final period = periods[index];
                         final selected = isSamePeriod(period, financePeriod);
@@ -347,7 +347,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                                       : Icons.calendar_month_outlined,
                                   color: _desktopMuted,
                                 ),
-                                const SizedBox(width: 12),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     period.pickerTitle(),
@@ -468,20 +468,20 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   PremiumWorkCard(
                     radius: 26,
                     padding: const EdgeInsets.all(18),
                     child: Row(
                       children: [
                         Expanded(child: buildObjectSelector(data.objectNames)),
-                        const SizedBox(width: 16),
+                        SizedBox(width: 16),
                         DesktopDateChip(
                           text: 'Сегодня, ${dateText(AppState.today)}',
                           onTap: refresh,
                         ),
                         if (widget.profile.isAdmin) ...[
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           OutlinedButton.icon(
                             onPressed: showObjectManager,
                             icon: Icon(Icons.settings_outlined),
@@ -491,12 +491,12 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   MilestoneHomeSection(
                     profile: widget.profile,
                     selectedObjectName: widget.selectedObjectName,
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -518,7 +518,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                           },
                         ),
                       ),
-                      const SizedBox(width: 18),
+                      SizedBox(width: 18),
                       Expanded(
                         child: DesktopMetricCard(
                           icon: Icons.assignment_turned_in_outlined,
@@ -532,7 +532,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                         ),
                       ),
                       if (widget.profile.isAdmin) ...[
-                        const SizedBox(width: 18),
+                        SizedBox(width: 18),
                         Expanded(
                           child: DesktopMetricCard(
                             icon: Icons.account_balance_wallet_outlined,
@@ -553,7 +553,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -565,7 +565,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
                           onOpenTask: (task) => widget.onOpenTask(task),
                         ),
                       ),
-                      const SizedBox(width: 18),
+                      SizedBox(width: 18),
                       Expanded(
                         flex: 5,
                         child: DesktopFinanceCard(

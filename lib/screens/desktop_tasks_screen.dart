@@ -472,7 +472,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             onTap: () =>
                 changeDate(selectedDate.subtract(const Duration(days: 1))),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           PremiumPressable(
             onTap: pickDate,
             borderRadius: BorderRadius.circular(18),
@@ -488,7 +488,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.calendar_month_outlined, color: _muted),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,13 +514,13 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           _SquareButton(
             icon: Icons.chevron_right_rounded,
             tooltip: 'Следующий день',
             onTap: () => changeDate(selectedDate.add(const Duration(days: 1))),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           OutlinedButton.icon(
             onPressed: isSameDate(selectedDate, AppState.today)
                 ? null
@@ -535,7 +535,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               icon: Icon(Icons.description_outlined),
               label: const Text('Сформировать акт'),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
           ],
           FilledButton.icon(
             onPressed: canCreateTask ? openAddTaskScreen : null,
@@ -565,7 +565,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             detail: cleanObjectName(objectFilter) ?? 'Все объекты',
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             icon: Icons.schedule_rounded,
@@ -575,7 +575,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             accent: _planned,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             icon: Icons.check_circle_outline_rounded,
@@ -585,7 +585,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
             accent: _success,
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             icon: Icons.construction_rounded,
@@ -638,7 +638,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: _FilterDropdown(
               label: 'Объект',
@@ -649,7 +649,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               onChanged: (value) => setState(() => objectFilter = value),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: _FilterDropdown(
               label: 'Статус',
@@ -661,7 +661,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               },
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: clearFilters,
             icon: Icon(Icons.filter_alt_off_outlined),
@@ -733,13 +733,13 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       buildHeader(),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       buildToolbar(),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       buildMetrics(),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       buildFilters(),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       buildContent(),
                     ],
                   ),
@@ -798,7 +798,7 @@ class _MetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.detail,
-    this.accent = _text,
+    this.accent = AppAdaptivePalette.telegramBlue,
   });
 
   @override
@@ -817,7 +817,7 @@ class _MetricCard extends StatelessWidget {
             ),
             child: Icon(icon, color: accent),
           ),
-          const SizedBox(width: 13),
+          SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,7 +830,7 @@ class _MetricCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
@@ -1052,7 +1052,7 @@ class _TaskTableRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(statusIcon, size: 15, color: statusColor),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           task.status,
@@ -1113,7 +1113,7 @@ class _TaskTableRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(
+            SizedBox(
               width: 44,
               child: Icon(Icons.chevron_right_rounded, color: _muted),
             ),
@@ -1152,7 +1152,7 @@ class _MessageCard extends StatelessWidget {
             const CircularProgressIndicator()
           else
             Icon(icon, size: 40, color: _muted),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Text(
             title,
             style: TextStyle(
@@ -1161,14 +1161,14 @@ class _MessageCard extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             description,
             textAlign: TextAlign.center,
             style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
           ),
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],

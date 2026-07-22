@@ -242,7 +242,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                             icon: Icon(Icons.refresh_rounded),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _ActionBar(
                           totalCount: widget.employees.length,
                           activeCount: activeCount,
@@ -252,7 +252,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           onDownloadSummary: widget.onDownloadSummary,
                           onAddEmployee: widget.onAddEmployee,
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         _FiltersCard(
                           searchController: searchController,
                           objectOptions: objectOptions(),
@@ -277,7 +277,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           },
                           onClear: clearFilters,
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         if (widget.loading && widget.employees.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.only(bottom: 12),
@@ -392,19 +392,19 @@ class _ActionBar extends StatelessWidget {
             ),
           ),
           if (canManage) ...[
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             OutlinedButton.icon(
               onPressed: onOpenPayments,
               icon: Icon(Icons.payments_outlined),
               label: const Text('Выплаты'),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             OutlinedButton.icon(
               onPressed: onDownloadSummary,
               icon: Icon(Icons.table_view_outlined),
               label: const Text('Сводка'),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             FilledButton.icon(
               onPressed: onAddEmployee,
               icon: Icon(Icons.person_add_alt_1_rounded),
@@ -441,7 +441,7 @@ class _SummaryChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 19, color: _muted),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             '$label: ',
             style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
@@ -532,7 +532,7 @@ class _FiltersCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -625,6 +625,7 @@ class _FilterField extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
+        dropdownColor: _surfaceElevated,
         initialValue: value,
         isExpanded: true,
         decoration: InputDecoration(
@@ -781,10 +782,10 @@ class _EmployeeRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           color: mutedRow
-              ? const Color(0xFFEDEEEF)
+              ? AppAdaptivePalette.disabledSurface
               : shaded
-              ? const Color(0xFFFAFAFA)
-              : Colors.white,
+              ? _surfaceElevated
+              : _surface,
           border: Border(bottom: BorderSide(color: _line)),
         ),
         child: Row(
@@ -795,7 +796,9 @@ class _EmployeeRow extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: mutedRow ? const Color(0xFFD9DADC) : _soft,
+                    backgroundColor: mutedRow
+                        ? AppAdaptivePalette.disabledSurface
+                        : _soft,
                     foregroundColor: _text,
                     child: Text(
                       employee.name.trim().isEmpty
@@ -804,7 +807,7 @@ class _EmployeeRow extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       employee.name.trim().isEmpty
@@ -839,7 +842,7 @@ class _EmployeeRow extends StatelessWidget {
                 child: _EmploymentBadge(active: employee.isActive),
               ),
             ),
-            const SizedBox(
+            SizedBox(
               width: 34,
               child: Icon(Icons.chevron_right_rounded, color: _muted),
             ),
@@ -927,7 +930,13 @@ class _EmploymentBadge extends StatelessWidget {
       label: active ? 'Активен' : 'Уволен',
       icon: active ? Icons.person_outline_rounded : Icons.archive_outlined,
       foreground: active ? _success : _danger,
-      background: active ? const Color(0xFFE8F5ED) : const Color(0xFFF7E8E7),
+      background: active
+          ? (AppAdaptivePalette.isDark
+                ? _success.withValues(alpha: 0.16)
+                : const Color(0xFFE8F5ED))
+          : (AppAdaptivePalette.isDark
+                ? _danger.withValues(alpha: 0.16)
+                : const Color(0xFFF7E8E7)),
     );
   }
 }
@@ -957,7 +966,7 @@ class _Badge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 15, color: foreground),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
@@ -1000,7 +1009,7 @@ class _MessageCard extends StatelessWidget {
             const CircularProgressIndicator()
           else
             Icon(icon, size: 42, color: _muted),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -1011,7 +1020,7 @@ class _MessageCard extends StatelessWidget {
             ),
           ),
           if (description != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               description!,
               textAlign: TextAlign.center,
@@ -1019,7 +1028,7 @@ class _MessageCard extends StatelessWidget {
             ),
           ],
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             FilledButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],

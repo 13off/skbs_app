@@ -243,7 +243,7 @@ class DesktopObjectMenuItem extends StatelessWidget {
           child: Row(
             children: [
               Icon(icon, size: 22, color: _muted),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
@@ -295,7 +295,7 @@ class DesktopSelectorShell extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 21, color: _muted),
-          const SizedBox(width: 11),
+          SizedBox(width: 11),
           Expanded(
             child: Text(
               title,
@@ -336,12 +336,12 @@ class DesktopDateChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.calendar_month_outlined, color: _muted),
-              const SizedBox(width: 9),
+              SizedBox(width: 9),
               Text(
                 text,
                 style: TextStyle(color: _muted, fontWeight: FontWeight.w800),
               ),
-              const SizedBox(width: 9),
+              SizedBox(width: 9),
               Icon(Icons.refresh_rounded, size: 18, color: _muted),
             ],
           ),
@@ -397,7 +397,7 @@ class DesktopMetricCard extends StatelessWidget {
                   ),
                   child: Icon(icon, color: _text),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
@@ -407,7 +407,7 @@ class DesktopMetricCard extends StatelessWidget {
                 Icon(Icons.arrow_forward_rounded, size: 19, color: _muted),
               ],
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             Text(
               value,
               maxLines: 1,
@@ -419,12 +419,12 @@ class DesktopMetricCard extends StatelessWidget {
                 letterSpacing: -1.1,
               ),
             ),
-            const SizedBox(height: 3),
+            SizedBox(height: 3),
             Text(
               detail,
               style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: LinearProgressIndicator(
@@ -434,7 +434,7 @@ class DesktopMetricCard extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(accent),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               footer,
               maxLines: 1,
@@ -506,7 +506,7 @@ class DesktopTasksCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (visibleTasks.isEmpty)
             const DesktopEmptyState(
               icon: Icons.assignment_outlined,
@@ -538,7 +538,7 @@ class DesktopTasksCard extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,7 +554,7 @@ class DesktopTasksCard extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              const SizedBox(height: 3),
+                              SizedBox(height: 3),
                               Text(
                                 '${task.objectName} · ${task.axes.trim().isEmpty ? 'оси не указаны' : task.axes}',
                                 maxLines: 1,
@@ -568,7 +568,7 @@ class DesktopTasksCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Text(
                           task.status,
                           style: TextStyle(
@@ -577,7 +577,7 @@ class DesktopTasksCard extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Icon(Icons.chevron_right_rounded, color: _muted),
                       ],
                     ),
@@ -643,14 +643,14 @@ class DesktopFinanceCard extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 periodTitle,
                 style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           PremiumPressable(
             onTap: onOpenPayments,
             borderRadius: BorderRadius.circular(18),
@@ -682,7 +682,7 @@ class DesktopFinanceCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onPickPeriod,
             icon: Icon(Icons.tune_rounded),
@@ -742,7 +742,7 @@ class DesktopEmptyState extends StatelessWidget {
       child: Column(
         children: [
           Icon(icon, size: 34, color: _muted),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             text,
             textAlign: TextAlign.center,
@@ -771,7 +771,7 @@ class DesktopErrorState extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.cloud_off_outlined, size: 42, color: _muted),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               const Text(
                 'Не удалось загрузить главную',
                 style: TextStyle(
@@ -780,13 +780,13 @@ class DesktopErrorState extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               const Text(
                 'Проверь интернет и повтори загрузку.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: _muted),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: Icon(Icons.refresh_rounded),
