@@ -11,7 +11,6 @@ Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _line => AppAdaptivePalette.border;
 Color get _soft => AppAdaptivePalette.surfaceSoft;
-Color get _surface => AppAdaptivePalette.surface;
 Color get _surfaceElevated => AppAdaptivePalette.surfaceElevated;
 Color get _input => AppAdaptivePalette.inputSurface;
 Color get _success => AppAdaptivePalette.success;
@@ -635,7 +634,7 @@ class DesktopFinanceCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Выплаты',
                 style: TextStyle(
                   color: _text,
@@ -772,7 +771,7 @@ class DesktopErrorState extends StatelessWidget {
             children: [
               Icon(Icons.cloud_off_outlined, size: 42, color: _muted),
               SizedBox(height: 14),
-              const Text(
+              Text(
                 'Не удалось загрузить главную',
                 style: TextStyle(
                   color: _text,
@@ -781,7 +780,7 @@ class DesktopErrorState extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8),
-              const Text(
+              Text(
                 'Проверь интернет и повтори загрузку.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: _muted),

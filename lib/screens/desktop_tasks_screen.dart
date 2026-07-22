@@ -1132,7 +1132,7 @@ class _MessageCard extends StatelessWidget {
   final VoidCallback? onAction;
   final bool loading;
 
-  _MessageCard({
+  const _MessageCard({
     required this.icon,
     required this.title,
     required this.description,

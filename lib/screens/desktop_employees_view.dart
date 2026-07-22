@@ -947,7 +947,7 @@ class _Badge extends StatelessWidget {
   final Color foreground;
   final Color background;
 
-  _Badge({
+  const _Badge({
     required this.label,
     required this.icon,
     required this.foreground,
@@ -989,7 +989,7 @@ class _MessageCard extends StatelessWidget {
   final String? actionLabel;
   final Future<void> Function()? onAction;
 
-  _MessageCard({
+  const _MessageCard({
     required this.icon,
     required this.title,
     this.description,
