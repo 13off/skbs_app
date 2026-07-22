@@ -18,7 +18,7 @@ void main() {
 
     expect(screen, contains('RecruitmentRepository.fetchDocuments('));
     expect(screen, contains('RecruitmentRepository.fetchMessages('));
-    expect(screen, contains('RecruitmentRepository.sendMessage('));
+    expect(screen, contains('RecruitmentRepository.sendCandidateMessage('));
     expect(screen, contains('RecruitmentRepository.downloadStoredFile('));
     expect(screen, contains("label: const Text('Позвонить')"));
     expect(screen, contains("label: const Text('Копировать номер')"));
