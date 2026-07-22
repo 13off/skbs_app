@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/ai/data/ai_assistant_repository.dart';
+import 'package:skbs_app/features/ai/presentation/widgets/ai_operational_prompt_chips.dart';
 
 void main() {
   group('operational insight routing', () {
@@ -63,6 +64,32 @@ void main() {
     });
   });
 
+  test('quick prompts expose all four operational checks', () {
+    expect(AiOperationalPromptChips.examples, hasLength(4));
+    final prompts = AiOperationalPromptChips.examples
+        .map((example) => example.prompt)
+        .toList();
+    expect(prompts, contains('Кто сегодня не вышел на работу?'));
+    expect(
+      prompts,
+      contains('Кому ещё не выплатили зарплату и какой остаток?'),
+    );
+    expect(
+      prompts,
+      contains('Какие документы просрочены или скоро заканчиваются?'),
+    );
+    expect(prompts, contains('Сделай недельную сводку по объекту'));
+  });
+
+  test('empty assistant state renders operational quick prompts', () {
+    final screen = File(
+      'lib/features/ai/presentation/ai_assistant_confirmed_screen.dart',
+    ).readAsStringSync();
+    expect(screen, contains('AiOperationalPromptChips('));
+    expect(screen, contains('promptController.text = prompt'));
+    expect(screen, contains('sendPrompt();'));
+  });
+
   test('edge function is read-only, JWT-scoped and permission-aware', () {
     final source = File(
       'supabase/functions/ai-operational-insights/index.ts',
@@ -81,6 +108,7 @@ void main() {
     expect(source, contains('.from("payments")'));
     expect(source, contains('.from("legal_documents")'));
     expect(source, contains('.from("tasks")'));
+    expect(source, contains('@2.110.8'));
     expect(source, isNot(contains('.insert(')));
     expect(source, isNot(contains('.update(')));
     expect(source, isNot(contains('.delete(')));
