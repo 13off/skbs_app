@@ -1,0 +1,69 @@
+name: Apply dark theme business screens patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/dark_theme_business.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-dark-theme-business-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request merge ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Prepare pull request branch
+        run: git switch -C "${GITHUB_HEAD_REF}"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply adaptive color patch
+        run: python3 tool/apply_dark_theme_business_screens.py
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/archive/presentation/archive_management_screen.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            test/dark_theme_business_screens_contract_test.dart
+
+      - name: Remove temporary audit and patch files
+        run: |
+          rm -f test/dark_theme_repository_audit_probe_test.dart
+          rm -f .github/workflows/apply-dark-theme-business-screens.yml
+          rm -f tool/apply_dark_theme_business_screens.py
+          rm -f tool/dark_theme_business.trigger
+
+      - name: Run targeted contract
+        run: flutter test test/dark_theme_business_screens_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: исправлена тёмная тема выплат и архива
+          file_pattern: .
