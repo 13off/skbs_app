@@ -11,23 +11,151 @@
   >
 
   <meta name="description" content="AppСтрой — управление сотрудниками, табелем, задачами, выплатами и документами на строительном объекте.">
-  <meta name="theme-color" content="#F3F1EC">
-  <meta name="color-scheme" content="light">
+  <meta id="app-theme-color" name="theme-color" content="#F3F1EC">
+  <meta name="color-scheme" content="light dark">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta id="app-status-bar-style" name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="AppСтрой">
   <meta name="application-name" content="AppСтрой">
 
-  <link rel="apple-touch-icon" href="icons/AppStroy-192-v2.png">
-  <link rel="icon" type="image/png" href="favicon-v2.png">
-  <link rel="icon" type="image/svg+xml" href="icons/app_icon_matte_v2.svg">
+  <link id="app-apple-icon" rel="apple-touch-icon" href="icons/AppStroy-192-v2.png">
+  <link id="app-favicon-png" rel="icon" type="image/png" href="favicon-v2.png">
+  <link id="app-favicon-svg" rel="icon" type="image/svg+xml" href="icons/app_icon_matte_v2.svg">
 
   <title>AppСтрой</title>
-  <link rel="manifest" href="manifest.json">
+  <link id="app-manifest" rel="manifest" href="manifest.json">
+
+  <script>
+    (function () {
+      var lightTheme = {
+        mode: 'light',
+        color: '#F3F1EC',
+        icon: 'icons/app_icon_matte_v2.svg',
+        appleIcon: 'icons/AppStroy-192-v2.png',
+        pngIcon: 'favicon-v2.png',
+        manifest: 'manifest.json',
+        statusBar: 'default'
+      };
+      var darkTheme = {
+        mode: 'dark',
+        color: '#0E1621',
+        icon: 'icons/app_icon_matte_dark_v2.svg',
+        appleIcon: 'icons/app_icon_matte_dark_v2.svg',
+        pngIcon: 'icons/app_icon_matte_dark_v2.svg',
+        manifest: 'manifest-dark.json',
+        statusBar: 'black-translucent'
+      };
+
+      var readStoredTheme = function () {
+        try {
+          var keys = ['flutter.app_theme_mode', 'app_theme_mode'];
+          for (var index = 0; index < keys.length; index += 1) {
+            var raw = window.localStorage.getItem(keys[index]);
+            if (raw == null) continue;
+
+            var value = raw;
+            try {
+              value = JSON.parse(raw);
+            } catch (_) {}
+
+            if (value === 'dark' || value === 'light') return value;
+          }
+        } catch (_) {}
+        return 'light';
+      };
+
+      var setHref = function (id, href) {
+        var element = document.getElementById(id);
+        if (element) element.setAttribute('href', href);
+      };
+
+      window.appstroyApplyTheme = function (mode) {
+        var theme = mode === 'dark' ? darkTheme : lightTheme;
+        document.documentElement.dataset.appTheme = theme.mode;
+        document.documentElement.style.colorScheme = theme.mode;
+
+        var themeColor = document.getElementById('app-theme-color');
+        if (themeColor) themeColor.setAttribute('content', theme.color);
+
+        var statusBar = document.getElementById('app-status-bar-style');
+        if (statusBar) statusBar.setAttribute('content', theme.statusBar);
+
+        setHref('app-favicon-svg', theme.icon);
+        setHref('app-favicon-png', theme.pngIcon);
+        setHref('app-apple-icon', theme.appleIcon);
+        setHref('app-manifest', theme.manifest);
+      };
+
+      window.appstroyReadStoredTheme = readStoredTheme;
+      window.appstroyApplyTheme(readStoredTheme());
+    })();
+  </script>
 
   <style>
+    :root {
+      --page-background: #f3f1ec;
+      --loader-text: #171c25;
+      --loader-title: #303235;
+      --loader-subtitle: rgba(28,35,45,.56);
+      --loader-grid: rgba(31,37,47,.036);
+      --loader-orb: rgba(255,255,255,.38);
+      --loader-background:
+        radial-gradient(circle at 78% 16%, rgba(255,255,255,.98) 0, rgba(255,255,255,0) 31%),
+        radial-gradient(circle at 18% 84%, rgba(104,107,111,.09) 0, rgba(104,107,111,0) 34%),
+        linear-gradient(145deg, #fbfaf8 0%, #e9e7e2 100%);
+      --shell-background: linear-gradient(145deg, rgba(255,255,255,.90), rgba(255,255,255,.56));
+      --shell-border: rgba(255,255,255,.96);
+      --shell-shadow:
+        0 32px 70px rgba(20,26,36,.16),
+        0 8px 22px rgba(20,26,36,.06),
+        inset 0 1px 0 rgba(255,255,255,.98),
+        inset 0 -1px 0 rgba(17,23,32,.035);
+      --shell-glint: rgba(255,255,255,.82);
+      --mark-shadow: rgba(34,36,39,.16);
+      --metal-start: #D8D8D8;
+      --metal-middle: #A3A4A6;
+      --metal-end: #77797C;
+      --sheen-middle: rgba(255,255,255,.72);
+      --progress-track: rgba(29,38,51,.10);
+      --progress-start: #85878a;
+      --progress-middle: #d2d3d4;
+      --progress-end: #6f7174;
+      --progress-glow: rgba(61,63,66,.16);
+    }
+
+    html[data-app-theme="dark"] {
+      --page-background: #0E1621;
+      --loader-text: #F5F7FA;
+      --loader-title: #F5F7FA;
+      --loader-subtitle: rgba(165,179,193,.82);
+      --loader-grid: rgba(165,179,193,.045);
+      --loader-orb: rgba(51,144,236,.12);
+      --loader-background:
+        radial-gradient(circle at 78% 16%, rgba(51,144,236,.18) 0, rgba(51,144,236,0) 34%),
+        radial-gradient(circle at 18% 84%, rgba(112,132,153,.12) 0, rgba(112,132,153,0) 36%),
+        linear-gradient(145deg, #0E1621 0%, #17212B 100%);
+      --shell-background: linear-gradient(145deg, rgba(31,44,58,.98), rgba(23,33,43,.96));
+      --shell-border: rgba(43,58,73,.98);
+      --shell-shadow:
+        0 34px 76px rgba(0,0,0,.42),
+        0 8px 24px rgba(0,0,0,.24),
+        inset 0 1px 0 rgba(165,179,193,.08),
+        inset 0 -1px 0 rgba(0,0,0,.34);
+      --shell-glint: rgba(165,179,193,.24);
+      --mark-shadow: rgba(0,0,0,.42);
+      --metal-start: #F5F7FA;
+      --metal-middle: #B8C5D1;
+      --metal-end: #708499;
+      --sheen-middle: rgba(255,255,255,.54);
+      --progress-track: rgba(165,179,193,.16);
+      --progress-start: #2278BF;
+      --progress-middle: #55A8F5;
+      --progress-end: #3390EC;
+      --progress-glow: rgba(51,144,236,.38);
+    }
+
     html,
     body {
       margin: 0;
@@ -36,7 +164,7 @@
       height: 100%;
       min-height: 100%;
       overflow: hidden;
-      background: #f3f1ec;
+      background: var(--page-background);
       font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       overscroll-behavior: none;
       touch-action: manipulation;
@@ -68,11 +196,8 @@
       place-items: center;
       min-height: 100dvh;
       overflow: hidden;
-      color: #171c25;
-      background:
-        radial-gradient(circle at 78% 16%, rgba(255,255,255,.98) 0, rgba(255,255,255,0) 31%),
-        radial-gradient(circle at 18% 84%, rgba(104,107,111,.09) 0, rgba(104,107,111,0) 34%),
-        linear-gradient(145deg, #fbfaf8 0%, #e9e7e2 100%);
+      color: var(--loader-text);
+      background: var(--loader-background);
       transition:
         opacity 520ms cubic-bezier(.22,1,.36,1),
         visibility 520ms ease;
@@ -84,8 +209,8 @@
       inset: 0;
       opacity: .26;
       background-image:
-        linear-gradient(rgba(31,37,47,.036) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(31,37,47,.036) 1px, transparent 1px);
+        linear-gradient(var(--loader-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--loader-grid) 1px, transparent 1px);
       background-size: 42px 42px;
       mask-image: radial-gradient(circle at center, black 0, transparent 72%);
       -webkit-mask-image: radial-gradient(circle at center, black 0, transparent 72%);
@@ -97,7 +222,7 @@
       width: min(74vw, 520px);
       aspect-ratio: 1;
       border-radius: 50%;
-      background: rgba(255,255,255,.38);
+      background: var(--loader-orb);
       filter: blur(62px);
       transform: translateY(-4%);
       pointer-events: none;
@@ -125,14 +250,9 @@
       display: grid;
       place-items: center;
       border-radius: 48px;
-      background:
-        linear-gradient(145deg, rgba(255,255,255,.90), rgba(255,255,255,.56));
-      border: 1px solid rgba(255,255,255,.96);
-      box-shadow:
-        0 32px 70px rgba(20,26,36,.16),
-        0 8px 22px rgba(20,26,36,.06),
-        inset 0 1px 0 rgba(255,255,255,.98),
-        inset 0 -1px 0 rgba(17,23,32,.035);
+      background: var(--shell-background);
+      border: 1px solid var(--shell-border);
+      box-shadow: var(--shell-shadow);
       backdrop-filter: blur(26px);
       -webkit-backdrop-filter: blur(26px);
       overflow: hidden;
@@ -145,9 +265,9 @@
       background: linear-gradient(
         105deg,
         transparent 43%,
-        rgba(255,255,255,0) 46%,
-        rgba(255,255,255,.82) 50%,
-        rgba(255,255,255,0) 54%,
+        transparent 46%,
+        var(--shell-glint) 50%,
+        transparent 54%,
         transparent 57%
       );
       transform: translateX(-42%) rotate(6deg);
@@ -159,7 +279,7 @@
       width: 132px;
       height: 132px;
       overflow: visible;
-      filter: drop-shadow(0 12px 15px rgba(34,36,39,.16));
+      filter: drop-shadow(0 12px 15px var(--mark-shadow));
     }
 
     .tower-shape {
@@ -169,17 +289,9 @@
       animation: buildTower 760ms cubic-bezier(.22,1,.36,1) forwards;
     }
 
-    .tower-left {
-      animation-delay: 160ms;
-    }
-
-    .tower-center {
-      animation-delay: 280ms;
-    }
-
-    .tower-right {
-      animation-delay: 420ms;
-    }
+    .tower-left { animation-delay: 160ms; }
+    .tower-center { animation-delay: 280ms; }
+    .tower-right { animation-delay: 420ms; }
 
     .mark-sheen {
       opacity: 0;
@@ -187,12 +299,11 @@
     }
 
     .loader-title {
-      font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 37px;
       line-height: 1;
       font-weight: 350;
       letter-spacing: -.055em;
-      color: #303235;
+      color: var(--loader-title);
       opacity: 0;
       transform: translateY(10px);
       animation: textIn 700ms cubic-bezier(.22,1,.36,1) 1.02s forwards;
@@ -205,7 +316,7 @@
       font-weight: 700;
       letter-spacing: .16em;
       text-transform: lowercase;
-      color: rgba(28,35,45,.56);
+      color: var(--loader-subtitle);
       opacity: 0;
       transform: translateY(8px);
       animation: textIn 700ms cubic-bezier(.22,1,.36,1) 1.16s forwards;
@@ -218,7 +329,7 @@
       margin: 27px auto 0;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(29,38,51,.10);
+      background: var(--progress-track);
       opacity: 0;
       animation: textIn 500ms ease 1.32s forwards;
     }
@@ -229,8 +340,8 @@
       inset: 0;
       width: 42%;
       border-radius: inherit;
-      background: linear-gradient(90deg, #85878a, #d2d3d4, #6f7174);
-      box-shadow: 0 0 14px rgba(61,63,66,.16);
+      background: linear-gradient(90deg, var(--progress-start), var(--progress-middle), var(--progress-end));
+      box-shadow: 0 0 14px var(--progress-glow);
       animation: progressTravel 1.55s cubic-bezier(.4,0,.2,1) infinite;
     }
 
@@ -289,13 +400,13 @@
         <svg class="brand-logo" viewBox="0 0 240 240" role="presentation">
           <defs>
             <linearGradient id="loaderMetal" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#D8D8D8"/>
-              <stop offset=".47" stop-color="#A3A4A6"/>
-              <stop offset="1" stop-color="#77797C"/>
+              <stop offset="0" style="stop-color:var(--metal-start)"/>
+              <stop offset=".47" style="stop-color:var(--metal-middle)"/>
+              <stop offset="1" style="stop-color:var(--metal-end)"/>
             </linearGradient>
             <linearGradient id="loaderSheen" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
-              <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".72"/>
+              <stop offset=".5" style="stop-color:var(--sheen-middle)"/>
               <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
             </linearGradient>
             <clipPath id="loaderMarkClip">
@@ -332,16 +443,13 @@
         hidden = true;
         loader.classList.add('hidden');
         window.setTimeout(function () {
-          if (loader && loader.parentNode) {
-            loader.parentNode.removeChild(loader);
-          }
+          if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
         }, 560);
       };
 
       var hideAfterMinimum = function () {
         var elapsed = performance.now() - startedAt;
-        var delay = Math.max(0, minimumVisibleMs - elapsed);
-        window.setTimeout(hideLoader, delay);
+        window.setTimeout(hideLoader, Math.max(0, minimumVisibleMs - elapsed));
       };
 
       window.addEventListener('flutter-first-frame', hideAfterMinimum, { once: true });
@@ -366,12 +474,8 @@
       window.appstroyInstallPwa = async function () {
         var standalone = window.matchMedia('(display-mode: standalone)').matches ||
           window.navigator.standalone === true;
-        if (standalone) {
-          return { status: 'installed' };
-        }
-        if (!deferredPwaPrompt) {
-          return { status: 'unavailable' };
-        }
+        if (standalone) return { status: 'installed' };
+        if (!deferredPwaPrompt) return { status: 'unavailable' };
 
         var prompt = deferredPwaPrompt;
         deferredPwaPrompt = null;
