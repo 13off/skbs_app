@@ -291,8 +291,10 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Удалить задачу?'),
-          content: const Text('Задача, исполнители и фото будут удалены.'),
+          title: const Text('Переместить задачу в корзину?'),
+          content: const Text(
+            'Задача исчезнет из рабочих списков, но исполнители, фотографии и связь с целью сохранятся. Администратор или разработчик сможет восстановить её.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -300,7 +302,7 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Удалить'),
+              child: const Text('В корзину'),
             ),
           ],
         );
