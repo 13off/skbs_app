@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
 
@@ -14,7 +14,8 @@ class CompanyOnboardingScreen extends StatefulWidget {
   });
 
   @override
-  State<CompanyOnboardingScreen> createState() => _CompanyOnboardingScreenState();
+  State<CompanyOnboardingScreen> createState() =>
+      _CompanyOnboardingScreenState();
 }
 
 class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
@@ -85,12 +86,14 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(26),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.86),
+                    color: AppAdaptivePalette.surfaceElevated,
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.white),
+                    border: Border.all(color: AppAdaptivePalette.border),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.09),
+                        color: Colors.black.withValues(
+                          alpha: AppAdaptivePalette.isDark ? 0.24 : 0.09,
+                        ),
                         blurRadius: 42,
                         offset: const Offset(0, 20),
                       ),
@@ -104,14 +107,15 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                       Text(
                         'Завершите настройку',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
+                              color: AppAdaptivePalette.textPrimary,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Создайте рабочее пространство компании. Вы получите права владельца.',
                         textAlign: TextAlign.center,
+                        style: TextStyle(color: AppAdaptivePalette.textMuted),
                       ),
                       const SizedBox(height: 14),
                       Container(
@@ -120,25 +124,25 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                           vertical: 9,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F2F3),
+                          color: AppAdaptivePalette.surfaceSoft,
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: Colors.white),
+                          border: Border.all(color: AppAdaptivePalette.border),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.verified_user_outlined,
                               size: 17,
-                              color: AppColors.textPrimary,
+                              color: AppAdaptivePalette.textPrimary,
                             ),
-                            SizedBox(width: 7),
+                            const SizedBox(width: 7),
                             Flexible(
                               child: Text(
                                 'Отдельные данные, команда и объекты',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: AppColors.textPrimary,
+                                  color: AppAdaptivePalette.textPrimary,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -176,25 +180,29 @@ class _CompanyOnboardingScreenState extends State<CompanyOnboardingScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF2F1),
+                            color: AppAdaptivePalette.danger.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: const Color(0xFFF0D2CF),
+                              color: AppAdaptivePalette.danger.withValues(
+                                alpha: 0.32,
+                              ),
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.info_outline_rounded,
                                 size: 19,
-                                color: Color(0xFFA64F49),
+                                color: AppAdaptivePalette.danger,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   errorText!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF874540),
+                                  style: TextStyle(
+                                    color: AppAdaptivePalette.danger,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
