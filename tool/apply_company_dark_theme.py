@@ -61,6 +61,14 @@ replace_present(
             'side: const BorderSide(color: Color(0xFFB88A85)),',
             'side: BorderSide(\n                    color: AppAdaptivePalette.danger.withValues(alpha: 0.55),\n                  ),',
         ),
+        (
+            "const Text(\n                    'Чтобы пригласить прораба, сначала добавьте объект на вкладке «Главная».'",
+            "Text(\n                    'Чтобы пригласить прораба, сначала добавьте объект на вкладке «Главная».'",
+        ),
+        (
+            "const Text(\n                  'Передайте эту ссылку только приглашённому человеку.'",
+            "Text(\n                  'Передайте эту ссылку только приглашённому человеку.'",
+        ),
         ('const BoxDecoration(', 'BoxDecoration('),
         ('const TextStyle(', 'TextStyle('),
         (
