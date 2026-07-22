@@ -30,14 +30,20 @@ replace_present(
             'Colors.white.withValues(alpha: 0.84)',
             'AppAdaptivePalette.surfaceElevated',
         ),
-        ('Border.all(color: Colors.white)', 'Border.all(color: AppAdaptivePalette.border)'),
+        (
+            'Border.all(color: Colors.white)',
+            'Border.all(color: AppAdaptivePalette.border)',
+        ),
         (
             'const BorderSide(color: Colors.white)',
             'BorderSide(color: AppAdaptivePalette.border)',
         ),
         ('const Color(0xFFF0F1F3)', 'AppAdaptivePalette.surfaceSoft'),
+        ('Color(0xFFF0F1F3)', 'AppAdaptivePalette.surfaceSoft'),
         ('const Color(0xFFF1F2F3)', 'AppAdaptivePalette.surfaceSoft'),
+        ('Color(0xFFF1F2F3)', 'AppAdaptivePalette.surfaceSoft'),
         ('const Color(0xFFF3F4F5)', 'AppAdaptivePalette.surfaceSoft'),
+        ('Color(0xFFF3F4F5)', 'AppAdaptivePalette.surfaceSoft'),
         (
             "return const Center(\n                child: PremiumDots(color: AppAdaptivePalette.textPrimary),\n              );",
             "return Center(\n                child: PremiumDots(\n                  color: AppAdaptivePalette.textPrimary,\n                ),\n              );",
@@ -47,7 +53,10 @@ replace_present(
             'backgroundColor: AppAdaptivePalette.danger,\n              foregroundColor: AppAdaptivePalette.onAccent,',
         ),
         ('color: Color(0xFF874540)', 'color: AppAdaptivePalette.danger'),
-        ('foregroundColor: const Color(0xFF874540)', 'foregroundColor: AppAdaptivePalette.danger'),
+        (
+            'foregroundColor: const Color(0xFF874540)',
+            'foregroundColor: AppAdaptivePalette.danger',
+        ),
         (
             'side: const BorderSide(color: Color(0xFFB88A85)),',
             'side: BorderSide(\n                    color: AppAdaptivePalette.danger.withValues(alpha: 0.55),\n                  ),',
