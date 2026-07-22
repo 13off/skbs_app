@@ -33,7 +33,7 @@ Color get _line => AppAdaptivePalette.border;
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _accent => AppAdaptivePalette.accent;
-const Color _success = Color(0xFF22C55E);
+Color get _success => AppAdaptivePalette.success;
 
 class HomeScreen extends StatefulWidget {
   final AppUserProfile profile;
