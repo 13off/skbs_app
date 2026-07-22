@@ -565,7 +565,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       icon: Icon(Icons.download_outlined, size: 18),
-      label: Text('Отчёт'),
+      label: const Text('Отчёт'),
     );
   }
 
@@ -580,7 +580,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         icon: Icon(Icons.add, size: 18),
-        label: Text('Добавить'),
+        label: const Text('Добавить'),
       ),
     );
   }
@@ -594,7 +594,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       appBar: AppBar(
         leading: const BackButton(),
         backgroundColor: Colors.transparent,
-        title: Text('Выплаты'),
+        title: const Text('Выплаты'),
         actions: [buildReportAction(), buildAddAction()],
       ),
       body: PremiumWorkBackdrop(
