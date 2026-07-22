@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../../../app/app_theme.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../actions/ai_action_execution_coordinator.dart';
@@ -149,6 +149,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   Widget buildEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 34),
@@ -159,22 +160,22 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               width: 76,
               height: 76,
               decoration: BoxDecoration(
-                color: AppColors.surfaceSoft,
+                color: colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(27),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: colorScheme.outlineVariant),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.auto_awesome_rounded,
-                color: AppColors.textPrimary,
+                color: colorScheme.onSurface,
                 size: 34,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Чем помочь?',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: colorScheme.onSurface,
                 fontSize: 25,
                 fontWeight: FontWeight.w900,
               ),
@@ -183,18 +184,18 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             Text(
               'Напиши вопрос по объекту, табелю, сотрудникам, задачам или документам. Область доступа: $scopeTitle.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textMuted,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Помощник ничего не изменяет без твоего участия.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -206,19 +207,20 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   Widget buildUserMessage(String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 560),
         padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
         decoration: BoxDecoration(
-          color: AppColors.textPrimary,
+          color: colorScheme.primary,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           text,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: colorScheme.onPrimary,
             height: 1.4,
             fontWeight: FontWeight.w600,
           ),
@@ -228,19 +230,20 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   Widget buildErrorMessage(String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       radius: 22,
       padding: const EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFF874540)),
+          Icon(Icons.error_outline, color: colorScheme.error),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: Color(0xFF874540),
+              style: TextStyle(
+                color: colorScheme.error,
                 height: 1.4,
                 fontWeight: FontWeight.w700,
               ),
@@ -269,6 +272,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
   Widget buildResult(int index, _ConversationEntry entry) {
     final result = entry.result!;
+    final colorScheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       radius: 26,
       padding: const EdgeInsets.all(18),
@@ -295,8 +299,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           const SizedBox(height: 14),
           Text(
             result.title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontSize: 21,
               height: 1.15,
               fontWeight: FontWeight.w900,
@@ -305,8 +309,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           const SizedBox(height: 7),
           Text(
             result.scopeLabel,
-            style: const TextStyle(
-              color: AppColors.textMuted,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -315,8 +319,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             const SizedBox(height: 14),
             SelectableText(
               result.summary,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: colorScheme.onSurface,
                 height: 1.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -365,6 +369,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   Widget buildConversation() {
+    final colorScheme = Theme.of(context).colorScheme;
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
@@ -379,21 +384,21 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           const SizedBox(height: 12),
         ],
         if (isSending)
-          const PremiumWorkCard(
+          PremiumWorkCard(
             radius: 22,
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Text(
                   'Помощник анализирует данные…',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -412,18 +417,30 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: TextField(
-              controller: promptController,
-              enabled: !isSending,
-              minLines: 1,
-              maxLines: 5,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                hintText: 'Спроси о работе или попроси подготовить действие…',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+            child: CallbackShortcuts(
+              bindings: <ShortcutActivator, VoidCallback>{
+                const SingleActivator(LogicalKeyboardKey.enter): () {
+                  if (!isSending) sendPrompt();
+                },
+                const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+                  if (!isSending) sendPrompt();
+                },
+              },
+              child: TextField(
+                controller: promptController,
+                enabled: !isSending,
+                minLines: 1,
+                maxLines: 5,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: const InputDecoration(
+                  hintText: 'Спроси о работе или попроси подготовить действие…',
+                  helperText: 'Enter — отправить · Shift+Enter — новая строка',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -445,7 +462,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('ИИ-помощник')),
+        leading: const BackButton(),
+        title: const Text('ИИ-помощник'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,
@@ -504,22 +523,23 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.textMuted),
+          Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textMuted,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -545,7 +565,8 @@ class _ResultSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warning ? const Color(0xFF874540) : AppColors.textPrimary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = warning ? colorScheme.error : colorScheme.onSurface;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(
