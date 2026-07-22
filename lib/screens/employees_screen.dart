@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../navigation/app_page_route.dart';
@@ -17,11 +18,11 @@ part 'employees/employees_loading.dart';
 part 'employees/employees_sections.dart';
 part 'employees/employees_view.dart';
 
-const _card = Colors.white;
-const _soft = Color(0xFFF2F3F5);
-const _line = Color(0xFFE6E8EB);
-const _text = Color(0xFF1F2328);
-const _accent = Color(0xFF8F9499);
+Color get _card => AppAdaptivePalette.inputSurface;
+Color get _soft => AppAdaptivePalette.surfaceSoft;
+Color get _line => AppAdaptivePalette.border;
+Color get _text => AppAdaptivePalette.textPrimary;
+Color get _accent => AppAdaptivePalette.accent;
 
 class EmployeesScreen extends StatefulWidget {
   final AppUserProfile profile;

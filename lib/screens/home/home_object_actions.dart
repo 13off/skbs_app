@@ -88,7 +88,7 @@ extension _HomeObjectActions on _HomeScreenState {
                             Expanded(
                               child: Text(
                                 isEdit ? 'Редактировать объект' : 'Новый объект',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _text,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
@@ -278,7 +278,7 @@ extension _HomeObjectActions on _HomeScreenState {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Архив объектов',
                         style: TextStyle(
@@ -296,7 +296,7 @@ extension _HomeObjectActions on _HomeScreenState {
                 ),
                 const SizedBox(height: 10),
                 if (archivedObjects.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 30),
                     child: Column(
                       children: [
@@ -339,7 +339,7 @@ extension _HomeObjectActions on _HomeScreenState {
                                 child: Text(
                                   objectName,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: _text,
                                     fontWeight: FontWeight.w900,
                                   ),
@@ -431,7 +431,7 @@ extension _HomeObjectActions on _HomeScreenState {
                 const SizedBox(height: 18),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Выберите объект',
                         style: TextStyle(

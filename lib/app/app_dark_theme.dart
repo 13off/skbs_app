@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_theme.dart';
 
 abstract final class AppDarkTheme {
-  static const background = Color(0xFF0E1013);
-  static const surface = Color(0xFF191C21);
-  static const surfaceSoft = Color(0xFF22262C);
-  static const border = Color(0xFF343941);
-  static const textPrimary = Color(0xFFF1F3F5);
-  static const textMuted = Color(0xFFA9AFB7);
-  static const accent = Color(0xFFD7DBE0);
+  static const background = Color(0xFF0B0D10);
+  static const surface = Color(0xFF171A1F);
+  static const surfaceSoft = Color(0xFF242932);
+  static const border = Color(0xFF353C46);
+  static const textPrimary = Color(0xFFF2F4F7);
+  static const textMuted = Color(0xFFB2B9C3);
+  static const accent = Color(0xFFDDE2E8);
 
   static ThemeData get theme {
     final colorScheme = ColorScheme.fromSeed(
@@ -27,9 +27,9 @@ abstract final class AppDarkTheme {
       onSurfaceVariant: textMuted,
       outline: border,
       outlineVariant: const Color(0xFF292D33),
-      primaryContainer: const Color(0xFF30353C),
+      primaryContainer: const Color(0xFF2B3139),
       onPrimaryContainer: textPrimary,
-      secondaryContainer: const Color(0xFF292E34),
+      secondaryContainer: const Color(0xFF2B3139),
       onSecondaryContainer: textPrimary,
       error: const Color(0xFFFFB4AB),
       onError: const Color(0xFF690005),

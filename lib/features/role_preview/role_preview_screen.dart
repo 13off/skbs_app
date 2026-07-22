@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../app/app_adaptive_palette.dart';
 import '../../data/object_repository.dart';
 import '../../widgets/app_page.dart';
 import '../../widgets/premium_ui_v2.dart';
 import 'role_preview_controller.dart';
 
-const Color _roleText = Color(0xFF1F2328);
-const Color _roleMuted = Color(0xFF6B7075);
-const Color _roleSoft = Color(0xFFF1F0EC);
+Color get _roleText => AppAdaptivePalette.textPrimary;
+Color get _roleMuted => AppAdaptivePalette.textMuted;
+Color get _roleSoft => AppAdaptivePalette.surfaceSoft;
 
 class RolePreviewScreen extends StatefulWidget {
   const RolePreviewScreen({super.key});
@@ -55,15 +56,15 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
             maxHeight: MediaQuery.sizeOf(context).height * 0.72,
           ),
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8F7F3),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Выберите объект прораба',
                 style: TextStyle(
                   color: _roleText,
@@ -72,7 +73,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Интерфейс и данные будут показаны так, как их видит прораб выбранного объекта.',
                 style: TextStyle(
                   color: _roleMuted,
@@ -104,7 +105,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                                 color: _roleSoft,
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.apartment_rounded,
                                 color: _roleText,
                               ),
@@ -113,7 +114,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                             Expanded(
                               child: Text(
                                 objectName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _roleText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
@@ -167,12 +168,12 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: selected ? _roleText : _roleSoft,
+                    color: selected ? AppAdaptivePalette.accent : _roleSoft,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     icon,
-                    color: selected ? Colors.white : _roleText,
+                    color: selected ? AppAdaptivePalette.onAccent : _roleText,
                     size: 24,
                   ),
                 ),
@@ -186,7 +187,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                           Flexible(
                             child: Text(
                               title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _roleText,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -206,7 +207,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                               ),
                               child: Text(
                                 badge,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _roleMuted,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
@@ -219,7 +220,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                       const SizedBox(height: 5),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _roleMuted,
                           height: 1.3,
                           fontWeight: FontWeight.w600,
@@ -315,7 +316,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                   PremiumWorkCard(
                     radius: 22,
                     padding: const EdgeInsets.all(16),
-                    child: const Row(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.info_outline_rounded, color: _roleMuted),

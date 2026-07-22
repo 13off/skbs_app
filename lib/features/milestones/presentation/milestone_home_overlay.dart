@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/milestone_repository.dart';
@@ -109,13 +110,13 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                 height: 54,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F1F3),
+                  color: AppAdaptivePalette.surfaceSoft,
                   borderRadius: BorderRadius.circular(17),
                 ),
                 child: Text(
                   shortDate(milestone),
-                  style: const TextStyle(
-                    color: Color(0xFF1F2328),
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textPrimary,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -129,8 +130,8 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                       milestone.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF1F2328),
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -142,8 +143,8 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                           : '${milestone.objectName} · ${milestone.location}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF6B7075),
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -154,7 +155,7 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                       child: LinearProgressIndicator(
                         value: milestone.progress,
                         minHeight: 7,
-                        backgroundColor: const Color(0xFFE5E7EA),
+                        backgroundColor: AppAdaptivePalette.border,
                       ),
                     ),
                   ],
@@ -163,8 +164,8 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
               const SizedBox(width: 12),
               Text(
                 '${milestone.progressPercent}%',
-                style: const TextStyle(
-                  color: Color(0xFF1F2328),
+                style: TextStyle(
+                  color: AppAdaptivePalette.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
@@ -195,11 +196,11 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Цели',
                     style: TextStyle(
-                      color: Color(0xFF1F2328),
+                      color: AppAdaptivePalette.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                     ),

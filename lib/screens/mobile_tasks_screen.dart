@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
@@ -18,11 +19,11 @@ import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
 
-const Color _tasksText = Color(0xFF1F2328);
-const Color _tasksMuted = Color(0xFF6B7075);
-const Color _tasksSoft = Color(0xFFF1F0EC);
-const Color _tasksLine = Color(0xFFE4E2DC);
-const Color _tasksAccent = Color(0xFF646A70);
+Color get _tasksText => AppAdaptivePalette.textPrimary;
+Color get _tasksMuted => AppAdaptivePalette.textMuted;
+Color get _tasksSoft => AppAdaptivePalette.surfaceSoft;
+Color get _tasksLine => AppAdaptivePalette.border;
+Color get _tasksAccent => AppAdaptivePalette.accent;
 
 class TasksScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -374,7 +375,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   children: [
                     Text(
                       shortDate(selectedDate),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _tasksText,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -384,7 +385,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     const SizedBox(height: 3),
                     Text(
                       weekDayName(selectedDate),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _tasksMuted,
                         fontWeight: FontWeight.w700,
                       ),
@@ -425,7 +426,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _tasksLine),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.assignment_turned_in_outlined,
                   color: _tasksText,
                   size: 22,
@@ -436,7 +437,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Ход работ',
                       style: TextStyle(
                         color: _tasksText,
@@ -449,7 +450,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       objectTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _tasksMuted,
                         fontWeight: FontWeight.w700,
                       ),
@@ -459,7 +460,7 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
               Text(
                 '$doneCount / ${tasks.length}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: _tasksText,
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
@@ -474,7 +475,7 @@ class _TasksScreenState extends State<TasksScreen> {
               minHeight: 6,
               value: progress,
               backgroundColor: _tasksSoft,
-              valueColor: const AlwaysStoppedAnimation<Color>(_tasksAccent),
+              valueColor: AlwaysStoppedAnimation<Color>(_tasksAccent),
             ),
           ),
           const SizedBox(height: 9),
@@ -482,7 +483,7 @@ class _TasksScreenState extends State<TasksScreen> {
             tasks.isEmpty
                 ? 'На выбранную дату пока нет задач'
                 : 'Выполнено: $doneCount из ${tasks.length}',
-            style: const TextStyle(
+            style: TextStyle(
               color: _tasksMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -521,7 +522,7 @@ class _TasksScreenState extends State<TasksScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _tasksText,
                     fontWeight: FontWeight.w900,
                   ),
@@ -529,7 +530,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 const SizedBox(height: 3),
                 Text(
                   text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _tasksMuted,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
@@ -567,19 +568,29 @@ class _TasksScreenState extends State<TasksScreen> {
           width: double.infinity,
           height: 54,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
+            color: tasks.isEmpty
+                ? AppAdaptivePalette.disabledSurface
+                : AppAdaptivePalette.surfaceSoft,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: _tasksLine),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.description_outlined, color: _tasksText, size: 20),
+              Icon(
+                Icons.description_outlined,
+                color: tasks.isEmpty
+                    ? AppAdaptivePalette.disabledText
+                    : _tasksText,
+                size: 20,
+              ),
               SizedBox(width: 9),
               Text(
                 'Сформировать акт',
                 style: TextStyle(
-                  color: _tasksText,
+                  color: tasks.isEmpty
+                      ? AppAdaptivePalette.disabledText
+                      : _tasksText,
                   fontWeight: FontWeight.w900,
                 ),
               ),

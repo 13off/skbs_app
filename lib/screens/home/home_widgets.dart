@@ -40,7 +40,7 @@ class _ObjectSelectorShell extends StatelessWidget {
               child: Text(
                 title,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _text,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -48,7 +48,7 @@ class _ObjectSelectorShell extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              const Icon(Icons.keyboard_arrow_down, color: _text, size: 20),
+              Icon(Icons.keyboard_arrow_down, color: _text, size: 20),
           ],
         ),
       ),
@@ -100,7 +100,7 @@ class _ObjectPickerTile extends StatelessWidget {
                     Text(
                       title,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _text,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -110,7 +110,7 @@ class _ObjectPickerTile extends StatelessWidget {
                     Text(
                       subtitle,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _muted,
                         fontWeight: FontWeight.w600,
                       ),
@@ -133,7 +133,7 @@ class _ObjectPickerTile extends StatelessWidget {
                   icon: const Icon(Icons.archive_outlined, size: 20),
                 ),
               if (isSelected)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 4),
                   child: Icon(Icons.check_circle, color: _accent),
                 ),
@@ -182,7 +182,7 @@ class _DashboardMetricCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -194,7 +194,7 @@ class _DashboardMetricCard extends StatelessWidget {
                   children: [
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _text,
                         fontSize: 44,
                         height: 0.95,
@@ -206,7 +206,7 @@ class _DashboardMetricCard extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         secondaryValue,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _muted,
                           fontWeight: FontWeight.w700,
                         ),
@@ -220,8 +220,8 @@ class _DashboardMetricCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     minHeight: 5,
                     value: safeProgress,
-                    backgroundColor: const Color(0xFFE8E2DB),
-                    valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+                    backgroundColor: _line,
+                    valueColor: AlwaysStoppedAnimation<Color>(_accent),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -249,7 +249,7 @@ class _DashboardMetricCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           footerTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _muted,
                             fontWeight: FontWeight.w700,
                           ),
@@ -257,7 +257,7 @@ class _DashboardMetricCard extends StatelessWidget {
                       ),
                       Text(
                         footerValue,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _text,
                           fontWeight: FontWeight.w900,
                         ),
@@ -312,7 +312,7 @@ class _FinanceSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const _IconBox(icon: Icons.payments_outlined, color: _accent),
+              _IconBox(icon: Icons.payments_outlined, color: _accent),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -320,7 +320,7 @@ class _FinanceSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _text,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -328,7 +328,7 @@ class _FinanceSummaryCard extends StatelessWidget {
                     ),
                     Text(
                       objectTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _muted,
                         fontWeight: FontWeight.w700,
                       ),
@@ -361,14 +361,14 @@ class _FinanceSummaryCard extends StatelessWidget {
             child: LinearProgressIndicator(
               minHeight: 5,
               value: finance.paidProgress,
-              backgroundColor: const Color(0xFFE8E2DB),
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
+              backgroundColor: _line,
+              valueColor: AlwaysStoppedAnimation<Color>(_accent),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Закрыто выплатами: $progressPercent%',
-            style: const TextStyle(color: _muted, fontWeight: FontWeight.w700),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -396,7 +396,7 @@ class _MoneyPill extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: _muted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -405,7 +405,7 @@ class _MoneyPill extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: _text,
               fontSize: 15,
               fontWeight: FontWeight.w900,
@@ -468,7 +468,7 @@ class _SystemMessage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _text,
                     fontWeight: FontWeight.w900,
                   ),
@@ -476,7 +476,7 @@ class _SystemMessage extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _muted,
                     fontWeight: FontWeight.w600,
                   ),

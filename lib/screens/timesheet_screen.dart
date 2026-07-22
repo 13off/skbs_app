@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../app/app_theme.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
