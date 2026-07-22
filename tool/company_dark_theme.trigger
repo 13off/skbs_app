@@ -1,1 +1,1 @@
-apply adaptive company screens retry 3
+apply adaptive company screens retry 4 with analyzer artifact
