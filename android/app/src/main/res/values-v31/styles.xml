@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/app_splash_light_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/app_icon_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/app_splash_light_background</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:statusBarColor">@color/app_splash_light_background</item>
+        <item name="android:navigationBarColor">@color/app_splash_light_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="LaunchTheme.Dark" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/app_splash_dark_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/app_icon_foreground_dark</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/app_splash_dark_background</item>
+        <item name="android:windowBackground">@drawable/launch_background_dark</item>
+        <item name="android:statusBarColor">@color/app_splash_dark_background</item>
+        <item name="android:navigationBarColor">@color/app_splash_dark_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/app_splash_light_background</item>
+    </style>
+
+    <style name="NormalTheme.Dark" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/app_splash_dark_background</item>
+    </style>
+</resources>
