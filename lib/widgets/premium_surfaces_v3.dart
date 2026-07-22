@@ -10,16 +10,55 @@ class PremiumBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
 
+    if (dark) {
+      return DecoratedBox(
+        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              top: -190,
+              right: -150,
+              child: IgnorePointer(
+                child: Container(
+                  width: 380,
+                  height: 380,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.09),
+                        theme.colorScheme.primary.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            child,
+          ],
+        ),
+      );
+    }
+
+    return const _LightPremiumBackdrop();
+  }
+}
+
+class _LightPremiumBackdrop extends StatelessWidget {
+  const _LightPremiumBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF15181C), Color(0xFF090B0E)]
-              : const [Color(0xFFFAF9F6), Color(0xFFE9E6DE)],
+          colors: [Color(0xFFFAF9F6), Color(0xFFE9E6DE)],
         ),
       ),
       child: Stack(
@@ -72,30 +111,29 @@ class PremiumLoadingScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(28, 30, 28, 26),
               decoration: BoxDecoration(
                 color: dark
-                    ? theme.colorScheme.surface.withValues(alpha: 0.88)
+                    ? theme.colorScheme.surface
                     : Colors.white.withValues(alpha: 0.68),
-                borderRadius: BorderRadius.circular(36),
+                borderRadius: BorderRadius.circular(dark ? 24 : 36),
                 border: Border.all(
                   color: dark
-                      ? theme.colorScheme.outline.withValues(alpha: 0.90)
+                      ? theme.colorScheme.outlineVariant
                       : Colors.white.withValues(alpha: 0.94),
                   width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: dark ? 0.42 : 0.12),
-                    blurRadius: 46,
-                    spreadRadius: -14,
-                    offset: const Offset(0, 26),
+                    color: Colors.black.withValues(alpha: dark ? 0.24 : 0.12),
+                    blurRadius: dark ? 22 : 46,
+                    spreadRadius: dark ? -10 : -14,
+                    offset: Offset(0, dark ? 12 : 26),
                   ),
-                  BoxShadow(
-                    color: dark
-                        ? Colors.white.withValues(alpha: 0.025)
-                        : Colors.white.withValues(alpha: 0.88),
-                    blurRadius: 18,
-                    spreadRadius: -10,
-                    offset: const Offset(0, -6),
-                  ),
+                  if (!dark)
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      blurRadius: 18,
+                      spreadRadius: -10,
+                      offset: const Offset(0, -6),
+                    ),
                 ],
               ),
               child: Column(
@@ -121,7 +159,7 @@ class PremiumLoadingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  PremiumDots(color: textColor),
+                  PremiumDots(color: dark ? theme.colorScheme.primary : textColor),
                 ],
               ),
             ),
@@ -140,8 +178,6 @@ class _GlassDrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-
     return IgnorePointer(
       child: Container(
         width: size,
@@ -150,28 +186,18 @@ class _GlassDrop extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             center: const Alignment(-0.36, -0.42),
-            colors: dark
-                ? [
-                    const Color(0xFF697480).withValues(alpha: opacity * 0.22),
-                    const Color(0xFF3C444D).withValues(alpha: opacity * 0.10),
-                    Colors.transparent,
-                  ]
-                : [
-                    Colors.white.withValues(alpha: opacity),
-                    Colors.white.withValues(alpha: opacity * 0.22),
-                    const Color(0xFFD5D0C4).withValues(alpha: opacity * 0.10),
-                  ],
+            colors: [
+              Colors.white.withValues(alpha: opacity),
+              Colors.white.withValues(alpha: opacity * 0.22),
+              const Color(0xFFD5D0C4).withValues(alpha: opacity * 0.10),
+            ],
           ),
           border: Border.all(
-            color: dark
-                ? Colors.white.withValues(alpha: opacity * 0.08)
-                : Colors.white.withValues(alpha: opacity * 0.72),
+            color: Colors.white.withValues(alpha: opacity * 0.72),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(
-                alpha: dark ? opacity * 0.24 : opacity * 0.10,
-              ),
+              color: Colors.black.withValues(alpha: opacity * 0.10),
               blurRadius: size * 0.20,
               spreadRadius: -size * 0.08,
               offset: Offset(0, size * 0.10),
