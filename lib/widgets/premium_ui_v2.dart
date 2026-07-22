@@ -217,7 +217,7 @@ class PremiumActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: dark
               ? (enabled
-                    ? const Color(0xFF237BC4)
+                    ? const Color(0xFF2278BF)
                     : const Color(0xFF1C2733))
               : null,
           gradient: dark
