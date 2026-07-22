@@ -71,6 +71,7 @@ void main() {
       'lib/features/recruitment/presentation/recruitment_application_detail_screen.dart',
       'lib/features/recruitment/presentation/recruitment_dashboard_screen.dart',
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
+      'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
       'lib/widgets/notification_bell.dart',
       'lib/widgets/task_tile.dart',
     ];
@@ -105,6 +106,9 @@ void main() {
     final archive = File(
       'lib/features/archive/presentation/archive_management_screen_v3.dart',
     ).readAsStringSync();
+    final paymentReport = File(
+      'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
+    ).readAsStringSync();
 
     expect(objectDialog, contains('AppAdaptivePalette.surfaceElevated'));
     expect(employeeDetails, contains('AppAdaptivePalette.surface'));
@@ -113,6 +117,7 @@ void main() {
     expect(pwa, contains('AppAdaptivePalette.textMuted'));
     expect(plans, contains('AppAdaptivePalette.background'));
     expect(archive, contains('AppAdaptivePalette.background'));
+    expect(paymentReport, contains('AppAdaptivePalette.textMuted'));
   });
 
   test('presentation audit does not introduce direct database access', () {
@@ -123,6 +128,7 @@ void main() {
       'lib/screens/employee_details/employee_details_sections.dart',
       'lib/features/company/presentation/company_plans_screen.dart',
       'lib/features/archive/presentation/archive_management_screen_v3.dart',
+      'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
     ];
 
     for (final path in targets) {
