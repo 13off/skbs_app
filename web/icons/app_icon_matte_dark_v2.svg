@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AppСтрой — тёмная иконка">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E1621"/>
+      <stop offset="1" stop-color="#1F2C3A"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5F7FA"/>
+      <stop offset=".48" stop-color="#B8C5D1"/>
+      <stop offset="1" stop-color="#708499"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="72%" cy="18%" r="70%">
+      <stop offset="0" stop-color="#3390EC" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#3390EC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="16" stdDeviation="15" flood-color="#000000" flood-opacity=".34"/>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="126" fill="url(#night)"/>
+  <rect x="16" y="16" width="480" height="480" rx="126" fill="url(#glow)"/>
+  <rect x="25" y="25" width="462" height="462" rx="118" fill="none" stroke="#2B3A49" stroke-width="3"/>
+
+  <g transform="translate(58 42) scale(1.68)" fill="url(#metal)" filter="url(#shadow)">
+    <path d="M38 204V146C38 130 48 119 61 114L72 110C79 107 86 112 86 120V204Z"/>
+    <path d="M96 204V82C96 61 109 45 128 39L139 36C146 34 153 39 153 47V204Z"/>
+    <path d="M163 204V110C163 97 174 88 187 91C211 96 225 109 225 129V204Z"/>
+  </g>
+</svg>
