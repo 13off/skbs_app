@@ -3,13 +3,21 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('employee position stays separate from phone', () {
-    final source = File('lib/models/employee.dart').readAsStringSync();
+  test('desktop directory receives a clean position without losing phone data', () {
+    final employee = File('lib/models/employee.dart').readAsStringSync();
+    final adaptiveDirectory = File(
+      'lib/screens/adaptive_employees_screen.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('position.trim(),'));
-    expect(source, contains('phone: phone.trim(),'));
-    expect(source, isNot(contains('positionWithContact')));
-    expect(source, isNot(contains("join(' • ')")));
+    expect(employee, contains('String get positionTitle'));
+    expect(employee, contains('String get positionWithContact'));
+    expect(employee, contains('phone: phone.trim(),'));
+    expect(adaptiveDirectory, contains('employee.positionTitle'));
+    expect(adaptiveDirectory, contains('phone: employee.phone'));
+    expect(
+      adaptiveDirectory,
+      contains('.map(prepareForDesktopDirectory)'),
+    );
   });
 
   test('shared AppPage expands on desktop and restores nested back navigation', () {
