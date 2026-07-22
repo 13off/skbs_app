@@ -15,6 +15,8 @@ void main() {
     expect(screen, contains('AppAdaptivePalette.surfaceSoft'));
     expect(screen, contains('AppAdaptivePalette.border'));
     expect(screen, contains('AppAdaptivePalette.danger'));
+    expect(screen, contains('UserRepository.setActiveCompany(company.id)'));
+    expect(screen, contains("title: const Text('Выбрать компанию')"));
     expect(screen, isNot(contains('Colors.white.withValues')));
     expect(screen, isNot(contains('AppColors.textPrimary')));
     expect(screen, isNot(contains('AppColors.textMuted')));
@@ -31,6 +33,8 @@ void main() {
     expect(screen, contains('AppAdaptivePalette.textPrimary'));
     expect(screen, contains('AppAdaptivePalette.textMuted'));
     expect(screen, contains('AppAdaptivePalette.danger'));
+    expect(screen, contains('UserRepository.createCompanyProfile('));
+    expect(screen, contains("label: 'Создать рабочее пространство'"));
     expect(screen, isNot(contains('Colors.white.withValues')));
     expect(screen, isNot(contains('Color(0xFFFFF2F1)')));
     expect(screen, isNot(contains('AppColors.textPrimary')));
@@ -48,6 +52,10 @@ void main() {
     expect(screen, contains('AppAdaptivePalette.textMuted'));
     expect(screen, contains('AppAdaptivePalette.danger'));
     expect(screen, contains('AppAdaptivePalette.onAccent'));
+    expect(screen, contains('CompanyRepository.inviteMember('));
+    expect(screen, contains('CompanyRepository.updateMemberAccess('));
+    expect(screen, contains('CompanyRepository.removeMember('));
+    expect(screen, contains("label: 'Пригласить пользователя'"));
     expect(screen, isNot(contains('Colors.white.withValues(alpha: 0.86)')));
     expect(screen, isNot(contains('Colors.white.withValues(alpha: 0.84)')));
     expect(screen, isNot(contains('Color(0xFFF0F1F3)')));
@@ -63,6 +71,9 @@ void main() {
 
     expect(dialogs, contains('backgroundColor: specialistSoft'));
     expect(dialogs, contains('foregroundColor: specialistText'));
+    expect(dialogs, contains('CompanyRepository.inviteMember('));
+    expect(dialogs, contains('CompanyRepository.updateMemberAccess('));
+    expect(dialogs, contains('CompanyRepository.removeMember('));
     expect(
       dialogs,
       isNot(
