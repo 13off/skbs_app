@@ -4,7 +4,7 @@ import '../../../app/theme_controller.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
-const double specialistDesktopBreakpoint = 1050;
+const double specialistDesktopBreakpoint = 820;
 Color get specialistText => AppThemeController.instance.isDark
     ? const Color(0xFFF1F3F5)
     : const Color(0xFF1F2328);
@@ -28,6 +28,8 @@ class SpecialistDesktopPage extends StatelessWidget {
   final Widget? trailing;
   final List<Widget> children;
   final Future<void> Function()? onRefresh;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   const SpecialistDesktopPage({
     super.key,
@@ -37,6 +39,8 @@ class SpecialistDesktopPage extends StatelessWidget {
     required this.children,
     this.trailing,
     this.onRefresh,
+    this.showBackButton = false,
+    this.onBack,
   });
 
   @override
@@ -56,6 +60,8 @@ class SpecialistDesktopPage extends StatelessWidget {
                   title: title,
                   subtitle: subtitle,
                   trailing: trailing,
+                  showBackButton: showBackButton,
+                  onBack: onBack,
                 ),
                 const SizedBox(height: 14),
                 ...children,

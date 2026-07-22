@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/employee_comments_repository.dart';
 import '../models/employee.dart';
+import '../widgets/adaptive_detail_body.dart';
 
 class EmployeeCommentsScreen extends StatefulWidget {
   final Employee employee;
@@ -136,23 +138,22 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
 
   Widget buildAddCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         children: [
           TextField(
             controller: commentController,
             enabled: !isSaving,
-            minLines: 3,
-            maxLines: 6,
+            minLines: 4,
+            maxLines: 8,
             decoration: const InputDecoration(
               labelText: 'Новый комментарий',
               hintText: 'Например: документы обещал привезти завтра',
-              border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -182,22 +183,41 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
     }
 
     if (comments.isEmpty) {
-      return const Center(child: Text('Комментариев пока нет'));
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 44),
+        child: Center(
+          child: Text(
+            'Комментариев пока нет',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
     }
 
     return Column(
       children: comments.map((comment) {
-        return Card(
-          elevation: 0,
-          color: const Color(0xFFFFEEE7),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surfaceElevated,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppAdaptivePalette.border),
           ),
           child: ListTile(
-            leading: const Icon(Icons.comment_outlined),
-            title: Text(comment.text),
+            leading: Icon(
+              Icons.comment_outlined,
+              color: AppAdaptivePalette.accent,
+            ),
+            title: Text(
+              comment.text,
+              style: TextStyle(color: AppAdaptivePalette.textPrimary),
+            ),
             subtitle: Text(
               '${comment.createdBy.isEmpty ? 'Пользователь' : comment.createdBy} • ${formatDate(comment.createdAt)}',
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
             ),
           ),
         );
@@ -209,33 +229,65 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Комментарии')),
-      body: RefreshIndicator(
+        leading: const BackButton(),
+        title: const Text('Комментарии'),
+      ),
+      body: AdaptiveDetailBody(
         onRefresh: () => loadComments(showLoader: false),
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            Text(
-              widget.employee.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+        desktopMaxWidth: 1180,
+        children: [
+          Text(
+            widget.employee.name,
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 4),
-            Text('${widget.employee.position} • ${widget.employee.objectName}'),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${widget.employee.position} • ${widget.employee.objectName}',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final desktop = constraints.maxWidth >= 900;
+              final list = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (errorText != null) ...[
+                    Text(
+                      errorText!,
+                      style: TextStyle(color: AppAdaptivePalette.danger),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  buildCommentsList(),
+                ],
+              );
 
-            const SizedBox(height: 18),
+              if (!desktop) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [buildAddCard(), const SizedBox(height: 18), list],
+                );
+              }
 
-            buildAddCard(),
-
-            if (errorText != null) ...[
-              const SizedBox(height: 12),
-              Text(errorText!, style: const TextStyle(color: Colors.red)),
-            ],
-
-            const SizedBox(height: 18),
-
-            buildCommentsList(),
-          ],
-        ),
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 430, child: buildAddCard()),
+                  const SizedBox(width: 20),
+                  Expanded(child: list),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

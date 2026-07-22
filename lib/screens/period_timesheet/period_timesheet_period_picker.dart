@@ -15,8 +15,9 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
                 margin: const EdgeInsets.all(12),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: AppAdaptivePalette.surfaceElevated,
                   borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppAdaptivePalette.border),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -132,8 +133,9 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
                   margin: const EdgeInsets.all(12),
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: AppAdaptivePalette.surfaceElevated,
                     borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: AppAdaptivePalette.border),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -159,7 +161,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
                                   Text(
                                     subtitle,
                                     style: TextStyle(
-                                      color: Colors.grey.shade600,
+                                      color: AppAdaptivePalette.textMuted,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -223,7 +225,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
                             ? 'Месяцы не выбраны'
                             : 'Выбрано: ${picked.map((item) => '${monthName(item.month)} ${item.year}').join(', ')}',
                         style: TextStyle(
-                          color: Colors.grey.shade700,
+                          color: AppAdaptivePalette.textMuted,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -255,7 +257,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
       width: 44,
       height: 5,
       decoration: BoxDecoration(
-        color: Colors.grey.shade400,
+        color: AppAdaptivePalette.textFaint,
         borderRadius: BorderRadius.circular(100),
       ),
     );
@@ -270,7 +272,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -290,10 +292,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
               ),
             ),
           ),
-          IconButton(
-            onPressed: onNext,
-            icon: const Icon(Icons.chevron_right),
-          ),
+          IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right)),
         ],
       ),
     );
@@ -313,13 +312,13 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.grey.shade100,
+              ? AppAdaptivePalette.accentStrong
+              : AppAdaptivePalette.surfaceSoft,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.transparent,
+                ? AppAdaptivePalette.accent
+                : AppAdaptivePalette.border,
             width: 1.5,
           ),
         ),
@@ -330,7 +329,7 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
               Icon(
                 Icons.check_circle,
                 size: 18,
-                color: Theme.of(context).colorScheme.primary,
+                color: AppAdaptivePalette.onAccent,
               ),
               const SizedBox(width: 5),
             ],
@@ -341,8 +340,8 @@ extension _PeriodTimesheetPeriodPicker on _PeriodTimesheetScreenState {
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.black87,
+                      ? AppAdaptivePalette.onAccent
+                      : AppAdaptivePalette.textPrimary,
                 ),
               ),
             ),

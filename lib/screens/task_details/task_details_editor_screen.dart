@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/app_adaptive_palette.dart';
 import '../../data/employee_repository.dart';
 import '../../data/task_repository.dart';
 import '../../features/developer/data/developer_policy_repository.dart';
@@ -13,6 +14,7 @@ import '../../features/tasks/task_edit_policy.dart';
 import '../../models/app_user_profile.dart';
 import '../../models/employee.dart';
 import '../../models/task_item_data.dart';
+import '../../widgets/adaptive_detail_body.dart';
 
 part 'task_details_actions.dart';
 part 'task_details_loading.dart';
@@ -60,10 +62,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   String? deletingPhotoId;
   String? errorText;
 
-  static const List<String> statuses = <String>[
-    'Запланировано',
-    'Выполнено',
-  ];
+  static const List<String> statuses = <String>['Запланировано', 'Выполнено'];
 
   bool get canEdit => TaskEditPolicy.canEditTask(widget.profile, widget.task);
   bool get canEditDate =>

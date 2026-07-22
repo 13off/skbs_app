@@ -627,10 +627,7 @@ class _DesktopCompanyManagementScreenState
               color: specialistMuted,
             ),
             editable
-                ? Icon(
-                    Icons.chevron_right_rounded,
-                    color: specialistMuted,
-                  )
+                ? Icon(Icons.chevron_right_rounded, color: specialistMuted)
                 : Icon(
                     member.isOwner ? Icons.lock_outline : Icons.person_outline,
                     color: specialistMuted,
@@ -801,6 +798,7 @@ class _DesktopCompanyManagementScreenState
           return const SpecialistDesktopPage(
             storageKey: 'desktop-company-users-loading',
             title: 'Компания и пользователи',
+            showBackButton: true,
             subtitle: 'Загружаем команду, роли и приглашения',
             children: [
               SpecialistMessageCard(
@@ -815,6 +813,7 @@ class _DesktopCompanyManagementScreenState
           return SpecialistDesktopPage(
             storageKey: 'desktop-company-users-error',
             title: 'Компания и пользователи',
+            showBackButton: true,
             subtitle: 'Команда, роли, объекты и приглашения',
             children: [
               SpecialistMessageCard(
@@ -834,6 +833,7 @@ class _DesktopCompanyManagementScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-company-users-${widget.companyId}',
           title: 'Компания и пользователи',
+          showBackButton: true,
           subtitle:
               'Единый центр ролей, объектов, доступа и приглашений компании',
           trailing: actions(data.dashboard),

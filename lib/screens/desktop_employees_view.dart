@@ -20,6 +20,19 @@ Color get _success => AppAdaptivePalette.success;
 Color get _warning => AppAdaptivePalette.warning;
 Color get _danger => AppAdaptivePalette.danger;
 
+String _positionLabel(String raw) {
+  var value = raw.trim();
+  if (value.isEmpty) return '';
+
+  value = value.replaceFirst(
+    RegExp(r'\s*[•·]\s*(?:\+?7|8)[\d\s()\-]{6,}.*$'),
+    '',
+  );
+  value = value.replaceFirst(RegExp(r'\s+(?:\+?7|8)[\d\s()\-]{6,}.*$'), '');
+  value = value.replaceFirst(RegExp(r'\s*[•·]\s*$'), '');
+  return value.trim();
+}
+
 class DesktopEmployeesView extends StatefulWidget {
   final AppUserProfile profile;
   final String scopeTitle;
@@ -96,7 +109,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
   List<String> positionOptions() {
     final result =
         widget.employees
-            .map((employee) => clean(employee.position))
+            .map((employee) => _positionLabel(employee.position))
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
@@ -147,7 +160,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
       if (query.isNotEmpty) {
         final haystack = <String>[
           employee.name,
-          employee.position,
+          _positionLabel(employee.position),
           employee.phone,
           employee.objectName,
         ].join(' ').toLowerCase();
@@ -156,7 +169,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
 
       if (!matchesObject(employee, objectFilter)) return false;
       if (positionFilter.isNotEmpty &&
-          employee.position.trim() != positionFilter) {
+          _positionLabel(employee.position) != positionFilter) {
         return false;
       }
 
@@ -824,7 +837,7 @@ class _EmployeeRow extends StatelessWidget {
                 ],
               ),
             ),
-            _TextCell(flex: 2, text: employee.position),
+            _TextCell(flex: 2, text: _positionLabel(employee.position)),
             _TextCell(flex: 2, text: employee.objectName),
             _TextCell(flex: 2, text: employee.phone),
             _TextCell(flex: 2, text: money(employee.dailyRate)),

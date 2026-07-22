@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/attendance_repository.dart';
 import '../data/timesheet_excel_exporter.dart';
 import '../models/employee.dart';

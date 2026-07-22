@@ -6,14 +6,18 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3EFE7),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1D8C8)),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_clock_outlined, size: 21),
+          Icon(
+            Icons.lock_clock_outlined,
+            size: 21,
+            color: AppAdaptivePalette.warning,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -38,9 +42,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
             'Задача выполнена',
             style: TextStyle(fontWeight: FontWeight.w900),
           ),
-          subtitle: Text(
-            done ? 'Статус: Выполнено' : 'Статус: Запланировано',
-          ),
+          subtitle: Text(done ? 'Статус: Выполнено' : 'Статус: Запланировано'),
         ),
         if (!done) ...[
           const SizedBox(height: 14),
@@ -83,8 +85,8 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
         alignment: Alignment.centerLeft,
         child: Text(
           text,
-          style: const TextStyle(
-            color: Color(0xFF6B7075),
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -103,9 +105,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
           enabled: !isSaving && canEditAxesWork,
           decoration: InputDecoration(
             hintText: 'Укажите оси',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
       ],
@@ -125,9 +125,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
           maxLines: 7,
           decoration: InputDecoration(
             hintText: 'Опишите работы',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
       ],
@@ -157,13 +155,13 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Container(
-                    color: Colors.grey.shade200,
+                    color: AppAdaptivePalette.surfaceSoft,
                     child: const Center(child: CircularProgressIndicator()),
                   );
                 }
                 if (snapshot.hasError || snapshot.data == null) {
                   return Container(
-                    color: Colors.grey.shade200,
+                    color: AppAdaptivePalette.surfaceSoft,
                     child: const Icon(Icons.broken_image_outlined),
                   );
                 }
@@ -239,18 +237,18 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
         .toList();
     final description = photoStage == 'before'
         ? policy.requireBeforePhoto
-            ? 'Обязательное состояние участка перед началом работ: минимум ${policy.minBeforePhotos}.'
-            : 'Фотография участка перед началом работ — по желанию.'
+              ? 'Обязательное состояние участка перед началом работ: минимум ${policy.minBeforePhotos}.'
+              : 'Фотография участка перед началом работ — по желанию.'
         : policy.requireAfterPhotoOnComplete
-            ? 'Обязательный результат после завершения: минимум ${policy.minAfterPhotos}.'
-            : 'Фотография результата — по желанию.';
+        ? 'Обязательный результат после завершения: минимум ${policy.minAfterPhotos}.'
+        : 'Фотография результата — по желанию.';
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +295,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   Widget buildErrorBlock() {
     final message = errorText;
     if (message == null) return const SizedBox.shrink();
-    return Text(message, style: const TextStyle(color: Colors.red));
+    return Text(message, style: TextStyle(color: AppAdaptivePalette.danger));
   }
 
   Widget buildSaveButton() {
