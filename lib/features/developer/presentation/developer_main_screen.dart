@@ -5,10 +5,10 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../dispatcher/presentation/dispatcher_settings_screen.dart';
+import 'data_governance_screen.dart';
 import 'developer_panel_screen.dart';
 import 'developer_system_screen.dart';
 import 'role_permission_matrix_screen.dart';
-import 'task_governance_screen.dart';
 
 class DeveloperMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -48,7 +48,7 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
       1 => const DispatcherSettingsScreen(),
       2 => DeveloperPanelScreen(profile: widget.profile),
       3 => const RolePermissionMatrixScreen(),
-      4 => const TaskGovernanceScreen(),
+      4 => const DataGovernanceScreen(),
       5 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
