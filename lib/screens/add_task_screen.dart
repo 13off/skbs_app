@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/employee_repository.dart';
 import '../data/task_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
@@ -98,7 +99,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       widget.initialAssigneeIds.where((id) => id.trim().isNotEmpty),
     );
     loadEmployees();
-    loadPolicy();
   }
 
   @override

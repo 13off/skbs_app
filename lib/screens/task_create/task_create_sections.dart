@@ -4,7 +4,11 @@ extension _TaskCreateSections on _AddTaskScreenState {
   Widget buildObjectCard() {
     return Card(
       elevation: 0,
-      color: Colors.grey.shade100,
+      color: AppAdaptivePalette.surfaceSoft,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppAdaptivePalette.border),
+      ),
       child: ListTile(
         leading: const Icon(Icons.apartment_outlined),
         title: const Text('Объект'),
@@ -106,9 +110,9 @@ extension _TaskCreateSections on _AddTaskScreenState {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,6 +128,7 @@ extension _TaskCreateSections on _AddTaskScreenState {
             requiresBeforePhoto
                 ? 'Нужно прикрепить минимум $minimumBeforePhotos. Можно добавить несколько снимков.'
                 : 'На этом объекте задачу можно создать без фотографии.',
+            style: TextStyle(color: AppAdaptivePalette.textMuted),
           ),
           const SizedBox(height: 12),
           SizedBox(
