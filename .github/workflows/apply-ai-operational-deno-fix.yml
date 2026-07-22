@@ -1,0 +1,52 @@
+name: Apply AI operational Deno fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/ai_operational_deno_fix.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-operational-deno-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Apply type and pin fix
+        run: python3 tool/fix_ai_operational_deno.py
+
+      - name: Check function
+        run: deno check supabase/functions/ai-operational-insights/index.ts
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f tool/fix_ai_operational_deno.py
+          rm -f tool/ai_operational_deno_fix.trigger
+          rm -f .github/workflows/apply-ai-operational-deno-fix.yml
+
+      - name: Commit validated fix
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: исправлена типизация оперативной аналитики ИИ
+          file_pattern: .
