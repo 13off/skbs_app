@@ -1,1 +1,1 @@
-apply adaptive add payment screen retry 3 with test artifact
+apply adaptive add payment screen retry 4 strict
