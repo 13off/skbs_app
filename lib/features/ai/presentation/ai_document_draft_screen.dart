@@ -157,23 +157,31 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
 
   Widget buildMissingFields() {
     if (missingFields.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF4E5),
+        color: scheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7C68E)),
+        border: Border.all(color: scheme.tertiary.withValues(alpha: .35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Нужно заполнить вручную',
-            style: TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: scheme.onTertiaryContainer,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 6),
-          for (final field in missingFields) Text('• $field'),
+          for (final field in missingFields)
+            Text(
+              '• $field',
+              style: TextStyle(color: scheme.onTertiaryContainer),
+            ),
         ],
       ),
     );
@@ -181,9 +189,12 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Черновик документа')),
+        leading: const BackButton(),
+        title: const Text('Черновик документа'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,
@@ -202,7 +213,7 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
                             Text(
                               errorText!,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red),
+                              style: TextStyle(color: scheme.error),
                             ),
                             const SizedBox(height: 14),
                             OutlinedButton(
@@ -225,12 +236,15 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'ИИ определил тип и контекст. Подписи, отправка и сохранение в карточку сотрудника не выполняются автоматически.',
+                          'ИИ определил тип и контекст. Подписи, отправка и '
+                          'сохранение в карточку сотрудника не выполняются '
+                          'автоматически.',
                           style: TextStyle(height: 1.4),
                         ),
                         const SizedBox(height: 16),
                         buildMissingFields(),
-                        if (missingFields.isNotEmpty) const SizedBox(height: 16),
+                        if (missingFields.isNotEmpty)
+                          const SizedBox(height: 16),
                         TextField(
                           controller: titleController,
                           decoration: InputDecoration(
