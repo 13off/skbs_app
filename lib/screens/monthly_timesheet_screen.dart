@@ -264,7 +264,8 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Табель месяца')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Табель месяца')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

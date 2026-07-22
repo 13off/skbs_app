@@ -534,6 +534,7 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Работодатель и персональные данные',
+      showBackButton: true,
       subtitle: 'Юридические реквизиты, доказательства и серверный gate',
       headerTrailing: IconButton(
         tooltip: 'Обновить',

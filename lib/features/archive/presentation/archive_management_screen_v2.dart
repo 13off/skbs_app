@@ -510,6 +510,7 @@ class _ArchiveManagementScreenV2State
 
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Архив и удаление'),
         actions: [
           IconButton(

@@ -734,6 +734,7 @@ class _DeveloperConstructorScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Конструктор',
+      showBackButton: true,
       subtitle: 'Создание напоминаний и системных параметров без правок в коде',
       headerTrailing: IconButton(
         tooltip: 'Обновить',

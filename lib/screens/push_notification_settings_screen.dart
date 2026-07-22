@@ -27,6 +27,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Push-уведомления'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,

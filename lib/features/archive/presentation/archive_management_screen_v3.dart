@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
+
 import '../../../data/employee_archive_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../data/permanent_deletion_repository.dart';
@@ -7,10 +9,10 @@ import '../../../models/app_user_profile.dart';
 import '../../../models/employee.dart';
 import '../../../widgets/premium_ui_v2.dart';
 
-const Color _archiveText = Color(0xFF1F2328);
-const Color _archiveMuted = Color(0xFF6B7075);
-const Color _archiveSoft = Color(0xFFF1F0EC);
-const Color _archiveLine = Color(0xFFE4E2DC);
+Color get _archiveText => AppAdaptivePalette.textPrimary;
+Color get _archiveMuted => AppAdaptivePalette.textMuted;
+Color get _archiveSoft => AppAdaptivePalette.surfaceSoft;
+Color get _archiveLine => AppAdaptivePalette.border;
 
 enum _ArchiveKind { employees, objects }
 
@@ -188,7 +190,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Удалить выбранное навсегда?'),
+          title: Text('Удалить выбранное навсегда?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,12 +198,12 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
               Text(
                 'Будет безвозвратно удалено: $selectedCount. Восстановить данные будет невозможно.',
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               const Text(
                 'Введите УДАЛИТЬ',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextField(
                 controller: controller,
                 autofocus: true,
@@ -221,7 +223,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                 backgroundColor: const Color(0xFF9D3E38),
               ),
               onPressed: matches ? () => Navigator.pop(context, true) : null,
-              icon: const Icon(Icons.delete_forever_outlined),
+              icon: Icon(Icons.delete_forever_outlined),
               label: const Text('Удалить навсегда'),
             ),
           ],
@@ -332,7 +334,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                     });
                   },
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           TextField(
             controller: searchController,
             onChanged: (_) => setState(() {}),
@@ -340,7 +342,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
               hintText: kind == _ArchiveKind.employees
                   ? 'Поиск в архиве сотрудников'
                   : 'Поиск в архиве объектов',
-              prefixIcon: const Icon(Icons.search_rounded),
+              prefixIcon: Icon(Icons.search_rounded),
               suffixIcon: searchController.text.isEmpty
                   ? null
                   : IconButton(
@@ -348,11 +350,11 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                         searchController.clear();
                         setState(() {});
                       },
-                      icon: const Icon(Icons.close_rounded),
+                      icon: Icon(Icons.close_rounded),
                     ),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
               color: _archiveSoft,
@@ -364,7 +366,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
               onChanged: isBusy
                   ? null
                   : (value) => selectAllVisible(value == true),
-              title: const Text(
+              title: Text(
                 'Выбрать все',
                 style: TextStyle(
                   color: _archiveText,
@@ -373,7 +375,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
               ),
               subtitle: Text(
                 'Выбрано: $selectedCount',
-                style: const TextStyle(
+                style: TextStyle(
                   color: _archiveMuted,
                   fontWeight: FontWeight.w700,
                 ),
@@ -403,14 +405,14 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           onChanged: onChanged,
           title: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: _archiveText,
               fontWeight: FontWeight.w900,
             ),
           ),
           subtitle: Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               color: _archiveMuted,
               height: 1.25,
               fontWeight: FontWeight.w600,
@@ -434,7 +436,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
 
   Widget buildContent() {
     if (isLoading) {
-      return const PremiumWorkCard(
+      return PremiumWorkCard(
         radius: 24,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 40),
@@ -448,24 +450,24 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
         radius: 24,
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
               color: Color(0xFF9D3E38),
               size: 32,
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Text(
               errorText!,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _archiveMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             FilledButton.icon(
               onPressed: loadData,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.refresh_rounded),
               label: const Text('Повторить'),
             ),
           ],
@@ -478,7 +480,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
         : visibleObjects();
 
     if (items.isEmpty) {
-      return const PremiumWorkCard(
+      return PremiumWorkCard(
         radius: 24,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 34),
@@ -569,7 +571,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                 padding: const EdgeInsets.all(18),
                 child: PremiumWorkCard(
                   radius: 28,
-                  child: const Column(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
@@ -600,8 +602,9 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Архив и удаление'),
-        backgroundColor: const Color(0xFFFAF9F6),
+        leading: const BackButton(),
+        title: Text('Архив и удаление'),
+        backgroundColor: AppAdaptivePalette.background,
         surfaceTintColor: Colors.transparent,
       ),
       body: PremiumWorkBackdrop(
@@ -615,10 +618,10 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     buildTopPanel(),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     if (isBusy) ...[
                       const LinearProgressIndicator(),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                     ],
                     buildContent(),
                   ],
@@ -629,7 +632,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
         ),
       ),
       bottomNavigationBar: Material(
-        color: const Color(0xFFF8F7F3),
+        color: AppAdaptivePalette.surface,
         child: SafeArea(
           top: false,
           minimum: const EdgeInsets.fromLTRB(18, 10, 18, 16),
@@ -648,11 +651,11 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                         onPressed: selectedCount == 0 || isBusy
                             ? null
                             : restoreSelected,
-                        icon: const Icon(Icons.restore_rounded),
+                        icon: Icon(Icons.restore_rounded),
                         label: const Text('Восстановить'),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
@@ -661,7 +664,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                         onPressed: selectedCount == 0 || isBusy
                             ? null
                             : deleteSelectedForever,
-                        icon: const Icon(Icons.delete_forever_outlined),
+                        icon: Icon(Icons.delete_forever_outlined),
                         label: const Text('Удалить'),
                       ),
                     ),

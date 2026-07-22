@@ -606,7 +606,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Добавить выплату')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Добавить выплату')),
       body: body,
     );
   }

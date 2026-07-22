@@ -128,7 +128,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Черновик сотрудника')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Черновик сотрудника')),
       body: Form(
         key: formKey,
         child: ListView(

@@ -193,7 +193,8 @@ class AiOperationalAuditScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Контроль табеля и выплат')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Контроль табеля и выплат')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

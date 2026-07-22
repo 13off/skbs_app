@@ -3,7 +3,8 @@ part of '../add_task_screen.dart';
 extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
     return Scaffold(
-      appBar: AppBar(title: const Text('Новая задача')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Новая задача')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

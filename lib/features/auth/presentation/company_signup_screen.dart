@@ -131,7 +131,8 @@ class _CompanySignupScreenState extends State<CompanySignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Создать компанию')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Создать компанию')),
       body: PremiumBackdrop(
         child: SafeArea(
           top: false,

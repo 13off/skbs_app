@@ -73,6 +73,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Юридический вопрос'),
         actions: [if (!widget.canDecide) IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined))],
       ),

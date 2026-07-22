@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_adaptive_palette.dart';
+
 import '../../../../widgets/object_employee_scope.dart';
 import '../../data/payment_report_exporter.dart';
 
-const Color _sheetCard = Color(0xFFFFFFFF);
-const Color _sheetSoft = Color(0xFFF2F3F5);
-const Color _sheetLine = Color(0xFFE6E8EB);
-const Color _sheetText = Color(0xFF1F2328);
-const Color _sheetMuted = Color(0xFF6B7075);
+Color get _sheetCard => AppAdaptivePalette.surfaceElevated;
+Color get _sheetSoft => AppAdaptivePalette.surfaceSoft;
+Color get _sheetLine => AppAdaptivePalette.border;
+Color get _sheetText => AppAdaptivePalette.textPrimary;
+Color get _sheetMuted => AppAdaptivePalette.textMuted;
 
 Future<PaymentReportRequest?> showPaymentReportSheet({
   required BuildContext context,
@@ -174,10 +176,10 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Отчёт по выплатам',
                         style: TextStyle(
@@ -189,12 +191,12 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   'Сначала выбери объект или «Все объекты», затем период и сотрудника.',
                   style: TextStyle(
                     color: _sheetMuted,
@@ -202,7 +204,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                     height: 1.35,
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -240,7 +242,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                           });
                         },
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         initialValue: selectedPeriodKey,
                         isExpanded: true,
@@ -269,7 +271,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                           });
                         },
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         key: ValueKey(
                           'payment-report-employee-${selectedObjectKey ?? 'none'}',
@@ -281,7 +283,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                           hintText: selectedObjectKey == null
                               ? 'Сначала выберите объект'
                               : 'Выберите сотрудника',
-                          prefixIcon: const Icon(Icons.person_outline),
+                          prefixIcon: Icon(Icons.person_outline),
                           border: const OutlineInputBorder(),
                         ),
                         items: [
@@ -317,13 +319,13 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton.icon(
                     onPressed: selectedObjectKey == null ? null : submit,
-                    icon: const Icon(Icons.download_outlined),
+                    icon: Icon(Icons.download_outlined),
                     label: const Text('Скачать таблицу'),
                   ),
                 ),

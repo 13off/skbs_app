@@ -162,7 +162,8 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
     final failed = results.where((item) => item.state == _DiagnosticState.failure).length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Диагностика ИИ')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Диагностика ИИ')),
       body: PremiumWorkBackdrop(
         child: ListView(
           padding: const EdgeInsets.all(18),

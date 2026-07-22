@@ -145,6 +145,7 @@ class _OperationalAuditLauncherScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Контроль табеля и выплат',
+      showBackButton: true,
       subtitle: 'Прямой read-only аудит без команды в чате',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

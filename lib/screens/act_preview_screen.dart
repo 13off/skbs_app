@@ -150,7 +150,8 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Черновик акта')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Черновик акта')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

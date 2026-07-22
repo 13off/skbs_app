@@ -189,6 +189,7 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Панель разработчика'),
         actions: [
           IconButton(

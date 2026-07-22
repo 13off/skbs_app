@@ -592,6 +592,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const BackButton(),
         backgroundColor: Colors.transparent,
         title: const Text('Выплаты'),
         actions: [buildReportAction(), buildAddAction()],

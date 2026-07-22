@@ -243,6 +243,7 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Цели'),
         actions: [
           IconButton(

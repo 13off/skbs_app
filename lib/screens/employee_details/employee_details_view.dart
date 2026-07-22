@@ -5,7 +5,8 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
     final isAdmin = widget.profile.isAdmin;
 
     return Scaffold(
-      appBar: AppBar(title: Text(employee.name)),
+      appBar: AppBar(
+        leading: const BackButton(),title: Text(employee.name)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
         children: [

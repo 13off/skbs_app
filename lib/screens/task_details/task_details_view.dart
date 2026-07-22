@@ -4,6 +4,7 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
   Widget buildTaskDetailsView() {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Задача'),
         actions: [
           if (canDeleteTask)

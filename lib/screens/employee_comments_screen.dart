@@ -208,7 +208,8 @@ class _EmployeeCommentsScreenState extends State<EmployeeCommentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Комментарии')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Комментарии')),
       body: RefreshIndicator(
         onRefresh: () => loadComments(showLoader: false),
         child: ListView(

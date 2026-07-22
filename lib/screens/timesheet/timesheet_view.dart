@@ -137,7 +137,8 @@ class _TimesheetReportRoute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Отчет по табелю — $objectTitle')),
+      appBar: AppBar(
+        leading: const BackButton(),title: Text('Отчет по табелю — $objectTitle')),
       body: PeriodTimesheetScreen(selectedObjectName: selectedObjectName),
     );
   }

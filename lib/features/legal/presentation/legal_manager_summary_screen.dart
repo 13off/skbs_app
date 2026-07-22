@@ -65,7 +65,8 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Юридическая сводка')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('Юридическая сводка')),
       body: AppPage(
         title: 'Юридическая сводка',
         subtitle: 'Риски, решения, согласования и недельный отчёт юриста',

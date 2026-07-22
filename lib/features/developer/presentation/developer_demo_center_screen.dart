@@ -293,6 +293,7 @@ class _DeveloperDemoCenterScreenState
     final scenario = scenarios[selectedIndex];
     return AppPage(
       title: 'Демонстрационный центр',
+      showBackButton: true,
       subtitle: 'Безопасный сценарий показа AppСтрой потенциальному клиенту',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

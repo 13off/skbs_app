@@ -556,6 +556,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
         final milestone = snapshot.data;
         return Scaffold(
           appBar: AppBar(
+        leading: const BackButton(),
             title: const Text('Готовность этапа'),
             actions: [
               IconButton(

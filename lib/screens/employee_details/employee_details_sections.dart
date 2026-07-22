@@ -10,7 +10,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
   }) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFF7F8FA),
+      color: AppAdaptivePalette.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
         minVerticalPadding: 14,
@@ -21,9 +21,9 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(icon),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Icon(Icons.chevron_right),
         onTap: isLoading ? null : onTap,
       ),
     );
@@ -37,7 +37,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
     final cleanValue = value.trim();
     return Card(
       elevation: 0,
-      color: Colors.grey.shade100,
+      color: AppAdaptivePalette.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
         minVerticalPadding: 14,
@@ -47,7 +47,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
             ? null
             : Text(
                 cleanValue,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: TextStyle(fontWeight: FontWeight.w700),
               ),
       ),
     );
@@ -58,13 +58,17 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: isFired ? Colors.grey.shade300 : Colors.green.shade100,
+        color: isFired
+            ? AppAdaptivePalette.disabledSurface
+            : AppAdaptivePalette.success.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
         isFired ? 'Уволен' : 'Активный',
         style: TextStyle(
-          color: isFired ? Colors.grey.shade800 : Colors.green.shade800,
+          color: isFired
+              ? AppAdaptivePalette.disabledText
+              : AppAdaptivePalette.success,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -83,16 +87,16 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
             CircleAvatar(
               radius: isMobile ? 58 : 66,
               backgroundColor: isFired
-                  ? Colors.grey.shade300
-                  : const Color(0xFFF2F3F5),
+                  ? AppAdaptivePalette.disabledSurface
+                  : AppAdaptivePalette.surfaceSoft,
               child: Text(
                 firstLetter(employee.name),
                 style: TextStyle(
                   fontSize: isMobile ? 42 : 48,
                   fontWeight: FontWeight.w500,
                   color: isFired
-                      ? Colors.grey.shade700
-                      : const Color(0xFF6B7075),
+                      ? AppAdaptivePalette.disabledText
+                      : AppAdaptivePalette.textMuted,
                 ),
               ),
             ),
@@ -181,7 +185,9 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
                 fontSize: isMobile ? 28 : 32,
                 height: 1.12,
                 fontWeight: FontWeight.w900,
-                color: isFired ? Colors.grey.shade700 : Colors.black87,
+                color: isFired
+                    ? AppAdaptivePalette.disabledText
+                    : AppAdaptivePalette.textPrimary,
                 letterSpacing: -0.5,
               ),
             ),
@@ -218,9 +224,9 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppAdaptivePalette.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppAdaptivePalette.border),
           ),
           child: isMobile
               ? Column(
@@ -267,7 +273,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: const Color(0xFFF2F3F5),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(999),
         child: InkWell(
           onTap: onPressed,
@@ -276,7 +282,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
             width: 52,
             height: 52,
             child: Center(
-              child: child ?? Icon(icon, color: const Color(0xFF8F9499)),
+              child: child ?? Icon(icon, color: AppAdaptivePalette.textMuted),
             ),
           ),
         ),
@@ -294,14 +300,14 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 19, color: Colors.grey.shade700),
+          Icon(icon, size: 19, color: AppAdaptivePalette.textMuted),
           const SizedBox(width: 8),
           SizedBox(
             width: 105,
             child: Text(
               title,
               style: TextStyle(
-                color: Colors.grey.shade700,
+                color: AppAdaptivePalette.textMuted,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -309,7 +315,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w900),
+              style: TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
         ],

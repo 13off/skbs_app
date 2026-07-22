@@ -444,7 +444,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     final hasConversation = entries.isNotEmpty || isSending;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('ИИ-помощник')),
+      appBar: AppBar(
+        leading: const BackButton(),title: const Text('ИИ-помощник')),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,

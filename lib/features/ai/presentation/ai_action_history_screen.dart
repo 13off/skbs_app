@@ -411,6 +411,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
     final visible = visibleRecords;
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Журнал действий ИИ'),
         actions: [
           IconButton(
