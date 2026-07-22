@@ -52,7 +52,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
 
     await _run('Активная компания', () async {
       final companyId = widget.profile.activeCompanyId.trim();
-      if (companyId.isEmpty) throw StateError('Активная компания не выбрана');
+      if (companyId.isEmpty) {
+        throw StateError('Активная компания не выбрана');
+      }
       return companyId;
     });
 
@@ -61,7 +63,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
         companyId: widget.profile.activeCompanyId,
         limit: 1,
       );
-      return history.isEmpty ? 'Доступ подтверждён, записей пока нет' : 'Доступ подтверждён';
+      return history.isEmpty
+          ? 'Доступ подтверждён, записей пока нет'
+          : 'Доступ подтверждён';
     });
 
     await _run('Каталог шаблонов', () async {
@@ -123,7 +127,8 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
         final actual = response.action?.type ?? '';
         if (actual != expectedActionType) {
           throw StateError(
-            'Ожидалось действие $expectedActionType, получено ${actual.isEmpty ? 'без действия' : actual}',
+            'Ожидалось действие $expectedActionType, получено '
+            '${actual.isEmpty ? 'без действия' : actual}',
           );
         }
       }
@@ -158,12 +163,18 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final passed = results.where((item) => item.state == _DiagnosticState.success).length;
-    final failed = results.where((item) => item.state == _DiagnosticState.failure).length;
+    final passed = results
+        .where((item) => item.state == _DiagnosticState.success)
+        .length;
+    final failed = results
+        .where((item) => item.state == _DiagnosticState.failure)
+        .length;
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Диагностика ИИ')),
+        leading: const BackButton(),
+        title: const Text('Диагностика ИИ'),
+      ),
       body: PremiumWorkBackdrop(
         child: ListView(
           padding: const EdgeInsets.all(18),
@@ -176,15 +187,26 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                 children: [
                   const Text(
                     'Безопасный smoke-тест',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Проверяются текущая JWT-сессия, RLS, журнал, шаблоны и получение предварительных ответов edge-функций. Диагностика не подтверждает, не сохраняет и не выполняет действия.',
-                    style: TextStyle(height: 1.45, fontWeight: FontWeight.w600),
+                    'Проверяются текущая JWT-сессия, RLS, журнал, шаблоны '
+                    'и получение предварительных ответов edge-функций. '
+                    'Диагностика не подтверждает, не сохраняет и не выполняет '
+                    'действия.',
+                    style: TextStyle(
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  Text('Область: ${effectiveObjectName ?? 'все доступные объекты'}'),
+                  Text(
+                    'Область: ${effectiveObjectName ?? 'все доступные объекты'}',
+                  ),
                   if (results.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text('Успешно: $passed • Ошибок: $failed'),
@@ -201,7 +223,9 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.health_and_safety_outlined),
-                      label: Text(isRunning ? 'Проверяем…' : 'Запустить диагностику'),
+                      label: Text(
+                        isRunning ? 'Проверяем…' : 'Запустить диагностику',
+                      ),
                     ),
                   ),
                 ],
@@ -232,14 +256,32 @@ class _DiagnosticResult {
     required this.state,
   });
 
-  const _DiagnosticResult.success({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.success);
+  const _DiagnosticResult.success({
+    required String title,
+    required String details,
+  }) : this._(
+         title: title,
+         details: details,
+         state: _DiagnosticState.success,
+       );
 
-  const _DiagnosticResult.warning({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.warning);
+  const _DiagnosticResult.warning({
+    required String title,
+    required String details,
+  }) : this._(
+         title: title,
+         details: details,
+         state: _DiagnosticState.warning,
+       );
 
-  const _DiagnosticResult.failure({required String title, required String details})
-      : this._(title: title, details: details, state: _DiagnosticState.failure);
+  const _DiagnosticResult.failure({
+    required String title,
+    required String details,
+  }) : this._(
+         title: title,
+         details: details,
+         state: _DiagnosticState.failure,
+       );
 }
 
 class _DiagnosticCard extends StatelessWidget {
@@ -249,15 +291,16 @@ class _DiagnosticCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final icon = switch (result.state) {
       _DiagnosticState.success => Icons.check_circle_outline,
       _DiagnosticState.warning => Icons.info_outline,
       _DiagnosticState.failure => Icons.error_outline,
     };
     final color = switch (result.state) {
-      _DiagnosticState.success => const Color(0xFF236A45),
-      _DiagnosticState.warning => const Color(0xFF8A6417),
-      _DiagnosticState.failure => const Color(0xFF874540),
+      _DiagnosticState.success => scheme.primary,
+      _DiagnosticState.warning => scheme.tertiary,
+      _DiagnosticState.failure => scheme.error,
     };
 
     return PremiumWorkCard(
@@ -272,9 +315,21 @@ class _DiagnosticCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(result.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  result.title,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 5),
-                SelectableText(result.details, style: const TextStyle(height: 1.4)),
+                SelectableText(
+                  result.details,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),

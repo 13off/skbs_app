@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../../../app/app_theme.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/ai_action_audit_repository.dart';
@@ -105,13 +104,13 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
     };
   }
 
-  Color statusColor(String status) {
+  Color statusColor(String status, ColorScheme scheme) {
     return switch (status) {
-      'completed' => const Color(0xFF28704E),
-      'failed' => const Color(0xFF874540),
-      'cancelled' => const Color(0xFF6C7075),
-      'confirmed' => const Color(0xFF705D28),
-      _ => AppColors.textMuted,
+      'completed' => scheme.primary,
+      'failed' => scheme.error,
+      'cancelled' => scheme.onSurfaceVariant,
+      'confirmed' => scheme.tertiary,
+      _ => scheme.onSurfaceVariant,
     };
   }
 
@@ -143,10 +142,13 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
           minChildSize: .48,
           maxChildSize: .94,
           builder: (context, scrollController) {
+            final scheme = Theme.of(context).colorScheme;
             return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
               ),
               child: ListView(
                 controller: scrollController,
@@ -157,7 +159,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                       width: 44,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: scheme.outlineVariant,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
@@ -169,7 +171,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                       Expanded(
                         child: Text(
                           record.title,
-                          style: const TextStyle(
+                          style: TextStyle(
+                            color: scheme.onSurface,
                             fontSize: 23,
                             height: 1.15,
                             fontWeight: FontWeight.w900,
@@ -183,43 +186,81 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _detailLine('Статус', statusTitle(record.status)),
-                  _detailLine('Тип', AiActionAuditRecord.actionTypeTitle(record.actionType)),
-                  _detailLine('Пользователь', record.actorLabel),
-                  _detailLine('Дата', formatDate(record.createdAt)),
+                  _detailLine(
+                    'Статус',
+                    statusTitle(record.status),
+                    scheme,
+                  ),
+                  _detailLine(
+                    'Тип',
+                    AiActionAuditRecord.actionTypeTitle(record.actionType),
+                    scheme,
+                  ),
+                  _detailLine('Пользователь', record.actorLabel, scheme),
+                  _detailLine('Дата', formatDate(record.createdAt), scheme),
                   _detailLine(
                     'Объект',
-                    record.objectName.isEmpty ? 'Все доступные объекты' : record.objectName,
+                    record.objectName.isEmpty
+                        ? 'Все доступные объекты'
+                        : record.objectName,
+                    scheme,
                   ),
                   if (record.confirmedAt != null)
-                    _detailLine('Подтверждено', formatDate(record.confirmedAt!)),
+                    _detailLine(
+                      'Подтверждено',
+                      formatDate(record.confirmedAt!),
+                      scheme,
+                    ),
                   if (record.completedAt != null)
-                    _detailLine('Завершено', formatDate(record.completedAt!)),
+                    _detailLine(
+                      'Завершено',
+                      formatDate(record.completedAt!),
+                      scheme,
+                    ),
                   if (record.targetEntityType.isNotEmpty)
-                    _detailLine('Результат', record.targetEntityType),
+                    _detailLine(
+                      'Результат',
+                      record.targetEntityType,
+                      scheme,
+                    ),
                   if (record.targetEntityId.isNotEmpty)
-                    _detailLine('ID результата', record.targetEntityId),
+                    _detailLine(
+                      'ID результата',
+                      record.targetEntityId,
+                      scheme,
+                    ),
                   if (record.errorText.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    _warningCard(record.errorText),
+                    _warningCard(record.errorText, scheme),
                   ],
                   const SizedBox(height: 22),
-                  const Text(
+                  Text(
                     'Точное предложение',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   if (record.payload.isEmpty)
-                    const Text('Данные предложения отсутствуют')
+                    Text(
+                      'Данные предложения отсутствуют',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    )
                   else
                     ...record.payload.entries.map(
-                      (entry) => _detailLine(entry.key, payloadValue(entry.value)),
+                      (entry) => _detailLine(
+                        entry.key,
+                        payloadValue(entry.value),
+                        scheme,
+                      ),
                     ),
                   const SizedBox(height: 16),
                   SelectableText(
                     'Action ID: ${record.actionId}\nAudit ID: ${record.id}',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -232,7 +273,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
     );
   }
 
-  Widget _detailLine(String title, String value) {
+  Widget _detailLine(String title, String value, ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -242,8 +283,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
             width: 125,
             child: Text(
               title,
-              style: const TextStyle(
-                color: AppColors.textMuted,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -251,7 +292,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -259,18 +303,18 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
     );
   }
 
-  Widget _warningCard(String text) {
+  Widget _warningCard(String text, ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF0EF),
+        color: scheme.errorContainer,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8C7C4)),
+        border: Border.all(color: scheme.error.withValues(alpha: .35)),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Color(0xFF874540),
+        style: TextStyle(
+          color: scheme.onErrorContainer,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -309,13 +353,26 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   decoration: const InputDecoration(labelText: 'Статус'),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('Все статусы')),
-                    DropdownMenuItem(value: 'proposed', child: Text('Предложено')),
-                    DropdownMenuItem(value: 'confirmed', child: Text('Подтверждено')),
-                    DropdownMenuItem(value: 'completed', child: Text('Выполнено')),
-                    DropdownMenuItem(value: 'cancelled', child: Text('Отменено')),
+                    DropdownMenuItem(
+                      value: 'proposed',
+                      child: Text('Предложено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'confirmed',
+                      child: Text('Подтверждено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'completed',
+                      child: Text('Выполнено'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'cancelled',
+                      child: Text('Отменено'),
+                    ),
                     DropdownMenuItem(value: 'failed', child: Text('Ошибка')),
                   ],
-                  onChanged: (value) => setState(() => statusFilter = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => statusFilter = value ?? 'all'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -324,7 +381,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   initialValue: typeFilter,
                   decoration: const InputDecoration(labelText: 'Действие'),
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('Все действия')),
+                    const DropdownMenuItem(
+                      value: 'all',
+                      child: Text('Все действия'),
+                    ),
                     ...actionTypes.map(
                       (type) => DropdownMenuItem(
                         value: type,
@@ -335,7 +395,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() => typeFilter = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => typeFilter = value ?? 'all'),
                 ),
               ),
             ],
@@ -346,7 +407,8 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
   }
 
   Widget buildRecord(AiActionAuditRecord record) {
-    final color = statusColor(record.status);
+    final scheme = Theme.of(context).colorScheme;
+    final color = statusColor(record.status, scheme);
     return PremiumWorkCard(
       radius: 22,
       padding: EdgeInsets.zero,
@@ -362,7 +424,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: .10),
+                  color: color.withValues(alpha: .14),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(statusIcon(record.status), color: color),
@@ -374,17 +436,27 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                   children: [
                     Text(
                       record.title,
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       '${statusTitle(record.status)} • ${formatDate(record.createdAt)}',
-                      style: TextStyle(color: color, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       '${record.actorLabel}${record.objectName.isEmpty ? '' : ' • ${record.objectName}'}',
-                      style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (record.errorText.isNotEmpty) ...[
                       const SizedBox(height: 7),
@@ -392,7 +464,10 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                         record.errorText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF874540), fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: scheme.error,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],
@@ -409,6 +484,7 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = visibleRecords;
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -437,15 +513,18 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (errorText != null)
-                  _warningCard(errorText!)
+                  _warningCard(errorText!, scheme)
                 else if (visible.isEmpty)
-                  const PremiumWorkCard(
+                  PremiumWorkCard(
                     radius: 22,
-                    padding: EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
                       'В журнале пока нет подходящих действий.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   )
                 else
