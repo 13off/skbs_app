@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
@@ -10,10 +10,7 @@ import '../data/company_repository.dart';
 class CompanySwitcherScreen extends StatefulWidget {
   final String activeCompanyId;
 
-  const CompanySwitcherScreen({
-    super.key,
-    required this.activeCompanyId,
-  });
+  const CompanySwitcherScreen({super.key, required this.activeCompanyId});
 
   @override
   State<CompanySwitcherScreen> createState() => _CompanySwitcherScreenState();
@@ -67,20 +64,23 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.88),
+              color: AppAdaptivePalette.surfaceElevated,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white),
+              border: Border.all(color: AppAdaptivePalette.border),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.cloud_off_rounded, size: 38),
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 38,
+                  color: AppAdaptivePalette.textPrimary,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Не удалось загрузить компании',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppAdaptivePalette.textPrimary,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -88,7 +88,7 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                 Text(
                   '$error',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textMuted),
+                  style: TextStyle(color: AppAdaptivePalette.textMuted),
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
@@ -110,33 +110,43 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
 
     return Card(
       elevation: 0,
-      color: Colors.white.withValues(alpha: isCurrent ? 0.96 : 0.82),
+      color: isCurrent
+          ? AppAdaptivePalette.selectedSurface
+          : AppAdaptivePalette.surfaceElevated,
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isCurrent ? AppColors.textPrimary : Colors.white,
+          color: isCurrent
+              ? AppAdaptivePalette.accent
+              : AppAdaptivePalette.border,
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 9,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         leading: Container(
           width: 44,
           height: 44,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF0F1F3),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surfaceSoft,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.apartment_rounded),
+          child: Icon(
+            Icons.apartment_rounded,
+            color: AppAdaptivePalette.textPrimary,
+          ),
         ),
         title: Text(
           company.name,
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: AppAdaptivePalette.textPrimary,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        subtitle: Text(company.roleTitle),
+        subtitle: Text(
+          company.roleTitle,
+          style: TextStyle(color: AppAdaptivePalette.textMuted),
+        ),
         trailing: isSwitching
             ? const SizedBox(
                 width: 22,
@@ -147,6 +157,9 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                 isCurrent
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
+                color: isCurrent
+                    ? AppAdaptivePalette.accent
+                    : AppAdaptivePalette.textMuted,
               ),
         onTap: isCurrent ? null : () => selectCompany(company),
       ),
@@ -157,15 +170,17 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Выбрать компанию')),
+        leading: const BackButton(),
+        title: const Text('Выбрать компанию'),
+      ),
       body: PremiumBackdrop(
         child: FutureBuilder<List<CompanySummary>>(
           future: companiesFuture,
           builder: (context, snapshot) {
             if (!snapshot.hasData &&
                 snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: PremiumDots(color: AppColors.textPrimary),
+              return Center(
+                child: PremiumDots(color: AppAdaptivePalette.textPrimary),
               );
             }
             if (snapshot.hasError) {
@@ -192,23 +207,23 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.76),
+                          color: AppAdaptivePalette.surface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white),
+                          border: Border.all(color: AppAdaptivePalette.border),
                         ),
-                        child: const Row(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
                               Icons.shield_outlined,
-                              color: AppColors.textPrimary,
+                              color: AppAdaptivePalette.textPrimary,
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Данные, объекты и сотрудники каждой компании полностью изолированы.',
                                 style: TextStyle(
-                                  color: AppColors.textMuted,
+                                  color: AppAdaptivePalette.textMuted,
                                   height: 1.4,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -225,16 +240,20 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF2F1),
+                            color: AppAdaptivePalette.danger.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: const Color(0xFFF0D2CF),
+                              color: AppAdaptivePalette.danger.withValues(
+                                alpha: 0.32,
+                              ),
                             ),
                           ),
                           child: Text(
                             errorText!,
-                            style: const TextStyle(
-                              color: Color(0xFF874540),
+                            style: TextStyle(
+                              color: AppAdaptivePalette.danger,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -253,4 +272,3 @@ class _CompanySwitcherScreenState extends State<CompanySwitcherScreen> {
     );
   }
 }
-
