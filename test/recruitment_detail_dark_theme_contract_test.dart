@@ -32,7 +32,9 @@ void main() {
     expect(screen, isNot(contains('Color(0xFFF3F5F7)')));
     expect(
       screen,
-      isNot(contains('color: inbound ? Colors.white : const Color(0xFFDCEEFF)')),
+      isNot(
+        contains('color: inbound ? Colors.white : const Color(0xFFDCEEFF)'),
+      ),
     );
   });
 }

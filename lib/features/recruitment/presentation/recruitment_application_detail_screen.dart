@@ -22,6 +22,10 @@ Color get _detailText => AppAdaptivePalette.textPrimary;
 Color get _detailMuted => AppAdaptivePalette.textMuted;
 Color get _detailSoft => AppAdaptivePalette.surfaceSoft;
 Color get _detailSuccess => AppAdaptivePalette.success;
+Color get _detailSurface => AppAdaptivePalette.surfaceElevated;
+Color get _detailBorder => AppAdaptivePalette.border;
+Color get _detailInput => AppAdaptivePalette.inputSurface;
+Color get _detailWarning => AppAdaptivePalette.warning;
 
 class RecruitmentApplicationDetailScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -553,9 +557,9 @@ class _RecruitmentApplicationDetailScreenState
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.78),
+          color: _detailSurface,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white),
+          border: Border.all(color: _detailBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -572,17 +576,15 @@ class _RecruitmentApplicationDetailScreenState
                         height: 44,
                         decoration: BoxDecoration(
                           color: waiting
-                              ? const Color(0xFFFFF4E2)
-                              : const Color(0xFFE8F4ED),
+                              ? _detailWarning.withValues(alpha: 0.14)
+                              : _detailSuccess.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Icon(
                           document.mimeType == 'application/pdf'
                               ? Icons.picture_as_pdf_outlined
                               : Icons.image_outlined,
-                          color: waiting
-                              ? const Color(0xFF9A6816)
-                              : _detailSuccess,
+                          color: waiting ? _detailWarning : _detailSuccess,
                         ),
                       ),
                       SizedBox(width: 12),
@@ -732,7 +734,7 @@ class _RecruitmentApplicationDetailScreenState
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.fromLTRB(12, 9, 12, 7),
         decoration: BoxDecoration(
-          color: inbound ? Colors.white : const Color(0xFFDCEEFF),
+          color: inbound ? _detailSurface : AppAdaptivePalette.selectedSurface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(17),
             topRight: const Radius.circular(17),
@@ -764,7 +766,7 @@ class _RecruitmentApplicationDetailScreenState
               Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.72),
+                  color: _detailSoft,
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: Column(
@@ -813,10 +815,7 @@ class _RecruitmentApplicationDetailScreenState
                                     ),
                                   )
                                 : null,
-                            icon: Icon(
-                              Icons.visibility_outlined,
-                              size: 18,
-                            ),
+                            icon: Icon(Icons.visibility_outlined, size: 18),
                             label: const Text('Открыть'),
                           ),
                         ),
@@ -867,9 +866,9 @@ class _RecruitmentApplicationDetailScreenState
       height: 470,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFFE9EDF1),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: _detailBorder),
       ),
       child: Column(
         children: [
@@ -927,8 +926,8 @@ class _RecruitmentApplicationDetailScreenState
           Container(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE1E4E8))),
+              color: _detailSurface,
+              border: Border(top: BorderSide(color: _detailBorder)),
             ),
             child: widget.application.canMessageInTelegram
                 ? Row(
@@ -946,7 +945,7 @@ class _RecruitmentApplicationDetailScreenState
                             hintText: 'Сообщение',
                             prefixIcon: Icon(Icons.telegram),
                             filled: true,
-                            fillColor: const Color(0xFFF3F5F7),
+                            fillColor: _detailInput,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(22),
                               borderSide: BorderSide.none,
@@ -1143,9 +1142,9 @@ class _DetailMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.70),
+        color: _detailSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: _detailBorder),
       ),
       child: Row(
         children: [
