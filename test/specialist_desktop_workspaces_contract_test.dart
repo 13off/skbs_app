@@ -33,7 +33,7 @@ void main() {
     expect(documents, contains('LegalDocumentsScreen('));
     expect(documents, contains('SpecialistDesktopTable'));
     expect(documents, contains("title: 'Юридические документы'"));
-    expect(documents, isNot(contains('LegalDocumentStatus.active')));
+    expect(documents, isNot(contains('LegalDocumentStatus.active'));
     expect(matters, contains('LegalMattersScreen('));
     expect(matters, contains('SpecialistDesktopTable'));
     expect(matters, contains("title: managerMode ? 'Решения и риски'"));
@@ -83,7 +83,7 @@ void main() {
       'lib/features/shared/presentation/specialist_desktop_table.dart',
     );
 
-    expect(ui, contains('specialistDesktopBreakpoint = 1050'));
+    expect(ui, contains('specialistDesktopBreakpoint = 820'));
     expect(ui, contains('BoxConstraints(maxWidth: 1460)'));
     expect(ui, contains('PremiumWorkBackdrop'));
     expect(table, contains('SingleChildScrollView'));
