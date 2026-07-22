@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
 
@@ -76,12 +76,14 @@ class _SetInvitationPasswordScreenState
                 child: Container(
                   padding: const EdgeInsets.all(26),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.86),
+                    color: AppAdaptivePalette.surfaceElevated,
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.white),
+                    border: Border.all(color: AppAdaptivePalette.border),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.09),
+                        color: Colors.black.withValues(
+                          alpha: AppAdaptivePalette.isDark ? 0.24 : 0.09,
+                        ),
                         blurRadius: 42,
                         offset: const Offset(0, 20),
                       ),
@@ -95,14 +97,15 @@ class _SetInvitationPasswordScreenState
                       Text(
                         'Придумайте пароль',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
+                              color: AppAdaptivePalette.textPrimary,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Приглашение принято. Пароль понадобится для следующих входов в AppСтрой.',
                         textAlign: TextAlign.center,
+                        style: TextStyle(color: AppAdaptivePalette.textMuted),
                       ),
                       const SizedBox(height: 22),
                       TextField(
@@ -110,13 +113,19 @@ class _SetInvitationPasswordScreenState
                         enabled: !isLoading,
                         obscureText: !isVisible,
                         textInputAction: TextInputAction.next,
+                        keyboardAppearance: AppAdaptivePalette.isDark
+                            ? Brightness.dark
+                            : Brightness.light,
                         autofillHints: const [AutofillHints.newPassword],
                         decoration: InputDecoration(
                           labelText: 'Новый пароль',
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                           suffixIcon: IconButton(
-                            tooltip: isVisible ? 'Скрыть пароль' : 'Показать пароль',
-                            onPressed: () => setState(() => isVisible = !isVisible),
+                            tooltip: isVisible
+                                ? 'Скрыть пароль'
+                                : 'Показать пароль',
+                            onPressed: () =>
+                                setState(() => isVisible = !isVisible),
                             icon: Icon(
                               isVisible
                                   ? Icons.visibility_off_outlined
@@ -131,6 +140,9 @@ class _SetInvitationPasswordScreenState
                         enabled: !isLoading,
                         obscureText: !isVisible,
                         textInputAction: TextInputAction.done,
+                        keyboardAppearance: AppAdaptivePalette.isDark
+                            ? Brightness.dark
+                            : Brightness.light,
                         onSubmitted: (_) => save(),
                         decoration: const InputDecoration(
                           labelText: 'Повторите пароль',
@@ -139,12 +151,30 @@ class _SetInvitationPasswordScreenState
                       ),
                       if (errorText != null) ...[
                         const SizedBox(height: 12),
-                        Text(
-                          errorText!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF874540),
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppAdaptivePalette.danger.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: AppAdaptivePalette.danger.withValues(
+                                alpha: 0.32,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            errorText!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppAdaptivePalette.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -166,4 +196,3 @@ class _SetInvitationPasswordScreenState
     );
   }
 }
-
