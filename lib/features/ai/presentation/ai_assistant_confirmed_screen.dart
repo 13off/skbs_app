@@ -6,6 +6,7 @@ import '../../../widgets/premium_ui.dart';
 import '../actions/ai_action_execution_coordinator.dart';
 import '../data/ai_assistant_repository.dart';
 import '../models/ai_assistant_result.dart';
+import 'widgets/ai_operational_prompt_chips.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -121,9 +122,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void scrollToBottom() {
@@ -189,6 +190,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+            const SizedBox(height: 16),
+            AiOperationalPromptChips(
+              enabled: !isSending,
+              onSelected: (prompt) {
+                promptController.text = prompt;
+                sendPrompt();
+              },
             ),
             const SizedBox(height: 12),
             Text(
@@ -265,7 +274,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Icon(completed ? Icons.verified_rounded : Icons.fact_check_outlined),
+          : Icon(
+              completed ? Icons.verified_rounded : Icons.fact_check_outlined,
+            ),
       label: Text(completed ? completedLabel(action) : action.buttonLabel),
     );
   }

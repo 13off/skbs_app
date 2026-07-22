@@ -14,6 +14,34 @@ class AiAssistantRepository {
   static String _normalized(String prompt) =>
       prompt.trim().toLowerCase().replaceAll('ё', 'е');
 
+  static bool _isOperationalInsight(String normalized) {
+    final absence =
+        RegExp(
+          r'(кто|кого|сотрудник).*(не выш|не явил|отсутств|нет на работ)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(не выш|не явил|отсутств).*(сотрудник|сегодня|объект)',
+        ).hasMatch(normalized);
+    final unpaid =
+        RegExp(
+          r'(кому|у кого|кто).*(не выплат|не доплат|должн|долг|остаток|задолж)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(долг|задолж|остаток).*(выплат|зарплат|сотрудник)',
+        ).hasMatch(normalized);
+    final expiringDocuments =
+        RegExp(
+          r'(документ|договор|удостоверен|медосмотр|патент).*(заканч|истека|просроч|срок)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(заканч|истека|просроч).*(документ|договор|удостоверен|медосмотр|патент)',
+        ).hasMatch(normalized);
+    final weeklyReport =
+        RegExp(r'(сводк|отчет|итог).*(недел|7 дн)').hasMatch(normalized) ||
+        RegExp(r'(недел|7 дн).*(сводк|отчет|итог)').hasMatch(normalized);
+    return absence || unpaid || expiringDocuments || weeklyReport;
+  }
+
   static bool _isTaskCommand(String normalized) {
     return RegExp(
       r'(созда|добав|постав|назнач|сдел).*(задач|работ|армирован|бетонир|монтаж|демонтаж)',
@@ -85,9 +113,10 @@ class AiAssistantRepository {
     final payment = RegExp(
       r'(подготов|добав|созда|провед|внес).*(выплат|аванс|зарплат|штраф)',
     ).hasMatch(normalized);
-    final missingReceipts = RegExp(
-      r'(найд|покаж|проверь|какие).*(чек).*(нет|отсутств|не прикреп|без)',
-    ).hasMatch(normalized) ||
+    final missingReceipts =
+        RegExp(
+          r'(найд|покаж|проверь|какие).*(чек).*(нет|отсутств|не прикреп|без)',
+        ).hasMatch(normalized) ||
         RegExp(r'(нет|отсутств|без).*(чек)').hasMatch(normalized);
     final periodTimesheet = RegExp(
       r'(открой|покаж|собер|сформир).*(месячн|за месяц|период).*(табел)',
@@ -121,6 +150,9 @@ class AiAssistantRepository {
   }) {
     if (mode.trim() == 'chat') {
       final normalized = _normalized(prompt);
+      if (_isOperationalInsight(normalized)) {
+        return 'ai-operational-insights';
+      }
       if (_isTaskCommand(normalized)) return 'ai-action-draft';
       if (_isDocumentCommand(normalized) &&
           !_isCandidatePackage(normalized) &&
