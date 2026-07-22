@@ -4,7 +4,9 @@ extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Новая задача')),
+        leading: const BackButton(),
+        title: const Text('Новая задача'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -30,7 +32,23 @@ extension _TaskCreateView on _AddTaskScreenState {
           buildPhotosBlock(),
           if (errorText != null) ...[
             const SizedBox(height: 14),
-            Text(errorText!, style: const TextStyle(color: Colors.red)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.danger.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: AppAdaptivePalette.danger.withValues(alpha: 0.32),
+                ),
+              ),
+              child: Text(
+                errorText!,
+                style: TextStyle(
+                  color: AppAdaptivePalette.danger,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
           const SizedBox(height: 24),
           SizedBox(
