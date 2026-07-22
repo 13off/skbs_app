@@ -20,6 +20,7 @@ class MainActivity : FlutterActivity() {
         val dark = storedThemeIsDark()
         setTheme(if (dark) R.style.LaunchTheme_Dark else R.style.LaunchTheme)
         super.onCreate(savedInstanceState)
+        applyWindowBackground(dark)
         applyLauncherIcon(dark)
     }
 
@@ -34,6 +35,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 val dark = call.argument<Boolean>("dark") == true
+                applyWindowBackground(dark)
                 applyLauncherIcon(dark)
                 result.success(null)
             }
@@ -42,6 +44,13 @@ class MainActivity : FlutterActivity() {
     private fun storedThemeIsDark(): Boolean {
         return getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
             .getString(THEME_PREFERENCE, "light") == "dark"
+    }
+
+    private fun applyWindowBackground(dark: Boolean) {
+        window.setBackgroundDrawableResource(
+            if (dark) R.color.app_splash_dark_background
+            else R.color.app_splash_light_background,
+        )
     }
 
     private fun applyLauncherIcon(dark: Boolean) {
