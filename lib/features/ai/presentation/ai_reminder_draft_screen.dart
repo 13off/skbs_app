@@ -105,7 +105,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           scheduleType: 'once',
           runOnceAt: runOnceAt,
           localTime:
-              '${runOnceAt.hour.toString().padLeft(2, '0')}:${runOnceAt.minute.toString().padLeft(2, '0')}',
+              '${runOnceAt.hour.toString().padLeft(2, '0')}:'
+              '${runOnceAt.minute.toString().padLeft(2, '0')}',
           recipientRoles: recipientRoles,
           inAppEnabled: inAppEnabled,
           pushEnabled: pushEnabled,
@@ -134,9 +135,12 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Новое напоминание')),
+        leading: const BackButton(),
+        title: const Text('Новое напоминание'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -146,7 +150,8 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Напоминание будет создано только после кнопки «Сохранить напоминание».',
+            'Напоминание будет создано только после кнопки '
+            '«Сохранить напоминание».',
           ),
           const SizedBox(height: 18),
           TextField(
@@ -231,7 +236,13 @@ class _AiReminderDraftScreenState extends State<AiReminderDraftScreen> {
           ),
           if (errorText != null) ...[
             const SizedBox(height: 10),
-            Text(errorText!, style: const TextStyle(color: Colors.red)),
+            Text(
+              errorText!,
+              style: TextStyle(
+                color: scheme.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
           const SizedBox(height: 18),
           FilledButton.icon(
