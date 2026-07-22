@@ -1,1 +1,1 @@
-apply archive and payments adaptive colors retry 3
+apply archive and payments adaptive colors retry 4 with analyzer artifact
