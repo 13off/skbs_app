@@ -46,7 +46,8 @@ void main() {
       'lib/features/developer/presentation/task_governance_screen.dart',
     );
 
-    expect(navigation, contains('static const int pageCount = 5;'));
+    expect(navigation, contains('static const int pageCount = 6;'));
+    expect(navigation, contains("label: 'Права'"));
     expect(navigation, contains('const TaskGovernanceScreen()'));
     expect(navigation, contains("label: 'Контроль'"));
 
