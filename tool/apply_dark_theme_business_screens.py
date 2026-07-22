@@ -39,7 +39,6 @@ update(
         ('const TextStyle(', 'TextStyle('),
         ('const BoxDecoration(', 'BoxDecoration('),
         ('const Icon(', 'Icon('),
-        ('const BorderSide(', 'BorderSide('),
     ],
 )
 
