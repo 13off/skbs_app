@@ -10,7 +10,12 @@ import 'premium_ui_v2_legacy.dart' as legacy;
 // FocusableActionDetector
 // void invokeAction()
 export 'premium_ui_v2_legacy.dart'
-    hide PremiumBackdrop, PremiumLoadingScreen, PremiumWorkBackdrop, PremiumWorkCard;
+    hide
+        PremiumActionButton,
+        PremiumBackdrop,
+        PremiumLoadingScreen,
+        PremiumWorkBackdrop,
+        PremiumWorkCard;
 
 class PremiumBackdrop extends StatelessWidget {
   final Widget child;
@@ -173,6 +178,102 @@ class PremiumWorkCard extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+class PremiumActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  const PremiumActionButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final enabled = onPressed != null && !isLoading;
+    final foreground = enabled
+        ? Colors.white
+        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.72);
+
+    return legacy.PremiumPressable(
+      onTap: isLoading ? null : onPressed,
+      borderRadius: BorderRadius.circular(dark ? 15 : 20),
+      pressedScale: 0.982,
+      child: AnimatedContainer(
+        duration: AppMotion.regular,
+        height: 56,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: dark
+              ? (enabled
+                    ? const Color(0xFF237BC4)
+                    : const Color(0xFF1C2733))
+              : null,
+          gradient: dark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2A2D31), Color(0xFF17191C)],
+                ),
+          borderRadius: BorderRadius.circular(dark ? 15 : 20),
+          border: Border.all(
+            color: dark
+                ? (enabled
+                      ? theme.colorScheme.primary.withValues(alpha: 0.42)
+                      : theme.colorScheme.outlineVariant)
+                : Colors.white.withValues(alpha: 0.10),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: dark
+                  ? theme.colorScheme.primary.withValues(alpha: enabled ? 0.16 : 0)
+                  : const Color(0xFF15171A).withValues(alpha: 0.24),
+              blurRadius: dark ? 18 : 24,
+              spreadRadius: dark ? -10 : 0,
+              offset: Offset(0, dark ? 8 : 12),
+            ),
+          ],
+        ),
+        child: AnimatedSwitcher(
+          duration: AppMotion.regular,
+          switchInCurve: AppMotion.enterCurve,
+          switchOutCurve: AppMotion.exitCurve,
+          child: isLoading
+              ? Center(
+                  key: const ValueKey('loading'),
+                  child: legacy.PremiumDots(color: foreground),
+                )
+              : Row(
+                  key: const ValueKey('label'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 20, color: foreground),
+                    const SizedBox(width: 10),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: foreground,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 }
