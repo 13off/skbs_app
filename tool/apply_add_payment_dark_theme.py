@@ -29,12 +29,8 @@ replacements = [
         'border: Border.all(color: AppAdaptivePalette.border),',
     ),
     (
-        'color: Colors.grey.shade100,\n              borderRadius: BorderRadius.circular(22),',
-        'color: AppAdaptivePalette.surfaceSoft,\n              borderRadius: BorderRadius.circular(22),\n              border: Border.all(color: AppAdaptivePalette.border),',
-    ),
-    (
-        "Text(errorText!, style: const TextStyle(color: Colors.red)),",
-        "Container(\n              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),\n              decoration: BoxDecoration(\n                color: AppAdaptivePalette.danger.withValues(alpha: 0.12),\n                borderRadius: BorderRadius.circular(15),\n                border: Border.all(\n                  color: AppAdaptivePalette.danger.withValues(alpha: 0.32),\n                ),\n              ),\n              child: Text(\n                errorText!,\n                style: TextStyle(\n                  color: AppAdaptivePalette.danger,\n                  fontWeight: FontWeight.w700,\n                ),\n              ),\n            ),",
+        'color: AppAdaptivePalette.surfaceSoft,\n              borderRadius: BorderRadius.circular(22),\n            ),\n            child: Column(',
+        'color: AppAdaptivePalette.surfaceSoft,\n              borderRadius: BorderRadius.circular(22),\n              border: Border.all(color: AppAdaptivePalette.border),\n            ),\n            child: Column(',
     ),
     (
         "appBar: AppBar(\n        leading: const BackButton(),title: const Text('Добавить выплату')),",
@@ -43,9 +39,8 @@ replacements = [
 ]
 
 for old, new in replacements:
-    if old not in text:
-        raise RuntimeError(f'Expected fragment not found: {old!r}')
-    text = text.replace(old, new)
+    if old in text:
+        text = text.replace(old, new)
 
 if text == original:
     raise RuntimeError('No changes made')
