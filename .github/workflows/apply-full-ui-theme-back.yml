@@ -6,6 +6,7 @@ on:
       - agent/full-ui-theme-back-clean
     paths:
       - tool/apply_full_ui_theme_back.py
+      - tool/fix_full_ui_const_conflicts.py
       - .github/workflows/apply-full-ui-theme-back.yml
 
 permissions:
@@ -23,6 +24,9 @@ jobs:
       - name: Apply targeted UI patch
         run: python3 tool/apply_full_ui_theme_back.py
 
+      - name: Fix dynamic const conflicts
+        run: python3 tool/fix_full_ui_const_conflicts.py
+
       - name: Commit only targeted changes
         shell: bash
         run: |
@@ -34,5 +38,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${files[@]}"
-          git commit -m "полностью исправлены тёмная тема и возврат назад"
+          git commit -m "исправлены const-конфликты полной UI-темы"
           git push origin HEAD:agent/full-ui-theme-back-clean
