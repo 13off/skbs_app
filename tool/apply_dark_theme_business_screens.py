@@ -19,8 +19,7 @@ update(
     [
         (
             "import '../../../app/app_theme.dart';\n",
-            "import '../../../app/app_adaptive_palette.dart';\n"
-            "import '../../../app/app_theme.dart';\n",
+            "import '../../../app/app_adaptive_palette.dart';\n",
         ),
         ('AppColors.surfaceSoft', 'AppAdaptivePalette.surfaceSoft'),
         ('AppColors.border', 'AppAdaptivePalette.border'),
@@ -47,8 +46,7 @@ update(
     [
         (
             "import '../../../../app/app_theme.dart';\n",
-            "import '../../../../app/app_adaptive_palette.dart';\n"
-            "import '../../../../app/app_theme.dart';\n",
+            "import '../../../../app/app_adaptive_palette.dart';\n",
         ),
         ('AppColors.textMuted', 'AppAdaptivePalette.textMuted'),
         ('AppColors.textPrimary', 'AppAdaptivePalette.textPrimary'),
@@ -76,5 +74,7 @@ update(
         ('const BoxDecoration(', 'BoxDecoration('),
         ('const Icon(', 'Icon('),
         ('const BorderSide(', 'BorderSide('),
+        ('const Text(', 'Text('),
+        ('const Padding(', 'Padding('),
     ],
 )
