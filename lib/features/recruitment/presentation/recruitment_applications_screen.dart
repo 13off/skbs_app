@@ -215,7 +215,7 @@ class _RecruitmentApplicationsScreenState
         color: selected ? AppAdaptivePalette.onAccent : _text,
         fontWeight: FontWeight.w800,
       ),
-      selectedColor: _text,
+      selectedColor: AppAdaptivePalette.accentStrong,
       backgroundColor: _soft,
       side: BorderSide.none,
       showCheckmark: false,

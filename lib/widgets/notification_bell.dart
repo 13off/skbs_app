@@ -14,7 +14,7 @@ Color get _softCard => AppAdaptivePalette.surfaceSoft;
 Color get _line => AppAdaptivePalette.border;
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
-Color get _accent => AppAdaptivePalette.textFaint;
+Color get _accent => AppAdaptivePalette.accent;
 
 class NotificationBell extends StatefulWidget {
   final String? selectedObjectName;
@@ -289,16 +289,11 @@ class _NotificationBellState extends State<NotificationBell> {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.96),
-                  Colors.white.withValues(alpha: 0.76),
-                ],
-              ),
+              color: hasUnread
+                  ? AppAdaptivePalette.accentSoft
+                  : _card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: hasUnread ? _accent : Colors.white),
+              border: Border.all(color: hasUnread ? _accent : _line),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF17191C).withValues(alpha: 0.08),
@@ -312,7 +307,7 @@ class _NotificationBellState extends State<NotificationBell> {
                 Center(
                   child: Icon(
                     Icons.notifications_none_outlined,
-                    color: _text,
+                    color: hasUnread ? _accent : _muted,
                     size: 25,
                   ),
                 ),
