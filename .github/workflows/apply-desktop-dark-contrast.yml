@@ -1,0 +1,57 @@
+name: Apply desktop dark contrast patch
+
+on:
+  push:
+    branches:
+      - agent/desktop-dark-contrast
+    paths:
+      - tool/apply_desktop_dark_contrast.py
+      - .github/workflows/apply-desktop-dark-contrast.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/desktop-dark-contrast
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Apply deterministic patch
+        run: python3 tool/apply_desktop_dark_contrast.py
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/app/app_adaptive_palette.dart \
+            lib/screens/adaptive_home_base_screen.dart \
+            lib/screens/desktop_home_widgets.dart \
+            lib/screens/desktop_employees_view.dart \
+            lib/screens/desktop_tasks_screen.dart
+
+      - name: Commit transformed sources
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/app/app_adaptive_palette.dart \
+            lib/screens/adaptive_home_base_screen.dart \
+            lib/screens/desktop_home_widgets.dart \
+            lib/screens/desktop_employees_view.dart \
+            lib/screens/desktop_tasks_screen.dart
+          git commit -m "исправлен контраст desktop-темы"
+          git push origin HEAD:agent/desktop-dark-contrast
