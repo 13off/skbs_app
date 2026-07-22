@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../app/app_adaptive_palette.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../data/payment_receipt_repository.dart';
@@ -305,7 +306,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
             Text(
               errorText ?? 'Ошибка загрузки сотрудников',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: AppAdaptivePalette.danger),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -327,9 +328,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,7 +345,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 ? 'Можно прикрепить фото или PDF чека.'
                 : 'Прикреплено: ${receiptFiles.length}',
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppAdaptivePalette.textMuted,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -358,9 +359,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppAdaptivePalette.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: AppAdaptivePalette.border),
                 ),
                 child: Row(
                   children: [
@@ -441,8 +442,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppAdaptivePalette.surfaceSoft,
               borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppAdaptivePalette.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,7 +590,10 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
           if (errorText != null) ...[
             const SizedBox(height: 14),
-            Text(errorText!, style: const TextStyle(color: Colors.red)),
+            Text(
+              errorText!,
+              style: TextStyle(color: AppAdaptivePalette.danger),
+            ),
           ],
 
           const SizedBox(height: 20),
@@ -607,7 +612,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Добавить выплату')),
+        leading: const BackButton(),
+        title: const Text('Добавить выплату'),
+      ),
       body: body,
     );
   }
