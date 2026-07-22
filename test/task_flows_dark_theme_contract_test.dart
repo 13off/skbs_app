@@ -19,13 +19,23 @@ void main() {
     expect(sections, contains('AppAdaptivePalette.textMuted'));
     expect(view, contains('AppAdaptivePalette.danger'));
 
-    expect(actions, contains('TaskRepository.addTaskWithDetails('));
-    expect(actions, contains('requiresBeforePhoto'));
+    // Экран возвращает проверенный черновик, а вызывающий сценарий сохраняет его.
+    expect(actions, contains('TaskCreateDraft('));
+    expect(actions, contains('task: newTask'));
+    expect(actions, contains('assigneeIds: selectedAssigneeIds.toList()'));
+    expect(
+      actions,
+      contains('photos: List<TaskPhotoFile>.from(selectedPhotos)'),
+    );
+    expect(actions, contains('required: requiresBeforePhoto'));
     expect(view, contains("label: const Text('Сохранить задачу')"));
     expect(sections, contains("label: const Text('Добавить фото «До»')"));
 
     expect(sections, isNot(contains('color: Colors.grey.shade100')));
-    expect(sections, isNot(contains('border: Border.all(color: Colors.grey.shade200)')));
+    expect(
+      sections,
+      isNot(contains('border: Border.all(color: Colors.grey.shade200)')),
+    );
     expect(view, isNot(contains('TextStyle(color: Colors.red)')));
 
     // Белая иконка удаления остаётся только поверх тёмной плашки фотографии.
