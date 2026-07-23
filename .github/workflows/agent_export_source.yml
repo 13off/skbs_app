@@ -1,9 +1,9 @@
 name: Agent export source
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/unify-ui-recruitment-crm
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/unify-ui-recruitment-crm
           show-progress: false
       - name: Pack source
         run: |
