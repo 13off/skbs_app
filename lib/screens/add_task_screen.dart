@@ -99,6 +99,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       widget.initialAssigneeIds.where((id) => id.trim().isNotEmpty),
     );
     loadEmployees();
+    loadPolicy();
   }
 
   @override
