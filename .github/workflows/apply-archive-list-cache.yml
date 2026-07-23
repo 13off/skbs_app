@@ -1,0 +1,67 @@
+name: Apply archive list cache
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/archive_list_cache.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-list-cache-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply archive cache patch
+        run: python3 tool/apply_archive_list_cache.py
+
+      - name: Format changed files
+        run: |
+          dart format \
+            lib/data/employee_archive_repository.dart \
+            lib/data/object_repository.dart \
+            lib/data/permanent_deletion_repository.dart \
+            test/archive_list_cache_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run archive cache contract
+        run: flutter test test/archive_list_cache_contract_test.dart
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f tool/apply_archive_list_cache.py
+          rm -f tool/archive_list_cache.trigger
+          rm -f .github/workflows/apply-archive-list-cache.yml
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: кэшировать архивные списки
+          file_pattern: .
