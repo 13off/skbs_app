@@ -472,62 +472,15 @@ class CompanyRepository {
     String profession = '',
     String? objectId,
   }) async {
-    await _client
-        .from('company_memberships')
-        .update(<String, dynamic>{
-          'role': role,
-          'is_active': true,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('company_id', companyId)
-        .eq('user_id', member.userId);
-
-    await _client
-        .from('object_memberships')
-        .delete()
-        .eq('company_id', companyId)
-        .eq('user_id', member.userId);
-
-    String? objectName;
-    if (role == 'foreman' && objectId != null && objectId.isNotEmpty) {
-      final object = await _client
-          .from('objects')
-          .select('name')
-          .eq('company_id', companyId)
-          .eq('id', objectId)
-          .single();
-      objectName = object['name']?.toString();
-
-      await _client.from('object_memberships').insert(<String, dynamic>{
-        'company_id': companyId,
-        'object_id': objectId,
-        'user_id': member.userId,
-        'created_by': _client.auth.currentUser?.id,
-      });
-    }
-
-    await _client
-        .from('user_profiles')
-        .update(<String, dynamic>{
-          'profession': profession.trim(),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', member.userId);
-
-    final targetProfile = await _client
-        .from('user_profiles')
-        .select('active_company_id')
-        .eq('id', member.userId)
-        .maybeSingle();
-    if (targetProfile?['active_company_id']?.toString() == companyId) {
-      await _client
-          .from('user_profiles')
-          .update(<String, dynamic>{
-            'role': role,
-            'object_name': objectName,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', member.userId);
-    }
+    await _client.rpc(
+      'update_company_member_access',
+      params: <String, dynamic>{
+        'p_company_id': companyId,
+        'p_user_id': member.userId,
+        'p_role': role,
+        'p_profession': profession.trim(),
+        'p_object_id': role == 'foreman' ? objectId : null,
+      },
+    );
   }
 }

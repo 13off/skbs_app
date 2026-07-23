@@ -17,7 +17,7 @@ class DeveloperRoleAcceptanceScreen extends StatefulWidget {
 
 class _DeveloperRoleAcceptanceScreenState
     extends State<DeveloperRoleAcceptanceScreen> {
-  late String selectedRole;
+  late final String selectedRole;
   RoleAcceptanceRun? run;
   bool loading = false;
   String? errorText;
@@ -25,14 +25,14 @@ class _DeveloperRoleAcceptanceScreenState
   @override
   void initState() {
     super.initState();
-    selectedRole = RoleAcceptanceRepository.normalizeRole(
+    final actualRole = RoleAcceptanceRepository.normalizeRole(
       widget.profile.actualRole,
     );
-    if (!RoleAcceptanceRepository.scenarios.any(
-      (item) => item.role == selectedRole,
-    )) {
-      selectedRole = 'developer';
-    }
+    selectedRole = RoleAcceptanceRepository.scenarios.any(
+      (item) => item.role == actualRole,
+    )
+        ? actualRole
+        : 'developer';
     runChecks();
   }
 
@@ -62,16 +62,6 @@ class _DeveloperRoleAcceptanceScreenState
     }
   }
 
-  void selectRole(String role) {
-    if (selectedRole == role) return;
-    setState(() {
-      selectedRole = role;
-      run = null;
-      errorText = null;
-    });
-    runChecks();
-  }
-
   Color statusColor(BuildContext context, RoleAcceptanceStatus status) {
     return switch (status) {
       RoleAcceptanceStatus.passed => const Color(0xFF2E7D52),
@@ -88,27 +78,6 @@ class _DeveloperRoleAcceptanceScreenState
     };
   }
 
-  Widget scenarioCard(RoleAcceptanceScenario scenario) {
-    final active = scenario.role == selectedRole;
-    return ChoiceChip(
-      selected: active,
-      label: Text(scenario.title),
-      avatar: Icon(
-        switch (scenario.role) {
-          'admin' => Icons.admin_panel_settings_outlined,
-          'developer' => Icons.developer_mode_outlined,
-          'foreman' => Icons.engineering_outlined,
-          'hr' => Icons.person_search_outlined,
-          'accountant' => Icons.calculate_outlined,
-          'lawyer' => Icons.gavel_outlined,
-          _ => Icons.person_outline,
-        },
-        size: 18,
-      ),
-      onSelected: (_) => selectRole(scenario.role),
-    );
-  }
-
   Widget summaryCard(RoleAcceptanceRun result) {
     return PremiumWorkCard(
       radius: 26,
@@ -121,15 +90,15 @@ class _DeveloperRoleAcceptanceScreenState
               Icon(
                 result.live
                     ? Icons.verified_user_outlined
-                    : Icons.preview_outlined,
+                    : Icons.warning_amber_rounded,
                 size: 28,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   result.live
-                      ? 'Live-приёмка: ${result.scenario.title}'
-                      : 'Контракт роли: ${result.scenario.title}',
+                      ? 'Проверка текущей роли: ${result.scenario.title}'
+                      : 'Роль входа не совпала с профилем',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -152,14 +121,14 @@ class _DeveloperRoleAcceptanceScreenState
             children: [
               _AcceptanceBadge(label: 'Пройдено', value: result.passed),
               _AcceptanceBadge(label: 'Ошибки', value: result.failed),
-              _AcceptanceBadge(label: 'Нужен вход', value: result.blocked),
+              _AcceptanceBadge(label: 'Заблокировано', value: result.blocked),
             ],
           ),
           if (!result.live) ...[
             const SizedBox(height: 13),
             const Text(
-              'Клиентский просмотр роли не используется как доказательство. '
-              'Для полной приёмки выбери роль и войди отдельной реальной тестовой учётной записью.',
+              'Результат не считается подтверждением: роль из профиля не совпала '
+              'с серверной ролью текущей сессии. Выполните повторный вход и проверку.',
               style: TextStyle(
                 color: Color(0xFF8A5A12),
                 height: 1.4,
@@ -226,9 +195,9 @@ class _DeveloperRoleAcceptanceScreenState
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Ролевая приёмка',
+      title: 'Проверка текущей роли',
       showBackButton: true,
-      subtitle: 'Фактические JWT, permissions, Data API и RLS каждой профессии',
+      subtitle: 'Фактические JWT, permissions, Data API и RLS текущего входа',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Проверить снова',
         onPressed: loading ? null : runChecks,
@@ -237,30 +206,13 @@ class _DeveloperRoleAcceptanceScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PremiumWorkCard(
+          const PremiumWorkCard(
             radius: 24,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Выбери профессию',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Выбранная роль показывает контракт. Live-результат появляется только когда серверная роль текущего входа совпадает с выбранной.',
-                  style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 13),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: RoleAcceptanceRepository.scenarios
-                      .map(scenarioCard)
-                      .toList(growable: false),
-                ),
-              ],
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Проверяется только реально авторизованная роль этой сессии. '
+              'Переключение на чужую роль и визуальная имитация здесь не используются.',
+              style: TextStyle(height: 1.4, fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(height: 14),
@@ -274,7 +226,7 @@ class _DeveloperRoleAcceptanceScreenState
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Text(
-                  'Не удалось выполнить приёмку: $errorText',
+                  'Не удалось выполнить проверку: $errorText',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w800,
