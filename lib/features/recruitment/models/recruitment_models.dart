@@ -14,7 +14,9 @@ class RecruitmentApplication {
   final String experience;
   final DateTime? departureDate;
   final String status;
+  final String stageId;
   final String comment;
+  final Map<String, dynamic> customValues;
   final DateTime? archivedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -35,7 +37,9 @@ class RecruitmentApplication {
     required this.experience,
     required this.departureDate,
     required this.status,
+    required this.stageId,
     required this.comment,
+    required this.customValues,
     this.archivedAt,
     required this.createdAt,
     required this.updatedAt,
@@ -58,6 +62,8 @@ class RecruitmentApplication {
 
   String get statusTitle => recruitmentStatusTitle(status);
   String get stage => recruitmentStageKey(status);
+
+  dynamic customValue(String fieldId) => customValues[fieldId];
 
   factory RecruitmentApplication.fromMap(Map<String, dynamic> map) {
     DateTime parseDate(dynamic value, {required DateTime fallback}) {
@@ -97,7 +103,9 @@ class RecruitmentApplication {
       experience: map['experience_text']?.toString() ?? '',
       departureDate: optionalDate(map['ready_date']),
       status: map['status']?.toString() ?? 'new',
+      stageId: map['stage_id']?.toString() ?? '',
       comment: map['hr_comment']?.toString() ?? '',
+      customValues: nested(map['custom_values']),
       archivedAt: optionalDate(map['archived_at']),
       createdAt: createdAt,
       updatedAt: parseDate(map['updated_at'], fallback: createdAt),
@@ -250,6 +258,217 @@ class RecruitmentVacancyOption {
   });
 }
 
+
+class RecruitmentPipelineStage {
+  final String id;
+  final String companyId;
+  final String systemKey;
+  final String title;
+  final String description;
+  final String colorHex;
+  final int sortOrder;
+  final String legacyStatus;
+  final bool isFinal;
+  final bool isActive;
+
+  const RecruitmentPipelineStage({
+    required this.id,
+    required this.companyId,
+    required this.systemKey,
+    required this.title,
+    required this.description,
+    required this.colorHex,
+    required this.sortOrder,
+    required this.legacyStatus,
+    required this.isFinal,
+    required this.isActive,
+  });
+
+  factory RecruitmentPipelineStage.fromMap(Map<String, dynamic> map) {
+    return RecruitmentPipelineStage(
+      id: map['id']?.toString() ?? '',
+      companyId: map['company_id']?.toString() ?? '',
+      systemKey: map['system_key']?.toString() ?? '',
+      title: map['title']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
+      colorHex: map['color_hex']?.toString() ?? '#2F80ED',
+      sortOrder: switch (map['sort_order']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => int.tryParse(map['sort_order']?.toString() ?? '') ?? 100,
+      },
+      legacyStatus: map['legacy_status']?.toString() ?? 'new',
+      isFinal: map['is_final'] == true,
+      isActive: map['is_active'] != false,
+    );
+  }
+}
+
+const List<String> recruitmentCustomFieldTypes = <String>[
+  'text',
+  'multiline',
+  'number',
+  'money',
+  'phone',
+  'email',
+  'date',
+  'boolean',
+  'select',
+  'multiselect',
+];
+
+String recruitmentCustomFieldTypeTitle(String type) {
+  switch (type) {
+    case 'multiline':
+      return 'Большой текст';
+    case 'number':
+      return 'Число';
+    case 'money':
+      return 'Сумма';
+    case 'phone':
+      return 'Телефон';
+    case 'email':
+      return 'Email';
+    case 'date':
+      return 'Дата';
+    case 'boolean':
+      return 'Да / нет';
+    case 'select':
+      return 'Список';
+    case 'multiselect':
+      return 'Множественный список';
+    default:
+      return 'Строка';
+  }
+}
+
+class RecruitmentCustomField {
+  final String id;
+  final String companyId;
+  final String title;
+  final String fieldType;
+  final List<String> options;
+  final bool isRequired;
+  final bool showOnCard;
+  final int sortOrder;
+  final bool isActive;
+
+  const RecruitmentCustomField({
+    required this.id,
+    required this.companyId,
+    required this.title,
+    required this.fieldType,
+    required this.options,
+    required this.isRequired,
+    required this.showOnCard,
+    required this.sortOrder,
+    required this.isActive,
+  });
+
+  bool get supportsOptions =>
+      fieldType == 'select' || fieldType == 'multiselect';
+
+  String get typeTitle => recruitmentCustomFieldTypeTitle(fieldType);
+
+  factory RecruitmentCustomField.fromMap(Map<String, dynamic> map) {
+    final rawOptions = map['options'];
+    final options = rawOptions is List
+        ? rawOptions
+              .map((value) => value?.toString().trim() ?? '')
+              .where((value) => value.isNotEmpty)
+              .toList()
+        : <String>[];
+    return RecruitmentCustomField(
+      id: map['id']?.toString() ?? '',
+      companyId: map['company_id']?.toString() ?? '',
+      title: map['title']?.toString() ?? '',
+      fieldType: map['field_type']?.toString() ?? 'text',
+      options: options,
+      isRequired: map['is_required'] == true,
+      showOnCard: map['show_on_card'] == true,
+      sortOrder: switch (map['sort_order']) {
+        int value => value,
+        num value => value.toInt(),
+        _ => int.tryParse(map['sort_order']?.toString() ?? '') ?? 100,
+      },
+      isActive: map['is_active'] != false,
+    );
+  }
+
+  bool isEmptyValue(dynamic value) {
+    if (value == null) return true;
+    if (value is String) return value.trim().isEmpty;
+    if (value is Iterable) return value.isEmpty;
+    return false;
+  }
+
+  String formatValue(dynamic value) {
+    if (isEmptyValue(value)) return '';
+    if (fieldType == 'boolean') return value == true ? 'Да' : 'Нет';
+    if (fieldType == 'money') {
+      final number = value is num ? value : num.tryParse(value.toString());
+      if (number == null) return value.toString();
+      final text = number % 1 == 0
+          ? number.toInt().toString()
+          : number.toStringAsFixed(2);
+      return '$text ₽';
+    }
+    if (value is Iterable) return value.map((item) => '$item').join(', ');
+    return value.toString();
+  }
+}
+
+class RecruitmentCrmConfiguration {
+  final List<RecruitmentPipelineStage> stages;
+  final List<RecruitmentCustomField> fields;
+
+  const RecruitmentCrmConfiguration({
+    required this.stages,
+    required this.fields,
+  });
+
+  static const empty = RecruitmentCrmConfiguration(
+    stages: <RecruitmentPipelineStage>[],
+    fields: <RecruitmentCustomField>[],
+  );
+
+  RecruitmentPipelineStage? stageById(String id) {
+    for (final stage in stages) {
+      if (stage.id == id) return stage;
+    }
+    return null;
+  }
+
+  RecruitmentPipelineStage? stageForApplication(
+    RecruitmentApplication application,
+  ) {
+    final direct = stageById(application.stageId);
+    if (direct != null) return direct;
+    final legacyKey = recruitmentStageKey(application.status);
+    for (final stage in stages) {
+      if (stage.systemKey == legacyKey) return stage;
+    }
+    return stages.isEmpty ? null : stages.first;
+  }
+
+  String customSearchText(RecruitmentApplication application) {
+    return fields
+        .map((field) => field.formatValue(application.customValue(field.id)))
+        .where((value) => value.isNotEmpty)
+        .join(' ');
+  }
+}
+
+class RecruitmentWorkspaceData {
+  final List<RecruitmentApplication> applications;
+  final RecruitmentCrmConfiguration configuration;
+
+  const RecruitmentWorkspaceData({
+    required this.applications,
+    required this.configuration,
+  });
+}
+
 const List<String> recruitmentStatuses = <String>[
   'draft',
   'new',
@@ -397,13 +616,22 @@ String recruitmentStageDefaultStatus(String stage) {
 
 class RecruitmentDashboardData {
   final List<RecruitmentApplication> applications;
+  final List<RecruitmentPipelineStage> stages;
   final Map<String, int> counts;
 
   const RecruitmentDashboardData({
     required this.applications,
+    required this.stages,
     required this.counts,
   });
 
-  int count(String stage) => counts[stage] ?? 0;
+  int count(String stageId) => counts[stageId] ?? 0;
   int get total => applications.length;
+
+  RecruitmentPipelineStage? stageFor(RecruitmentApplication application) {
+    for (final stage in stages) {
+      if (stage.id == application.stageId) return stage;
+    }
+    return null;
+  }
 }

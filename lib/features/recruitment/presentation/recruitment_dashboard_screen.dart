@@ -77,7 +77,8 @@ class _RecruitmentDashboardScreenState
     required int value,
     Color color = AppAdaptivePalette.telegramBlue,
   }) {
-    return Expanded(
+    return SizedBox(
+      width: 190,
       child: PremiumWorkCard(
         radius: 22,
         padding: const EdgeInsets.all(15),
@@ -119,7 +120,11 @@ class _RecruitmentDashboardScreenState
     );
   }
 
-  Widget candidateTile(RecruitmentApplication application) {
+  Widget candidateTile(
+    RecruitmentApplication application,
+    RecruitmentDashboardData data,
+  ) {
+    final stage = data.stageFor(application);
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Container(
@@ -177,7 +182,7 @@ class _RecruitmentDashboardScreenState
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  application.statusTitle,
+                  stage?.title ?? application.statusTitle,
                   style: TextStyle(
                     color: _text,
                     fontSize: 12,
@@ -257,6 +262,7 @@ class _RecruitmentDashboardScreenState
               snapshot.data ??
               const RecruitmentDashboardData(
                 applications: <RecruitmentApplication>[],
+                stages: <RecruitmentPipelineStage>[],
                 counts: <String, int>{},
               );
           final latest = data.applications.take(5).toList();
@@ -264,57 +270,21 @@ class _RecruitmentDashboardScreenState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  metric(
-                    icon: Icons.mark_email_unread_outlined,
-                    label: 'Новые',
-                    value: data.count('new'),
-                  ),
-                  SizedBox(width: 10),
-                  metric(
-                    icon: Icons.description_outlined,
-                    label: 'Ждём документы',
-                    value: data.count('documents'),
-                    color: const Color(0xFF4C6076),
-                  ),
-                ],
-              ),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  metric(
-                    icon: Icons.report_problem_outlined,
-                    label: 'Косяки',
-                    value: data.count('problems'),
-                    color: _danger,
-                  ),
-                  SizedBox(width: 10),
-                  metric(
-                    icon: Icons.flight_takeoff_outlined,
-                    label: 'Готовы к вылету',
-                    value: data.count('ready'),
-                    color: _success,
-                  ),
-                ],
-              ),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  metric(
-                    icon: Icons.airplane_ticket_outlined,
-                    label: 'Нужны билеты',
-                    value: data.count('tickets'),
-                    color: _warning,
-                  ),
-                  SizedBox(width: 10),
-                  metric(
-                    icon: Icons.how_to_reg_outlined,
-                    label: 'Оформлены',
-                    value: data.count('completed'),
-                    color: _success,
-                  ),
-                ],
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: data.stages
+                    .map(
+                      (stage) => metric(
+                        icon: stage.isFinal
+                            ? Icons.flag_outlined
+                            : Icons.view_column_outlined,
+                        label: stage.title,
+                        value: data.count(stage.id),
+                        color: _stageColor(stage.colorHex),
+                      ),
+                    )
+                    .toList(),
               ),
               SizedBox(height: 18),
               FilledButton.icon(
@@ -372,11 +342,18 @@ class _RecruitmentDashboardScreenState
                   ),
                 )
               else
-                ...latest.map(candidateTile),
+                ...latest.map((application) => candidateTile(application, data)),
             ],
           );
         },
       ),
     );
   }
+}
+
+
+Color _stageColor(String value) {
+  final clean = value.replaceFirst('#', '');
+  final parsed = int.tryParse(clean, radix: 16) ?? 0x2F80ED;
+  return Color(0xFF000000 | parsed);
 }

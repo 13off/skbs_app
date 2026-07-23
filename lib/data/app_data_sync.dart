@@ -214,6 +214,8 @@ class AppDataSync {
       case 'recruitment_messages':
       case 'recruitment_status_history':
       case 'recruitment_vacancies':
+      case 'recruitment_pipeline_stages':
+      case 'recruitment_custom_fields':
         return const <AppDataDomain>{AppDataDomain.recruitment};
       default:
         return const <AppDataDomain>{};

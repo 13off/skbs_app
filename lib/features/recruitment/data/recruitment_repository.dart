@@ -32,6 +32,13 @@ abstract final class RecruitmentRepository {
     );
   }
 
+  static void _notifyConfiguration(String table, String entityId) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.recruitment},
+      context: <String, dynamic>{'table': table, 'entity_id': entityId},
+    );
+  }
+
   static Future<List<RecruitmentApplication>> fetchApplications({
     required String companyId,
     bool archived = false,
@@ -52,6 +59,55 @@ abstract final class RecruitmentRepository {
         )
         .where((item) => item.id.isNotEmpty && item.isArchived == archived)
         .toList();
+  }
+
+  static Future<RecruitmentCrmConfiguration> fetchConfiguration({
+    required String companyId,
+    bool includeInactive = false,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return RecruitmentCrmConfiguration.empty;
+
+    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      _client
+          .from('recruitment_pipeline_stages')
+          .select()
+          .eq('company_id', cleanCompanyId)
+          .order('sort_order')
+          .order('created_at'),
+      _client
+          .from('recruitment_custom_fields')
+          .select()
+          .eq('company_id', cleanCompanyId)
+          .order('sort_order')
+          .order('created_at'),
+    ]);
+
+    final stages = (results[0] as List<dynamic>)
+        .map((value) => RecruitmentPipelineStage.fromMap(_map(value)))
+        .where((item) => item.id.isNotEmpty)
+        .where((item) => includeInactive || item.isActive)
+        .toList();
+    final fields = (results[1] as List<dynamic>)
+        .map((value) => RecruitmentCustomField.fromMap(_map(value)))
+        .where((item) => item.id.isNotEmpty)
+        .where((item) => includeInactive || item.isActive)
+        .toList();
+    return RecruitmentCrmConfiguration(stages: stages, fields: fields);
+  }
+
+  static Future<RecruitmentWorkspaceData> fetchWorkspace({
+    required String companyId,
+    bool archived = false,
+  }) async {
+    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      fetchApplications(companyId: companyId, archived: archived),
+      fetchConfiguration(companyId: companyId),
+    ]);
+    return RecruitmentWorkspaceData(
+      applications: results[0] as List<RecruitmentApplication>,
+      configuration: results[1] as RecruitmentCrmConfiguration,
+    );
   }
 
   static Future<List<RecruitmentDocument>> fetchDocuments({
@@ -222,15 +278,19 @@ abstract final class RecruitmentRepository {
   static Future<RecruitmentDashboardData> fetchDashboard({
     required String companyId,
   }) async {
-    final applications = await fetchApplications(companyId: companyId);
+    final workspace = await fetchWorkspace(companyId: companyId);
     final counts = <String, int>{
-      for (final stage in recruitmentStages) stage: 0,
+      for (final stage in workspace.configuration.stages) stage.id: 0,
     };
-    for (final application in applications) {
-      final stage = application.stage;
-      counts[stage] = (counts[stage] ?? 0) + 1;
+    for (final application in workspace.applications) {
+      final stage = workspace.configuration.stageForApplication(application);
+      if (stage != null) counts[stage.id] = (counts[stage.id] ?? 0) + 1;
     }
-    return RecruitmentDashboardData(applications: applications, counts: counts);
+    return RecruitmentDashboardData(
+      applications: workspace.applications,
+      stages: workspace.configuration.stages,
+      counts: counts,
+    );
   }
 
   static Future<String> _resolveObjectId({
@@ -270,7 +330,9 @@ abstract final class RecruitmentRepository {
     required String experience,
     DateTime? departureDate,
     required String status,
+    String stageId = '',
     required String comment,
+    Map<String, dynamic> customValues = const <String, dynamic>{},
     String source = 'manual',
     String sourceUserId = '',
     String sourceChatId = '',
@@ -303,7 +365,9 @@ abstract final class RecruitmentRepository {
       'experience_text': experience.trim(),
       'ready_date': departureDate == null ? null : _dateOnly(departureDate),
       'status': recruitmentStatuses.contains(status) ? status : 'new',
+      if (stageId.trim().isNotEmpty) 'stage_id': stageId.trim(),
       'hr_comment': comment.trim(),
+      'custom_values': Map<String, dynamic>.from(customValues),
       'updated_at': now,
     };
 
@@ -330,6 +394,175 @@ abstract final class RecruitmentRepository {
     return result;
   }
 
+  static Future<RecruitmentPipelineStage> savePipelineStage({
+    String id = '',
+    required String companyId,
+    required String title,
+    String description = '',
+    String colorHex = '#2F80ED',
+    String legacyStatus = 'new',
+    bool isFinal = false,
+    int sortOrder = 100,
+  }) async {
+    final payload = <String, dynamic>{
+      'company_id': companyId.trim(),
+      'title': title.trim(),
+      'description': description.trim(),
+      'color_hex': colorHex.trim().toUpperCase(),
+      'legacy_status': recruitmentStatuses.contains(legacyStatus)
+          ? legacyStatus
+          : 'new',
+      'is_final': isFinal,
+      'sort_order': sortOrder,
+      'is_active': true,
+      'created_by': _client.auth.currentUser?.id,
+    };
+    final dynamic row;
+    if (id.trim().isEmpty) {
+      row = await _client
+          .from('recruitment_pipeline_stages')
+          .insert(payload)
+          .select()
+          .single();
+    } else {
+      payload.remove('company_id');
+      payload.remove('created_by');
+      row = await _client
+          .from('recruitment_pipeline_stages')
+          .update(payload)
+          .eq('company_id', companyId.trim())
+          .eq('id', id.trim())
+          .select()
+          .single();
+    }
+    final result = RecruitmentPipelineStage.fromMap(_map(row));
+    _notifyConfiguration('recruitment_pipeline_stages', result.id);
+    return result;
+  }
+
+  static Future<void> reorderPipelineStages({
+    required String companyId,
+    required List<String> orderedIds,
+  }) async {
+    await Future.wait<void>(<Future<void>>[
+      for (var index = 0; index < orderedIds.length; index++)
+        _client
+            .from('recruitment_pipeline_stages')
+            .update(<String, dynamic>{'sort_order': (index + 1) * 10})
+            .eq('company_id', companyId.trim())
+            .eq('id', orderedIds[index])
+            .then((_) {}),
+    ]);
+    _notifyConfiguration('recruitment_pipeline_stages', 'order');
+  }
+
+  static Future<void> setPipelineStageActive({
+    required String companyId,
+    required String stageId,
+    required bool active,
+  }) async {
+    await _client
+        .from('recruitment_pipeline_stages')
+        .update(<String, dynamic>{'is_active': active})
+        .eq('company_id', companyId.trim())
+        .eq('id', stageId.trim());
+    _notifyConfiguration('recruitment_pipeline_stages', stageId.trim());
+  }
+
+  static Future<RecruitmentCustomField> saveCustomField({
+    String id = '',
+    required String companyId,
+    required String title,
+    required String fieldType,
+    List<String> options = const <String>[],
+    bool isRequired = false,
+    bool showOnCard = false,
+    int sortOrder = 100,
+  }) async {
+    final cleanOptions = options
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
+    final payload = <String, dynamic>{
+      'company_id': companyId.trim(),
+      'title': title.trim(),
+      'field_type': recruitmentCustomFieldTypes.contains(fieldType)
+          ? fieldType
+          : 'text',
+      'options': cleanOptions,
+      'is_required': isRequired,
+      'show_on_card': showOnCard,
+      'sort_order': sortOrder,
+      'is_active': true,
+      'created_by': _client.auth.currentUser?.id,
+    };
+    final dynamic row;
+    if (id.trim().isEmpty) {
+      row = await _client
+          .from('recruitment_custom_fields')
+          .insert(payload)
+          .select()
+          .single();
+    } else {
+      payload.remove('company_id');
+      payload.remove('created_by');
+      row = await _client
+          .from('recruitment_custom_fields')
+          .update(payload)
+          .eq('company_id', companyId.trim())
+          .eq('id', id.trim())
+          .select()
+          .single();
+    }
+    final result = RecruitmentCustomField.fromMap(_map(row));
+    _notifyConfiguration('recruitment_custom_fields', result.id);
+    return result;
+  }
+
+  static Future<void> reorderCustomFields({
+    required String companyId,
+    required List<String> orderedIds,
+  }) async {
+    await Future.wait<void>(<Future<void>>[
+      for (var index = 0; index < orderedIds.length; index++)
+        _client
+            .from('recruitment_custom_fields')
+            .update(<String, dynamic>{'sort_order': (index + 1) * 10})
+            .eq('company_id', companyId.trim())
+            .eq('id', orderedIds[index])
+            .then((_) {}),
+    ]);
+    _notifyConfiguration('recruitment_custom_fields', 'order');
+  }
+
+  static Future<void> setCustomFieldActive({
+    required String companyId,
+    required String fieldId,
+    required bool active,
+  }) async {
+    await _client
+        .from('recruitment_custom_fields')
+        .update(<String, dynamic>{'is_active': active})
+        .eq('company_id', companyId.trim())
+        .eq('id', fieldId.trim());
+    _notifyConfiguration('recruitment_custom_fields', fieldId.trim());
+  }
+
+  static Future<void> moveApplicationStage({
+    required String applicationId,
+    required String stageId,
+  }) async {
+    await _client.rpc(
+      'move_recruitment_application_stage',
+      params: <String, dynamic>{
+        'p_application_id': applicationId.trim(),
+        'p_stage_id': stageId.trim(),
+      },
+    );
+    _notify(applicationId.trim());
+  }
+
   static Future<void> updateStatus({
     required String companyId,
     required String applicationId,
@@ -338,19 +571,35 @@ abstract final class RecruitmentRepository {
     if (!recruitmentStatuses.contains(status)) return;
     final cleanCompanyId = companyId.trim();
     final cleanApplicationId = applicationId.trim();
-    await _client
+    final dynamic row = await _client
         .from('recruitment_applications')
         .update(<String, dynamic>{
           'status': status,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('company_id', cleanCompanyId)
-        .eq('id', cleanApplicationId);
+        .eq('id', cleanApplicationId)
+        .select('status, stage_id')
+        .single();
+    final applicationRow = _map(row);
+    final stageId = applicationRow['stage_id']?.toString() ?? '';
+    String stageTitle = '';
+    if (stageId.isNotEmpty) {
+      final dynamic stageRow = await _client
+          .from('recruitment_pipeline_stages')
+          .select('title')
+          .eq('company_id', cleanCompanyId)
+          .eq('id', stageId)
+          .maybeSingle();
+      stageTitle = _map(stageRow)['title']?.toString() ?? '';
+    }
 
     await _client.from('recruitment_status_history').insert(<String, dynamic>{
       'company_id': cleanCompanyId,
       'application_id': cleanApplicationId,
-      'status': status,
+      'status': applicationRow['status']?.toString() ?? status,
+      'stage_id': stageId.isEmpty ? null : stageId,
+      'stage_title': stageTitle,
       'source': 'appstroy_hr',
       'created_by': _client.auth.currentUser?.id,
     });
