@@ -3,25 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../../../widgets/premium_ui.dart';
 
-class PersistentTabController {
+class PersistentTabController extends ChangeNotifier {
   final int pageCount;
-  final PageController pageController;
   final List<GlobalKey<NavigatorState>> navigatorKeys;
 
   int currentIndex;
   bool _disposed = false;
 
-  PersistentTabController({
-    required this.pageCount,
-    int initialIndex = 0,
-  })  : assert(pageCount > 0),
-        assert(initialIndex >= 0 && initialIndex < pageCount),
-        currentIndex = initialIndex,
-        pageController = PageController(initialPage: initialIndex),
-        navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
-          pageCount,
-          (_) => GlobalKey<NavigatorState>(),
-        );
+  PersistentTabController({required this.pageCount, int initialIndex = 0})
+    : assert(pageCount > 0),
+      assert(initialIndex >= 0 && initialIndex < pageCount),
+      currentIndex = initialIndex,
+      navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
+        pageCount,
+        (_) => GlobalKey<NavigatorState>(),
+      );
 
   NavigatorState? navigatorState(int index) {
     if (index < 0 || index >= pageCount) return null;
@@ -38,11 +34,10 @@ class PersistentTabController {
       return;
     }
 
-    await pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
+    // Bottom tabs are workspaces, not pages in one long carousel. Switching
+    // immediately avoids painting two heavyweight screens during 280 ms.
+    currentIndex = index;
+    notifyListeners();
   }
 
   Future<NavigatorState?> selectNavigator(int index) async {
@@ -66,15 +61,11 @@ class PersistentTabController {
     return true;
   }
 
-  void updateCurrentIndex(int index) {
-    if (_disposed || index < 0 || index >= pageCount) return;
-    currentIndex = index;
-  }
-
+  @override
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    pageController.dispose();
+    super.dispose();
   }
 }
 
@@ -84,6 +75,7 @@ class PersistentTabShell extends StatefulWidget {
   final IndexedWidgetBuilder tabBuilder;
   final bool returnToFirstTabOnBack;
   final ValueChanged<int>? onPageChanged;
+  final String? navigationStorageKey;
 
   const PersistentTabShell({
     super.key,
@@ -92,6 +84,7 @@ class PersistentTabShell extends StatefulWidget {
     required this.tabBuilder,
     this.returnToFirstTabOnBack = false,
     this.onPageChanged,
+    this.navigationStorageKey,
   });
 
   @override
@@ -99,40 +92,76 @@ class PersistentTabShell extends StatefulWidget {
 }
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
-  Widget tabNavigator(int index) {
-    return Navigator(
-      key: widget.controller.navigatorKeys[index],
-      onGenerateRoute: (settings) => CupertinoPageRoute<void>(
-        settings: settings,
-        builder: (context) => widget.tabBuilder(context, index),
+  final Map<int, Widget> _tabNavigators = <int, Widget>{};
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleControllerChanged);
+    _ensureTabBuilt(widget.controller.currentIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant PersistentTabShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleControllerChanged);
+      _tabNavigators.clear();
+      widget.controller.addListener(_handleControllerChanged);
+      _ensureTabBuilt(widget.controller.currentIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
+    super.dispose();
+  }
+
+  void _ensureTabBuilt(int index) {
+    _tabNavigators.putIfAbsent(index, () => _buildTabNavigator(index));
+  }
+
+  Widget _buildTabNavigator(int index) {
+    return RepaintBoundary(
+      child: Navigator(
+        key: widget.controller.navigatorKeys[index],
+        onGenerateRoute: (settings) => CupertinoPageRoute<void>(
+          settings: settings,
+          builder: (context) => widget.tabBuilder(context, index),
+        ),
       ),
     );
   }
 
-  void handlePageChanged(int index) {
-    widget.controller.updateCurrentIndex(index);
+  void _handleControllerChanged() {
+    if (!mounted) return;
+    final index = widget.controller.currentIndex;
+    setState(() => _ensureTabBuilt(index));
     widget.onPageChanged?.call(index);
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     assert(widget.items.length == widget.controller.pageCount);
+    final activeIndex = widget.controller.currentIndex;
     return WillPopScope(
       onWillPop: () => widget.controller.handleBack(
         returnToFirstTab: widget.returnToFirstTabOnBack,
       ),
       child: Scaffold(
-        body: PageView.builder(
-          controller: widget.controller.pageController,
-          itemCount: widget.controller.pageCount,
-          allowImplicitScrolling: true,
-          onPageChanged: handlePageChanged,
-          itemBuilder: (context, index) => tabNavigator(index),
+        body: IndexedStack(
+          index: activeIndex,
+          children: List<Widget>.generate(widget.controller.pageCount, (index) {
+            final child = _tabNavigators[index];
+            if (child == null) return const SizedBox.shrink();
+            return TickerMode(enabled: index == activeIndex, child: child);
+          }),
         ),
         bottomNavigationBar: ProfessionalBottomNavigation(
           items: widget.items,
-          selectedIndex: widget.controller.currentIndex,
+          selectedIndex: activeIndex,
+          storageKey: widget.navigationStorageKey,
           onSelected: widget.controller.select,
         ),
       ),

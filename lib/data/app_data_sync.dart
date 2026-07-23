@@ -47,7 +47,7 @@ class AppDataSync {
 
   static const Duration _coalesceDuration = Duration(milliseconds: 120);
   static final StreamController<AppDataChange> _changesController =
-      StreamController<AppDataChange>.broadcast(sync: true);
+      StreamController<AppDataChange>.broadcast();
   static final Set<AppDataDomain> _pendingDomains = <AppDataDomain>{};
 
   static RealtimeChannel? _channel;

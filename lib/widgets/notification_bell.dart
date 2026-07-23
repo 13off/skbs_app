@@ -60,12 +60,13 @@ class _NotificationBellState extends State<NotificationBell> {
         selectedObject != changedObject) {
       return;
     }
-    setState(refreshHasUnread);
+    setState(() => refreshHasUnread(forceRefresh: true));
   }
 
-  void refreshHasUnread() {
+  void refreshHasUnread({bool forceRefresh = false}) {
     hasUnreadFuture = NotificationRepository.hasUnread(
       objectName: widget.selectedObjectName,
+      forceRefresh: forceRefresh,
     );
   }
 
@@ -79,7 +80,8 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   Future<bool> confirmClear(BuildContext context) async {
-    final isAllObjects = widget.selectedObjectName == null ||
+    final isAllObjects =
+        widget.selectedObjectName == null ||
         widget.selectedObjectName!.trim().isEmpty;
     final result = await showDialog<bool>(
       context: context,
@@ -109,6 +111,7 @@ class _NotificationBellState extends State<NotificationBell> {
     var notificationsFuture = NotificationRepository.fetchLatest(
       objectName: widget.selectedObjectName,
       limit: 60,
+      refreshOperational: true,
     );
     final markedAsReadIds = <String>{};
 
@@ -273,7 +276,7 @@ class _NotificationBellState extends State<NotificationBell> {
     );
 
     if (!mounted) return;
-    setState(refreshHasUnread);
+    setState(() => refreshHasUnread(forceRefresh: true));
   }
 
   @override
@@ -289,9 +292,7 @@ class _NotificationBellState extends State<NotificationBell> {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: hasUnread
-                  ? AppAdaptivePalette.accentSoft
-                  : _card,
+              color: hasUnread ? AppAdaptivePalette.accentSoft : _card,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: hasUnread ? _accent : _line),
               boxShadow: [
@@ -338,10 +339,7 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
   final String timeText;
 
-  const _NotificationTile({
-    required this.notification,
-    required this.timeText,
-  });
+  const _NotificationTile({required this.notification, required this.timeText});
 
   @override
   Widget build(BuildContext context) {
@@ -370,8 +368,8 @@ class _NotificationTile extends StatelessWidget {
               isDispatcherSummary
                   ? Icons.analytics_outlined
                   : isUnread
-                      ? Icons.notifications_active_outlined
-                      : Icons.history,
+                  ? Icons.notifications_active_outlined
+                  : Icons.history,
               color: _accent,
               size: 22,
             ),

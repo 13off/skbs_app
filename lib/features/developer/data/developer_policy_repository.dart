@@ -6,13 +6,16 @@ class DeveloperPolicyRepository {
   static final SupabaseClient _client = Supabase.instance.client;
   static final Map<String, _PolicyCacheEntry> _cache =
       <String, _PolicyCacheEntry>{};
+  static final Map<String, Future<TaskPolicy>> _inFlight =
+      <String, Future<TaskPolicy>>{};
   static const Duration _cacheTtl = Duration(minutes: 3);
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
 
   static TaskPolicy policyForObjectSync(String objectName) {
     final entry = _cache[_key(objectName)];
-    if (entry == null || DateTime.now().difference(entry.loadedAt) > _cacheTtl) {
+    if (entry == null ||
+        DateTime.now().difference(entry.loadedAt) > _cacheTtl) {
       return TaskPolicy.defaults;
     }
     return entry.policy;
@@ -30,6 +33,21 @@ class DeveloperPolicyRepository {
       return cached.policy;
     }
 
+    if (!forceRefresh) {
+      final pending = _inFlight[key];
+      if (pending != null) return pending;
+    }
+
+    final future = _loadPolicy(objectName, key);
+    _inFlight[key] = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_inFlight[key], future)) _inFlight.remove(key);
+    }
+  }
+
+  static Future<TaskPolicy> _loadPolicy(String objectName, String key) async {
     final result = await _client.rpc<dynamic>(
       'get_effective_task_policy',
       params: <String, dynamic>{'p_object_name': objectName.trim()},
@@ -76,7 +94,10 @@ class DeveloperPolicyRepository {
     return center;
   }
 
-  static void clearCache() => _cache.clear();
+  static void clearCache() {
+    _cache.clear();
+    _inFlight.clear();
+  }
 
   static void _primeCache(DeveloperTaskPolicyCenter center) {
     _cache.clear();

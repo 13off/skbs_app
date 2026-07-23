@@ -18,11 +18,12 @@ void main() {
 
     expect(shell, contains('class PersistentTabController'));
     expect(shell, contains('class PersistentTabShell'));
-    expect(shell, contains('PageController'));
     expect(shell, contains('List<GlobalKey<NavigatorState>>'));
     expect(shell, contains('navigator.popUntil((route) => route.isFirst)'));
-    expect(shell, contains('pageController.animateToPage'));
-    expect(shell, contains('PageView.builder'));
+    expect(shell, contains('notifyListeners()'));
+    expect(shell, contains('IndexedStack'));
+    expect(shell, contains('_tabNavigators'));
+    expect(shell, isNot(contains('PageView.builder')));
     expect(shell, contains('ProfessionalBottomNavigation'));
 
     expect(manager, contains('PersistentTabController(pageCount: pageCount)'));

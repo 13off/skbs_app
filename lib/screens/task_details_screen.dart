@@ -36,15 +36,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
     var currentTask = widget.task;
     final taskId = widget.task.id?.trim() ?? '';
-    final originalLink = taskId.isEmpty
-        ? null
-        : await TaskProgressRepository.fetchCurrentLink(taskId);
-    final previousChecklistItemId = originalLink?.checklistItemId;
+    // Start the progress lookup immediately, but never hold the route opening
+    // behind the network. The result is only needed when the edited task is
+    // saved.
+    final previousChecklistItemFuture = _fetchPreviousChecklistItemId(taskId);
 
     while (mounted) {
       final result = await Navigator.of(context).push<dynamic>(
-        MaterialPageRoute<dynamic>(
-          builder: (_) => editor.TaskDetailsScreen(
+        PageRouteBuilder<dynamic>(
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+          pageBuilder: (_, __, ___) => editor.TaskDetailsScreen(
             task: currentTask,
             profile: widget.profile,
           ),
@@ -63,6 +65,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
       currentTask = result;
       try {
+        final previousChecklistItemId = await previousChecklistItemFuture;
         final linked = _isLinked(result);
         if (result.status == 'Выполнено' && linked) {
           final progressContext = await TaskProgressRepository.fetchContext(
@@ -74,9 +77,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           final selectedPercent = await showDialog<int>(
             context: context,
             barrierDismissible: false,
-            builder: (_) => _DailyProgressDialog(
-              contextData: progressContext,
-            ),
+            builder: (_) => _DailyProgressDialog(contextData: progressContext),
           );
           if (!mounted) return;
 
@@ -108,6 +109,20 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     }
   }
 
+  Future<String?> _fetchPreviousChecklistItemId(String taskId) async {
+    if (taskId.isEmpty) return null;
+    try {
+      final originalLink = await TaskProgressRepository.fetchCurrentLink(
+        taskId,
+      );
+      return originalLink?.checklistItemId;
+    } catch (_) {
+      // Opening and editing the task must remain available even when the
+      // optional progress link is temporarily unavailable.
+      return null;
+    }
+  }
+
   bool _isLinked(TaskItemData task) {
     final milestoneId = task.milestoneId?.trim() ?? '';
     final checklistItemId = task.checklistItemId?.trim() ?? '';
@@ -118,9 +133,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -173,10 +186,14 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
   Widget build(BuildContext context) {
     final sliderMax = maxAllowed <= 0 ? 1.0 : maxAllowed.toDouble();
     final sliderValue = selectedPercent.clamp(0, maxAllowed).toDouble();
-    final quickValues = <int>{10, 20, 25, 30, 50, maxAllowed}
-        .where((value) => value > 0 && value <= maxAllowed)
-        .toList()
-      ..sort();
+    final quickValues = <int>{
+      10,
+      20,
+      25,
+      30,
+      50,
+      maxAllowed,
+    }.where((value) => value > 0 && value <= maxAllowed).toList()..sort();
 
     return AlertDialog(
       title: const Text('Что выполнили сегодня?'),
@@ -188,10 +205,7 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
           children: [
             Text(
               widget.contextData.checklistTitle,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 7),
             Text(
@@ -257,7 +271,7 @@ class _DailyProgressDialogState extends State<_DailyProgressDialog> {
                 maxAllowed <= 0
                     ? 'Этот пункт уже выполнен на 100%.'
                     : 'После сохранения будет $projectedProgress%. '
-                        'Максимум для этой задачи: $maxAllowed%.',
+                          'Максимум для этой задачи: $maxAllowed%.',
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
