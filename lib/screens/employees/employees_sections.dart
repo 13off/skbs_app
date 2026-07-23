@@ -211,7 +211,7 @@ extension _EmployeesSections on _EmployeesScreenState {
     );
   }
 
-  Widget section(String title, List<Employee> items, {bool fired = false}) {
+  Widget sectionHeader(String title, int count, {bool fired = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -227,7 +227,7 @@ extension _EmployeesSections on _EmployeesScreenState {
               ),
               const SizedBox(width: 8),
               Text(
-                '$title: ${items.length}',
+                '$title: $count',
                 style: TextStyle(
                   color: fired ? AppAdaptivePalette.textMuted : _text,
                   fontSize: 18,
@@ -237,67 +237,18 @@ extension _EmployeesSections on _EmployeesScreenState {
             ],
           ),
         ),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Text(
-              'Активных сотрудников нет',
-              style: TextStyle(color: AppAdaptivePalette.textMuted),
-            ),
-          )
-        else
-          ...items.map(employeeCard),
       ],
     );
   }
 
-  List<Widget> content() {
-    final visible = visibleEmployees();
-    final active = visible.where((employee) => employee.isActive).toList();
-    final fired = visible.where((employee) => !employee.isActive).toList();
-    final result = <Widget>[
-      header(),
-      const SizedBox(height: 14),
-      search(),
-      const SizedBox(height: 16),
-    ];
-
-    if (loading && employees.isEmpty) {
-      result.addAll(const <Widget>[
-        SizedBox(height: 60),
-        Center(child: CircularProgressIndicator()),
-      ]);
-    } else if (error != null && employees.isEmpty) {
-      result.add(
-        Padding(
-          padding: const EdgeInsets.only(top: 40),
-          child: Text(
-            'Ошибка загрузки сотрудников: $error',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
-      );
-    } else if (employees.isEmpty) {
-      result.add(
-        const Padding(
-          padding: EdgeInsets.only(top: 40),
-          child: Text('Сотрудников пока нет', textAlign: TextAlign.center),
-        ),
-      );
-    } else if (visible.isEmpty) {
-      result.add(
-        const Padding(
-          padding: EdgeInsets.only(top: 40),
-          child: Text('Сотрудники не найдены', textAlign: TextAlign.center),
-        ),
-      );
-    } else {
-      result.add(section('Активные', active));
-      if (fired.isNotEmpty) {
-        result.add(section('Уволенные', fired, fired: true));
-      }
-    }
-    return result;
+  Widget emptyEmployeesState(String text, {bool errorState = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 40),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: errorState ? const TextStyle(color: Colors.red) : null,
+      ),
+    );
   }
 }

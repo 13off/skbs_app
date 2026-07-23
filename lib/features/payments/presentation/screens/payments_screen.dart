@@ -600,54 +600,64 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       body: PremiumWorkBackdrop(
         child: RefreshIndicator(
           onRefresh: () => loadPaymentsData(forceRefresh: true),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 760),
-                  child: Column(
-                    children: [
-                      buildMonthPanel(),
-                      const SizedBox(height: 14),
-                      buildSummaryPanel(),
-                      const SizedBox(height: 14),
-                      buildSearch(),
-                      const SizedBox(height: 16),
-                      if (isLoading)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: LinearProgressIndicator(),
-                        ),
-                      if (errorText != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Text(
-                            errorText!,
-                            style: TextStyle(color: AppAdaptivePalette.danger),
-                          ),
-                        ),
-                      if (!isLoading && visibleRows.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Center(
-                            child: Text(
-                              'Сотрудники не найдены',
-                              style: TextStyle(
-                                color: AppAdaptivePalette.textMuted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ...visibleRows.map(buildPaymentCard),
-                    ],
+          child: Builder(
+            builder: (context) {
+              final leading = <Widget>[
+                buildMonthPanel(),
+                const SizedBox(height: 14),
+                buildSummaryPanel(),
+                const SizedBox(height: 14),
+                buildSearch(),
+                const SizedBox(height: 16),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: LinearProgressIndicator(),
                   ),
-                ),
-              ),
-            ],
+                if (errorText != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      errorText!,
+                      style: TextStyle(color: AppAdaptivePalette.danger),
+                    ),
+                  ),
+                if (!isLoading && visibleRows.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Text(
+                        'Сотрудники не найдены',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ];
+              final rowCount = isLoading && visibleRows.isEmpty
+                  ? 0
+                  : visibleRows.length;
+
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                cacheExtent: 700,
+                itemCount: leading.length + rowCount,
+                itemBuilder: (context, index) {
+                  final child = index < leading.length
+                      ? leading[index]
+                      : buildPaymentCard(visibleRows[index - leading.length]);
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: RepaintBoundary(child: child),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ),

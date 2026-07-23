@@ -587,57 +587,55 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppPage(
+    final leading = <Widget>[
+      buildDatePanel(),
+      const SizedBox(height: 14),
+      buildTasksCounter(tasks),
+      const SizedBox(height: 14),
+      if (isLoading)
+        const PremiumWorkCard(
+          radius: 24,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      if (loadError != null)
+        buildStateCard(
+          icon: Icons.error_outline_rounded,
+          title: 'Не удалось загрузить задачи',
+          text: loadError!,
+          isError: true,
+        ),
+      if (!isLoading && loadError == null && tasks.isEmpty)
+        buildStateCard(
+          icon: Icons.assignment_outlined,
+          title: 'Задач пока нет',
+          text: 'Добавьте первую задачу на выбранную дату и объект.',
+        ),
+    ];
+
+    return AppLazyPage(
       title: 'Задачи',
       subtitle: 'Работы по осям, исполнители и готовность за выбранную дату',
-      child: Column(
-        children: [
-          buildDatePanel(),
-          const SizedBox(height: 14),
-          buildTasksCounter(tasks),
-          const SizedBox(height: 14),
-          if (isLoading)
-            const PremiumWorkCard(
-              radius: 24,
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-          if (loadError != null)
-            buildStateCard(
-              icon: Icons.error_outline_rounded,
-              title: 'Не удалось загрузить задачи',
-              text: loadError!,
-              isError: true,
-            ),
-          if (!isLoading && loadError == null && tasks.isEmpty)
-            buildStateCard(
-              icon: Icons.assignment_outlined,
-              title: 'Задач пока нет',
-              text: 'Добавьте первую задачу на выбранную дату и объект.',
-            ),
-          if (loadError == null)
-            ...tasks.map((task) {
-              return TaskTile(
-                task: task,
-                onTap: () {
-                  openTaskDetails(task);
-                },
-              );
-            }),
-          const SizedBox(height: 14),
-          PremiumActionButton(
-            label: 'Добавить задачу',
-            icon: Icons.add_rounded,
-            onPressed:
-                TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)
-                ? openAddTaskScreen
-                : null,
-          ),
-          buildActButton(tasks),
-        ],
-      ),
+      leading: leading,
+      itemCount: loadError == null ? tasks.length : 0,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return TaskTile(task: task, onTap: () => openTaskDetails(task));
+      },
+      trailing: <Widget>[
+        const SizedBox(height: 14),
+        PremiumActionButton(
+          label: 'Добавить задачу',
+          icon: Icons.add_rounded,
+          onPressed:
+              TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)
+              ? openAddTaskScreen
+              : null,
+        ),
+        buildActButton(tasks),
+      ],
     );
   }
 }
