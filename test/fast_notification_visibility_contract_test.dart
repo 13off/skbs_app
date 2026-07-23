@@ -9,7 +9,7 @@ void main() {
   test('notification visibility computes user context once', () {
     final sql = File(migrationPath).readAsStringSync();
 
-    expect(sql, contains('current_user_visible_notification_ids'));
+    expect(sql, contains('private.current_user_visible_notification_ids'));
     expect(sql, contains('with ctx as materialized'));
     expect(sql, contains('current_user_company_id()'));
     expect(sql, contains('current_user_role()'));
@@ -28,16 +28,23 @@ void main() {
     expect(sql, contains('notification.is_push_only = false'));
   });
 
-  test('RLS uses the protected set based visibility function', () {
+  test('RLS uses an internal protected visibility function', () {
     final sql = File(migrationPath).readAsStringSync();
 
+    expect(sql, contains('create schema if not exists private'));
     expect(sql, contains('security definer'));
+    expect(sql, contains('revoke all on schema private from public, anon'));
+    expect(sql, contains('grant usage on schema private to authenticated'));
     expect(sql, contains('from public, anon'));
     expect(sql, contains('to authenticated'));
     expect(sql, contains('drop policy if exists notifications_select_company_role'));
     expect(
       sql,
-      contains('select public.current_user_visible_notification_ids()'),
+      contains('select private.current_user_visible_notification_ids()'),
+    );
+    expect(
+      sql,
+      contains('drop function if exists public.current_user_visible_notification_ids()'),
     );
   });
 }
