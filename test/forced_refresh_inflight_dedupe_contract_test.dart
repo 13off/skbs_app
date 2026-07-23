@@ -9,7 +9,10 @@ void main() {
     final employees = source('lib/data/employee_repository.dart');
     final objects = source('lib/data/object_repository.dart');
 
-    expect(employees, contains('final runningRequest = _employeeRequests[cacheKey];'));
+    expect(
+      employees,
+      contains('final runningRequest = _employeeRequests[cacheKey];'),
+    );
     expect(employees, contains('if (runningRequest != null)'));
     expect(employees, contains('final runningRequest = _objectNamesRequest;'));
     expect(
@@ -34,13 +37,20 @@ void main() {
       expect(attendance, contains('final running = $requestMap[key];'));
     }
     expect(
-      RegExp(r'if \(!forceRefresh\) \{\s+final running = _').allMatches(attendance),
+      RegExp(
+        r'if \(!forceRefresh\) \{\s+final running = _',
+      ).allMatches(attendance),
       isEmpty,
     );
-    expect(payments, contains('final running = _employeePaymentRequests[key];'));
+    expect(
+      payments,
+      contains('final running = _employeePaymentRequests[key];'),
+    );
     expect(payments, contains('final running = _bulkPaymentRequests[key];'));
     expect(
-      RegExp(r'if \(!forceRefresh\) \{\s+final running = _').allMatches(payments),
+      RegExp(
+        r'if \(!forceRefresh\) \{\s+final running = _',
+      ).allMatches(payments),
       isEmpty,
     );
   });
