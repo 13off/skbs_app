@@ -18,12 +18,30 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           persist-credentials: true
-      - name: Capture exact patch error
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Capture exact analyzer error
         run: |
-          python3 tool/apply_acceptance_onboarding.py > tool/acceptance_patch_error.txt 2>&1 || true
+          sed -i 's#lib/main_screen.dart#lib/screens/main_screen.dart#g' tool/apply_acceptance_onboarding.py
+          python3 tool/apply_acceptance_onboarding.py
+          dart format \
+            lib/screens/main_screen.dart \
+            lib/screens/profile_screen.dart \
+            lib/features/company/data/company_setup_repository.dart \
+            lib/features/company/presentation/company_setup_screen.dart \
+            lib/features/company/presentation/company_setup_nudge.dart \
+            lib/features/developer/data/role_acceptance_repository.dart \
+            lib/features/developer/presentation/developer_system_screen.dart \
+            lib/features/developer/presentation/developer_readiness_screen.dart \
+            test/company_setup_acceptance_contract_test.dart \
+            test/acceptance_demo_audit_contract_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings > tool/acceptance_analyzer_error.txt 2>&1 || true
       - name: Commit diagnostic log
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: ${{ github.head_ref }}
-          commit_message: сохранена диагностика патча приёмки
-          file_pattern: tool/acceptance_patch_error.txt
+          commit_message: сохранена диагностика анализатора приёмки
+          file_pattern: tool/acceptance_analyzer_error.txt
