@@ -161,36 +161,14 @@ class PaymentRepository {
       return _copyPayments(cached.payments);
     }
 
-    final rows = await _client
-        .from('payments')
-        .select(
-          'id, employee_id, period_year, period_month, payment_date, amount, payment_type, comment, updated_at',
-        )
-        .eq('employee_id', cleanEmployeeId)
-        .order('payment_date', ascending: false)
-        .order('updated_at', ascending: false);
-
-    final payments = rows.map<PaymentRecord>((row) {
-      return PaymentRecord.fromMap(row);
-    }).toList();
-
-    final receiptsByPaymentId =
-        await PaymentReceiptRepository.fetchReceiptsForPaymentIds(
-          payments.map((payment) => payment.id).toList(),
-        );
-
-    final paymentsWithReceipts = payments.map((payment) {
-      return payment.copyWith(
-        receipts: receiptsByPaymentId[payment.id] ?? <PaymentReceipt>[],
-      );
-    }).toList();
+    final payments = await _fetchPaymentRows(<String>[cleanEmployeeId]);
 
     _employeePaymentsCache[cleanEmployeeId] = _EmployeePaymentsCacheEntry(
-      payments: _copyPayments(paymentsWithReceipts),
+      payments: _copyPayments(payments),
       createdAt: DateTime.now(),
     );
 
-    return _copyPayments(paymentsWithReceipts);
+    return _copyPayments(payments);
   }
 
   static Future<List<PaymentRecord>> fetchPaymentsForEmployees(
@@ -242,29 +220,37 @@ class PaymentRepository {
       );
     }
 
-    final rows = await _client
-        .from('payments')
-        .select(
-          'id, employee_id, period_year, period_month, payment_date, amount, payment_type, comment, updated_at',
-        )
-        .inFilter('employee_id', cleanIds)
-        .order('payment_date', ascending: false)
-        .order('updated_at', ascending: false);
+    return _fetchPaymentRows(cleanIds);
+  }
 
-    final payments = rows.map<PaymentRecord>((row) {
-      return PaymentRecord.fromMap(row);
-    }).toList();
+  static Future<List<PaymentRecord>> _fetchPaymentRows(
+    List<String> employeeIds,
+  ) async {
+    final response = await _client.rpc<dynamic>(
+      'get_payment_rows_fast',
+      params: <String, dynamic>{'p_employee_ids': employeeIds},
+    );
+    if (response is! List) return <PaymentRecord>[];
 
-    final receiptsByPaymentId =
-        await PaymentReceiptRepository.fetchReceiptsForPaymentIds(
-          payments.map((payment) => payment.id).toList(),
-        );
+    return response
+        .whereType<Map>()
+        .map<PaymentRecord>((rawRow) {
+          final row = Map<String, dynamic>.from(rawRow);
+          final receiptRows = row['receipts'];
+          final receipts = receiptRows is List
+              ? receiptRows
+                    .whereType<Map>()
+                    .map(
+                      (receipt) => PaymentReceipt.fromMap(
+                        Map<String, dynamic>.from(receipt),
+                      ),
+                    )
+                    .toList(growable: false)
+              : <PaymentReceipt>[];
 
-    return payments.map((payment) {
-      return payment.copyWith(
-        receipts: receiptsByPaymentId[payment.id] ?? <PaymentReceipt>[],
-      );
-    }).toList();
+          return PaymentRecord.fromMap(row, receipts: receipts);
+        })
+        .toList(growable: false);
   }
 
   static Future<List<PaymentReceipt>> addReceiptsToPayment({
