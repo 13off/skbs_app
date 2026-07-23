@@ -100,10 +100,7 @@ class EmployeeArchiveRepository {
     EmployeeRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
-      context: <String, dynamic>{
-        'table': 'employees',
-        'employee_id': id,
-      },
+      context: <String, dynamic>{'table': 'employees', 'employee_id': id},
     );
   }
 
@@ -124,10 +121,7 @@ class EmployeeArchiveRepository {
     EmployeeRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
-      context: <String, dynamic>{
-        'table': 'employees',
-        'employee_id': id,
-      },
+      context: <String, dynamic>{'table': 'employees', 'employee_id': id},
     );
   }
 }

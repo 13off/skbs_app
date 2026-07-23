@@ -11,6 +11,9 @@ class ObjectRepository {
   static List<ConstructionObject>? _cachedObjects;
   static DateTime? _cachedObjectsAt;
   static Future<List<ConstructionObject>>? _objectsInFlight;
+  static List<String>? _cachedArchivedObjectNames;
+  static DateTime? _cachedArchivedObjectsAt;
+  static Future<List<String>>? _archivedObjectsInFlight;
   static int _cacheGeneration = 0;
 
   static String? cleanObjectName(String? value) {
@@ -29,6 +32,9 @@ class ObjectRepository {
     _cachedObjects = null;
     _cachedObjectsAt = null;
     _objectsInFlight = null;
+    _cachedArchivedObjectNames = null;
+    _cachedArchivedObjectsAt = null;
+    _archivedObjectsInFlight = null;
     _cacheGeneration++;
   }
 
@@ -183,6 +189,35 @@ class ObjectRepository {
   static Future<List<String>> fetchArchivedObjectNames({
     bool forceRefresh = false,
   }) async {
+    final cachedAt = _cachedArchivedObjectsAt;
+    if (!forceRefresh &&
+        _cachedArchivedObjectNames != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _objectsCacheTtl) {
+      return List<String>.from(_cachedArchivedObjectNames!);
+    }
+
+    final running = _archivedObjectsInFlight;
+    if (running != null) return List<String>.from(await running);
+
+    final generation = _cacheGeneration;
+    final request = _loadArchivedObjectNames();
+    _archivedObjectsInFlight = request;
+    try {
+      final result = await request;
+      if (generation == _cacheGeneration) {
+        _cachedArchivedObjectNames = List<String>.from(result);
+        _cachedArchivedObjectsAt = DateTime.now();
+      }
+      return List<String>.from(result);
+    } finally {
+      if (identical(_archivedObjectsInFlight, request)) {
+        _archivedObjectsInFlight = null;
+      }
+    }
+  }
+
+  static Future<List<String>> _loadArchivedObjectNames() async {
     final rows = await _client
         .from('objects')
         .select('name')
@@ -192,7 +227,7 @@ class ObjectRepository {
     return rows
         .map<String>((row) => row['name']?.toString().trim() ?? '')
         .where((name) => name.isNotEmpty)
-        .toList();
+        .toList(growable: false);
   }
 
   static Future<String> addObject({

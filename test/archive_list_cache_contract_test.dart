@@ -20,7 +20,9 @@ void main() {
     final source = File(
       'lib/data/employee_archive_repository.dart',
     ).readAsStringSync();
-    final start = source.indexOf('static Future<Set<String>> fetchArchivedEmployeeIds');
+    final start = source.indexOf(
+      'static Future<Set<String>> fetchArchivedEmployeeIds',
+    );
     final end = source.indexOf('static Future<void> archiveEmployee', start);
     final method = source.substring(start, end);
 
@@ -35,7 +37,10 @@ void main() {
     expect(source, contains('_cachedArchivedObjectsAt'));
     expect(source, contains('_archivedObjectsInFlight'));
     expect(source, contains('_loadArchivedObjectNames()'));
-    expect(source, contains('DateTime.now().difference(cachedAt) < _objectsCacheTtl'));
+    expect(
+      source,
+      contains('DateTime.now().difference(cachedAt) < _objectsCacheTtl'),
+    );
     expect(source, contains('_cachedArchivedObjectNames = null;'));
   });
 
