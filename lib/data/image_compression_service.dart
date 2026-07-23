@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:universal_html/html.dart' as html;
@@ -116,8 +115,10 @@ class ImageCompressionService {
       context.fillRect(0, 0, targetWidth, targetHeight);
       context.drawImageScaled(image, 0, 0, targetWidth, targetHeight);
 
-      final dataUrl = canvas.toDataUrl('image/jpeg', jpegQuality);
-      final compressedBytes = _bytesFromDataUrl(dataUrl);
+      // toBlob выполняет кодирование асинхронно и не создаёт огромную
+      // промежуточную base64-строку, поэтому выбор фото не блокирует UI.
+      final blob = await canvas.toBlob('image/jpeg', jpegQuality);
+      final compressedBytes = await _bytesFromBlob(blob);
 
       if (compressedBytes.isEmpty ||
           compressedBytes.length >= originalBytes.length) {
@@ -194,16 +195,46 @@ class ImageCompressionService {
     return completer.future;
   }
 
-  static Uint8List _bytesFromDataUrl(String dataUrl) {
-    final commaIndex = dataUrl.indexOf(',');
+  static Future<Uint8List> _bytesFromBlob(html.Blob blob) {
+    final completer = Completer<Uint8List>();
+    final reader = html.FileReader();
 
-    if (commaIndex == -1 || commaIndex == dataUrl.length - 1) {
-      return Uint8List(0);
+    late final StreamSubscription<html.ProgressEvent> loadSubscription;
+    late final StreamSubscription<html.ProgressEvent> errorSubscription;
+
+    void finish(Uint8List bytes) {
+      if (!completer.isCompleted) {
+        completer.complete(bytes);
+      }
+      loadSubscription.cancel();
+      errorSubscription.cancel();
     }
 
-    final base64Part = dataUrl.substring(commaIndex + 1);
+    void fail(Object error) {
+      if (!completer.isCompleted) {
+        completer.completeError(error);
+      }
+      loadSubscription.cancel();
+      errorSubscription.cancel();
+    }
 
-    return Uint8List.fromList(base64Decode(base64Part));
+    loadSubscription = reader.onLoad.listen((_) {
+      final result = reader.result;
+      if (result is ByteBuffer) {
+        finish(Uint8List.view(result));
+      } else if (result is Uint8List) {
+        finish(result);
+      } else {
+        fail(Exception('Не удалось прочитать сжатое изображение'));
+      }
+    });
+
+    errorSubscription = reader.onError.listen((_) {
+      fail(Exception('Не удалось прочитать сжатое изображение'));
+    });
+
+    reader.readAsArrayBuffer(blob);
+    return completer.future;
   }
 
   static String _contentTypeFromExtension(String extension) {
