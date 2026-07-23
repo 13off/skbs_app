@@ -1,0 +1,65 @@
+name: Apply parallel timesheet reads
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/parallel_timesheet_reads.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parallel-timesheet-reads-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply parallel reads patch
+        run: python3 tool/apply_parallel_timesheet_reads.py
+
+      - name: Format changed files
+        run: |
+          dart format \
+            lib/data/attendance_repository.dart \
+            test/parallel_timesheet_reads_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run parallel reads contract
+        run: flutter test test/parallel_timesheet_reads_contract_test.dart
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f tool/apply_parallel_timesheet_reads.py
+          rm -f tool/parallel_timesheet_reads.trigger
+          rm -f .github/workflows/apply-parallel-timesheet-reads.yml
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: распараллелить чтения табеля
+          file_pattern: .
