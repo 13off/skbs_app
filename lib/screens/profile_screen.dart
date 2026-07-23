@@ -6,6 +6,7 @@ import '../data/user_repository.dart';
 import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
+import '../features/company/presentation/company_setup_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
@@ -25,10 +26,7 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.profile});
 
   void open(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.push(context, CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Future<void> signOut(BuildContext context) async {
@@ -283,10 +281,7 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -356,8 +351,11 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 icon: Icons.apartment_rounded,
                 title: 'Компания',
-                value: snapshot.data?.name ??
-                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
+                value:
+                    snapshot.data?.name ??
+                    (snapshot.hasError
+                        ? 'Не удалось загрузить'
+                        : 'Загрузка...'),
               ),
             ),
           infoTile(
@@ -399,10 +397,8 @@ class ProfileScreen extends StatelessWidget {
               title: 'Настройка уведомлений',
               subtitle:
                   'Колокольчик, push, роли, типы событий и встроенные напоминания',
-              onTap: () => open(
-                context,
-                const NotificationControlCenterScreen(),
-              ),
+              onTap: () =>
+                  open(context, const NotificationControlCenterScreen()),
             ),
           actionTile(
             context,
@@ -410,10 +406,7 @@ class ProfileScreen extends StatelessWidget {
             title: 'Push-уведомления',
             subtitle:
                 'Разрешение, регистрация телефона или браузера и отключение устройства',
-            onTap: () => open(
-              context,
-              const PushNotificationSettingsScreen(),
-            ),
+            onTap: () => open(context, const PushNotificationSettingsScreen()),
           ),
           if (PwaInstallService.isSupported) ...[
             const SizedBox(height: 8),
@@ -432,20 +425,27 @@ class ProfileScreen extends StatelessWidget {
             sectionTitle(context, 'Управление компанией'),
             actionTile(
               context,
+              icon: Icons.rocket_launch_outlined,
+              title: 'Запуск компании',
+              subtitle:
+                  'Объект, прораб, сотрудники, первая задача, табель и уведомления',
+              onTap: () => open(context, CompanySetupScreen(profile: profile)),
+            ),
+            actionTile(
+              context,
               icon: Icons.gavel_rounded,
               title: 'Юридическая сводка',
               subtitle:
                   'Риски, согласования, решения руководителя и недельный отчёт юриста',
-              onTap: () => open(
-                context,
-                LegalManagerSummaryScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, LegalManagerSummaryScreen(profile: profile)),
             ),
             actionTile(
               context,
               icon: Icons.manage_accounts_outlined,
               title: 'Компания и пользователи',
-              subtitle: 'Приглашения, роли и доступ всех пользователей компании',
+              subtitle:
+                  'Приглашения, роли и доступ всех пользователей компании',
               onTap: () => open(
                 context,
                 CompanyManagementScreen(companyId: profile.activeCompanyId),
@@ -457,10 +457,8 @@ class ProfileScreen extends StatelessWidget {
               title: 'Архив и удаление',
               subtitle:
                   'Архивированные сотрудники и объекты: восстановить или удалить навсегда',
-              onTap: () => open(
-                context,
-                ArchiveManagementScreenV3(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, ArchiveManagementScreenV3(profile: profile)),
             ),
             actionTile(
               context,
@@ -468,10 +466,8 @@ class ProfileScreen extends StatelessWidget {
               title: 'Документы',
               subtitle:
                   'Действующие исходники, версии и загрузка утверждённых форм',
-              onTap: () => open(
-                context,
-                TemplateDocumentsScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, TemplateDocumentsScreen(profile: profile)),
             ),
             const SizedBox(height: 8),
           ],

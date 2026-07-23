@@ -1,12 +1,14 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "principles": {
     "server_is_authoritative": true,
     "active_company_required": true,
     "active_membership_required": true,
     "role_preview_never_changes_server_identity": true,
     "live_acceptance_requires_real_role_account": true,
-    "acceptance_is_read_only": true
+    "acceptance_is_read_only": true,
+    "live_acceptance_uses_multiple_rls_probes": true,
+    "foreman_scope_is_verified_without_client_filter": true
   },
   "roles": [
     {
@@ -27,11 +29,24 @@
       ],
       "acceptance": {
         "live_probe_table": "objects",
+        "live_probe_tables": [
+          "objects",
+          "employees",
+          "tasks",
+          "attendance",
+          "payments"
+        ],
         "required_permissions": [
-          "recruitment.applications.view",
+          "objects.view",
+          "employees.view",
+          "attendance.view",
+          "tasks.view",
           "accounting.payments.view",
-          "legal.documents.view",
-          "personal_data.compliance.view"
+          "reports.view",
+          "notifications.center.view",
+          "ai.use",
+          "system.roles.manage",
+          "system.audit.view"
         ],
         "forbidden_permissions": []
       }
@@ -52,11 +67,23 @@
       ],
       "acceptance": {
         "live_probe_table": "company_task_policies",
+        "live_probe_tables": [
+          "company_task_policies",
+          "objects",
+          "employees",
+          "tasks",
+          "payments"
+        ],
         "required_permissions": [
-          "recruitment.applications.view",
+          "system.settings.manage",
+          "system.roles.manage",
+          "system.audit.view",
+          "system.recycle_bin.manage",
+          "objects.view",
+          "employees.view",
+          "tasks.view",
           "accounting.payments.view",
-          "legal.documents.view",
-          "personal_data.compliance.edit"
+          "ai.use"
         ],
         "forbidden_permissions": []
       }
@@ -78,16 +105,35 @@
         "objects.manage"
       ],
       "acceptance": {
-        "live_probe_table": "tasks",
-        "requires_assigned_object": true,
+        "live_probe_table": "objects",
+        "live_probe_tables": [
+          "objects",
+          "tasks",
+          "employees"
+        ],
         "required_permissions": [
-          "recruitment.mobilization.view"
+          "objects.view",
+          "employees.view",
+          "attendance.view",
+          "attendance.edit",
+          "tasks.view",
+          "tasks.create",
+          "tasks.edit",
+          "tasks.photos.manage",
+          "notifications.center.view",
+          "ai.use"
         ],
         "forbidden_permissions": [
           "accounting.payments.view",
+          "employees.create",
+          "employees.delete",
+          "attendance.delete",
           "recruitment.documents.view",
-          "personal_data.compliance.view"
-        ]
+          "system.roles.manage",
+          "system.audit.view"
+        ],
+        "requires_assigned_object": true,
+        "probe_without_client_object_filter": true
       }
     },
     {
@@ -107,21 +153,35 @@
       ],
       "acceptance": {
         "live_probe_table": "recruitment_applications",
+        "live_probe_tables": [
+          "recruitment_applications",
+          "recruitment_documents",
+          "employees"
+        ],
         "required_permissions": [
           "recruitment.applications.view",
           "recruitment.documents.edit",
+          "recruitment.messages.send",
           "recruitment.mobilization.edit",
-          "personal_data.compliance.view"
+          "documents.templates.view",
+          "employees.view",
+          "notifications.center.view",
+          "ai.use"
         ],
         "forbidden_permissions": [
           "accounting.payments.view",
-          "legal.documents.edit"
+          "attendance.edit",
+          "tasks.edit",
+          "legal.documents.edit",
+          "system.roles.manage"
         ]
       }
     },
     {
       "role": "accountant",
-      "server_aliases": ["accounting"],
+      "server_aliases": [
+        "accounting"
+      ],
       "title": "Бухгалтер",
       "platform": "AccountingMainScreen",
       "object_scope": "company",
@@ -137,15 +197,29 @@
       ],
       "acceptance": {
         "live_probe_table": "payments",
+        "live_probe_tables": [
+          "payments",
+          "attendance",
+          "employees"
+        ],
         "required_permissions": [
           "accounting.attendance.view",
           "accounting.payments.view",
           "accounting.payments.edit",
-          "recruitment.mobilization.view"
+          "accounting.receipts.view",
+          "accounting.receipts.edit",
+          "employees.view",
+          "objects.view",
+          "reports.view",
+          "notifications.center.view"
         ],
         "forbidden_permissions": [
+          "employees.edit",
+          "attendance.edit",
+          "tasks.edit",
           "recruitment.documents.edit",
-          "legal.documents.edit"
+          "legal.documents.edit",
+          "system.roles.manage"
         ]
       }
     },
@@ -166,15 +240,29 @@
       ],
       "acceptance": {
         "live_probe_table": "legal_documents",
+        "live_probe_tables": [
+          "legal_documents",
+          "legal_matters",
+          "objects"
+        ],
         "required_permissions": [
           "legal.documents.view",
           "legal.documents.edit",
+          "legal.files.view",
+          "legal.matters.view",
+          "legal.reports.view",
           "personal_data.compliance.view",
-          "personal_data.compliance.edit"
+          "documents.templates.view",
+          "objects.view",
+          "notifications.center.view"
         ],
         "forbidden_permissions": [
           "accounting.payments.view",
-          "recruitment.documents.edit"
+          "employees.edit",
+          "attendance.edit",
+          "tasks.edit",
+          "recruitment.documents.edit",
+          "system.roles.manage"
         ]
       }
     }
