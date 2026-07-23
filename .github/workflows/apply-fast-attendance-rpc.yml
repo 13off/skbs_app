@@ -1,0 +1,103 @@
+name: Apply fast attendance RPC
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/performance_phase4.patch
+      - .github/workflows/apply-fast-attendance-rpc.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fast-attendance-rpc-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply attendance client patch
+        run: git apply --3way tool/performance_phase4.patch
+
+      - name: Add attendance RPC contract
+        run: |
+          cat > test/fast_attendance_rpc_contract_test.dart <<'DART'
+          import 'dart:io';
+
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('all attendance reads use the protected fast RPC', () {
+              final source = File(
+                'lib/data/attendance_repository.dart',
+              ).readAsStringSync();
+              expect(source, contains("'get_attendance_rows_fast'"));
+              expect(source, contains("'p_start_date'"));
+              expect(source, contains("'p_employee_ids'"));
+              expect(source, contains("'p_worked_only'"));
+              expect(source.split(".from('attendance')").length - 1, 1,
+                  reason: 'Прямой attendance-запрос должен остаться только для записи');
+            });
+
+            test('server RPC keeps company and object authorization', () {
+              final sql = File(
+                'supabase/migrations/20260723131000_optimize_attendance_read_pipeline.sql',
+              ).readAsStringSync();
+              expect(sql, contains('security definer'));
+              expect(sql, contains('current_user_company_id()'));
+              expect(sql, contains("'attendance.view'"));
+              expect(sql, contains("'accounting.attendance.view'"));
+              expect(sql, contains('authentication required'));
+              expect(sql, contains('date range is too large'));
+              expect(sql, contains('from public, anon'));
+              expect(sql, contains('to authenticated'));
+            });
+          }
+          DART
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/data/attendance_repository.dart \
+            test/fast_attendance_rpc_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused tests
+        run: |
+          flutter test test/fast_attendance_rpc_contract_test.dart --reporter compact
+          flutter test test/performance_io_pipeline_contract_test.dart --reporter compact
+          flutter test test/performance_responsiveness_contract_test.dart --reporter compact
+
+      - name: Remove temporary files
+        run: |
+          rm -f tool/performance_phase4.patch
+          rm -f .github/workflows/apply-fast-attendance-rpc.yml
+
+      - name: Commit validated attendance optimization
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: табель переведён на быструю защищённую выборку
+          file_pattern: .
