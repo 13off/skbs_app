@@ -153,42 +153,16 @@ class EmployeeRepository {
     required String? objectName,
     required bool includeFired,
   }) async {
-    const fields =
-        'id, person_id, object_id, fio, position, phone, object_name, daily_rate, is_active, comment, archived_at';
+    final response = await _client.rpc<dynamic>(
+      'get_employee_rows_fast',
+      params: <String, dynamic>{
+        'p_object_name': objectName,
+        'p_include_fired': includeFired,
+      },
+    );
+    if (response is! List) return <Employee>[];
 
-    late final List<dynamic> rows;
-
-    if (objectName == null && includeFired) {
-      rows = await _client
-          .from('employees')
-          .select(fields)
-          .isFilter('archived_at', null)
-          .order('fio', ascending: true);
-    } else if (objectName == null && !includeFired) {
-      rows = await _client
-          .from('employees')
-          .select(fields)
-          .isFilter('archived_at', null)
-          .eq('is_active', true)
-          .order('fio', ascending: true);
-    } else if (objectName != null && includeFired) {
-      rows = await _client
-          .from('employees')
-          .select(fields)
-          .isFilter('archived_at', null)
-          .eq('object_name', objectName)
-          .order('fio', ascending: true);
-    } else {
-      rows = await _client
-          .from('employees')
-          .select(fields)
-          .isFilter('archived_at', null)
-          .eq('object_name', objectName!)
-          .eq('is_active', true)
-          .order('fio', ascending: true);
-    }
-
-    return _employeesFromRows(rows);
+    return _employeesFromRows(response);
   }
 
   static List<Employee> _employeesFromRows(List<dynamic> rows) {
@@ -387,7 +361,8 @@ class EmployeeRepository {
           'daily_rate': sourceRow['daily_rate'] as int? ?? employee.dailyRate,
           'is_active': true,
           'comment':
-              sourceRow['comment']?.toString().trim() ?? employee.comment.trim(),
+              sourceRow['comment']?.toString().trim() ??
+              employee.comment.trim(),
           'updated_at': now,
         })
         .select(fields)
