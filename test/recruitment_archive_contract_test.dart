@@ -47,8 +47,8 @@ void main() {
       'lib/features/recruitment/presentation/recruitment_archive_screen.dart',
     );
 
-    expect(applications, contains("tooltip: 'Архив заявок'"));
-    expect(applications, contains("tooltip: 'В архив'"));
+    expect(applications, contains("tooltip: 'Архив кандидатов'"));
+    expect(applications, contains("Text('В архив')"));
     expect(applications, contains('archiveApplication(application)'));
     expect(archive, contains("title: 'Архив заявок'"));
     expect(archive, contains("label: const Text('Восстановить')"));

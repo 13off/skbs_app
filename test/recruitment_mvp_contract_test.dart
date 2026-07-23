@@ -60,7 +60,7 @@ void main() {
       'lib/features/recruitment/data/recruitment_repository.dart',
     );
 
-    expect(screen, contains("title: 'Заявки'"));
+    expect(screen, contains("title: 'Кандидаты'"));
     expect(screen, contains("labelText: 'ФИО'"));
     expect(screen, contains("labelText: 'Вакансия'"));
     expect(screen, contains("labelText: 'Объект'"));

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_ui_tokens.dart';
 import '../../../app/theme_controller.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
-const double specialistDesktopBreakpoint = 820;
+const double specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint;
 Color get specialistText => AppThemeController.instance.isDark
     ? const Color(0xFFF1F3F5)
     : const Color(0xFF1F2328);
@@ -45,38 +46,18 @@ class SpecialistDesktopPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final list = ListView(
-      key: PageStorageKey<String>(storageKey),
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1460),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppPageHeader(
-                  title: title,
-                  subtitle: subtitle,
-                  trailing: trailing,
-                  showBackButton: showBackButton,
-                  onBack: onBack,
-                ),
-                const SizedBox(height: 14),
-                ...children,
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-
-    return PremiumWorkBackdrop(
-      child: SafeArea(
-        child: onRefresh == null
-            ? list
-            : RefreshIndicator(onRefresh: onRefresh!, child: list),
+    return AppPage(
+      scrollKey: PageStorageKey<String>(storageKey),
+      title: title,
+      subtitle: subtitle,
+      headerTrailing: trailing,
+      showBackButton: showBackButton,
+      onBack: onBack,
+      onRefresh: onRefresh,
+      maxContentWidth: AppUi.specialistContentWidth,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
       ),
     );
   }
@@ -105,8 +86,8 @@ class SpecialistMetricCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final effectiveAccent = accent ?? scheme.onSurfaceVariant;
     final content = PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(17),
+      radius: AppUi.cardRadius,
+      padding: AppUi.cardInsets,
       child: Row(
         children: [
           Container(
@@ -114,7 +95,7 @@ class SpecialistMetricCard extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               color: effectiveAccent.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppUi.controlRadius),
             ),
             child: Icon(icon, color: accent ?? scheme.onSurface),
           ),
@@ -165,7 +146,7 @@ class SpecialistMetricCard extends StatelessWidget {
     if (onTap == null) return content;
     return PremiumPressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(AppUi.cardRadius),
       child: content,
     );
   }
@@ -238,7 +219,7 @@ class SpecialistMessageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
-      radius: 26,
+      radius: AppUi.modalRadius,
       padding: const EdgeInsets.all(30),
       child: Column(
         children: [

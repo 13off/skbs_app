@@ -83,9 +83,9 @@ void main() {
       'lib/features/shared/presentation/specialist_desktop_table.dart',
     );
 
-    expect(ui, contains('specialistDesktopBreakpoint = 820'));
-    expect(ui, contains('BoxConstraints(maxWidth: 1460)'));
-    expect(ui, contains('PremiumWorkBackdrop'));
+    expect(ui, contains('specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint'));
+    expect(ui, contains('maxContentWidth: AppUi.specialistContentWidth'));
+    expect(ui, contains('return AppPage('));
     expect(table, contains('SingleChildScrollView'));
     expect(table, contains('scrollDirection: Axis.horizontal'));
     expect(table, contains('.toDouble()'));

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
+import 'app_ui_tokens.dart';
 
 abstract final class PremiumDepthTheme {
   static ThemeData apply(ThemeData base) {
@@ -36,7 +37,7 @@ abstract final class PremiumDepthTheme {
         elevation: 2,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppUi.cardRadius),
           side: BorderSide(
             color: Colors.white.withValues(alpha: 0.92),
             width: 1,
@@ -62,7 +63,7 @@ abstract final class PremiumDepthTheme {
         ),
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: primaryText),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(AppUi.modalRadius),
           side: BorderSide(color: Colors.white.withValues(alpha: 0.95)),
         ),
       ),
@@ -80,7 +81,7 @@ abstract final class PremiumDepthTheme {
         elevation: 18,
         shadowColor: const Color(0xFF17191C).withValues(alpha: 0.16),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppUi.modalRadius)),
         ),
       ),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
@@ -95,14 +96,14 @@ abstract final class PremiumDepthTheme {
         prefixIconColor: mutedText,
         suffixIconColor: mutedText,
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: BorderSide(
             color: Colors.white.withValues(alpha: 0.96),
             width: 1.1,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: AppColors.accent, width: 1.2),
         ),
       ),

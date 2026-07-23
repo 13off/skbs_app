@@ -353,6 +353,48 @@ String recruitmentStageTitle(String stage) {
   }
 }
 
+String recruitmentStageDescription(String stage) {
+  switch (stage) {
+    case 'documents':
+      return 'Собираем документы и медкомиссию';
+    case 'problems':
+      return 'Есть замечания или нужна проверка';
+    case 'ready':
+      return 'Проверены и готовы к отправке';
+    case 'tickets':
+      return 'Билеты куплены или кандидат в пути';
+    case 'completed':
+      return 'Прибыли на объект или оформлены';
+    case 'reserve':
+      return 'Подходят, но пока не запускаем';
+    case 'rejected':
+      return 'Отказ или кандидат не подходит';
+    default:
+      return 'Новые заявки и первичный контакт';
+  }
+}
+
+String recruitmentStageDefaultStatus(String stage) {
+  switch (stage) {
+    case 'documents':
+      return 'waiting_documents';
+    case 'problems':
+      return 'review';
+    case 'ready':
+      return 'approved';
+    case 'tickets':
+      return 'ticket_request';
+    case 'completed':
+      return 'arrived';
+    case 'reserve':
+      return 'reserve';
+    case 'rejected':
+      return 'rejected';
+    default:
+      return 'new';
+  }
+}
+
 class RecruitmentDashboardData {
   final List<RecruitmentApplication> applications;
   final Map<String, int> counts;

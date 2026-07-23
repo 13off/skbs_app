@@ -14,11 +14,14 @@ void main() {
     );
 
     expect(header, contains('fontSize: 20'));
-    expect(header, contains('Flexible(fit: FlexFit.loose, child: action)'));
+    expect(header, contains('AppUi.pageHeaderMinHeight'));
+    expect(header, contains('cleanSubtitle.isEmpty'));
+    expect(header, contains('IconButtonTheme('));
     expect(header, isNot(contains('PremiumBrandMark(')));
     expect(header, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
     expect(header, isNot(contains('PremiumWorkCard(')));
-    expect(specialist, contains('AppPageHeader('));
+    expect(specialist, contains('return AppPage('));
+    expect(specialist, contains('maxContentWidth: AppUi.specialistContentWidth'));
   });
 
   test('home tab keeps the same plain title style', () {
