@@ -1,1 +1,1 @@
-debug 2
+debug analyzer
