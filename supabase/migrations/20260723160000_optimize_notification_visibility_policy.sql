@@ -1,9 +1,14 @@
-create or replace function public.current_user_visible_notification_ids()
+create schema if not exists private;
+
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.current_user_visible_notification_ids()
 returns setof uuid
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = public, private, pg_temp
 as $function$
   with ctx as materialized (
     select
@@ -94,12 +99,12 @@ as $function$
     );
 $function$;
 
-comment on function public.current_user_visible_notification_ids() is
+comment on function private.current_user_visible_notification_ids() is
   'Возвращает видимые текущему пользователю уведомления с однократным вычислением компании, роли и настроек.';
 
-revoke all on function public.current_user_visible_notification_ids()
+revoke all on function private.current_user_visible_notification_ids()
   from public, anon;
-grant execute on function public.current_user_visible_notification_ids()
+grant execute on function private.current_user_visible_notification_ids()
   to authenticated;
 
 drop policy if exists notifications_select_company_role
@@ -113,6 +118,8 @@ using (
   not is_push_only
   and company_id = (select public.current_user_company_id())
   and id in (
-    select public.current_user_visible_notification_ids()
+    select private.current_user_visible_notification_ids()
   )
 );
+
+drop function if exists public.current_user_visible_notification_ids();
