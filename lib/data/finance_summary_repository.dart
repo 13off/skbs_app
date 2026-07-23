@@ -178,10 +178,6 @@ class FinanceSummaryRepository {
   }) {
     final key = _requestKey(period: period, objectName: objectName);
 
-    if (forceRefresh) {
-      _inFlight.remove(key);
-    }
-
     final running = _inFlight[key];
 
     if (running != null) return running;
