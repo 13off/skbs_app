@@ -6,6 +6,7 @@ on:
       - main
     types:
       - opened
+      - reopened
 
 permissions:
   contents: write
@@ -24,8 +25,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          awk '/^          cat > \/tmp\/ui-crm.tar.gz.b64/{capture=1; next} /^PAYLOAD$/{if (capture) exit} capture {print}' .github/workflows/agent_apply_ui_crm.yml > /tmp/ui-crm.tar.gz.b64
+          grep '^H4sI' .github/workflows/agent_apply_ui_crm.yml > /tmp/ui-crm.tar.gz.b64
+          test -s /tmp/ui-crm.tar.gz.b64
           base64 --decode /tmp/ui-crm.tar.gz.b64 > /tmp/ui-crm.tar.gz
+          tar -tzf /tmp/ui-crm.tar.gz >/dev/null
           tar -xzf /tmp/ui-crm.tar.gz
           rm -f .github/workflows/agent_export_source.yml
           rm -f .github/workflows/agent_apply_ui_crm.yml
