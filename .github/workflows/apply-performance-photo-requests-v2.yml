@@ -96,8 +96,8 @@ jobs:
         run: |
           flutter test test/performance_io_pipeline_contract_test.dart --reporter compact
           flutter test test/performance_responsiveness_contract_test.dart --reporter compact
-          flutter test test/task_photo_contract_test.dart --reporter compact
-          flutter test test/payment_receipts_contract_test.dart --reporter compact
+          flutter test test/task_photo_services_test.dart --reporter compact
+          flutter test test/role_notifications_task_photos_contract_test.dart --reporter compact
 
       - name: Remove temporary apply files
         run: |
