@@ -1,0 +1,65 @@
+name: Apply fast task list client
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/fast_task_list_client.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fast-task-list-client-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply client patch
+        run: python3 tool/apply_fast_task_list_client.py
+
+      - name: Format changed files
+        run: |
+          dart format \
+            lib/data/task_repository.dart \
+            test/task_rows_fast_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run task list contract
+        run: flutter test test/task_rows_fast_contract_test.dart
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f tool/apply_fast_task_list_client.py
+          rm -f tool/fast_task_list_client.trigger
+          rm -f .github/workflows/apply-fast-task-list-client.yml
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: подключить быстрый список задач
+          file_pattern: .
