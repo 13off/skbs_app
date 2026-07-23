@@ -164,16 +164,35 @@ void main() {
 
     test('уведомления остаются персональными и ограниченными для прораба', () {
       _containsAll('lib/data/notification_repository.dart', const [
-        "'app_notifications'",
+        "'get_notification_feed_fast'",
         "'app_notification_reads'",
-        "'app_notification_clears'",
-        'foremanAllowedEntityTypes',
-        "query.inFilter('entity_type'",
-        "'actor_name'",
-        "'actor_email'",
+        "'p_object_name'",
+        "'p_limit'",
+        "row['is_read'] == true",
         'markAsRead(',
         'clearNotifications(',
       ]);
+      _containsAll(
+        'supabase/migrations/20260723160000_optimize_notification_visibility_policy.sql',
+        const [
+          'notification.target_user_id = ctx.user_id',
+          "ctx.user_role <> 'foreman'",
+          'accessible_object_names',
+          'notification.object_name',
+        ],
+      );
+      _containsAll(
+        'supabase/migrations/20260723170000_get_notification_feed_fast.sql',
+        const [
+          'app_notification_clears',
+          'app_notification_reads',
+          "ctx.user_role = 'foreman'",
+          "'operational_overdue_tasks'",
+          "'operational_missing_photos'",
+          "'operational_timesheet_missing'",
+          "'ai_draft'",
+        ],
+      );
       _containsAll('lib/widgets/notification_bell.dart', const [
         "'Очистить уведомления?'",
         'NotificationRepository.markAsRead',
