@@ -1,0 +1,75 @@
+name: Capture lazy list test logs
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/capture-lazy-list-test-logs.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply exact patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, re
+          text = Path('.github/workflows/apply-lazy-primary-lists.yml').read_text()
+          value = re.search(r"echo '([^']+)' \| base64", text).group(1)
+          Path('/tmp/performance_phase2.patch').write_bytes(
+              gzip.decompress(base64.b64decode(value)))
+          PY
+          patch -p1 < /tmp/performance_phase2.patch
+          dart format \
+            lib/widgets/app_page.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/screens/timesheet/timesheet_view.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/screens/employees/employees_sections.dart \
+            lib/screens/employees/employees_view.dart \
+            test/employees_screen_structure_test.dart \
+            test/functional_contract_test.dart \
+            test/lazy_primary_lists_contract_test.dart
+
+      - name: Run tests and capture exit codes
+        shell: bash
+        run: |
+          set +e
+          mkdir -p /tmp/lazy-test-logs
+          flutter test test/lazy_primary_lists_contract_test.dart --reporter compact > /tmp/lazy-test-logs/01-lazy.log 2>&1
+          c1=$?
+          flutter test test/employees_screen_structure_test.dart --reporter compact > /tmp/lazy-test-logs/02-employees.log 2>&1
+          c2=$?
+          flutter test test/functional_contract_test.dart --reporter compact > /tmp/lazy-test-logs/03-functional.log 2>&1
+          c3=$?
+          flutter test test/performance_responsiveness_contract_test.dart --reporter compact > /tmp/lazy-test-logs/04-performance.log 2>&1
+          c4=$?
+          printf 'lazy=%s\nemployees=%s\nfunctional=%s\nperformance=%s\n' "$c1" "$c2" "$c3" "$c4" > /tmp/lazy-test-logs/00-exit-codes.txt
+          cat /tmp/lazy-test-logs/00-exit-codes.txt
+          exit 0
+
+      - name: Upload exact logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: lazy-list-test-logs
+          path: /tmp/lazy-test-logs
+          retention-days: 1
