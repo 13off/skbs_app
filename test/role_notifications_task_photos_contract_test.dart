@@ -122,10 +122,18 @@ void main() {
       "'photo_requirements_enforced': policy.requireBeforePhoto",
       'policy.minBeforePhotos',
       "photoStage: 'before'",
-      ".eq('is_draft', false)",
+      "'get_task_rows_fast'",
       "row['is_draft'] != true",
       'TaskPhotoRepository.uploadPhotos(',
     ]);
+    expectContains(
+      'supabase/migrations/20260723220000_get_task_rows_fast.sql',
+      const [
+        'task_row.is_draft = false',
+        'task_row.deleted_at is null',
+        "current_user_has_object_permission('tasks.view', object_row.id)",
+      ],
+    );
     expectContains('lib/data/task_photo_repository.dart', const [
       "'photo_stage': photoStage",
       "photoStage != 'before' && photoStage != 'after'",
