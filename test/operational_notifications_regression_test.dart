@@ -36,25 +36,30 @@ void main() {
     expect(compatibility, contains('operational_document_deadline'));
   });
 
-  test('client refreshes bell before reading and exposes foreman signals', () {
+  test('client refreshes on demand and loads the protected fast feed', () {
     final notifications = source('lib/data/notification_repository.dart');
+    final feed = source(
+      'supabase/migrations/20260723170000_get_notification_feed_fast.sql',
+    );
     final refreshCall = notifications.indexOf(
       'await _refreshOperationalNotifications();',
     );
-    final notificationQuery = notifications.indexOf(
-      ".from('app_notifications')",
+    final feedRpc = notifications.indexOf(
+      "'get_notification_feed_fast'",
       refreshCall,
     );
 
     expect(notifications, contains('_refreshOperationalNotifications'));
     expect(notifications, contains("rpc<void>('refresh_operational_notifications')"));
     expect(refreshCall, greaterThanOrEqualTo(0));
-    expect(notificationQuery, greaterThan(refreshCall));
-    expect(notifications, contains('Старые уведомления остаются доступны'));
-    expect(notifications, contains("'operational_overdue_tasks'"));
-    expect(notifications, contains("'operational_missing_photos'"));
-    expect(notifications, contains("'operational_timesheet_missing'"));
-    expect(notifications, contains("'ai_draft'"));
+    expect(feedRpc, greaterThan(refreshCall));
+    expect(notifications, contains("'p_object_name'"));
+    expect(notifications, contains("'p_limit'"));
+    expect(feed, contains("ctx.user_role = 'foreman'"));
+    expect(feed, contains("'operational_overdue_tasks'"));
+    expect(feed, contains("'operational_missing_photos'"));
+    expect(feed, contains("'operational_timesheet_missing'"));
+    expect(feed, contains("'ai_draft'"));
   });
 
   test('AI action draft creates personal ready notification', () {
