@@ -14,6 +14,7 @@ void main() {
     final actions = source('lib/screens/task_create/task_create_actions.dart');
 
     expect(root, contains("import '../app/app_adaptive_palette.dart';"));
+    expect(root, contains('loadEmployees();\n    loadPolicy();'));
     expect(sections, contains('AppAdaptivePalette.surfaceSoft'));
     expect(sections, contains('AppAdaptivePalette.border'));
     expect(sections, contains('AppAdaptivePalette.textMuted'));
