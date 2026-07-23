@@ -21,8 +21,8 @@ void main() {
     );
     final redirectMethod = repository.substring(methodStart, methodEnd);
 
+    expect(repository, contains('https://api.appstroy-web.ru/app/'));
     expect(redirectMethod, contains('Uri.parse(_fallbackWebAppUrl)'));
-    expect(redirectMethod, contains('https://api.appstroy-web.ru/app/'));
     expect(redirectMethod, isNot(contains('Uri.base')));
     expect(edge, contains('invite-company-member-core'));
     expect(edge, contains('return json(data, coreResponse.status);'));
