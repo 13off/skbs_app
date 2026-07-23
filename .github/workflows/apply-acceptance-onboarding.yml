@@ -1,0 +1,75 @@
+name: Apply acceptance and onboarding
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/acceptance_onboarding.trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: acceptance-onboarding-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply acceptance and onboarding patch
+        run: python3 tool/apply_acceptance_onboarding.py
+
+      - name: Format Dart files
+        run: |
+          dart format \
+            lib/main_screen.dart \
+            lib/screens/profile_screen.dart \
+            lib/features/company/data/company_setup_repository.dart \
+            lib/features/company/presentation/company_setup_screen.dart \
+            lib/features/company/presentation/company_setup_nudge.dart \
+            lib/features/developer/data/role_acceptance_repository.dart \
+            lib/features/developer/presentation/developer_system_screen.dart \
+            lib/features/developer/presentation/developer_readiness_screen.dart \
+            test/company_setup_acceptance_contract_test.dart \
+            test/acceptance_demo_audit_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused acceptance tests
+        run: |
+          flutter test test/company_setup_acceptance_contract_test.dart --reporter compact
+          flutter test test/acceptance_demo_audit_contract_test.dart --reporter compact
+
+      - name: Remove temporary patch files
+        run: |
+          rm -f tool/apply_acceptance_onboarding.py
+          rm -f tool/acceptance_onboarding.trigger
+          rm -f .github/workflows/apply-acceptance-onboarding.yml
+
+      - name: Commit validated patch
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: добавлены полная приёмка и запуск компании
+          file_pattern: .
