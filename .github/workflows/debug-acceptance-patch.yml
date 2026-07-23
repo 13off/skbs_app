@@ -23,9 +23,10 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
       - run: flutter pub get --enforce-lockfile
-      - name: Capture exact analyzer error
+      - name: Capture exact focused test error
         run: |
           sed -i 's#lib/main_screen.dart#lib/screens/main_screen.dart#g' tool/apply_acceptance_onboarding.py
+          sed -i 's#snapshot.employer.companyName#snapshot.employer.legalName#g' tool/apply_acceptance_onboarding.py
           python3 tool/apply_acceptance_onboarding.py
           dart format \
             lib/screens/main_screen.dart \
@@ -38,10 +39,13 @@ jobs:
             lib/features/developer/presentation/developer_readiness_screen.dart \
             test/company_setup_acceptance_contract_test.dart \
             test/acceptance_demo_audit_contract_test.dart
-          flutter analyze --no-fatal-infos --no-fatal-warnings > tool/acceptance_analyzer_error.txt 2>&1 || true
+          {
+            flutter test test/company_setup_acceptance_contract_test.dart --reporter compact
+            flutter test test/acceptance_demo_audit_contract_test.dart --reporter compact
+          } > tool/acceptance_test_error.txt 2>&1 || true
       - name: Commit diagnostic log
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: ${{ github.head_ref }}
-          commit_message: сохранена диагностика анализатора приёмки
-          file_pattern: tool/acceptance_analyzer_error.txt
+          commit_message: сохранена диагностика тестов приёмки
+          file_pattern: tool/acceptance_test_error.txt
