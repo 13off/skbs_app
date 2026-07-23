@@ -1,0 +1,78 @@
+name: Apply lazy primary lists
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/performance_phase2.trigger
+      - .github/workflows/apply-lazy-primary-lists.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lazy-primary-lists-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply lazy-list patch
+        shell: bash
+        run: |
+          echo 'H4sIAJATY2oC/8Vd73PbuBH/r4z+HT1n2m5K1j7vcTI9mRnXdtr+OXE6nSVFkoIkUaK2ZP33u0ASkvIFKXGc9PfFkWBl9+0uv0C6rW4e1Tf6h3adJpZWx5t2nN7qM+r73/7x9CvGjXb+pN+PBzfbVvrT96JXh1x/zV6e6zvjxVzzeb37XtRtYmhmCtTqOR+dnaoHNy4Ou+/34ra6jx46vBTA2mwFm7bK7/u7k3ebf1jBavjHYvxd1Gr0Z7kqq+xDZ8Uj/kywSRiY/H6mFclE7ERkNXkCAYD/uw1QSCqLwgW0kRStIyWwdDkvahS1NCW0Wy1DE5gSpzBTmm1dD40Y19fEf/jbV9Yn1okn2azXaXzfT0fGPtv2EFSX+0d1pZNAfIH/0L8uDfIHe9rqmoCHpm9E8DvmFA0pLSE8T4JsMwAPdbv4kj70x6D/EbPvV+3pLG8ME0s3nziPDqhZPjk12w03m2z3g6z3mSFwQQrhaBysKGF1F+Wf93lvaVd/eOmp8noy6i8sTvLa2cTrAdzZ5afnRkn3pLf2IYPVsFnVlm+5oHtfv7+83vf39tjBjGc0v7k/juM3NdtyR6LQv8cS3jnJb/6w7+4K51vXbGP17+40E2JQHeQqNCNrDdxKAj0WJxPa6Tl2VoLoGxB//VFvKw9sCEq43d/dMhTyi7L9ye5D7v5lYFfq69nk2mT6aXk9kek45zZL03fHd8KqyVUZbQ3R45Vv9dDzdE08QZz/9s5I9xucCVjvHJowLfNWd3RdaH/ZIEduO5e5Z3d7TT4Vybq9YnQ4kJ1+bfz7e3vns4eSHbk20OeuycYGiuUD0o+pHbKdJ40/K7f2xfg4CthFvjJn13dzeb/o7FoYFX5NN5HYg4L/oF30wgdpGwPK7qx5K1yO9d5xFp4qHoD2OoCnhGj3TznW6bzxy0sRaqhyExVFkwkUN+g0X7bImKPkqS4KIxuUCn0Cjh+9uYkZWfScCgSuQb85S2EeLprNo0Oh9eVGv10Xo5kWnMJYovJ4YK5Q+fo0neZZjup+s84JaZfZEEwjexha1KMUtpgShloBI3WmuAXgQNGwVN4Tx0bvbEyUE3CKtiqZ1msvkzHL/4MJtawzjgdFwDUn/8HP+SzzQrD11Wws9p3uC0HMBQKVtoKsOt6rDOwx5RDILy9DyITBFvmW6fzgSfJNEL/M2Khh6j8ecVtwDWv/H9/Tc1OpUEU17yE5JpiysejKVcg7iDf5N/6e+NnsOz5sfPd/37R+3Aty+I87KnPWRIcsy8Bh+3WYX4TzNCXlnOpBNOOL/Fx2gXWD1mk7z9cJRufxxnwLGvSc1pRe8+I0rYk2Nm9zs5M4zWMlMSy/SSx5KMUxQ+/cMojt56jszrFx6n2Z1f4maMli1jZsS0PGDH1MnA7l+QFYeDe5EMmtrV9dpo03cb7nwRUPmO/9nzg49aLrYiyfJLdP04cW1/NNoAqoMnljk2g96irWlmECrbR0NftPZocWwc/kUsQNuN7rjRkIt89RhkygZwX2CrlAgog49W7AWOGge/fSdhmIRiFMtyFTXRw+P88GaJeQd8cVwg/PGJCcjj2F+GB8sQnaICfAT5cYg+N6ItQy5L1C2VBE/9ZnLEAjRA2lInUGeqXg4cwG7fgE/Y1n/JDhC8YKhqb1TdCdg33juV8UjSPCaYpUapOcJVlNWNVA9qMuIs9Aq9Z1Fr7Rh2pEPJ4EcJm3bQNXwWPEVvwLXpoQXjDPkNnmGYg3EJSVGI0xBuv2KY5e/NxUd76eNxe/Li49/y1ukXHr8uaRJPKckVrsj8lEQ3dVmh5iYwOI3Rvy9o1PK95KVQmdya4mk0fC+xFsTgpv+HEshLwb3gRtTf3Ba/8xr/qx6JoPuJsntTjLq9dKKuLLFaCQxWdSTn9Z0c6tYZVvHsVWEw9OSVHztt4RQboqWPNSbDXvsn6OU/ISDElZZOy/c8Cg+TsDKYki4VVnEBU7PqIUxdG0pCHZi4jWKedLwNSVOoqIGfKHikf5IVIhX+D1cdW1zUrybL0eDXdnznCqSgOMSTw8zvcPBJd9ZJEixKjJH4OHNrKO0qvfh4z1xd1oYeTfHLeOcQ7VFiiNT/V6csZjj82h0KFs0GItm7k1RdfyiEXw3g25B6i/2CbRzr3QzXGz7FXvwPsI2Ieq/SFJ9aBhy81/cDj6Cs+t6KxZCh5/Ds2+K5TkW/O9O0WG4sFwU5v+LFe/4N2BPEmn9dRZUfD5W93swnQ9I+/1vRu7W8eXNJBIkT88aI64cJw1hQNDHL4d/yAlSeCnZ5zJKRDRKaNGIhAh/RN6SRRA2bAa9SiUc6nr2kDDENr1MyRaXONc50iqO3crFWCl45pykh64fZoskmzowY/tykJW+2BZ8uKC6loqUyUWCaJ54fJCE+3ThTdCFHXF2tkkHx8uMPc/jjvDpYwFzKDIW/6FjA3GI6WqnpDjMD1bxUUu9KKihtS1gPZ68IKmS0vvswq8oE6YMhkjHVh4NMK0cLTIKUdEOjDoy8D1i7F/6c+O/YPHk0swyh3/+Bvch8bRQcsIrzp3IPwk5XdJHSbWE/ZIlvrbCB7CZeUT25/+3T/oTukdo37LUhx9hNQTW4NXhC2yCs3FsQGBl+aMk+dByhST/lABlyjFqI8ZQYrHHfAK9dXfKIv4F0UZ6HB4WKBuCx8RZctyI8pQw0n0L/uQ0BKcHBkm1U8oBxxr4+AdYppdzyqSw6gSRM74JlTxmvQJTo7BMRBCwcTXykAL4kB2dQO5thXZyXP9ApPlEmXj9W//IPKc4wA6rmjTrJaI1nRs0aQV2Mz6UjJaKauoUpRMcdPIuO3zgijJVWd1MKZPl43N7tMuZLHyK35iQgFgh7iGUy1vcOBkjE6jgQCnP6oC/e1NkZQgqOMTFbwFvB7dKdWWu/tmojCPDRU3qrwxErYyLxgvqT2cna/XNR3B/4AVx9OhzwSDkM6H8zkn/vsAxTAagZxsqj/zw3UVNndsg0BUcNP5+qg+UlhD61zwQnl0v5Tkkx1vXq0fSf8i11OChE9pBtCrwu8cagK8FPsLgnXo73uNNWgWXt4QjDNJ7ErKo9KxlhgFQCyaSHsXAm8fc8rnSHjvpQEMktcjMLRNOGGNcESe5Cl1ieUM75znNtInzLPkDHhySL2Ja4a45tMr0t44drQ5A56DpMoR9Ykww04BPEAtwQqTVVzf2Bd3aqjzs+DCq7G/pTYQ16DYIMvUnMrGvr0gwoqwjuXqMZEseZar6ogR1bm6Tf8Ysjb/F/O+jxl6c7IBz3Y6jCeIYzu+M5xJbF0awzQVCet4N5olAWZccLpRpZu/c5mhxFqvtHz4J6R6lN79JPpuChE9GXb+J8DHvFI/Rf4Kd5tZ9afzEogX2ftUO+5E7S1xy6M6OB5VJJqrEEcdNTSHq36O2SICdv9AW2QhCGGIXsSWL02HtZ5x3fB9FSHOEcuqfE8rqBn5nxuPhAfJNb8DRHiX+AzqfwgxBAFk4D1AyUhfqlDsS0xq3Dfqx1QTUiP5g6+ebsjyNgO5ZADGppYHcH4Cw2nMRmGQoDpVrg+NA3wS+S9M0Gm//wqg8b4LTcCWgZQmiDk1bfRmeYKxThKrtG9I9oNRxSK2FGE6Qj/4phNmQtDoFXtsCWBduojHRodDP69hbQ96DsSXF7DUe3pUdd2O7kme4OEvIEa4AfA4QIAU+MHYokB7wg8ufQX8GX4G3EYPIuJj5VswIjszWmqu0HZlrYpWuHoP08qj+cCac0Y8VnMf78Pqbs2ZI7MEIa2g3Z+gBUsC/OOPaAFsH58U9ExjXPuzGJJQi2YtIXYRG9BqmRDxAknCOb0DBV8B+RH4TOzj7Ji5BQ75BXf6rPxTc3yBzXJ4ojSQ/AcVx5CjQQNo5qGvWsiOypCjDKdJ2LzEAnxy2F7j9/jAZoWYjka6YDROgFuh29HJ5PZ0J/kW9k5MeL/KfP7v2uGwYBTgwvYzlDdfH7xVR8Mrp2Gs/rgX7U94Va3zAu8GtyN5x79WSJNw4EgySLp9OqMIEs6c4eSf+5xKSr54yYLN5Sc8CR3jzNs6wzmJO4UVYNuoiDLH/rC38wZ8t19YRve/DQqjbR+u+1TRlHCzlh3Rv9dEwyC9DWMrdmWxdJ7kpj+H/wGOzBxFHzzYMZiIW/DacGhW9Rny/+UBi1n4c3pNWng0rcB7YRi/b8UG0t5cUv41/GLe1aBIJdhpRt/JcLf+D8KI6WbiDafMBeNY6BzZvKx5+UnscfZqjiK5ywTPzd60h1q2PCAEDaXhRCwz4nX7Gd3hv85GsJNmiz85OH5F5yF53xZwoleA351ws+bFprHtZuDe5Vlg4LaCK6xY4NXSriTv71rOr86zhxJDeUUDj1u/1u/qxvtHkts+PZztP/mwSSEwXynakHuPgjtyX7CPjc/cH8fuwx6F58yHBgYhIOemHpxBu6j1k4o5ufYm2Au57r0+oqM5yG3Gx6aGJiP/kFqN1BF4Yv5bT49Fgcbtb4LJ2RV9PPUTNA7mdVyKATcpq6t8fvoP5y/w5id3IQFJS5UV2pzMwE/Q+iJRGs4VEYE+haDXyd5mfu7bY0Xx0b9ExgJ3H6OGFxuE1WBsAOzd0cSqsd4Vy3IyYr0YJdFVcpdvhl0Ua5L8ScsXQRbsPx8ZxkWO9Trp8rue0FMDAH6rMxzxb/D8MIc0miUp+AR2DPa2LxjA2qnBZIUuM5SOoykCj20BrkBGyGYOK4kT+Q13u6f6fgKhxZFv75LUvfyxGN3IPRdrRtzHGwhRePNtCG/FufxXiFR/4FLdh/wRdGe4ivAmvwZ9EQjAHpRt1L7CplXt3wfJI5t2paBP2rRbGW9DvsK1vMtHzUty0iYtBJ5oQ/g8ai3QwLv2fDfrfPFLjaC6hBqTR8/jwu2G7h+teheUjfRPwpCAkhxv6tePUsI/LCtclYTCehazqBHQPdCCjNEtuxzq7D9msZLUa0KvcMV/9xfAs+nNWM/5AvzySTvUt7zgEu83p7KPZ2JQX46nLNRz5LywPj3vP3IP3Qzx0gcyZViZu4t71JXIpgwI7E3xYIOUP2gxw8gbtfx5t6SwQ4qfF3K+WLv0Kx2Btd2LJcSAa5s8FGN90p8Z2ceP8xxF8NBd4aOKHgR7gYUzGjxTI98z/PB0+cCFtRWKKDuo4t3Co8VZnfDrmp+qgibDd28bNBh6+Y/WPtGNw1+qB9P0XGdoCx0UtcbYSoJjVeMeSpqnt88ef+oL5RngyqG3CsaLkD+p0ipI2kHxEq8InKMsA6nmq/2N9vf61YNsNHxDGq2x/6ls2rH/6m5vHVWqL/ry8tga6MQ9t8c1QMTd8A/YGm03czWKNfw11GdeCPKrufjBnN/wE86z/29/V/Ufbf1RUf51vftA3/E+ygeYXbFip+MRfGLKxnWtGVntf+RBZ5L1vpuG8A/l86W/ZM7dPzSHV66VrQ1MXlmzbPb4jlOqv7zxtp5hc9fb9X3PqVJsSW5uaezIEKXlB6JVS8vmfa9Ava4fHK78uvcVd+itcP5iUlqJ17xlbaWaBml+tqS0LXv97Oke7mQ5xYX3pc+seBM1wHHibdkLmYq7rb7VKoe0lkTcquQ+jhVjGI94PMP3D6yZ+jBdWeVOSXxyDAuhzM8BlNeqSVmQ2+hdT8bpB17mUUZ9xUcWiHwTqaxMPAcPZskjmVFP0Os5bZM1wYiN1P9qr9dOH79Qx1UX7Wf7KW77IUnYiu9bAwflszLI0xXwv/Fx35d/s/Ifi6d6LtTVzlvgUTBm9xsy3CQzV/qn5O7i14yO5iM23Vq+f6v9nF/lNHmQLfVvo/5+VWELWBQAA' | base64 -d | gzip -d > /tmp/performance_phase2.patch
+          patch -p1 < /tmp/performance_phase2.patch
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/widgets/app_page.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/screens/timesheet/timesheet_view.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/screens/employees/employees_sections.dart \
+            lib/screens/employees/employees_view.dart \
+            test/employees_screen_structure_test.dart \
+            test/functional_contract_test.dart \
+            test/lazy_primary_lists_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused list tests
+        run: |
+          flutter test test/lazy_primary_lists_contract_test.dart --reporter compact
+          flutter test test/employees_screen_structure_test.dart --reporter compact
+          flutter test test/functional_contract_test.dart --reporter compact
+          flutter test test/performance_responsiveness_contract_test.dart --reporter compact
+
+      - name: Remove temporary apply files
+        run: |
+          rm -f tool/performance_phase2.trigger
+          rm -f .github/workflows/apply-lazy-primary-lists.yml
+
+      - name: Commit validated lazy lists
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: длинные рабочие списки переведены на ленивую отрисовку
+          file_pattern: .
