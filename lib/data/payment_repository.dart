@@ -127,10 +127,8 @@ class PaymentRepository {
     bool forceRefresh = false,
   }) async {
     final key = employeeId.trim();
-    if (!forceRefresh) {
-      final running = _employeePaymentRequests[key];
-      if (running != null) return _copyPayments(await running);
-    }
+    final running = _employeePaymentRequests[key];
+    if (running != null) return _copyPayments(await running);
     final request = _fetchPaymentsForEmployee(
       employeeId,
       forceRefresh: forceRefresh,
@@ -183,10 +181,8 @@ class PaymentRepository {
             .toList()
           ..sort();
     final key = cleanIds.join('|');
-    if (!forceRefresh) {
-      final running = _bulkPaymentRequests[key];
-      if (running != null) return _copyPayments(await running);
-    }
+    final running = _bulkPaymentRequests[key];
+    if (running != null) return _copyPayments(await running);
     final request = _fetchPaymentsForEmployees(
       cleanIds,
       forceRefresh: forceRefresh,

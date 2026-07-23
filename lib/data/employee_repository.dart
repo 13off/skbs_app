@@ -119,7 +119,7 @@ class EmployeeRepository {
 
     final runningRequest = _employeeRequests[cacheKey];
 
-    if (!forceRefresh && runningRequest != null) {
+    if (runningRequest != null) {
       final employees = await runningRequest;
       return _copyEmployees(employees);
     }
@@ -182,7 +182,7 @@ class EmployeeRepository {
 
     final runningRequest = _objectNamesRequest;
 
-    if (!forceRefresh && runningRequest != null) {
+    if (runningRequest != null) {
       return List<String>.from(await runningRequest);
     }
 

@@ -183,10 +183,8 @@ class AttendanceRepository {
     bool forceRefresh = false,
   }) async {
     final key = _dayCacheKey(date: date, objectName: objectName);
-    if (!forceRefresh) {
-      final running = _shiftValueRequests[key];
-      if (running != null) return _copyShiftValues(await running);
-    }
+    final running = _shiftValueRequests[key];
+    if (running != null) return _copyShiftValues(await running);
     final request = _fetchShiftValuesForDate(
       date,
       objectName: objectName,
@@ -346,10 +344,8 @@ class AttendanceRepository {
       objectName: objectName,
       includeFired: includeFired,
     );
-    if (!forceRefresh) {
-      final running = _attendanceReportRequests[key];
-      if (running != null) return _copyReportRows(await running);
-    }
+    final running = _attendanceReportRequests[key];
+    if (running != null) return _copyReportRows(await running);
     final request = _fetchReportForPeriod(
       startDate: startDate,
       endDate: endDate,
@@ -464,10 +460,8 @@ class AttendanceRepository {
       objectName: objectName,
       includeFired: includeFired,
     );
-    if (!forceRefresh) {
-      final running = _monthlyTimesheetRequests[key];
-      if (running != null) return _copyMonthlyRows(await running);
-    }
+    final running = _monthlyTimesheetRequests[key];
+    if (running != null) return _copyMonthlyRows(await running);
     final request = _fetchMonthlyTimesheet(
       year: year,
       month: month,
@@ -598,10 +592,8 @@ class AttendanceRepository {
       year: year,
       month: month,
     );
-    if (!forceRefresh) {
-      final running = _employeeMonthlyTimesheetRequests[key];
-      if (running != null) return running;
-    }
+    final running = _employeeMonthlyTimesheetRequests[key];
+    if (running != null) return running;
     final request = _fetchMonthlyTimesheetForEmployee(
       employee: employee,
       year: year,
@@ -711,10 +703,8 @@ class AttendanceRepository {
       objectName: objectName,
       includeFired: includeFired,
     );
-    if (!forceRefresh) {
-      final running = _periodTimesheetRequests[key];
-      if (running != null) return _copyPeriodRows(await running);
-    }
+    final running = _periodTimesheetRequests[key];
+    if (running != null) return _copyPeriodRows(await running);
     final request = _fetchPeriodTimesheet(
       startDate: startDate,
       endDate: endDate,

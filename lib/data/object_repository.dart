@@ -35,10 +35,7 @@ class ObjectRepository {
   static void _notifyObjectsChanged({String? objectName}) {
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.objects},
-      context: <String, dynamic>{
-        'table': 'objects',
-        'object_name': objectName,
-      },
+      context: <String, dynamic>{'table': 'objects', 'object_name': objectName},
     );
   }
 
@@ -119,7 +116,7 @@ class ObjectRepository {
 
     final runningRequest = _objectsInFlight;
 
-    if (!forceRefresh && runningRequest != null) {
+    if (runningRequest != null) {
       final objects = await runningRequest;
       return List<ConstructionObject>.from(objects);
     }
