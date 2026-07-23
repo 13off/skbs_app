@@ -22,7 +22,7 @@ void main() {
     expect(setupRepository, isNot(contains('.update(')));
     expect(setupRepository, isNot(contains('.delete(')));
     expect(runbook, contains('отдельной тестовой компании'));
-    expect(runbook, contains('Режим просмотра роли'));
+    expect(runbook, contains('реальной тестовой учётной записью роли'));
     expect(
       (config['rules'] as List<dynamic>),
       contains('profession_directory_is_out_of_scope'),
