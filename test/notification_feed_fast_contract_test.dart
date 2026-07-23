@@ -7,7 +7,9 @@ void main() {
       'supabase/migrations/20260723170000_get_notification_feed_fast.sql';
 
   test('notification feed is loaded through one protected RPC', () {
-    final source = File('lib/data/notification_repository.dart').readAsStringSync();
+    final source = File(
+      'lib/data/notification_repository.dart',
+    ).readAsStringSync();
     final start = source.indexOf(
       'static Future<List<AppNotification>> fetchLatest',
     );
@@ -20,7 +22,7 @@ void main() {
     expect(fetchLatest, contains("'get_notification_feed_fast'"));
     expect(fetchLatest, contains("'p_object_name'"));
     expect(fetchLatest, contains("'p_limit'"));
-    expect(fetchLatest, contains("map['is_read'] == true"));
+    expect(fetchLatest, contains("row['is_read'] == true"));
     expect(fetchLatest, isNot(contains('fetchCurrentProfile')));
     expect(fetchLatest, isNot(contains(".from('app_notifications')")));
     expect(fetchLatest, isNot(contains('_fetchClearDate')));
