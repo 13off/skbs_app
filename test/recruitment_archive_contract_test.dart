@@ -50,9 +50,9 @@ void main() {
     expect(applications, contains("tooltip: 'Архив кандидатов'"));
     expect(applications, contains("Text('В архив')"));
     expect(applications, contains('archiveApplication(application)'));
-    expect(archive, contains("title: 'Архив кандидатов'"));
+    expect(archive, contains("title: 'Архив заявок'"));
     expect(archive, contains("label: const Text('Восстановить')"));
-    expect(archive, contains("title: const Text('Удалить кандидата навсегда?')"));
+    expect(archive, contains("title: const Text('Удалить заявку навсегда?')"));
     expect(archive, contains("child: const Text('Удалить навсегда')"));
   });
 
