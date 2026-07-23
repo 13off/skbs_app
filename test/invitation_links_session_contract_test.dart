@@ -20,25 +20,27 @@ void main() {
     expect(repository, contains("data['invite_url']"));
   });
 
-  test('edge adapter preserves invitation core and rewrites only the route', () {
+  test('edge adapter preserves the canonical invitation route from core', () {
     final edge = source('supabase/functions/invite-company-member/index.ts');
     final core = source(
       'supabase/functions/invite-company-member-core/index.ts',
     );
 
     expect(edge, contains('invite-company-member-core'));
-    expect(edge, contains('https://13off.github.io/appstroy-web/'));
-    expect(edge, contains('new URL("invite.html", publishedWebAppUrl)'));
-    expect(edge, contains('companyInvite'));
-    expect(edge, contains('inviteTokenHash'));
-    expect(edge, contains('inviteType'));
-    expect(edge, contains('...data'));
+    expect(edge, contains('return json(data, coreResponse.status);'));
+    expect(edge, isNot(contains('13off.github.io/appstroy-web')));
+    expect(edge, isNot(contains('publishedWebAppUrl')));
+    expect(edge, isNot(contains('new URL("invite.html"')));
     expect(edge, isNot(contains('/functions/v1/invite-landing')));
+    expect(core, contains('https://api.appstroy-web.ru/app/'));
     expect(core, contains('generateLink'));
     expect(core, contains('type: "invite"'));
     expect(core, contains('"recovery"'));
     expect(core, contains('"magiclink"'));
     expect(core, contains('invite_url: actionLink'));
+    expect(core, contains('companyInvite'));
+    expect(core, contains('inviteTokenHash'));
+    expect(core, contains('inviteType'));
     expect(core, contains('"lawyer"'));
     expect(core, contains('"accountant"'));
     expect(edge, isNot(contains('inviteUserByEmail')));
