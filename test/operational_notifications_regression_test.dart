@@ -36,11 +36,21 @@ void main() {
     expect(compatibility, contains('operational_document_deadline'));
   });
 
-  test('client refreshes bell and exposes operational events to foreman', () {
+  test('client refreshes bell before reading and exposes foreman signals', () {
     final notifications = source('lib/data/notification_repository.dart');
+    final refreshCall = notifications.indexOf(
+      'await _refreshOperationalNotifications();',
+    );
+    final notificationQuery = notifications.indexOf(
+      ".from('app_notifications')",
+      refreshCall,
+    );
 
     expect(notifications, contains('_refreshOperationalNotifications'));
     expect(notifications, contains("rpc<void>('refresh_operational_notifications')"));
+    expect(refreshCall, greaterThanOrEqualTo(0));
+    expect(notificationQuery, greaterThan(refreshCall));
+    expect(notifications, contains('Старые уведомления остаются доступны'));
     expect(notifications, contains("'operational_overdue_tasks'"));
     expect(notifications, contains("'operational_missing_photos'"));
     expect(notifications, contains("'operational_timesheet_missing'"));
