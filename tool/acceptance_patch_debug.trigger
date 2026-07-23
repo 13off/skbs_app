@@ -1,1 +1,1 @@
-debug analyzer
+debug tests
