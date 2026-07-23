@@ -22,9 +22,16 @@ void main() {
 
   test('shared AppPage expands on desktop and restores nested back navigation', () {
     final source = File('lib/widgets/app_page.dart').readAsStringSync();
+    final tokens = File('lib/app/app_ui_tokens.dart').readAsStringSync();
 
-    expect(source, contains('static const double desktopBreakpoint = 1050;'));
-    expect(source, contains('final maxContentWidth = isDesktop ? 1180.0 : 720.0;'));
+    expect(
+      source,
+      contains('static const double desktopBreakpoint = AppUi.desktopBreakpoint;'),
+    );
+    expect(source, contains('this.maxContentWidth = AppUi.pageContentWidth'));
+    expect(source, contains('BoxConstraints(maxWidth: maxContentWidth)'));
+    expect(tokens, contains('static const double desktopBreakpoint = 1050;'));
+    expect(tokens, contains('static const double pageContentWidth = 1180;'));
     expect(source, contains('Navigator.maybeOf(context)'));
     expect(source, contains('navigator?.canPop() ?? false'));
     expect(source, contains('showBackButton: effectiveShowBackButton'));
