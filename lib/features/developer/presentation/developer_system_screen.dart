@@ -12,7 +12,6 @@ import '../../company/presentation/company_management_screen.dart';
 import '../../company/presentation/company_setup_screen.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
 import 'developer_constructor_screen.dart';
-import 'developer_demo_center_screen.dart';
 import 'developer_readiness_screen.dart';
 import 'developer_role_acceptance_screen.dart';
 
@@ -28,51 +27,30 @@ class DeveloperSystemScreen extends StatelessWidget {
   }
 
   Widget statusCard(BuildContext context) {
-    return PremiumWorkCard(
+    return const PremiumWorkCard(
       radius: 28,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.developer_board_rounded, size: 28),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Системная платформа',
+                  'Системные настройки',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Здесь собраны настройки, которые влияют на работу всей компании. Операционные разделы сотрудников в эту профессию не входят.',
+          SizedBox(height: 10),
+          Text(
+            'Здесь собраны настройки, которые влияют на работу всей компании. '
+            'Фактическое состояние базы, прав и серверных функций показывается '
+            'только после запуска диагностики — статические статусы здесь не используются.',
             style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _StatusBadge(
-                icon: Icons.cloud_done_outlined,
-                label: 'База подключена',
-              ),
-              _StatusBadge(
-                icon: Icons.schedule_rounded,
-                label: 'Планировщик активен',
-              ),
-              _StatusBadge(
-                icon: Icons.notifications_active_outlined,
-                label: 'Push-контур активен',
-              ),
-              _StatusBadge(
-                icon: Icons.auto_awesome_rounded,
-                label: 'ИИ-диспетчер готов',
-              ),
-            ],
           ),
         ],
       ),
@@ -179,9 +157,9 @@ class DeveloperSystemScreen extends StatelessWidget {
           actionCard(
             context,
             icon: Icons.verified_user_outlined,
-            title: 'Ролевая приёмка',
+            title: 'Проверка текущей роли',
             subtitle:
-                'Проверить фактические JWT, permissions, запреты, Data API и объектные границы каждой профессии.',
+                'Проверить JWT, разрешения, Data API и объектные границы только текущего входа — без имитации других ролей.',
             onTap: () =>
                 open(context, DeveloperRoleAcceptanceScreen(profile: profile)),
           ),
@@ -197,14 +175,6 @@ class DeveloperSystemScreen extends StatelessWidget {
                 initialObjectName: profile.objectName,
               ),
             ),
-          ),
-          actionCard(
-            context,
-            icon: Icons.play_circle_outline_rounded,
-            title: 'Демонстрационный центр',
-            subtitle:
-                'Показать AppСтрой клиенту на полностью вымышленных данных, не открывая рабочую компанию.',
-            onTap: () => open(context, const DeveloperDemoCenterScreen()),
           ),
           const SizedBox(height: 8),
           const Padding(
@@ -229,10 +199,10 @@ class DeveloperSystemScreen extends StatelessWidget {
           ),
           actionCard(
             context,
-            icon: Icons.dashboard_customize_outlined,
-            title: 'Конструктор настроек',
+            icon: Icons.schedule_outlined,
+            title: 'Напоминания и системные параметры',
             subtitle:
-                'Создавать, переименовывать и удалять напоминания и системные параметры.',
+                'Настраивать расписание уведомлений и технические параметры. Ограничения задач находятся только в отдельной вкладке «Ограничения».',
             onTap: () => open(context, const DeveloperConstructorScreen()),
           ),
           actionCard(
@@ -269,35 +239,6 @@ class DeveloperSystemScreen extends StatelessWidget {
             subtitle: 'Системные формы договоров, актов и кадровых документов.',
             onTap: () =>
                 open(context, TemplateDocumentsScreen(profile: profile)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _StatusBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 17),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
           ),
         ],
       ),
