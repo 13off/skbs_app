@@ -20,10 +20,10 @@ jobs:
           persist-credentials: true
       - name: Capture exact patch error
         run: |
-          python3 tool/apply_acceptance_onboarding.py > tool/acceptance_patch_error.log 2>&1 || true
+          python3 tool/apply_acceptance_onboarding.py > tool/acceptance_patch_error.txt 2>&1 || true
       - name: Commit diagnostic log
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: ${{ github.head_ref }}
           commit_message: сохранена диагностика патча приёмки
-          file_pattern: tool/acceptance_patch_error.log
+          file_pattern: tool/acceptance_patch_error.txt
