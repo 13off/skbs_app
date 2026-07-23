@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_data_sync.dart';
 import 'attendance_repository.dart';
+import 'employee_archive_repository.dart';
 import 'employee_repository.dart';
 import 'object_repository.dart';
 import 'payment_repository.dart';
@@ -91,6 +92,7 @@ class PermanentDeletionRepository {
   }
 
   static void _clearCaches() {
+    EmployeeArchiveRepository.clearCache();
     EmployeeRepository.clearCache();
     ObjectRepository.clearCache();
     AttendanceRepository.clearCache();
@@ -176,10 +178,7 @@ class PermanentDeletionRepository {
         AppDataDomain.payments,
         AppDataDomain.tasks,
       },
-      context: <String, dynamic>{
-        'table': 'objects',
-        'object_name': cleanName,
-      },
+      context: <String, dynamic>{'table': 'objects', 'object_name': cleanName},
     );
 
     return PermanentDeletionResult(cleanupWarnings: warnings);
