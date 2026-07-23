@@ -209,7 +209,7 @@ class CompanyRepository {
     final rows = await _client
         .from('company_memberships')
         .select(
-          'company_id, role, is_active, companies!inner(id, name, plan_code, billing_status, trial_ends_at, seat_limit, object_limit)',
+          'company_id, role, is_active, companies!company_memberships_company_id_fkey(id, name, plan_code, billing_status, trial_ends_at, seat_limit, object_limit)',
         )
         .eq('user_id', userId)
         .eq('is_active', true)

@@ -137,23 +137,18 @@ Deno.serve(async (request: Request) => {
       ? Math.trunc(expirationRaw)
       : null;
 
-    const { error: endpointDeleteError } = await admin
-      .from("web_push_subscriptions")
-      .delete()
-      .eq("endpoint", endpoint);
-    if (endpointDeleteError) throw endpointDeleteError;
-
     const { error: deviceDeleteError } = await admin
       .from("web_push_subscriptions")
       .delete()
       .eq("user_id", userData.user.id)
-      .eq("device_id", deviceId);
+      .eq("device_id", deviceId)
+      .neq("endpoint", endpoint);
     if (deviceDeleteError) throw deviceDeleteError;
 
     const now = new Date().toISOString();
     const { data: inserted, error: insertError } = await admin
       .from("web_push_subscriptions")
-      .insert({
+      .upsert({
         user_id: userData.user.id,
         company_id: companyId,
         device_id: deviceId,
@@ -165,7 +160,7 @@ Deno.serve(async (request: Request) => {
         enabled: input.enabled !== false,
         last_seen_at: now,
         updated_at: now,
-      })
+      }, { onConflict: "endpoint" })
       .select("id")
       .single();
     if (insertError) throw insertError;
