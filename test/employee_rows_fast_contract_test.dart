@@ -8,8 +8,13 @@ void main() {
 
   test('employee lists use one protected RPC', () {
     final source = File('lib/data/employee_repository.dart').readAsStringSync();
-    final start = source.indexOf('static Future<List<Employee>> _loadEmployees');
-    final end = source.indexOf('static List<Employee> _employeesFromRows', start);
+    final start = source.indexOf(
+      'static Future<List<Employee>> _loadEmployees',
+    );
+    final end = source.indexOf(
+      'static List<Employee> _employeesFromRows',
+      start,
+    );
 
     expect(start, greaterThanOrEqualTo(0));
     expect(end, greaterThan(start));
