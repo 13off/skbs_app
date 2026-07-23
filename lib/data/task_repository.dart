@@ -143,28 +143,21 @@ class TaskRepository {
       return _copyTasks(cached.tasks);
     }
 
-    final rows = cleanObject == null
-        ? await _client
-              .from('tasks')
-              .select(
-                'id, task_date, object_name, axes, work, status, not_done_comment',
-              )
-              .eq('task_date', _dateKey(date))
-              .eq('is_draft', false)
-              .order('created_at', ascending: true)
-        : await _client
-              .from('tasks')
-              .select(
-                'id, task_date, object_name, axes, work, status, not_done_comment',
-              )
-              .eq('task_date', _dateKey(date))
-              .eq('is_draft', false)
-              .eq('object_name', cleanObject)
-              .order('created_at', ascending: true);
+    final response = await _client.rpc<dynamic>(
+      'get_task_rows_fast',
+      params: <String, dynamic>{
+        'p_task_date': _dateKey(date),
+        'p_object_name': cleanObject,
+      },
+    );
+    if (response is! List) return <TaskItemData>[];
 
-    final tasks = rows
-        .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
-        .toList();
+    final tasks = response
+        .whereType<Map>()
+        .map<TaskItemData>(
+          (row) => TaskItemData.fromSupabase(Map<String, dynamic>.from(row)),
+        )
+        .toList(growable: false);
 
     _tasksCache[cacheKey] = _TaskListCacheEntry(
       tasks: _copyTasks(tasks),
