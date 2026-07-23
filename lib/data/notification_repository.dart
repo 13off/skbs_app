@@ -166,6 +166,14 @@ class NotificationControlCenterData {
 class NotificationRepository {
   static final _client = Supabase.instance.client;
 
+  static Future<void> _refreshOperationalNotifications() async {
+    try {
+      await _client.rpc<void>('refresh_operational_notifications');
+    } catch (_) {
+      // Старые уведомления остаются доступны при временной ошибке обновления.
+    }
+  }
+
   static const List<String> foremanAllowedEntityTypes = <String>[
     'attendance',
     'tasks',
@@ -175,6 +183,10 @@ class NotificationRepository {
     'legal_matter',
     'foreman_reminder',
     'brigade_photo',
+    'operational_overdue_tasks',
+    'operational_missing_photos',
+    'operational_timesheet_missing',
+    'ai_draft',
   ];
 
   static const List<String> allNotificationRoles = <String>[
@@ -591,6 +603,7 @@ class NotificationRepository {
     int limit = 40,
   }) async {
     final cleanObject = cleanObjectName(objectName);
+    await _refreshOperationalNotifications();
     try {
       final profile = await UserRepository.fetchCurrentProfile();
       final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
