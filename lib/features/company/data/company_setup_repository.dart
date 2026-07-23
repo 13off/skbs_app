@@ -76,6 +76,26 @@ abstract final class CompanySetupRepository {
     }
   }
 
+  static Future<bool> _allActiveEmployeesHaveRates(String companyId) async {
+    try {
+      final List<dynamic> rows = await _client
+          .from('employees')
+          .select('id, daily_rate')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .isFilter('archived_at', null)
+          .limit(5000);
+      if (rows.isEmpty) return false;
+      return rows.every((value) {
+        if (value is! Map) return false;
+        final rate = value['daily_rate'];
+        return rate is num && rate > 0;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<bool> _notificationCenterAvailable() async {
     try {
       final result = await _client.rpc<dynamic>(
@@ -115,6 +135,7 @@ abstract final class CompanySetupRepository {
             .isFilter('archived_at', null)
             .limit(1),
       ),
+      _allActiveEmployeesHaveRates(companyId),
       _safeProbe(
         () async => await _client
             .from('tasks')
@@ -183,11 +204,20 @@ abstract final class CompanySetupRepository {
           action: CompanySetupAction.employees,
         ),
         CompanySetupStep(
+          id: 'rates',
+          title: 'Назначьте дневные ставки',
+          description:
+              'У каждого активного сотрудника должна быть согласованная ставка больше нуля.',
+          completed: results[1],
+          required: true,
+          action: CompanySetupAction.employees,
+        ),
+        CompanySetupStep(
           id: 'tasks',
           title: 'Создайте первую рабочую задачу',
           description:
               'Опубликованная задача проверяет объект, исполнителей и ограничения.',
-          completed: results[1],
+          completed: results[2],
           required: true,
           action: CompanySetupAction.tasks,
         ),
@@ -196,7 +226,7 @@ abstract final class CompanySetupRepository {
           title: 'Заполните первый табель',
           description:
               'Сохраните хотя бы одну рабочую отметку через штатный экран.',
-          completed: results[2],
+          completed: results[3],
           required: true,
           action: CompanySetupAction.attendance,
         ),
@@ -205,7 +235,7 @@ abstract final class CompanySetupRepository {
           title: 'Проверьте центр уведомлений',
           description:
               'Колокольчик и настройки должны открываться для текущей компании.',
-          completed: results[3],
+          completed: results[4],
           required: true,
           action: CompanySetupAction.notifications,
         ),
@@ -214,7 +244,7 @@ abstract final class CompanySetupRepository {
           title: 'Заполните профиль работодателя',
           description:
               'Реквизиты и доказательства нужны до работы с реальными документами.',
-          completed: results[4],
+          completed: results[5],
           required: false,
           action: CompanySetupAction.compliance,
         ),
