@@ -37,12 +37,14 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       - name: Apply acceptance and onboarding patch
-        run: python3 tool/apply_acceptance_onboarding.py
+        run: |
+          sed -i 's#lib/main_screen.dart#lib/screens/main_screen.dart#g' tool/apply_acceptance_onboarding.py
+          python3 tool/apply_acceptance_onboarding.py
 
       - name: Format Dart files
         run: |
           dart format \
-            lib/main_screen.dart \
+            lib/screens/main_screen.dart \
             lib/screens/profile_screen.dart \
             lib/features/company/data/company_setup_repository.dart \
             lib/features/company/presentation/company_setup_screen.dart \
@@ -65,7 +67,10 @@ jobs:
         run: |
           rm -f tool/apply_acceptance_onboarding.py
           rm -f tool/acceptance_onboarding.trigger
+          rm -f tool/acceptance_patch_debug.trigger
+          rm -f tool/acceptance_patch_error.txt
           rm -f .github/workflows/apply-acceptance-onboarding.yml
+          rm -f .github/workflows/debug-acceptance-patch.yml
 
       - name: Commit validated patch
         uses: stefanzweifel/git-auto-commit-action@v6
