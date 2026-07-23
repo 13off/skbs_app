@@ -39,6 +39,7 @@ jobs:
       - name: Apply acceptance and onboarding patch
         run: |
           sed -i 's#lib/main_screen.dart#lib/screens/main_screen.dart#g' tool/apply_acceptance_onboarding.py
+          sed -i 's#snapshot.employer.companyName#snapshot.employer.legalName#g' tool/apply_acceptance_onboarding.py
           python3 tool/apply_acceptance_onboarding.py
 
       - name: Format Dart files
@@ -69,6 +70,7 @@ jobs:
           rm -f tool/acceptance_onboarding.trigger
           rm -f tool/acceptance_patch_debug.trigger
           rm -f tool/acceptance_patch_error.txt
+          rm -f tool/acceptance_analyzer_error.txt
           rm -f .github/workflows/apply-acceptance-onboarding.yml
           rm -f .github/workflows/debug-acceptance-patch.yml
 
