@@ -385,10 +385,20 @@ class AttendanceRepository {
       return _copyReportRows(cached.rows);
     }
 
-    final employees = await EmployeeRepository.fetchEmployees(
-      objectName: cleanObject,
-      includeFired: includeFired,
-    );
+    final data = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(
+        objectName: cleanObject,
+        includeFired: includeFired,
+      ),
+      _fetchAttendanceRows(
+        startDate: startDate,
+        endDate: endDate,
+        objectName: cleanObject,
+        workedOnly: true,
+      ),
+    ]);
+    final employees = data[0] as List<Employee>;
+    final rows = data[1] as List<Map<String, dynamic>>;
 
     final employeesById = <String, Employee>{};
 
@@ -397,13 +407,6 @@ class AttendanceRepository {
         employeesById[employee.id!] = employee;
       }
     }
-
-    final rows = await _fetchAttendanceRows(
-      startDate: startDate,
-      endDate: endDate,
-      objectName: cleanObject,
-      workedOnly: true,
-    );
 
     final totals = <String, _AttendanceTotals>{};
 
@@ -501,19 +504,27 @@ class AttendanceRepository {
       return _copyMonthlyRows(cached.rows);
     }
 
-    final employees = await EmployeeRepository.fetchEmployees(
-      objectName: cleanObject,
-      includeFired: includeFired,
-    );
-
     final firstDate = DateTime(year, month, 1);
     final lastDate = DateTime(year, month + 1, 0);
-
-    final attendanceRows = await _fetchAttendanceRows(
-      startDate: firstDate,
-      endDate: lastDate,
-      objectName: cleanObject,
-    );
+    final data = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(
+        objectName: cleanObject,
+        includeFired: includeFired,
+      ),
+      _fetchAttendanceRows(
+        startDate: firstDate,
+        endDate: lastDate,
+        objectName: cleanObject,
+      ),
+      _client
+          .from('payments')
+          .select('employee_id, amount')
+          .eq('period_year', year)
+          .eq('period_month', month),
+    ]);
+    final employees = data[0] as List<Employee>;
+    final attendanceRows = data[1] as List<Map<String, dynamic>>;
+    final paymentRows = data[2] as List<dynamic>;
 
     final shiftsByEmployeeId = <String, Map<int, double>>{};
 
@@ -534,12 +545,6 @@ class AttendanceRepository {
 
       employeeDays[workDate.day] = _toDouble(row['shifts']);
     }
-
-    final paymentRows = await _client
-        .from('payments')
-        .select('employee_id, amount')
-        .eq('period_year', year)
-        .eq('period_month', month);
 
     final paidByEmployeeId = <String, double>{};
 
@@ -642,11 +647,21 @@ class AttendanceRepository {
     final firstDate = DateTime(year, month, 1);
     final lastDate = DateTime(year, month + 1, 0);
 
-    final attendanceRows = await _fetchAttendanceRows(
-      startDate: firstDate,
-      endDate: lastDate,
-      employeeIds: <String>[employeeId],
-    );
+    final data = await Future.wait<dynamic>([
+      _fetchAttendanceRows(
+        startDate: firstDate,
+        endDate: lastDate,
+        employeeIds: <String>[employeeId],
+      ),
+      _client
+          .from('payments')
+          .select('amount')
+          .eq('period_year', year)
+          .eq('period_month', month)
+          .eq('employee_id', employeeId),
+    ]);
+    final attendanceRows = data[0] as List<Map<String, dynamic>>;
+    final paymentRows = data[1] as List<dynamic>;
 
     final shiftsByDay = <int, double>{};
 
@@ -661,13 +676,6 @@ class AttendanceRepository {
 
       shiftsByDay[workDate.day] = _toDouble(row['shifts']);
     }
-
-    final paymentRows = await _client
-        .from('payments')
-        .select('amount')
-        .eq('period_year', year)
-        .eq('period_month', month)
-        .eq('employee_id', employeeId);
 
     double paid = 0.0;
 
@@ -744,16 +752,19 @@ class AttendanceRepository {
       return _copyPeriodRows(cached.rows);
     }
 
-    final employees = await EmployeeRepository.fetchEmployees(
-      objectName: cleanObject,
-      includeFired: includeFired,
-    );
-
-    final rows = await _fetchAttendanceRows(
-      startDate: startDate,
-      endDate: endDate,
-      objectName: cleanObject,
-    );
+    final data = await Future.wait<dynamic>([
+      EmployeeRepository.fetchEmployees(
+        objectName: cleanObject,
+        includeFired: includeFired,
+      ),
+      _fetchAttendanceRows(
+        startDate: startDate,
+        endDate: endDate,
+        objectName: cleanObject,
+      ),
+    ]);
+    final employees = data[0] as List<Employee>;
+    final rows = data[1] as List<Map<String, dynamic>>;
 
     final shiftsByEmployeeId = <String, Map<String, double>>{};
 
