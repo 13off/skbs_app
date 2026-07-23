@@ -164,4 +164,4 @@ warning • The member 'setState' can only be used within instance members of su
 warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_sync.dart:26:7 • invalid_use_of_protected_member
 warning • Unused import: '../app/app_theme.dart'. Try removing the import directive • lib/widgets/premium_surfaces_v3.dart:3:8 • unused_import
 
-134 issues found. (ran in 16.8s)
+134 issues found. (ran in 19.0s)
