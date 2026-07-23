@@ -100,10 +100,12 @@ class AiAssistantRepository {
   static bool _isOperationalCommand(String normalized) {
     final reminder = RegExp(r'напомн|напоминан').hasMatch(normalized);
     final timesheetCorrection =
-        RegExp(r'(исправ|измен|поправ|постав|отмет).*(табел|смен)')
-            .hasMatch(normalized) ||
-        RegExp(r'(табел|смен).*(исправ|измен|поправ|постав|отмет)')
-            .hasMatch(normalized);
+        RegExp(
+          r'(исправ|измен|поправ|постав|отмет).*(табел|смен)',
+        ).hasMatch(normalized) ||
+        RegExp(
+          r'(табел|смен).*(исправ|измен|поправ|постав|отмет)',
+        ).hasMatch(normalized);
     final employeeUpdate = RegExp(
       r'(измен|обнов|постав).*(ставк|должност|телефон)',
     ).hasMatch(normalized);
@@ -180,10 +182,7 @@ class AiAssistantRepository {
     }
 
     final cleanPrompt = prompt.trim();
-    final functionName = functionNameFor(
-      mode: mode,
-      prompt: cleanPrompt,
-    );
+    final functionName = functionNameFor(mode: mode, prompt: cleanPrompt);
     final requestDate = date ?? DateTime.now();
     final response = await _client.functions.invoke(
       functionName,
@@ -204,7 +203,24 @@ class AiAssistantRepository {
       );
     }
 
-    return AiAssistantResult.fromMap(data);
+    final result = AiAssistantResult.fromMap(data);
+    final action = result.action;
+    if (action != null && action.id.trim().isNotEmpty) {
+      try {
+        await _client.rpc<void>(
+          'create_ai_draft_ready_notification',
+          params: <String, dynamic>{
+            'p_title': result.title,
+            'p_action_type': action.type,
+            'p_action_id': action.id,
+          },
+        );
+      } catch (_) {
+        // Черновик остаётся доступен в чате при временной ошибке уведомления.
+      }
+    }
+
+    return result;
   }
 
   static String _dateKey(DateTime value) {
