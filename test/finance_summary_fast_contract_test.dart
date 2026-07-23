@@ -46,7 +46,10 @@ void main() {
     expect(sql, contains('object_row.name = v_object_name'));
     expect(sql, contains('attendance.deleted_at is null'));
     expect(sql, contains('payment.deleted_at is null'));
-    expect(sql, contains('attendance.work_date between v_first_date and v_last_date'));
+    expect(
+      sql,
+      contains('attendance.work_date between v_first_date and v_last_date'),
+    );
     expect(sql, contains('payment.period_year = p_year'));
     expect(sql, contains('payment.period_month = p_month'));
     expect(sql, contains('employee.archived_at is null'));
