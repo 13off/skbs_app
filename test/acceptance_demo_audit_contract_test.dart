@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('ролевой контракт требует настоящий JWT и остаётся read-only', () {
+  test('ролевой контракт проверяет настоящий JWT и остаётся read-only', () {
     final repository = File(
       'lib/features/developer/data/role_acceptance_repository.dart',
     ).readAsStringSync();
@@ -17,10 +17,10 @@ void main() {
     expect(repository, contains("rpc('current_user_object_name')"));
     expect(repository, contains("rpc(\n        'current_user_has_permission'"));
     expect(repository, contains('.select(probe.selectColumns)'));
-    expect(
-      screen,
-      contains('Клиентский просмотр роли не используется как доказательство'),
-    );
+    expect(screen, contains('реально авторизованная роль этой сессии'));
+    expect(screen, contains('Результат не считается подтверждением'));
+    expect(screen, isNot(contains('ChoiceChip')));
+    expect(screen, isNot(contains('Выбери профессию')));
     expect('$repository\n$screen', isNot(contains('.insert(')));
     expect('$repository\n$screen', isNot(contains('.update(')));
     expect('$repository\n$screen', isNot(contains('.delete(')));
@@ -76,9 +76,12 @@ void main() {
     expect(launcher, isNot(contains('.delete(')));
   });
 
-  test('демонстрационный центр не подключается к рабочей базе', () {
+  test('демонстрационный сценарий остаётся синтетическим, но скрыт из системы', () {
     final screen = File(
       'lib/features/developer/presentation/developer_demo_center_screen.dart',
+    ).readAsStringSync();
+    final system = File(
+      'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
     final demo =
         jsonDecode(File('config/demo-scenario.json').readAsStringSync())
@@ -88,6 +91,8 @@ void main() {
     expect(screen, contains('не подключается к Supabase'));
     expect(screen, isNot(contains('supabase_flutter')));
     expect(screen, isNot(contains('Supabase.instance')));
+    expect(system, isNot(contains('DeveloperDemoCenterScreen')));
+    expect(system, isNot(contains("title: 'Демонстрационный центр'")));
     expect(demo['mode'], 'synthetic_only');
     expect(demo['contains_personal_data'], isFalse);
     expect(demo['uses_production_company'], isFalse);
@@ -130,16 +135,16 @@ void main() {
     expect(readiness, contains('отдельная тестовая учётная запись'));
   });
 
-  test('системная платформа связывает все новые центры', () {
+  test('системная платформа связывает только рабочие центры', () {
     final system = File(
       'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
 
-    expect(system, contains("title: 'Ролевая приёмка'"));
+    expect(system, contains("title: 'Проверка текущей роли'"));
     expect(system, contains("title: 'Контроль табеля и выплат'"));
-    expect(system, contains("title: 'Демонстрационный центр'"));
+    expect(system, contains("title: 'Напоминания и системные параметры'"));
     expect(system, contains('DeveloperRoleAcceptanceScreen'));
     expect(system, contains('OperationalAuditLauncherScreen'));
-    expect(system, contains('DeveloperDemoCenterScreen'));
+    expect(system, isNot(contains('DeveloperDemoCenterScreen')));
   });
 }
