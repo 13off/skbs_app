@@ -545,64 +545,6 @@ class NotificationRepository {
     return _controlCenterFromRpc(data);
   }
 
-  static DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    return DateTime.tryParse(value.toString());
-  }
-
-  static DateTime? _maxDate(DateTime? first, DateTime? second) {
-    if (first == null) return second;
-    if (second == null) return first;
-    return first.isAfter(second) ? first : second;
-  }
-
-  static Future<DateTime?> _fetchClearDate(String? objectName) async {
-    final userId = _currentUserId;
-    if (userId == null || userId.isEmpty) return null;
-    try {
-      final globalRow = await _client
-          .from('app_notification_clears')
-          .select('cleared_at')
-          .eq('user_id', userId)
-          .eq('object_name', '')
-          .maybeSingle();
-      DateTime? clearDate = _parseDate(globalRow?['cleared_at']);
-      final cleanObject = cleanObjectName(objectName);
-      if (cleanObject != null) {
-        final objectRow = await _client
-            .from('app_notification_clears')
-            .select('cleared_at')
-            .eq('user_id', userId)
-            .eq('object_name', cleanObject)
-            .maybeSingle();
-        clearDate = _maxDate(clearDate, _parseDate(objectRow?['cleared_at']));
-      }
-      return clearDate;
-    } catch (error) {
-      if (_isMissingNotificationsTableError(error)) return null;
-      rethrow;
-    }
-  }
-
-  static Future<Set<String>> _fetchReadNotificationIds(List<String> ids) async {
-    final userId = _currentUserId;
-    if (userId == null || userId.isEmpty || ids.isEmpty) return <String>{};
-    try {
-      final rows = await _client
-          .from('app_notification_reads')
-          .select('notification_id')
-          .eq('user_id', userId)
-          .inFilter('notification_id', ids);
-      return rows
-          .map<String>((row) => row['notification_id']?.toString() ?? '')
-          .where((id) => id.isNotEmpty)
-          .toSet();
-    } catch (error) {
-      if (_isMissingNotificationsTableError(error)) return <String>{};
-      rethrow;
-    }
-  }
-
   static Future<List<AppNotification>> fetchLatest({
     String? objectName,
     int limit = 40,
@@ -611,44 +553,29 @@ class NotificationRepository {
     final cleanObject = cleanObjectName(objectName);
     if (refreshOperational) await _refreshOperationalNotifications();
     try {
-      final profile = await UserRepository.fetchCurrentProfile();
-      final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
-      final profileObject = cleanObjectName(profile?.objectName);
-      final visibleObject = isForeman
-          ? cleanObject ?? profileObject
-          : cleanObject;
-      final clearDate = await _fetchClearDate(visibleObject);
+      final response = await _client.rpc<dynamic>(
+        'get_notification_feed_fast',
+        params: <String, dynamic>{
+          'p_object_name': cleanObject,
+          'p_limit': limit,
+        },
+      );
+      if (response is! List) return <AppNotification>[];
 
-      dynamic query = _client
-          .from('app_notifications')
-          .select(
-            'id, title, body, actor_user_id, actor_name, actor_email, object_name, entity_type, entity_id, target_user_id, target_role, source_role, requires_action, due_at, priority, created_at',
-          );
-      if (visibleObject != null) query = query.eq('object_name', visibleObject);
-      if (isForeman)
-        query = query.inFilter('entity_type', foremanAllowedEntityTypes);
-      if (clearDate != null) {
-        query = query.gt('created_at', clearDate.toUtc().toIso8601String());
-      }
-
-      final List<dynamic> rows = await query
-          .order('created_at', ascending: false)
-          .limit(limit);
-      final ids = rows
-          .map<String>((row) => row['id']?.toString() ?? '')
-          .where((id) => id.isNotEmpty)
-          .toList();
-      final readIds = await _fetchReadNotificationIds(ids);
-      return rows.map<AppNotification>((row) {
-        final map = Map<String, dynamic>.from(row as Map);
-        final id = map['id']?.toString() ?? '';
-        return AppNotification.fromSupabase(
-          map,
-          isRead: id.isNotEmpty && readIds.contains(id),
-        );
-      }).toList();
+      return response
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .map(
+            (row) => AppNotification.fromSupabase(
+              row,
+              isRead: row['is_read'] == true,
+            ),
+          )
+          .toList(growable: false);
     } catch (error) {
-      if (_isMissingNotificationsTableError(error)) return <AppNotification>[];
+      if (_isMissingNotificationsTableError(error)) {
+        return <AppNotification>[];
+      }
       rethrow;
     }
   }
