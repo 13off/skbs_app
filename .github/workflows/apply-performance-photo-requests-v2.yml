@@ -1,0 +1,115 @@
+name: Apply performance photo and requests v2
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/performance_phase3.patch
+      - .github/workflows/apply-performance-photo-requests-v2.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: performance-photo-requests-v2-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply request pipeline patch
+        run: git apply --3way tool/performance_phase3.patch
+
+      - name: Add performance contract
+        run: |
+          cat > test/performance_io_pipeline_contract_test.dart <<'DART'
+          import 'dart:io';
+
+          import 'package:flutter_test/flutter_test.dart';
+
+          String source(String path) => File(path).readAsStringSync();
+
+          void main() {
+            test('web image compression is asynchronous and avoids base64 copies', () {
+              final image = source('lib/data/image_compression_service.dart');
+              expect(image, contains("canvas.toBlob('image/jpeg'"));
+              expect(image, contains('readAsArrayBuffer(blob)'));
+              expect(image, isNot(contains('toDataUrl(')));
+              expect(image, isNot(contains('base64Decode(')));
+            });
+
+            test('independent photo and receipt uploads run concurrently', () {
+              final photos = source('lib/data/task_photo_repository.dart');
+              final receipts = source('lib/data/payment_receipt_repository.dart');
+              expect(photos, contains('await Future.wait('));
+              expect(receipts, contains('await Future.wait('));
+              expect(receipts, contains(".from('payment_receipts')"));
+            });
+
+            test('identical data requests share one in-flight future', () {
+              final tasks = source('lib/data/task_repository.dart');
+              final attendance = source('lib/data/attendance_repository.dart');
+              final payments = source('lib/data/payment_repository.dart');
+              expect(tasks, contains('_taskRequests'));
+              expect(attendance, contains('_shiftValueRequests'));
+              expect(attendance, contains('_monthlyTimesheetRequests'));
+              expect(payments, contains('_employeePaymentRequests'));
+              expect(payments, contains('_bulkPaymentRequests'));
+            });
+          }
+          DART
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/data/image_compression_service.dart \
+            lib/data/task_photo_repository.dart \
+            lib/data/payment_receipt_repository.dart \
+            lib/data/task_repository.dart \
+            lib/data/attendance_repository.dart \
+            lib/data/payment_repository.dart \
+            test/performance_io_pipeline_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused performance tests
+        run: |
+          flutter test test/performance_io_pipeline_contract_test.dart --reporter compact
+          flutter test test/performance_responsiveness_contract_test.dart --reporter compact
+          flutter test test/task_photo_contract_test.dart --reporter compact
+          flutter test test/payment_receipts_contract_test.dart --reporter compact
+
+      - name: Remove temporary apply files
+        run: |
+          rm -f tool/performance_phase3.trigger
+          rm -f tool/performance_phase3.patch
+          rm -f .github/workflows/apply-performance-photo-requests.yml
+          rm -f .github/workflows/apply-performance-photo-requests-v2.yml
+          rm -f .github/workflows/debug-performance-phase3-analyzer.yml
+
+      - name: Commit validated phase three
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: ускорены фото и повторные загрузки данных
+          file_pattern: .
