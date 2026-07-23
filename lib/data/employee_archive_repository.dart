@@ -9,8 +9,59 @@ class EmployeeArchiveRepository {
 
   static const String _fields =
       'id, fio, position, phone, object_name, daily_rate, is_active, comment, archived_at';
+  static const Duration _cacheTtl = Duration(seconds: 30);
 
-  static Future<List<Employee>> fetchArchivedEmployees() async {
+  static List<Employee>? _cachedEmployees;
+  static DateTime? _cachedAt;
+  static Future<List<Employee>>? _inFlight;
+  static int _cacheGeneration = 0;
+
+  static bool get _isCacheFresh {
+    final cachedAt = _cachedAt;
+    return _cachedEmployees != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _cacheTtl;
+  }
+
+  static List<Employee> _copyEmployees(List<Employee> employees) {
+    return List<Employee>.from(employees);
+  }
+
+  static void clearCache() {
+    _cachedEmployees = null;
+    _cachedAt = null;
+    _inFlight = null;
+    _cacheGeneration++;
+  }
+
+  static Future<List<Employee>> fetchArchivedEmployees({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && _isCacheFresh) {
+      return _copyEmployees(_cachedEmployees!);
+    }
+
+    final running = _inFlight;
+    if (running != null) return _copyEmployees(await running);
+
+    final generation = _cacheGeneration;
+    final request = _loadArchivedEmployees();
+    _inFlight = request;
+    try {
+      final result = await request;
+      if (generation == _cacheGeneration) {
+        _cachedEmployees = _copyEmployees(result);
+        _cachedAt = DateTime.now();
+      }
+      return _copyEmployees(result);
+    } finally {
+      if (identical(_inFlight, request)) {
+        _inFlight = null;
+      }
+    }
+  }
+
+  static Future<List<Employee>> _loadArchivedEmployees() async {
     final rows = await _client
         .from('employees')
         .select(_fields)
@@ -19,17 +70,15 @@ class EmployeeArchiveRepository {
 
     return (rows as List<dynamic>)
         .map((row) => Employee.fromSupabase(row as Map<String, dynamic>))
-        .toList();
+        .toList(growable: false);
   }
 
-  static Future<Set<String>> fetchArchivedEmployeeIds() async {
-    final rows = await _client
-        .from('employees')
-        .select('id')
-        .not('archived_at', 'is', null);
-
-    return (rows as List<dynamic>)
-        .map((row) => (row as Map<String, dynamic>)['id']?.toString() ?? '')
+  static Future<Set<String>> fetchArchivedEmployeeIds({
+    bool forceRefresh = false,
+  }) async {
+    final employees = await fetchArchivedEmployees(forceRefresh: forceRefresh);
+    return employees
+        .map((employee) => employee.id?.trim() ?? '')
         .where((id) => id.isNotEmpty)
         .toSet();
   }
@@ -47,6 +96,7 @@ class EmployeeArchiveRepository {
         })
         .eq('id', id);
 
+    clearCache();
     EmployeeRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
@@ -70,6 +120,7 @@ class EmployeeArchiveRepository {
         })
         .eq('id', id);
 
+    clearCache();
     EmployeeRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
