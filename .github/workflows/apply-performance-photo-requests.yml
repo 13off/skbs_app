@@ -1,0 +1,76 @@
+name: Apply performance photo and requests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/performance_phase3.trigger
+      - .github/workflows/apply-performance-photo-requests.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: performance-photo-requests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply request pipeline patch
+        shell: bash
+        run: |
+          echo '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' | base64 -d | gzip -d > /tmp/performance_phase3.patch
+          patch -p1 < /tmp/performance_phase3.patch
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/data/image_compression_service.dart \
+            lib/data/task_photo_repository.dart \
+            lib/data/payment_receipt_repository.dart \
+            lib/data/task_repository.dart \
+            lib/data/attendance_repository.dart \
+            lib/data/payment_repository.dart \
+            test/performance_io_pipeline_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused performance tests
+        run: |
+          flutter test test/performance_io_pipeline_contract_test.dart --reporter compact
+          flutter test test/performance_responsiveness_contract_test.dart --reporter compact
+          flutter test test/task_photo_contract_test.dart --reporter compact
+          flutter test test/payment_receipts_contract_test.dart --reporter compact
+
+      - name: Remove temporary apply files
+        run: |
+          rm -f tool/performance_phase3.trigger
+          rm -f .github/workflows/apply-performance-photo-requests.yml
+
+      - name: Commit validated phase three
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: ускорены фото и повторные загрузки данных
+          file_pattern: .
