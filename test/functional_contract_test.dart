@@ -75,8 +75,9 @@ void main() {
         "label: 'Выплаты'",
         "label: 'Сводка'",
         "label: 'Добавить'",
-        "section('Активные'",
-        "section('Уволенные'",
+        'sectionHeader(',
+        "'Активные'",
+        "'Уволенные'",
         'duplicateKey(Employee employee)',
         'PageStorageKey(',
         'scrollController.offset',
@@ -129,11 +130,7 @@ void main() {
       );
       _containsAll(
         'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
-        const [
-          "'Отчёт по выплатам'",
-          "'Все сотрудники'",
-          "'Скачать таблицу'",
-        ],
+        const ["'Отчёт по выплатам'", "'Все сотрудники'", "'Скачать таблицу'"],
       );
       _containsAll('lib/screens/add_payment_screen.dart', const [
         "'Добавить чек'",
@@ -187,11 +184,7 @@ void main() {
     test('архив сохраняет восстановление и окончательное удаление', () {
       _containsAll(
         'lib/features/archive/presentation/archive_management_screen_v3.dart',
-        const [
-          "'Архив и удаление'",
-          "'Восстановить'",
-          "'Удалить навсегда'",
-        ],
+        const ["'Архив и удаление'", "'Восстановить'", "'Удалить навсегда'"],
       );
     });
 
@@ -206,10 +199,7 @@ void main() {
     test('в приложении не возвращаются дубли вкладок и старые подписи', () {
       _containsNone(
         'lib/features/shell/presentation/premium_main_screen.dart',
-        const [
-          "label: 'Отчёт'",
-          "label: 'Выплаты'",
-        ],
+        const ["label: 'Отчёт'", "label: 'Выплаты'"],
       );
     });
   });

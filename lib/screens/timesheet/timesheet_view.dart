@@ -30,54 +30,67 @@ extension _TimesheetView on _TimesheetScreenState {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 760),
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                        children: [
-                          buildPageHeader(),
-                          const SizedBox(height: 14),
-                          buildDatePanel(),
-                          const SizedBox(height: 14),
-                          buildWorkedSummaryPanel(
-                            visibleEmployees: visibleEmployees,
-                          ),
-                          const SizedBox(height: 14),
-                          buildSearch(),
-                          const SizedBox(height: 14),
-                          buildQuickActions(visibleEmployees),
-                          const SizedBox(height: 16),
-                          if (isAttendanceLoading || isSaving)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: LinearProgressIndicator(),
+                      child: Builder(
+                        builder: (context) {
+                          final leading = <Widget>[
+                            buildPageHeader(),
+                            const SizedBox(height: 14),
+                            buildDatePanel(),
+                            const SizedBox(height: 14),
+                            buildWorkedSummaryPanel(
+                              visibleEmployees: visibleEmployees,
                             ),
-                          if (errorText != null)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: Text(
-                                errorText!,
-                                style: const TextStyle(color: Colors.red),
+                            const SizedBox(height: 14),
+                            buildSearch(),
+                            const SizedBox(height: 14),
+                            buildQuickActions(visibleEmployees),
+                            const SizedBox(height: 16),
+                            if (isAttendanceLoading || isSaving)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10),
+                                child: LinearProgressIndicator(),
                               ),
-                            ),
-                          if (visibleEmployees.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 30),
-                              child: Center(
+                            if (errorText != null)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                                 child: Text(
-                                  'Сотрудники не найдены',
-                                  style: TextStyle(
-                                    color: AppAdaptivePalette.textMuted,
-                                    fontWeight: FontWeight.w700,
+                                  errorText!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            if (visibleEmployees.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 30,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Сотрудники не найдены',
+                                    style: TextStyle(
+                                      color: AppAdaptivePalette.textMuted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ),
-                            )
-                          else
-                            ...visibleEmployees.map(
-                              (employee) => RepaintBoundary(
+                          ];
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                            cacheExtent: 700,
+                            itemCount: leading.length + visibleEmployees.length,
+                            itemBuilder: (context, index) {
+                              if (index < leading.length) return leading[index];
+                              final employee =
+                                  visibleEmployees[index - leading.length];
+                              return RepaintBoundary(
                                 child: buildEmployeeRow(employee),
-                              ),
-                            ),
-                        ],
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -89,9 +102,7 @@ extension _TimesheetView on _TimesheetScreenState {
                     decoration: BoxDecoration(
                       color: AppAdaptivePalette.surface,
                       border: Border(
-                        top: BorderSide(
-                          color: AppAdaptivePalette.border,
-                        ),
+                        top: BorderSide(color: AppAdaptivePalette.border),
                       ),
                     ),
                     child: Center(
@@ -138,7 +149,9 @@ class _TimesheetReportRoute extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: Text('Отчет по табелю — $objectTitle')),
+        leading: const BackButton(),
+        title: Text('Отчет по табелю — $objectTitle'),
+      ),
       body: PeriodTimesheetScreen(selectedObjectName: selectedObjectName),
     );
   }

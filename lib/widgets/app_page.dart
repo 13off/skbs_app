@@ -73,6 +73,110 @@ class AppPage extends StatelessWidget {
   }
 }
 
+class AppLazyPage extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final List<Widget> leading;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+  final List<Widget> trailing;
+  final Widget? headerTrailing;
+  final bool showBackButton;
+  final VoidCallback? onBack;
+  final ScrollController? controller;
+  final ScrollPhysics? physics;
+  final Key? scrollKey;
+  final double cacheExtent;
+
+  const AppLazyPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.leading = const <Widget>[],
+    required this.itemCount,
+    required this.itemBuilder,
+    this.trailing = const <Widget>[],
+    this.headerTrailing,
+    this.showBackButton = false,
+    this.onBack,
+    this.controller,
+    this.physics,
+    this.scrollKey,
+    this.cacheExtent = 600,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveTrailing =
+        title == 'Профиль' && !AppThemeController.featureEnabled
+        ? null
+        : headerTrailing;
+    final navigator = Navigator.maybeOf(context);
+    final effectiveShowBackButton =
+        showBackButton || (navigator?.canPop() ?? false);
+    final isDesktop =
+        MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
+    final horizontalPadding = isDesktop ? 28.0 : 14.0;
+    final topPadding = isDesktop ? 24.0 : 12.0;
+    final maxContentWidth = isDesktop ? 1180.0 : 720.0;
+    final fixedLeadingCount = 2 + leading.length;
+    final totalCount = fixedLeadingCount + itemCount + trailing.length;
+
+    Widget constrain(Widget child) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth),
+          child: child,
+        ),
+      );
+    }
+
+    final list = ListView.builder(
+      key: scrollKey,
+      controller: controller,
+      physics: physics,
+      cacheExtent: cacheExtent,
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        topPadding,
+        horizontalPadding,
+        120,
+      ),
+      itemCount: totalCount,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return constrain(
+            AppPageHeader(
+              title: title,
+              subtitle: subtitle,
+              trailing: effectiveTrailing,
+              showBackButton: effectiveShowBackButton,
+              onBack: onBack,
+            ),
+          );
+        }
+        if (index == 1) {
+          return SizedBox(height: isDesktop ? 18 : 14);
+        }
+
+        final bodyIndex = index - 2;
+        if (bodyIndex < leading.length) {
+          return constrain(leading[bodyIndex]);
+        }
+
+        final listIndex = bodyIndex - leading.length;
+        if (listIndex < itemCount) {
+          return constrain(itemBuilder(context, listIndex));
+        }
+
+        return constrain(trailing[listIndex - itemCount]);
+      },
+    );
+
+    return _AppPageBackdrop(child: SafeArea(child: list));
+  }
+}
+
 class AppPageHeader extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -163,7 +267,9 @@ class _AppPageBackdrop extends StatelessWidget {
                   gradient: RadialGradient(
                     colors: dark
                         ? [
-                            AppAdaptivePalette.telegramBlue.withValues(alpha: 0.12),
+                            AppAdaptivePalette.telegramBlue.withValues(
+                              alpha: 0.12,
+                            ),
                             Colors.transparent,
                           ]
                         : [
