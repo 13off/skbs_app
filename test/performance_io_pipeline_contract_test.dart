@@ -21,6 +21,15 @@ void main() {
     expect(receipts, contains(".from('payment_receipts')"));
   });
 
+  test('partial concurrent uploads keep rollback cleanup', () {
+    final photos = source('lib/data/task_photo_repository.dart');
+    final receipts = source('lib/data/payment_receipt_repository.dart');
+    expect(photos, contains('await removeStoragePaths(uploadedPaths)'));
+    expect(receipts, contains(".from(bucketName).remove(uploadedPaths)"));
+    expect(photos, contains('rethrow;'));
+    expect(receipts, contains('rethrow;'));
+  });
+
   test('identical data requests share one in-flight future', () {
     final tasks = source('lib/data/task_repository.dart');
     final attendance = source('lib/data/attendance_repository.dart');
