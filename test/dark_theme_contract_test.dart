@@ -107,9 +107,10 @@ void main() {
       surfaces,
       isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
     );
+    expect(surfacesV3, contains('AppSurfaceBackdrop'));
     expect(
       surfacesV3,
-      contains('theme.colorScheme.primary.withValues(alpha: 0.09)'),
+      isNot(contains('theme.colorScheme.primary.withValues(alpha: 0.09)')),
     );
 
     expect(desktop, contains("import '../../../app/theme_controller.dart';"));
