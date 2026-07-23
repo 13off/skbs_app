@@ -34,7 +34,7 @@ void main() {
     expect(controller, contains("value ? 'dark' : 'light'"));
     expect(controller, contains('ThemeMode.dark'));
     expect(controller, contains('Future<void> toggle()'));
-    expect(controller, isNot(contains('if (!featureEnabled)'));
+    expect(controller, isNot(contains('if (!featureEnabled)')));
 
     expect(profile, contains('headerTrailing: buildThemeToggle()'));
     expect(profile, contains('Icons.dark_mode_rounded'));
