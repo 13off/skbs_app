@@ -1,0 +1,86 @@
+name: Finalize lazy primary lists
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/finalize-lazy-primary-lists.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-lazy-lists-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Extract and apply exact patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, re
+          text = Path('.github/workflows/apply-lazy-primary-lists.yml').read_text()
+          value = re.search(r"echo '([^']+)' \| base64", text).group(1)
+          Path('/tmp/performance_phase2.patch').write_bytes(
+              gzip.decompress(base64.b64decode(value)))
+          PY
+          patch -p1 < /tmp/performance_phase2.patch
+          dart format \
+            lib/widgets/app_page.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/screens/timesheet/timesheet_view.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/screens/employees/employees_sections.dart \
+            lib/screens/employees/employees_view.dart \
+            test/employees_screen_structure_test.dart \
+            test/functional_contract_test.dart \
+            test/lazy_primary_lists_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run focused tests in one process
+        run: |
+          flutter test \
+            test/lazy_primary_lists_contract_test.dart \
+            test/employees_screen_structure_test.dart \
+            test/functional_contract_test.dart \
+            test/performance_responsiveness_contract_test.dart \
+            --reporter compact
+
+      - name: Remove temporary files
+        run: |
+          rm -f tool/performance_phase2.trigger
+          rm -f tool/performance_phase2_snapshot.trigger
+          rm -f .github/workflows/apply-lazy-primary-lists.yml
+          rm -f .github/workflows/performance-phase2-source-snapshot.yml
+          rm -f .github/workflows/debug-lazy-list-tests.yml
+          rm -f .github/workflows/finalize-lazy-primary-lists.yml
+
+      - name: Commit validated lazy lists
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          branch: ${{ github.head_ref }}
+          commit_message: длинные рабочие списки переведены на ленивую отрисовку
+          file_pattern: .
