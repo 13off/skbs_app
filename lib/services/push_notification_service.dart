@@ -135,6 +135,10 @@ class PushNotificationService {
       ValueNotifier<PushNavigationRequest?>(null);
 
   static bool _initialized = false;
+  static Future<void>? _webSyncInFlight;
+  static bool _webSyncInFlightRequestsPermission = false;
+  static Future<void>? _webRegistrationInFlight;
+  static String _webRegistrationEndpoint = '';
   static final List<StreamSubscription<dynamic>> _subscriptions =
       <StreamSubscription<dynamic>>[];
 
@@ -309,7 +313,7 @@ class PushNotificationService {
   }) async {
     if (_client.auth.currentUser == null) return;
     if (kIsWeb) {
-      await _syncWebPush(requestPermission: requestPermission);
+      await _syncWebPushSerialized(requestPermission: requestPermission);
       return;
     }
     if (!FirebaseRuntimeConfiguration.isConfigured) return;
@@ -417,6 +421,33 @@ class PushNotificationService {
         permission: state.value.permission,
         message: 'Не удалось зарегистрировать устройство: $error',
       );
+    }
+  }
+
+  static Future<void> _syncWebPushSerialized({
+    required bool requestPermission,
+  }) async {
+    final running = _webSyncInFlight;
+    if (running != null) {
+      final requestCovered =
+          !requestPermission || _webSyncInFlightRequestsPermission;
+      await running;
+      if (!requestCovered) {
+        await _syncWebPushSerialized(requestPermission: true);
+      }
+      return;
+    }
+
+    final operation = _syncWebPush(requestPermission: requestPermission);
+    _webSyncInFlight = operation;
+    _webSyncInFlightRequestsPermission = requestPermission;
+    try {
+      await operation;
+    } finally {
+      if (identical(_webSyncInFlight, operation)) {
+        _webSyncInFlight = null;
+        _webSyncInFlightRequestsPermission = false;
+      }
     }
   }
 
@@ -647,7 +678,13 @@ class PushNotificationService {
       throw Exception('Подписка Web Push заполнена не полностью');
     }
 
-    await _manageWebDevice(<String, dynamic>{
+    final running = _webRegistrationInFlight;
+    if (running != null && _webRegistrationEndpoint == endpoint) {
+      await running;
+      return;
+    }
+
+    final operation = _manageWebDevice(<String, dynamic>{
       'action': 'register',
       'device_id': await _deviceId(),
       'endpoint': endpoint,
@@ -657,6 +694,16 @@ class PushNotificationService {
       'user_agent': result['user_agent']?.toString() ?? '',
       'enabled': true,
     });
+    _webRegistrationEndpoint = endpoint;
+    _webRegistrationInFlight = operation;
+    try {
+      await operation;
+    } finally {
+      if (identical(_webRegistrationInFlight, operation)) {
+        _webRegistrationInFlight = null;
+        _webRegistrationEndpoint = '';
+      }
+    }
   }
 
   static Future<void> _registerToken(

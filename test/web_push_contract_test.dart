@@ -68,4 +68,20 @@ void main() {
       'Системная доставка доступна',
     ]);
   });
+  test('web push registration is serialized and idempotent', () {
+    final service = File(
+      'lib/services/push_notification_service.dart',
+    ).readAsStringSync();
+    final edge = File(
+      'supabase/functions/manage-web-push-device/index.ts',
+    ).readAsStringSync();
+
+    expect(service, contains('_webSyncInFlight'));
+    expect(service, contains('_webRegistrationInFlight'));
+    expect(service, contains('_syncWebPushSerialized'));
+    expect(edge, contains('.upsert({'));
+    expect(edge, contains('{ onConflict: "endpoint" }'));
+    expect(edge, isNot(contains('endpointDeleteError')));
+  });
+
 }
