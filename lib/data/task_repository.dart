@@ -109,10 +109,8 @@ class TaskRepository {
     bool forceRefresh = false,
   }) async {
     final cacheKey = _tasksCacheKey(date: date, objectName: objectName);
-    if (!forceRefresh) {
-      final running = _taskRequests[cacheKey];
-      if (running != null) return _copyTasks(await running);
-    }
+    final running = _taskRequests[cacheKey];
+    if (running != null) return _copyTasks(await running);
 
     final request = _fetchTasksForDate(
       date,

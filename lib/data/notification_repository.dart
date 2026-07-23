@@ -594,10 +594,8 @@ class NotificationRepository {
         now.difference(cached.loadedAt) <= _unreadCacheTtl) {
       return cached.value;
     }
-    if (!forceRefresh) {
-      final pending = _unreadInFlight[key];
-      if (pending != null) return pending;
-    }
+    final pending = _unreadInFlight[key];
+    if (pending != null) return pending;
 
     final future = _loadHasUnread(cleanObject);
     _unreadInFlight[key] = future;
