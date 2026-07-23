@@ -147,6 +147,36 @@ class AttendanceRepository {
     return double.tryParse(value.toString()) ?? 0;
   }
 
+  static Future<List<Map<String, dynamic>>> _fetchAttendanceRows({
+    required DateTime startDate,
+    required DateTime endDate,
+    String? objectName,
+    List<String>? employeeIds,
+    bool workedOnly = false,
+  }) async {
+    final cleanEmployeeIds = employeeIds
+        ?.map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    final response = await _client.rpc(
+      'get_attendance_rows_fast',
+      params: <String, dynamic>{
+        'p_start_date': dateKey(startDate),
+        'p_end_date': dateKey(endDate),
+        'p_object_name': cleanObjectName(objectName),
+        'p_employee_ids': cleanEmployeeIds?.isEmpty == true
+            ? null
+            : cleanEmployeeIds,
+        'p_worked_only': workedOnly,
+      },
+    );
+
+    return (response as List<dynamic>)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList(growable: false);
+  }
+
   static Future<Map<String, double>> fetchShiftValuesForDate(
     DateTime date, {
     String? objectName,
@@ -187,16 +217,11 @@ class AttendanceRepository {
       return _copyShiftValues(cached.values);
     }
 
-    final rows = cleanObject == null
-        ? await _client
-              .from('attendance')
-              .select('employee_id, shifts')
-              .eq('work_date', dateKey(date))
-        : await _client
-              .from('attendance')
-              .select('employee_id, shifts')
-              .eq('work_date', dateKey(date))
-              .eq('object_name', cleanObject);
+    final rows = await _fetchAttendanceRows(
+      startDate: date,
+      endDate: date,
+      objectName: cleanObject,
+    );
 
     final values = <String, double>{};
 
@@ -377,20 +402,12 @@ class AttendanceRepository {
       }
     }
 
-    final rows = cleanObject == null
-        ? await _client
-              .from('attendance')
-              .select('employee_id, shifts')
-              .eq('status', 'worked')
-              .gte('work_date', dateKey(startDate))
-              .lte('work_date', dateKey(endDate))
-        : await _client
-              .from('attendance')
-              .select('employee_id, shifts')
-              .eq('status', 'worked')
-              .gte('work_date', dateKey(startDate))
-              .lte('work_date', dateKey(endDate))
-              .eq('object_name', cleanObject);
+    final rows = await _fetchAttendanceRows(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: cleanObject,
+      workedOnly: true,
+    );
 
     final totals = <String, _AttendanceTotals>{};
 
@@ -498,18 +515,11 @@ class AttendanceRepository {
     final firstDate = DateTime(year, month, 1);
     final lastDate = DateTime(year, month + 1, 0);
 
-    final attendanceRows = cleanObject == null
-        ? await _client
-              .from('attendance')
-              .select('employee_id, work_date, shifts, object_name')
-              .gte('work_date', dateKey(firstDate))
-              .lte('work_date', dateKey(lastDate))
-        : await _client
-              .from('attendance')
-              .select('employee_id, work_date, shifts, object_name')
-              .gte('work_date', dateKey(firstDate))
-              .lte('work_date', dateKey(lastDate))
-              .eq('object_name', cleanObject);
+    final attendanceRows = await _fetchAttendanceRows(
+      startDate: firstDate,
+      endDate: lastDate,
+      objectName: cleanObject,
+    );
 
     final shiftsByEmployeeId = <String, Map<int, double>>{};
 
@@ -640,12 +650,11 @@ class AttendanceRepository {
     final firstDate = DateTime(year, month, 1);
     final lastDate = DateTime(year, month + 1, 0);
 
-    final attendanceRows = await _client
-        .from('attendance')
-        .select('work_date, shifts')
-        .eq('employee_id', employeeId)
-        .gte('work_date', dateKey(firstDate))
-        .lte('work_date', dateKey(lastDate));
+    final attendanceRows = await _fetchAttendanceRows(
+      startDate: firstDate,
+      endDate: lastDate,
+      employeeIds: <String>[employeeId],
+    );
 
     final shiftsByDay = <int, double>{};
 
@@ -750,18 +759,11 @@ class AttendanceRepository {
       includeFired: includeFired,
     );
 
-    final rows = cleanObject == null
-        ? await _client
-              .from('attendance')
-              .select('employee_id, work_date, shifts, object_name')
-              .gte('work_date', dateKey(startDate))
-              .lte('work_date', dateKey(endDate))
-        : await _client
-              .from('attendance')
-              .select('employee_id, work_date, shifts, object_name')
-              .gte('work_date', dateKey(startDate))
-              .lte('work_date', dateKey(endDate))
-              .eq('object_name', cleanObject);
+    final rows = await _fetchAttendanceRows(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: cleanObject,
+    );
 
     final shiftsByEmployeeId = <String, Map<String, double>>{};
 
