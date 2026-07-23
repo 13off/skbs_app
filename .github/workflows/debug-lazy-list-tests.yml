@@ -1,0 +1,66 @@
+name: Debug lazy list tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/debug-lazy-list-tests.yml
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Extract and apply exact patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, re
+          text = Path('.github/workflows/apply-lazy-primary-lists.yml').read_text()
+          value = re.search(r"echo '([^']+)' \| base64", text).group(1)
+          Path('/tmp/performance_phase2.patch').write_bytes(gzip.decompress(base64.b64decode(value)))
+          PY
+          patch -p1 < /tmp/performance_phase2.patch
+          dart format \
+            lib/widgets/app_page.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/screens/timesheet/timesheet_view.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/screens/employees/employees_sections.dart \
+            lib/screens/employees/employees_view.dart \
+            test/employees_screen_structure_test.dart \
+            test/functional_contract_test.dart \
+            test/lazy_primary_lists_contract_test.dart
+
+      - name: Lazy list contract
+        continue-on-error: true
+        run: flutter test test/lazy_primary_lists_contract_test.dart --reporter compact
+
+      - name: Employees structure
+        continue-on-error: true
+        run: flutter test test/employees_screen_structure_test.dart --reporter compact
+
+      - name: Functional contract
+        continue-on-error: true
+        run: flutter test test/functional_contract_test.dart --reporter compact
+
+      - name: Performance responsiveness
+        continue-on-error: true
+        run: flutter test test/performance_responsiveness_contract_test.dart --reporter compact
