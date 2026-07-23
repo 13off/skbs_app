@@ -1,0 +1,26 @@
+name: Agent export configurable CRM
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Pack source
+        run: |
+          tar --exclude=.git --exclude=build --exclude=.dart_tool -czf /tmp/skbs_app_source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skbs-app-configurable-crm-source
+          path: /tmp/skbs_app_source.tar.gz
+          retention-days: 1
