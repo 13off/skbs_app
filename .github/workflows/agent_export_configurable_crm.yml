@@ -33,9 +33,9 @@ jobs:
               .agent/configurable_crm_part_04 \
               .agent/configurable_crm_part_05 \
               .agent/configurable_crm_part_06 > /tmp/configurable-crm.b64
-          actual_size="$(wc -c < /tmp/configurable-crm.b64 | tr -d ' ')"
-          test "$actual_size" = "56176"
+          echo "Encoded package bytes: $(wc -c < /tmp/configurable-crm.b64 | tr -d ' ')"
           base64 --decode /tmp/configurable-crm.b64 > /tmp/configurable-crm.tar.gz
+          echo "Decoded archive: $(sha256sum /tmp/configurable-crm.tar.gz)"
           echo "2fed4211bf1c6ee5837ef24cbd9b04fa51496201757d0837a16027e3d1ef0e92  /tmp/configurable-crm.tar.gz" | sha256sum --check
           tar -tzf /tmp/configurable-crm.tar.gz >/dev/null
           tar -xzf /tmp/configurable-crm.tar.gz
