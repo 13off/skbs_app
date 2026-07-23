@@ -16,8 +16,11 @@ void main() {
     expect(repository, contains("rpc('current_user_company_id')"));
     expect(repository, contains("rpc('current_user_object_name')"));
     expect(repository, contains("rpc(\n        'current_user_has_permission'"));
-    expect(repository, contains("select('id')"));
-    expect(screen, contains('Клиентский просмотр роли не используется как доказательство'));
+    expect(repository, contains('.select(probe.selectColumns)'));
+    expect(
+      screen,
+      contains('Клиентский просмотр роли не используется как доказательство'),
+    );
     expect('$repository\n$screen', isNot(contains('.insert(')));
     expect('$repository\n$screen', isNot(contains('.update(')));
     expect('$repository\n$screen', isNot(contains('.delete(')));
@@ -25,23 +28,27 @@ void main() {
   });
 
   test('машинная матрица содержит live-приёмку каждой роли', () {
-    final matrix = jsonDecode(
-      File('config/role-capability-matrix.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
-    final principles = Map<String, dynamic>.from(
-      matrix['principles'] as Map,
-    );
+    final matrix =
+        jsonDecode(
+              File('config/role-capability-matrix.json').readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+    final principles = Map<String, dynamic>.from(matrix['principles'] as Map);
     final roles = (matrix['roles'] as List<dynamic>)
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
 
-    expect(matrix['schema_version'], 2);
+    expect(matrix['schema_version'], 3);
     expect(principles['live_acceptance_requires_real_role_account'], isTrue);
     expect(principles['acceptance_is_read_only'], isTrue);
     for (final role in roles) {
       final acceptance = Map<String, dynamic>.from(role['acceptance'] as Map);
       expect(acceptance['live_probe_table'].toString().trim(), isNotEmpty);
+      expect(
+        (acceptance['live_probe_tables'] as List<dynamic>).length,
+        greaterThan(1),
+      );
       expect(acceptance['required_permissions'], isA<List<dynamic>>());
       expect(acceptance['forbidden_permissions'], isA<List<dynamic>>());
     }
@@ -73,9 +80,9 @@ void main() {
     final screen = File(
       'lib/features/developer/presentation/developer_demo_center_screen.dart',
     ).readAsStringSync();
-    final demo = jsonDecode(
-      File('config/demo-scenario.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final demo =
+        jsonDecode(File('config/demo-scenario.json').readAsStringSync())
+            as Map<String, dynamic>;
 
     expect(screen, contains('все данные вымышлены'));
     expect(screen, contains('не подключается к Supabase'));

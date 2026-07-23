@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "mode": "production_safe",
+  "automatic_writes": false,
+  "mobile_release": false,
+  "scenarios": [
+    {
+      "id": "first_launch",
+      "title": "Создание компании и запуск",
+      "required": true
+    },
+    {
+      "id": "object_team",
+      "title": "Объект и назначенный прораб",
+      "required": true
+    },
+    {
+      "id": "employee_attendance",
+      "title": "Сотрудник и первая отметка табеля",
+      "required": true
+    },
+    {
+      "id": "task_photos",
+      "title": "Задача, исполнители и фото",
+      "required": true
+    },
+    {
+      "id": "payment_receipt",
+      "title": "Выплата и подтверждающий чек",
+      "required": true
+    },
+    {
+      "id": "recycle_restore",
+      "title": "Корзина и восстановление",
+      "required": true
+    },
+    {
+      "id": "permission_override",
+      "title": "Изменение права и серверный запрет",
+      "required": true
+    },
+    {
+      "id": "ai_confirmation",
+      "title": "ИИ-черновик, подтверждение и аудит",
+      "required": true
+    },
+    {
+      "id": "notifications",
+      "title": "Операционное уведомление без дублей",
+      "required": true
+    }
+  ],
+  "bad_states": [
+    "double_submit",
+    "slow_network",
+    "connection_loss",
+    "stale_cache",
+    "concurrent_edit",
+    "archived_object",
+    "missing_rate",
+    "missing_required_photos",
+    "unauthorized_role"
+  ],
+  "rules": [
+    "read_only_checks_never_create_work_records",
+    "write_scenarios_require_manual_confirmation",
+    "role_preview_is_not_live_acceptance",
+    "production_personal_data_gate_remains_authoritative",
+    "profession_directory_is_out_of_scope"
+  ]
+}
