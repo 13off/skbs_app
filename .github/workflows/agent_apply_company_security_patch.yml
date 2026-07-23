@@ -1,0 +1,147 @@
+name: Apply company security patch
+
+on:
+  push:
+    branches:
+      - agent/simplify-developer-invitations-security
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[agent-patch]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/simplify-developer-invitations-security
+          fetch-depth: 0
+
+      - name: Apply exact replacements
+        shell: python
+        run: |
+          from pathlib import Path
+
+          repository = Path('lib/features/company/data/company_repository.dart')
+          text = repository.read_text(encoding='utf-8')
+          old = '''  static Future<void> updateMemberAccess({
+            required String companyId,
+            required CompanyMember member,
+            required String role,
+            String profession = '',
+            String? objectId,
+          }) async {
+            await _client
+                .from('company_memberships')
+                .update(<String, dynamic>{
+                  'role': role,
+                  'is_active': true,
+                  'updated_at': DateTime.now().toUtc().toIso8601String(),
+                })
+                .eq('company_id', companyId)
+                .eq('user_id', member.userId);
+
+            await _client
+                .from('object_memberships')
+                .delete()
+                .eq('company_id', companyId)
+                .eq('user_id', member.userId);
+
+            String? objectName;
+            if (role == 'foreman' && objectId != null && objectId.isNotEmpty) {
+              final object = await _client
+                  .from('objects')
+                  .select('name')
+                  .eq('company_id', companyId)
+                  .eq('id', objectId)
+                  .single();
+              objectName = object['name']?.toString();
+
+              await _client.from('object_memberships').insert(<String, dynamic>{
+                'company_id': companyId,
+                'object_id': objectId,
+                'user_id': member.userId,
+                'created_by': _client.auth.currentUser?.id,
+              });
+            }
+
+            await _client
+                .from('user_profiles')
+                .update(<String, dynamic>{
+                  'profession': profession.trim(),
+                  'updated_at': DateTime.now().toUtc().toIso8601String(),
+                })
+                .eq('id', member.userId);
+
+            final targetProfile = await _client
+                .from('user_profiles')
+                .select('active_company_id')
+                .eq('id', member.userId)
+                .maybeSingle();
+            if (targetProfile?['active_company_id']?.toString() == companyId) {
+              await _client
+                  .from('user_profiles')
+                  .update(<String, dynamic>{
+                    'role': role,
+                    'object_name': objectName,
+                    'updated_at': DateTime.now().toUtc().toIso8601String(),
+                  })
+                  .eq('id', member.userId);
+            }
+          }
+'''
+          new = '''  static Future<void> updateMemberAccess({
+            required String companyId,
+            required CompanyMember member,
+            required String role,
+            String profession = '',
+            String? objectId,
+          }) async {
+            await _client.rpc(
+              'update_company_member_access',
+              params: <String, dynamic>{
+                'p_company_id': companyId,
+                'p_user_id': member.userId,
+                'p_role': role,
+                'p_profession': profession.trim(),
+                'p_object_id': role == 'foreman' ? objectId : null,
+              },
+            );
+          }
+'''
+          if old not in text:
+              raise SystemExit('CompanyRepository block not found')
+          repository.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          adapter = Path('supabase/functions/invite-company-member/index.ts')
+          text = adapter.read_text(encoding='utf-8')
+          text = text.replace(
+              'const publishedWebAppUrl = "https://13off.github.io/appstroy-web/";\n\n',
+              '',
+              1,
+          )
+          start = text.index('    const oldInviteUrl = String(data.invite_url ?? "").trim();')
+          end_marker = '''    return json({
+              ...data,
+              invite_url: landingUrl.toString(),
+              redirect_to: redirectUrl.toString(),
+            });'''
+          end = text.index(end_marker, start) + len(end_marker)
+          text = text[:start] + '    return json(data, coreResponse.status);' + text[end:]
+          text = text.replace(
+              '// Этот адаптер не дублирует Auth-логику и меняет только публичный маршрут.',
+              '// Этот адаптер сохраняет стабильное имя функции и не переписывает публичный маршрут.',
+              1,
+          )
+          adapter.write_text(text, encoding='utf-8')
+
+          Path('.github/workflows/agent_apply_company_security_patch.yml').unlink()
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          git config user.name "appstroy-agent"
+          git config user.email "appstroy-agent@users.noreply.github.com"
+          git add -A
+          git commit -m "Связать роли и приглашения с защищённым сервером [agent-patch]"
+          git push origin HEAD:agent/simplify-developer-invitations-security
