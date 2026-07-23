@@ -31,4 +31,13 @@ void main() {
     expect(sql, contains('from public, anon'));
     expect(sql, contains('to authenticated'));
   });
+
+  test('active attendance ranges have dedicated partial indexes', () {
+    final sql = File(
+      'supabase/migrations/20260723131000_optimize_attendance_read_pipeline.sql',
+    ).readAsStringSync();
+    expect(sql, contains('attendance_active_company_employee_date_idx'));
+    expect(sql, contains('attendance_active_company_object_date_idx'));
+    expect(sql, contains('where deleted_at is null'));
+  });
 }
