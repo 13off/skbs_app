@@ -2,18 +2,19 @@ from pathlib import Path
 
 notification_path = Path('lib/data/notification_repository.dart')
 notification_text = notification_path.read_text(encoding='utf-8')
+
 client_anchor = """class NotificationRepository {
-  static final SupabaseClient _client = Supabase.instance.client;
+  static final _client = Supabase.instance.client;
 
 """
 client_replacement = """class NotificationRepository {
-  static final SupabaseClient _client = Supabase.instance.client;
+  static final _client = Supabase.instance.client;
 
   static Future<void> _refreshOperationalNotifications() async {
     try {
       await _client.rpc<void>('refresh_operational_notifications');
     } catch (_) {
-      // Список уведомлений остаётся доступным даже при временной ошибке обновления.
+      // Старые уведомления остаются доступны при временной ошибке обновления.
     }
   }
 
@@ -21,24 +22,36 @@ client_replacement = """class NotificationRepository {
 if client_anchor not in notification_text:
     raise SystemExit('notification client anchor not found')
 notification_text = notification_text.replace(client_anchor, client_replacement, 1)
-load_anchor = """    final userId = _client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) {
-      throw Exception('Пользователь не авторизован');
-    }
 
-    final results = await Future.wait<dynamic>([
+foreman_anchor = """    'foreman_reminder',
+    'brigade_photo',
+  ];
 """
-load_replacement = """    final userId = _client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) {
-      throw Exception('Пользователь не авторизован');
-    }
+foreman_replacement = """    'foreman_reminder',
+    'brigade_photo',
+    'operational_overdue_tasks',
+    'operational_missing_photos',
+    'operational_timesheet_missing',
+    'ai_draft',
+  ];
+"""
+if foreman_anchor not in notification_text:
+    raise SystemExit('foreman notification types anchor not found')
+notification_text = notification_text.replace(foreman_anchor, foreman_replacement, 1)
 
+load_anchor = """  }) async {
+    final cleanObject = cleanObjectName(objectName);
+    try {
+      final profile = await UserRepository.fetchCurrentProfile();
+"""
+load_replacement = """  }) async {
+    final cleanObject = cleanObjectName(objectName);
     await _refreshOperationalNotifications();
-
-    final results = await Future.wait<dynamic>([
+    try {
+      final profile = await UserRepository.fetchCurrentProfile();
 """
 if load_anchor not in notification_text:
-    raise SystemExit('notification load anchor not found')
+    raise SystemExit('notification fetchLatest anchor not found')
 notification_text = notification_text.replace(load_anchor, load_replacement, 1)
 notification_path.write_text(notification_text, encoding='utf-8')
 
@@ -62,7 +75,7 @@ result_replacement = """    final result = AiAssistantResult.fromMap(data);
           },
         );
       } catch (_) {
-        // Черновик остаётся доступен в чате даже при временной ошибке уведомления.
+        // Черновик остаётся доступен в чате при временной ошибке уведомления.
       }
     }
 
