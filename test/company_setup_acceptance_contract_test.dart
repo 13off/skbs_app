@@ -18,6 +18,10 @@ void main() {
     );
 
     expect(repository, contains("from('employees')"));
+    expect(repository, contains("select('id, daily_rate')"));
+    expect(repository, contains('_allActiveEmployeesHaveRates'));
+    expect(repository, contains("id: 'rates'"));
+    expect(repository, contains('Назначьте дневные ставки'));
     expect(repository, contains("from('tasks')"));
     expect(repository, contains("from('attendance')"));
     expect(repository, contains('hasAssignedForeman'));
@@ -108,6 +112,10 @@ void main() {
     expect(
       (checklist['bad_states'] as List<dynamic>),
       contains('concurrent_edit'),
+    );
+    expect(
+      (checklist['bad_states'] as List<dynamic>),
+      contains('missing_rate'),
     );
     expect(
       (checklist['rules'] as List<dynamic>),
