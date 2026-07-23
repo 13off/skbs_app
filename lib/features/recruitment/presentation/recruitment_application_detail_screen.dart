@@ -30,11 +30,13 @@ Color get _detailWarning => AppAdaptivePalette.warning;
 class RecruitmentApplicationDetailScreen extends StatefulWidget {
   final AppUserProfile profile;
   final RecruitmentApplication application;
+  final RecruitmentCrmConfiguration configuration;
 
   const RecruitmentApplicationDetailScreen({
     super.key,
     required this.profile,
     required this.application,
+    required this.configuration,
   });
 
   @override
@@ -493,6 +495,16 @@ class _RecruitmentApplicationDetailScreenState
 
   Widget summaryCard() {
     final application = widget.application;
+    final stage = widget.configuration.stageForApplication(application);
+    final customFields = widget.configuration.fields
+        .map(
+          (field) => MapEntry(
+            field,
+            field.formatValue(application.customValue(field.id)),
+          ),
+        )
+        .where((entry) => entry.value.isNotEmpty)
+        .toList();
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(17),
@@ -505,7 +517,7 @@ class _RecruitmentApplicationDetailScreenState
             children: [
               _DetailPill(
                 icon: Icons.flag_outlined,
-                label: application.statusTitle,
+                label: stage?.title ?? application.statusTitle,
               ),
               _DetailPill(
                 icon: Icons.send_outlined,
@@ -524,6 +536,13 @@ class _RecruitmentApplicationDetailScreenState
           infoRow(Icons.badge_outlined, 'Опыт', application.experience),
           if (application.comment.isNotEmpty)
             infoRow(Icons.notes_rounded, 'Комментарий HR', application.comment),
+          ...customFields.map(
+            (entry) => infoRow(
+              Icons.tune_rounded,
+              entry.key.title,
+              entry.value,
+            ),
+          ),
           SizedBox(height: 4),
           Row(
             children: [
