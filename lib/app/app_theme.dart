@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'app_ui_tokens.dart';
+
 abstract final class AppColors {
   static const background = Color(0xFFF5F4F1);
   static const surface = Colors.white;
@@ -155,11 +157,7 @@ abstract final class AppTheme {
             : activeHover
             ? AppMotion.hoverScale
             : 1.0;
-        final radius = pressed
-            ? 16.0
-            : activeHover
-            ? 20.0
-            : 18.0;
+        const radius = AppUi.controlRadius;
 
         return AnimatedScale(
           scale: scale,
@@ -211,7 +209,7 @@ abstract final class AppTheme {
 
     final filledButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size(0, 46)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, AppUi.controlHeight)),
       tapTargetSize: MaterialTapTargetSize.padded,
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -229,7 +227,7 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -243,7 +241,7 @@ abstract final class AppTheme {
 
     final outlinedButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, AppUi.controlHeight)),
       tapTargetSize: MaterialTapTargetSize.padded,
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -260,7 +258,7 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -276,7 +274,7 @@ abstract final class AppTheme {
 
     final textButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+      minimumSize: const WidgetStatePropertyAll(Size(0, AppUi.compactControlHeight)),
       tapTargetSize: MaterialTapTargetSize.padded,
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -291,7 +289,7 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -304,7 +302,7 @@ abstract final class AppTheme {
 
     final iconButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+      minimumSize: const WidgetStatePropertyAll(Size.square(AppUi.controlHeight)),
       tapTargetSize: MaterialTapTargetSize.padded,
       padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
@@ -365,7 +363,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppUi.cardRadius),
           side: const BorderSide(color: AppColors.border),
         ),
       ),
@@ -388,19 +386,19 @@ abstract final class AppTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: AppColors.accent, width: 1.25),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: Color(0xFFB55252)),
         ),
       ),
@@ -416,7 +414,7 @@ abstract final class AppTheme {
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
       ),
       dividerColor: AppColors.border,
       progressIndicatorTheme: const ProgressIndicatorThemeData(

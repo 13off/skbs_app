@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../app/app_ui_tokens.dart';
 import '../app/theme_controller.dart';
 
 class AppPage extends StatelessWidget {
-  static const double desktopBreakpoint = 1050;
+  static const double desktopBreakpoint = AppUi.desktopBreakpoint;
 
   final String title;
   final String subtitle;
@@ -12,6 +13,11 @@ class AppPage extends StatelessWidget {
   final Widget? headerTrailing;
   final bool showBackButton;
   final VoidCallback? onBack;
+  final Future<void> Function()? onRefresh;
+  final ScrollController? controller;
+  final ScrollPhysics? physics;
+  final Key? scrollKey;
+  final double maxContentWidth;
 
   const AppPage({
     super.key,
@@ -21,6 +27,11 @@ class AppPage extends StatelessWidget {
     this.headerTrailing,
     this.showBackButton = false,
     this.onBack,
+    this.onRefresh,
+    this.controller,
+    this.physics,
+    this.scrollKey,
+    this.maxContentWidth = AppUi.pageContentWidth,
   });
 
   @override
@@ -33,41 +44,51 @@ class AppPage extends StatelessWidget {
     final effectiveShowBackButton =
         showBackButton || (navigator?.canPop() ?? false);
     final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
-    final horizontalPadding = isDesktop ? 28.0 : 14.0;
-    final topPadding = isDesktop ? 24.0 : 12.0;
-    final maxContentWidth = isDesktop ? 1180.0 : 720.0;
+    final horizontalPadding = isDesktop
+        ? AppUi.pageDesktopHorizontalPadding
+        : AppUi.pageMobileHorizontalPadding;
+    final topPadding = isDesktop
+        ? AppUi.pageDesktopTopPadding
+        : AppUi.pageMobileTopPadding;
 
-    return _AppPageBackdrop(
-      child: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            topPadding,
-            horizontalPadding,
-            120,
-          ),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppPageHeader(
-                      title: title,
-                      subtitle: subtitle,
-                      trailing: effectiveTrailing,
-                      showBackButton: effectiveShowBackButton,
-                      onBack: onBack,
-                    ),
-                    SizedBox(height: isDesktop ? 18 : 14),
-                    child,
-                  ],
+    final list = ListView(
+      key: scrollKey,
+      controller: controller,
+      physics: physics ?? const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        topPadding,
+        horizontalPadding,
+        AppUi.pageBottomPadding,
+      ),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppPageHeader(
+                  title: title,
+                  subtitle: subtitle,
+                  trailing: effectiveTrailing,
+                  showBackButton: effectiveShowBackButton,
+                  onBack: onBack,
                 ),
-              ),
+                const SizedBox(height: AppUi.pageHeaderGap),
+                child,
+              ],
             ),
-          ],
+          ),
         ),
+      ],
+    );
+
+    return AppSurfaceBackdrop(
+      child: SafeArea(
+        child: onRefresh == null
+            ? list
+            : RefreshIndicator(onRefresh: onRefresh!, child: list),
       ),
     );
   }
@@ -87,6 +108,7 @@ class AppLazyPage extends StatelessWidget {
   final ScrollPhysics? physics;
   final Key? scrollKey;
   final double cacheExtent;
+  final double maxContentWidth;
 
   const AppLazyPage({
     super.key,
@@ -103,6 +125,7 @@ class AppLazyPage extends StatelessWidget {
     this.physics,
     this.scrollKey,
     this.cacheExtent = 600,
+    this.maxContentWidth = AppUi.pageContentWidth,
   });
 
   @override
@@ -116,9 +139,12 @@ class AppLazyPage extends StatelessWidget {
         showBackButton || (navigator?.canPop() ?? false);
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
-    final horizontalPadding = isDesktop ? 28.0 : 14.0;
-    final topPadding = isDesktop ? 24.0 : 12.0;
-    final maxContentWidth = isDesktop ? 1180.0 : 720.0;
+    final horizontalPadding = isDesktop
+        ? AppUi.pageDesktopHorizontalPadding
+        : AppUi.pageMobileHorizontalPadding;
+    final topPadding = isDesktop
+        ? AppUi.pageDesktopTopPadding
+        : AppUi.pageMobileTopPadding;
     final fixedLeadingCount = 2 + leading.length;
     final totalCount = fixedLeadingCount + itemCount + trailing.length;
 
@@ -134,13 +160,13 @@ class AppLazyPage extends StatelessWidget {
     final list = ListView.builder(
       key: scrollKey,
       controller: controller,
-      physics: physics,
+      physics: physics ?? const AlwaysScrollableScrollPhysics(),
       cacheExtent: cacheExtent,
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
         topPadding,
         horizontalPadding,
-        120,
+        AppUi.pageBottomPadding,
       ),
       itemCount: totalCount,
       itemBuilder: (context, index) {
@@ -156,7 +182,7 @@ class AppLazyPage extends StatelessWidget {
           );
         }
         if (index == 1) {
-          return SizedBox(height: isDesktop ? 18 : 14);
+          return const SizedBox(height: AppUi.pageHeaderGap);
         }
 
         final bodyIndex = index - 2;
@@ -173,7 +199,7 @@ class AppLazyPage extends StatelessWidget {
       },
     );
 
-    return _AppPageBackdrop(child: SafeArea(child: list));
+    return AppSurfaceBackdrop(child: SafeArea(child: list));
   }
 }
 
@@ -197,43 +223,92 @@ class AppPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final action = trailing;
+    final cleanSubtitle = subtitle.trim();
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        if (showBackButton) ...[
-          BackButton(
-            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-          ),
-          const SizedBox(width: 4),
-        ],
-        Expanded(
-          child: Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontSize: 20,
-              height: 1.1,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.25,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: AppUi.pageHeaderMinHeight),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (showBackButton) ...[
+            SizedBox.square(
+              dimension: AppUi.pageHeaderActionSize,
+              child: BackButton(
+                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              ),
+            ),
+            const SizedBox(width: AppUi.gap8),
+          ],
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 20,
+                    height: 1.12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.25,
+                  ),
+                ),
+                const SizedBox(height: AppUi.gap4),
+                SizedBox(
+                  height: 18,
+                  child: Text(
+                    cleanSubtitle.isEmpty ? ' ' : cleanSubtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        if (action != null) ...[
-          const SizedBox(width: 12),
-          Flexible(fit: FlexFit.loose, child: action),
+          if (action != null) ...[
+            const SizedBox(width: AppUi.gap12),
+            Flexible(
+              fit: FlexFit.loose,
+              child: IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size.square(
+                      AppUi.pageHeaderActionSize,
+                    ),
+                    maximumSize: const Size.square(
+                      AppUi.pageHeaderActionSize,
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppUi.controlRadius,
+                      ),
+                    ),
+                  ),
+                ),
+                child: action,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-class _AppPageBackdrop extends StatelessWidget {
+class AppSurfaceBackdrop extends StatelessWidget {
   final Widget child;
 
-  const _AppPageBackdrop({required this.child});
+  const AppSurfaceBackdrop({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -241,16 +316,9 @@ class _AppPageBackdrop extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [
-                  AppAdaptivePalette.darkBackground,
-                  AppAdaptivePalette.darkSurface,
-                ]
-              : const [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
-        ),
+        color: dark
+            ? AppAdaptivePalette.darkBackground
+            : AppAdaptivePalette.background,
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -273,7 +341,7 @@ class _AppPageBackdrop extends StatelessWidget {
                             Colors.transparent,
                           ]
                         : [
-                            Colors.white.withValues(alpha: 0.94),
+                            Colors.white.withValues(alpha: 0.68),
                             Colors.white.withValues(alpha: 0),
                           ],
                   ),

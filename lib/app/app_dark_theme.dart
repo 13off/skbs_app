@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_adaptive_palette.dart';
+import 'app_ui_tokens.dart';
 import 'app_theme.dart';
 
 abstract final class AppDarkTheme {
@@ -112,7 +113,7 @@ abstract final class AppDarkTheme {
         );
 
     final cardShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppUi.cardRadius),
       side: const BorderSide(color: border),
     );
 
@@ -196,27 +197,27 @@ abstract final class AppDarkTheme {
           vertical: 15,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: accent, width: 1.4),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: Color(0xFF263442)),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: danger),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           borderSide: const BorderSide(color: danger, width: 1.4),
         ),
       ),
@@ -295,10 +296,10 @@ abstract final class AppDarkTheme {
           backgroundColor: accentStrong,
           disabledForegroundColor: AppAdaptivePalette.darkDisabledText,
           disabledBackgroundColor: AppAdaptivePalette.darkDisabledSurface,
-          minimumSize: const Size(0, 46),
+          minimumSize: const Size(0, AppUi.controlHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(AppUi.controlRadius),
           ),
           textStyle: textTheme.labelLarge,
           elevation: 0,
@@ -310,10 +311,10 @@ abstract final class AppDarkTheme {
           backgroundColor: accentStrong,
           disabledForegroundColor: AppAdaptivePalette.darkDisabledText,
           disabledBackgroundColor: AppAdaptivePalette.darkDisabledSurface,
-          minimumSize: const Size(0, 46),
+          minimumSize: const Size(0, AppUi.controlHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(AppUi.controlRadius),
           ),
           textStyle: textTheme.labelLarge,
           elevation: 0,
@@ -325,10 +326,10 @@ abstract final class AppDarkTheme {
           backgroundColor: surface,
           disabledForegroundColor: AppAdaptivePalette.darkDisabledText,
           side: const BorderSide(color: border),
-          minimumSize: const Size(0, 44),
+          minimumSize: const Size(0, AppUi.controlHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(AppUi.controlRadius),
           ),
           textStyle: textTheme.labelLarge,
         ),

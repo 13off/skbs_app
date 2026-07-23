@@ -100,7 +100,7 @@ void main() {
       'lib/features/legal/presentation/legal_manager_summary_screen.dart',
     );
 
-    expect(specialist, contains('specialistDesktopBreakpoint = 820'));
+    expect(specialist, contains('specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint'));
     expect(specialist, contains('final bool showBackButton'));
     expect(company, contains('showBackButton: true'));
     expect(adaptiveLegal, contains('showBackButton: Navigator.of(context).canPop()'));

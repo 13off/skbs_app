@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
+import '../app/app_ui_tokens.dart';
 import '../navigation/navigation_session.dart';
 import 'premium_pressable_v3.dart';
 
@@ -206,7 +207,7 @@ class _ProfessionalBottomNavigationState
                 padding: EdgeInsets.all(isDesktop ? 7 : 6),
                 decoration: BoxDecoration(
                   color: scheme.surface,
-                  borderRadius: BorderRadius.circular(isDesktop ? 21 : 24),
+                  borderRadius: BorderRadius.circular(AppUi.cardRadius),
                   border: Border.all(
                     color: scheme.outlineVariant.withValues(
                       alpha: dark ? 0.95 : 0.72,
@@ -235,7 +236,7 @@ class _ProfessionalBottomNavigationState
                           onTap: () => handleSelected(index),
                           pressedScale: 0.97,
                           hoverScale: isDesktop ? AppMotion.hoverScale : 1,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(AppUi.controlRadius),
                           child: AnimatedContainer(
                             duration: duration,
                             curve: AppMotion.interactionCurve,
@@ -248,7 +249,7 @@ class _ProfessionalBottomNavigationState
                               color: selected
                                   ? scheme.primary.withValues(alpha: 0.11)
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(AppUi.controlRadius),
                               border: selected
                                   ? Border.all(
                                       color: scheme.primary.withValues(

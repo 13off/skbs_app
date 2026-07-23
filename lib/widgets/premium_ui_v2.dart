@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
+import '../app/app_ui_tokens.dart';
+import 'app_page.dart';
 import 'premium_ui_v2_legacy.dart' as legacy;
 
 // Motion contract remains implemented in premium_ui_v2_legacy.dart:
@@ -24,21 +26,7 @@ class PremiumBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
-    return DecoratedBox(
-      decoration: dark
-          ? BoxDecoration(color: theme.scaffoldBackgroundColor)
-          : const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFF9F8F5), Color(0xFFECEAE4)],
-              ),
-            ),
-      child: child,
-    );
+    return AppSurfaceBackdrop(child: child);
   }
 }
 
@@ -49,74 +37,7 @@ class PremiumWorkBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
-    if (!dark) {
-      return DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFAF9F6), Color(0xFFECE9E2)],
-          ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned(
-              top: -140,
-              right: -100,
-              child: IgnorePointer(
-                child: Container(
-                  width: 330,
-                  height: 330,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.94),
-                        Colors.white.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            child,
-          ],
-        ),
-      );
-    }
-
-    return DecoratedBox(
-      decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: -180,
-            right: -140,
-            child: IgnorePointer(
-              child: Container(
-                width: 360,
-                height: 360,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.10),
-                      theme.colorScheme.primary.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
+    return AppSurfaceBackdrop(child: child);
   }
 }
 
@@ -130,9 +51,9 @@ class PremiumWorkCard extends StatelessWidget {
   const PremiumWorkCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = AppUi.cardInsets,
     this.margin = EdgeInsets.zero,
-    this.radius = 26,
+    this.radius = AppUi.cardRadius,
     this.tint,
   });
 
@@ -207,11 +128,11 @@ class PremiumActionButton extends StatelessWidget {
 
     return legacy.PremiumPressable(
       onTap: isLoading ? null : onPressed,
-      borderRadius: BorderRadius.circular(dark ? 15 : 20),
+      borderRadius: BorderRadius.circular(AppUi.controlRadius),
       pressedScale: 0.982,
       child: AnimatedContainer(
         duration: AppMotion.regular,
-        height: 56,
+        height: AppUi.controlHeight,
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
@@ -227,7 +148,7 @@ class PremiumActionButton extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [Color(0xFF2A2D31), Color(0xFF17191C)],
                 ),
-          borderRadius: BorderRadius.circular(dark ? 15 : 20),
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
           border: Border.all(
             color: dark
                 ? (enabled

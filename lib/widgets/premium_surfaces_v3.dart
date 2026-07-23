@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../app/app_theme.dart';
+import '../app/app_ui_tokens.dart';
+import 'app_page.dart';
 import 'premium_ui_v2.dart' show PremiumBrandMark, PremiumDots;
 
 class PremiumBackdrop extends StatelessWidget {
@@ -10,81 +11,7 @@ class PremiumBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
-    if (dark) {
-      return DecoratedBox(
-        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned(
-              top: -190,
-              right: -150,
-              child: IgnorePointer(
-                child: Container(
-                  width: 380,
-                  height: 380,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.09),
-                        theme.colorScheme.primary.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            child,
-          ],
-        ),
-      );
-    }
-
-    return _LightPremiumBackdrop(child: child);
-  }
-}
-
-class _LightPremiumBackdrop extends StatelessWidget {
-  final Widget child;
-
-  const _LightPremiumBackdrop({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFAF9F6), Color(0xFFE9E6DE)],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const Positioned(
-            top: -80,
-            right: -55,
-            child: _GlassDrop(size: 270, opacity: 0.72),
-          ),
-          const Positioned(
-            left: -70,
-            bottom: 70,
-            child: _GlassDrop(size: 190, opacity: 0.46),
-          ),
-          const Positioned(
-            right: 42,
-            bottom: -58,
-            child: _GlassDrop(size: 132, opacity: 0.36),
-          ),
-          child,
-        ],
-      ),
-    );
+    return AppSurfaceBackdrop(child: child);
   }
 }
 
@@ -115,7 +42,7 @@ class PremiumLoadingScreen extends StatelessWidget {
                 color: dark
                     ? theme.colorScheme.surface
                     : Colors.white.withValues(alpha: 0.68),
-                borderRadius: BorderRadius.circular(dark ? 24 : 36),
+                borderRadius: BorderRadius.circular(AppUi.modalRadius),
                 border: Border.all(
                   color: dark
                       ? theme.colorScheme.outlineVariant
@@ -166,45 +93,6 @@ class PremiumLoadingScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassDrop extends StatelessWidget {
-  final double size;
-  final double opacity;
-
-  const _GlassDrop({required this.size, required this.opacity});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            center: const Alignment(-0.36, -0.42),
-            colors: [
-              Colors.white.withValues(alpha: opacity),
-              Colors.white.withValues(alpha: opacity * 0.22),
-              const Color(0xFFD5D0C4).withValues(alpha: opacity * 0.10),
-            ],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: opacity * 0.72),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: opacity * 0.10),
-              blurRadius: size * 0.20,
-              spreadRadius: -size * 0.08,
-              offset: Offset(0, size * 0.10),
-            ),
-          ],
         ),
       ),
     );

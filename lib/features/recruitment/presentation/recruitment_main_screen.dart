@@ -68,7 +68,7 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Заявки',
+          label: 'Кандидаты',
           icon: Icons.view_kanban_outlined,
           selectedIcon: Icons.view_kanban_rounded,
         ),

@@ -1,9 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
-
+import '../../../app/app_ui_tokens.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -16,6 +17,8 @@ import 'recruitment_archive_screen.dart';
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _soft => AppAdaptivePalette.surfaceSoft;
+
+enum RecruitmentViewMode { board, list }
 
 class RecruitmentApplicationsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -33,7 +36,11 @@ class _RecruitmentApplicationsScreenState
   late Future<List<RecruitmentApplication>> future;
   StreamSubscription<AppDataChange>? changesSubscription;
   final Set<String> archiveBusyIds = <String>{};
-  String status = 'all';
+  final Set<String> movingIds = <String>{};
+  RecruitmentViewMode viewMode = RecruitmentViewMode.board;
+  String listStage = 'all';
+  String objectFilter = 'all';
+  String vacancyFilter = 'all';
 
   @override
   void initState() {
@@ -70,12 +77,36 @@ class _RecruitmentApplicationsScreenState
     await next;
   }
 
-  List<RecruitmentApplication> visible(
+  List<String> filterValues(
     List<RecruitmentApplication> applications,
+    String Function(RecruitmentApplication application) selector,
   ) {
+    return applications
+        .map(selector)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((first, second) => first.toLowerCase().compareTo(second.toLowerCase()));
+  }
+
+  List<RecruitmentApplication> visible(
+    List<RecruitmentApplication> applications, {
+    bool applyListStage = false,
+  }) {
     final query = searchController.text.trim().toLowerCase();
-    return applications.where((application) {
-      if (status != 'all' && application.stage != status) return false;
+    final result = applications.where((application) {
+      if (applyListStage &&
+          listStage != 'all' &&
+          application.stage != listStage) {
+        return false;
+      }
+      if (objectFilter != 'all' && application.objectName != objectFilter) {
+        return false;
+      }
+      if (vacancyFilter != 'all' && application.vacancy != vacancyFilter) {
+        return false;
+      }
       if (query.isEmpty) return true;
       final haystack = <String>[
         application.fullName,
@@ -85,28 +116,30 @@ class _RecruitmentApplicationsScreenState
         application.citizenship,
         application.experience,
         application.comment,
+        application.statusTitle,
       ].join(' ').toLowerCase();
       return haystack.contains(query);
     }).toList();
+    result.sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
+    return result;
   }
 
-  Color statusColor(String value) {
-    switch (value) {
-      case 'review':
+  Color stageColor(String stage) {
+    switch (stage) {
+      case 'problems':
       case 'rejected':
-        return const Color(0xFF9A403A);
-      case 'approved':
-      case 'arrived':
-      case 'hired':
-        return const Color(0xFF2E7D52);
-      case 'ticket_request':
-      case 'in_transit':
-        return const Color(0xFF9A6816);
-      case 'waiting_documents':
-      case 'medical':
+        return AppAdaptivePalette.danger;
+      case 'ready':
+      case 'completed':
+        return AppAdaptivePalette.success;
+      case 'tickets':
+        return AppAdaptivePalette.warning;
+      case 'documents':
         return const Color(0xFF4C6076);
+      case 'reserve':
+        return const Color(0xFF6C5B7B);
       default:
-        return _muted;
+        return AppAdaptivePalette.accent;
     }
   }
 
@@ -115,6 +148,12 @@ class _RecruitmentApplicationsScreenState
     final day = local.day.toString().padLeft(2, '0');
     final month = local.month.toString().padLeft(2, '0');
     return '$day.$month.${local.year}';
+  }
+
+  String shortDate(DateTime? value) {
+    if (value == null) return '';
+    final local = value.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}';
   }
 
   Future<void> openEditor([RecruitmentApplication? application]) async {
@@ -168,10 +207,7 @@ class _RecruitmentApplicationsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${application.fullName} перемещён в архив'),
-          action: SnackBarAction(
-            label: 'Открыть архив',
-            onPressed: openArchive,
-          ),
+          action: SnackBarAction(label: 'Открыть архив', onPressed: openArchive),
         ),
       );
       await refresh();
@@ -189,7 +225,10 @@ class _RecruitmentApplicationsScreenState
     RecruitmentApplication application,
     String nextStatus,
   ) async {
-    if (application.status == nextStatus) return;
+    if (application.status == nextStatus || movingIds.contains(application.id)) {
+      return;
+    }
+    setState(() => movingIds.add(application.id));
     try {
       await RecruitmentRepository.updateStatus(
         companyId: widget.profile.activeCompanyId,
@@ -202,15 +241,24 @@ class _RecruitmentApplicationsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось изменить этап: $error')),
       );
+    } finally {
+      if (mounted) setState(() => movingIds.remove(application.id));
     }
   }
 
+  Future<void> moveToStage(
+    RecruitmentApplication application,
+    String stage,
+  ) {
+    return changeStatus(application, recruitmentStageDefaultStatus(stage));
+  }
+
   Widget filterChip(String value, String label) {
-    final selected = status == value;
+    final selected = listStage == value;
     return ChoiceChip(
       selected: selected,
       label: Text(label),
-      onSelected: (_) => setState(() => status = value),
+      onSelected: (_) => setState(() => listStage = value),
       labelStyle: TextStyle(
         color: selected ? AppAdaptivePalette.onAccent : _text,
         fontWeight: FontWeight.w800,
@@ -222,163 +270,639 @@ class _RecruitmentApplicationsScreenState
     );
   }
 
-  Widget applicationCard(RecruitmentApplication application) {
-    final accent = statusColor(application.status);
+  Widget metricCard({
+    required String label,
+    required int value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: 178,
+      child: PremiumWorkCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppUi.controlRadius),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: AppUi.gap12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$value',
+                    style: TextStyle(
+                      color: _text,
+                      fontSize: 22,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget summary(List<RecruitmentApplication> applications) {
+    int countStages(Set<String> stages) => applications
+        .where((application) => stages.contains(application.stage))
+        .length;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          metricCard(
+            label: 'Всего кандидатов',
+            value: applications.length,
+            icon: Icons.groups_2_outlined,
+            color: AppAdaptivePalette.accent,
+          ),
+          const SizedBox(width: AppUi.gap12),
+          metricCard(
+            label: 'В активной работе',
+            value: countStages(<String>{'new', 'documents', 'problems'}),
+            icon: Icons.work_history_outlined,
+            color: const Color(0xFF4C6076),
+          ),
+          const SizedBox(width: AppUi.gap12),
+          metricCard(
+            label: 'Готовы / билеты',
+            value: countStages(<String>{'ready', 'tickets'}),
+            icon: Icons.flight_takeoff_outlined,
+            color: AppAdaptivePalette.success,
+          ),
+          const SizedBox(width: AppUi.gap12),
+          metricCard(
+            label: 'Требуют внимания',
+            value: countStages(<String>{'problems'}),
+            icon: Icons.warning_amber_rounded,
+            color: AppAdaptivePalette.danger,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget dropdownFilter({
+    required String value,
+    required String label,
+    required IconData icon,
+    required List<String> values,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return SizedBox(
+      width: 220,
+      child: DropdownButtonFormField<String>(
+        initialValue: values.contains(value) ? value : 'all',
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          isDense: true,
+        ),
+        items: <DropdownMenuItem<String>>[
+          const DropdownMenuItem<String>(value: 'all', child: Text('Все')),
+          ...values.map(
+            (item) => DropdownMenuItem<String>(
+              value: item,
+              child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget toolbar(List<RecruitmentApplication> applications) {
+    final objects = filterValues(applications, (item) => item.objectName);
+    final vacancies = filterValues(applications, (item) => item.vacancy);
+
+    return PremiumWorkCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 760;
+              final search = TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'ФИО, телефон, вакансия, объект или комментарий',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Очистить поиск',
+                          onPressed: searchController.clear,
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                ),
+              );
+              final controls = Wrap(
+                spacing: AppUi.gap12,
+                runSpacing: AppUi.gap12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  dropdownFilter(
+                    value: objectFilter,
+                    label: 'Объект',
+                    icon: Icons.apartment_outlined,
+                    values: objects,
+                    onChanged: (value) =>
+                        setState(() => objectFilter = value ?? 'all'),
+                  ),
+                  dropdownFilter(
+                    value: vacancyFilter,
+                    label: 'Вакансия',
+                    icon: Icons.work_outline_rounded,
+                    values: vacancies,
+                    onChanged: (value) =>
+                        setState(() => vacancyFilter = value ?? 'all'),
+                  ),
+                  SegmentedButton<RecruitmentViewMode>(
+                    showSelectedIcon: false,
+                    segments: const <ButtonSegment<RecruitmentViewMode>>[
+                      ButtonSegment<RecruitmentViewMode>(
+                        value: RecruitmentViewMode.board,
+                        icon: Icon(Icons.view_kanban_outlined),
+                        label: Text('Канбан'),
+                      ),
+                      ButtonSegment<RecruitmentViewMode>(
+                        value: RecruitmentViewMode.list,
+                        icon: Icon(Icons.view_list_outlined),
+                        label: Text('Список'),
+                      ),
+                    ],
+                    selected: <RecruitmentViewMode>{viewMode},
+                    onSelectionChanged: (selection) {
+                      setState(() => viewMode = selection.first);
+                    },
+                  ),
+                ],
+              );
+
+              if (!wide) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    search,
+                    const SizedBox(height: AppUi.gap12),
+                    controls,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: search),
+                  const SizedBox(width: AppUi.gap12),
+                  Flexible(flex: 2, child: controls),
+                ],
+              );
+            },
+          ),
+          if (viewMode == RecruitmentViewMode.list) ...[
+            const SizedBox(height: AppUi.gap12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  filterChip('all', 'Все этапы'),
+                  const SizedBox(width: AppUi.gap8),
+                  ...recruitmentStages.expand(
+                    (item) => <Widget>[
+                      filterChip(item, recruitmentStageTitle(item)),
+                      const SizedBox(width: AppUi.gap8),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<String>> candidateMenu(
+    RecruitmentApplication application,
+  ) {
+    return <PopupMenuEntry<String>>[
+      const PopupMenuItem<String>(
+        enabled: false,
+        child: Text(
+          'Переместить на этап',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      ...recruitmentStages.map(
+        (stage) => PopupMenuItem<String>(
+          value: 'stage:$stage',
+          enabled: application.stage != stage,
+          child: Row(
+            children: [
+              Icon(Icons.circle, size: 10, color: stageColor(stage)),
+              const SizedBox(width: AppUi.gap8),
+              Expanded(child: Text(recruitmentStageTitle(stage))),
+            ],
+          ),
+        ),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem<String>(
+        value: 'archive',
+        child: Row(
+          children: [
+            Icon(Icons.inventory_2_outlined),
+            SizedBox(width: AppUi.gap8),
+            Text('В архив'),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  Future<void> handleCandidateMenu(
+    RecruitmentApplication application,
+    String value,
+  ) async {
+    if (value == 'archive') {
+      await archiveApplication(application);
+      return;
+    }
+    if (value.startsWith('stage:')) {
+      await moveToStage(application, value.substring('stage:'.length));
+    }
+  }
+
+  Widget candidateCard(
+    RecruitmentApplication application, {
+    bool feedback = false,
+  }) {
+    final color = stageColor(application.stage);
+    final busy = movingIds.contains(application.id) ||
+        archiveBusyIds.contains(application.id);
     final details = <String>[
       if (application.vacancy.isNotEmpty) application.vacancy,
       if (application.objectName.isNotEmpty) application.objectName,
     ];
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: () => openEditor(application),
-        child: PremiumWorkCard(
-          radius: 24,
-          padding: const EdgeInsets.all(16),
-          child: Column(
+    final card = PremiumWorkCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(16),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                ),
+                child: Icon(Icons.person_search_rounded, color: color, size: 20),
+              ),
+              const SizedBox(width: AppUi.gap12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      application.fullName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 15,
+                        height: 1.18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    child: Icon(Icons.person_search_rounded, color: accent),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          application.fullName,
-                          style: TextStyle(
-                            color: _text,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        if (details.isNotEmpty) ...[
-                          SizedBox(height: 3),
-                          Text(
-                            details.join(' • '),
-                            style: TextStyle(
-                              color: _muted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                    if (details.isNotEmpty) ...[
+                      const SizedBox(height: AppUi.gap4),
                       Text(
-                        formatDate(application.createdAt),
+                        details.join(' • '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: _muted,
                           fontSize: 12,
+                          height: 1.3,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      IconButton(
-                        tooltip: 'В архив',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: archiveBusyIds.contains(application.id)
-                            ? null
-                            : () => archiveApplication(application),
-                        icon: archiveBusyIds.contains(application.id)
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(Icons.inventory_2_outlined),
-                      ),
                     ],
-                  ),
-                ],
-              ),
-              SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _InfoPill(
-                    icon: Icons.send_outlined,
-                    label: application.sourceTitle,
-                  ),
-                  if (application.phone.isNotEmpty)
-                    _InfoPill(
-                      icon: Icons.phone_outlined,
-                      label: application.phone,
-                    ),
-                  if (application.citizenship.isNotEmpty)
-                    _InfoPill(
-                      icon: Icons.public_outlined,
-                      label: application.citizenship,
-                    ),
-                ],
-              ),
-              SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: recruitmentStatuses.contains(application.status)
-                    ? application.status
-                    : 'new',
-                decoration: InputDecoration(
-                  labelText: 'Этап',
-                  prefixIcon: Icon(Icons.flag_outlined, color: accent),
-                  isDense: true,
+                  ],
                 ),
-                items: recruitmentStatuses
-                    .map(
-                      (item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(recruitmentStatusTitle(item)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) changeStatus(application, value);
-                },
               ),
+              if (!feedback)
+                PopupMenuButton<String>(
+                  tooltip: 'Действия',
+                  enabled: !busy,
+                  itemBuilder: (_) => candidateMenu(application),
+                  onSelected: (value) => handleCandidateMenu(application, value),
+                  icon: busy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.more_horiz_rounded),
+                ),
             ],
           ),
-        ),
+          const SizedBox(height: AppUi.gap12),
+          Wrap(
+            spacing: AppUi.gap8,
+            runSpacing: AppUi.gap8,
+            children: [
+              _InfoPill(icon: Icons.flag_outlined, label: application.statusTitle),
+              _InfoPill(icon: Icons.send_outlined, label: application.sourceTitle),
+              if (application.phone.isNotEmpty)
+                _InfoPill(icon: Icons.phone_outlined, label: application.phone),
+              if (application.departureDate != null)
+                _InfoPill(
+                  icon: Icons.flight_takeoff_outlined,
+                  label: 'Выезд ${shortDate(application.departureDate)}',
+                ),
+            ],
+          ),
+          if (application.comment.trim().isNotEmpty) ...[
+            const SizedBox(height: AppUi.gap12),
+            Text(
+              application.comment,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: _muted,
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppUi.gap12),
+          Row(
+            children: [
+              Icon(Icons.schedule_rounded, size: 14, color: _muted),
+              const SizedBox(width: AppUi.gap4),
+              Expanded(
+                child: Text(
+                  'Обновлено ${formatDate(application.updatedAt)}',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (!feedback) ...[
+                Icon(Icons.drag_indicator_rounded, size: 18, color: _muted),
+                const SizedBox(width: AppUi.gap4),
+                Text(
+                  kIsWeb ? 'Перетащи' : 'Удерживай',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
+    );
+
+    if (feedback) return card;
+    final interactiveCard = PremiumPressable(
+      onTap: busy ? null : () => openEditor(application),
+      borderRadius: BorderRadius.circular(AppUi.cardRadius),
+      child: card,
+    );
+    final feedbackCard = Material(
+      color: Colors.transparent,
+      child: SizedBox(
+        width: 292,
+        child: candidateCard(application, feedback: true),
+      ),
+    );
+
+    if (kIsWeb) {
+      return Draggable<RecruitmentApplication>(
+        data: application,
+        maxSimultaneousDrags: busy ? 0 : 1,
+        feedback: feedbackCard,
+        childWhenDragging: Opacity(opacity: 0.35, child: card),
+        child: interactiveCard,
+      );
+    }
+    return LongPressDraggable<RecruitmentApplication>(
+      data: application,
+      maxSimultaneousDrags: busy ? 0 : 1,
+      feedback: feedbackCard,
+      childWhenDragging: Opacity(opacity: 0.35, child: card),
+      child: interactiveCard,
+    );
+  }
+
+  Widget kanbanColumn(
+    String stage,
+    List<RecruitmentApplication> applications,
+  ) {
+    final color = stageColor(stage);
+    return DragTarget<RecruitmentApplication>(
+      onWillAcceptWithDetails: (details) =>
+          !movingIds.contains(details.data.id) && details.data.stage != stage,
+      onAcceptWithDetails: (details) {
+        moveToStage(details.data, stage);
+      },
+      builder: (context, candidates, rejected) {
+        final highlighted = candidates.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 310,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: highlighted
+                ? color.withValues(alpha: 0.10)
+                : AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(AppUi.cardRadius),
+            border: Border.all(
+              color: highlighted
+                  ? color.withValues(alpha: 0.50)
+                  : AppAdaptivePalette.border,
+              width: highlighted ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: AppUi.gap8),
+                  Expanded(
+                    child: Text(
+                      recruitmentStageTitle(stage),
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${applications.length}',
+                      style: TextStyle(color: color, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUi.gap4),
+              Text(
+                recruitmentStageDescription(stage),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 11.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppUi.gap12),
+              if (applications.isEmpty)
+                Container(
+                  height: 118,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppAdaptivePalette.surfaceElevated.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                    border: Border.all(
+                      color: highlighted
+                          ? color.withValues(alpha: 0.40)
+                          : AppAdaptivePalette.border,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      highlighted ? 'Отпусти кандидата здесь' : 'Нет кандидатов',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: highlighted ? color : _muted,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...applications.expand(
+                  (application) => <Widget>[
+                    candidateCard(application),
+                    const SizedBox(height: AppUi.gap12),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget board(List<RecruitmentApplication> applications) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(bottom: AppUi.gap8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: recruitmentStages.expand((stage) {
+          final items = applications
+              .where((application) => application.stage == stage)
+              .toList();
+          return <Widget>[
+            kanbanColumn(stage, items),
+            const SizedBox(width: AppUi.gap12),
+          ];
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget list(List<RecruitmentApplication> applications) {
+    if (applications.isEmpty) {
+      return const _MessageCard(
+        icon: Icons.person_search_outlined,
+        title: 'Ничего не найдено',
+        text: 'Измените поиск, фильтр объекта, вакансии или этапа.',
+      );
+    }
+    return Column(
+      children: applications.expand(
+        (application) => <Widget>[
+          candidateCard(application),
+          const SizedBox(height: AppUi.gap12),
+        ],
+      ).toList(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Заявки',
-      subtitle: '',
+      title: 'Кандидаты',
+      subtitle: 'CRM, этапы найма, документы и отправка на объект',
+      onRefresh: refresh,
       headerTrailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton.filledTonal(
-            tooltip: 'Архив заявок',
+            tooltip: 'Архив кандидатов',
             onPressed: openArchive,
-            icon: Icon(Icons.inventory_2_outlined),
+            icon: const Icon(Icons.inventory_2_outlined),
           ),
-          SizedBox(width: 8),
-          IconButton.filledTonal(
+          const SizedBox(width: AppUi.gap8),
+          IconButton.filled(
             tooltip: 'Добавить кандидата',
             onPressed: openEditor,
-            icon: Icon(Icons.add_rounded),
+            icon: const Icon(Icons.add_rounded),
           ),
         ],
       ),
@@ -387,7 +911,7 @@ class _RecruitmentApplicationsScreenState
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return Padding(
+            return const Padding(
               padding: EdgeInsets.symmetric(vertical: 90),
               child: Center(child: CircularProgressIndicator()),
             );
@@ -395,7 +919,7 @@ class _RecruitmentApplicationsScreenState
           if (snapshot.hasError) {
             return _MessageCard(
               icon: Icons.error_outline_rounded,
-              title: 'Не удалось загрузить заявки',
+              title: 'Не удалось загрузить кандидатов',
               text: snapshot.error.toString(),
               action: refresh,
             );
@@ -403,53 +927,37 @@ class _RecruitmentApplicationsScreenState
 
           final applications =
               snapshot.data ?? const <RecruitmentApplication>[];
-          final filtered = visible(applications);
+          if (applications.isEmpty) {
+            return _MessageCard(
+              icon: Icons.person_add_alt_1_outlined,
+              title: 'Кандидатов пока нет',
+              text:
+                  'Добавьте кандидата вручную или дождитесь новой заявки из Telegram-бота.',
+              action: openEditor,
+            );
+          }
+
+          final filtered = visible(
+            applications,
+            applyListStage: viewMode == RecruitmentViewMode.list,
+          );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'ФИО, телефон, вакансия или объект',
-                  prefixIcon: Icon(Icons.search_rounded),
-                  suffixIcon: searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: searchController.clear,
-                          icon: Icon(Icons.close_rounded),
-                        ),
-                ),
-              ),
-              SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    filterChip('all', 'Все'),
-                    SizedBox(width: 8),
-                    ...recruitmentStages.expand(
-                      (item) => <Widget>[
-                        filterChip(item, recruitmentStageTitle(item)),
-                        SizedBox(width: 8),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
+              summary(applications),
+              const SizedBox(height: AppUi.gap16),
+              toolbar(applications),
+              const SizedBox(height: AppUi.gap16),
               if (filtered.isEmpty)
-                _MessageCard(
-                  icon: Icons.person_search_outlined,
-                  title: applications.isEmpty
-                      ? 'Заявок пока нет'
-                      : 'Ничего не найдено',
-                  text: applications.isEmpty
-                      ? 'Добавьте кандидата вручную или дождитесь новой заявки из Telegram-бота.'
-                      : 'Измените поиск или выбранный этап.',
-                  action: applications.isEmpty ? openEditor : null,
+                const _MessageCard(
+                  icon: Icons.filter_alt_off_outlined,
+                  title: 'По фильтрам ничего нет',
+                  text: 'Измените поиск, объект, вакансию или выбранный этап.',
                 )
+              else if (viewMode == RecruitmentViewMode.board)
+                board(filtered)
               else
-                ...filtered.map(applicationCard),
+                list(filtered),
             ],
           );
         },
@@ -596,7 +1104,7 @@ class _RecruitmentApplicationEditorState
       ),
       decoration: BoxDecoration(
         color: AppAdaptivePalette.surface,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppUi.modalRadius),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -744,7 +1252,7 @@ class _RecruitmentApplicationEditorState
                 ],
                 SizedBox(height: 18),
                 SizedBox(
-                  height: 52,
+                  height: AppUi.controlHeight,
                   child: FilledButton.icon(
                     onPressed: saving ? null : save,
                     icon: saving
