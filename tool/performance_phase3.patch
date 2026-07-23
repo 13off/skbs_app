@@ -1,0 +1,484 @@
+diff --git a/lib/data/attendance_repository.dart b/lib/data/attendance_repository.dart
+index 845ab0d..c28d688 100644
+--- a/lib/data/attendance_repository.dart
++++ b/lib/data/attendance_repository.dart
+@@ -23,6 +23,16 @@ class AttendanceRepository {
+       {};
+   static final Map<String, _AttendanceReportCacheEntry> _attendanceReportCache =
+       {};
++  static final Map<String, Future<Map<String, double>>> _shiftValueRequests =
++      {};
++  static final Map<String, Future<List<AttendanceReportRow>>>
++  _attendanceReportRequests = {};
++  static final Map<String, Future<List<MonthlyTimesheetRow>>>
++  _monthlyTimesheetRequests = {};
++  static final Map<String, Future<MonthlyTimesheetRow>>
++  _employeeMonthlyTimesheetRequests = {};
++  static final Map<String, Future<List<PeriodTimesheetRow>>>
++  _periodTimesheetRequests = {};
+ 
+   static String dateKey(DateTime date) {
+     final cleanDate = DateTime(date.year, date.month, date.day);
+@@ -54,6 +64,11 @@ class AttendanceRepository {
+     _employeeMonthlyTimesheetCache.clear();
+     _periodTimesheetCache.clear();
+     _attendanceReportCache.clear();
++    _shiftValueRequests.clear();
++    _attendanceReportRequests.clear();
++    _monthlyTimesheetRequests.clear();
++    _employeeMonthlyTimesheetRequests.clear();
++    _periodTimesheetRequests.clear();
+   }
+ 
+   static String _objectCachePart(String? objectName) {
+@@ -136,6 +151,31 @@ class AttendanceRepository {
+     DateTime date, {
+     String? objectName,
+     bool forceRefresh = false,
++  }) async {
++    final key = _dayCacheKey(date: date, objectName: objectName);
++    if (!forceRefresh) {
++      final running = _shiftValueRequests[key];
++      if (running != null) return _copyShiftValues(await running);
++    }
++    final request = _fetchShiftValuesForDate(
++      date,
++      objectName: objectName,
++      forceRefresh: forceRefresh,
++    );
++    _shiftValueRequests[key] = request;
++    try {
++      return _copyShiftValues(await request);
++    } finally {
++      if (identical(_shiftValueRequests[key], request)) {
++        _shiftValueRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<Map<String, double>> _fetchShiftValuesForDate(
++    DateTime date, {
++    String? objectName,
++    bool forceRefresh = false,
+   }) async {
+     final cleanObject = cleanObjectName(objectName);
+     final cacheKey = _dayCacheKey(date: date, objectName: cleanObject);
+@@ -274,6 +314,40 @@ class AttendanceRepository {
+     String? objectName,
+     bool includeFired = false,
+     bool forceRefresh = false,
++  }) async {
++    final key = _periodCacheKey(
++      startDate: startDate,
++      endDate: endDate,
++      objectName: objectName,
++      includeFired: includeFired,
++    );
++    if (!forceRefresh) {
++      final running = _attendanceReportRequests[key];
++      if (running != null) return _copyReportRows(await running);
++    }
++    final request = _fetchReportForPeriod(
++      startDate: startDate,
++      endDate: endDate,
++      objectName: objectName,
++      includeFired: includeFired,
++      forceRefresh: forceRefresh,
++    );
++    _attendanceReportRequests[key] = request;
++    try {
++      return _copyReportRows(await request);
++    } finally {
++      if (identical(_attendanceReportRequests[key], request)) {
++        _attendanceReportRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<List<AttendanceReportRow>> _fetchReportForPeriod({
++    required DateTime startDate,
++    required DateTime endDate,
++    String? objectName,
++    bool includeFired = false,
++    bool forceRefresh = false,
+   }) async {
+     final cleanObject = cleanObjectName(objectName);
+     final cacheKey = _periodCacheKey(
+@@ -366,6 +440,40 @@ class AttendanceRepository {
+     String? objectName,
+     bool includeFired = false,
+     bool forceRefresh = false,
++  }) async {
++    final key = _monthCacheKey(
++      year: year,
++      month: month,
++      objectName: objectName,
++      includeFired: includeFired,
++    );
++    if (!forceRefresh) {
++      final running = _monthlyTimesheetRequests[key];
++      if (running != null) return _copyMonthlyRows(await running);
++    }
++    final request = _fetchMonthlyTimesheet(
++      year: year,
++      month: month,
++      objectName: objectName,
++      includeFired: includeFired,
++      forceRefresh: forceRefresh,
++    );
++    _monthlyTimesheetRequests[key] = request;
++    try {
++      return _copyMonthlyRows(await request);
++    } finally {
++      if (identical(_monthlyTimesheetRequests[key], request)) {
++        _monthlyTimesheetRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<List<MonthlyTimesheetRow>> _fetchMonthlyTimesheet({
++    required int year,
++    required int month,
++    String? objectName,
++    bool includeFired = false,
++    bool forceRefresh = false,
+   }) async {
+     final cleanObject = cleanObjectName(objectName);
+     final cacheKey = _monthCacheKey(
+@@ -465,6 +573,46 @@ class AttendanceRepository {
+     required int year,
+     required int month,
+     bool forceRefresh = false,
++  }) async {
++    final employeeId = employee.id?.trim() ?? '';
++    if (employeeId.isEmpty) {
++      return _fetchMonthlyTimesheetForEmployee(
++        employee: employee,
++        year: year,
++        month: month,
++        forceRefresh: forceRefresh,
++      );
++    }
++    final key = _employeeMonthCacheKey(
++      employeeId: employeeId,
++      year: year,
++      month: month,
++    );
++    if (!forceRefresh) {
++      final running = _employeeMonthlyTimesheetRequests[key];
++      if (running != null) return running;
++    }
++    final request = _fetchMonthlyTimesheetForEmployee(
++      employee: employee,
++      year: year,
++      month: month,
++      forceRefresh: forceRefresh,
++    );
++    _employeeMonthlyTimesheetRequests[key] = request;
++    try {
++      return await request;
++    } finally {
++      if (identical(_employeeMonthlyTimesheetRequests[key], request)) {
++        _employeeMonthlyTimesheetRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<MonthlyTimesheetRow> _fetchMonthlyTimesheetForEmployee({
++    required Employee employee,
++    required int year,
++    required int month,
++    bool forceRefresh = false,
+   }) async {
+     final employeeId = employee.id;
+ 
+@@ -547,6 +695,40 @@ class AttendanceRepository {
+     String? objectName,
+     bool includeFired = false,
+     bool forceRefresh = false,
++  }) async {
++    final key = _periodCacheKey(
++      startDate: startDate,
++      endDate: endDate,
++      objectName: objectName,
++      includeFired: includeFired,
++    );
++    if (!forceRefresh) {
++      final running = _periodTimesheetRequests[key];
++      if (running != null) return _copyPeriodRows(await running);
++    }
++    final request = _fetchPeriodTimesheet(
++      startDate: startDate,
++      endDate: endDate,
++      objectName: objectName,
++      includeFired: includeFired,
++      forceRefresh: forceRefresh,
++    );
++    _periodTimesheetRequests[key] = request;
++    try {
++      return _copyPeriodRows(await request);
++    } finally {
++      if (identical(_periodTimesheetRequests[key], request)) {
++        _periodTimesheetRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<List<PeriodTimesheetRow>> _fetchPeriodTimesheet({
++    required DateTime startDate,
++    required DateTime endDate,
++    String? objectName,
++    bool includeFired = false,
++    bool forceRefresh = false,
+   }) async {
+     final cleanObject = cleanObjectName(objectName);
+     final cacheKey = _periodCacheKey(
+diff --git a/lib/data/payment_receipt_repository.dart b/lib/data/payment_receipt_repository.dart
+index 70dd3d3..fc0f572 100644
+--- a/lib/data/payment_receipt_repository.dart
++++ b/lib/data/payment_receipt_repository.dart
+@@ -358,42 +358,60 @@ class PaymentReceiptRepository {
+ 
+     if (files.isEmpty) return <PaymentReceipt>[];
+ 
+-    final uploadedReceipts = <PaymentReceipt>[];
+-
+-    for (final file in files) {
++    final uploadItems = files.map((file) {
+       validateFileSize(fileName: file.originalName, sizeBytes: file.sizeBytes);
+-
+       final path = '$cleanEmployeeId/$cleanPaymentId/${file.storageFileName}';
++      return (file: file, path: path);
++    }).toList();
++    final uploadedPaths = <String>[];
++
++    try {
++      // Независимые чеки отправляются одновременно, чтобы сохранение выплаты
++      // не ждало последовательной загрузки каждого файла.
++      await Future.wait(
++        uploadItems.map((item) async {
++          await _client.storage.from(bucketName).uploadBinary(
++                item.path,
++                item.file.bytes,
++                fileOptions: FileOptions(
++                  contentType: item.file.contentType,
++                  upsert: false,
++                ),
++              );
++          uploadedPaths.add(item.path);
++        }),
++      );
+ 
+-      await _client.storage
+-          .from(bucketName)
+-          .uploadBinary(
+-            path,
+-            file.bytes,
+-            fileOptions: FileOptions(
+-              contentType: file.contentType,
+-              upsert: false,
+-            ),
+-          );
+-
+-      final row = await _client
++      final rows = await _client
+           .from('payment_receipts')
+-          .insert({
+-            'payment_id': cleanPaymentId,
+-            'employee_id': cleanEmployeeId,
+-            'file_name': file.originalName.trim().isEmpty
+-                ? file.storageFileName
+-                : file.originalName.trim(),
+-            'file_path': path,
+-            'content_type': file.contentType,
+-          })
+-          .select()
+-          .single();
+-
+-      uploadedReceipts.add(PaymentReceipt.fromMap(row));
++          .insert(
++            uploadItems
++                .map(
++                  (item) => <String, dynamic>{
++                    'payment_id': cleanPaymentId,
++                    'employee_id': cleanEmployeeId,
++                    'file_name': item.file.originalName.trim().isEmpty
++                        ? item.file.storageFileName
++                        : item.file.originalName.trim(),
++                    'file_path': item.path,
++                    'content_type': item.file.contentType,
++                  },
++                )
++                .toList(),
++          )
++          .select();
++
++      return rows.map<PaymentReceipt>(PaymentReceipt.fromMap).toList();
++    } catch (_) {
++      if (uploadedPaths.isNotEmpty) {
++        try {
++          await _client.storage.from(bucketName).remove(uploadedPaths);
++        } catch (_) {
++          // Служебная очистка удалит оставшиеся файлы.
++        }
++      }
++      rethrow;
+     }
+-
+-    return uploadedReceipts;
+   }
+ 
+   static Future<Map<String, List<PaymentReceipt>>> fetchReceiptsForPaymentIds(
+diff --git a/lib/data/payment_repository.dart b/lib/data/payment_repository.dart
+index 7ace9d0..e7032e4 100644
+--- a/lib/data/payment_repository.dart
++++ b/lib/data/payment_repository.dart
+@@ -11,6 +11,10 @@ class PaymentRepository {
+ 
+   static final Map<String, _EmployeePaymentsCacheEntry> _employeePaymentsCache =
+       {};
++  static final Map<String, Future<List<PaymentRecord>>>
++  _employeePaymentRequests = {};
++  static final Map<String, Future<List<PaymentRecord>>> _bulkPaymentRequests =
++      {};
+ 
+   static String dateKey(DateTime date) {
+     final cleanDate = DateTime(date.year, date.month, date.day);
+@@ -22,6 +26,8 @@ class PaymentRepository {
+ 
+   static void clearCache() {
+     _employeePaymentsCache.clear();
++    _employeePaymentRequests.clear();
++    _bulkPaymentRequests.clear();
+   }
+ 
+   static void clearEmployeePaymentsCache(String employeeId) {
+@@ -30,6 +36,8 @@ class PaymentRepository {
+     if (cleanEmployeeId.isEmpty) return;
+ 
+     _employeePaymentsCache.remove(cleanEmployeeId);
++    _employeePaymentRequests.remove(cleanEmployeeId);
++    _bulkPaymentRequests.clear();
+   }
+ 
+   static bool _isEmployeePaymentsCacheFresh(_EmployeePaymentsCacheEntry entry) {
+@@ -117,6 +125,29 @@ class PaymentRepository {
+   static Future<List<PaymentRecord>> fetchPaymentsForEmployee(
+     String employeeId, {
+     bool forceRefresh = false,
++  }) async {
++    final key = employeeId.trim();
++    if (!forceRefresh) {
++      final running = _employeePaymentRequests[key];
++      if (running != null) return _copyPayments(await running);
++    }
++    final request = _fetchPaymentsForEmployee(
++      employeeId,
++      forceRefresh: forceRefresh,
++    );
++    _employeePaymentRequests[key] = request;
++    try {
++      return _copyPayments(await request);
++    } finally {
++      if (identical(_employeePaymentRequests[key], request)) {
++        _employeePaymentRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<List<PaymentRecord>> _fetchPaymentsForEmployee(
++    String employeeId, {
++    bool forceRefresh = false,
+   }) async {
+     final cleanEmployeeId = employeeId.trim();
+ 
+@@ -165,6 +196,35 @@ class PaymentRepository {
+   static Future<List<PaymentRecord>> fetchPaymentsForEmployees(
+     List<String> employeeIds, {
+     bool forceRefresh = false,
++  }) async {
++    final cleanIds = employeeIds
++        .map((id) => id.trim())
++        .where((id) => id.isNotEmpty)
++        .toSet()
++        .toList()
++      ..sort();
++    final key = cleanIds.join('|');
++    if (!forceRefresh) {
++      final running = _bulkPaymentRequests[key];
++      if (running != null) return _copyPayments(await running);
++    }
++    final request = _fetchPaymentsForEmployees(
++      cleanIds,
++      forceRefresh: forceRefresh,
++    );
++    _bulkPaymentRequests[key] = request;
++    try {
++      return _copyPayments(await request);
++    } finally {
++      if (identical(_bulkPaymentRequests[key], request)) {
++        _bulkPaymentRequests.remove(key);
++      }
++    }
++  }
++
++  static Future<List<PaymentRecord>> _fetchPaymentsForEmployees(
++    List<String> employeeIds, {
++    bool forceRefresh = false,
+   }) async {
+     final cleanIds = employeeIds
+         .map((id) => id.trim())
+diff --git a/lib/data/task_repository.dart b/lib/data/task_repository.dart
+index 6525ed0..3797b89 100644
+--- a/lib/data/task_repository.dart
++++ b/lib/data/task_repository.dart
+@@ -22,6 +22,7 @@ class TaskRepository {
+   static const Duration _tasksCacheTtl = Duration(seconds: 15);
+ 
+   static final Map<String, _TaskListCacheEntry> _tasksCache = {};
++  static final Map<String, Future<List<TaskItemData>>> _taskRequests = {};
+ 
+   static String _dateKey(DateTime date) {
+     final cleanDate = DateTime(date.year, date.month, date.day);
+@@ -38,6 +39,7 @@ class TaskRepository {
+ 
+   static void clearTaskListCache() {
+     _tasksCache.clear();
++    _taskRequests.clear();
+   }
+ 
+   static Future<TaskMilestoneLinkData?> fetchTaskMilestoneLink(
+@@ -107,6 +109,33 @@ class TaskRepository {
+     DateTime date, {
+     String? objectName,
+     bool forceRefresh = false,
++  }) async {
++    final cacheKey = _tasksCacheKey(date: date, objectName: objectName);
++    if (!forceRefresh) {
++      final running = _taskRequests[cacheKey];
++      if (running != null) return _copyTasks(await running);
++    }
++
++    final request = _fetchTasksForDate(
++      date,
++      objectName: objectName,
++      forceRefresh: forceRefresh,
++    );
++    _taskRequests[cacheKey] = request;
++
++    try {
++      return _copyTasks(await request);
++    } finally {
++      if (identical(_taskRequests[cacheKey], request)) {
++        _taskRequests.remove(cacheKey);
++      }
++    }
++  }
++
++  static Future<List<TaskItemData>> _fetchTasksForDate(
++    DateTime date, {
++    String? objectName,
++    bool forceRefresh = false,
+   }) async {
+     final cleanObject = cleanObjectName(objectName);
+     final cacheKey = _tasksCacheKey(date: date, objectName: cleanObject);
