@@ -11,6 +11,10 @@ class PaymentRepository {
 
   static final Map<String, _EmployeePaymentsCacheEntry> _employeePaymentsCache =
       {};
+  static final Map<String, Future<List<PaymentRecord>>>
+  _employeePaymentRequests = {};
+  static final Map<String, Future<List<PaymentRecord>>> _bulkPaymentRequests =
+      {};
 
   static String dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -22,6 +26,8 @@ class PaymentRepository {
 
   static void clearCache() {
     _employeePaymentsCache.clear();
+    _employeePaymentRequests.clear();
+    _bulkPaymentRequests.clear();
   }
 
   static void clearEmployeePaymentsCache(String employeeId) {
@@ -30,6 +36,8 @@ class PaymentRepository {
     if (cleanEmployeeId.isEmpty) return;
 
     _employeePaymentsCache.remove(cleanEmployeeId);
+    _employeePaymentRequests.remove(cleanEmployeeId);
+    _bulkPaymentRequests.clear();
   }
 
   static bool _isEmployeePaymentsCacheFresh(_EmployeePaymentsCacheEntry entry) {
@@ -118,6 +126,29 @@ class PaymentRepository {
     String employeeId, {
     bool forceRefresh = false,
   }) async {
+    final key = employeeId.trim();
+    if (!forceRefresh) {
+      final running = _employeePaymentRequests[key];
+      if (running != null) return _copyPayments(await running);
+    }
+    final request = _fetchPaymentsForEmployee(
+      employeeId,
+      forceRefresh: forceRefresh,
+    );
+    _employeePaymentRequests[key] = request;
+    try {
+      return _copyPayments(await request);
+    } finally {
+      if (identical(_employeePaymentRequests[key], request)) {
+        _employeePaymentRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<List<PaymentRecord>> _fetchPaymentsForEmployee(
+    String employeeId, {
+    bool forceRefresh = false,
+  }) async {
     final cleanEmployeeId = employeeId.trim();
 
     if (cleanEmployeeId.isEmpty) return <PaymentRecord>[];
@@ -163,6 +194,36 @@ class PaymentRepository {
   }
 
   static Future<List<PaymentRecord>> fetchPaymentsForEmployees(
+    List<String> employeeIds, {
+    bool forceRefresh = false,
+  }) async {
+    final cleanIds =
+        employeeIds
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    final key = cleanIds.join('|');
+    if (!forceRefresh) {
+      final running = _bulkPaymentRequests[key];
+      if (running != null) return _copyPayments(await running);
+    }
+    final request = _fetchPaymentsForEmployees(
+      cleanIds,
+      forceRefresh: forceRefresh,
+    );
+    _bulkPaymentRequests[key] = request;
+    try {
+      return _copyPayments(await request);
+    } finally {
+      if (identical(_bulkPaymentRequests[key], request)) {
+        _bulkPaymentRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<List<PaymentRecord>> _fetchPaymentsForEmployees(
     List<String> employeeIds, {
     bool forceRefresh = false,
   }) async {

@@ -46,36 +46,49 @@ class TaskPhotoRepository {
       throw ArgumentError.value(photoStage, 'photoStage');
     }
 
-    final rowsToInsert = <Map<String, String>>[];
-    final uploadedPaths = <String>[];
-
-    try {
-      for (var index = 0; index < photos.length; index++) {
-        final photo = photos[index];
-        final path = safeStoragePath(
+    final uploadItems = List.generate(photos.length, (index) {
+      final photo = photos[index];
+      return (
+        photo: photo,
+        path: safeStoragePath(
           taskId: taskId,
           photoStage: photoStage,
           photo: photo,
           index: index + 1,
-        );
+        ),
+      );
+    });
+    final uploadedPaths = <String>[];
 
-        await _client.storage.from(bucketName).uploadBinary(
-              path,
-              photo.bytes,
-              fileOptions: FileOptions(
-                contentType: photo.contentType,
-                upsert: false,
-              ),
-            );
+    try {
+      // Фото независимы друг от друга. Параллельная отправка заметно сокращает
+      // ожидание после кнопки «Сохранить» при нескольких снимках.
+      await Future.wait(
+        uploadItems.map((item) async {
+          await _client.storage
+              .from(bucketName)
+              .uploadBinary(
+                item.path,
+                item.photo.bytes,
+                fileOptions: FileOptions(
+                  contentType: item.photo.contentType,
+                  upsert: false,
+                ),
+              );
+          uploadedPaths.add(item.path);
+        }),
+      );
 
-        uploadedPaths.add(path);
-        rowsToInsert.add({
-          'task_id': taskId,
-          'storage_path': path,
-          'original_name': photo.originalName,
-          'photo_stage': photoStage,
-        });
-      }
+      final rowsToInsert = uploadItems
+          .map(
+            (item) => <String, String>{
+              'task_id': taskId,
+              'storage_path': item.path,
+              'original_name': item.photo.originalName,
+              'photo_stage': photoStage,
+            },
+          )
+          .toList();
 
       final rows = await _client
           .from('task_photos')

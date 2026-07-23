@@ -23,6 +23,16 @@ class AttendanceRepository {
       {};
   static final Map<String, _AttendanceReportCacheEntry> _attendanceReportCache =
       {};
+  static final Map<String, Future<Map<String, double>>> _shiftValueRequests =
+      {};
+  static final Map<String, Future<List<AttendanceReportRow>>>
+  _attendanceReportRequests = {};
+  static final Map<String, Future<List<MonthlyTimesheetRow>>>
+  _monthlyTimesheetRequests = {};
+  static final Map<String, Future<MonthlyTimesheetRow>>
+  _employeeMonthlyTimesheetRequests = {};
+  static final Map<String, Future<List<PeriodTimesheetRow>>>
+  _periodTimesheetRequests = {};
 
   static String dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -54,6 +64,11 @@ class AttendanceRepository {
     _employeeMonthlyTimesheetCache.clear();
     _periodTimesheetCache.clear();
     _attendanceReportCache.clear();
+    _shiftValueRequests.clear();
+    _attendanceReportRequests.clear();
+    _monthlyTimesheetRequests.clear();
+    _employeeMonthlyTimesheetRequests.clear();
+    _periodTimesheetRequests.clear();
   }
 
   static String _objectCachePart(String? objectName) {
@@ -133,6 +148,31 @@ class AttendanceRepository {
   }
 
   static Future<Map<String, double>> fetchShiftValuesForDate(
+    DateTime date, {
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    final key = _dayCacheKey(date: date, objectName: objectName);
+    if (!forceRefresh) {
+      final running = _shiftValueRequests[key];
+      if (running != null) return _copyShiftValues(await running);
+    }
+    final request = _fetchShiftValuesForDate(
+      date,
+      objectName: objectName,
+      forceRefresh: forceRefresh,
+    );
+    _shiftValueRequests[key] = request;
+    try {
+      return _copyShiftValues(await request);
+    } finally {
+      if (identical(_shiftValueRequests[key], request)) {
+        _shiftValueRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<Map<String, double>> _fetchShiftValuesForDate(
     DateTime date, {
     String? objectName,
     bool forceRefresh = false,
@@ -275,6 +315,40 @@ class AttendanceRepository {
     bool includeFired = false,
     bool forceRefresh = false,
   }) async {
+    final key = _periodCacheKey(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: objectName,
+      includeFired: includeFired,
+    );
+    if (!forceRefresh) {
+      final running = _attendanceReportRequests[key];
+      if (running != null) return _copyReportRows(await running);
+    }
+    final request = _fetchReportForPeriod(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: objectName,
+      includeFired: includeFired,
+      forceRefresh: forceRefresh,
+    );
+    _attendanceReportRequests[key] = request;
+    try {
+      return _copyReportRows(await request);
+    } finally {
+      if (identical(_attendanceReportRequests[key], request)) {
+        _attendanceReportRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<List<AttendanceReportRow>> _fetchReportForPeriod({
+    required DateTime startDate,
+    required DateTime endDate,
+    String? objectName,
+    bool includeFired = false,
+    bool forceRefresh = false,
+  }) async {
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _periodCacheKey(
       startDate: startDate,
@@ -361,6 +435,40 @@ class AttendanceRepository {
   }
 
   static Future<List<MonthlyTimesheetRow>> fetchMonthlyTimesheet({
+    required int year,
+    required int month,
+    String? objectName,
+    bool includeFired = false,
+    bool forceRefresh = false,
+  }) async {
+    final key = _monthCacheKey(
+      year: year,
+      month: month,
+      objectName: objectName,
+      includeFired: includeFired,
+    );
+    if (!forceRefresh) {
+      final running = _monthlyTimesheetRequests[key];
+      if (running != null) return _copyMonthlyRows(await running);
+    }
+    final request = _fetchMonthlyTimesheet(
+      year: year,
+      month: month,
+      objectName: objectName,
+      includeFired: includeFired,
+      forceRefresh: forceRefresh,
+    );
+    _monthlyTimesheetRequests[key] = request;
+    try {
+      return _copyMonthlyRows(await request);
+    } finally {
+      if (identical(_monthlyTimesheetRequests[key], request)) {
+        _monthlyTimesheetRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<List<MonthlyTimesheetRow>> _fetchMonthlyTimesheet({
     required int year,
     required int month,
     String? objectName,
@@ -466,6 +574,46 @@ class AttendanceRepository {
     required int month,
     bool forceRefresh = false,
   }) async {
+    final employeeId = employee.id?.trim() ?? '';
+    if (employeeId.isEmpty) {
+      return _fetchMonthlyTimesheetForEmployee(
+        employee: employee,
+        year: year,
+        month: month,
+        forceRefresh: forceRefresh,
+      );
+    }
+    final key = _employeeMonthCacheKey(
+      employeeId: employeeId,
+      year: year,
+      month: month,
+    );
+    if (!forceRefresh) {
+      final running = _employeeMonthlyTimesheetRequests[key];
+      if (running != null) return running;
+    }
+    final request = _fetchMonthlyTimesheetForEmployee(
+      employee: employee,
+      year: year,
+      month: month,
+      forceRefresh: forceRefresh,
+    );
+    _employeeMonthlyTimesheetRequests[key] = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_employeeMonthlyTimesheetRequests[key], request)) {
+        _employeeMonthlyTimesheetRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<MonthlyTimesheetRow> _fetchMonthlyTimesheetForEmployee({
+    required Employee employee,
+    required int year,
+    required int month,
+    bool forceRefresh = false,
+  }) async {
     final employeeId = employee.id;
 
     if (employeeId == null || employeeId.trim().isEmpty) {
@@ -542,6 +690,40 @@ class AttendanceRepository {
   }
 
   static Future<List<PeriodTimesheetRow>> fetchPeriodTimesheet({
+    required DateTime startDate,
+    required DateTime endDate,
+    String? objectName,
+    bool includeFired = false,
+    bool forceRefresh = false,
+  }) async {
+    final key = _periodCacheKey(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: objectName,
+      includeFired: includeFired,
+    );
+    if (!forceRefresh) {
+      final running = _periodTimesheetRequests[key];
+      if (running != null) return _copyPeriodRows(await running);
+    }
+    final request = _fetchPeriodTimesheet(
+      startDate: startDate,
+      endDate: endDate,
+      objectName: objectName,
+      includeFired: includeFired,
+      forceRefresh: forceRefresh,
+    );
+    _periodTimesheetRequests[key] = request;
+    try {
+      return _copyPeriodRows(await request);
+    } finally {
+      if (identical(_periodTimesheetRequests[key], request)) {
+        _periodTimesheetRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<List<PeriodTimesheetRow>> _fetchPeriodTimesheet({
     required DateTime startDate,
     required DateTime endDate,
     String? objectName,
