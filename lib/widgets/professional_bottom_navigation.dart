@@ -22,12 +22,14 @@ class ProfessionalBottomNavigation extends StatefulWidget {
   final List<ProfessionalBottomNavigationItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final String? storageKey;
 
   const ProfessionalBottomNavigation({
     super.key,
     required this.items,
     required this.selectedIndex,
     required this.onSelected,
+    this.storageKey,
   });
 
   @override
@@ -43,7 +45,7 @@ class _ProfessionalBottomNavigationState
   @override
   void initState() {
     super.initState();
-    platformKey = resolvePlatformKey(widget.items);
+    platformKey = resolvePlatformKey(widget.items, widget.storageKey);
     scheduleRestore();
   }
 
@@ -51,7 +53,7 @@ class _ProfessionalBottomNavigationState
   void didUpdateWidget(covariant ProfessionalBottomNavigation oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    final nextPlatformKey = resolvePlatformKey(widget.items);
+    final nextPlatformKey = resolvePlatformKey(widget.items, widget.storageKey);
     if (nextPlatformKey != platformKey) {
       platformKey = nextPlatformKey;
       restored = false;
@@ -66,7 +68,12 @@ class _ProfessionalBottomNavigationState
     }
   }
 
-  String resolvePlatformKey(List<ProfessionalBottomNavigationItem> items) {
+  String resolvePlatformKey(
+    List<ProfessionalBottomNavigationItem> items,
+    String? explicitKey,
+  ) {
+    final cleanExplicitKey = explicitKey?.trim() ?? '';
+    if (cleanExplicitKey.isNotEmpty) return cleanExplicitKey;
     final labels = items.map((item) => item.label).toSet();
     if (labels.contains('Люди')) return 'admin';
     if (labels.contains('Документы') && labels.contains('Вопросы')) {
@@ -101,7 +108,8 @@ class _ProfessionalBottomNavigationState
   }
 
   void handleSelected(int index) {
-    unawaited(NavigationSession.writeTabIndex(platformKey, index));
+    // didUpdateWidget persists the final selected index once. Writing here as
+    // well caused two SharedPreferences operations for every bottom-tab tap.
     widget.onSelected(index);
   }
 

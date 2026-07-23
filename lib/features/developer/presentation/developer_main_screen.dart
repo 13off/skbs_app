@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../dispatcher/presentation/dispatcher_settings_screen.dart';
+import '../../shell/presentation/persistent_tab_shell.dart';
 import 'data_governance_screen.dart';
 import 'developer_panel_screen.dart';
 import 'developer_system_screen.dart';
@@ -21,24 +21,17 @@ class DeveloperMainScreen extends StatefulWidget {
 
 class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
   static const int pageCount = 6;
-
-  int currentIndex = 0;
-  late final PageController controller;
-  late final List<GlobalKey<NavigatorState>> navigatorKeys;
+  late final PersistentTabController tabs;
 
   @override
   void initState() {
     super.initState();
-    controller = PageController();
-    navigatorKeys = List<GlobalKey<NavigatorState>>.generate(
-      pageCount,
-      (_) => GlobalKey<NavigatorState>(),
-    );
+    tabs = PersistentTabController(pageCount: pageCount);
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    tabs.dispose();
     super.dispose();
   }
 
@@ -54,90 +47,44 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
     };
   }
 
-  Widget buildTabNavigator(int index) {
-    return Navigator(
-      key: navigatorKeys[index],
-      onGenerateRoute: (settings) => CupertinoPageRoute<void>(
-        settings: settings,
-        builder: (_) => rootPage(index),
-      ),
-    );
-  }
-
-  Future<void> select(int index) async {
-    if (index < 0 || index >= pageCount) return;
-    if (index == currentIndex) {
-      final navigator = navigatorKeys[index].currentState;
-      if (navigator != null && navigator.canPop()) {
-        navigator.popUntil((route) => route.isFirst);
-      }
-      return;
-    }
-    await controller.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  Future<bool> handleBack() async {
-    final navigator = navigatorKeys[currentIndex].currentState;
-    if (navigator != null && navigator.canPop()) {
-      navigator.pop();
-      return false;
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: handleBack,
-      child: Scaffold(
-        body: PageView.builder(
-          controller: controller,
-          itemCount: pageCount,
-          allowImplicitScrolling: true,
-          onPageChanged: (index) => setState(() => currentIndex = index),
-          itemBuilder: (context, index) => buildTabNavigator(index),
+    return PersistentTabShell(
+      controller: tabs,
+      navigationStorageKey: 'developer',
+      items: const <ProfessionalBottomNavigationItem>[
+        ProfessionalBottomNavigationItem(
+          label: 'Система',
+          icon: Icons.settings_suggest_outlined,
+          selectedIcon: Icons.settings_suggest_rounded,
         ),
-        bottomNavigationBar: ProfessionalBottomNavigation(
-          items: const <ProfessionalBottomNavigationItem>[
-            ProfessionalBottomNavigationItem(
-              label: 'Система',
-              icon: Icons.settings_suggest_outlined,
-              selectedIcon: Icons.settings_suggest_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Диспетчер',
-              icon: Icons.auto_awesome_outlined,
-              selectedIcon: Icons.auto_awesome_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Ограничения',
-              icon: Icons.rule_outlined,
-              selectedIcon: Icons.rule_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Права',
-              icon: Icons.admin_panel_settings_outlined,
-              selectedIcon: Icons.admin_panel_settings_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Контроль',
-              icon: Icons.manage_history_outlined,
-              selectedIcon: Icons.manage_history_rounded,
-            ),
-            ProfessionalBottomNavigationItem(
-              label: 'Профиль',
-              icon: Icons.person_outline_rounded,
-              selectedIcon: Icons.person_rounded,
-            ),
-          ],
-          selectedIndex: currentIndex,
-          onSelected: select,
+        ProfessionalBottomNavigationItem(
+          label: 'Диспетчер',
+          icon: Icons.auto_awesome_outlined,
+          selectedIcon: Icons.auto_awesome_rounded,
         ),
-      ),
+        ProfessionalBottomNavigationItem(
+          label: 'Ограничения',
+          icon: Icons.rule_outlined,
+          selectedIcon: Icons.rule_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Права',
+          icon: Icons.admin_panel_settings_outlined,
+          selectedIcon: Icons.admin_panel_settings_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Контроль',
+          icon: Icons.manage_history_outlined,
+          selectedIcon: Icons.manage_history_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
+          label: 'Профиль',
+          icon: Icons.person_outline_rounded,
+          selectedIcon: Icons.person_rounded,
+        ),
+      ],
+      tabBuilder: (context, index) => rootPage(index),
     );
   }
 }

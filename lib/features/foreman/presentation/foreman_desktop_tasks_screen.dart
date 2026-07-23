@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
-import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -172,21 +171,6 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
       );
       return;
     }
-    await DeveloperPolicyRepository.ensurePolicy(objectName);
-
-    if (!TaskEditPolicy.canCreateForDate(
-      widget.profile,
-      selectedDate,
-      objectName: objectName,
-    )) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Прораб может добавлять задачи только на текущий день'),
-        ),
-      );
-      return;
-    }
-
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
       CupertinoPageRoute<TaskCreateDraft>(

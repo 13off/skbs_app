@@ -189,31 +189,31 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   Widget rootPage(int index, String? selectedObjectName) {
     return switch (index) {
       0 => AdaptiveHomeScreen(
-          profile: widget.profile,
-          selectedObjectName: selectedObjectName,
-          onObjectChanged: changeSelectedObject,
-          onOpenEmployees: openEmployees,
-          onOpenTimesheet: openTimesheet,
-          onOpenTasks: openTasks,
-          onOpenTask: openTask,
-          onOpenPayments: openPayments,
-        ),
+        profile: widget.profile,
+        selectedObjectName: selectedObjectName,
+        onObjectChanged: changeSelectedObject,
+        onOpenEmployees: openEmployees,
+        onOpenTimesheet: openTimesheet,
+        onOpenTasks: openTasks,
+        onOpenTask: openTask,
+        onOpenPayments: openPayments,
+      ),
       1 => AdaptiveEmployeesScreen(
-          profile: widget.profile,
-          selectedObjectName: selectedObjectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: selectedObjectName,
+      ),
       2 => ManagerReportsScreen(
-          key: ValueKey<String>(
-            'manager-reports:${selectedObjectName ?? '__all__'}',
-          ),
-          profile: widget.profile,
-          selectedObjectName: selectedObjectName,
-          onObjectChanged: changeSelectedObject,
+        key: ValueKey<String>(
+          'manager-reports:${selectedObjectName ?? '__all__'}',
         ),
+        profile: widget.profile,
+        selectedObjectName: selectedObjectName,
+        onObjectChanged: changeSelectedObject,
+      ),
       3 => TasksScreen(
-          profile: widget.profile,
-          selectedObjectName: selectedObjectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: selectedObjectName,
+      ),
       4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -223,6 +223,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   Widget build(BuildContext context) {
     return PersistentTabShell(
       controller: tabs,
+      navigationStorageKey: 'admin',
       returnToFirstTabOnBack: true,
       items: const <ProfessionalBottomNavigationItem>[
         ProfessionalBottomNavigationItem(

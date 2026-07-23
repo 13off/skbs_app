@@ -70,21 +70,21 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   Widget rootPage(int index) {
     return switch (index) {
       0 => ForemanDesktopHomeScreen(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-          onOpenTimesheet: openTimesheet,
-          onOpenTasks: openTasks,
-          onOpenTask: openTask,
-          onAddTask: addTask,
-        ),
+        profile: widget.profile,
+        selectedObjectName: objectName,
+        onOpenTimesheet: openTimesheet,
+        onOpenTasks: openTasks,
+        onOpenTask: openTask,
+        onAddTask: addTask,
+      ),
       1 => ForemanDesktopTasksScreen(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: objectName,
+      ),
       2 => AdaptiveTimesheetScreen(
-          profile: widget.profile,
-          selectedObjectName: objectName,
-        ),
+        profile: widget.profile,
+        selectedObjectName: objectName,
+      ),
       3 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -148,6 +148,7 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
   Widget build(BuildContext context) {
     return PersistentTabShell(
       controller: tabs,
+      navigationStorageKey: 'foreman',
       returnToFirstTabOnBack: false,
       items: const <ProfessionalBottomNavigationItem>[
         ProfessionalBottomNavigationItem(

@@ -388,11 +388,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       HapticFeedback.selectionClick();
     }
 
-    await pageController.animateToPage(
-      index,
-      duration: AppMotion.tab,
-      curve: AppMotion.enterCurve,
-    );
+    // A bottom-tab tap must feel immediate. Swiping still uses PageView, but
+    // tapping no longer paints two heavyweight workspaces during animation.
+    pageController.jumpToPage(index);
   }
 
   void handlePageChanged(int index) {
@@ -511,7 +509,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           child: PageView.builder(
             controller: pageController,
             itemCount: pageCount,
-            allowImplicitScrolling: true,
+            allowImplicitScrolling: false,
             physics: supportsAppSwipes
                 ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
                 : const NeverScrollableScrollPhysics(),
@@ -524,6 +522,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         bottomNavigationBar: _PremiumBottomBar(
           items: tabItems,
           selectedIndex: activeIndex,
+          storageKey: widget.profile.isAdmin
+              ? 'admin'
+              : widget.profile.isForeman
+              ? 'foreman'
+              : 'worker',
           onSelected: selectTab,
         ),
       ),
@@ -581,11 +584,13 @@ class _PremiumBottomBar extends StatelessWidget {
   final List<_TabItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final String storageKey;
 
   const _PremiumBottomBar({
     required this.items,
     required this.selectedIndex,
     required this.onSelected,
+    required this.storageKey,
   });
 
   @override
@@ -601,6 +606,7 @@ class _PremiumBottomBar extends StatelessWidget {
           )
           .toList(growable: false),
       selectedIndex: selectedIndex,
+      storageKey: storageKey,
       onSelected: onSelected,
     );
   }

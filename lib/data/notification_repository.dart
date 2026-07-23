@@ -165,6 +165,11 @@ class NotificationControlCenterData {
 
 class NotificationRepository {
   static final _client = Supabase.instance.client;
+  static const Duration _unreadCacheTtl = Duration(seconds: 12);
+  static final Map<String, _UnreadCacheEntry> _unreadCache =
+      <String, _UnreadCacheEntry>{};
+  static final Map<String, Future<bool>> _unreadInFlight =
+      <String, Future<bool>>{};
 
   static Future<void> _refreshOperationalNotifications() async {
     try {
@@ -601,9 +606,10 @@ class NotificationRepository {
   static Future<List<AppNotification>> fetchLatest({
     String? objectName,
     int limit = 40,
+    bool refreshOperational = false,
   }) async {
     final cleanObject = cleanObjectName(objectName);
-    await _refreshOperationalNotifications();
+    if (refreshOperational) await _refreshOperationalNotifications();
     try {
       final profile = await UserRepository.fetchCurrentProfile();
       final isForeman = profile?.isForeman == true && profile?.isAdmin != true;
@@ -647,9 +653,54 @@ class NotificationRepository {
     }
   }
 
-  static Future<bool> hasUnread({String? objectName}) async {
-    final notifications = await fetchLatest(objectName: objectName, limit: 30);
-    return notifications.any((notification) => !notification.isRead);
+  static Future<bool> hasUnread({
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    if (_currentUserId == null) return false;
+    final cleanObject = cleanObjectName(objectName);
+    final key = cleanObject?.toLowerCase() ?? '__all__';
+    final now = DateTime.now();
+    final cached = _unreadCache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        now.difference(cached.loadedAt) <= _unreadCacheTtl) {
+      return cached.value;
+    }
+    if (!forceRefresh) {
+      final pending = _unreadInFlight[key];
+      if (pending != null) return pending;
+    }
+
+    final future = _loadHasUnread(cleanObject);
+    _unreadInFlight[key] = future;
+    try {
+      final value = await future;
+      _unreadCache[key] = _UnreadCacheEntry(value, DateTime.now());
+      return value;
+    } finally {
+      if (identical(_unreadInFlight[key], future)) {
+        _unreadInFlight.remove(key);
+      }
+    }
+  }
+
+  static Future<bool> _loadHasUnread(String? objectName) async {
+    try {
+      final result = await _client.rpc<dynamic>(
+        'has_unread_notifications',
+        params: <String, dynamic>{'p_object_name': objectName},
+      );
+      return result == true;
+    } catch (error) {
+      if (_isMissingNotificationsTableError(error)) return false;
+      rethrow;
+    }
+  }
+
+  static void _invalidateUnreadCache() {
+    _unreadCache.clear();
+    _unreadInFlight.clear();
   }
 
   static Future<void> markAsRead(List<String> notificationIds) async {
@@ -675,6 +726,7 @@ class NotificationRepository {
       await _client
           .from('app_notification_reads')
           .upsert(rows, onConflict: 'user_id,notification_id');
+      _invalidateUnreadCache();
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
       rethrow;
@@ -690,9 +742,17 @@ class NotificationRepository {
         'clear_current_company_notifications',
         params: <String, dynamic>{'p_object_name': cleanObject},
       );
+      _invalidateUnreadCache();
     } catch (error) {
       if (_isMissingNotificationsTableError(error)) return;
       rethrow;
     }
   }
+}
+
+class _UnreadCacheEntry {
+  final bool value;
+  final DateTime loadedAt;
+
+  const _UnreadCacheEntry(this.value, this.loadedAt);
 }

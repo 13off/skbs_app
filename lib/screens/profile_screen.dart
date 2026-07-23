@@ -20,10 +20,43 @@ import 'push_notification_settings_screen.dart';
 import 'pwa_install_screen.dart';
 import 'template_documents_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final AppUserProfile profile;
 
   const ProfileScreen({super.key, required this.profile});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  AppUserProfile get profile => widget.profile;
+
+  Future<CompanySummary>? companyFuture;
+  late Future<List<CompanySummary>> companiesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _configureCompanyFutures();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.id != widget.profile.id ||
+        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      _configureCompanyFutures();
+    }
+  }
+
+  void _configureCompanyFutures() {
+    final companyId = profile.activeCompanyId.trim();
+    companyFuture = companyId.isEmpty
+        ? null
+        : CompanyRepository.fetchCompany(companyId);
+    companiesFuture = CompanyRepository.fetchMyCompanies();
+  }
 
   void open(BuildContext context, Widget screen) {
     Navigator.push(context, CupertinoPageRoute<void>(builder: (_) => screen));
@@ -346,7 +379,7 @@ class ProfileScreen extends StatelessWidget {
           sectionTitle(context, 'Рабочие данные'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
-              future: CompanyRepository.fetchCompany(profile.activeCompanyId),
+              future: companyFuture,
               builder: (context, snapshot) => infoTile(
                 context,
                 icon: Icons.apartment_rounded,
@@ -472,7 +505,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 8),
           ],
           FutureBuilder<List<CompanySummary>>(
-            future: CompanyRepository.fetchMyCompanies(),
+            future: companiesFuture,
             builder: (context, snapshot) {
               final companies = snapshot.data ?? const <CompanySummary>[];
               if (companies.length < 2) return const SizedBox.shrink();
