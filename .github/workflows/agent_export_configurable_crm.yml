@@ -1,4 +1,4 @@
-name: Agent apply configurable CRM
+name: Agent diagnose configurable CRM
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  apply:
+  diagnose:
     if: github.head_ref == 'agent/configurable-recruitment-crm'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -22,33 +22,21 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Verify and apply configurable CRM package
+      - name: Record package part fingerprints
         shell: bash
         run: |
           set -euo pipefail
-          cat .agent/configurable_crm_part_00 \
-              .agent/configurable_crm_part_01 \
-              .agent/configurable_crm_part_02 \
-              .agent/configurable_crm_part_03 \
-              .agent/configurable_crm_part_04 \
-              .agent/configurable_crm_part_05 \
-              .agent/configurable_crm_part_06 > /tmp/configurable-crm.b64
-          echo "Encoded package bytes: $(wc -c < /tmp/configurable-crm.b64 | tr -d ' ')"
-          base64 --decode /tmp/configurable-crm.b64 > /tmp/configurable-crm.tar.gz
-          echo "Decoded archive: $(sha256sum /tmp/configurable-crm.tar.gz)"
-          echo "2fed4211bf1c6ee5837ef24cbd9b04fa51496201757d0837a16027e3d1ef0e92  /tmp/configurable-crm.tar.gz" | sha256sum --check
-          tar -tzf /tmp/configurable-crm.tar.gz >/dev/null
-          tar -xzf /tmp/configurable-crm.tar.gz
-          rm -rf .agent
-          rm -f .github/workflows/agent_export_configurable_crm.yml
-          git diff --check
+          {
+            sha256sum .agent/configurable_crm_part_*
+            wc -c .agent/configurable_crm_part_*
+          } > .agent/remote_hashes.txt
 
-      - name: Commit source changes
+      - name: Commit diagnostics
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "appstroy-agent"
           git config user.email "appstroy-agent@users.noreply.github.com"
-          git add -A
-          git commit -m "Настроить CRM кандидатов под HR [configurable-crm]"
+          git add .agent/remote_hashes.txt
+          git commit -m "Зафиксировать диагностику пакета CRM"
           git push origin HEAD:agent/configurable-recruitment-crm
