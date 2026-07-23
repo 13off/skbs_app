@@ -1,0 +1,87 @@
+name: Apply unified UI and CRM
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/unify-ui-recruitment-crm' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/unify-ui-recruitment-crm
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Apply audited source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/ui-crm.tar.gz.b64 <<'PAYLOAD'
+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
+PAYLOAD
+          base64 --decode /tmp/ui-crm.tar.gz.b64 > /tmp/ui-crm.tar.gz
+          tar -xzf /tmp/ui-crm.tar.gz
+          rm -f .github/workflows/agent_export_source.yml
+          rm -f .github/workflows/agent_apply_ui_crm.yml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          dart format \
+            lib/app/app_ui_tokens.dart \
+            lib/app/app_theme.dart \
+            lib/app/app_dark_theme.dart \
+            lib/app/premium_depth_theme.dart \
+            lib/widgets/app_page.dart \
+            lib/widgets/premium_ui_v2.dart \
+            lib/widgets/premium_surfaces_v3.dart \
+            lib/widgets/home_card.dart \
+            lib/widgets/professional_bottom_navigation.dart \
+            lib/features/shared/presentation/specialist_desktop_ui.dart \
+            lib/features/recruitment/models/recruitment_models.dart \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart \
+            lib/features/recruitment/presentation/recruitment_main_screen.dart \
+            test/compact_page_headers_contract_test.dart \
+            test/desktop_secondary_ui_contract_test.dart \
+            test/specialist_desktop_workspaces_contract_test.dart \
+            test/recruitment_mvp_contract_test.dart \
+            test/unified_ui_system_contract_test.dart \
+            test/recruitment_crm_kanban_contract_test.dart
+          git diff --check
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run regression tests
+        run: flutter test --reporter compact
+
+      - name: Build web release
+        run: flutter build web --release
+
+      - name: Commit verified changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "appstroy-agent"
+          git config user.email "appstroy-agent@users.noreply.github.com"
+          git add -A
+          git commit -m "Унифицировать интерфейс и добавить CRM кандидатов [agent-ui-crm]"
+          git push origin HEAD:agent/unify-ui-recruitment-crm
