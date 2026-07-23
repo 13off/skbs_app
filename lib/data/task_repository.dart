@@ -22,6 +22,7 @@ class TaskRepository {
   static const Duration _tasksCacheTtl = Duration(seconds: 15);
 
   static final Map<String, _TaskListCacheEntry> _tasksCache = {};
+  static final Map<String, Future<List<TaskItemData>>> _taskRequests = {};
 
   static String _dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -38,11 +39,10 @@ class TaskRepository {
 
   static void clearTaskListCache() {
     _tasksCache.clear();
+    _taskRequests.clear();
   }
 
-  static Future<TaskMilestoneLinkData?> fetchTaskMilestoneLink(
-    String taskId,
-  ) {
+  static Future<TaskMilestoneLinkData?> fetchTaskMilestoneLink(String taskId) {
     return TaskMilestoneLinkRepository.fetchLink(taskId);
   }
 
@@ -108,6 +108,33 @@ class TaskRepository {
     String? objectName,
     bool forceRefresh = false,
   }) async {
+    final cacheKey = _tasksCacheKey(date: date, objectName: objectName);
+    if (!forceRefresh) {
+      final running = _taskRequests[cacheKey];
+      if (running != null) return _copyTasks(await running);
+    }
+
+    final request = _fetchTasksForDate(
+      date,
+      objectName: objectName,
+      forceRefresh: forceRefresh,
+    );
+    _taskRequests[cacheKey] = request;
+
+    try {
+      return _copyTasks(await request);
+    } finally {
+      if (identical(_taskRequests[cacheKey], request)) {
+        _taskRequests.remove(cacheKey);
+      }
+    }
+  }
+
+  static Future<List<TaskItemData>> _fetchTasksForDate(
+    DateTime date, {
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _tasksCacheKey(date: date, objectName: cleanObject);
     final cached = _tasksCache[cacheKey];
@@ -118,22 +145,22 @@ class TaskRepository {
 
     final rows = cleanObject == null
         ? await _client
-            .from('tasks')
-            .select(
-              'id, task_date, object_name, axes, work, status, not_done_comment',
-            )
-            .eq('task_date', _dateKey(date))
-            .eq('is_draft', false)
-            .order('created_at', ascending: true)
+              .from('tasks')
+              .select(
+                'id, task_date, object_name, axes, work, status, not_done_comment',
+              )
+              .eq('task_date', _dateKey(date))
+              .eq('is_draft', false)
+              .order('created_at', ascending: true)
         : await _client
-            .from('tasks')
-            .select(
-              'id, task_date, object_name, axes, work, status, not_done_comment',
-            )
-            .eq('task_date', _dateKey(date))
-            .eq('is_draft', false)
-            .eq('object_name', cleanObject)
-            .order('created_at', ascending: true);
+              .from('tasks')
+              .select(
+                'id, task_date, object_name, axes, work, status, not_done_comment',
+              )
+              .eq('task_date', _dateKey(date))
+              .eq('is_draft', false)
+              .eq('object_name', cleanObject)
+              .order('created_at', ascending: true);
 
     final tasks = rows
         .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
@@ -158,18 +185,20 @@ class TaskRepository {
         .eq('task_date', _dateKey(date))
         .order('created_at', ascending: true)
         .map((rows) {
-      final visibleRows = rows.where((row) => row['is_draft'] != true).toList();
-      final filteredRows = cleanObject == null
-          ? visibleRows
-          : visibleRows.where((row) {
-              final rowObject = row['object_name']?.toString().trim();
-              return rowObject == cleanObject;
-            }).toList();
+          final visibleRows = rows
+              .where((row) => row['is_draft'] != true)
+              .toList();
+          final filteredRows = cleanObject == null
+              ? visibleRows
+              : visibleRows.where((row) {
+                  final rowObject = row['object_name']?.toString().trim();
+                  return rowObject == cleanObject;
+                }).toList();
 
-      return filteredRows
-          .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
-          .toList();
-    });
+          return filteredRows
+              .map<TaskItemData>((row) => TaskItemData.fromSupabase(row))
+              .toList();
+        });
   }
 
   static Future<TaskItemData> addTask(
@@ -370,8 +399,5 @@ class _TaskListCacheEntry {
   final List<TaskItemData> tasks;
   final DateTime createdAt;
 
-  const _TaskListCacheEntry({
-    required this.tasks,
-    required this.createdAt,
-  });
+  const _TaskListCacheEntry({required this.tasks, required this.createdAt});
 }

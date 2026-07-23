@@ -65,7 +65,9 @@ class TaskPhotoRepository {
       // ожидание после кнопки «Сохранить» при нескольких снимках.
       await Future.wait(
         uploadItems.map((item) async {
-          await _client.storage.from(bucketName).uploadBinary(
+          await _client.storage
+              .from(bucketName)
+              .uploadBinary(
                 item.path,
                 item.photo.bytes,
                 fileOptions: FileOptions(

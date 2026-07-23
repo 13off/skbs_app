@@ -358,42 +358,62 @@ class PaymentReceiptRepository {
 
     if (files.isEmpty) return <PaymentReceipt>[];
 
-    final uploadedReceipts = <PaymentReceipt>[];
-
-    for (final file in files) {
+    final uploadItems = files.map((file) {
       validateFileSize(fileName: file.originalName, sizeBytes: file.sizeBytes);
-
       final path = '$cleanEmployeeId/$cleanPaymentId/${file.storageFileName}';
+      return (file: file, path: path);
+    }).toList();
+    final uploadedPaths = <String>[];
 
-      await _client.storage
-          .from(bucketName)
-          .uploadBinary(
-            path,
-            file.bytes,
-            fileOptions: FileOptions(
-              contentType: file.contentType,
-              upsert: false,
-            ),
-          );
+    try {
+      // Независимые чеки отправляются одновременно, чтобы сохранение выплаты
+      // не ждало последовательной загрузки каждого файла.
+      await Future.wait(
+        uploadItems.map((item) async {
+          await _client.storage
+              .from(bucketName)
+              .uploadBinary(
+                item.path,
+                item.file.bytes,
+                fileOptions: FileOptions(
+                  contentType: item.file.contentType,
+                  upsert: false,
+                ),
+              );
+          uploadedPaths.add(item.path);
+        }),
+      );
 
-      final row = await _client
+      final rows = await _client
           .from('payment_receipts')
-          .insert({
-            'payment_id': cleanPaymentId,
-            'employee_id': cleanEmployeeId,
-            'file_name': file.originalName.trim().isEmpty
-                ? file.storageFileName
-                : file.originalName.trim(),
-            'file_path': path,
-            'content_type': file.contentType,
-          })
-          .select()
-          .single();
+          .insert(
+            uploadItems
+                .map(
+                  (item) => <String, dynamic>{
+                    'payment_id': cleanPaymentId,
+                    'employee_id': cleanEmployeeId,
+                    'file_name': item.file.originalName.trim().isEmpty
+                        ? item.file.storageFileName
+                        : item.file.originalName.trim(),
+                    'file_path': item.path,
+                    'content_type': item.file.contentType,
+                  },
+                )
+                .toList(),
+          )
+          .select();
 
-      uploadedReceipts.add(PaymentReceipt.fromMap(row));
+      return rows.map<PaymentReceipt>(PaymentReceipt.fromMap).toList();
+    } catch (_) {
+      if (uploadedPaths.isNotEmpty) {
+        try {
+          await _client.storage.from(bucketName).remove(uploadedPaths);
+        } catch (_) {
+          // Служебная очистка удалит оставшиеся файлы.
+        }
+      }
+      rethrow;
     }
-
-    return uploadedReceipts;
   }
 
   static Future<Map<String, List<PaymentReceipt>>> fetchReceiptsForPaymentIds(
