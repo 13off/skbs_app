@@ -34,7 +34,7 @@ void main() {
     expect(controller, contains("value ? 'dark' : 'light'"));
     expect(controller, contains('ThemeMode.dark'));
     expect(controller, contains('Future<void> toggle()'));
-    expect(controller, isNot(contains('if (!featureEnabled)')));
+    expect(controller, isNot(contains('if (!featureEnabled)'));
 
     expect(profile, contains('headerTrailing: buildThemeToggle()'));
     expect(profile, contains('Icons.dark_mode_rounded'));
@@ -81,6 +81,7 @@ void main() {
     final surfaces = File(
       'lib/widgets/premium_ui_v2.dart',
     ).readAsStringSync();
+    final appPage = File('lib/widgets/app_page.dart').readAsStringSync();
     final surfacesV3 = File(
       'lib/widgets/premium_surfaces_v3.dart',
     ).readAsStringSync();
@@ -96,14 +97,20 @@ void main() {
     );
     expect(navigation, isNot(contains('scheme.onPrimary')));
 
-    expect(surfaces, contains('theme.scaffoldBackgroundColor'));
+    expect(surfaces, contains('AppSurfaceBackdrop'));
+    expect(appPage, contains('class AppSurfaceBackdrop'));
+    expect(appPage, contains('AppAdaptivePalette.darkBackground'));
+    expect(appPage, contains('AppAdaptivePalette.background'));
     expect(surfaces, contains('theme.colorScheme.outlineVariant'));
     expect(surfaces, contains('const Color(0xFF2278BF)'));
     expect(
       surfaces,
       isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
     );
-    expect(surfacesV3, contains('theme.colorScheme.primary.withValues(alpha: 0.09)'));
+    expect(
+      surfacesV3,
+      contains('theme.colorScheme.primary.withValues(alpha: 0.09)'),
+    );
 
     expect(desktop, contains("import '../../../app/theme_controller.dart';"));
     expect(desktop, contains('AppThemeController.instance.isDark'));
@@ -116,6 +123,7 @@ void main() {
       'lib/app/app_dark_theme.dart',
       'lib/app/theme_controller.dart',
       'lib/widgets/professional_bottom_navigation.dart',
+      'lib/widgets/app_page.dart',
       'lib/widgets/premium_surfaces_v3.dart',
       'lib/widgets/premium_ui_v2.dart',
       'lib/features/shared/presentation/specialist_desktop_ui.dart',
