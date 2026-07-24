@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-07-24T04:42:10.499Z",
+  "requestedUrl": "https://13off.github.io/appstroy-web/",
+  "consoleMessages": [
+    "[warning] [GroupMarkerNotSet(crbug.com/242999)!:A0301F001C2C0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+    "[debug] Injecting <script> tag. Using callback.",
+    "[warning] [GroupMarkerNotSet(crbug.com/242999)!:A0601F001C2C0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+    "[warning] [GroupMarkerNotSet(crbug.com/242999)!:A0901F001C2C0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content."
+  ],
+  "errors": [
+    "Error: Invalid argument(s): Incorrect locale information provided\n\nDart stack trace:\nRangeError: Incorrect locale information provided\n    at new Locale (<anonymous>)\n    at Object.c42 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:1112:3)\n    at Object.csI (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:1101:39)\n    at https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:200466:22\n    at a.<computed> [as ce] (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:24:36)\n    at aDC.aTQ (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:63664:32)\n    at aDC.fq (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:63663:12)\n    at https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:59737:10\n    at c0e.a (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:5491:63)\n    at c0e.$2 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:70779:14)\n    at new Locale (<anonymous>)\n    at Object.c42 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:1112:3)\n    at Object.csI (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:1101:39)\n    at https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:200466:22\n    at a.<computed> [as ce] (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:24:36)\n    at aDC.aTQ (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:63664:32)\n    at aDC.fq (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:63663:12)\n    at https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:59737:10\n    at c0e.a (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:5491:63)\n    at c0e.$2 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:70779:14)\n    at Object.cHi (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:7960:15)\n    at Object.cdc (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:56510:25)\n    at aFu.$2 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:61251:12)\n    at at1.apD (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:71695:36)\n    at tz.b6A (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:71062:18)\n    at bAf.$0 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:71242:37)\n    at Object.G3 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:5631:78)\n    at aN.j8 (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:71146:3)\n    at ZJ.oM (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:70769:13)\n    at Object.i (https://13off.github.io/appstroy-web/main.dart.js?v=3ed1523004cd:5482:10)"
+  ],
+  "failed": [],
+  "badResponses": [],
+  "navigationStatus": 200,
+  "finalUrl": "https://13off.github.io/appstroy-web/",
+  "title": "AppСтрой",
+  "body": "",
+  "flutterViews": 0,
+  "canvases": 0
+}
