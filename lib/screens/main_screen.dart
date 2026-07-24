@@ -12,6 +12,7 @@ import '../features/company_chat/presentation/company_chat_shell.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
+import '../features/profile/data/personal_profile_controller.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
@@ -37,6 +38,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    PersonalProfileController.configure(widget.profile);
     // Репозитории используют статические кеши. Новый MainScreen может быть
     // создан после выхода, смены пользователя или компании без вызова
     // didUpdateWidget у прежнего экземпляра, поэтому очищаем их до прогрева.
@@ -53,6 +55,7 @@ class _MainScreenState extends State<MainScreen> {
     final identityChanged = oldWidget.profile.id != widget.profile.id;
     final companyChanged =
         oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId;
+    if (identityChanged) PersonalProfileController.configure(widget.profile);
     if (!identityChanged && !companyChanged) return;
 
     warmupToken++;
@@ -83,15 +86,16 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  String? get initialObjectName {
-    if (widget.profile.isAdmin) return null;
-    final value = widget.profile.objectName.trim();
+  String? initialObjectNameFor(AppUserProfile profile) {
+    if (profile.isAdmin) return null;
+    final value = profile.objectName.trim();
     return value.isEmpty ? null : value;
   }
 
   Future<void> warmUpApplication() async {
     final token = ++warmupToken;
-    final objectName = initialObjectName;
+    final profile = PersonalProfileController.merge(widget.profile);
+    final objectName = initialObjectNameFor(profile);
     try {
       // Справочники имеют объединение одинаковых активных запросов. Задачи и
       // табель загружаются рабочими экранами: параллельный прогрев раньше
@@ -109,11 +113,14 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  AppUserProfile effectiveProfile(RolePreviewState preview) {
-    if (!widget.profile.canPreviewRoles || preview.isAdminMode) {
-      return widget.profile;
+  AppUserProfile effectiveProfile(
+    AppUserProfile baseProfile,
+    RolePreviewState preview,
+  ) {
+    if (!baseProfile.canPreviewRoles || preview.isAdminMode) {
+      return baseProfile;
     }
-    return widget.profile.previewAs(
+    return baseProfile.previewAs(
       role: preview.role,
       objectName: preview.objectName,
     );
@@ -142,23 +149,32 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget buildPlatform() {
-    return ValueListenableBuilder<RolePreviewState>(
-      valueListenable: RolePreviewController.state,
-      builder: (context, preview, _) {
-        final profile = effectiveProfile(preview);
-        final platform = KeyedSubtree(
-          key: ValueKey<String>(
-            'platform:${profile.role}:${profile.objectName}:${profile.activeCompanyId}',
-          ),
-          child: platformFor(profile),
-        );
+    return ValueListenableBuilder(
+      valueListenable: PersonalProfileController.state,
+      builder: (context, _, __) {
+        final liveBaseProfile = PersonalProfileController.merge(widget.profile);
+        return ValueListenableBuilder<RolePreviewState>(
+          valueListenable: RolePreviewController.state,
+          builder: (context, preview, _) {
+            final profile = effectiveProfile(liveBaseProfile, preview);
+            final platform = KeyedSubtree(
+              key: ValueKey<String>(
+                'platform:${profile.role}:${profile.objectName}:${profile.activeCompanyId}',
+              ),
+              child: platformFor(profile),
+            );
 
-        final content = !profile.isRolePreview
-            ? platform
-            : _RolePreviewFrame(profile: profile, child: platform);
-        return CompanyChatShell(
-          profile: profile,
-          child: CompanySetupNudge(profile: profile, child: content),
+            final content = !profile.isRolePreview
+                ? platform
+                : _RolePreviewFrame(profile: profile, child: platform);
+            return CompanyChatShell(
+              key: ValueKey<String>(
+                'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
+              ),
+              profile: profile,
+              child: CompanySetupNudge(profile: profile, child: content),
+            );
+          },
         );
       },
     );

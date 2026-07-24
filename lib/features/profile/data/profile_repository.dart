@@ -15,6 +15,12 @@ class PersonalProfileData {
     required this.avatarPath,
   });
 
+  static const PersonalProfileData empty = PersonalProfileData(
+    fullName: '',
+    phone: '',
+    avatarPath: '',
+  );
+
   factory PersonalProfileData.fromMap(Map<String, dynamic> map) {
     return PersonalProfileData(
       fullName: map['full_name']?.toString().trim() ?? '',
@@ -52,18 +58,8 @@ class ProfileRepository {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Пользователь не авторизован');
 
-    final cleanName = fullName.trim();
-    final cleanPhone = phone.trim();
-    if (cleanName.length < 2) {
-      throw Exception('Укажите ФИО');
-    }
-    if (cleanName.length > 160) {
-      throw Exception('ФИО слишком длинное');
-    }
-    if (cleanPhone.length > 40) {
-      throw Exception('Номер телефона слишком длинный');
-    }
-
+    final cleanName = _validateName(fullName);
+    final cleanPhone = _validatePhone(phone);
     final current = await fetchPersonalData();
     var nextAvatarPath = current.avatarPath;
     String? uploadedPath;
@@ -93,13 +89,10 @@ class ProfileRepository {
     }
 
     try {
-      await _client.rpc(
-        'update_current_user_profile',
-        params: <String, dynamic>{
-          'p_full_name': cleanName,
-          'p_phone': cleanPhone,
-          'p_avatar_path': nextAvatarPath,
-        },
+      await _updateProfile(
+        fullName: cleanName,
+        phone: cleanPhone,
+        avatarPath: nextAvatarPath,
       );
     } catch (_) {
       if (uploadedPath != null) {
@@ -115,13 +108,7 @@ class ProfileRepository {
     if (uploadedPath != null &&
         current.avatarPath.isNotEmpty &&
         current.avatarPath != uploadedPath) {
-      try {
-        await _client.storage
-            .from(avatarBucket)
-            .remove(<String>[current.avatarPath]);
-      } catch (_) {
-        // Новая фотография уже сохранена; старый файл можно удалить позднее.
-      }
+      await _removeFileQuietly(current.avatarPath);
     }
 
     UserRepository.clearProfileCache();
@@ -130,6 +117,67 @@ class ProfileRepository {
       phone: cleanPhone,
       avatarPath: nextAvatarPath,
     );
+  }
+
+  static Future<PersonalProfileData> removeAvatar({
+    required String fullName,
+    required String phone,
+  }) async {
+    final cleanName = _validateName(fullName);
+    final cleanPhone = _validatePhone(phone);
+    final current = await fetchPersonalData();
+
+    await _updateProfile(
+      fullName: cleanName,
+      phone: cleanPhone,
+      avatarPath: '',
+    );
+    if (current.avatarPath.isNotEmpty) {
+      await _removeFileQuietly(current.avatarPath);
+    }
+
+    UserRepository.clearProfileCache();
+    return PersonalProfileData(
+      fullName: cleanName,
+      phone: cleanPhone,
+      avatarPath: '',
+    );
+  }
+
+  static Future<void> _updateProfile({
+    required String fullName,
+    required String phone,
+    required String avatarPath,
+  }) {
+    return _client.rpc(
+      'update_current_user_profile',
+      params: <String, dynamic>{
+        'p_full_name': fullName,
+        'p_phone': phone,
+        'p_avatar_path': avatarPath,
+      },
+    );
+  }
+
+  static String _validateName(String value) {
+    final clean = value.trim();
+    if (clean.length < 2) throw Exception('Укажите ФИО');
+    if (clean.length > 160) throw Exception('ФИО слишком длинное');
+    return clean;
+  }
+
+  static String _validatePhone(String value) {
+    final clean = value.trim();
+    if (clean.length > 40) throw Exception('Номер телефона слишком длинный');
+    return clean;
+  }
+
+  static Future<void> _removeFileQuietly(String path) async {
+    try {
+      await _client.storage.from(avatarBucket).remove(<String>[path]);
+    } catch (_) {
+      // Профиль уже обновлён. Старый файл можно подчистить позднее.
+    }
   }
 
   static Future<String?> createAvatarUrl(String avatarPath) async {
