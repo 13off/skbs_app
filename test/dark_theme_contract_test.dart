@@ -98,8 +98,44 @@ void main() {
     expect(navigation, isNot(contains('scheme.onPrimary')));
 
     expect(surfaces, contains('AppSurfaceBackdrop'));
+    expect(appPage, contains('class AppSurfaceBackdrop'));
     expect(appPage, contains('AppAdaptivePalette.darkBackground'));
-    expect(surfacesV3, contains('Theme.of(context).brightness'));
-    expect(desktop, contains('Theme.of(context).colorScheme'));
+    expect(appPage, contains('AppAdaptivePalette.background'));
+    expect(surfaces, contains('theme.colorScheme.outlineVariant'));
+    expect(surfaces, contains('const Color(0xFF2278BF)'));
+    expect(
+      surfaces,
+      isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
+    );
+    expect(surfacesV3, contains('AppSurfaceBackdrop'));
+    expect(
+      surfacesV3,
+      isNot(contains('theme.colorScheme.primary.withValues(alpha: 0.09)')),
+    );
+
+    expect(desktop, contains("import '../../../app/theme_controller.dart';"));
+    expect(desktop, contains('AppThemeController.instance.isDark'));
+    expect(desktop, contains('Theme.of(context).colorScheme.onSurface'));
+  });
+
+  test('dark theme remains a presentation-only change', () {
+    final changedSources = <String>[
+      'lib/app/app_adaptive_palette.dart',
+      'lib/app/app_dark_theme.dart',
+      'lib/app/theme_controller.dart',
+      'lib/widgets/professional_bottom_navigation.dart',
+      'lib/widgets/app_page.dart',
+      'lib/widgets/premium_surfaces_v3.dart',
+      'lib/widgets/premium_ui_v2.dart',
+      'lib/features/shared/presentation/specialist_desktop_ui.dart',
+    ];
+
+    for (final path in changedSources) {
+      final source = File(path).readAsStringSync();
+      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
+      expect(source, isNot(contains('.insert(')), reason: path);
+      expect(source, isNot(contains('.update(')), reason: path);
+      expect(source, isNot(contains('.delete(')), reason: path);
+    }
   });
 }
