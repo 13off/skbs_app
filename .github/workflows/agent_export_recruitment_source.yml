@@ -1,0 +1,28 @@
+name: Agent export recruitment source
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/recruitment-crm-full' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/recruitment-crm-full
+          show-progress: false
+      - name: Pack source
+        run: |
+          tar --exclude=.git --exclude=build --exclude=.dart_tool -czf /tmp/skbs_app_source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skbs-app-source
+          path: /tmp/skbs_app_source.tar.gz
+          retention-days: 1
