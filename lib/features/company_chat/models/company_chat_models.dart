@@ -1,3 +1,45 @@
+class CompanyChatThread {
+  final String threadKey;
+  final String channelKind;
+  final String? peerUserId;
+  final String title;
+  final String role;
+  final int unreadCount;
+  final DateTime? lastMessageAt;
+  final String lastMessagePreview;
+
+  const CompanyChatThread({
+    required this.threadKey,
+    required this.channelKind,
+    required this.peerUserId,
+    required this.title,
+    required this.role,
+    required this.unreadCount,
+    required this.lastMessageAt,
+    required this.lastMessagePreview,
+  });
+
+  factory CompanyChatThread.fromMap(Map<String, dynamic> map) {
+    return CompanyChatThread(
+      threadKey: map['thread_key']?.toString().trim() ?? 'general',
+      channelKind: map['channel_kind']?.toString().trim() ?? 'general',
+      peerUserId: _nullableText(map['peer_user_id']),
+      title: map['title']?.toString().trim() ?? 'Чат',
+      role: map['role']?.toString().trim() ?? '',
+      unreadCount: _intValue(map['unread_count']),
+      lastMessageAt: DateTime.tryParse(
+        map['last_message_at']?.toString() ?? '',
+      )?.toLocal(),
+      lastMessagePreview:
+          map['last_message_preview']?.toString().trim() ?? '',
+    );
+  }
+
+  bool get isGeneral => channelKind == 'general';
+  bool get isDirect => channelKind == 'direct';
+  bool get isAssistant => channelKind == 'assistant';
+}
+
 class CompanyChatMember {
   final String userId;
   final String fullName;
@@ -88,6 +130,9 @@ class CompanyChatMessage {
   final String senderName;
   final String senderRole;
   final String kind;
+  final String channelKind;
+  final String? peerUserId;
+  final String threadKey;
   final String body;
   final String? replyToId;
   final List<String> mentionedUserIds;
@@ -106,6 +151,9 @@ class CompanyChatMessage {
     required this.senderName,
     required this.senderRole,
     required this.kind,
+    this.channelKind = 'general',
+    this.peerUserId,
+    this.threadKey = 'general',
     required this.body,
     required this.replyToId,
     required this.mentionedUserIds,
@@ -130,6 +178,9 @@ class CompanyChatMessage {
       senderName: map['sender_name']?.toString().trim() ?? 'Сотрудник AppСтрой',
       senderRole: map['sender_role']?.toString().trim() ?? '',
       kind: map['kind']?.toString().trim() ?? 'user',
+      channelKind: map['channel_kind']?.toString().trim() ?? 'general',
+      peerUserId: _nullableText(map['peer_user_id']),
+      threadKey: map['thread_key']?.toString().trim() ?? 'general',
       body: map['body']?.toString() ?? '',
       replyToId: _nullableText(map['reply_to_id']),
       mentionedUserIds: rawMentions is List

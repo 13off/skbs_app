@@ -71,12 +71,18 @@ class CompanyChatRepository {
   static Future<List<CompanyChatMessage>> fetchFeed({
     int limit = 100,
     DateTime? before,
+    String channelKind = 'general',
+    String? peerUserId,
   }) async {
     final data = await _client.rpc<dynamic>(
       'get_company_chat_feed',
       params: <String, dynamic>{
         'p_limit': limit,
         'p_before': before?.toUtc().toIso8601String(),
+        'p_channel_kind': channelKind.trim().isEmpty
+            ? 'general'
+            : channelKind.trim(),
+        'p_peer_user_id': _nullIfEmpty(peerUserId),
       },
     );
     return _list(data)
@@ -86,6 +92,18 @@ class CompanyChatRepository {
               CompanyChatMessage.fromMap(Map<String, dynamic>.from(value)),
         )
         .where((value) => value.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<List<CompanyChatThread>> fetchThreads() async {
+    final data = await _client.rpc<dynamic>('get_company_chat_threads');
+    return _list(data)
+        .whereType<Map>()
+        .map(
+          (value) =>
+              CompanyChatThread.fromMap(Map<String, dynamic>.from(value)),
+        )
+        .where((value) => value.threadKey.isNotEmpty)
         .toList(growable: false);
   }
 
@@ -106,11 +124,19 @@ class CompanyChatRepository {
     return CompanyChatUnreadState.fromMap(_map(data));
   }
 
-  static Future<void> markRead({DateTime? at}) async {
+  static Future<void> markRead({
+    DateTime? at,
+    String channelKind = 'general',
+    String? peerUserId,
+  }) async {
     await _client.rpc<void>(
       'mark_company_chat_read',
       params: <String, dynamic>{
         'p_read_at': (at ?? DateTime.now()).toUtc().toIso8601String(),
+        'p_channel_kind': channelKind.trim().isEmpty
+            ? 'general'
+            : channelKind.trim(),
+        'p_peer_user_id': _nullIfEmpty(peerUserId),
       },
     );
   }
@@ -128,6 +154,8 @@ class CompanyChatRepository {
     String? replyToId,
     List<String> mentionedUserIds = const <String>[],
     required String clientNonce,
+    String channelKind = 'general',
+    String? peerUserId,
   }) async {
     final data = await _client.rpc<dynamic>(
       'create_company_chat_message',
@@ -136,6 +164,10 @@ class CompanyChatRepository {
         'p_reply_to_id': _nullIfEmpty(replyToId),
         'p_mentioned_user_ids': mentionedUserIds,
         'p_client_nonce': clientNonce,
+        'p_channel_kind': channelKind.trim().isEmpty
+            ? 'general'
+            : channelKind.trim(),
+        'p_peer_user_id': _nullIfEmpty(peerUserId),
       },
     );
     final id = data?.toString().trim() ?? '';
@@ -270,7 +302,7 @@ class CompanyChatRepository {
   static String _safeFileName(String value) {
     final clean = value
         .trim()
-        .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '_')
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), ' ');
     if (clean.isEmpty) return 'file';
     return clean.length <= 180 ? clean : clean.substring(clean.length - 180);
