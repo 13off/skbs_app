@@ -8,6 +8,7 @@ import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/company/presentation/company_setup_nudge.dart';
+import '../features/company_chat/presentation/company_chat_shell.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
@@ -155,7 +156,10 @@ class _MainScreenState extends State<MainScreen> {
         final content = !profile.isRolePreview
             ? platform
             : _RolePreviewFrame(profile: profile, child: platform);
-        return CompanySetupNudge(profile: profile, child: content);
+        return CompanyChatShell(
+          profile: profile,
+          child: CompanySetupNudge(profile: profile, child: content),
+        );
       },
     );
   }
