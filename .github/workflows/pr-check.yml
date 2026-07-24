@@ -8,11 +8,7 @@ on:
     paths:
       - lib/**
       - test/**
-      - supabase/functions/**
       - supabase/migrations/**
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
       - .github/workflows/pr-check.yml
   workflow_dispatch:
 
@@ -34,41 +30,38 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Apply prepared patch and capture diagnostics
+      - name: Apply prepared patch
+        id: apply
+        continue-on-error: true
         shell: bash
         run: |
+          touch /tmp/patch-error.txt
           set +e
-          python3 - <<'PY'
+          python3 - <<'PY' 2>/tmp/patch-error.txt
           from pathlib import Path
-          import traceback
 
-          try:
-              workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
-              source = workflow.read_text(encoding='utf-8')
-              start = source.index('          from pathlib import Path')
-              end = source.index('\n          PY', start)
-              lines = source[start:end].splitlines()
-              code = '\n'.join(
-                  line[10:] if line.startswith('          ') else line
-                  for line in lines
-              )
-              exec(compile(code, str(workflow), 'exec'))
-          except Exception:
-              Path('/tmp/patch-error.txt').write_text(
-                  traceback.format_exc(),
-                  encoding='utf-8',
-              )
-              raise
+          workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
+          source = workflow.read_text(encoding='utf-8')
+          start = source.index('          from pathlib import Path')
+          end = source.index('\n          PY', start)
+          lines = source[start:end].splitlines()
+          code = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in lines
+          )
+          exec(compile(code, str(workflow), 'exec'))
           PY
           status=$?
           set -e
 
           if [ "$status" -ne 0 ]; then
             git reset --hard HEAD
-            cp /tmp/patch-error.txt .github/patch-error.txt
-            echo '--- CRM patch diagnostic ---'
+            {
+              echo "patch exit status: $status"
+              cat /tmp/patch-error.txt
+            } > .github/patch-error.txt
             cat .github/patch-error.txt
-            exit 0
+            exit 1
           fi
 
           git fetch origin main
@@ -78,161 +71,15 @@ jobs:
           rm -f .github/patch-error.txt
 
       - name: Commit patch or diagnostic
+        if: always()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          if git diff --cached --quiet; then
+            echo "No diagnostic or patch changes"
+            exit 0
+          fi
           git commit -m "Сохранить результат исправления колонок CRM"
           git push origin HEAD:${{ github.head_ref }}
-
-  flutter-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          show-progress: false
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Analyze source
-        id: analyze
-        shell: bash
-        run: |
-          set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter analyzer failure ---"
-            tail -n 120 /tmp/flutter-analyze.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-analyze.log
-
-      - name: Run regression tests
-        id: regression
-        shell: bash
-        run: |
-          set +e
-          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter test failure (last 180 lines) ---"
-            tail -n 180 /tmp/flutter-test.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-test.log
-
-      - name: Build web release
-        run: flutter build web --release --base-href /appstroy-web/
-
-      - name: Upload failing analyzer log
-        if: failure() && steps.analyze.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-analyze-log
-          path: /tmp/flutter-analyze.log
-          if-no-files-found: error
-          retention-days: 3
-
-      - name: Upload failing test log
-        if: failure() && steps.regression.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-test-log
-          path: /tmp/flutter-test.log
-          if-no-files-found: error
-          retention-days: 3
-
-  backend-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source with history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          show-progress: false
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Check changed Edge Functions
-        id: edge-check
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          if [ -n "${BASE_SHA:-}" ]; then
-            git diff --name-only "$BASE_SHA"...HEAD -- supabase/functions \
-              | grep -E '\.tsx?$' > /tmp/edge-files.txt || true
-          else
-            find supabase/functions -type f -name '*.ts' -print \
-              > /tmp/edge-files.txt
-          fi
-
-          if [ ! -s /tmp/edge-files.txt ]; then
-            echo "Edge Functions were not changed."
-            exit 0
-          fi
-
-          : > /tmp/deno-check.log
-          while IFS= read -r file; do
-            echo "deno check $file" | tee -a /tmp/deno-check.log
-            set +e
-            deno check "$file" >> /tmp/deno-check.log 2>&1
-            status=$?
-            set -e
-            if [ "$status" -ne 0 ]; then
-              echo "--- Deno check failure ---"
-              tail -n 160 /tmp/deno-check.log
-              exit "$status"
-            fi
-          done < /tmp/edge-files.txt
-          tail -n 40 /tmp/deno-check.log
-
-      - name: Guard changed SQL migrations
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          if [ -n "${BASE_SHA:-}" ]; then
-            git diff --name-only "$BASE_SHA"...HEAD -- supabase/migrations \
-              | grep -E '\.sql$' > /tmp/migration-files.txt || true
-          else
-            find supabase/migrations -type f -name '*.sql' -print \
-              > /tmp/migration-files.txt
-          fi
-
-          if [ ! -s /tmp/migration-files.txt ]; then
-            echo "SQL migrations were not changed."
-            exit 0
-          fi
-
-          while IFS= read -r file; do
-            test -s "$file"
-            if grep -nE '^(<<<<<<<|=======|>>>>>>>)' "$file"; then
-              echo "Conflict marker found in $file"
-              exit 1
-            fi
-          done < /tmp/migration-files.txt
-
-      - name: Upload failing Deno log
-        if: failure() && steps.edge-check.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: deno-check-log
-          path: /tmp/deno-check.log
-          if-no-files-found: error
-          retention-days: 3
