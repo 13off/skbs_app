@@ -76,8 +76,10 @@ class _RecruitmentApplicationsScreenState
     searchController.addListener(handleSearchChanged);
     changesSubscription = AppDataSync.changes.listen((change) {
       if (change.affects(AppDataDomain.recruitment) &&
-mounted &&
-!stageMutationBusy) {
+          mounted &&
+          !stageMutationBusy &&
+          movingIds.isEmpty &&
+          archiveBusyIds.isEmpty) {
         refresh();
       }
     });
@@ -200,16 +202,22 @@ mounted &&
   List<RecruitmentPipelineStage> orderedStages(
     RecruitmentCrmConfiguration configuration,
   ) {
+    final base = List<RecruitmentPipelineStage>.from(configuration.stages)
+      ..sort((first, second) {
+        final byOrder = first.sortOrder.compareTo(second.sortOrder);
+        if (byOrder != 0) return byOrder;
+        return first.id.compareTo(second.id);
+      });
     final order = pendingStageOrder;
     if (order == null ||
-        order.length != configuration.stages.length ||
-        order.toSet().length != configuration.stages.length) {
-      return configuration.stages;
+        order.length != base.length ||
+        order.toSet().length != base.length) {
+      return base;
     }
     final byId = <String, RecruitmentPipelineStage>{
-      for (final stage in configuration.stages) stage.id: stage,
+      for (final stage in base) stage.id: stage,
     };
-    if (order.any((id) => !byId.containsKey(id))) return configuration.stages;
+    if (order.any((id) => !byId.containsKey(id))) return base;
     return order.map((id) => byId[id]!).toList(growable: false);
   }
 
@@ -633,8 +641,8 @@ mounted &&
     } finally {
       if (mounted) {
         setState(() {
-stageMutationBusy = false;
-pendingStageOrder = null;
+          stageMutationBusy = false;
+          pendingStageOrder = null;
         });
       }
     }
@@ -863,9 +871,9 @@ pendingStageOrder = null;
     } finally {
       if (mounted) {
         setState(() {
-stageMutationBusy = false;
-pendingStageOrder = null;
-draggingStageId = null;
+          stageMutationBusy = false;
+          pendingStageOrder = null;
+          draggingStageId = null;
         });
       }
     }
@@ -885,12 +893,13 @@ draggingStageId = null;
       pendingStageIds[application.id] = stage.id;
       draggingApplicationId = null;
     });
+    var saved = false;
     try {
       await RecruitmentRepository.moveApplicationStage(
         applicationId: application.id,
         stageId: stage.id,
       );
-      if (mounted) await refresh();
+      saved = true;
       await runAutomations(<String>[application.id]);
     } catch (error) {
       if (!mounted) return;
@@ -904,6 +913,7 @@ draggingStageId = null;
           movingIds.remove(application.id);
           pendingStageIds.remove(application.id);
         });
+        if (saved) await refresh();
       }
     }
   }
@@ -1647,18 +1657,12 @@ draggingStageId = null;
 
   Widget stageDragHandle(RecruitmentPipelineStage stage) {
     final handle = Tooltip(
-      message: kIsWeb
-          ? 'Перетащить колонку'
-          : 'Удерживай и перетащи колонку',
+      message: kIsWeb ? 'Перетащить колонку' : 'Удерживай и перетащи колонку',
       child: MouseRegion(
         cursor: SystemMouseCursors.grab,
         child: Padding(
           padding: const EdgeInsets.all(6),
-          child: Icon(
-            Icons.drag_indicator_rounded,
-            size: 20,
-            color: _muted,
-          ),
+          child: Icon(Icons.drag_indicator_rounded, size: 20, color: _muted),
         ),
       ),
     );
@@ -1735,11 +1739,9 @@ draggingStageId = null;
     final color = stageColor(stage);
     return DragTarget<RecruitmentPipelineStage>(
       onWillAcceptWithDetails: (details) =>
-canConfigureCrm &&
-!stageMutationBusy &&
-details.data.id != stage.id,
+          canConfigureCrm && !stageMutationBusy && details.data.id != stage.id,
       onAcceptWithDetails: (details) =>
-reorderStageOnBoard(configuration, details.data, stage),
+          reorderStageOnBoard(configuration, details.data, stage),
       builder: (context, stageCandidates, rejectedStages) {
         final stageHighlighted = stageCandidates.isNotEmpty;
         return AnimatedScale(
@@ -1752,7 +1754,9 @@ reorderStageOnBoard(configuration, details.data, stage),
                     borderRadius: BorderRadius.circular(AppUi.cardRadius),
                     boxShadow: [
                       BoxShadow(
-                        color: AppAdaptivePalette.accent.withValues(alpha: 0.22),
+                        color: AppAdaptivePalette.accent.withValues(
+                          alpha: 0.22,
+                        ),
                         blurRadius: 24,
                         spreadRadius: 2,
                       ),
@@ -1762,7 +1766,8 @@ reorderStageOnBoard(configuration, details.data, stage),
             child: DragTarget<RecruitmentApplication>(
               onWillAcceptWithDetails: (details) =>
                   !movingIds.contains(details.data.id) &&
-                  effectiveStageFor(details.data, configuration)?.id != stage.id,
+                  effectiveStageFor(details.data, configuration)?.id !=
+                      stage.id,
               onAcceptWithDetails: (details) =>
                   moveToStage(details.data, stage),
               builder: (context, candidates, rejected) {

@@ -73,26 +73,38 @@ abstract final class RecruitmentRepository {
           .from('recruitment_pipeline_stages')
           .select()
           .eq('company_id', cleanCompanyId)
-          .order('sort_order')
-          .order('created_at'),
+          .order('sort_order', ascending: true)
+          .order('created_at', ascending: true),
       _client
           .from('recruitment_custom_fields')
           .select()
           .eq('company_id', cleanCompanyId)
-          .order('sort_order')
-          .order('created_at'),
+          .order('sort_order', ascending: true)
+          .order('created_at', ascending: true),
     ]);
 
-    final stages = (results[0] as List<dynamic>)
-        .map((value) => RecruitmentPipelineStage.fromMap(_map(value)))
-        .where((item) => item.id.isNotEmpty)
-        .where((item) => includeInactive || item.isActive)
-        .toList();
-    final fields = (results[1] as List<dynamic>)
-        .map((value) => RecruitmentCustomField.fromMap(_map(value)))
-        .where((item) => item.id.isNotEmpty)
-        .where((item) => includeInactive || item.isActive)
-        .toList();
+    final stages =
+        (results[0] as List<dynamic>)
+            .map((value) => RecruitmentPipelineStage.fromMap(_map(value)))
+            .where((item) => item.id.isNotEmpty)
+            .where((item) => includeInactive || item.isActive)
+            .toList()
+          ..sort((first, second) {
+            final byOrder = first.sortOrder.compareTo(second.sortOrder);
+            if (byOrder != 0) return byOrder;
+            return first.id.compareTo(second.id);
+          });
+    final fields =
+        (results[1] as List<dynamic>)
+            .map((value) => RecruitmentCustomField.fromMap(_map(value)))
+            .where((item) => item.id.isNotEmpty)
+            .where((item) => includeInactive || item.isActive)
+            .toList()
+          ..sort((first, second) {
+            final byOrder = first.sortOrder.compareTo(second.sortOrder);
+            if (byOrder != 0) return byOrder;
+            return first.id.compareTo(second.id);
+          });
     return RecruitmentCrmConfiguration(stages: stages, fields: fields);
   }
 
@@ -318,118 +330,120 @@ abstract final class RecruitmentRepository {
   }
 
   static Future<RecruitmentApplication> saveApplication({
-  String? id,
-  required String companyId,
-  required String fullName,
-  required String phone,
-  required String citizenship,
-  required String vacancy,
-  String vacancyId = '',
-  required String objectName,
-  String objectId = '',
-  required String experience,
-  DateTime? departureDate,
-  required String status,
-  String stageId = '',
-  required String comment,
-  Map<String, dynamic> customValues = const <String, dynamic>{},
-  String source = 'manual',
-  String sourceUserId = '',
-  String sourceChatId = '',
-}) async {
-  final cleanId = id?.trim() ?? '';
-  final cleanCompanyId = companyId.trim();
-  final cleanName = fullName.trim();
-  final cleanPhone = phone.trim();
-  final cleanVacancy = vacancy.trim();
-  final cleanStageId = stageId.trim();
-  if (cleanName.length < 2 || cleanPhone.isEmpty || cleanVacancy.isEmpty) {
-    throw Exception('Укажите ФИО, телефон и вакансию');
-  }
-  final resolvedObjectId = await _resolveObjectId(
-    companyId: cleanCompanyId,
-    objectId: objectId,
-    objectName: objectName,
-  );
-
-  if (cleanStageId.isNotEmpty) {
-    final dynamic saved = await _client.rpc(
-      'save_recruitment_application_from_crm',
-      params: <String, dynamic>{
-        'p_application_id': cleanId.isEmpty ? null : cleanId,
-        'p_full_name': cleanName,
-        'p_phone': cleanPhone,
-        'p_citizenship': citizenship.trim(),
-        'p_vacancy_id': vacancyId.trim().isEmpty ? null : vacancyId.trim(),
-        'p_position_title': cleanVacancy,
-        'p_object_id': resolvedObjectId,
-        'p_experience_text': experience.trim(),
-        'p_ready_date': departureDate == null ? null : _dateOnly(departureDate),
-        'p_stage_id': cleanStageId,
-        'p_hr_comment': comment.trim(),
-        'p_custom_values': Map<String, dynamic>.from(customValues),
-        'p_source': source.trim().isEmpty ? 'manual' : source.trim(),
-        'p_external_user_id': sourceUserId.trim(),
-        'p_external_chat_id': sourceChatId.trim(),
-      },
+    String? id,
+    required String companyId,
+    required String fullName,
+    required String phone,
+    required String citizenship,
+    required String vacancy,
+    String vacancyId = '',
+    required String objectName,
+    String objectId = '',
+    required String experience,
+    DateTime? departureDate,
+    required String status,
+    String stageId = '',
+    required String comment,
+    Map<String, dynamic> customValues = const <String, dynamic>{},
+    String source = 'manual',
+    String sourceUserId = '',
+    String sourceChatId = '',
+  }) async {
+    final cleanId = id?.trim() ?? '';
+    final cleanCompanyId = companyId.trim();
+    final cleanName = fullName.trim();
+    final cleanPhone = phone.trim();
+    final cleanVacancy = vacancy.trim();
+    final cleanStageId = stageId.trim();
+    if (cleanName.length < 2 || cleanPhone.isEmpty || cleanVacancy.isEmpty) {
+      throw Exception('Укажите ФИО, телефон и вакансию');
+    }
+    final resolvedObjectId = await _resolveObjectId(
+      companyId: cleanCompanyId,
+      objectId: objectId,
+      objectName: objectName,
     );
-    final savedId = _map(saved)['id']?.toString() ?? cleanId;
-    if (savedId.isEmpty) throw Exception('CRM не вернула кандидата');
-    final dynamic row = await _client
-        .from('recruitment_applications')
-        .select('*, objects(name), recruitment_vacancies(title)')
-        .eq('company_id', cleanCompanyId)
-        .eq('id', savedId)
-        .single();
+
+    if (cleanStageId.isNotEmpty) {
+      final dynamic saved = await _client.rpc(
+        'save_recruitment_application_from_crm',
+        params: <String, dynamic>{
+          'p_application_id': cleanId.isEmpty ? null : cleanId,
+          'p_full_name': cleanName,
+          'p_phone': cleanPhone,
+          'p_citizenship': citizenship.trim(),
+          'p_vacancy_id': vacancyId.trim().isEmpty ? null : vacancyId.trim(),
+          'p_position_title': cleanVacancy,
+          'p_object_id': resolvedObjectId,
+          'p_experience_text': experience.trim(),
+          'p_ready_date': departureDate == null
+              ? null
+              : _dateOnly(departureDate),
+          'p_stage_id': cleanStageId,
+          'p_hr_comment': comment.trim(),
+          'p_custom_values': Map<String, dynamic>.from(customValues),
+          'p_source': source.trim().isEmpty ? 'manual' : source.trim(),
+          'p_external_user_id': sourceUserId.trim(),
+          'p_external_chat_id': sourceChatId.trim(),
+        },
+      );
+      final savedId = _map(saved)['id']?.toString() ?? cleanId;
+      if (savedId.isEmpty) throw Exception('CRM не вернула кандидата');
+      final dynamic row = await _client
+          .from('recruitment_applications')
+          .select('*, objects(name), recruitment_vacancies(title)')
+          .eq('company_id', cleanCompanyId)
+          .eq('id', savedId)
+          .single();
+      final result = RecruitmentApplication.fromMap(_map(row));
+      _notify(result.id);
+      return result;
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    final payload = <String, dynamic>{
+      'company_id': cleanCompanyId,
+      'source': source.trim().isEmpty ? 'manual' : source.trim(),
+      'external_user_id': sourceUserId.trim(),
+      'external_chat_id': sourceChatId.trim(),
+      'full_name': cleanName,
+      'phone': cleanPhone,
+      'citizenship': citizenship.trim(),
+      'object_id': resolvedObjectId,
+      'vacancy_id': vacancyId.trim().isEmpty ? null : vacancyId.trim(),
+      'position_title': cleanVacancy,
+      'experience_text': experience.trim(),
+      'ready_date': departureDate == null ? null : _dateOnly(departureDate),
+      'status': recruitmentStatuses.contains(status) ? status : 'new',
+      'hr_comment': comment.trim(),
+      'custom_values': Map<String, dynamic>.from(customValues),
+      'updated_at': now,
+    };
+
+    final dynamic row;
+    if (cleanId.isEmpty) {
+      payload['submitted_at'] = now;
+      row = await _client
+          .from('recruitment_applications')
+          .insert(payload)
+          .select('*, objects(name), recruitment_vacancies(title)')
+          .single();
+    } else {
+      row = await _client
+          .from('recruitment_applications')
+          .update(payload)
+          .eq('company_id', cleanCompanyId)
+          .eq('id', cleanId)
+          .select('*, objects(name), recruitment_vacancies(title)')
+          .single();
+    }
+
     final result = RecruitmentApplication.fromMap(_map(row));
     _notify(result.id);
     return result;
   }
 
-  final now = DateTime.now().toUtc().toIso8601String();
-  final payload = <String, dynamic>{
-    'company_id': cleanCompanyId,
-    'source': source.trim().isEmpty ? 'manual' : source.trim(),
-    'external_user_id': sourceUserId.trim(),
-    'external_chat_id': sourceChatId.trim(),
-    'full_name': cleanName,
-    'phone': cleanPhone,
-    'citizenship': citizenship.trim(),
-    'object_id': resolvedObjectId,
-    'vacancy_id': vacancyId.trim().isEmpty ? null : vacancyId.trim(),
-    'position_title': cleanVacancy,
-    'experience_text': experience.trim(),
-    'ready_date': departureDate == null ? null : _dateOnly(departureDate),
-    'status': recruitmentStatuses.contains(status) ? status : 'new',
-    'hr_comment': comment.trim(),
-    'custom_values': Map<String, dynamic>.from(customValues),
-    'updated_at': now,
-  };
-
-  final dynamic row;
-  if (cleanId.isEmpty) {
-    payload['submitted_at'] = now;
-    row = await _client
-        .from('recruitment_applications')
-        .insert(payload)
-        .select('*, objects(name), recruitment_vacancies(title)')
-        .single();
-  } else {
-    row = await _client
-        .from('recruitment_applications')
-        .update(payload)
-        .eq('company_id', cleanCompanyId)
-        .eq('id', cleanId)
-        .select('*, objects(name), recruitment_vacancies(title)')
-        .single();
-  }
-
-  final result = RecruitmentApplication.fromMap(_map(row));
-  _notify(result.id);
-  return result;
-}
-
-static Future<RecruitmentPipelineStage> savePipelineStage({
+  static Future<RecruitmentPipelineStage> savePipelineStage({
     String id = '',
     required String companyId,
     required String title,
@@ -491,8 +505,8 @@ static Future<RecruitmentPipelineStage> savePipelineStage({
         'p_description': description.trim(),
         'p_color_hex': colorHex.trim().toUpperCase(),
         'p_legacy_status': recruitmentStatuses.contains(legacyStatus)
-  ? legacyStatus
-  : 'new',
+            ? legacyStatus
+            : 'new',
         'p_is_final': isFinal,
       },
     );
@@ -548,7 +562,7 @@ static Future<RecruitmentPipelineStage> savePipelineStage({
     return int.tryParse(result?.toString() ?? '') ?? 0;
   }
 
-static Future<void> setPipelineStageActive({
+  static Future<void> setPipelineStageActive({
     required String companyId,
     required String stageId,
     required bool active,
@@ -615,18 +629,18 @@ static Future<void> setPipelineStageActive({
   }
 
   static Future<void> reorderCustomFields({
-  required String companyId,
-  required List<String> orderedIds,
-}) async {
-  if (companyId.trim().isEmpty || orderedIds.isEmpty) return;
-  await _client.rpc(
-    'reorder_recruitment_custom_fields',
-    params: <String, dynamic>{'p_field_ids': orderedIds},
-  );
-  _notifyConfiguration('recruitment_custom_fields', 'order');
-}
+    required String companyId,
+    required List<String> orderedIds,
+  }) async {
+    if (companyId.trim().isEmpty || orderedIds.isEmpty) return;
+    await _client.rpc(
+      'reorder_recruitment_custom_fields',
+      params: <String, dynamic>{'p_field_ids': orderedIds},
+    );
+    _notifyConfiguration('recruitment_custom_fields', 'order');
+  }
 
-static Future<void> setCustomFieldActive({
+  static Future<void> setCustomFieldActive({
     required String companyId,
     required String fieldId,
     required bool active,
