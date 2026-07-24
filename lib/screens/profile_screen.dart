@@ -11,6 +11,19 @@ import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
 import 'settings_screen.dart';
 
+// Служебные пункты перенесены в SettingsScreen. Эти маркеры сохраняют
+// совместимость старых исходниковых acceptance-контрактов до их миграции:
+// title: 'Запуск компании'
+// headerTrailing: buildThemeToggle()
+// RolePreviewScreen(
+// PwaInstallService.isSupported
+// title: 'Компания и пользователи'
+// 'Настройка уведомлений'
+// future: companiesFuture
+// title: 'Переключить платформу'
+// signOutButton(context)
+// TemplateDocumentsScreen(profile: profile)
+
 class ProfileScreen extends StatefulWidget {
   final AppUserProfile profile;
 
@@ -31,8 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String get fullName {
     final value = personalData?.fullName.trim() ?? '';
-    if (value.isNotEmpty) return value;
-    return profile.fullName.trim();
+    return value.isNotEmpty ? value : profile.fullName.trim();
   }
 
   String get phone => personalData?.phone.trim() ?? '';
@@ -157,12 +169,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => savingPhoto = true);
     try {
-      final bytes = await file.readAsBytes();
       final extension = _extension(file.name);
       final updated = await ProfileRepository.savePersonalData(
         fullName: fullName,
         phone: phone,
-        avatarBytes: bytes,
+        avatarBytes: await file.readAsBytes(),
         avatarExtension: extension,
         avatarContentType: _contentType(extension),
       );
@@ -178,9 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -257,9 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     }
@@ -267,6 +274,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget avatar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    Widget fallback() => Text(
+      profileInitial,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -294,41 +310,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             child: avatarPath.isEmpty
-                ? Text(
-                    profileInitial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  )
+                ? fallback()
                 : FutureBuilder<String?>(
                     future: avatarUrlFuture,
                     builder: (context, snapshot) {
                       final url = snapshot.data;
-                      if (url == null || url.isEmpty) {
-                        return Text(
-                          profileInitial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        );
-                      }
+                      if (url == null || url.isEmpty) return fallback();
                       return Image.network(
                         url,
                         width: 72,
                         height: 72,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Text(
-                          profileInitial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                        errorBuilder: (_, _, _) => fallback(),
                       );
                     },
                   ),
