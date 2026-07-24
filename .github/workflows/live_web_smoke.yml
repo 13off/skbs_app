@@ -43,8 +43,10 @@ jobs:
             curl -I -L --max-time 60 https://www.gstatic.com/flutter-canvaskit/a4ce257c68517c1410f4b48ac9852ab5642a3f8d/canvaskit.js
           } > .diagnostics/curl.log 2>&1
           curl -sS -L --max-time 120 https://13off.github.io/appstroy-web/main.dart.js -o /tmp/live-main.dart.js
+          sed -n '1080,1140p' /tmp/live-main.dart.js > .diagnostics/main-csI-function.txt
+          sed -n '35020,35110p' /tmp/live-main.dart.js > .diagnostics/main-intl-default.txt
           sed -n '200430,200500p' /tmp/live-main.dart.js > .diagnostics/main-locale-snippet.txt
-          grep -nE -m 100 'ru_RU|ru-RU|en_US|en-US|Incorrect locale|decimalPattern' /tmp/live-main.dart.js > .diagnostics/main-locale-matches.txt 2>&1 || true
+          grep -nE -m 100 'navigator.languages|navigator.language|ru_RU|ru-RU|en_US|en-US|Incorrect locale|decimalPattern' /tmp/live-main.dart.js > .diagnostics/main-locale-matches.txt 2>&1 || true
           cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { writeFile } from 'node:fs/promises';
@@ -54,6 +56,8 @@ jobs:
           try {
             browser = await chromium.launch({ headless: true });
             const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            result.navigatorLanguage = await page.evaluate(() => navigator.language);
+            result.navigatorLanguages = await page.evaluate(() => navigator.languages);
             page.on('console', msg => {
               result.consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
               if (msg.type() === 'error') result.errors.push(msg.text());
