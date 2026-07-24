@@ -1,0 +1,107 @@
+name: Apply web locale hotfix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/fix-web-locale-startup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-web-locale-startup
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Apply locale guard
+        run: python3 tool/apply_web_locale_hotfix.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format contract test
+        run: dart format test/web_locale_startup_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run regression tests
+        run: flutter test --reporter compact
+
+      - name: Build local web release
+        run: flutter build web --release --base-href=/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Browser startup smoke
+        shell: bash
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          python3 -m http.server 8080 --directory build/web >/tmp/appstroy-web.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          cat > smoke.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+          const rawLanguage = await page.evaluate(() => navigator.language);
+          const errors = [];
+          page.on('pageerror', error => errors.push(error.stack || error.message));
+          page.on('console', message => {
+            if (message.type() === 'error') errors.push(message.text());
+          });
+          const response = await page.goto('http://127.0.0.1:8080/', {
+            waitUntil: 'domcontentloaded',
+            timeout: 60000,
+          });
+          await page.waitForFunction(
+            () => document.querySelector('flutter-view') != null,
+            null,
+            { timeout: 60000 },
+          );
+          const locale = await page.evaluate((originalLanguage) => ({
+            rawLanguage: originalLanguage,
+            language: navigator.language,
+            languages: navigator.languages,
+            guarded: window.appstroyBrowserLocale,
+          }), rawLanguage);
+          console.log(JSON.stringify(locale));
+          console.log(`HTTP ${response?.status()}`);
+          console.log(`flutterViews=${await page.locator('flutter-view').count()}`);
+          if (locale.language.includes('@') || locale.languages.some(value => value.includes('@'))) {
+            throw new Error(`Locale guard did not sanitize browser locale: ${JSON.stringify(locale)}`);
+          }
+          if (errors.length) throw new Error(errors.join('\n'));
+          await browser.close();
+          EOF
+          node smoke.mjs
+
+      - name: Commit only verified source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules build package.json package-lock.json smoke.mjs
+          rm -f tool/apply_web_locale_hotfix.py
+          rm -f .github/workflows/agent_apply_web_locale_hotfix.yml
+          git config user.name "appstroy-agent"
+          git config user.email "appstroy-agent@users.noreply.github.com"
+          git add web/index.html test/web_locale_startup_contract_test.dart
+          git add -u tool/apply_web_locale_hotfix.py .github/workflows/agent_apply_web_locale_hotfix.yml
+          git diff --cached --check
+          git commit -m "Исправить запуск web при нестандартной локали браузера"
+          git push origin HEAD:agent/fix-web-locale-startup
