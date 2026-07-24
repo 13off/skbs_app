@@ -96,7 +96,7 @@ class AppThemeController extends ChangeNotifier {
     final currentIndex = uiScaleOptions.indexOf(_uiScale);
     final nextIndex = currentIndex < 0
         ? uiScaleOptions.indexOf(defaultUiScale)
-        : (currentIndex + 1).clamp(0, uiScaleOptions.length - 1);
+        : (currentIndex + 1).clamp(0, uiScaleOptions.length - 1).toInt();
     return setUiScale(uiScaleOptions[nextIndex]);
   }
 
