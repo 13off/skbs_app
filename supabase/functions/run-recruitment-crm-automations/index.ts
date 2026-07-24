@@ -158,7 +158,7 @@ Deno.serve(async (request: Request) => {
       .in("id", applicationIds)
       .is("archived_at", null);
     if (applicationsError) throw applicationsError;
-    const applications = (applicationsData ?? []).map((raw) => {
+    const applications: ApplicationRow[] = (applicationsData ?? []).map((raw: JsonMap) => {
       const row = raw as JsonMap;
       const objectRaw = row.objects;
       const objectRelation = Array.isArray(objectRaw)
@@ -180,7 +180,7 @@ Deno.serve(async (request: Request) => {
       .in("company_id", companyIds)
       .in("role", ["owner", "admin", "developer", "hr"]);
     if (membershipError) throw membershipError;
-    const allowedCompanies = new Set((memberships ?? []).map((row) => String(row.company_id)));
+    const allowedCompanies = new Set((memberships ?? []).map((row: JsonMap) => String(row.company_id)));
     const allowedApplications = applications.filter((item) => allowedCompanies.has(item.company_id));
     if (!allowedApplications.length) return response({ error: "Нет доступа к кандидатам" }, 403);
 
