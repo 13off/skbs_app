@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 // Защищает единый сценарий управления колонками CRM на доске и в настройках.
+// Полный прогон подтверждает совместимость с существующими экранами AppСтрой.
 void main() {
   test('new CRM columns are explicitly placed at the right edge', () {
     final board = File(
