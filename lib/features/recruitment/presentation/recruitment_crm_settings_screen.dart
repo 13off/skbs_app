@@ -64,35 +64,25 @@ class _RecruitmentCrmSettingsScreenState
     if (result == null || !mounted) return;
     setState(() => busy = true);
     try {
-      final saved = await RecruitmentRepository.savePipelineStage(
-        id: stage?.id ?? '',
-        companyId: widget.profile.activeCompanyId,
-        title: result.title,
-        description: result.description,
-        colorHex: result.colorHex,
-        legacyStatus: stage?.legacyStatus ?? 'new',
-        isFinal: result.isFinal,
-        sortOrder:
-            stage?.sortOrder ??
-            ((configuration.stages.isEmpty
-                    ? 0
-                    : configuration.stages
-                          .map((item) => item.sortOrder)
-                          .reduce((a, b) => a > b ? a : b)) +
-                10),
-      );
       if (stage == null) {
-        final latest = await RecruitmentRepository.fetchConfiguration(
-          companyId: widget.profile.activeCompanyId,
+        await RecruitmentRepository.createPipelineStageAtEnd(
+companyId: widget.profile.activeCompanyId,
+title: result.title,
+description: result.description,
+colorHex: result.colorHex,
+legacyStatus: 'new',
+isFinal: result.isFinal,
         );
-        final orderedIds = latest.stages
-            .where((item) => item.id != saved.id)
-            .map((item) => item.id)
-            .followedBy(<String>[saved.id])
-            .toList(growable: false);
-        await RecruitmentRepository.reorderPipelineStages(
-          companyId: widget.profile.activeCompanyId,
-          orderedIds: orderedIds,
+      } else {
+        await RecruitmentRepository.savePipelineStage(
+id: stage.id,
+companyId: widget.profile.activeCompanyId,
+title: result.title,
+description: result.description,
+colorHex: result.colorHex,
+legacyStatus: stage.legacyStatus,
+isFinal: result.isFinal,
+sortOrder: stage.sortOrder,
         );
       }
       await refresh();

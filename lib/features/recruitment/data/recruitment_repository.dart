@@ -475,17 +475,56 @@ static Future<RecruitmentPipelineStage> savePipelineStage({
     return result;
   }
 
-  static Future<void> reorderPipelineStages({
-  required String companyId,
-  required List<String> orderedIds,
-}) async {
-  if (companyId.trim().isEmpty || orderedIds.isEmpty) return;
-  await _client.rpc(
-    'reorder_recruitment_pipeline_stages',
-    params: <String, dynamic>{'p_stage_ids': orderedIds},
-  );
-  _notifyConfiguration('recruitment_pipeline_stages', 'order');
-}
+  static Future<RecruitmentPipelineStage> createPipelineStageAtEnd({
+    required String companyId,
+    required String title,
+    String description = '',
+    String colorHex = '#2F80ED',
+    String legacyStatus = 'new',
+    bool isFinal = false,
+  }) async {
+    if (companyId.trim().isEmpty) throw Exception('Компания не выбрана');
+    final dynamic data = await _client.rpc(
+      'create_recruitment_pipeline_stage_at_end',
+      params: <String, dynamic>{
+        'p_title': title.trim(),
+        'p_description': description.trim(),
+        'p_color_hex': colorHex.trim().toUpperCase(),
+        'p_legacy_status': recruitmentStatuses.contains(legacyStatus)
+  ? legacyStatus
+  : 'new',
+        'p_is_final': isFinal,
+      },
+    );
+    final result = RecruitmentPipelineStage.fromMap(_map(data));
+    if (result.id.isEmpty) throw Exception('Колонка не была создана');
+    _notifyConfiguration('recruitment_pipeline_stages', result.id);
+    return result;
+  }
+
+  static Future<List<String>> reorderPipelineStages({
+    required String companyId,
+    required List<String> orderedIds,
+  }) async {
+    if (companyId.trim().isEmpty || orderedIds.isEmpty) {
+      return const <String>[];
+    }
+    final dynamic data = await _client.rpc(
+      'reorder_recruitment_pipeline_stages_v2',
+      params: <String, dynamic>{'p_stage_ids': orderedIds},
+    );
+    final confirmedIds = (data is List ? data : const <dynamic>[])
+        .map(_map)
+        .map((item) => item['id']?.toString().trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    if (confirmedIds.length != orderedIds.length ||
+        confirmedIds.toSet().length != orderedIds.length) {
+      throw Exception('Сервер не подтвердил полный порядок колонок');
+    }
+    _notifyConfiguration('recruitment_pipeline_stages', 'order');
+    return confirmedIds;
+  }
 
   static Future<int> deletePipelineStage({
     required String companyId,

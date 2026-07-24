@@ -7,17 +7,22 @@ void main() {
     final repository = File(
       'lib/features/recruitment/data/recruitment_repository.dart',
     ).readAsStringSync();
-    final migration = File(
+    final hardeningMigration = File(
       'supabase/migrations/20260724010000_harden_recruitment_crm_operations.sql',
     ).readAsStringSync();
+    final orderMigration = File(
+      'supabase/migrations/20260724180000_fix_recruitment_column_order.sql',
+    ).readAsStringSync();
 
-    expect(repository, contains("'reorder_recruitment_pipeline_stages'"));
+    expect(repository, contains("'reorder_recruitment_pipeline_stages_v2'"));
     expect(repository, contains("'reorder_recruitment_custom_fields'"));
     expect(repository, contains("'save_recruitment_application_from_crm'"));
     expect(repository, isNot(contains('Future.wait<void>(<Future<void>>[')));
-    expect(migration, contains('security invoker'));
-    expect(migration, contains('for update'));
-    expect(migration, contains('recruitment_status_history'));
+    expect(hardeningMigration, contains('security invoker'));
+    expect(hardeningMigration, contains('for update'));
+    expect(hardeningMigration, contains('recruitment_status_history'));
+    expect(orderMigration, contains('reorder_recruitment_pipeline_stages_v2'));
+    expect(orderMigration, contains('jsonb_agg'));
   });
 
   test('custom CRM fields support HR descriptions', () {
