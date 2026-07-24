@@ -15,6 +15,9 @@ type ChatRow = {
   sender_user_id: string | null;
   sender_name: string;
   kind: string;
+  channel_kind: string;
+  peer_user_id: string | null;
+  thread_key: string;
   body: string;
   created_at: string;
   deleted_at: string | null;
@@ -129,7 +132,7 @@ Deno.serve(async (request: Request) => {
     if (aiPermissionError) throw aiPermissionError;
     if (chatPermissionError) throw chatPermissionError;
     if (canUseAi !== true) return json({ error: "Для этой роли ИИ-помощник отключён" }, 403);
-    if (canViewChat !== true) return json({ error: "Нет доступа к чату компании" }, 403);
+    if (canViewChat !== true) return json({ error: "Нет доступа к чатам" }, 403);
 
     const admin: any = createClient(supabaseUrl, secret, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -147,7 +150,7 @@ Deno.serve(async (request: Request) => {
 
     const { data: sourceData, error: sourceError } = await admin
       .from("company_chat_messages")
-      .select("id,company_id,sender_user_id,sender_name,kind,body,created_at,deleted_at")
+      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at")
       .eq("company_id", companyId)
       .eq("id", sourceMessageId)
       .maybeSingle();
@@ -159,11 +162,15 @@ Deno.serve(async (request: Request) => {
     if (source.sender_user_id !== user.id) {
       return json({ error: "ИИ может отвечать только на твой запрос" }, 403);
     }
+    if (source.channel_kind !== "assistant" || source.peer_user_id !== user.id) {
+      return json({ error: "Открой раздел ИИ-помощника и отправь запрос там" }, 400);
+    }
 
     const { data: existing } = await admin
       .from("company_chat_messages")
       .select("id")
       .eq("company_id", companyId)
+      .eq("thread_key", source.thread_key)
       .eq("kind", "assistant")
       .eq("reply_to_id", sourceMessageId)
       .is("deleted_at", null)
@@ -175,6 +182,7 @@ Deno.serve(async (request: Request) => {
       .from("company_chat_messages")
       .select("id", { count: "exact", head: true })
       .eq("company_id", companyId)
+      .eq("thread_key", source.thread_key)
       .eq("kind", "assistant")
       .eq("ai_requester_user_id", user.id)
       .gte("created_at", recentThreshold);
@@ -185,8 +193,9 @@ Deno.serve(async (request: Request) => {
 
     const { data: recentData, error: recentError } = await admin
       .from("company_chat_messages")
-      .select("id,company_id,sender_user_id,sender_name,kind,body,created_at,deleted_at")
+      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at")
       .eq("company_id", companyId)
+      .eq("thread_key", source.thread_key)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(16);
@@ -199,10 +208,10 @@ Deno.serve(async (request: Request) => {
       .slice(-7000);
 
     const prompt = [
-      "Ты отвечаешь внутри общего рабочего чата компании AppСтрой.",
-      "Учитывай разговор, но факты о сотрудниках, объектах, задачах, табеле, выплатах и документах проверяй через доступные данные приложения.",
+      "Ты отвечаешь в личном диалоге ИИ-помощника AppСтрой.",
+      "Учитывай предыдущие сообщения этого пользователя, но факты о сотрудниках, объектах, задачах, табеле, выплатах и документах проверяй через доступные данные приложения.",
       "Не утверждай, что изменение выполнено: любые изменения должны остаться черновиком и требовать подтверждения пользователя.",
-      context ? `Последние сообщения чата:\n${context}` : "",
+      context ? `Предыдущие сообщения диалога:\n${context}` : "",
       `Запрос пользователя:\n${source.body}`,
     ].filter(Boolean).join("\n\n");
 
@@ -236,6 +245,9 @@ Deno.serve(async (request: Request) => {
         sender_name: "ИИ-помощник AppСтрой",
         sender_role: "ai",
         kind: "assistant",
+        channel_kind: "assistant",
+        peer_user_id: user.id,
+        thread_key: source.thread_key,
         body: resultText(aiData),
         reply_to_id: sourceMessageId,
         mentioned_user_ids: [user.id],
@@ -249,6 +261,7 @@ Deno.serve(async (request: Request) => {
         .from("company_chat_messages")
         .select("id")
         .eq("company_id", companyId)
+        .eq("thread_key", source.thread_key)
         .eq("kind", "assistant")
         .eq("reply_to_id", sourceMessageId)
         .is("deleted_at", null)
