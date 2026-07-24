@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../data/company_chat_repository.dart';
 import '../models/company_chat_models.dart';
-import 'company_chat_screen.dart';
 
 class CompanyChatShell extends StatefulWidget {
   final AppUserProfile profile;
@@ -23,21 +23,40 @@ class CompanyChatShell extends StatefulWidget {
   State<CompanyChatShell> createState() => _CompanyChatShellState();
 }
 
+class _PendingChatFile {
+  final XFile file;
+  final int size;
+
+  const _PendingChatFile({required this.file, required this.size});
+}
+
 class _CompanyChatShellState extends State<CompanyChatShell> {
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
   final List<CompanyChatMessage> messages = <CompanyChatMessage>[];
+  final List<CompanyChatThread> threads = <CompanyChatThread>[];
+  final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];
 
   StreamSubscription<void>? changesSubscription;
   Timer? refreshTimer;
   CompanyChatUnreadState unread = const CompanyChatUnreadState.empty();
-  bool panelOpen = true;
+  CompanyChatThread? selectedThread;
+  bool panelOpen = false;
   bool loading = true;
   bool refreshing = false;
   bool sending = false;
+  bool askingAi = false;
   String? errorText;
+  double panelWidth = 760;
+  double panelHeight = 560;
+  int threadRequestSerial = 0;
 
   String get companyId => widget.profile.activeCompanyId.trim();
+
+  String? get objectName {
+    final clean = widget.profile.objectName.trim();
+    return clean.isEmpty ? null : clean;
+  }
 
   @override
   void initState() {
@@ -56,13 +75,18 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       refreshTimer?.cancel();
       changesSubscription?.cancel();
       messages.clear();
+      threads.clear();
+      pendingFiles.clear();
       unread = const CompanyChatUnreadState.empty();
-      panelOpen = true;
+      selectedThread = null;
+      panelOpen = false;
       loading = true;
       refreshing = false;
       sending = false;
+      askingAi = false;
       errorText = null;
       messageController.clear();
+      threadRequestSerial += 1;
       start();
     }
   }
@@ -78,10 +102,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       refreshTimer?.cancel();
       refreshTimer = Timer(
         const Duration(milliseconds: 220),
-        () => refreshChat(markAsRead: panelOpen),
+        () => unawaited(refreshWorkspace(markAsRead: panelOpen)),
       );
     });
-    unawaited(refreshChat(markAsRead: panelOpen));
+    unawaited(loadInitial());
   }
 
   @override
@@ -94,101 +118,342 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
     super.dispose();
   }
 
-  Future<void> refreshChat({bool markAsRead = false}) async {
-    if (refreshing || companyId.isEmpty) return;
-    refreshing = true;
+  Future<void> loadInitial() async {
+    final request = ++threadRequestSerial;
+    if (mounted) {
+      setState(() {
+        loading = true;
+        errorText = null;
+      });
+    }
     try {
       final values = await Future.wait<dynamic>([
+        CompanyChatRepository.fetchThreads(),
         CompanyChatRepository.fetchUnreadState(),
-        CompanyChatRepository.fetchFeed(limit: 24),
       ]);
-      if (!mounted) return;
-
-      final nextMessages = values[1] as List<CompanyChatMessage>;
-      var nextUnread = values[0] as CompanyChatUnreadState;
-      if (markAsRead && nextMessages.isNotEmpty) {
-        try {
-          await CompanyChatRepository.markRead(
-            at: nextMessages.last.createdAt,
-          );
-          nextUnread = const CompanyChatUnreadState.empty();
-        } catch (_) {
-          // Чат остаётся доступным, даже если отметка прочтения временно не прошла.
-        }
-      }
-      if (!mounted) return;
+      if (!mounted || request != threadRequestSerial) return;
+      final nextThreads = values[0] as List<CompanyChatThread>;
+      final nextUnread = values[1] as CompanyChatUnreadState;
+      final nextSelected = _resolveSelected(nextThreads, selectedThread?.threadKey);
+      final nextMessages = nextSelected == null
+          ? const <CompanyChatMessage>[]
+          : await _fetchThreadMessages(nextSelected);
+      if (!mounted || request != threadRequestSerial) return;
       setState(() {
+        threads
+          ..clear()
+          ..addAll(nextThreads);
+        unread = nextUnread;
+        selectedThread = nextSelected;
         messages
           ..clear()
           ..addAll(nextMessages);
-        unread = nextUnread;
         loading = false;
         errorText = null;
       });
-      if (panelOpen) scrollToBottom();
+      if (panelOpen && nextSelected != null) {
+        await markThreadRead(nextSelected, nextMessages);
+      }
+      scrollToBottom(jump: true);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || request != threadRequestSerial) return;
       setState(() {
         loading = false;
         errorText = _error(error);
       });
+    }
+  }
+
+  Future<void> refreshWorkspace({bool markAsRead = false}) async {
+    if (refreshing || companyId.isEmpty) return;
+    refreshing = true;
+    final active = selectedThread;
+    try {
+      final values = await Future.wait<dynamic>([
+        CompanyChatRepository.fetchThreads(),
+        CompanyChatRepository.fetchUnreadState(),
+        if (panelOpen && active != null) _fetchThreadMessages(active),
+      ]);
+      if (!mounted) return;
+      final nextThreads = values[0] as List<CompanyChatThread>;
+      var nextUnread = values[1] as CompanyChatUnreadState;
+      final nextSelected = _resolveSelected(nextThreads, active?.threadKey);
+      final nextMessages = panelOpen && active != null
+          ? values[2] as List<CompanyChatMessage>
+          : null;
+      if (nextMessages != null &&
+          nextSelected != null &&
+          nextSelected.threadKey == active?.threadKey &&
+          markAsRead) {
+        await markThreadRead(nextSelected, nextMessages);
+        final refreshed = await Future.wait<dynamic>([
+          CompanyChatRepository.fetchThreads(),
+          CompanyChatRepository.fetchUnreadState(),
+        ]);
+        if (!mounted) return;
+        nextThreads
+          ..clear()
+          ..addAll(refreshed[0] as List<CompanyChatThread>);
+        nextUnread = refreshed[1] as CompanyChatUnreadState;
+      }
+      if (!mounted) return;
+      final resolved = _resolveSelected(nextThreads, nextSelected?.threadKey);
+      setState(() {
+        threads
+          ..clear()
+          ..addAll(nextThreads);
+        unread = nextUnread;
+        selectedThread = resolved;
+        if (nextMessages != null && resolved?.threadKey == active?.threadKey) {
+          messages
+            ..clear()
+            ..addAll(nextMessages);
+        }
+        errorText = null;
+        loading = false;
+      });
+      if (panelOpen && nextMessages != null) scrollToBottom();
+    } catch (_) {
+      // Следующее realtime-событие повторит обновление.
     } finally {
       refreshing = false;
     }
   }
 
-  void scrollToBottom() {
+  CompanyChatThread? _resolveSelected(
+    List<CompanyChatThread> values,
+    String? preferredKey,
+  ) {
+    if (values.isEmpty) return null;
+    if (preferredKey != null) {
+      for (final item in values) {
+        if (item.threadKey == preferredKey) return item;
+      }
+    }
+    for (final item in values) {
+      if (item.isGeneral) return item;
+    }
+    return values.first;
+  }
+
+  Future<List<CompanyChatMessage>> _fetchThreadMessages(
+    CompanyChatThread thread,
+  ) {
+    return CompanyChatRepository.fetchFeed(
+      limit: 120,
+      channelKind: thread.channelKind,
+      peerUserId: thread.peerUserId,
+    );
+  }
+
+  Future<void> markThreadRead(
+    CompanyChatThread thread,
+    List<CompanyChatMessage> values,
+  ) async {
+    await CompanyChatRepository.markRead(
+      at: values.isEmpty ? DateTime.now() : values.last.createdAt,
+      channelKind: thread.channelKind,
+      peerUserId: thread.peerUserId,
+    );
+  }
+
+  Future<void> selectThread(CompanyChatThread thread) async {
+    if (selectedThread?.threadKey == thread.threadKey || sending) return;
+    final request = ++threadRequestSerial;
+    setState(() {
+      selectedThread = thread;
+      messages.clear();
+      pendingFiles.clear();
+      messageController.clear();
+      loading = true;
+      errorText = null;
+    });
+    try {
+      final next = await _fetchThreadMessages(thread);
+      if (!mounted || request != threadRequestSerial) return;
+      await markThreadRead(thread, next);
+      final summaries = await Future.wait<dynamic>([
+        CompanyChatRepository.fetchThreads(),
+        CompanyChatRepository.fetchUnreadState(),
+      ]);
+      if (!mounted || request != threadRequestSerial) return;
+      final nextThreads = summaries[0] as List<CompanyChatThread>;
+      setState(() {
+        threads
+          ..clear()
+          ..addAll(nextThreads);
+        selectedThread = _resolveSelected(nextThreads, thread.threadKey);
+        unread = summaries[1] as CompanyChatUnreadState;
+        messages
+          ..clear()
+          ..addAll(next);
+        loading = false;
+      });
+      scrollToBottom(jump: true);
+    } catch (error) {
+      if (!mounted || request != threadRequestSerial) return;
+      setState(() {
+        loading = false;
+        errorText = _error(error);
+      });
+    }
+  }
+
+  void scrollToBottom({bool jump = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!scrollController.hasClients) return;
-      scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-      );
+      final target = scrollController.position.maxScrollExtent;
+      if (jump) {
+        scrollController.jumpTo(target);
+      } else {
+        scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+        );
+      }
     });
   }
 
   void openPanel() {
     if (panelOpen) return;
     setState(() => panelOpen = true);
-    unawaited(refreshChat(markAsRead: true));
-    scrollToBottom();
+    unawaited(refreshWorkspace(markAsRead: true));
   }
 
   void collapsePanel() {
     setState(() => panelOpen = false);
   }
 
-  Future<void> openChat() async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => CompanyChatScreen(profile: widget.profile),
-      ),
-    );
-    if (!mounted) return;
-    await refreshChat(markAsRead: panelOpen);
+  Future<void> pickFiles() async {
+    if (sending) return;
+    try {
+      final picked = await openFiles();
+      if (picked.isEmpty) return;
+      final next = <_PendingChatFile>[];
+      var total = pendingFiles.fold<int>(0, (sum, item) => sum + item.size);
+      for (final file in picked) {
+        if (pendingFiles.length + next.length >= 5) break;
+        final size = await file.length();
+        if (size <= 0) continue;
+        if (size > 20 * 1024 * 1024) {
+          showMessage('${file.name}: файл больше 20 МБ');
+          continue;
+        }
+        if (total + size > 40 * 1024 * 1024) {
+          showMessage('Общий размер вложений больше 40 МБ');
+          break;
+        }
+        total += size;
+        next.add(_PendingChatFile(file: file, size: size));
+      }
+      if (!mounted || next.isEmpty) return;
+      setState(() => pendingFiles.addAll(next));
+    } catch (error) {
+      showMessage('Не удалось выбрать файл: ${_error(error)}');
+    }
   }
 
-  Future<void> sendCompactMessage() async {
+  Future<void> sendMessage() async {
+    final thread = selectedThread;
     final text = messageController.text.trim();
-    if (sending || text.isEmpty || companyId.isEmpty) return;
+    if (thread == null || sending || (text.isEmpty && pendingFiles.isEmpty)) {
+      return;
+    }
+    final files = List<_PendingChatFile>.from(pendingFiles);
     setState(() => sending = true);
+    String? messageId;
     try {
-      await CompanyChatRepository.createMessage(
+      messageId = await CompanyChatRepository.createMessage(
         body: text,
         mentionedUserIds: const <String>[],
         clientNonce:
             '${widget.profile.id}-${DateTime.now().microsecondsSinceEpoch}',
+        channelKind: thread.channelKind,
+        peerUserId: thread.peerUserId,
       );
+      final failed = <String>[];
+      for (final item in files) {
+        try {
+          final bytes = await item.file.readAsBytes();
+          await CompanyChatRepository.uploadAttachment(
+            companyId: companyId,
+            messageId: messageId,
+            fileName: item.file.name,
+            mimeType: item.file.mimeType ?? _mimeFromName(item.file.name),
+            bytes: bytes,
+          );
+        } catch (_) {
+          failed.add(item.file.name);
+        }
+      }
+      if (text.isEmpty && files.isNotEmpty && failed.length == files.length) {
+        await CompanyChatRepository.deleteMessage(messageId);
+        throw Exception('Ни один файл не загрузился');
+      }
       if (!mounted) return;
-      messageController.clear();
-      await refreshChat(markAsRead: true);
-      scrollToBottom();
+      if (selectedThread?.threadKey == thread.threadKey) {
+        messageController.clear();
+        setState(() => pendingFiles.clear());
+      }
+      await refreshWorkspace(markAsRead: true);
+      if (failed.isNotEmpty) {
+        showMessage('Не загрузились: ${failed.join(', ')}');
+      }
+
+      if (thread.isAssistant) {
+        setState(() => askingAi = true);
+        try {
+          await CompanyChatRepository.askAi(
+            companyId: companyId,
+            sourceMessageId: messageId,
+            objectName: objectName,
+          );
+          await refreshWorkspace(markAsRead: true);
+        } catch (error) {
+          showMessage('ИИ не ответил: ${_error(error)}');
+        } finally {
+          if (mounted) setState(() => askingAi = false);
+        }
+      }
     } catch (error) {
       showMessage('Не удалось отправить: ${_error(error)}');
     } finally {
       if (mounted) setState(() => sending = false);
+      scrollToBottom();
     }
+  }
+
+  Future<void> openAttachment(CompanyChatAttachment attachment) async {
+    try {
+      final url = await CompanyChatRepository.createSignedAttachmentUrl(
+        attachment,
+      );
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw Exception('Не удалось открыть файл');
+    } catch (error) {
+      showMessage('Не удалось открыть файл: ${_error(error)}');
+    }
+  }
+
+  void resizePanel(
+    DragUpdateDetails details, {
+    required double minWidth,
+    required double maxWidth,
+    required double minHeight,
+    required double maxHeight,
+  }) {
+    setState(() {
+      panelWidth = (panelWidth - details.delta.dx)
+          .clamp(minWidth, maxWidth)
+          .toDouble();
+      panelHeight = (panelHeight - details.delta.dy)
+          .clamp(minHeight, maxHeight)
+          .toDouble();
+    });
   }
 
   void showMessage(String text) {
@@ -206,11 +471,14 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
     final size = MediaQuery.sizeOf(context);
     final padding = MediaQuery.viewPaddingOf(context);
     final bottomOffset = padding.bottom + 92;
-    final panelWidth = math.min(386.0, math.max(300.0, size.width - 24)).toDouble();
-    final availableHeight = size.height - bottomOffset - padding.top - 12;
-    final panelHeight = math
-        .min(520.0, math.max(310.0, availableHeight))
+    final maxWidth = math.max(280.0, size.width - 24).toDouble();
+    final maxHeight = math
+        .max(300.0, size.height - bottomOffset - padding.top - 12)
         .toDouble();
+    final minWidth = math.min(560.0, maxWidth).toDouble();
+    final minHeight = math.min(380.0, maxHeight).toDouble();
+    final shownWidth = panelWidth.clamp(minWidth, maxWidth).toDouble();
+    final shownHeight = panelHeight.clamp(minHeight, maxHeight).toDouble();
 
     return Stack(
       fit: StackFit.expand,
@@ -228,25 +496,41 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
               switchOutCurve: Curves.easeInCubic,
               child: panelOpen
                   ? SizedBox(
-                      key: const ValueKey<String>('company-chat-panel'),
-                      width: panelWidth,
-                      height: panelHeight,
-                      child: _CompactChatPanel(
+                      key: const ValueKey<String>('company-chat-workspace'),
+                      width: shownWidth,
+                      height: shownHeight,
+                      child: _ChatWorkspacePanel(
                         currentUserId: widget.profile.id,
+                        threads: threads,
+                        selectedThread: selectedThread,
                         messages: messages,
                         unread: unread,
                         loading: loading,
                         errorText: errorText,
                         sending: sending,
+                        askingAi: askingAi,
+                        pendingFiles: pendingFiles,
                         messageController: messageController,
                         scrollController: scrollController,
+                        onSelectThread: selectThread,
                         onCollapse: collapsePanel,
-                        onOpenFull: openChat,
-                        onRetry: () => refreshChat(markAsRead: true),
-                        onSend: sendCompactMessage,
+                        onRetry: loadInitial,
+                        onPickFiles: pickFiles,
+                        onRemovePending: (item) {
+                          setState(() => pendingFiles.remove(item));
+                        },
+                        onSend: sendMessage,
+                        onOpenAttachment: openAttachment,
+                        onResize: (details) => resizePanel(
+                          details,
+                          minWidth: minWidth,
+                          maxWidth: maxWidth,
+                          minHeight: minHeight,
+                          maxHeight: maxHeight,
+                        ),
                       ),
                     )
-                  : _ChatLauncherPill(
+                  : _ChatLauncherButton(
                       key: const ValueKey<String>('company-chat-launcher'),
                       unread: unread,
                       onPressed: openPanel,
@@ -259,79 +543,150 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
   }
 }
 
-class _CompactChatPanel extends StatelessWidget {
+class _ChatWorkspacePanel extends StatelessWidget {
   final String currentUserId;
+  final List<CompanyChatThread> threads;
+  final CompanyChatThread? selectedThread;
   final List<CompanyChatMessage> messages;
   final CompanyChatUnreadState unread;
   final bool loading;
   final String? errorText;
   final bool sending;
+  final bool askingAi;
+  final List<_PendingChatFile> pendingFiles;
   final TextEditingController messageController;
   final ScrollController scrollController;
+  final ValueChanged<CompanyChatThread> onSelectThread;
   final VoidCallback onCollapse;
-  final VoidCallback onOpenFull;
   final VoidCallback onRetry;
+  final VoidCallback onPickFiles;
+  final ValueChanged<_PendingChatFile> onRemovePending;
   final VoidCallback onSend;
+  final ValueChanged<CompanyChatAttachment> onOpenAttachment;
+  final ValueChanged<DragUpdateDetails> onResize;
 
-  const _CompactChatPanel({
+  const _ChatWorkspacePanel({
     required this.currentUserId,
+    required this.threads,
+    required this.selectedThread,
     required this.messages,
     required this.unread,
     required this.loading,
     required this.errorText,
     required this.sending,
+    required this.askingAi,
+    required this.pendingFiles,
     required this.messageController,
     required this.scrollController,
+    required this.onSelectThread,
     required this.onCollapse,
-    required this.onOpenFull,
     required this.onRetry,
+    required this.onPickFiles,
+    required this.onRemovePending,
     required this.onSend,
+    required this.onOpenAttachment,
+    required this.onResize,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      elevation: 18,
-      shadowColor: Colors.black.withValues(alpha: 0.28),
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(22),
-      clipBehavior: Clip.antiAlias,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: scheme.outlineVariant),
+    return Stack(
+      children: [
+        Material(
+          elevation: 18,
+          shadowColor: Colors.black.withValues(alpha: 0.28),
+          color: scheme.surface,
           borderRadius: BorderRadius.circular(22),
+          clipBehavior: Clip.antiAlias,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: scheme.outlineVariant),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Row(
+              children: [
+                _ThreadSidebar(
+                  threads: threads,
+                  selectedThread: selectedThread,
+                  onSelectThread: onSelectThread,
+                ),
+                VerticalDivider(width: 1, color: scheme.outlineVariant),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _header(context),
+                      Divider(height: 1, color: scheme.outlineVariant),
+                      Expanded(child: _body(context)),
+                      _composer(context),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _header(context),
-            Divider(height: 1, color: scheme.outlineVariant),
-            Expanded(child: _body(context)),
-            _composer(context),
-          ],
+        Positioned(
+          left: 0,
+          top: 0,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.resizeUpLeftDownRight,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: onResize,
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Icon(
+                    Icons.drag_handle_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _header(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final thread = selectedThread;
+    final subtitle = thread == null
+        ? 'Выберите диалог слева'
+        : thread.isGeneral
+        ? 'Общий чат сотрудников'
+        : thread.isAssistant
+        ? 'Личный диалог с ИИ-помощником'
+        : AppUserProfile.titleForRole(thread.role);
     return Container(
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-      padding: const EdgeInsets.fromLTRB(13, 9, 7, 9),
+      padding: const EdgeInsets.fromLTRB(16, 9, 7, 9),
       child: Row(
         children: [
           Container(
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: scheme.primaryContainer,
+              color: thread?.isAssistant == true
+                  ? scheme.tertiaryContainer
+                  : scheme.primaryContainer,
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(
-              Icons.forum_rounded,
-              color: scheme.onPrimaryContainer,
+              thread?.isAssistant == true
+                  ? Icons.auto_awesome_rounded
+                  : thread?.isDirect == true
+                  ? Icons.person_rounded
+                  : Icons.forum_rounded,
+              color: thread?.isAssistant == true
+                  ? scheme.onTertiaryContainer
+                  : scheme.onPrimaryContainer,
               size: 19,
             ),
           ),
@@ -340,50 +695,17 @@ class _CompactChatPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Flexible(
-                      child: Text(
-                        'Чат компании',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    if (unread.unreadCount > 0) ...[
-                      const SizedBox(width: 7),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: unread.mentionCount > 0
-                              ? scheme.error
-                              : scheme.primary,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          unread.unreadCount > 99
-                              ? '99+'
-                              : '${unread.unreadCount}',
-                          style: TextStyle(
-                            color: unread.mentionCount > 0
-                                ? scheme.onError
-                                : scheme.onPrimary,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  thread?.title ?? 'Чаты',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 Text(
-                  'Общий чат · ИИ-помощник внутри',
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -395,17 +717,16 @@ class _CompactChatPanel extends StatelessWidget {
               ],
             ),
           ),
+          if (unread.unreadCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: _UnreadBadge(count: unread.unreadCount),
+            ),
           IconButton(
             visualDensity: VisualDensity.compact,
-            tooltip: 'Открыть на весь экран',
-            onPressed: onOpenFull,
-            icon: const Icon(Icons.open_in_full_rounded, size: 18),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Свернуть чат',
+            tooltip: 'Свернуть',
             onPressed: onCollapse,
-            icon: const Icon(Icons.remove_rounded, size: 21),
+            icon: const Icon(Icons.remove_rounded, size: 22),
           ),
         ],
       ),
@@ -436,7 +757,7 @@ class _CompactChatPanel extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Чат пока не загрузился',
+                'Чаты пока не загрузились',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
@@ -463,7 +784,11 @@ class _CompactChatPanel extends StatelessWidget {
         ),
       );
     }
+    if (selectedThread == null) {
+      return const Center(child: Text('Выберите диалог слева'));
+    }
     if (messages.isEmpty) {
+      final assistant = selectedThread!.isAssistant;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(22),
@@ -474,24 +799,35 @@ class _CompactChatPanel extends StatelessWidget {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
+                  color: assistant
+                      ? scheme.tertiaryContainer
+                      : scheme.primaryContainer,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Icon(
-                  Icons.waving_hand_rounded,
-                  color: scheme.onPrimaryContainer,
+                  assistant
+                      ? Icons.auto_awesome_rounded
+                      : Icons.chat_bubble_outline_rounded,
+                  color: assistant
+                      ? scheme.onTertiaryContainer
+                      : scheme.onPrimaryContainer,
                   size: 28,
                 ),
               ),
               const SizedBox(height: 13),
-              const Text(
-                'Сообщений пока нет',
+              Text(
+                assistant ? 'Спроси ИИ-помощника' : 'Сообщений пока нет',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 5),
               Text(
-                'Напиши первое сообщение. Файлы, упоминания и ИИ доступны в полном чате.',
+                assistant
+                    ? 'Помощник работает в отдельном личном диалоге и не отправляет ответы в общий чат.'
+                    : 'Напишите первое сообщение или прикрепите фото и файл.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
@@ -499,12 +835,6 @@ class _CompactChatPanel extends StatelessWidget {
                   height: 1.35,
                   fontWeight: FontWeight.w600,
                 ),
-              ),
-              const SizedBox(height: 9),
-              TextButton.icon(
-                onPressed: onOpenFull,
-                icon: const Icon(Icons.open_in_full_rounded, size: 17),
-                label: const Text('Открыть полный чат'),
               ),
             ],
           ),
@@ -516,7 +846,7 @@ class _CompactChatPanel extends StatelessWidget {
       color: scheme.surfaceContainerLowest.withValues(alpha: 0.5),
       child: ListView.builder(
         controller: scrollController,
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         itemCount: messages.length,
         itemBuilder: (context, index) => _messageBubble(
           context,
@@ -530,81 +860,126 @@ class _CompactChatPanel extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final own = message.senderUserId == currentUserId;
     final assistant = message.isAssistant;
-    final alignment = assistant
-        ? Alignment.center
-        : own
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
+    final alignment = own ? Alignment.centerRight : Alignment.centerLeft;
     final color = assistant
         ? scheme.tertiaryContainer
         : own
         ? scheme.primaryContainer
         : scheme.surfaceContainerHighest;
-    final body = message.isDeleted
-        ? 'Сообщение удалено'
-        : message.body.trim().isEmpty
-        ? (message.attachments.isEmpty
-              ? 'Сообщение'
-              : 'Вложений: ${message.attachments.length}')
-        : message.body.trim();
+    final body = message.isDeleted ? 'Сообщение удалено' : message.body.trim();
 
     return Align(
       alignment: alignment,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 300),
-        margin: const EdgeInsets.only(bottom: 7),
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
+        constraints: const BoxConstraints(maxWidth: 430),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(11, 9, 11, 7),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: scheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  assistant
-                      ? Icons.auto_awesome_rounded
-                      : Icons.person_rounded,
-                  size: 12,
-                  color: assistant
-                      ? scheme.tertiary
-                      : scheme.onSurfaceVariant,
+            if (!own || selectedThread?.isGeneral == true || assistant) ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    assistant
+                        ? Icons.auto_awesome_rounded
+                        : Icons.person_rounded,
+                    size: 12,
+                    color: assistant
+                        ? scheme.tertiary
+                        : scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      assistant ? 'ИИ-помощник' : message.senderName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            if (body.isNotEmpty)
+              SelectableText(
+                body,
+                style: TextStyle(
+                  color: message.isDeleted
+                      ? scheme.onSurfaceVariant
+                      : scheme.onSurface,
+                  fontSize: 12.5,
+                  height: 1.35,
+                  fontStyle: message.isDeleted
+                      ? FontStyle.italic
+                      : FontStyle.normal,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    assistant ? 'ИИ-помощник AppСтрой' : message.senderName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
+              ),
+            if (message.attachments.isNotEmpty) ...[
+              if (body.isNotEmpty) const SizedBox(height: 7),
+              ...message.attachments.map(
+                (attachment) => Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Material(
+                    color: scheme.surface.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => onOpenAttachment(attachment),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 7,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              attachment.isImage
+                                  ? Icons.image_outlined
+                                  : Icons.attach_file_rounded,
+                              size: 17,
+                            ),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: Text(
+                                attachment.fileName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Text(
+                              _fileSize(attachment.sizeBytes),
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              body,
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: message.isDeleted
-                    ? scheme.onSurfaceVariant
-                    : scheme.onSurface,
-                fontSize: 12,
-                height: 1.3,
-                fontStyle: message.isDeleted
-                    ? FontStyle.italic
-                    : FontStyle.normal,
-                fontWeight: FontWeight.w600,
               ),
-            ),
+            ],
             const SizedBox(height: 4),
             Align(
               alignment: Alignment.centerRight,
@@ -625,74 +1000,367 @@ class _CompactChatPanel extends StatelessWidget {
 
   Widget _composer(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final assistant = selectedThread?.isAssistant == true;
     return Container(
-      padding: const EdgeInsets.fromLTRB(9, 8, 9, 9),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(top: BorderSide(color: scheme.outlineVariant)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          IconButton(
-            tooltip: 'Файлы, упоминания и ИИ',
-            onPressed: onOpenFull,
-            icon: const Icon(Icons.add_circle_outline_rounded),
-          ),
-          Expanded(
-            child: TextField(
-              controller: messageController,
-              enabled: !sending,
-              minLines: 1,
-              maxLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: 'Сообщение в чат…',
-                isDense: true,
-                filled: true,
-                fillColor: scheme.surfaceContainerHighest.withValues(
-                  alpha: 0.62,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
+          if (pendingFiles.isNotEmpty)
+            SizedBox(
+              height: 47,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
+                itemCount: pendingFiles.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final item = pendingFiles[index];
+                  return InputChip(
+                    avatar: Icon(
+                      _isImageName(item.file.name)
+                          ? Icons.image_outlined
+                          : Icons.attach_file_rounded,
+                      size: 16,
+                    ),
+                    label: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 150),
+                      child: Text(
+                        item.file.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    onDeleted: sending ? null : () => onRemovePending(item),
+                  );
+                },
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          IconButton.filled(
-            tooltip: 'Отправить',
-            onPressed: sending ? null : onSend,
-            icon: sending
-                ? const SizedBox.square(
-                    dimension: 17,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send_rounded, size: 19),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 7, 8, 9),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: 'Прикрепить фото или файл',
+                  onPressed: sending || selectedThread == null
+                      ? null
+                      : onPickFiles,
+                  icon: const Icon(Icons.attach_file_rounded),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: messageController,
+                    enabled: !sending && selectedThread != null,
+                    minLines: 1,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => onSend(),
+                    decoration: InputDecoration(
+                      hintText: assistant
+                          ? 'Сообщение ИИ-помощнику…'
+                          : 'Сообщение…',
+                      isDense: true,
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.62,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton.filled(
+                  tooltip: assistant ? 'Отправить ИИ' : 'Отправить',
+                  onPressed: sending || askingAi || selectedThread == null
+                      ? null
+                      : onSend,
+                  icon: sending || askingAi
+                      ? const SizedBox.square(
+                          dimension: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          assistant
+                              ? Icons.auto_awesome_rounded
+                              : Icons.send_rounded,
+                          size: 19,
+                        ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _time(DateTime value) {
+  static String _time(DateTime value) {
     final local = value.toLocal();
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
+
+  static String _fileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+  }
 }
 
-class _ChatLauncherPill extends StatelessWidget {
+class _ThreadSidebar extends StatelessWidget {
+  final List<CompanyChatThread> threads;
+  final CompanyChatThread? selectedThread;
+  final ValueChanged<CompanyChatThread> onSelectThread;
+
+  const _ThreadSidebar({
+    required this.threads,
+    required this.selectedThread,
+    required this.onSelectThread,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final general = threads.where((item) => item.isGeneral).toList();
+    final direct = threads.where((item) => item.isDirect).toList();
+    final assistant = threads.where((item) => item.isAssistant).toList();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = math.min(230.0, math.max(150.0, constraints.maxWidth * 0.31));
+        return SizedBox(
+          width: width,
+          child: ColoredBox(
+            color: scheme.surfaceContainerLowest.withValues(alpha: 0.72),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 15, 12, 8),
+                  child: Text(
+                    'Чаты',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                if (general.isNotEmpty)
+                  _ThreadTile(
+                    thread: general.first,
+                    selected: selectedThread?.threadKey == general.first.threadKey,
+                    onTap: () => onSelectThread(general.first),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                  child: Text(
+                    'СОТРУДНИКИ',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: direct.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              'Нет других пользователей компании',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 11,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          itemCount: direct.length,
+                          itemBuilder: (context, index) {
+                            final item = direct[index];
+                            return _ThreadTile(
+                              thread: item,
+                              selected:
+                                  selectedThread?.threadKey == item.threadKey,
+                              onTap: () => onSelectThread(item),
+                            );
+                          },
+                        ),
+                ),
+                if (assistant.isNotEmpty) ...[
+                  Divider(height: 1, color: scheme.outlineVariant),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: _ThreadTile(
+                      thread: assistant.first,
+                      selected:
+                          selectedThread?.threadKey == assistant.first.threadKey,
+                      onTap: () => onSelectThread(assistant.first),
+                      assistant: true,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThreadTile extends StatelessWidget {
+  final CompanyChatThread thread;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool assistant;
+
+  const _ThreadTile({
+    required this.thread,
+    required this.selected,
+    required this.onTap,
+    this.assistant = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final subtitle = thread.lastMessagePreview.isNotEmpty
+        ? thread.lastMessagePreview
+        : thread.isDirect
+        ? AppUserProfile.titleForRole(thread.role)
+        : thread.isAssistant
+        ? 'Помощник AppСтрой'
+        : 'Для всей компании';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: selected
+            ? (assistant
+                  ? scheme.tertiaryContainer
+                  : scheme.primaryContainer)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: assistant
+                      ? scheme.tertiaryContainer
+                      : selected
+                      ? scheme.primary
+                      : scheme.surfaceContainerHighest,
+                  foregroundColor: assistant
+                      ? scheme.onTertiaryContainer
+                      : selected
+                      ? scheme.onPrimary
+                      : scheme.onSurfaceVariant,
+                  child: assistant
+                      ? const Icon(Icons.auto_awesome_rounded, size: 17)
+                      : thread.isGeneral
+                      ? const Icon(Icons.groups_rounded, size: 18)
+                      : Text(
+                          _initials(thread.title),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        thread.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected
+                              ? scheme.onSurface
+                              : scheme.onSurfaceVariant,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (thread.unreadCount > 0) ...[
+                  const SizedBox(width: 5),
+                  _UnreadBadge(count: thread.unreadCount),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  final int count;
+
+  const _UnreadBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: TextStyle(
+          color: scheme.onPrimary,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatLauncherButton extends StatelessWidget {
   final CompanyChatUnreadState unread;
   final VoidCallback onPressed;
 
-  const _ChatLauncherPill({
+  const _ChatLauncherButton({
     super.key,
     required this.unread,
     required this.onPressed,
@@ -704,67 +1372,77 @@ class _ChatLauncherPill extends StatelessWidget {
     final count = unread.unreadCount;
     return Semantics(
       button: true,
-      label: count > 0 ? 'Чат компании, непрочитанных: $count' : 'Чат компании',
-      child: Material(
-        color: scheme.primary,
-        elevation: 10,
-        shadowColor: Colors.black.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(999),
-          onTap: onPressed,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(13, 10, 14, 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  unread.mentionCount > 0
+      label: count > 0 ? 'Открыть чат, непрочитанных: $count' : 'Открыть чат',
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: scheme.primary,
+            elevation: 10,
+            shadowColor: Colors.black.withValues(alpha: 0.24),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onPressed,
+              child: SizedBox.square(
+                dimension: 54,
+                child: Icon(
+                  count > 0
                       ? Icons.mark_chat_unread_rounded
-                      : Icons.forum_rounded,
+                      : Icons.chat_bubble_rounded,
                   color: scheme.onPrimary,
-                  size: 21,
+                  size: 24,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Чат компании',
-                  style: TextStyle(
-                    color: scheme.onPrimary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                if (count > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: unread.mentionCount > 0
-                          ? scheme.error
-                          : scheme.tertiary,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      count > 99 ? '99+' : '$count',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: unread.mentionCount > 0
-                            ? scheme.onError
-                            : scheme.onTertiary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+          if (count > 0)
+            Positioned(
+              right: -4,
+              top: -5,
+              child: _UnreadBadge(count: count),
+            ),
+        ],
       ),
     );
   }
+}
+
+String _initials(String value) {
+  final parts = value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((item) => item.isNotEmpty)
+      .take(2)
+      .toList(growable: false);
+  if (parts.isEmpty) return '?';
+  return parts.map((item) => item.characters.first.toUpperCase()).join();
+}
+
+bool _isImageName(String name) {
+  final lower = name.toLowerCase();
+  return lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.gif') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.heic');
+}
+
+String _mimeFromName(String name) {
+  final lower = name.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+  if (lower.endsWith('.xlsx')) {
+    return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  }
+  return 'application/octet-stream';
 }
