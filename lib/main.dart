@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_dark_theme.dart';
+import 'app/app_scale_viewport.dart';
 import 'app/app_theme.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
@@ -120,6 +121,10 @@ class _SkbsAppState extends State<SkbsApp> {
           themeMode: themeController.themeMode,
           themeAnimationDuration: const Duration(milliseconds: 220),
           themeAnimationCurve: Curves.easeOutCubic,
+          builder: (context, child) => AppScaleViewport(
+            scale: themeController.uiScale,
+            child: child ?? const SizedBox.shrink(),
+          ),
           home: widget.startupError == null
               ? const AppBrowserBackBridge(child: AuthGate())
               : _StartupErrorScreen(error: widget.startupError!),
