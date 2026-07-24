@@ -69,6 +69,13 @@ void main() {
   });
 
   test('control-state patch remains presentation-only', () {
+    const dataAccessPatterns = <String>[
+      'Supabase.instance',
+      '.from(',
+      '.rpc(',
+      '.functions.invoke(',
+      '.storage.from(',
+    ];
     for (final path in <String>[
       'lib/screens/desktop_timesheet_screen.dart',
       'lib/features/foreman/presentation/foreman_home_summary_widgets.dart',
@@ -77,9 +84,9 @@ void main() {
     ]) {
       final source = File(path).readAsStringSync();
       expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
-      expect(source, isNot(contains('.insert(')), reason: path);
-      expect(source, isNot(contains('.update(')), reason: path);
-      expect(source, isNot(contains('.delete(')), reason: path);
+      for (final pattern in dataAccessPatterns) {
+        expect(source, isNot(contains(pattern)), reason: '$path: $pattern');
+      }
     }
   });
 }
