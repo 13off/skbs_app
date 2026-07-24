@@ -13,8 +13,8 @@ void expectContains(String path, Iterable<String> values) {
 
 void main() {
   test('руководитель управляет всеми внутренними настройками уведомлений', () {
-    expectContains('lib/screens/profile_screen.dart', const [
-      'Настройка уведомлений',
+    expectContains('lib/screens/settings_screen.dart', const [
+      'Правила уведомлений компании',
       'NotificationControlCenterScreen',
     ]);
     expectContains(
