@@ -150,6 +150,7 @@ class _RecruitmentCrmSettingsScreenState
         id: field?.id ?? '',
         companyId: widget.profile.activeCompanyId,
         title: result.title,
+        description: result.description,
         fieldType: result.fieldType,
         options: result.options,
         isRequired: result.isRequired,
@@ -548,6 +549,19 @@ class _RecruitmentCrmSettingsScreenState
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (field.description.isNotEmpty) ...[
+                    const SizedBox(height: AppUi.gap4),
+                    Text(
+                      field.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                   if (field.options.isNotEmpty) ...[
                     const SizedBox(height: AppUi.gap4),
                     Text(
@@ -771,6 +785,7 @@ class _FieldEditor extends StatefulWidget {
 
 class _FieldEditorState extends State<_FieldEditor> {
   late final TextEditingController titleController;
+  late final TextEditingController descriptionController;
   late final TextEditingController optionsController;
   late String fieldType;
   late bool isRequired;
@@ -784,6 +799,8 @@ class _FieldEditorState extends State<_FieldEditor> {
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.field?.title ?? '');
+    descriptionController =
+        TextEditingController(text: widget.field?.description ?? '');
     optionsController =
         TextEditingController(text: widget.field?.options.join('\n') ?? '');
     fieldType = widget.field?.fieldType ?? 'text';
@@ -794,6 +811,7 @@ class _FieldEditorState extends State<_FieldEditor> {
   @override
   void dispose() {
     titleController.dispose();
+    descriptionController.dispose();
     optionsController.dispose();
     super.dispose();
   }
@@ -818,6 +836,7 @@ class _FieldEditorState extends State<_FieldEditor> {
       context,
       _FieldDraft(
         title: title,
+        description: descriptionController.text.trim(),
         fieldType: fieldType,
         options: supportsOptions ? options : const <String>[],
         isRequired: isRequired,
@@ -840,6 +859,17 @@ class _FieldEditorState extends State<_FieldEditor> {
             decoration: const InputDecoration(
               labelText: 'Название поля',
               prefixIcon: Icon(Icons.label_outline_rounded),
+            ),
+          ),
+          const SizedBox(height: AppUi.gap12),
+          TextField(
+            controller: descriptionController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Описание / подсказка',
+              hintText: 'Что именно HR должен указать в этом поле',
+              prefixIcon: Icon(Icons.info_outline_rounded),
             ),
           ),
           const SizedBox(height: AppUi.gap12),
@@ -1072,6 +1102,7 @@ class _StageDraft {
 
 class _FieldDraft {
   final String title;
+  final String description;
   final String fieldType;
   final List<String> options;
   final bool isRequired;
@@ -1079,6 +1110,7 @@ class _FieldDraft {
 
   const _FieldDraft({
     required this.title,
+    required this.description,
     required this.fieldType,
     required this.options,
     required this.isRequired,

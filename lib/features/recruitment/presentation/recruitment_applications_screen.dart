@@ -1318,6 +1318,7 @@ class _RecruitmentApplicationEditorState
         return SwitchListTile.adaptive(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           title: Text('${field.title}$requiredSuffix'),
+          subtitle: field.description.isEmpty ? null : Text(field.description),
           value: customValues[field.id] == true,
           onChanged: saving
               ? null
@@ -1330,6 +1331,7 @@ class _RecruitmentApplicationEditorState
           decoration: InputDecoration(
             labelText: '${field.title}$requiredSuffix',
             prefixIcon: const Icon(Icons.format_list_bulleted_rounded),
+            helperText: field.description.isEmpty ? null : field.description,
           ),
           items: field.options
               .map(
@@ -1358,6 +1360,7 @@ class _RecruitmentApplicationEditorState
           decoration: InputDecoration(
             labelText: '${field.title}$requiredSuffix',
             prefixIcon: const Icon(Icons.checklist_rounded),
+            helperText: field.description.isEmpty ? null : field.description,
           ),
           child: Wrap(
             spacing: AppUi.gap8,
@@ -1387,7 +1390,11 @@ class _RecruitmentApplicationEditorState
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: const Icon(Icons.event_outlined),
           title: Text('${field.title}$requiredSuffix'),
-          subtitle: Text(dateText(value)),
+          subtitle: Text(
+            field.description.isEmpty
+                ? dateText(value)
+                : '${dateText(value)}\n${field.description}',
+          ),
           trailing: value == null
               ? const Icon(Icons.chevron_right_rounded)
               : IconButton(
@@ -1422,7 +1429,9 @@ class _RecruitmentApplicationEditorState
             labelText: '${field.title}$requiredSuffix',
             prefixIcon: Icon(_customFieldIcon(field.fieldType)),
             suffixText: field.fieldType == 'money' ? '₽' : null,
-            helperText: numeric ? 'Только числовое значение' : null,
+            helperText: field.description.isNotEmpty
+                ? field.description
+                : (numeric ? 'Только числовое значение' : null),
           ),
         );
     }

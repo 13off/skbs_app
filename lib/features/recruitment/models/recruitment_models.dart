@@ -346,6 +346,7 @@ class RecruitmentCustomField {
   final String id;
   final String companyId;
   final String title;
+  final String description;
   final String fieldType;
   final List<String> options;
   final bool isRequired;
@@ -357,6 +358,7 @@ class RecruitmentCustomField {
     required this.id,
     required this.companyId,
     required this.title,
+    this.description = '',
     required this.fieldType,
     required this.options,
     required this.isRequired,
@@ -382,6 +384,7 @@ class RecruitmentCustomField {
       id: map['id']?.toString() ?? '',
       companyId: map['company_id']?.toString() ?? '',
       title: map['title']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
       fieldType: map['field_type']?.toString() ?? 'text',
       options: options,
       isRequired: map['is_required'] == true,
