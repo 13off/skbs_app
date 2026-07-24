@@ -1,9 +1,9 @@
 name: Agent export company chat source
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/company-chat-ai
+      - main
   workflow_dispatch:
 
 permissions:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   export:
+    if: github.head_ref == 'agent/company-chat-ai' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
