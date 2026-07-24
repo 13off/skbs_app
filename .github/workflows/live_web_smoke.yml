@@ -26,62 +26,65 @@ jobs:
           npm install playwright@1.54.1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
       - name: Open live AppStroy and capture failures
+        shell: bash
         run: |
+          set +e
           mkdir -p .diagnostics
+          {
+            echo '=== CURL ROOT ==='
+            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/
+            echo '=== CURL BOOTSTRAP ==='
+            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/flutter_bootstrap.js
+            echo '=== CURL MAIN ==='
+            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/main.dart.js
+            echo '=== CURL CANVASKIT CDN ==='
+            curl -I -L --max-time 60 https://www.gstatic.com/flutter-canvaskit/a4ce257c68517c1410f4b48ac9852ab5642a3f8d/canvaskit.js
+          } > .diagnostics/curl.log 2>&1
           cat > /tmp/smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { writeFile } from 'node:fs/promises';
           const url = 'https://13off.github.io/appstroy-web/';
-          const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-          const consoleMessages = [];
-          const errors = [];
-          const failed = [];
-          const responses = [];
-          page.on('console', msg => {
-            consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
-            if (msg.type() === 'error') errors.push(msg.text());
-          });
-          page.on('pageerror', error => errors.push(error.stack || error.message));
-          page.on('requestfailed', request => failed.push({
-            url: request.url(),
-            error: request.failure()?.errorText || 'unknown',
-          }));
-          page.on('response', response => {
-            if (response.status() >= 400) responses.push({ status: response.status(), url: response.url() });
-          });
-          let navigationStatus = null;
-          let navigationError = null;
+          const result = { checkedAt: new Date().toISOString(), requestedUrl: url, consoleMessages: [], errors: [], failed: [], badResponses: [] };
+          let browser;
           try {
-            const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-            navigationStatus = response?.status() ?? null;
-            await page.waitForTimeout(30000);
+            browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            page.on('console', msg => {
+              result.consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
+              if (msg.type() === 'error') result.errors.push(msg.text());
+            });
+            page.on('pageerror', error => result.errors.push(error.stack || error.message));
+            page.on('requestfailed', request => result.failed.push({ url: request.url(), error: request.failure()?.errorText || 'unknown' }));
+            page.on('response', response => {
+              if (response.status() >= 400) result.badResponses.push({ status: response.status(), url: response.url() });
+            });
+            try {
+              const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              result.navigationStatus = response?.status() ?? null;
+              await page.waitForTimeout(30000);
+            } catch (error) {
+              result.navigationError = error.stack || error.message;
+            }
+            result.finalUrl = page.url();
+            result.title = await page.title().catch(() => '');
+            result.body = await page.locator('body').innerText().catch(() => '');
+            result.flutterViews = await page.locator('flutter-view').count().catch(() => -1);
+            result.canvases = await page.locator('canvas').count().catch(() => -1);
+            await page.screenshot({ path: '.diagnostics/live-web-smoke.png', fullPage: true }).catch(error => { result.screenshotError = String(error); });
           } catch (error) {
-            navigationError = error.stack || error.message;
+            result.runnerError = error.stack || error.message;
+          } finally {
+            await browser?.close().catch(() => {});
+            await writeFile('.diagnostics/live-web-smoke.json', JSON.stringify(result, null, 2));
           }
-          const result = {
-            checkedAt: new Date().toISOString(),
-            url: page.url(),
-            navigationStatus,
-            navigationError,
-            title: await page.title().catch(() => ''),
-            body: await page.locator('body').innerText().catch(() => ''),
-            flutterViews: await page.locator('flutter-view').count().catch(() => -1),
-            canvases: await page.locator('canvas').count().catch(() => -1),
-            consoleMessages,
-            errors,
-            failed,
-            badResponses: responses,
-          };
-          await page.screenshot({ path: '.diagnostics/live-web-smoke.png', fullPage: true }).catch(() => {});
-          await writeFile('.diagnostics/live-web-smoke.json', JSON.stringify(result, null, 2));
-          await browser.close();
           EOF
-          node /tmp/smoke.mjs
+          node /tmp/smoke.mjs > .diagnostics/node.log 2>&1
+          echo "node_exit=$?" >> .diagnostics/node.log
+          exit 0
       - name: Commit diagnostics
         run: |
           git config user.name "appstroy-agent"
           git config user.email "appstroy-agent@users.noreply.github.com"
-          git add .diagnostics/live-web-smoke.json .diagnostics/live-web-smoke.png
+          git add .diagnostics
           git commit -m "Сохранить диагностику живой web-версии" || exit 0
           git push origin HEAD:agent/live-web-smoke
