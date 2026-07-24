@@ -1,0 +1,30 @@
+name: Agent validate compact chat
+
+on:
+  push:
+    branches:
+      - agent/compact-visible-company-chat
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib/features/company_chat/presentation/company_chat_shell.dart test/company_chat_compact_window_contract_test.dart
+      - name: Analyze source
+        run: flutter analyze
+      - name: Run chat contract tests
+        run: flutter test test/company_chat_compact_window_contract_test.dart test/company_chat_repository_contract_test.dart test/company_chat_ai_contract_test.dart
+      - name: Build web release
+        run: flutter build web --release
