@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также запускает штатную Web/PWA-публикацию после слияния.
 void main() {
   test('profile stays personal and opens the unified settings center', () {
     final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
