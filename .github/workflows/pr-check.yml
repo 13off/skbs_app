@@ -39,13 +39,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import textwrap
 
           workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
           source = workflow.read_text(encoding='utf-8')
           start = source.index('          from pathlib import Path')
           end = source.index('\n          PY', start)
-          code = textwrap.dedent(source[start:end])
+          lines = source[start:end].splitlines()
+          code = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in lines
+          )
           exec(compile(code, str(workflow), 'exec'))
           PY
 
