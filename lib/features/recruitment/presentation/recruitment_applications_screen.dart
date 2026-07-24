@@ -47,7 +47,10 @@ class _RecruitmentApplicationsScreenState
   StreamSubscription<AppDataChange>? changesSubscription;
   final Set<String> archiveBusyIds = <String>{};
   final Set<String> movingIds = <String>{};
+  final Map<String, String> pendingStageIds = <String, String>{};
   final Set<String> selectedIds = <String>{};
+  String? draggingApplicationId;
+  bool stageMutationBusy = false;
   RecruitmentViewMode viewMode = RecruitmentViewMode.board;
   RecruitmentSortMode sortMode = RecruitmentSortMode.updatedDesc;
   String listStage = 'all';
@@ -128,7 +131,7 @@ class _RecruitmentApplicationsScreenState
   }) {
     final query = searchController.text.trim().toLowerCase();
     final result = applications.where((application) {
-      final stage = configuration.stageForApplication(application);
+      final stage = effectiveStageFor(application, configuration);
       if (applyListStage && listStage != 'all' && stage?.id != listStage) {
         return false;
       }
@@ -499,28 +502,189 @@ class _RecruitmentApplicationsScreenState
     }
   }
 
+  RecruitmentPipelineStage? effectiveStageFor(
+    RecruitmentApplication application,
+    RecruitmentCrmConfiguration configuration,
+  ) {
+    final pendingStageId = pendingStageIds[application.id];
+    if (pendingStageId != null) {
+      return configuration.stageById(pendingStageId) ??
+          configuration.stageForApplication(application);
+    }
+    return configuration.stageForApplication(application);
+  }
+
+  Future<String?> requestStageTitle({
+    required String dialogTitle,
+    required String actionLabel,
+    String initialValue = '',
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+    String? error;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(dialogTitle),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 80,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: 'Название колонки',
+              prefixIcon: const Icon(Icons.view_column_outlined),
+              errorText: error,
+            ),
+            onSubmitted: (_) {
+              final title = controller.text.trim();
+              if (title.isEmpty) {
+                setDialogState(() => error = 'Введите название');
+                return;
+              }
+              Navigator.pop(dialogContext, title);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final title = controller.text.trim();
+                if (title.isEmpty) {
+                  setDialogState(() => error = 'Введите название');
+                  return;
+                }
+                Navigator.pop(dialogContext, title);
+              },
+              child: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  String defaultStageColor(int index) {
+    const colors = <String>[
+      '#2F80ED',
+      '#8B5CF6',
+      '#0EA5A4',
+      '#F59E0B',
+      '#E45757',
+      '#4C6076',
+    ];
+    return colors[index % colors.length];
+  }
+
+  Future<void> createStage(RecruitmentCrmConfiguration configuration) async {
+    if (stageMutationBusy) return;
+    final title = await requestStageTitle(
+      dialogTitle: 'Новая колонка',
+      actionLabel: 'Добавить',
+    );
+    if (title == null || !mounted) return;
+    setState(() => stageMutationBusy = true);
+    try {
+      final maxSortOrder = configuration.stages.isEmpty
+          ? 0
+          : configuration.stages
+                .map((stage) => stage.sortOrder)
+                .reduce((first, second) => first > second ? first : second);
+      await RecruitmentRepository.savePipelineStage(
+        id: '',
+        companyId: widget.profile.activeCompanyId,
+        title: title,
+        description: '',
+        colorHex: defaultStageColor(configuration.stages.length),
+        legacyStatus: 'new',
+        isFinal: false,
+        sortOrder: maxSortOrder + 10,
+      );
+      await refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Колонка «$title» добавлена')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось добавить колонку: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => stageMutationBusy = false);
+    }
+  }
+
+  Future<void> renameStage(RecruitmentPipelineStage stage) async {
+    if (stageMutationBusy) return;
+    final title = await requestStageTitle(
+      dialogTitle: 'Переименовать колонку',
+      actionLabel: 'Сохранить',
+      initialValue: stage.title,
+    );
+    if (title == null || title == stage.title || !mounted) return;
+    setState(() => stageMutationBusy = true);
+    try {
+      await RecruitmentRepository.savePipelineStage(
+        id: stage.id,
+        companyId: widget.profile.activeCompanyId,
+        title: title,
+        description: stage.description,
+        colorHex: stage.colorHex,
+        legacyStatus: stage.legacyStatus,
+        isFinal: stage.isFinal,
+        sortOrder: stage.sortOrder,
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось переименовать колонку: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => stageMutationBusy = false);
+    }
+  }
+
   Future<void> moveToStage(
     RecruitmentApplication application,
     RecruitmentPipelineStage stage,
   ) async {
-    if (application.stageId == stage.id || movingIds.contains(application.id)) {
+    final currentStageId =
+        pendingStageIds[application.id] ?? application.stageId;
+    if (currentStageId == stage.id || movingIds.contains(application.id)) {
       return;
     }
-    setState(() => movingIds.add(application.id));
+    setState(() {
+      movingIds.add(application.id);
+      pendingStageIds[application.id] = stage.id;
+      draggingApplicationId = null;
+    });
     try {
       await RecruitmentRepository.moveApplicationStage(
         applicationId: application.id,
         stageId: stage.id,
       );
-      await runAutomations(<String>[application.id]);
       if (mounted) await refresh();
+      await runAutomations(<String>[application.id]);
     } catch (error) {
       if (!mounted) return;
+      setState(() => pendingStageIds.remove(application.id));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось изменить этап: $error')),
       );
     } finally {
-      if (mounted) setState(() => movingIds.remove(application.id));
+      if (mounted) {
+        setState(() {
+          movingIds.remove(application.id);
+          pendingStageIds.remove(application.id);
+        });
+      }
     }
   }
 
@@ -958,7 +1122,7 @@ class _RecruitmentApplicationsScreenState
         const RecruitmentCandidateIndicator(),
     bool feedback = false,
   }) {
-    final stage = configuration.stageForApplication(application);
+    final stage = effectiveStageFor(application, configuration);
     final color = stage == null ? AppAdaptivePalette.accent : stageColor(stage);
     final busy =
         movingIds.contains(application.id) ||
@@ -1203,7 +1367,11 @@ class _RecruitmentApplicationsScreenState
       child: card,
     );
     final feedbackCard = Material(
-      color: Colors.transparent,
+      color: AppAdaptivePalette.surface,
+      elevation: 18,
+      shadowColor: Colors.black.withValues(alpha: 0.28),
+      borderRadius: BorderRadius.circular(AppUi.cardRadius),
+      clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: 292,
         child: candidateCard(
@@ -1214,21 +1382,45 @@ class _RecruitmentApplicationsScreenState
         ),
       ),
     );
+    final draggingPlaceholder = AnimatedOpacity(
+      opacity: 0.20,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutCubic,
+      child: Transform.scale(scale: 0.985, child: card),
+    );
+
+    void handleDragStarted() {
+      if (mounted) setState(() => draggingApplicationId = application.id);
+    }
+
+    void handleDragFinished() {
+      if (mounted && draggingApplicationId == application.id) {
+        setState(() => draggingApplicationId = null);
+      }
+    }
 
     if (kIsWeb) {
       return Draggable<RecruitmentApplication>(
         data: application,
         maxSimultaneousDrags: busy ? 0 : 1,
-        feedback: feedbackCard,
-        childWhenDragging: Opacity(opacity: 0.35, child: card),
+        rootOverlay: true,
+        feedback: Transform.scale(scale: 1.015, child: feedbackCard),
+        childWhenDragging: draggingPlaceholder,
+        onDragStarted: handleDragStarted,
+        onDragEnd: (_) => handleDragFinished(),
+        onDraggableCanceled: (_, _) => handleDragFinished(),
         child: interactiveCard,
       );
     }
     return LongPressDraggable<RecruitmentApplication>(
       data: application,
       maxSimultaneousDrags: busy ? 0 : 1,
-      feedback: feedbackCard,
-      childWhenDragging: Opacity(opacity: 0.35, child: card),
+      rootOverlay: true,
+      feedback: Transform.scale(scale: 1.015, child: feedbackCard),
+      childWhenDragging: draggingPlaceholder,
+      onDragStarted: handleDragStarted,
+      onDragEnd: (_) => handleDragFinished(),
+      onDraggableCanceled: (_, _) => handleDragFinished(),
       child: interactiveCard,
     );
   }
@@ -1243,130 +1435,210 @@ class _RecruitmentApplicationsScreenState
     return DragTarget<RecruitmentApplication>(
       onWillAcceptWithDetails: (details) =>
           !movingIds.contains(details.data.id) &&
-          details.data.stageId != stage.id,
+          effectiveStageFor(details.data, configuration)?.id != stage.id,
       onAcceptWithDetails: (details) => moveToStage(details.data, stage),
       builder: (context, candidates, rejected) {
         final highlighted = candidates.isNotEmpty;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          width: 310,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: highlighted
-                ? color.withValues(alpha: 0.10)
-                : AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.62),
-            borderRadius: BorderRadius.circular(AppUi.cardRadius),
-            border: Border.all(
+        return AnimatedScale(
+          scale: highlighted ? 1.012 : 1,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            width: 310,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
               color: highlighted
-                  ? color.withValues(alpha: 0.50)
-                  : AppAdaptivePalette.border,
-              width: highlighted ? 1.5 : 1,
+                  ? color.withValues(alpha: 0.12)
+                  : AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.62),
+              borderRadius: BorderRadius.circular(AppUi.cardRadius),
+              border: Border.all(
+                color: highlighted
+                    ? color.withValues(alpha: 0.62)
+                    : AppAdaptivePalette.border,
+                width: highlighted ? 2 : 1,
+              ),
+              boxShadow: highlighted
+                  ? <BoxShadow>[
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.16),
+                        blurRadius: 22,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : const <BoxShadow>[],
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: AppUi.gap8),
-                  Expanded(
-                    child: Text(
-                      stage.title,
-                      style: TextStyle(
-                        color: _text,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${applications.length}',
-                      style: TextStyle(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
                         color: color,
-                        fontWeight: FontWeight.w900,
+                        shape: BoxShape.circle,
                       ),
+                    ),
+                    const SizedBox(width: AppUi.gap8),
+                    Expanded(
+                      child: Text(
+                        stage.title,
+                        style: TextStyle(
+                          color: _text,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (canConfigureCrm) ...[
+                      IconButton(
+                        tooltip: 'Переименовать колонку',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: stageMutationBusy
+                            ? null
+                            : () => renameStage(stage),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                      ),
+                      const SizedBox(width: AppUi.gap4),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${applications.length}',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (stage.description.isNotEmpty) ...[
+                  const SizedBox(height: AppUi.gap4),
+                  Text(
+                    stage.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 11.5,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
-              ),
-              if (stage.description.isNotEmpty) ...[
-                const SizedBox(height: AppUi.gap4),
-                Text(
-                  stage.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _muted,
-                    fontSize: 11.5,
-                    height: 1.25,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppUi.gap12),
-              if (applications.isEmpty)
-                Container(
-                  height: 118,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppAdaptivePalette.surfaceElevated.withValues(
-                      alpha: 0.55,
-                    ),
-                    borderRadius: BorderRadius.circular(AppUi.controlRadius),
-                    border: Border.all(
-                      color: highlighted
-                          ? color.withValues(alpha: 0.40)
-                          : AppAdaptivePalette.border,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      highlighted
-                          ? 'Отпусти кандидата здесь'
-                          : 'Нет кандидатов',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: highlighted ? color : _muted,
-                        fontWeight: FontWeight.w800,
+                const SizedBox(height: AppUi.gap12),
+                if (applications.isEmpty)
+                  Container(
+                    height: 118,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppAdaptivePalette.surfaceElevated.withValues(
+                        alpha: 0.55,
+                      ),
+                      borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                      border: Border.all(
+                        color: highlighted
+                            ? color.withValues(alpha: 0.40)
+                            : AppAdaptivePalette.border,
                       ),
                     ),
-                  ),
-                )
-              else
-                ...applications.expand(
-                  (application) => <Widget>[
-                    candidateCard(
-                      application,
-                      configuration,
-                      indicator:
-                          support.indicators[application.id] ??
-                          const RecruitmentCandidateIndicator(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        highlighted
+                            ? 'Отпусти кандидата здесь'
+                            : 'Нет кандидатов',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: highlighted ? color : _muted,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppUi.gap12),
-                  ],
-                ),
-            ],
+                  )
+                else
+                  ...applications.expand(
+                    (application) => <Widget>[
+                      candidateCard(
+                        application,
+                        configuration,
+                        indicator:
+                            support.indicators[application.id] ??
+                            const RecruitmentCandidateIndicator(),
+                      ),
+                      const SizedBox(height: AppUi.gap12),
+                    ],
+                  ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget addColumnTile(RecruitmentCrmConfiguration configuration) {
+    return SizedBox(
+      width: 250,
+      child: PremiumPressable(
+        onTap: stageMutationBusy ? null : () => createStage(configuration),
+        borderRadius: BorderRadius.circular(AppUi.cardRadius),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 132,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.42),
+            borderRadius: BorderRadius.circular(AppUi.cardRadius),
+            border: Border.all(
+              color: AppAdaptivePalette.accent.withValues(alpha: 0.45),
+              width: 1.5,
+            ),
+          ),
+          child: stageMutationBusy
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppAdaptivePalette.accent.withValues(
+                          alpha: 0.12,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: AppAdaptivePalette.accent,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: AppUi.gap12),
+                    Text(
+                      'Добавить колонку',
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 
@@ -1375,22 +1647,25 @@ class _RecruitmentApplicationsScreenState
     RecruitmentCrmConfiguration configuration,
     RecruitmentBoardSupportData support,
   ) {
+    final children = <Widget>[];
+    for (final stage in configuration.stages) {
+      final items = applications.where((application) {
+        return effectiveStageFor(application, configuration)?.id == stage.id;
+      }).toList();
+      if (hideEmptyColumns && items.isEmpty) continue;
+      children
+        ..add(kanbanColumn(stage, items, configuration, support))
+        ..add(const SizedBox(width: AppUi.gap12));
+    }
+    if (canConfigureCrm) {
+      children.add(addColumnTile(configuration));
+    }
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.only(bottom: AppUi.gap8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: configuration.stages.expand((stage) {
-          final items = applications.where((application) {
-            return configuration.stageForApplication(application)?.id ==
-                stage.id;
-          }).toList();
-          if (hideEmptyColumns && items.isEmpty) return const <Widget>[];
-          return <Widget>[
-            kanbanColumn(stage, items, configuration, support),
-            const SizedBox(width: AppUi.gap12),
-          ];
-        }).toList(),
+        children: children,
       ),
     );
   }
@@ -1505,19 +1780,9 @@ class _RecruitmentApplicationsScreenState
               icon: Icons.view_column_outlined,
               title: 'В CRM нет активных колонок',
               text: 'Откройте настройки и добавьте колонку воронки.',
-              action: canConfigureCrm ? openSettings : null,
+              action: canConfigureCrm ? () => createStage(configuration) : null,
             );
           }
-          if (applications.isEmpty) {
-            return _MessageCard(
-              icon: Icons.person_add_alt_1_outlined,
-              title: 'Кандидатов пока нет',
-              text:
-                  'Добавьте кандидата вручную или дождитесь новой заявки из Telegram-бота.',
-              action: () => openEditor(configuration),
-            );
-          }
-
           return FutureBuilder<RecruitmentBoardSupportData>(
             future: supportFuture,
             builder: (context, supportSnapshot) {
@@ -1567,7 +1832,7 @@ class _RecruitmentApplicationsScreenState
                     ),
                   ],
                   const SizedBox(height: AppUi.gap16),
-                  if (filtered.isEmpty)
+                  if (filtered.isEmpty && applications.isNotEmpty)
                     const _MessageCard(
                       icon: Icons.filter_alt_off_outlined,
                       title: 'По фильтрам ничего нет',

@@ -5,6 +5,7 @@ import '../../../app/app_ui_tokens.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_crm_workspace_repository.dart';
+import '../data/recruitment_repository.dart';
 import '../models/recruitment_crm_workspace_models.dart';
 import '../models/recruitment_models.dart';
 
@@ -40,10 +41,15 @@ class _RecruitmentAutomationSettingsPanelState
         companyId: widget.profile.activeCompanyId,
       ),
       RecruitmentCrmWorkspaceRepository.fetchResponsibles(),
+      RecruitmentRepository.fetchConfiguration(
+        companyId: widget.profile.activeCompanyId,
+        includeInactive: false,
+      ),
     ]);
     return _AutomationData(
       rules: results[0] as List<RecruitmentCrmAutomationRule>,
       responsibles: results[1] as List<RecruitmentResponsibleOption>,
+      configuration: results[2] as RecruitmentCrmConfiguration,
     );
   }
 
@@ -64,6 +70,28 @@ class _RecruitmentAutomationSettingsPanelState
     _AutomationData data, [
     RecruitmentCrmAutomationRule? rule,
   ]) async {
+    if (busy) return;
+    setState(() => busy = true);
+    late final RecruitmentCrmConfiguration liveConfiguration;
+    try {
+      liveConfiguration = await RecruitmentRepository.fetchConfiguration(
+        companyId: widget.profile.activeCompanyId,
+        includeInactive: false,
+      );
+    } catch (error) {
+      showError(error);
+      if (mounted) setState(() => busy = false);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => busy = false);
+    final stages = liveConfiguration.stages
+        .where((stage) => stage.isActive)
+        .toList(growable: false);
+    if (stages.isEmpty) {
+      showError(Exception('Сначала добавьте колонку на канбан-доске'));
+      return;
+    }
     final draft = await showModalBottomSheet<_AutomationDraft>(
       context: context,
       isScrollControlled: true,
@@ -71,7 +99,7 @@ class _RecruitmentAutomationSettingsPanelState
       backgroundColor: Colors.transparent,
       builder: (_) => _AutomationEditor(
         rule: rule,
-        stages: widget.configuration.stages,
+        stages: stages,
         responsibles: data.responsibles,
       ),
     );
@@ -203,7 +231,7 @@ class _RecruitmentAutomationSettingsPanelState
                   ),
                   const SizedBox(height: AppUi.gap12),
                   FilledButton.icon(
-                    onPressed: busy || widget.configuration.stages.isEmpty
+                    onPressed: busy || data.configuration.stages.isEmpty
                         ? null
                         : () => editRule(data),
                     icon: const Icon(Icons.add_rounded),
@@ -256,7 +284,7 @@ class _RecruitmentAutomationSettingsPanelState
                               ),
                               const SizedBox(height: AppUi.gap4),
                               Text(
-                                'Колонка: ${widget.configuration.stageById(rule.triggerStageId)?.title ?? 'Удалена'} · ${rule.actionTitle}',
+                                'Колонка: ${data.configuration.stageById(rule.triggerStageId)?.title ?? 'Удалена'} · ${rule.actionTitle}',
                                 style: TextStyle(
                                   color: AppAdaptivePalette.textMuted,
                                   fontWeight: FontWeight.w700,
@@ -318,8 +346,13 @@ class _RecruitmentAutomationSettingsPanelState
 class _AutomationData {
   final List<RecruitmentCrmAutomationRule> rules;
   final List<RecruitmentResponsibleOption> responsibles;
+  final RecruitmentCrmConfiguration configuration;
 
-  const _AutomationData({this.rules = const [], this.responsibles = const []});
+  const _AutomationData({
+    this.rules = const [],
+    this.responsibles = const [],
+    this.configuration = RecruitmentCrmConfiguration.empty,
+  });
 }
 
 class _AutomationDraft {
@@ -389,9 +422,10 @@ class _AutomationEditorState extends State<_AutomationEditor> {
       text: '${rule?.dueOffsetHours ?? 24}',
     );
     messageController = TextEditingController(text: rule?.messageText ?? '');
-    stageId =
-        rule?.triggerStageId ??
-        (widget.stages.isEmpty ? '' : widget.stages.first.id);
+    final requestedStageId = rule?.triggerStageId ?? '';
+    stageId = widget.stages.any((stage) => stage.id == requestedStageId)
+        ? requestedStageId
+        : (widget.stages.isEmpty ? '' : widget.stages.first.id);
     actionType = rule?.actionType ?? 'create_task';
     taskType = rule?.taskType ?? 'other';
     priority = rule?.taskPriority ?? 'normal';
