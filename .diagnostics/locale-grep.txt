@@ -1,0 +1,1 @@
+/home/runner/work/_temp/aa6b0689-06cb-4126-a87d-25b969bc7bfd.sh: line 4: rg: command not found
