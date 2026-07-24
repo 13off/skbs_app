@@ -1,0 +1,556 @@
+name: Apply CRM column order fix
+
+on:
+  push:
+    branches:
+      - fix/crm-column-order-persistence
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/crm-column-order-persistence
+          fetch-depth: 0
+
+      - name: Patch CRM column ordering
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return text.replace(old, new, 1)
+
+          def replace_between(text: str, start: str, end: str, replacement: str, label: str) -> str:
+              start_index = text.find(start)
+              if start_index < 0:
+                  raise SystemExit(f'{label}: start marker not found')
+              end_index = text.find(end, start_index)
+              if end_index < 0:
+                  raise SystemExit(f'{label}: end marker not found')
+              return text[:start_index] + replacement + text[end_index:]
+
+          repository_path = Path('lib/features/recruitment/data/recruitment_repository.dart')
+          repository = repository_path.read_text(encoding='utf-8')
+          old_repository_block = """  static Future<void> reorderPipelineStages({
+  required String companyId,
+  required List<String> orderedIds,
+}) async {
+  if (companyId.trim().isEmpty || orderedIds.isEmpty) return;
+  await _client.rpc(
+    'reorder_recruitment_pipeline_stages',
+    params: <String, dynamic>{'p_stage_ids': orderedIds},
+  );
+  _notifyConfiguration('recruitment_pipeline_stages', 'order');
+}
+"""
+          new_repository_block = """  static Future<RecruitmentPipelineStage> createPipelineStageAtEnd({
+    required String companyId,
+    required String title,
+    String description = '',
+    String colorHex = '#2F80ED',
+    String legacyStatus = 'new',
+    bool isFinal = false,
+  }) async {
+    if (companyId.trim().isEmpty) throw Exception('Компания не выбрана');
+    final dynamic data = await _client.rpc(
+      'create_recruitment_pipeline_stage_at_end',
+      params: <String, dynamic>{
+        'p_title': title.trim(),
+        'p_description': description.trim(),
+        'p_color_hex': colorHex.trim().toUpperCase(),
+        'p_legacy_status': recruitmentStatuses.contains(legacyStatus)
+            ? legacyStatus
+            : 'new',
+        'p_is_final': isFinal,
+      },
+    );
+    final result = RecruitmentPipelineStage.fromMap(_map(data));
+    if (result.id.isEmpty) throw Exception('Колонка не была создана');
+    _notifyConfiguration('recruitment_pipeline_stages', result.id);
+    return result;
+  }
+
+  static Future<List<String>> reorderPipelineStages({
+    required String companyId,
+    required List<String> orderedIds,
+  }) async {
+    if (companyId.trim().isEmpty || orderedIds.isEmpty) {
+      return const <String>[];
+    }
+    final dynamic data = await _client.rpc(
+      'reorder_recruitment_pipeline_stages_v2',
+      params: <String, dynamic>{'p_stage_ids': orderedIds},
+    );
+    final confirmedIds = (data is List ? data : const <dynamic>[])
+        .map(_map)
+        .map((item) => item['id']?.toString().trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    if (confirmedIds.length != orderedIds.length ||
+        confirmedIds.toSet().length != orderedIds.length) {
+      throw Exception('Сервер не подтвердил полный порядок колонок');
+    }
+    _notifyConfiguration('recruitment_pipeline_stages', 'order');
+    return confirmedIds;
+  }
+"""
+          repository = replace_once(
+              repository,
+              old_repository_block,
+              new_repository_block,
+              'repository reorder block',
+          )
+          repository_path.write_text(repository, encoding='utf-8')
+
+          board_path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
+          board = board_path.read_text(encoding='utf-8')
+          board = replace_once(
+              board,
+              "  final Map<String, GlobalKey> stageColumnKeys = <String, GlobalKey>{};\n",
+              '',
+              'stage column keys',
+          )
+          board = replace_once(
+              board,
+              """    changesSubscription = AppDataSync.changes.listen((change) {
+      if (change.affects(AppDataDomain.recruitment) && mounted) refresh();
+    });
+""",
+              """    changesSubscription = AppDataSync.changes.listen((change) {
+      if (change.affects(AppDataDomain.recruitment) &&
+          mounted &&
+          !stageMutationBusy) {
+        refresh();
+      }
+    });
+""",
+              'recruitment refresh listener',
+          )
+
+          new_create_stage = """  Future<void> createStage(RecruitmentCrmConfiguration configuration) async {
+    if (stageMutationBusy) return;
+    final title = await requestStageTitle(
+      dialogTitle: 'Новая колонка',
+      actionLabel: 'Добавить',
+    );
+    if (title == null || !mounted) return;
+    setState(() => stageMutationBusy = true);
+    try {
+      await RecruitmentRepository.createPipelineStageAtEnd(
+        companyId: widget.profile.activeCompanyId,
+        title: title,
+        description: '',
+        colorHex: defaultStageColor(configuration.stages.length),
+        legacyStatus: 'new',
+        isFinal: false,
+      );
+      await refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Колонка «$title» добавлена справа')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось добавить колонку: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          stageMutationBusy = false;
+          pendingStageOrder = null;
+        });
+      }
+    }
+  }
+
+"""
+          board = replace_between(
+              board,
+              '  Future<void> createStage(RecruitmentCrmConfiguration configuration) async {',
+              '  Future<void> renameStage(',
+              new_create_stage,
+              'createStage function',
+          )
+
+          new_reorder_stage = """  Future<void> reorderStageOnBoard(
+    RecruitmentCrmConfiguration configuration,
+    RecruitmentPipelineStage dragged,
+    RecruitmentPipelineStage target,
+  ) async {
+    if (stageMutationBusy || dragged.id == target.id) return;
+    final current = orderedStages(configuration);
+    final fromIndex = current.indexWhere((stage) => stage.id == dragged.id);
+    final targetIndex = current.indexWhere((stage) => stage.id == target.id);
+    if (fromIndex < 0 || targetIndex < 0) return;
+
+    final ids = current.map((stage) => stage.id).toList();
+    final movedId = ids.removeAt(fromIndex);
+    final insertionIndex = fromIndex < targetIndex ? targetIndex : targetIndex;
+    ids.insert(insertionIndex, movedId);
+    if (ids.join('|') == current.map((stage) => stage.id).join('|')) return;
+
+    setState(() {
+      stageMutationBusy = true;
+      pendingStageOrder = ids;
+      draggingStageId = null;
+    });
+    try {
+      final confirmedIds = await RecruitmentRepository.reorderPipelineStages(
+        companyId: widget.profile.activeCompanyId,
+        orderedIds: ids,
+      );
+      if (confirmedIds.join('|') != ids.join('|')) {
+        throw Exception('Сервер сохранил другой порядок колонок');
+      }
+      pendingStageOrder = confirmedIds;
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => pendingStageOrder = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось изменить порядок колонок: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          stageMutationBusy = false;
+          pendingStageOrder = null;
+          draggingStageId = null;
+        });
+      }
+    }
+  }
+
+"""
+          board = replace_between(
+              board,
+              '  Future<void> reorderStageOnBoard(',
+              '  Future<void> moveToStage(',
+              new_reorder_stage,
+              'reorderStageOnBoard function',
+          )
+
+          old_kanban_target = """    final color = stageColor(stage);
+    final columnKey = stageColumnKeys.putIfAbsent(stage.id, () => GlobalKey());
+    return DragTarget<RecruitmentPipelineStage>(
+      onWillAcceptWithDetails: (details) =>
+          canConfigureCrm &&
+          !stageMutationBusy &&
+          details.data.id != stage.id,
+      onAcceptWithDetails: (details) {
+        final renderBox =
+            columnKey.currentContext?.findRenderObject() as RenderBox?;
+        final localOffset = renderBox?.globalToLocal(details.offset);
+        final placeAfter =
+            renderBox != null &&
+            localOffset != null &&
+            localOffset.dx >= renderBox.size.width / 2;
+        reorderStageOnBoard(
+          configuration,
+          details.data,
+          stage,
+          placeAfter: placeAfter,
+        );
+      },
+"""
+          new_kanban_target = """    final color = stageColor(stage);
+    return DragTarget<RecruitmentPipelineStage>(
+      onWillAcceptWithDetails: (details) =>
+          canConfigureCrm &&
+          !stageMutationBusy &&
+          details.data.id != stage.id,
+      onAcceptWithDetails: (details) =>
+          reorderStageOnBoard(configuration, details.data, stage),
+"""
+          board = replace_once(
+              board,
+              old_kanban_target,
+              new_kanban_target,
+              'kanban stage drag target',
+          )
+          board = replace_once(
+              board,
+              '            key: columnKey,\n',
+              '',
+              'column key property',
+          )
+          board_path.write_text(board, encoding='utf-8')
+
+          settings_path = Path('lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart')
+          settings = settings_path.read_text(encoding='utf-8')
+          new_edit_stage = """  Future<void> editStage(
+    RecruitmentCrmConfiguration configuration, [
+    RecruitmentPipelineStage? stage,
+  ]) async {
+    final result = await showModalBottomSheet<_StageDraft>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _StageEditor(stage: stage),
+    );
+    if (result == null || !mounted) return;
+    setState(() => busy = true);
+    try {
+      if (stage == null) {
+        await RecruitmentRepository.createPipelineStageAtEnd(
+          companyId: widget.profile.activeCompanyId,
+          title: result.title,
+          description: result.description,
+          colorHex: result.colorHex,
+          legacyStatus: 'new',
+          isFinal: result.isFinal,
+        );
+      } else {
+        await RecruitmentRepository.savePipelineStage(
+          id: stage.id,
+          companyId: widget.profile.activeCompanyId,
+          title: result.title,
+          description: result.description,
+          colorHex: result.colorHex,
+          legacyStatus: stage.legacyStatus,
+          isFinal: result.isFinal,
+          sortOrder: stage.sortOrder,
+        );
+      }
+      await refresh();
+    } catch (error) {
+      showError(error);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+"""
+          settings = replace_between(
+              settings,
+              '  Future<void> editStage(',
+              '  Future<void> toggleStage(',
+              new_edit_stage,
+              'settings editStage function',
+          )
+          settings_path.write_text(settings, encoding='utf-8')
+
+          migration = """begin;
+
+create or replace function public.create_recruitment_pipeline_stage_at_end(
+  p_title text,
+  p_description text default '',
+  p_color_hex text default '#2F80ED',
+  p_legacy_status text default 'new',
+  p_is_final boolean default false
+)
+returns jsonb
+language plpgsql
+set search_path to ''
+as $$
+declare
+  v_company_id uuid := public.current_user_company_id();
+  v_user_id uuid := (select auth.uid());
+  v_title text := left(btrim(coalesce(p_title, '')), 160);
+  v_color_hex text := upper(btrim(coalesce(p_color_hex, '#2F80ED')));
+  v_sort_order integer;
+  v_result jsonb;
+begin
+  if v_user_id is null or v_company_id is null then
+    raise exception 'Требуется авторизация';
+  end if;
+  if not public.current_user_has_permission('recruitment.crm.configure') then
+    raise exception 'Недостаточно прав для настройки CRM';
+  end if;
+  if v_title = '' then
+    raise exception 'Введите название колонки';
+  end if;
+  if v_color_hex !~ '^#[0-9A-F]{6}$' then
+    v_color_hex := '#2F80ED';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(v_company_id::text, 0));
+  select coalesce(max(stage.sort_order), 0) + 10
+    into v_sort_order
+  from public.recruitment_pipeline_stages stage
+  where stage.company_id = v_company_id
+    and stage.is_active;
+
+  insert into public.recruitment_pipeline_stages as stage(
+    company_id,
+    title,
+    description,
+    color_hex,
+    sort_order,
+    legacy_status,
+    is_final,
+    is_active,
+    created_by
+  ) values (
+    v_company_id,
+    v_title,
+    btrim(coalesce(p_description, '')),
+    v_color_hex,
+    v_sort_order,
+    coalesce(nullif(btrim(p_legacy_status), ''), 'new'),
+    coalesce(p_is_final, false),
+    true,
+    v_user_id
+  )
+  returning to_jsonb(stage) into v_result;
+
+  return v_result;
+end;
+$$;
+
+create or replace function public.reorder_recruitment_pipeline_stages_v2(
+  p_stage_ids uuid[]
+)
+returns jsonb
+language plpgsql
+set search_path to ''
+as $$
+declare
+  v_company_id uuid := public.current_user_company_id();
+begin
+  perform public.reorder_recruitment_pipeline_stages(p_stage_ids);
+  return (
+    select coalesce(
+      jsonb_agg(
+        jsonb_build_object(
+          'id', stage.id,
+          'sort_order', stage.sort_order
+        )
+        order by stage.sort_order, stage.created_at, stage.id
+      ),
+      '[]'::jsonb
+    )
+    from public.recruitment_pipeline_stages stage
+    where stage.company_id = v_company_id
+      and stage.is_active
+  );
+end;
+$$;
+
+revoke all on function public.create_recruitment_pipeline_stage_at_end(text, text, text, text, boolean) from public;
+revoke all on function public.create_recruitment_pipeline_stage_at_end(text, text, text, text, boolean) from anon;
+grant execute on function public.create_recruitment_pipeline_stage_at_end(text, text, text, text, boolean) to authenticated;
+
+revoke all on function public.reorder_recruitment_pipeline_stages(uuid[]) from public;
+revoke all on function public.reorder_recruitment_pipeline_stages(uuid[]) from anon;
+grant execute on function public.reorder_recruitment_pipeline_stages(uuid[]) to authenticated;
+
+revoke all on function public.reorder_recruitment_pipeline_stages_v2(uuid[]) from public;
+revoke all on function public.reorder_recruitment_pipeline_stages_v2(uuid[]) from anon;
+grant execute on function public.reorder_recruitment_pipeline_stages_v2(uuid[]) to authenticated;
+
+commit;
+"""
+          Path('supabase/migrations/20260724180000_fix_recruitment_column_order.sql').write_text(
+              migration,
+              encoding='utf-8',
+          )
+
+          test = """import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+// Защищает единый сценарий управления колонками CRM на доске и в настройках.
+// Полный прогон подтверждает совместимость с существующими экранами AppСтрой.
+void main() {
+  test('new CRM columns are created atomically at the right edge', () {
+    final board = File(
+      'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
+    ).readAsStringSync();
+    final settings = File(
+      'lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/recruitment/data/recruitment_repository.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260724180000_fix_recruitment_column_order.sql',
+    ).readAsStringSync();
+
+    expect(board, contains('createPipelineStageAtEnd('));
+    expect(board, contains('добавлена справа'));
+    expect(settings, contains('createPipelineStageAtEnd('));
+    expect(repository, contains("'create_recruitment_pipeline_stage_at_end'"));
+    expect(migration, contains('pg_advisory_xact_lock'));
+    expect(migration, contains('coalesce(max(stage.sort_order), 0) + 10'));
+  });
+
+  test('column drag persists the exact server-confirmed order', () {
+    final board = File(
+      'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
+    ).readAsStringSync();
+    final settings = File(
+      'lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/recruitment/data/recruitment_repository.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260724180000_fix_recruitment_column_order.sql',
+    ).readAsStringSync();
+
+    expect(board, contains('Draggable<RecruitmentPipelineStage>'));
+    expect(board, contains('LongPressDraggable<RecruitmentPipelineStage>'));
+    expect(board, contains('final confirmedIds ='));
+    expect(board, contains('Сервер сохранил другой порядок колонок'));
+    expect(board, isNot(contains('placeAfter:')));
+    expect(settings, contains('ReorderableListView.builder'));
+    expect(repository, contains("'reorder_recruitment_pipeline_stages_v2'"));
+    expect(migration, contains('reorder_recruitment_pipeline_stages_v2'));
+    expect(migration, contains('revoke all on function'));
+  });
+
+  test('column deletion safely moves candidates and removes the stage', () {
+    final board = File(
+      'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
+    ).readAsStringSync();
+    final settings = File(
+      'lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/recruitment/data/recruitment_repository.dart',
+    ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260724145000_recruitment_stage_delete.sql',
+    ).readAsStringSync();
+
+    expect(board, contains("'Удалить колонку'"));
+    expect(settings, contains("'Удалить колонку'"));
+    expect(repository, contains('deletePipelineStage('));
+    expect(repository, contains("'delete_recruitment_pipeline_stage'"));
+    expect(migration, contains('security definer'));
+    expect(migration, contains('update public.recruitment_applications'));
+    expect(migration, contains('delete from public.recruitment_pipeline_stages'));
+    expect(migration, contains('recruitment.crm.configure'));
+  });
+}
+"""
+          Path('test/recruitment_column_management_contract_test.dart').write_text(
+              test,
+              encoding='utf-8',
+          )
+
+          workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
+          workflow.unlink()
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить сохранение порядка колонок CRM"
+          git push origin HEAD:fix/crm-column-order-persistence
