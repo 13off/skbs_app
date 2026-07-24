@@ -49,6 +49,27 @@ jobs:
               line[10:] if line.startswith('          ') else line
               for line in lines
           )
+
+          old_call = '''board = replace_once(
+              board,
+              old_kanban_target,
+              new_kanban_target,
+              'kanban stage drag target',
+          )'''
+          new_call = '''board = replace_between(
+              board,
+              "    final color = stageColor(stage);\\n"
+              "    final columnKey = stageColumnKeys.putIfAbsent(stage.id, () => GlobalKey());\\n"
+              "    return DragTarget<RecruitmentPipelineStage>(\\n",
+              "      builder: (context, stageCandidates, rejectedStages) {",
+              new_kanban_target,
+              'kanban stage drag target',
+          )'''
+          if code.count(old_call) != 1:
+              raise RuntimeError(
+                  f'prepared kanban replacement count: {code.count(old_call)}'
+              )
+          code = code.replace(old_call, new_call, 1)
           exec(compile(code, str(workflow), 'exec'))
           PY
           status=$?
