@@ -88,7 +88,8 @@ void main() {
     );
     expect(profile, contains('actualRole: actualRole'));
     expect(mainScreen, contains('RolePreviewController.restore'));
-    expect(mainScreen, contains('profile.previewAs('));
+    expect(mainScreen, contains('baseProfile.previewAs('));
+    expect(mainScreen, contains('PersonalProfileController.merge(widget.profile)'));
   });
 
   test('documented permissions cover all matrix roles', () {
