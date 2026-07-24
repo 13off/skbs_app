@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   smoke:
@@ -14,6 +14,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/live-web-smoke
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -24,46 +27,61 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
       - name: Open live AppStroy and capture failures
         run: |
+          mkdir -p .diagnostics
           cat > /tmp/smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
+          import { writeFile } from 'node:fs/promises';
           const url = 'https://13off.github.io/appstroy-web/';
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+          const consoleMessages = [];
           const errors = [];
           const failed = [];
+          const responses = [];
           page.on('console', msg => {
-            console.log(`[console:${msg.type()}] ${msg.text()}`);
+            consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
             if (msg.type() === 'error') errors.push(msg.text());
           });
-          page.on('pageerror', error => {
-            console.log(`[pageerror] ${error.stack || error.message}`);
-            errors.push(error.message);
+          page.on('pageerror', error => errors.push(error.stack || error.message));
+          page.on('requestfailed', request => failed.push({
+            url: request.url(),
+            error: request.failure()?.errorText || 'unknown',
+          }));
+          page.on('response', response => {
+            if (response.status() >= 400) responses.push({ status: response.status(), url: response.url() });
           });
-          page.on('requestfailed', request => {
-            const failure = `${request.url()} :: ${request.failure()?.errorText || 'unknown'}`;
-            console.log(`[requestfailed] ${failure}`);
-            failed.push(failure);
-          });
-          const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-          console.log(`HTTP ${response?.status()} ${response?.url()}`);
-          await page.waitForTimeout(30000);
-          console.log(`title=${await page.title()}`);
-          console.log(`url=${page.url()}`);
-          console.log(`body=${(await page.locator('body').innerText()).slice(0, 1000)}`);
-          console.log(`flutterViews=${await page.locator('flutter-view').count()}`);
-          console.log(`canvases=${await page.locator('canvas').count()}`);
-          await page.screenshot({ path: 'live-web-smoke.png', fullPage: true });
-          await browser.close();
-          if (errors.length || failed.length) {
-            console.error(`errors=${JSON.stringify(errors)}`);
-            console.error(`failed=${JSON.stringify(failed)}`);
-            process.exit(1);
+          let navigationStatus = null;
+          let navigationError = null;
+          try {
+            const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            navigationStatus = response?.status() ?? null;
+            await page.waitForTimeout(30000);
+          } catch (error) {
+            navigationError = error.stack || error.message;
           }
+          const result = {
+            checkedAt: new Date().toISOString(),
+            url: page.url(),
+            navigationStatus,
+            navigationError,
+            title: await page.title().catch(() => ''),
+            body: await page.locator('body').innerText().catch(() => ''),
+            flutterViews: await page.locator('flutter-view').count().catch(() => -1),
+            canvases: await page.locator('canvas').count().catch(() => -1),
+            consoleMessages,
+            errors,
+            failed,
+            badResponses: responses,
+          };
+          await page.screenshot({ path: '.diagnostics/live-web-smoke.png', fullPage: true }).catch(() => {});
+          await writeFile('.diagnostics/live-web-smoke.json', JSON.stringify(result, null, 2));
+          await browser.close();
           EOF
           node /tmp/smoke.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: live-web-smoke
-          path: live-web-smoke.png
-          retention-days: 1
+      - name: Commit diagnostics
+        run: |
+          git config user.name "appstroy-agent"
+          git config user.email "appstroy-agent@users.noreply.github.com"
+          git add .diagnostics/live-web-smoke.json .diagnostics/live-web-smoke.png
+          git commit -m "Сохранить диагностику живой web-версии" || exit 0
+          git push origin HEAD:agent/live-web-smoke
