@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// Контракт запускает штатную Web/PWA-публикацию после изменения масштаба.
 void main() {
   test('the entire app is rendered through one persisted scale viewport', () {
     final main = File('lib/main.dart').readAsStringSync();
@@ -24,23 +23,23 @@ void main() {
     expect(viewport, contains('OverflowBox('));
   });
 
-  test('scale controls cover compact normal and enlarged modes', () {
+  test('scale is configured inside settings without a floating overlay', () {
     final controller = File(
       'lib/app/theme_controller.dart',
     ).readAsStringSync();
     final viewport = File(
       'lib/app/app_scale_viewport.dart',
     ).readAsStringSync();
+    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
     for (final option in <String>['0.80', '0.90', '1.00', '1.10', '1.20']) {
       expect(controller, contains(option));
     }
-    expect(viewport, contains("tooltip: 'Уменьшить масштаб'"));
-    expect(viewport, contains("tooltip: 'Увеличить масштаб'"));
-    expect(viewport, contains("message: 'Сбросить масштаб до 90%'"));
-    expect(viewport, contains('controller.decreaseUiScale()'));
-    expect(viewport, contains('controller.increaseUiScale()'));
-    expect(viewport, contains('controller.resetUiScale()'));
+    expect(settings, contains("'Масштаб приложения'"));
+    expect(settings, contains('AppThemeController.uiScaleOptions'));
+    expect(settings, contains('controller.setUiScale(value)'));
+    expect(viewport, isNot(contains('_AppScaleControls')));
+    expect(viewport, isNot(contains("tooltip: 'Уменьшить масштаб'")));
   });
 
   test('candidate CRM uses full width without stretching every page', () {
