@@ -1,0 +1,78 @@
+name: Agent apply company chat
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/company-chat-ai' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/company-chat-ai
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Verify and extract company chat package
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'c8319423646a520ede3f2916a7a57b2c7355a57925283fff87c5e80fc70b682a  .agent/company_chat_00' | sha256sum --check
+          echo '3f4ffa994b4a399d072deb584062b4ac9badc3a4c46f0103282b8928bc962e9e  .agent/company_chat_01' | sha256sum --check
+          echo 'b51be453b4451e0df1dd49fc07973ace075720be0addb0e3c4535a48764ca3d1  .agent/company_chat_02' | sha256sum --check
+          echo '296f03cba399b1679ea5195f0a1dfbfacea462f966bd2042a446b13822a6bb4a  .agent/company_chat_03' | sha256sum --check
+          echo '18a8ace510e788707c30e06b91c8975664edb6f8f2056825ef8a4351474a8e20  .agent/company_chat_04' | sha256sum --check
+          echo '20ef1f5729c7122c9c1207413a393e3fd0d37d5a92b1a2c85144065a0cc8e706  .agent/company_chat_05' | sha256sum --check
+          echo 'eac8c417bf23ff295c123de24e6376f43a4d88a309054133e29fffed56a5cc82  .agent/company_chat_06' | sha256sum --check
+          echo 'cfb5102848b3ea6d212977fd2227e57079ac0ce736d3deecf566075473fadd0b  .agent/company_chat_07' | sha256sum --check
+          cat .agent/company_chat_0* > /tmp/company_chat_patch.tar.gz.b64
+          test "$(wc -c < /tmp/company_chat_patch.tar.gz.b64 | tr -d ' ')" = '30220'
+          base64 --decode /tmp/company_chat_patch.tar.gz.b64 > /tmp/company_chat_patch.tar.gz
+          echo 'f2a9af384b77e828237e0adacfdbb446093feca29c97b8f622cc2226cd48961a  /tmp/company_chat_patch.tar.gz' | sha256sum --check
+          tar -tzf /tmp/company_chat_patch.tar.gz >/dev/null
+          tar -xzf /tmp/company_chat_patch.tar.gz
+          rm -rf .agent
+          rm -f .github/workflows/agent_export_company_chat_source.yml
+          rm -f .github/workflows/agent_apply_company_chat.yml
+          git diff --check
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/company_chat/models/company_chat_models.dart \
+            lib/features/company_chat/data/company_chat_repository.dart \
+            lib/features/company_chat/presentation/company_chat_screen.dart \
+            lib/features/company_chat/presentation/company_chat_shell.dart \
+            lib/screens/main_screen.dart \
+            test/company_chat_ai_contract_test.dart \
+            test/company_chat_repository_contract_test.dart
+          git diff --check
+
+      - name: Commit source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'appstroy-agent'
+          git config user.email 'appstroy-agent@users.noreply.github.com'
+          git add -A
+          git commit -m 'Добавить чат компании с ИИ-помощником'
+          git push origin HEAD:agent/company-chat-ai
