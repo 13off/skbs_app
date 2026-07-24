@@ -34,36 +34,56 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Apply prepared patch
+      - name: Apply prepared patch and capture diagnostics
         shell: bash
         run: |
+          set +e
           python3 - <<'PY'
           from pathlib import Path
+          import traceback
 
-          workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
-          source = workflow.read_text(encoding='utf-8')
-          start = source.index('          from pathlib import Path')
-          end = source.index('\n          PY', start)
-          lines = source[start:end].splitlines()
-          code = '\n'.join(
-              line[10:] if line.startswith('          ') else line
-              for line in lines
-          )
-          exec(compile(code, str(workflow), 'exec'))
+          try:
+              workflow = Path('.github/workflows/apply-crm-column-order-fix.yml')
+              source = workflow.read_text(encoding='utf-8')
+              start = source.index('          from pathlib import Path')
+              end = source.index('\n          PY', start)
+              lines = source[start:end].splitlines()
+              code = '\n'.join(
+                  line[10:] if line.startswith('          ') else line
+                  for line in lines
+              )
+              exec(compile(code, str(workflow), 'exec'))
+          except Exception:
+              Path('/tmp/patch-error.txt').write_text(
+                  traceback.format_exc(),
+                  encoding='utf-8',
+              )
+              raise
           PY
+          status=$?
+          set -e
+
+          if [ "$status" -ne 0 ]; then
+            git reset --hard HEAD
+            cp /tmp/patch-error.txt .github/patch-error.txt
+            echo '--- CRM patch diagnostic ---'
+            cat .github/patch-error.txt
+            exit 0
+          fi
 
           git fetch origin main
           git checkout origin/main -- .github/workflows/pr-check.yml
           rm -f .github/crm-column-order-trigger.txt
           rm -f .github/crm-column-order-trigger-2.txt
+          rm -f .github/patch-error.txt
 
-      - name: Commit prepared fix
+      - name: Commit patch or diagnostic
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Исправить сохранение порядка колонок CRM"
+          git commit -m "Сохранить результат исправления колонок CRM"
           git push origin HEAD:${{ github.head_ref }}
 
   flutter-check:
