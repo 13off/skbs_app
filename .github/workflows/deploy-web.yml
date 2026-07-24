@@ -52,6 +52,7 @@ jobs:
         with:
           path: skbs_app
           show-progress: false
+          fetch-depth: 0
 
       - name: Checkout web repository
         uses: actions/checkout@v4
@@ -60,6 +61,19 @@ jobs:
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
           show-progress: false
+
+      - name: Apply one-time CRM stability fix
+        working-directory: skbs_app
+        run: python3 .github/scripts/fix_recruitment_board.py
+
+      - name: Restore permanent workflow and remove temporary files
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          git checkout 2a137153c25c561f14dff691d6c5da491110b822 -- .github/workflows/deploy-web.yml
+          rm -f .github/workflows/temporary-fix-recruitment-board.yml
+          rm -f .github/recruitment-board-fix-trigger.txt
+          rm -f .github/scripts/fix_recruitment_board.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -84,6 +98,14 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get --enforce-lockfile >/dev/null
 
+      - name: Format CRM changes
+        working-directory: skbs_app
+        run: |
+          dart format \
+            lib/features/recruitment/data/recruitment_repository.dart \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart \
+            test/recruitment_board_stability_contract_test.dart
+
       - name: Run regression tests
         working-directory: skbs_app
         shell: bash
@@ -93,6 +115,16 @@ jobs:
         working-directory: skbs_app
         shell: bash
         run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ../flutter-analyze.log
+
+      - name: Commit verified CRM fix
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Стабилизировать порядок CRM и перенос кандидатов"
+          git push origin HEAD:main
 
       - name: Configure public Firebase web values
         working-directory: skbs_app
@@ -187,6 +219,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
+          SOURCE_COMMIT="$(git -C ../skbs_app rev-parse HEAD)"
 
           for attempt in 1 2 3 4 5; do
             echo "Status attempt ${attempt}/5"
@@ -201,7 +234,7 @@ jobs:
             fi
 
             printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
-            printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
+            printf '%s\n' "${SOURCE_COMMIT}" > downloads/web-source-commit.txt
             {
               test -f ../flutter-test.log && cat ../flutter-test.log
               test -f ../flutter-analyze.log && cat ../flutter-analyze.log
