@@ -40,7 +40,9 @@ jobs:
             .agent/crm_rem_00 \
             .agent/crm_rem_01 \
             .agent/crm_rem_02 \
-            .agent/crm_rem_03 > /tmp/recruitment_crm_full.tar.gz.b64
+            .agent/crm_rem_03_0 \
+            .agent/crm_rem_03_1 \
+            .agent/crm_rem_03_2 > /tmp/recruitment_crm_full.tar.gz.b64
 
           actual_size="$(wc -c < /tmp/recruitment_crm_full.tar.gz.b64 | tr -d ' ')"
           test "$actual_size" = "86632"
