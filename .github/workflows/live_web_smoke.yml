@@ -25,61 +25,64 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install playwright@1.54.1 >/dev/null
           npx playwright install --with-deps chromium >/dev/null
-      - name: Open live AppStroy and capture failures
+      - name: Open published AppStroy
         shell: bash
         run: |
           set +e
           rm -rf .diagnostics
           mkdir -p .diagnostics
-          grep -RInE --include='*.dart' 'Intl|DateFormat|NumberFormat|initializeDateFormatting|defaultLocale|localeName|Locale\(' lib test > .diagnostics/locale-grep.txt 2>&1 || true
-          {
-            echo '=== CURL ROOT ==='
-            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/
-            echo '=== CURL BOOTSTRAP ==='
-            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/flutter_bootstrap.js
-            echo '=== CURL MAIN ==='
-            curl -I -L --max-time 60 https://13off.github.io/appstroy-web/main.dart.js
-            echo '=== CURL CANVASKIT CDN ==='
-            curl -I -L --max-time 60 https://www.gstatic.com/flutter-canvaskit/a4ce257c68517c1410f4b48ac9852ab5642a3f8d/canvaskit.js
-          } > .diagnostics/curl.log 2>&1
-          curl -sS -L --max-time 120 https://13off.github.io/appstroy-web/main.dart.js -o /tmp/live-main.dart.js
-          sed -n '1080,1140p' /tmp/live-main.dart.js > .diagnostics/main-csI-function.txt
-          sed -n '35020,35110p' /tmp/live-main.dart.js > .diagnostics/main-intl-default.txt
-          sed -n '200430,200500p' /tmp/live-main.dart.js > .diagnostics/main-locale-snippet.txt
-          grep -nE -m 100 'navigator.languages|navigator.language|ru_RU|ru-RU|en_US|en-US|Incorrect locale|decimalPattern' /tmp/live-main.dart.js > .diagnostics/main-locale-matches.txt 2>&1 || true
           cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { writeFile } from 'node:fs/promises';
-          const url = 'https://13off.github.io/appstroy-web/';
-          const result = { checkedAt: new Date().toISOString(), requestedUrl: url, consoleMessages: [], errors: [], failed: [], badResponses: [] };
+          const url = 'https://13off.github.io/appstroy-web/?smoke=d9359c4e';
+          const result = {
+            checkedAt: new Date().toISOString(),
+            requestedUrl: url,
+            consoleMessages: [],
+            errors: [],
+            failed: [],
+            badResponses: [],
+          };
           let browser;
           try {
             browser = await chromium.launch({ headless: true });
             const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-            result.navigatorLanguage = await page.evaluate(() => navigator.language);
-            result.navigatorLanguages = await page.evaluate(() => navigator.languages);
+            result.navigatorLanguageBefore = await page.evaluate(() => navigator.language);
+            result.navigatorLanguagesBefore = await page.evaluate(() => navigator.languages);
             page.on('console', msg => {
               result.consoleMessages.push(`[${msg.type()}] ${msg.text()}`);
               if (msg.type() === 'error') result.errors.push(msg.text());
             });
             page.on('pageerror', error => result.errors.push(error.stack || error.message));
-            page.on('requestfailed', request => result.failed.push({ url: request.url(), error: request.failure()?.errorText || 'unknown' }));
+            page.on('requestfailed', request => result.failed.push({
+              url: request.url(),
+              error: request.failure()?.errorText || 'unknown',
+            }));
             page.on('response', response => {
-              if (response.status() >= 400) result.badResponses.push({ status: response.status(), url: response.url() });
+              if (response.status() >= 400) {
+                result.badResponses.push({ status: response.status(), url: response.url() });
+              }
             });
-            try {
-              const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-              result.navigationStatus = response?.status() ?? null;
-              await page.waitForTimeout(30000);
-            } catch (error) {
-              result.navigationError = error.stack || error.message;
-            }
+            const response = await page.goto(url, {
+              waitUntil: 'domcontentloaded',
+              timeout: 60000,
+            });
+            result.navigationStatus = response?.status() ?? null;
+            await page.waitForFunction(
+              () => document.querySelector('flutter-view') != null,
+              null,
+              { timeout: 60000 },
+            );
+            await page.waitForTimeout(3000);
             result.finalUrl = page.url();
-            result.title = await page.title().catch(() => '');
+            result.title = await page.title();
             result.body = await page.locator('body').innerText().catch(() => '');
-            result.flutterViews = await page.locator('flutter-view').count().catch(() => -1);
-            result.canvases = await page.locator('canvas').count().catch(() => -1);
-            await page.screenshot({ path: '.diagnostics/live-web-smoke.png', fullPage: true }).catch(error => { result.screenshotError = String(error); });
+            result.flutterViews = await page.locator('flutter-view').count();
+            result.canvases = await page.locator('canvas').count();
+            result.navigatorLanguageAfter = await page.evaluate(() => navigator.language);
+            result.navigatorLanguagesAfter = await page.evaluate(() => navigator.languages);
+            result.guardedLocale = await page.evaluate(() => window.appstroyBrowserLocale ?? null);
+            await page.screenshot({ path: '.diagnostics/live-web-smoke.png', fullPage: true });
           } catch (error) {
             result.runnerError = error.stack || error.message;
           } finally {
@@ -96,5 +99,5 @@ jobs:
           git config user.name "appstroy-agent"
           git config user.email "appstroy-agent@users.noreply.github.com"
           git add -f .diagnostics
-          git commit -m "Сохранить диагностику живой web-версии" || exit 0
+          git commit -m "Проверить опубликованный hotfix локали" || exit 0
           git push origin HEAD:agent/live-web-smoke
