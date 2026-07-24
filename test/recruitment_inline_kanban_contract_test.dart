@@ -28,13 +28,14 @@ void main() {
     expect(source, contains('Curves.easeOutCubic'));
   });
 
-  test('automation editor reloads live board stages', () {
+  test('automation editor reloads live active board stages', () {
     final source = File(
       'lib/features/recruitment/presentation/recruitment_automation_settings_panel.dart',
     ).readAsStringSync();
 
     expect(source, contains('RecruitmentRepository.fetchConfiguration('));
     expect(source, contains('includeInactive: false'));
+    expect(source, contains('.where((stage) => stage.isActive)'));
     expect(source, contains('stages: stages'));
     expect(source, contains('data.configuration.stageById'));
     expect(source, isNot(contains('stages: widget.configuration.stages')));
