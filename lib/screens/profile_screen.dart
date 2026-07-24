@@ -1,24 +1,15 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
-import '../app/theme_controller.dart';
 import '../data/user_repository.dart';
-import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
-import '../features/company/presentation/company_management_screen.dart';
-import '../features/company/presentation/company_setup_screen.dart';
-import '../features/company/presentation/company_switcher_screen.dart';
-import '../features/legal/presentation/legal_manager_summary_screen.dart';
+import '../features/profile/data/profile_repository.dart';
 import '../features/role_preview/role_preview_controller.dart';
-import '../features/role_preview/role_preview_screen.dart';
 import '../models/app_user_profile.dart';
-import '../services/pwa_install_service.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
-import 'notification_control_center_screen.dart';
-import 'push_notification_settings_screen.dart';
-import 'pwa_install_screen.dart';
-import 'template_documents_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -33,12 +24,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AppUserProfile get profile => widget.profile;
 
   Future<CompanySummary>? companyFuture;
-  late Future<List<CompanySummary>> companiesFuture;
+  PersonalProfileData? personalData;
+  Future<String?>? avatarUrlFuture;
+  bool loadingPersonal = true;
+  bool savingPhoto = false;
+
+  String get fullName {
+    final value = personalData?.fullName.trim() ?? '';
+    if (value.isNotEmpty) return value;
+    return profile.fullName.trim();
+  }
+
+  String get phone => personalData?.phone.trim() ?? '';
+  String get avatarPath => personalData?.avatarPath.trim() ?? '';
 
   @override
   void initState() {
     super.initState();
-    _configureCompanyFutures();
+    _configureCompanyFuture();
+    _loadPersonalData();
   }
 
   @override
@@ -46,23 +50,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.id != widget.profile.id ||
         oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
-      _configureCompanyFutures();
+      _configureCompanyFuture();
+      _loadPersonalData();
     }
   }
 
-  void _configureCompanyFutures() {
+  void _configureCompanyFuture() {
     final companyId = profile.activeCompanyId.trim();
     companyFuture = companyId.isEmpty
         ? null
         : CompanyRepository.fetchCompany(companyId);
-    companiesFuture = CompanyRepository.fetchMyCompanies();
   }
 
-  void open(BuildContext context, Widget screen) {
-    Navigator.push(context, CupertinoPageRoute<void>(builder: (_) => screen));
+  Future<void> _loadPersonalData() async {
+    if (mounted) setState(() => loadingPersonal = true);
+    try {
+      final value = await ProfileRepository.fetchPersonalData();
+      if (!mounted) return;
+      setState(() {
+        personalData = value;
+        avatarUrlFuture = ProfileRepository.createAvatarUrl(value.avatarPath);
+        loadingPersonal = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => loadingPersonal = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось загрузить личные данные: $error')),
+      );
+    }
   }
 
-  Future<void> signOut(BuildContext context) async {
+  void open(Widget screen) {
+    Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(builder: (_) => screen),
+    );
+  }
+
+  Future<void> signOut() async {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -88,8 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String get profileInitial {
-    final words = profile.fullName
-        .trim()
+    final words = fullName
         .split(RegExp(r'\s+'))
         .where((word) => word.isNotEmpty)
         .toList();
@@ -104,40 +128,155 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '${profile.roleTitle} · просмотр администратора';
   }
 
-  Widget buildThemeToggle() {
-    final controller = AppThemeController.instance;
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final isDark = controller.isDark;
-        return IconButton(
-          tooltip: isDark ? 'Включить светлую тему' : 'Включить тёмную тему',
-          onPressed: controller.toggle,
-          icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, animation) => RotationTransition(
-              turns: Tween<double>(begin: 0.84, end: 1).animate(animation),
-              child: FadeTransition(opacity: animation, child: child),
-            ),
-            child: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              key: ValueKey<bool>(isDark),
-            ),
-          ),
-        );
-      },
-    );
+  String _extension(String name) {
+    final value = name.toLowerCase().trim();
+    final index = value.lastIndexOf('.');
+    if (index < 0 || index == value.length - 1) return 'jpg';
+    return value.substring(index + 1);
   }
 
-  Widget buildProfileHero(BuildContext context) {
+  String _contentType(String extension) {
+    return switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+  }
+
+  Future<void> pickPhoto() async {
+    if (savingPhoto) return;
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[
+        XTypeGroup(
+          label: 'Фотографии',
+          extensions: <String>['jpg', 'jpeg', 'png', 'webp'],
+        ),
+      ],
+    );
+    if (file == null || !mounted) return;
+
+    setState(() => savingPhoto = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final extension = _extension(file.name);
+      final updated = await ProfileRepository.savePersonalData(
+        fullName: fullName,
+        phone: phone,
+        avatarBytes: bytes,
+        avatarExtension: extension,
+        avatarContentType: _contentType(extension),
+      );
+      if (!mounted) return;
+      setState(() {
+        personalData = updated;
+        avatarUrlFuture = ProfileRepository.createAvatarUrl(updated.avatarPath);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Фотография профиля обновлена')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => savingPhoto = false);
+    }
+  }
+
+  Future<void> editPersonalData() async {
+    final nameController = TextEditingController(text: fullName);
+    final phoneController = TextEditingController(text: phone);
+    final draft = await showDialog<_PersonalProfileDraft>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Личные данные'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'ФИО',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Номер телефона',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              context,
+              _PersonalProfileDraft(
+                fullName: nameController.text,
+                phone: phoneController.text,
+              ),
+            ),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    phoneController.dispose();
+    if (draft == null || !mounted) return;
+
+    try {
+      final updated = await ProfileRepository.savePersonalData(
+        fullName: draft.fullName,
+        phone: draft.phone,
+      );
+      if (!mounted) return;
+      setState(() => personalData = updated);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Личные данные сохранены')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget avatar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return PremiumWorkCard(
-      radius: 28,
-      child: Row(
-        children: [
-          Container(
-            width: 62,
-            height: 62,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: pickPhoto,
+          child: Container(
+            width: 72,
+            height: 72,
+            clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -154,24 +293,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            child: Text(
-              profileInitial,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+            child: avatarPath.isEmpty
+                ? Text(
+                    profileInitial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  )
+                : FutureBuilder<String?>(
+                    future: avatarUrlFuture,
+                    builder: (context, snapshot) {
+                      final url = snapshot.data;
+                      if (url == null || url.isEmpty) {
+                        return Text(
+                          profileInitial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        );
+                      }
+                      return Image.network(
+                        url,
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Text(
+                          profileInitial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+        Positioned(
+          right: -6,
+          bottom: -6,
+          child: Material(
+            color: scheme.primary,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: pickPhoto,
+              child: SizedBox.square(
+                dimension: 30,
+                child: savingPhoto
+                    ? const Padding(
+                        padding: EdgeInsets.all(7),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(
+                        Icons.photo_camera_outlined,
+                        size: 17,
+                        color: scheme.onPrimary,
+                      ),
               ),
             ),
           ),
-          const SizedBox(width: 15),
+        ),
+      ],
+    );
+  }
+
+  Widget profileHero(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return PremiumWorkCard(
+      radius: 28,
+      child: Row(
+        children: [
+          avatar(context),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile.fullName.isEmpty
-                      ? 'Пользователь AppСтрой'
-                      : profile.fullName,
+                  fullName.isEmpty ? 'Пользователь AppСтрой' : fullName,
                   style: TextStyle(
                     color: scheme.onSurface,
                     fontSize: 19,
@@ -186,22 +394,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: editPersonalData,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  icon: const Icon(Icons.edit_outlined, size: 17),
+                  label: const Text('Редактировать'),
+                ),
               ],
-            ),
-          ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(
-              profile.isRolePreview
-                  ? Icons.visibility_outlined
-                  : Icons.verified_user_outlined,
-              color: scheme.onSurfaceVariant,
-              size: 20,
             ),
           ),
         ],
@@ -209,7 +409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget sectionTitle(BuildContext context, String title) {
+  Widget sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
       child: Text(
@@ -224,8 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget infoTile(
-    BuildContext context, {
+  Widget infoTile({
     required IconData icon,
     required String title,
     required String value,
@@ -238,7 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            _TileIcon(icon: icon),
+            _ProfileTileIcon(icon: icon),
             const SizedBox(width: 13),
             Expanded(
               child: Column(
@@ -270,8 +469,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget actionTile(
-    BuildContext context, {
+  Widget actionTile({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -280,15 +478,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: PremiumPressable(
-        onTap: onTap,
+      child: InkWell(
         borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
         child: PremiumWorkCard(
           radius: 22,
           padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
           child: Row(
             children: [
-              _TileIcon(icon: icon),
+              _ProfileTileIcon(icon: icon),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
@@ -322,34 +520,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget signOutButton(BuildContext context) {
+  Widget signOutButton() {
     final scheme = Theme.of(context).colorScheme;
-    return PremiumPressable(
-      onTap: () => signOut(context),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 54,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: scheme.outline),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.logout_rounded, color: scheme.onSurface, size: 20),
-            const SizedBox(width: 9),
-            Text(
-              'Выйти',
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+    return OutlinedButton.icon(
+      onPressed: signOut,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      icon: Icon(Icons.logout_rounded, color: scheme.onSurface),
+      label: Text(
+        'Выйти',
+        style: TextStyle(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w900,
         ),
       ),
+    );
+  }
+
+  AppUserProfile settingsProfile() {
+    return profile.copyWith(
+      fullName: fullName,
+      phone: phone,
+      avatarPath: avatarPath,
     );
   }
 
@@ -357,191 +551,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Профиль',
-      subtitle: 'Аккаунт, компания и доступ к рабочим инструментам',
-      headerTrailing: buildThemeToggle(),
+      subtitle: 'Личные и рабочие данные',
+      headerTrailing: IconButton.filledTonal(
+        tooltip: 'Настройки',
+        onPressed: () => open(SettingsScreen(profile: settingsProfile())),
+        icon: const Icon(Icons.settings_outlined),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          buildProfileHero(context),
-          const SizedBox(height: 18),
-          if (profile.canPreviewRoles) ...[
-            sectionTitle(context, 'Режим платформы'),
-            actionTile(
-              context,
-              icon: Icons.switch_account_rounded,
-              title: 'Переключить платформу',
-              subtitle:
-                  'Сейчас: ${profile.roleTitle}. Открыть другую профессиональную платформу',
-              onTap: () => open(context, const RolePreviewScreen()),
-            ),
-            const SizedBox(height: 8),
+          profileHero(context),
+          if (loadingPersonal) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(minHeight: 2),
           ],
-          sectionTitle(context, 'Рабочие данные'),
+          const SizedBox(height: 20),
+          sectionTitle('Личные данные'),
+          infoTile(
+            icon: Icons.badge_outlined,
+            title: 'ФИО',
+            value: fullName,
+          ),
+          infoTile(
+            icon: Icons.phone_outlined,
+            title: 'Номер телефона',
+            value: phone,
+          ),
+          const SizedBox(height: 8),
+          sectionTitle('Работа'),
           if (profile.activeCompanyId.isNotEmpty)
             FutureBuilder<CompanySummary>(
               future: companyFuture,
               builder: (context, snapshot) => infoTile(
-                context,
                 icon: Icons.apartment_rounded,
                 title: 'Компания',
                 value:
                     snapshot.data?.name ??
-                    (snapshot.hasError
-                        ? 'Не удалось загрузить'
-                        : 'Загрузка...'),
+                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
               ),
             ),
           infoTile(
-            context,
-            icon: Icons.person_outline,
-            title: 'ФИО',
-            value: profile.fullName,
-          ),
-          infoTile(
-            context,
             icon: Icons.work_outline_rounded,
             title: 'Профессия',
             value: profile.profession,
           ),
           infoTile(
-            context,
             icon: Icons.admin_panel_settings_outlined,
             title: profile.isRolePreview ? 'Открытая платформа' : 'Роль',
             value: roleDescription,
           ),
           infoTile(
-            context,
-            icon: Icons.email_outlined,
-            title: 'Email',
-            value: profile.email,
-          ),
-          infoTile(
-            context,
-            icon: Icons.apartment_outlined,
+            icon: Icons.location_on_outlined,
             title: 'Объект',
             value: profile.objectName,
           ),
           const SizedBox(height: 8),
-          sectionTitle(context, 'Уведомления'),
-          if (profile.isAdmin)
-            actionTile(
-              context,
-              icon: Icons.tune_rounded,
-              title: 'Настройка уведомлений',
-              subtitle:
-                  'Колокольчик, push, роли, типы событий и встроенные напоминания',
-              onTap: () =>
-                  open(context, const NotificationControlCenterScreen()),
-            ),
+          sectionTitle('Приложение'),
           actionTile(
-            context,
-            icon: Icons.notifications_active_outlined,
-            title: 'Push-уведомления',
+            icon: Icons.settings_outlined,
+            title: 'Настройки',
             subtitle:
-                'Разрешение, регистрация телефона или браузера и отключение устройства',
-            onTap: () => open(context, const PushNotificationSettingsScreen()),
+                'Интерфейс, масштаб, уведомления и параметры профессии',
+            onTap: () => open(SettingsScreen(profile: settingsProfile())),
           ),
-          if (PwaInstallService.isSupported) ...[
-            const SizedBox(height: 8),
-            sectionTitle(context, 'Приложение'),
-            actionTile(
-              context,
-              icon: Icons.install_desktop_rounded,
-              title: 'Установить AppСтрой',
-              subtitle:
-                  'Добавить на телефон или компьютер как отдельное приложение',
-              onTap: () => open(context, const PwaInstallScreen()),
-            ),
-          ],
-          if (profile.isAdmin) ...[
-            const SizedBox(height: 8),
-            sectionTitle(context, 'Управление компанией'),
-            actionTile(
-              context,
-              icon: Icons.rocket_launch_outlined,
-              title: 'Запуск компании',
-              subtitle:
-                  'Объект, прораб, сотрудники, первая задача, табель и уведомления',
-              onTap: () => open(context, CompanySetupScreen(profile: profile)),
-            ),
-            actionTile(
-              context,
-              icon: Icons.gavel_rounded,
-              title: 'Юридическая сводка',
-              subtitle:
-                  'Риски, согласования, решения руководителя и недельный отчёт юриста',
-              onTap: () =>
-                  open(context, LegalManagerSummaryScreen(profile: profile)),
-            ),
-            actionTile(
-              context,
-              icon: Icons.manage_accounts_outlined,
-              title: 'Компания и пользователи',
-              subtitle:
-                  'Приглашения, роли и доступ всех пользователей компании',
-              onTap: () => open(
-                context,
-                CompanyManagementScreen(companyId: profile.activeCompanyId),
-              ),
-            ),
-            actionTile(
-              context,
-              icon: Icons.inventory_2_outlined,
-              title: 'Архив и удаление',
-              subtitle:
-                  'Архивированные сотрудники и объекты: восстановить или удалить навсегда',
-              onTap: () =>
-                  open(context, ArchiveManagementScreenV3(profile: profile)),
-            ),
-            actionTile(
-              context,
-              icon: Icons.folder_copy_outlined,
-              title: 'Документы',
-              subtitle:
-                  'Действующие исходники, версии и загрузка утверждённых форм',
-              onTap: () =>
-                  open(context, TemplateDocumentsScreen(profile: profile)),
-            ),
-            const SizedBox(height: 8),
-          ],
-          FutureBuilder<List<CompanySummary>>(
-            future: companiesFuture,
-            builder: (context, snapshot) {
-              final companies = snapshot.data ?? const <CompanySummary>[];
-              if (companies.length < 2) return const SizedBox.shrink();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  sectionTitle(context, 'Рабочее пространство'),
-                  actionTile(
-                    context,
-                    icon: Icons.swap_horiz_rounded,
-                    title: 'Сменить компанию',
-                    subtitle:
-                        'Переключиться между доступными рабочими пространствами',
-                    onTap: () => open(
-                      context,
-                      CompanySwitcherScreen(
-                        activeCompanyId: profile.activeCompanyId,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              );
-            },
-          ),
-          signOutButton(context),
+          const SizedBox(height: 8),
+          signOutButton(),
         ],
       ),
     );
   }
 }
 
-class _TileIcon extends StatelessWidget {
+class _PersonalProfileDraft {
+  final String fullName;
+  final String phone;
+
+  const _PersonalProfileDraft({required this.fullName, required this.phone});
+}
+
+class _ProfileTileIcon extends StatelessWidget {
   final IconData icon;
 
-  const _TileIcon({required this.icon});
+  const _ProfileTileIcon({required this.icon});
 
   @override
   Widget build(BuildContext context) {
