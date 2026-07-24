@@ -77,7 +77,7 @@ function renderTemplate(template: string, application: ApplicationRow): string {
 }
 
 async function sendTelegramMessage(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   application: ApplicationRow,
   text: string,
   actorUserId: string,
@@ -148,7 +148,7 @@ Deno.serve(async (request: Request) => {
       .slice(0, 100);
     if (!applicationIds.length) return response({ error: "Не выбраны кандидаты" }, 400);
 
-    const admin = createClient(supabaseUrl, secret, {
+    const admin: any = createClient(supabaseUrl, secret, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
