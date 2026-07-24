@@ -1,0 +1,51 @@
+name: Agent fix CRM edge types
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'agent/recruitment-crm-full'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/recruitment-crm-full
+          fetch-depth: 0
+          show-progress: false
+      - name: Fix Supabase client inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/functions/run-recruitment-crm-automations/index.ts')
+          source = path.read_text()
+          source = source.replace(
+              '  admin: ReturnType<typeof createClient>,',
+              '  admin: any,',
+          )
+          source = source.replace(
+              '    const admin = createClient(supabaseUrl, secret, {',
+              '    const admin: any = createClient(supabaseUrl, secret, {',
+          )
+          path.write_text(source)
+          PY
+          rm -f .github/workflows/agent_fix_crm_edge_types.yml
+          git diff --check
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "appstroy-agent"
+          git config user.email "appstroy-agent@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить типы CRM-автоматизации [agent-crm-types]"
+          git push origin HEAD:agent/recruitment-crm-full
