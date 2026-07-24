@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set +e
+          rm -rf .diagnostics
           mkdir -p .diagnostics
           {
             echo '=== CURL ROOT ==='
@@ -40,7 +41,7 @@ jobs:
             echo '=== CURL CANVASKIT CDN ==='
             curl -I -L --max-time 60 https://www.gstatic.com/flutter-canvaskit/a4ce257c68517c1410f4b48ac9852ab5642a3f8d/canvaskit.js
           } > .diagnostics/curl.log 2>&1
-          cat > /tmp/smoke.mjs <<'EOF'
+          cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { writeFile } from 'node:fs/promises';
           const url = 'https://13off.github.io/appstroy-web/';
@@ -78,8 +79,9 @@ jobs:
             await writeFile('.diagnostics/live-web-smoke.json', JSON.stringify(result, null, 2));
           }
           EOF
-          node /tmp/smoke.mjs > .diagnostics/node.log 2>&1
+          node smoke.mjs > .diagnostics/node.log 2>&1
           echo "node_exit=$?" >> .diagnostics/node.log
+          rm -f smoke.mjs
           exit 0
       - name: Commit diagnostics
         run: |
