@@ -48,7 +48,6 @@ class _RecruitmentApplicationsScreenState
   final Set<String> archiveBusyIds = <String>{};
   final Set<String> movingIds = <String>{};
   final Map<String, String> pendingStageIds = <String, String>{};
-  final Map<String, GlobalKey> stageColumnKeys = <String, GlobalKey>{};
   final Set<String> selectedIds = <String>{};
   String? draggingApplicationId;
   String? draggingStageId;
@@ -76,7 +75,11 @@ class _RecruitmentApplicationsScreenState
     future = load();
     searchController.addListener(handleSearchChanged);
     changesSubscription = AppDataSync.changes.listen((change) {
-      if (change.affects(AppDataDomain.recruitment) && mounted) refresh();
+      if (change.affects(AppDataDomain.recruitment) &&
+mounted &&
+!stageMutationBusy) {
+        refresh();
+      }
     });
   }
 
@@ -609,34 +612,14 @@ class _RecruitmentApplicationsScreenState
     if (title == null || !mounted) return;
     setState(() => stageMutationBusy = true);
     try {
-      final maxSortOrder = configuration.stages.isEmpty
-          ? 0
-          : configuration.stages
-                .map((stage) => stage.sortOrder)
-                .reduce((first, second) => first > second ? first : second);
-      final created = await RecruitmentRepository.savePipelineStage(
-        id: '',
+      await RecruitmentRepository.createPipelineStageAtEnd(
         companyId: widget.profile.activeCompanyId,
         title: title,
         description: '',
         colorHex: defaultStageColor(configuration.stages.length),
         legacyStatus: 'new',
         isFinal: false,
-        sortOrder: maxSortOrder + 10,
       );
-      final latest = await RecruitmentRepository.fetchConfiguration(
-        companyId: widget.profile.activeCompanyId,
-      );
-      final orderedIds = latest.stages
-          .where((stage) => stage.id != created.id)
-          .map((stage) => stage.id)
-          .followedBy(<String>[created.id])
-          .toList(growable: false);
-      await RecruitmentRepository.reorderPipelineStages(
-        companyId: widget.profile.activeCompanyId,
-        orderedIds: orderedIds,
-      );
-      pendingStageOrder = orderedIds;
       await refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -650,8 +633,8 @@ class _RecruitmentApplicationsScreenState
     } finally {
       if (mounted) {
         setState(() {
-          stageMutationBusy = false;
-          pendingStageOrder = null;
+stageMutationBusy = false;
+pendingStageOrder = null;
         });
       }
     }
@@ -842,20 +825,19 @@ class _RecruitmentApplicationsScreenState
   Future<void> reorderStageOnBoard(
     RecruitmentCrmConfiguration configuration,
     RecruitmentPipelineStage dragged,
-    RecruitmentPipelineStage target, {
-    required bool placeAfter,
-  }) async {
+    RecruitmentPipelineStage target,
+  ) async {
     if (stageMutationBusy || dragged.id == target.id) return;
-    final ids = orderedStages(configuration).map((stage) => stage.id).toList();
-    if (!ids.remove(dragged.id)) return;
-    var targetIndex = ids.indexOf(target.id);
-    if (targetIndex < 0) return;
-    if (placeAfter) targetIndex += 1;
-    ids.replaceRange(targetIndex, targetIndex, <String>[dragged.id]);
-    if (ids.join('|') ==
-        orderedStages(configuration).map((stage) => stage.id).join('|')) {
-      return;
-    }
+    final current = orderedStages(configuration);
+    final fromIndex = current.indexWhere((stage) => stage.id == dragged.id);
+    final targetIndex = current.indexWhere((stage) => stage.id == target.id);
+    if (fromIndex < 0 || targetIndex < 0) return;
+
+    final ids = current.map((stage) => stage.id).toList();
+    final movedId = ids.removeAt(fromIndex);
+    final insertionIndex = fromIndex < targetIndex ? targetIndex : targetIndex;
+    ids.insert(insertionIndex, movedId);
+    if (ids.join('|') == current.map((stage) => stage.id).join('|')) return;
 
     setState(() {
       stageMutationBusy = true;
@@ -863,10 +845,14 @@ class _RecruitmentApplicationsScreenState
       draggingStageId = null;
     });
     try {
-      await RecruitmentRepository.reorderPipelineStages(
+      final confirmedIds = await RecruitmentRepository.reorderPipelineStages(
         companyId: widget.profile.activeCompanyId,
         orderedIds: ids,
       );
+      if (confirmedIds.join('|') != ids.join('|')) {
+        throw Exception('Сервер сохранил другой порядок колонок');
+      }
+      pendingStageOrder = confirmedIds;
       await refresh();
     } catch (error) {
       if (!mounted) return;
@@ -877,9 +863,9 @@ class _RecruitmentApplicationsScreenState
     } finally {
       if (mounted) {
         setState(() {
-          stageMutationBusy = false;
-          pendingStageOrder = null;
-          draggingStageId = null;
+stageMutationBusy = false;
+pendingStageOrder = null;
+draggingStageId = null;
         });
       }
     }
@@ -1747,27 +1733,13 @@ class _RecruitmentApplicationsScreenState
     RecruitmentBoardSupportData support,
   ) {
     final color = stageColor(stage);
-    final columnKey = stageColumnKeys.putIfAbsent(stage.id, () => GlobalKey());
     return DragTarget<RecruitmentPipelineStage>(
       onWillAcceptWithDetails: (details) =>
-          canConfigureCrm &&
-          !stageMutationBusy &&
-          details.data.id != stage.id,
-      onAcceptWithDetails: (details) {
-        final renderBox =
-            columnKey.currentContext?.findRenderObject() as RenderBox?;
-        final localOffset = renderBox?.globalToLocal(details.offset);
-        final placeAfter =
-            renderBox != null &&
-            localOffset != null &&
-            localOffset.dx >= renderBox.size.width / 2;
-        reorderStageOnBoard(
-          configuration,
-          details.data,
-          stage,
-          placeAfter: placeAfter,
-        );
-      },
+canConfigureCrm &&
+!stageMutationBusy &&
+details.data.id != stage.id,
+      onAcceptWithDetails: (details) =>
+reorderStageOnBoard(configuration, details.data, stage),
       builder: (context, stageCandidates, rejectedStages) {
         final stageHighlighted = stageCandidates.isNotEmpty;
         return AnimatedScale(
@@ -1775,7 +1747,6 @@ class _RecruitmentApplicationsScreenState
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           child: Container(
-            key: columnKey,
             decoration: stageHighlighted
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(AppUi.cardRadius),
