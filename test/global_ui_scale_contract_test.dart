@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт запускает штатную Web/PWA-публикацию после изменения масштаба.
 void main() {
   test('the entire app is rendered through one persisted scale viewport', () {
     final main = File('lib/main.dart').readAsStringSync();
