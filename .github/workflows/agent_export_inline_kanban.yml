@@ -7,6 +7,9 @@ on:
       - agent/inline-kanban-columns
     paths:
       - .github/workflows/agent_export_inline_kanban.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
