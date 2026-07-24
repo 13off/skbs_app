@@ -42,6 +42,9 @@ jobs:
             echo '=== CURL CANVASKIT CDN ==='
             curl -I -L --max-time 60 https://www.gstatic.com/flutter-canvaskit/a4ce257c68517c1410f4b48ac9852ab5642a3f8d/canvaskit.js
           } > .diagnostics/curl.log 2>&1
+          curl -sS -L --max-time 120 https://13off.github.io/appstroy-web/main.dart.js -o /tmp/live-main.dart.js
+          sed -n '200430,200500p' /tmp/live-main.dart.js > .diagnostics/main-locale-snippet.txt
+          grep -nE -m 100 'ru_RU|ru-RU|en_US|en-US|Incorrect locale|decimalPattern' /tmp/live-main.dart.js > .diagnostics/main-locale-matches.txt 2>&1 || true
           cat > smoke.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { writeFile } from 'node:fs/promises';
