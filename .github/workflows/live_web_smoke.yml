@@ -31,6 +31,7 @@ jobs:
           set +e
           rm -rf .diagnostics
           mkdir -p .diagnostics
+          rg -n --glob '*.dart' "Intl|DateFormat|NumberFormat|initializeDateFormatting|defaultLocale|localeName|Locale\\(" lib test > .diagnostics/locale-grep.txt 2>&1 || true
           {
             echo '=== CURL ROOT ==='
             curl -I -L --max-time 60 https://13off.github.io/appstroy-web/
