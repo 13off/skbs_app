@@ -1,0 +1,104 @@
+=== CURL ROOT ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 16468    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/2 200 
+server: GitHub.com
+content-type: text/html; charset=utf-8
+last-modified: Fri, 24 Jul 2026 04:10:08 GMT
+access-control-allow-origin: *
+strict-transport-security: max-age=31556952
+etag: "6a62e5a0-4054"
+expires: Fri, 24 Jul 2026 04:47:31 GMT
+cache-control: max-age=600
+x-proxy-cache: MISS
+x-github-request-id: 6734:11B898:338A23:35C347:6A62EC0A
+accept-ranges: bytes
+age: 137
+date: Fri, 24 Jul 2026 04:39:48 GMT
+via: 1.1 varnish
+x-served-by: cache-pao-kpao1770057-PAO
+x-cache: HIT
+x-cache-hits: 0
+x-timer: S1784867988.402690,VS0,VE1
+vary: Accept-Encoding
+x-fastly-request-id: 2fd27bd37d66bb0cb349d170500dfce7a8fca8a1
+content-length: 16468
+
+=== CURL BOOTSTRAP ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 10020    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/2 200 
+server: GitHub.com
+content-type: application/javascript; charset=utf-8
+last-modified: Fri, 24 Jul 2026 04:10:08 GMT
+access-control-allow-origin: *
+strict-transport-security: max-age=31556952
+etag: "6a62e5a0-2724"
+expires: Fri, 24 Jul 2026 04:49:48 GMT
+cache-control: max-age=600
+x-proxy-cache: MISS
+x-github-request-id: 8578:3F93AB:33E685:362244:6A62EC94
+accept-ranges: bytes
+age: 0
+date: Fri, 24 Jul 2026 04:39:48 GMT
+via: 1.1 varnish
+x-served-by: cache-sjc1000126-SJC
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1784867988.437540,VS0,VE162
+vary: Accept-Encoding
+x-fastly-request-id: fa4dc9acfb55c09f03d8c02fb897e813ff4db5a2
+content-length: 10020
+
+=== CURL MAIN ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 5996k    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/2 200 
+server: GitHub.com
+content-type: application/javascript; charset=utf-8
+last-modified: Fri, 24 Jul 2026 04:10:08 GMT
+access-control-allow-origin: *
+strict-transport-security: max-age=31556952
+etag: "6a62e5a0-5db139"
+expires: Fri, 24 Jul 2026 04:49:48 GMT
+cache-control: max-age=600
+x-proxy-cache: MISS
+x-github-request-id: 6766:189ED6:32E978:352609:6A62EC94
+accept-ranges: bytes
+age: 0
+date: Fri, 24 Jul 2026 04:39:49 GMT
+via: 1.1 varnish
+x-served-by: cache-sjc1000110-SJC
+x-cache: MISS
+x-cache-hits: 0
+x-timer: S1784867989.632439,VS0,VE539
+vary: Accept-Encoding
+x-fastly-request-id: 06fcb17d89321f0549f9285bc645dd49427058a0
+content-length: 6140217
+
+=== CURL CANVASKIT CDN ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 86859    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+HTTP/2 200 
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: text/javascript
+content-length: 86859
+access-control-allow-origin: *
+content-security-policy-report-only: require-trusted-types-for 'script'; report-uri https://csp.withgoogle.com/csp/flutter-team
+cross-origin-resource-policy: cross-origin
+cross-origin-opener-policy: same-origin; report-to="flutter-team"
+report-to: {"group":"flutter-team","max_age":2592000,"endpoints":[{"url":"https://csp.withgoogle.com/csp/report-to/flutter-team"}]}
+date: Fri, 24 Jul 2026 04:39:49 GMT
+expires: Sat, 24 Jul 2027 04:39:49 GMT
+cache-control: public, max-age=31536000
+last-modified: Thu, 18 Jun 2026 17:52:45 GMT
+x-content-type-options: nosniff
+server: sffe
+x-xss-protection: 0
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
