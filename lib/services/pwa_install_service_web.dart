@@ -35,6 +35,17 @@ String get _userAgent {
   }
 }
 
+String get browserName {
+  final userAgent = _userAgent;
+  if (userAgent.contains('yabrowser/')) return 'Яндекс.Браузер';
+  if (userAgent.contains('edg/')) return 'Microsoft Edge';
+  if (userAgent.contains('chrome/')) return 'Google Chrome';
+  if (userAgent.contains('safari/')) return 'Safari';
+  return 'браузер';
+}
+
+bool get isYandexBrowser => _userAgent.contains('yabrowser/');
+
 String get platformName {
   final userAgent = _userAgent;
   if (userAgent.contains('iphone') || userAgent.contains('ipad')) {
@@ -55,6 +66,9 @@ String get manualInstruction {
   }
   if (userAgent.contains('android')) {
     return 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».';
+  }
+  if (userAgent.contains('yabrowser/')) {
+    return 'Яндекс.Браузер не всегда показывает системное окно установки. Для надёжной установки откройте эту же страницу в Microsoft Edge: меню «…» → «Приложения» → «Установить этот сайт как приложение».';
   }
   if (userAgent.contains('edg/')) {
     return 'В Microsoft Edge откройте меню «…» → «Приложения» → «Установить AppСтрой».';

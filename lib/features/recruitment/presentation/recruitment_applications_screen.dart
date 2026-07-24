@@ -9,17 +9,22 @@ import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
+import '../data/recruitment_crm_workspace_repository.dart';
 import '../data/recruitment_repository.dart';
+import '../models/recruitment_crm_workspace_models.dart';
 import '../models/recruitment_models.dart';
 import 'recruitment_application_detail_screen.dart';
 import 'recruitment_archive_screen.dart';
 import 'recruitment_crm_settings_screen.dart';
+import 'recruitment_import_screen.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
 Color get _soft => AppAdaptivePalette.surfaceSoft;
 
 enum RecruitmentViewMode { board, list }
+
+enum RecruitmentSortMode { updatedDesc, updatedAsc, name, nextTask }
 
 class RecruitmentApplicationsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -35,20 +40,29 @@ class _RecruitmentApplicationsScreenState
     extends State<RecruitmentApplicationsScreen> {
   final TextEditingController searchController = TextEditingController();
   late Future<RecruitmentWorkspaceData> future;
+  Future<RecruitmentBoardSupportData> supportFuture =
+      Future<RecruitmentBoardSupportData>.value(
+        RecruitmentBoardSupportData.empty,
+      );
   StreamSubscription<AppDataChange>? changesSubscription;
   final Set<String> archiveBusyIds = <String>{};
   final Set<String> movingIds = <String>{};
+  final Set<String> selectedIds = <String>{};
   RecruitmentViewMode viewMode = RecruitmentViewMode.board;
+  RecruitmentSortMode sortMode = RecruitmentSortMode.updatedDesc;
   String listStage = 'all';
   String objectFilter = 'all';
   String vacancyFilter = 'all';
+  String responsibleFilter = 'all';
+  bool hideEmptyColumns = false;
+  bool selectionMode = false;
 
   bool get canConfigureCrm => const <String>{
-        'owner',
-        'admin',
-        'developer',
-        'hr',
-      }.contains(widget.profile.actualRole);
+    'owner',
+    'admin',
+    'developer',
+    'hr',
+  }.contains(widget.profile.actualRole);
 
   @override
   void initState() {
@@ -73,10 +87,15 @@ class _RecruitmentApplicationsScreenState
     if (mounted) setState(() {});
   }
 
-  Future<RecruitmentWorkspaceData> load() {
-    return RecruitmentRepository.fetchWorkspace(
+  Future<RecruitmentWorkspaceData> load() async {
+    final workspace = await RecruitmentRepository.fetchWorkspace(
       companyId: widget.profile.activeCompanyId,
     );
+    supportFuture = RecruitmentCrmWorkspaceRepository.fetchBoardSupport(
+      companyId: widget.profile.activeCompanyId,
+      applications: workspace.applications,
+    );
+    return workspace;
   }
 
   Future<void> refresh() async {
@@ -96,22 +115,21 @@ class _RecruitmentApplicationsScreenState
         .toSet()
         .toList()
       ..sort(
-        (first, second) =>
-            first.toLowerCase().compareTo(second.toLowerCase()),
+        (first, second) => first.toLowerCase().compareTo(second.toLowerCase()),
       );
   }
 
   List<RecruitmentApplication> visible(
     List<RecruitmentApplication> applications,
     RecruitmentCrmConfiguration configuration, {
+    Map<String, RecruitmentCandidateIndicator> indicators =
+        const <String, RecruitmentCandidateIndicator>{},
     bool applyListStage = false,
   }) {
     final query = searchController.text.trim().toLowerCase();
     final result = applications.where((application) {
       final stage = configuration.stageForApplication(application);
-      if (applyListStage &&
-          listStage != 'all' &&
-          stage?.id != listStage) {
+      if (applyListStage && listStage != 'all' && stage?.id != listStage) {
         return false;
       }
       if (objectFilter != 'all' && application.objectName != objectFilter) {
@@ -119,6 +137,14 @@ class _RecruitmentApplicationsScreenState
       }
       if (vacancyFilter != 'all' && application.vacancy != vacancyFilter) {
         return false;
+      }
+      if (responsibleFilter != 'all') {
+        final responsible = application.responsibleUserId.trim();
+        if (responsibleFilter == 'none') {
+          if (responsible.isNotEmpty) return false;
+        } else if (responsible != responsibleFilter) {
+          return false;
+        }
       }
       if (query.isEmpty) return true;
       final haystack = <String>[
@@ -135,7 +161,24 @@ class _RecruitmentApplicationsScreenState
       ].join(' ').toLowerCase();
       return haystack.contains(query);
     }).toList();
-    result.sort((first, second) => second.updatedAt.compareTo(first.updatedAt));
+    result.sort((first, second) {
+      switch (sortMode) {
+        case RecruitmentSortMode.updatedAsc:
+          return first.updatedAt.compareTo(second.updatedAt);
+        case RecruitmentSortMode.name:
+          return first.fullName.toLowerCase().compareTo(
+            second.fullName.toLowerCase(),
+          );
+        case RecruitmentSortMode.nextTask:
+          final firstDue =
+              indicators[first.id]?.nextTaskDueAt ?? DateTime(9999);
+          final secondDue =
+              indicators[second.id]?.nextTaskDueAt ?? DateTime(9999);
+          return firstDue.compareTo(secondDue);
+        case RecruitmentSortMode.updatedDesc:
+          return second.updatedAt.compareTo(first.updatedAt);
+      }
+    });
     return result;
   }
 
@@ -214,6 +257,219 @@ class _RecruitmentApplicationsScreenState
     }
   }
 
+  Future<void> openImport(RecruitmentWorkspaceData workspace) async {
+    final imported = await Navigator.of(context).push<int>(
+      MaterialPageRoute<int>(
+        builder: (_) => RecruitmentImportScreen(
+          profile: widget.profile,
+          workspace: workspace,
+        ),
+      ),
+    );
+    if (imported != null && imported > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Импортировано кандидатов: $imported')),
+      );
+      await refresh();
+    }
+  }
+
+  Future<void> runAutomations(Iterable<String> applicationIds) async {
+    try {
+      await RecruitmentCrmWorkspaceRepository.runAutomations(
+        applicationIds: applicationIds.toList(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Кандидаты сохранены, но автоматизация не выполнилась: '
+            '${error.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
+  }
+
+  Map<String, dynamic> currentViewFilters() => <String, dynamic>{
+    'query': searchController.text.trim(),
+    'object': objectFilter,
+    'vacancy': vacancyFilter,
+    'responsible': responsibleFilter,
+    'stage': listStage,
+    'view_mode': viewMode.name,
+    'sort_mode': sortMode.name,
+    'hide_empty_columns': hideEmptyColumns,
+  };
+
+  void applySavedView(RecruitmentCrmSavedView view) {
+    final filters = view.filters;
+    searchController.text = filters['query']?.toString() ?? '';
+    setState(() {
+      objectFilter = filters['object']?.toString() ?? 'all';
+      vacancyFilter = filters['vacancy']?.toString() ?? 'all';
+      responsibleFilter = filters['responsible']?.toString() ?? 'all';
+      listStage = filters['stage']?.toString() ?? 'all';
+      final savedViewMode = filters['view_mode']?.toString() ?? '';
+      viewMode =
+          RecruitmentViewMode.values.any((value) => value.name == savedViewMode)
+          ? RecruitmentViewMode.values.firstWhere(
+              (value) => value.name == savedViewMode,
+            )
+          : RecruitmentViewMode.board;
+      final savedSortMode = filters['sort_mode']?.toString() ?? '';
+      sortMode =
+          RecruitmentSortMode.values.any((value) => value.name == savedSortMode)
+          ? RecruitmentSortMode.values.firstWhere(
+              (value) => value.name == savedSortMode,
+            )
+          : RecruitmentSortMode.updatedDesc;
+      hideEmptyColumns = filters['hide_empty_columns'] == true;
+    });
+  }
+
+  Future<void> saveCurrentView() async {
+    final controller = TextEditingController();
+    var makeDefault = false;
+    final draft = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Сохранить представление'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Название',
+                  hintText: 'Например: Просроченные по Мурманску',
+                ),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: makeDefault,
+                onChanged: (value) =>
+                    setDialogState(() => makeDefault = value == true),
+                title: const Text('Открывать по умолчанию'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, <String, dynamic>{
+                'title': controller.text,
+                'is_default': makeDefault,
+              }),
+              child: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    final title = draft?['title']?.toString().trim() ?? '';
+    if (title.isEmpty) return;
+    try {
+      await RecruitmentCrmWorkspaceRepository.saveView(
+        companyId: widget.profile.activeCompanyId,
+        title: title,
+        filters: currentViewFilters(),
+        isDefault: draft?['is_default'] == true,
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сохранить представление: $error')),
+      );
+    }
+  }
+
+  Future<void> bulkMove(RecruitmentCrmConfiguration configuration) async {
+    if (selectedIds.isEmpty) return;
+    final stageId = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Переместить кандидатов: ${selectedIds.length}'),
+        children: configuration.stages
+            .map(
+              (stage) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, stage.id),
+                child: Text(stage.title),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (stageId == null) return;
+    try {
+      final ids = selectedIds.toList();
+      final count = await RecruitmentCrmWorkspaceRepository.bulkMove(
+        applicationIds: ids,
+        stageId: stageId,
+      );
+      await runAutomations(ids);
+      if (!mounted) return;
+      setState(() {
+        selectedIds.clear();
+        selectionMode = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Перемещено кандидатов: $count')));
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось переместить кандидатов: $error')),
+      );
+    }
+  }
+
+  Future<void> assignSelected(RecruitmentBoardSupportData support) async {
+    if (selectedIds.isEmpty) return;
+    final userId = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Назначить ответственного: ${selectedIds.length}'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Снять ответственного'),
+          ),
+          ...support.responsibles.map(
+            (item) => SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, item.userId),
+              child: Text(item.fullName),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (userId == null) return;
+    try {
+      for (final id in selectedIds) {
+        await RecruitmentCrmWorkspaceRepository.assignResponsible(
+          applicationId: id,
+          responsibleUserId: userId,
+        );
+      }
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось назначить ответственного: $error')),
+      );
+    }
+  }
+
   Future<void> archiveApplication(RecruitmentApplication application) async {
     if (archiveBusyIds.contains(application.id)) return;
     setState(() => archiveBusyIds.add(application.id));
@@ -226,7 +482,10 @@ class _RecruitmentApplicationsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${application.fullName} перемещён в архив'),
-          action: SnackBarAction(label: 'Открыть архив', onPressed: openArchive),
+          action: SnackBarAction(
+            label: 'Открыть архив',
+            onPressed: openArchive,
+          ),
         ),
       );
       await refresh();
@@ -244,8 +503,7 @@ class _RecruitmentApplicationsScreenState
     RecruitmentApplication application,
     RecruitmentPipelineStage stage,
   ) async {
-    if (application.stageId == stage.id ||
-        movingIds.contains(application.id)) {
+    if (application.stageId == stage.id || movingIds.contains(application.id)) {
       return;
     }
     setState(() => movingIds.add(application.id));
@@ -254,6 +512,7 @@ class _RecruitmentApplicationsScreenState
         applicationId: application.id,
         stageId: stage.id,
       );
+      await runAutomations(<String>[application.id]);
       if (mounted) await refresh();
     } catch (error) {
       if (!mounted) return;
@@ -418,6 +677,7 @@ class _RecruitmentApplicationsScreenState
   Widget toolbar(
     List<RecruitmentApplication> applications,
     RecruitmentCrmConfiguration configuration,
+    RecruitmentBoardSupportData support,
   ) {
     final objects = filterValues(applications, (item) => item.objectName);
     final vacancies = filterValues(applications, (item) => item.vacancy);
@@ -427,85 +687,190 @@ class _RecruitmentApplicationsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 760;
-              final search = TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'ФИО, телефон, вакансия, объект или любое поле',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Очистить поиск',
-                          onPressed: searchController.clear,
-                          icon: const Icon(Icons.close_rounded),
+          TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              hintText: 'ФИО, телефон, вакансия, объект или любое поле',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Очистить поиск',
+                      onPressed: searchController.clear,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+          ),
+          const SizedBox(height: AppUi.gap12),
+          Wrap(
+            spacing: AppUi.gap12,
+            runSpacing: AppUi.gap12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              dropdownFilter(
+                value: objectFilter,
+                label: 'Объект',
+                icon: Icons.apartment_outlined,
+                values: objects,
+                onChanged: (value) =>
+                    setState(() => objectFilter = value ?? 'all'),
+              ),
+              dropdownFilter(
+                value: vacancyFilter,
+                label: 'Вакансия',
+                icon: Icons.work_outline_rounded,
+                values: vacancies,
+                onChanged: (value) =>
+                    setState(() => vacancyFilter = value ?? 'all'),
+              ),
+              SizedBox(
+                width: 240,
+                child: DropdownButtonFormField<String>(
+                  initialValue:
+                      <String>{
+                        'all',
+                        'none',
+                        ...support.responsibles.map((item) => item.userId),
+                      }.contains(responsibleFilter)
+                      ? responsibleFilter
+                      : 'all',
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Ответственный',
+                    prefixIcon: Icon(Icons.support_agent_rounded),
+                  ),
+                  items: <DropdownMenuItem<String>>[
+                    const DropdownMenuItem(value: 'all', child: Text('Все')),
+                    const DropdownMenuItem(
+                      value: 'none',
+                      child: Text('Не назначен'),
+                    ),
+                    ...support.responsibles.map(
+                      (item) => DropdownMenuItem(
+                        value: item.userId,
+                        child: Text(
+                          item.fullName,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                ),
-              );
-              final controls = Wrap(
-                spacing: AppUi.gap12,
-                runSpacing: AppUi.gap12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  dropdownFilter(
-                    value: objectFilter,
-                    label: 'Объект',
-                    icon: Icons.apartment_outlined,
-                    values: objects,
-                    onChanged: (value) =>
-                        setState(() => objectFilter = value ?? 'all'),
-                  ),
-                  dropdownFilter(
-                    value: vacancyFilter,
-                    label: 'Вакансия',
-                    icon: Icons.work_outline_rounded,
-                    values: vacancies,
-                    onChanged: (value) =>
-                        setState(() => vacancyFilter = value ?? 'all'),
-                  ),
-                  SegmentedButton<RecruitmentViewMode>(
-                    showSelectedIcon: false,
-                    segments: const <ButtonSegment<RecruitmentViewMode>>[
-                      ButtonSegment<RecruitmentViewMode>(
-                        value: RecruitmentViewMode.board,
-                        icon: Icon(Icons.view_kanban_outlined),
-                        label: Text('Канбан'),
                       ),
-                      ButtonSegment<RecruitmentViewMode>(
-                        value: RecruitmentViewMode.list,
-                        icon: Icon(Icons.view_list_outlined),
-                        label: Text('Список'),
-                      ),
-                    ],
-                    selected: <RecruitmentViewMode>{viewMode},
-                    onSelectionChanged: (selection) {
-                      setState(() => viewMode = selection.first);
-                    },
-                  ),
-                ],
-              );
-
-              if (!wide) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    search,
-                    const SizedBox(height: AppUi.gap12),
-                    controls,
+                    ),
                   ],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: search),
-                  const SizedBox(width: AppUi.gap12),
-                  Flexible(flex: 2, child: controls),
+                  onChanged: (value) =>
+                      setState(() => responsibleFilter = value ?? 'all'),
+                ),
+              ),
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<RecruitmentSortMode>(
+                  initialValue: sortMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Сортировка',
+                    prefixIcon: Icon(Icons.sort_rounded),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: RecruitmentSortMode.updatedDesc,
+                      child: Text('Сначала новые'),
+                    ),
+                    DropdownMenuItem(
+                      value: RecruitmentSortMode.updatedAsc,
+                      child: Text('Сначала старые'),
+                    ),
+                    DropdownMenuItem(
+                      value: RecruitmentSortMode.name,
+                      child: Text('По ФИО'),
+                    ),
+                    DropdownMenuItem(
+                      value: RecruitmentSortMode.nextTask,
+                      child: Text('По ближайшему делу'),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => sortMode = value ?? sortMode),
+                ),
+              ),
+              SegmentedButton<RecruitmentViewMode>(
+                showSelectedIcon: false,
+                segments: const <ButtonSegment<RecruitmentViewMode>>[
+                  ButtonSegment(
+                    value: RecruitmentViewMode.board,
+                    icon: Icon(Icons.view_kanban_outlined),
+                    label: Text('Канбан'),
+                  ),
+                  ButtonSegment(
+                    value: RecruitmentViewMode.list,
+                    icon: Icon(Icons.view_list_outlined),
+                    label: Text('Список'),
+                  ),
                 ],
-              );
-            },
+                selected: <RecruitmentViewMode>{viewMode},
+                onSelectionChanged: (selection) {
+                  setState(() => viewMode = selection.first);
+                },
+              ),
+              FilterChip(
+                selected: hideEmptyColumns,
+                onSelected: (value) => setState(() => hideEmptyColumns = value),
+                avatar: const Icon(Icons.visibility_off_outlined, size: 18),
+                label: const Text('Скрыть пустые колонки'),
+              ),
+              FilterChip(
+                selected: selectionMode,
+                onSelected: (value) => setState(() {
+                  selectionMode = value;
+                  if (!value) selectedIds.clear();
+                }),
+                avatar: const Icon(Icons.library_add_check_outlined, size: 18),
+                label: const Text('Массовые действия'),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Сохранённые представления',
+                onSelected: (value) {
+                  if (value == 'save') {
+                    saveCurrentView();
+                    return;
+                  }
+                  final selected = support.savedViews.where(
+                    (item) => item.id == value,
+                  );
+                  if (selected.isNotEmpty) applySavedView(selected.first);
+                },
+                itemBuilder: (_) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem(
+                    value: 'save',
+                    child: Row(
+                      children: [
+                        Icon(Icons.bookmark_add_outlined),
+                        SizedBox(width: AppUi.gap8),
+                        Text('Сохранить текущий вид'),
+                      ],
+                    ),
+                  ),
+                  if (support.savedViews.isNotEmpty) const PopupMenuDivider(),
+                  ...support.savedViews.map(
+                    (item) => PopupMenuItem(
+                      value: item.id,
+                      child: Row(
+                        children: [
+                          Icon(
+                            item.isDefault
+                                ? Icons.star_rounded
+                                : Icons.bookmark_outline_rounded,
+                            size: 18,
+                          ),
+                          const SizedBox(width: AppUi.gap8),
+                          Expanded(child: Text(item.title)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                child: const Chip(
+                  avatar: Icon(Icons.bookmarks_outlined, size: 18),
+                  label: Text('Представления'),
+                ),
+              ),
+            ],
           ),
           if (viewMode == RecruitmentViewMode.list) ...[
             const SizedBox(height: AppUi.gap12),
@@ -589,11 +954,14 @@ class _RecruitmentApplicationsScreenState
   Widget candidateCard(
     RecruitmentApplication application,
     RecruitmentCrmConfiguration configuration, {
+    RecruitmentCandidateIndicator indicator =
+        const RecruitmentCandidateIndicator(),
     bool feedback = false,
   }) {
     final stage = configuration.stageForApplication(application);
     final color = stage == null ? AppAdaptivePalette.accent : stageColor(stage);
-    final busy = movingIds.contains(application.id) ||
+    final busy =
+        movingIds.contains(application.id) ||
         archiveBusyIds.contains(application.id);
     final details = <String>[
       if (application.vacancy.isNotEmpty) application.vacancy,
@@ -626,7 +994,11 @@ class _RecruitmentApplicationsScreenState
                   color: color.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(AppUi.controlRadius),
                 ),
-                child: Icon(Icons.person_search_rounded, color: color, size: 20),
+                child: Icon(
+                  Icons.person_search_rounded,
+                  color: color,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: AppUi.gap12),
               Expanded(
@@ -661,7 +1033,16 @@ class _RecruitmentApplicationsScreenState
                   ],
                 ),
               ),
-              if (!feedback)
+              if (!feedback && selectionMode)
+                Checkbox(
+                  value: selectedIds.contains(application.id),
+                  onChanged: (value) => setState(() {
+                    value == true
+                        ? selectedIds.add(application.id)
+                        : selectedIds.remove(application.id);
+                  }),
+                ),
+              if (!feedback && !selectionMode)
                 PopupMenuButton<String>(
                   tooltip: 'Действия',
                   enabled: !busy,
@@ -686,7 +1067,10 @@ class _RecruitmentApplicationsScreenState
                 icon: Icons.flag_outlined,
                 label: stage?.title ?? application.statusTitle,
               ),
-              _InfoPill(icon: Icons.send_outlined, label: application.sourceTitle),
+              _InfoPill(
+                icon: Icons.send_outlined,
+                label: application.sourceTitle,
+              ),
               if (application.phone.isNotEmpty)
                 _InfoPill(icon: Icons.phone_outlined, label: application.phone),
               if (application.departureDate != null)
@@ -696,6 +1080,35 @@ class _RecruitmentApplicationsScreenState
                 ),
             ],
           ),
+          if (indicator.responsibleName.isNotEmpty ||
+              indicator.openTasks > 0) ...[
+            const SizedBox(height: AppUi.gap8),
+            Wrap(
+              spacing: AppUi.gap8,
+              runSpacing: AppUi.gap8,
+              children: [
+                if (indicator.responsibleName.isNotEmpty)
+                  _InfoPill(
+                    icon: Icons.support_agent_rounded,
+                    label: indicator.responsibleName,
+                  ),
+                if (indicator.openTasks > 0)
+                  _InfoPill(
+                    icon: indicator.overdueTasks > 0
+                        ? Icons.warning_amber_rounded
+                        : Icons.task_alt_rounded,
+                    label: indicator.overdueTasks > 0
+                        ? 'Просрочено: ${indicator.overdueTasks}'
+                        : 'Дел: ${indicator.openTasks}',
+                  ),
+                if (indicator.nextTaskDueAt != null)
+                  _InfoPill(
+                    icon: Icons.event_outlined,
+                    label: 'Следующее ${shortDate(indicator.nextTaskDueAt)}',
+                  ),
+              ],
+            ),
+          ],
           if (visibleFields.isNotEmpty) ...[
             const SizedBox(height: AppUi.gap12),
             ...visibleFields.map(
@@ -777,7 +1190,15 @@ class _RecruitmentApplicationsScreenState
 
     if (feedback) return card;
     final interactiveCard = PremiumPressable(
-      onTap: busy ? null : () => openEditor(configuration, application),
+      onTap: busy
+          ? null
+          : selectionMode
+          ? () => setState(() {
+              selectedIds.contains(application.id)
+                  ? selectedIds.remove(application.id)
+                  : selectedIds.add(application.id);
+            })
+          : () => openEditor(configuration, application),
       borderRadius: BorderRadius.circular(AppUi.cardRadius),
       child: card,
     );
@@ -785,7 +1206,12 @@ class _RecruitmentApplicationsScreenState
       color: Colors.transparent,
       child: SizedBox(
         width: 292,
-        child: candidateCard(application, configuration, feedback: true),
+        child: candidateCard(
+          application,
+          configuration,
+          indicator: indicator,
+          feedback: true,
+        ),
       ),
     );
 
@@ -811,6 +1237,7 @@ class _RecruitmentApplicationsScreenState
     RecruitmentPipelineStage stage,
     List<RecruitmentApplication> applications,
     RecruitmentCrmConfiguration configuration,
+    RecruitmentBoardSupportData support,
   ) {
     final color = stageColor(stage);
     return DragTarget<RecruitmentApplication>(
@@ -861,15 +1288,20 @@ class _RecruitmentApplicationsScreenState
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       '${applications.length}',
-                      style: TextStyle(color: color, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],
@@ -894,8 +1326,9 @@ class _RecruitmentApplicationsScreenState
                   height: 118,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppAdaptivePalette.surfaceElevated
-                        .withValues(alpha: 0.55),
+                    color: AppAdaptivePalette.surfaceElevated.withValues(
+                      alpha: 0.55,
+                    ),
                     borderRadius: BorderRadius.circular(AppUi.controlRadius),
                     border: Border.all(
                       color: highlighted
@@ -906,7 +1339,9 @@ class _RecruitmentApplicationsScreenState
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      highlighted ? 'Отпусти кандидата здесь' : 'Нет кандидатов',
+                      highlighted
+                          ? 'Отпусти кандидата здесь'
+                          : 'Нет кандидатов',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: highlighted ? color : _muted,
@@ -918,7 +1353,13 @@ class _RecruitmentApplicationsScreenState
               else
                 ...applications.expand(
                   (application) => <Widget>[
-                    candidateCard(application, configuration),
+                    candidateCard(
+                      application,
+                      configuration,
+                      indicator:
+                          support.indicators[application.id] ??
+                          const RecruitmentCandidateIndicator(),
+                    ),
                     const SizedBox(height: AppUi.gap12),
                   ],
                 ),
@@ -932,6 +1373,7 @@ class _RecruitmentApplicationsScreenState
   Widget board(
     List<RecruitmentApplication> applications,
     RecruitmentCrmConfiguration configuration,
+    RecruitmentBoardSupportData support,
   ) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -940,10 +1382,12 @@ class _RecruitmentApplicationsScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: configuration.stages.expand((stage) {
           final items = applications.where((application) {
-            return configuration.stageForApplication(application)?.id == stage.id;
+            return configuration.stageForApplication(application)?.id ==
+                stage.id;
           }).toList();
+          if (hideEmptyColumns && items.isEmpty) return const <Widget>[];
           return <Widget>[
-            kanbanColumn(stage, items, configuration),
+            kanbanColumn(stage, items, configuration, support),
             const SizedBox(width: AppUi.gap12),
           ];
         }).toList(),
@@ -954,6 +1398,7 @@ class _RecruitmentApplicationsScreenState
   Widget list(
     List<RecruitmentApplication> applications,
     RecruitmentCrmConfiguration configuration,
+    RecruitmentBoardSupportData support,
   ) {
     if (applications.isEmpty) {
       return const _MessageCard(
@@ -963,12 +1408,20 @@ class _RecruitmentApplicationsScreenState
       );
     }
     return Column(
-      children: applications.expand(
-        (application) => <Widget>[
-          candidateCard(application, configuration),
-          const SizedBox(height: AppUi.gap12),
-        ],
-      ).toList(),
+      children: applications
+          .expand(
+            (application) => <Widget>[
+              candidateCard(
+                application,
+                configuration,
+                indicator:
+                    support.indicators[application.id] ??
+                    const RecruitmentCandidateIndicator(),
+              ),
+              const SizedBox(height: AppUi.gap12),
+            ],
+          )
+          .toList(),
     );
   }
 
@@ -997,12 +1450,25 @@ class _RecruitmentApplicationsScreenState
           const SizedBox(width: AppUi.gap8),
           FutureBuilder<RecruitmentWorkspaceData>(
             future: future,
-            builder: (context, snapshot) => IconButton.filled(
-              tooltip: 'Добавить кандидата',
-              onPressed: snapshot.hasData
-                  ? () => openEditor(snapshot.data!.configuration)
-                  : null,
-              icon: const Icon(Icons.add_rounded),
+            builder: (context, snapshot) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton.filledTonal(
+                  tooltip: 'Импорт из Excel',
+                  onPressed: snapshot.hasData
+                      ? () => openImport(snapshot.data!)
+                      : null,
+                  icon: const Icon(Icons.upload_file_rounded),
+                ),
+                const SizedBox(width: AppUi.gap8),
+                IconButton.filled(
+                  tooltip: 'Добавить кандидата',
+                  onPressed: snapshot.hasData
+                      ? () => openEditor(snapshot.data!.configuration)
+                      : null,
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
             ),
           ),
         ],
@@ -1026,7 +1492,8 @@ class _RecruitmentApplicationsScreenState
             );
           }
 
-          final workspace = snapshot.data ??
+          final workspace =
+              snapshot.data ??
               const RecruitmentWorkspaceData(
                 applications: <RecruitmentApplication>[],
                 configuration: RecruitmentCrmConfiguration.empty,
@@ -1051,29 +1518,69 @@ class _RecruitmentApplicationsScreenState
             );
           }
 
-          final filtered = visible(
-            applications,
-            configuration,
-            applyListStage: viewMode == RecruitmentViewMode.list,
-          );
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              summary(applications, configuration),
-              const SizedBox(height: AppUi.gap16),
-              toolbar(applications, configuration),
-              const SizedBox(height: AppUi.gap16),
-              if (filtered.isEmpty)
-                const _MessageCard(
-                  icon: Icons.filter_alt_off_outlined,
-                  title: 'По фильтрам ничего нет',
-                  text: 'Измените поиск, объект, вакансию или выбранный этап.',
-                )
-              else if (viewMode == RecruitmentViewMode.board)
-                board(filtered, configuration)
-              else
-                list(filtered, configuration),
-            ],
+          return FutureBuilder<RecruitmentBoardSupportData>(
+            future: supportFuture,
+            builder: (context, supportSnapshot) {
+              final support =
+                  supportSnapshot.data ?? RecruitmentBoardSupportData.empty;
+              final filtered = visible(
+                applications,
+                configuration,
+                indicators: support.indicators,
+                applyListStage: viewMode == RecruitmentViewMode.list,
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  summary(applications, configuration),
+                  const SizedBox(height: AppUi.gap16),
+                  toolbar(applications, configuration, support),
+                  if (selectionMode && selectedIds.isNotEmpty) ...[
+                    const SizedBox(height: AppUi.gap12),
+                    PremiumWorkCard(
+                      padding: const EdgeInsets.all(12),
+                      child: Wrap(
+                        spacing: AppUi.gap8,
+                        runSpacing: AppUi.gap8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Выбрано: ${selectedIds.length}',
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: () => bulkMove(configuration),
+                            icon: const Icon(Icons.swap_horiz_rounded),
+                            label: const Text('Переместить'),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: () => assignSelected(support),
+                            icon: const Icon(Icons.support_agent_rounded),
+                            label: const Text('Ответственный'),
+                          ),
+                          TextButton(
+                            onPressed: () => setState(selectedIds.clear),
+                            child: const Text('Снять выбор'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppUi.gap16),
+                  if (filtered.isEmpty)
+                    const _MessageCard(
+                      icon: Icons.filter_alt_off_outlined,
+                      title: 'По фильтрам ничего нет',
+                      text:
+                          'Измените поиск, объект, вакансию или выбранный этап.',
+                    )
+                  else if (viewMode == RecruitmentViewMode.board)
+                    board(filtered, configuration, support)
+                  else
+                    list(filtered, configuration, support),
+                ],
+              );
+            },
           );
         },
       ),
@@ -1119,14 +1626,20 @@ class _RecruitmentApplicationEditorState
   void initState() {
     super.initState();
     final application = widget.application;
-    fullNameController = TextEditingController(text: application?.fullName ?? '');
+    fullNameController = TextEditingController(
+      text: application?.fullName ?? '',
+    );
     phoneController = TextEditingController(text: application?.phone ?? '');
-    citizenshipController =
-        TextEditingController(text: application?.citizenship ?? '');
+    citizenshipController = TextEditingController(
+      text: application?.citizenship ?? '',
+    );
     vacancyController = TextEditingController(text: application?.vacancy ?? '');
-    objectController = TextEditingController(text: application?.objectName ?? '');
-    experienceController =
-        TextEditingController(text: application?.experience ?? '');
+    objectController = TextEditingController(
+      text: application?.objectName ?? '',
+    );
+    experienceController = TextEditingController(
+      text: application?.experience ?? '',
+    );
     commentController = TextEditingController(text: application?.comment ?? '');
     departureDate = application?.departureDate;
     customValues = Map<String, dynamic>.from(
@@ -1135,7 +1648,8 @@ class _RecruitmentApplicationEditorState
     final applicationStage = application == null
         ? null
         : widget.configuration.stageForApplication(application);
-    stageId = applicationStage?.id ??
+    stageId =
+        applicationStage?.id ??
         (widget.configuration.stages.isEmpty
             ? ''
             : widget.configuration.stages.first.id);
@@ -1144,9 +1658,7 @@ class _RecruitmentApplicationEditorState
       if (_usesTextController(field.fieldType)) {
         final value = field.formatValue(customValues[field.id]);
         customControllers[field.id] = TextEditingController(
-          text: field.fieldType == 'money'
-              ? value.replaceAll(' ₽', '')
-              : value,
+          text: field.fieldType == 'money' ? value.replaceAll(' ₽', '') : value,
         );
       }
     }
@@ -1168,13 +1680,13 @@ class _RecruitmentApplicationEditorState
   }
 
   bool _usesTextController(String type) => const <String>{
-        'text',
-        'multiline',
-        'number',
-        'money',
-        'phone',
-        'email',
-      }.contains(type);
+    'text',
+    'multiline',
+    'number',
+    'money',
+    'phone',
+    'email',
+  }.contains(type);
 
   String dateText(DateTime? value) {
     if (value == null) return 'Не указана';
@@ -1283,7 +1795,7 @@ class _RecruitmentApplicationEditorState
     });
     try {
       final stage = widget.configuration.stageById(stageId);
-      await RecruitmentRepository.saveApplication(
+      final savedApplication = await RecruitmentRepository.saveApplication(
         id: widget.application?.id,
         companyId: widget.profile.activeCompanyId,
         fullName: fullNameController.text,
@@ -1303,6 +1815,13 @@ class _RecruitmentApplicationEditorState
         sourceUserId: widget.application?.sourceUserId ?? '',
         sourceChatId: widget.application?.sourceChatId ?? '',
       );
+      try {
+        await RecruitmentCrmWorkspaceRepository.runAutomations(
+          applicationIds: <String>[savedApplication.id],
+        );
+      } catch (_) {
+        // Candidate saving must not fail because a follow-up automation failed.
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) setState(() => errorText = error.toString());
@@ -1335,21 +1854,19 @@ class _RecruitmentApplicationEditorState
           ),
           items: field.options
               .map(
-                (option) => DropdownMenuItem(
-                  value: option,
-                  child: Text(option),
-                ),
+                (option) =>
+                    DropdownMenuItem(value: option, child: Text(option)),
               )
               .toList(),
           onChanged: saving
               ? null
               : (value) => setState(() {
-                    if (value == null) {
-                      customValues.remove(field.id);
-                    } else {
-                      customValues[field.id] = value;
-                    }
-                  }),
+                  if (value == null) {
+                    customValues.remove(field.id);
+                  } else {
+                    customValues[field.id] = value;
+                  }
+                }),
         );
       case 'multiselect':
         final selected = switch (customValues[field.id]) {
@@ -1372,14 +1889,14 @@ class _RecruitmentApplicationEditorState
                 onSelected: saving
                     ? null
                     : (enabled) => setState(() {
-                          final next = Set<String>.from(selected);
-                          enabled ? next.add(option) : next.remove(option);
-                          if (next.isEmpty) {
-                            customValues.remove(field.id);
-                          } else {
-                            customValues[field.id] = next.toList();
-                          }
-                        }),
+                        final next = Set<String>.from(selected);
+                        enabled ? next.add(option) : next.remove(option);
+                        if (next.isEmpty) {
+                          customValues.remove(field.id);
+                        } else {
+                          customValues[field.id] = next.toList();
+                        }
+                      }),
               );
             }).toList(),
           ),
@@ -1414,9 +1931,9 @@ class _RecruitmentApplicationEditorState
           'phone' => TextInputType.phone,
           'email' => TextInputType.emailAddress,
           'number' || 'money' => const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
+            decimal: true,
+            signed: true,
+          ),
           _ => TextInputType.text,
         };
         return TextField(

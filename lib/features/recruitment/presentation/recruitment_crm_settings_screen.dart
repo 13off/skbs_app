@@ -7,6 +7,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
+import 'recruitment_automation_settings_panel.dart';
 
 class RecruitmentCrmSettingsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -45,9 +46,7 @@ class _RecruitmentCrmSettingsScreenState
   void showError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error.toString().replaceFirst('Exception: ', '')),
-      ),
+      SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
     );
   }
 
@@ -73,12 +72,13 @@ class _RecruitmentCrmSettingsScreenState
         colorHex: result.colorHex,
         legacyStatus: stage?.legacyStatus ?? 'new',
         isFinal: result.isFinal,
-        sortOrder: stage?.sortOrder ??
+        sortOrder:
+            stage?.sortOrder ??
             ((configuration.stages.isEmpty
                     ? 0
                     : configuration.stages
-                        .map((item) => item.sortOrder)
-                        .reduce((a, b) => a > b ? a : b)) +
+                          .map((item) => item.sortOrder)
+                          .reduce((a, b) => a > b ? a : b)) +
                 10),
       );
       await refresh();
@@ -155,12 +155,13 @@ class _RecruitmentCrmSettingsScreenState
         options: result.options,
         isRequired: result.isRequired,
         showOnCard: result.showOnCard,
-        sortOrder: field?.sortOrder ??
+        sortOrder:
+            field?.sortOrder ??
             ((configuration.fields.isEmpty
                     ? 0
                     : configuration.fields
-                        .map((item) => item.sortOrder)
-                        .reduce((a, b) => a > b ? a : b)) +
+                          .map((item) => item.sortOrder)
+                          .reduce((a, b) => a > b ? a : b)) +
                 10),
       );
       await refresh();
@@ -218,7 +219,7 @@ class _RecruitmentCrmSettingsScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Настройка CRM',
-      subtitle: 'Колонки воронки и поля карточки кандидата',
+      subtitle: 'Колонки, поля карточки и автоматические действия',
       showBackButton: true,
       onRefresh: refresh,
       child: FutureBuilder<RecruitmentCrmConfiguration>(
@@ -242,7 +243,7 @@ class _RecruitmentCrmSettingsScreenState
           final configuration =
               snapshot.data ?? RecruitmentCrmConfiguration.empty;
           return DefaultTabController(
-            length: 2,
+            length: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -250,8 +251,18 @@ class _RecruitmentCrmSettingsScreenState
                   padding: const EdgeInsets.all(AppUi.gap8),
                   child: const TabBar(
                     tabs: [
-                      Tab(icon: Icon(Icons.view_kanban_outlined), text: 'Колонки'),
-                      Tab(icon: Icon(Icons.tune_rounded), text: 'Поля карточки'),
+                      Tab(
+                        icon: Icon(Icons.view_kanban_outlined),
+                        text: 'Колонки',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.tune_rounded),
+                        text: 'Поля карточки',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.bolt_rounded),
+                        text: 'Автоматизация',
+                      ),
                     ],
                   ),
                 ),
@@ -262,6 +273,10 @@ class _RecruitmentCrmSettingsScreenState
                     children: [
                       _stagesTab(configuration),
                       _fieldsTab(configuration),
+                      RecruitmentAutomationSettingsPanel(
+                        profile: widget.profile,
+                        configuration: configuration,
+                      ),
                     ],
                   ),
                 ),
@@ -275,7 +290,9 @@ class _RecruitmentCrmSettingsScreenState
 
   Widget _stagesTab(RecruitmentCrmConfiguration configuration) {
     final active = configuration.stages.where((item) => item.isActive).toList();
-    final archived = configuration.stages.where((item) => !item.isActive).toList();
+    final archived = configuration.stages
+        .where((item) => !item.isActive)
+        .toList();
     return ListView(
       children: [
         _intro(
@@ -315,7 +332,9 @@ class _RecruitmentCrmSettingsScreenState
 
   Widget _fieldsTab(RecruitmentCrmConfiguration configuration) {
     final active = configuration.fields.where((item) => item.isActive).toList();
-    final archived = configuration.fields.where((item) => !item.isActive).toList();
+    final archived = configuration.fields
+        .where((item) => !item.isActive)
+        .toList();
     return ListView(
       children: [
         _intro(
@@ -394,7 +413,11 @@ class _RecruitmentCrmSettingsScreenState
           if (constraints.maxWidth < 620) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [copy, const SizedBox(height: AppUi.gap12), button],
+              children: [
+                copy,
+                const SizedBox(height: AppUi.gap12),
+                button,
+              ],
             );
           }
           return Row(
@@ -474,8 +497,9 @@ class _RecruitmentCrmSettingsScreenState
             if (stage.isActive) ...[
               IconButton(
                 tooltip: 'Выше',
-                onPressed:
-                    busy || !canMoveUp ? null : () => moveStage(configuration, stage, -1),
+                onPressed: busy || !canMoveUp
+                    ? null
+                    : () => moveStage(configuration, stage, -1),
                 icon: const Icon(Icons.keyboard_arrow_up_rounded),
               ),
               IconButton(
@@ -526,7 +550,10 @@ class _RecruitmentCrmSettingsScreenState
                 color: AppAdaptivePalette.accent.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(AppUi.controlRadius),
               ),
-              child: Icon(_fieldIcon(field.fieldType), color: AppAdaptivePalette.accent),
+              child: Icon(
+                _fieldIcon(field.fieldType),
+                color: AppAdaptivePalette.accent,
+              ),
             ),
             const SizedBox(width: AppUi.gap12),
             Expanded(
@@ -590,8 +617,9 @@ class _RecruitmentCrmSettingsScreenState
             if (field.isActive) ...[
               IconButton(
                 tooltip: 'Выше',
-                onPressed:
-                    busy || !canMoveUp ? null : () => moveField(configuration, field, -1),
+                onPressed: busy || !canMoveUp
+                    ? null
+                    : () => moveField(configuration, field, -1),
                 icon: const Icon(Icons.keyboard_arrow_up_rounded),
               ),
               IconButton(
@@ -623,15 +651,15 @@ class _RecruitmentCrmSettingsScreenState
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: AppUi.gap8),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: AppAdaptivePalette.textMuted,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: AppUi.gap8),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: AppAdaptivePalette.textMuted,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+  );
 }
 
 class _StageEditor extends StatefulWidget {
@@ -665,8 +693,9 @@ class _StageEditorState extends State<_StageEditor> {
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.stage?.title ?? '');
-    descriptionController =
-        TextEditingController(text: widget.stage?.description ?? '');
+    descriptionController = TextEditingController(
+      text: widget.stage?.description ?? '',
+    );
     colorHex = widget.stage?.colorHex ?? colors.first;
     isFinal = widget.stage?.isFinal ?? false;
   }
@@ -799,10 +828,12 @@ class _FieldEditorState extends State<_FieldEditor> {
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.field?.title ?? '');
-    descriptionController =
-        TextEditingController(text: widget.field?.description ?? '');
-    optionsController =
-        TextEditingController(text: widget.field?.options.join('\n') ?? '');
+    descriptionController = TextEditingController(
+      text: widget.field?.description ?? '',
+    );
+    optionsController = TextEditingController(
+      text: widget.field?.options.join('\n') ?? '',
+    );
     fieldType = widget.field?.fieldType ?? 'text';
     isRequired = widget.field?.isRequired ?? false;
     showOnCard = widget.field?.showOnCard ?? false;
@@ -906,7 +937,9 @@ class _FieldEditorState extends State<_FieldEditor> {
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('Обязательное поле'),
-            subtitle: const Text('HR не сможет сохранить карточку без значения'),
+            subtitle: const Text(
+              'HR не сможет сохранить карточку без значения',
+            ),
             value: isRequired,
             onChanged: (value) => setState(() => isRequired = value),
           ),
@@ -1025,10 +1058,7 @@ class _SettingsMessage extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              height: 1.35,
-            ),
+            style: TextStyle(color: AppAdaptivePalette.textMuted, height: 1.35),
           ),
           if (onPressed != null) ...[
             const SizedBox(height: AppUi.gap12),

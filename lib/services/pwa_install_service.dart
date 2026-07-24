@@ -1,5 +1,6 @@
 import 'pwa_install_service_stub.dart'
-    if (dart.library.html) 'pwa_install_service_web.dart' as implementation;
+    if (dart.library.html) 'pwa_install_service_web.dart'
+    as implementation;
 
 class PwaInstallService {
   const PwaInstallService._();
@@ -9,6 +10,10 @@ class PwaInstallService {
   static bool get isInstalled => implementation.isInstalled;
 
   static bool get canPrompt => implementation.canPrompt;
+
+  static String get browserName => implementation.browserName;
+
+  static bool get isYandexBrowser => implementation.isYandexBrowser;
 
   static String get platformName => implementation.platformName;
 
