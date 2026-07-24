@@ -43,8 +43,10 @@ void main() {
 
     expect(board, contains('Draggable<RecruitmentPipelineStage>'));
     expect(board, contains('LongPressDraggable<RecruitmentPipelineStage>'));
+    expect(board, contains('ids.insert(insertionIndex, movedId)'));
     expect(board, contains('final confirmedIds ='));
     expect(board, contains('Сервер сохранил другой порядок колонок'));
+    expect(board, contains('!stageMutationBusy'));
     expect(board, isNot(contains('placeAfter:')));
     expect(settings, contains('ReorderableListView.builder'));
     expect(repository, contains("'reorder_recruitment_pipeline_stages_v2'"));
