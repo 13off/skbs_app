@@ -71,8 +71,8 @@ void main() {
   test('control-state patch remains presentation-only', () {
     const dataAccessPatterns = <String>[
       'Supabase.instance',
-      '.from(',
-      '.rpc(',
+      '_client.from(',
+      '_client.rpc(',
       '.functions.invoke(',
       '.storage.from(',
     ];
