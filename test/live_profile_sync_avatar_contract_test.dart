@@ -15,7 +15,10 @@ void main() {
     expect(main, contains('PersonalProfileController.configure(widget.profile)'));
     expect(main, contains('PersonalProfileController.state'));
     expect(main, contains('PersonalProfileController.merge(widget.profile)'));
-    expect(main, contains("'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}'"));
+    expect(
+      main,
+      contains(r"'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}'"),
+    );
   });
 
   test('profile supports preview replacement and deletion of the avatar', () {
