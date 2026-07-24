@@ -53,32 +53,6 @@ jobs:
           path: skbs_app
           show-progress: false
 
-      # TEMP_CRM_FIX_START
-      - name: Apply definitive CRM board fix
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/apply_recruitment_board_fix_v4.py
-          python3 - <<'PY'
-          from pathlib import Path
-
-          workflow = Path('.github/workflows/deploy-web.yml')
-          text = workflow.read_text(encoding='utf-8')
-          start_marker = '      # TEMP_CRM_FIX_START\n'
-          end_marker = '      # TEMP_CRM_FIX_END\n'
-          start = text.index(start_marker)
-          end = text.index(end_marker, start) + len(end_marker)
-          workflow.write_text(text[:start] + text[end:], encoding='utf-8')
-          Path('tools/apply_recruitment_board_fix_v4.py').unlink()
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Разделить перенос кандидатов и порядок колонок CRM"
-          git push origin HEAD:main
-      # TEMP_CRM_FIX_END
-
       - name: Checkout web repository
         uses: actions/checkout@v4
         with:
