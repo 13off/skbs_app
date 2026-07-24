@@ -39,7 +39,7 @@ void main() {
       "'Установить приложение'",
       'PwaInstallService.manualInstruction',
     ]);
-    containsAll('lib/screens/profile_screen.dart', const [
+    containsAll('lib/screens/settings_screen.dart', const [
       'PwaInstallService.isSupported',
       "title: 'Установить AppСтрой'",
       'PwaInstallScreen',
