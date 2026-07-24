@@ -14,7 +14,7 @@ abstract final class AppUi {
   static const double pageMobileTopPadding = 12;
   static const double pageDesktopTopPadding = 20;
   static const double pageBottomPadding = 120;
-  static const double pageContentWidth = 1180;
+  static const double pageContentWidth = double.infinity;
   static const double specialistContentWidth = 1460;
 
   static const double pageHeaderMinHeight = 54;
