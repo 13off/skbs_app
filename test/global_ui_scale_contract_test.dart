@@ -42,12 +42,17 @@ void main() {
     expect(viewport, contains('controller.resetUiScale()'));
   });
 
-  test('standard workspaces use the available screen width', () {
+  test('candidate CRM uses full width without stretching every page', () {
     final tokens = File('lib/app/app_ui_tokens.dart').readAsStringSync();
     final page = File('lib/widgets/app_page.dart').readAsStringSync();
 
-    expect(tokens, contains('pageContentWidth = double.infinity'));
+    expect(tokens, contains('pageContentWidth = 1180'));
+    expect(page, contains("isDesktop && title == 'Кандидаты'"));
+    expect(page, contains('? double.infinity'));
+    expect(
+      page,
+      contains('BoxConstraints(maxWidth: effectiveMaxContentWidth)'),
+    );
     expect(page, contains('this.maxContentWidth = AppUi.pageContentWidth'));
-    expect(page, contains('constraints: BoxConstraints(maxWidth: maxContentWidth)'));
   });
 }
