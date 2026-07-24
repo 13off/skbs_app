@@ -71,48 +71,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: PremiumWorkCard(
-          radius: 22,
-          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-          child: Row(
-            children: [
-              _SettingsIcon(icon: icon),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
+    return _SettingsActionTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
@@ -195,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
                 height: 1.4,
-                fontWeight: FontWeight.w650,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -215,7 +178,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ];
     }
-
     if (profile.isDeveloper) {
       return [
         actionTile(
@@ -233,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actionTile(
           icon: Icons.admin_panel_settings_outlined,
           title: 'Роли и права',
-          subtitle: 'Матрица разрешений для всех профессиональных платформ',
+          subtitle: 'Матрица разрешений профессиональных платформ',
           onTap: () => open(const RolePermissionMatrixScreen()),
         ),
         actionTile(
@@ -250,27 +212,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ];
     }
-
     if (profile.isForeman) {
       return [
         roleInfo(
           icon: Icons.engineering_outlined,
           text:
-              'Настройки задач, обязательных фотографий, табеля и сроков задаются для объекта руководителем или разработчиком. Здесь отображаются только личные настройки прораба.',
+              'Правила задач, обязательных фотографий, табеля и сроков задаются для объекта руководителем или разработчиком. Здесь остаются личные настройки прораба.',
         ),
       ];
     }
-
     if (profile.isAccountant) {
       return [
         roleInfo(
           icon: Icons.account_balance_wallet_outlined,
           text:
-              'Правила выплат, согласований и отчётных периодов задаются компанией. Личные уведомления и масштаб можно изменить в общих разделах выше.',
+              'Правила выплат, согласований и отчётных периодов задаются компанией. Личные уведомления и масштаб меняются в общих разделах.',
         ),
       ];
     }
-
     if (profile.isLawyer) {
       return [
         actionTile(
@@ -281,7 +240,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ];
     }
-
     return [
       roleInfo(
         icon: Icons.badge_outlined,
@@ -402,6 +360,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SettingsActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: PremiumWorkCard(
+          radius: 22,
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+          child: Row(
+            children: [
+              _SettingsIcon(icon: icon),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
     );
   }
