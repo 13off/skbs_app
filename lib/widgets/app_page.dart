@@ -50,6 +50,9 @@ class AppPage extends StatelessWidget {
     final topPadding = isDesktop
         ? AppUi.pageDesktopTopPadding
         : AppUi.pageMobileTopPadding;
+    final effectiveMaxContentWidth = isDesktop && title == 'Кандидаты'
+        ? double.infinity
+        : maxContentWidth;
 
     final list = ListView(
       key: scrollKey,
@@ -64,7 +67,7 @@ class AppPage extends StatelessWidget {
       children: [
         Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            constraints: BoxConstraints(maxWidth: effectiveMaxContentWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
