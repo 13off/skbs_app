@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
 import '../features/company/data/company_repository.dart';
+import '../features/profile/data/personal_profile_controller.dart';
 import '../features/profile/data/profile_repository.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../models/app_user_profile.dart';
@@ -37,34 +38,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AppUserProfile get profile => widget.profile;
 
   Future<CompanySummary>? companyFuture;
-  PersonalProfileData? personalData;
+  late PersonalProfileData personalData;
   Future<String?>? avatarUrlFuture;
-  bool loadingPersonal = true;
   bool savingPhoto = false;
 
   String get fullName {
-    final value = personalData?.fullName.trim() ?? '';
+    final value = personalData.fullName.trim();
     return value.isNotEmpty ? value : profile.fullName.trim();
   }
 
-  String get phone => personalData?.phone.trim() ?? '';
-  String get avatarPath => personalData?.avatarPath.trim() ?? '';
+  String get phone => personalData.phone.trim();
+  String get avatarPath => personalData.avatarPath.trim();
 
   @override
   void initState() {
     super.initState();
+    PersonalProfileController.configure(profile);
+    personalData = PersonalProfileController.state.value;
+    PersonalProfileController.state.addListener(_handlePersonalChanged);
     _configureCompanyFuture();
-    _loadPersonalData();
+    _refreshAvatarUrl();
   }
 
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.profile.id != widget.profile.id ||
-        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
-      _configureCompanyFuture();
-      _loadPersonalData();
+    if (oldWidget.profile.id != widget.profile.id) {
+      PersonalProfileController.configure(profile);
+      personalData = PersonalProfileController.state.value;
+      _refreshAvatarUrl();
     }
+    if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
+      _configureCompanyFuture();
+    }
+  }
+
+  @override
+  void dispose() {
+    PersonalProfileController.state.removeListener(_handlePersonalChanged);
+    super.dispose();
+  }
+
+  void _handlePersonalChanged() {
+    if (!mounted) return;
+    final next = PersonalProfileController.state.value;
+    final avatarChanged = next.avatarPath != personalData.avatarPath;
+    setState(() {
+      personalData = next;
+      if (avatarChanged) {
+        avatarUrlFuture = ProfileRepository.createAvatarUrl(next.avatarPath);
+      }
+    });
+  }
+
+  void _refreshAvatarUrl() {
+    avatarUrlFuture = ProfileRepository.createAvatarUrl(avatarPath);
   }
 
   void _configureCompanyFuture() {
@@ -72,25 +100,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     companyFuture = companyId.isEmpty
         ? null
         : CompanyRepository.fetchCompany(companyId);
-  }
-
-  Future<void> _loadPersonalData() async {
-    if (mounted) setState(() => loadingPersonal = true);
-    try {
-      final value = await ProfileRepository.fetchPersonalData();
-      if (!mounted) return;
-      setState(() {
-        personalData = value;
-        avatarUrlFuture = ProfileRepository.createAvatarUrl(value.avatarPath);
-        loadingPersonal = false;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => loadingPersonal = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось загрузить личные данные: $error')),
-      );
-    }
   }
 
   void open(Widget screen) {
@@ -121,6 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (shouldExit != true) return;
     RolePreviewController.reset();
+    PersonalProfileController.reset();
     await UserRepository.signOut();
   }
 
@@ -155,6 +165,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     };
   }
 
+  void showError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString().replaceFirst('Exception: ', '')),
+      ),
+    );
+  }
+
   Future<void> pickPhoto() async {
     if (savingPhoto) return;
     final file = await openFile(
@@ -177,23 +196,147 @@ class _ProfileScreenState extends State<ProfileScreen> {
         avatarExtension: extension,
         avatarContentType: _contentType(extension),
       );
+      PersonalProfileController.apply(updated);
       if (!mounted) return;
-      setState(() {
-        personalData = updated;
-        avatarUrlFuture = ProfileRepository.createAvatarUrl(updated.avatarPath);
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Фотография профиля обновлена')),
       );
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      showError(error);
     } finally {
       if (mounted) setState(() => savingPhoto = false);
+    }
+  }
+
+  Future<void> removePhoto() async {
+    if (avatarPath.isEmpty || savingPhoto) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить фотографию?'),
+        content: const Text(
+          'Вместо фотографии снова будут показываться инициалы.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => savingPhoto = true);
+    try {
+      final updated = await ProfileRepository.removeAvatar(
+        fullName: fullName,
+        phone: phone,
+      );
+      PersonalProfileController.apply(updated);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Фотография удалена')),
+      );
+    } catch (error) {
+      showError(error);
+    } finally {
+      if (mounted) setState(() => savingPhoto = false);
+    }
+  }
+
+  Future<void> previewPhoto() async {
+    if (avatarPath.isEmpty) return;
+    final url = await (avatarUrlFuture ??
+        ProfileRepository.createAvatarUrl(avatarPath));
+    if (!mounted || url == null || url.isEmpty) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720, maxHeight: 720),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black,
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4,
+                    child: Center(child: Image.network(url, fit: BoxFit.contain)),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: IconButton.filled(
+                  tooltip: 'Закрыть',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> showPhotoActions() async {
+    if (savingPhoto) return;
+    if (avatarPath.isEmpty) {
+      await pickPhoto();
+      return;
+    }
+    final action = await showModalBottomSheet<_PhotoAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text(
+                'Фотография профиля',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.visibility_outlined),
+              title: const Text('Посмотреть'),
+              onTap: () => Navigator.pop(context, _PhotoAction.preview),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Заменить'),
+              onTap: () => Navigator.pop(context, _PhotoAction.replace),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: const Text('Удалить фотографию'),
+              onTap: () => Navigator.pop(context, _PhotoAction.delete),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    switch (action) {
+      case _PhotoAction.preview:
+        await previewPhoto();
+      case _PhotoAction.replace:
+        await pickPhoto();
+      case _PhotoAction.delete:
+        await removePhoto();
+      case null:
+        return;
     }
   }
 
@@ -257,38 +400,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fullName: draft.fullName,
         phone: draft.phone,
       );
+      PersonalProfileController.apply(updated);
       if (!mounted) return;
-      setState(() => personalData = updated);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Личные данные сохранены')),
       );
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      showError(error);
     }
   }
 
+  Widget fallbackAvatar({double fontSize = 22}) => Text(
+        profileInitial,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+
   Widget avatar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    Widget fallback() => Text(
-      profileInitial,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 22,
-        fontWeight: FontWeight.w900,
-      ),
-    );
-
     return Stack(
       clipBehavior: Clip.none,
       children: [
         InkWell(
           borderRadius: BorderRadius.circular(22),
-          onTap: pickPhoto,
+          onTap: showPhotoActions,
           child: Container(
             width: 72,
             height: 72,
@@ -310,18 +448,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             child: avatarPath.isEmpty
-                ? fallback()
+                ? fallbackAvatar()
                 : FutureBuilder<String?>(
                     future: avatarUrlFuture,
                     builder: (context, snapshot) {
                       final url = snapshot.data;
-                      if (url == null || url.isEmpty) return fallback();
+                      if (url == null || url.isEmpty) return fallbackAvatar();
                       return Image.network(
                         url,
                         width: 72,
                         height: 72,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => fallback(),
+                        errorBuilder: (_, _, _) => fallbackAvatar(),
                       );
                     },
                   ),
@@ -335,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: pickPhoto,
+              onTap: showPhotoActions,
               child: SizedBox.square(
                 dimension: 30,
                 child: savingPhoto
@@ -347,7 +485,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       )
                     : Icon(
-                        Icons.photo_camera_outlined,
+                        avatarPath.isEmpty
+                            ? Icons.photo_camera_outlined
+                            : Icons.more_horiz_rounded,
                         size: 17,
                         color: scheme.onPrimary,
                       ),
@@ -554,10 +694,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           profileHero(context),
-          if (loadingPersonal) ...[
-            const SizedBox(height: 10),
-            const LinearProgressIndicator(minHeight: 2),
-          ],
           const SizedBox(height: 20),
           sectionTitle('Личные данные'),
           infoTile(
@@ -614,6 +750,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+enum _PhotoAction { preview, replace, delete }
 
 class _PersonalProfileDraft {
   final String fullName;
