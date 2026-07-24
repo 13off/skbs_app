@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также запускает штатную публикацию Web/PWA после merge.
 void main() {
   test('personal profile state updates every professional workspace', () {
     final controller = File(
