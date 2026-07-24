@@ -2,6 +2,8 @@ class AppUserProfile {
   final String id;
   final String email;
   final String fullName;
+  final String phone;
+  final String avatarPath;
   final String role;
   final String actualRole;
   final String profession;
@@ -13,6 +15,8 @@ class AppUserProfile {
     required this.id,
     required this.email,
     required this.fullName,
+    this.phone = '',
+    this.avatarPath = '',
     required this.role,
     String? actualRole,
     this.profession = '',
@@ -54,12 +58,40 @@ class AppUserProfile {
     }
   }
 
+  AppUserProfile copyWith({
+    String? fullName,
+    String? phone,
+    String? avatarPath,
+    String? role,
+    String? actualRole,
+    String? profession,
+    String? objectName,
+    String? activeCompanyId,
+    bool? isActive,
+  }) {
+    return AppUserProfile(
+      id: id,
+      email: email,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      avatarPath: avatarPath ?? this.avatarPath,
+      role: role ?? this.role,
+      actualRole: actualRole ?? this.actualRole,
+      profession: profession ?? this.profession,
+      objectName: objectName ?? this.objectName,
+      activeCompanyId: activeCompanyId ?? this.activeCompanyId,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
   AppUserProfile previewAs({required String role, String objectName = ''}) {
     if (!canPreviewRoles) return this;
     return AppUserProfile(
       id: id,
       email: email,
       fullName: fullName,
+      phone: phone,
+      avatarPath: avatarPath,
       role: role,
       actualRole: actualRole,
       profession: profession,
@@ -75,6 +107,8 @@ class AppUserProfile {
       id: map['id']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
       fullName: map['full_name']?.toString() ?? '',
+      phone: map['phone']?.toString() ?? '',
+      avatarPath: map['avatar_path']?.toString() ?? '',
       role: role,
       actualRole: role,
       profession: map['profession']?.toString() ?? '',

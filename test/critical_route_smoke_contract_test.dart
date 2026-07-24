@@ -113,17 +113,22 @@ void main() {
     ]);
   });
 
-  test('профиль сохраняет управление компанией, архив и системные разделы', () {
+  test('профиль и настройки сохраняют личные и системные маршруты', () {
     final profile = source('lib/screens/profile_screen.dart');
+    final settings = source('lib/screens/settings_screen.dart');
 
     expectFragments('профиля', profile, const <String>[
+      'SettingsScreen(',
+      'ProfileRepository.savePersonalData(',
+      'UserRepository.signOut()',
+    ]);
+    expectFragments('настроек', settings, const <String>[
       'RolePreviewScreen(',
       'NotificationControlCenterScreen(',
       'CompanyManagementScreen(',
       'ArchiveManagementScreenV3(',
       'TemplateDocumentsScreen(',
       'CompanySwitcherScreen(',
-      'UserRepository.signOut()',
     ]);
   });
 

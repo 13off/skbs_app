@@ -22,7 +22,7 @@ void main() {
     final controller = File(
       'lib/app/theme_controller.dart',
     ).readAsStringSync();
-    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
+    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
     expect(mainSource, contains('darkTheme: AppDarkTheme.theme'));
     expect(mainSource, contains('themeMode: themeController.themeMode'));
@@ -36,10 +36,10 @@ void main() {
     expect(controller, contains('Future<void> toggle()'));
     expect(controller, isNot(contains('if (!featureEnabled)')));
 
-    expect(profile, contains('headerTrailing: buildThemeToggle()'));
-    expect(profile, contains('Icons.dark_mode_rounded'));
-    expect(profile, contains('Icons.light_mode_rounded'));
-    expect(profile, contains('onPressed: controller.toggle'));
+    expect(settings, contains("'Тёмная тема'"));
+    expect(settings, contains('Icons.dark_mode_outlined'));
+    expect(settings, contains('value: controller.isDark'));
+    expect(settings, contains('onChanged: controller.setDark'));
   });
 
   test('telegram-like dark palette is readable and avoids pure black', () {

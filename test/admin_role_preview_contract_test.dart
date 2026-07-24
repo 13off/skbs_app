@@ -76,7 +76,7 @@ void main() {
   });
 
   test('переключатель открывает все готовые платформы без записи роли', () {
-    final profile = source('lib/screens/profile_screen.dart');
+    final settings = source('lib/screens/settings_screen.dart');
     final selector = source(
       'lib/features/role_preview/role_preview_screen.dart',
     );
@@ -85,8 +85,8 @@ void main() {
     );
     final main = source('lib/screens/main_screen.dart');
 
-    expect(profile, contains("title: 'Переключить платформу'"));
-    expect(profile, contains('profile.canPreviewRoles'));
+    expect(settings, contains("title: 'Переключить платформу'"));
+    expect(settings, contains('profile.canPreviewRoles'));
     expect(selector, contains("title: 'Руководитель'"));
     expect(selector, contains("title: 'Прораб'"));
     expect(selector, contains("title: 'Юрист'"));

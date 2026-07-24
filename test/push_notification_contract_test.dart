@@ -44,14 +44,14 @@ void main() {
       'PushNotificationService.dispatchNotification(notificationId)',
       'Уведомления не должны ломать основное действие',
     ]);
-    containsAll('lib/screens/profile_screen.dart', const [
-      "'Настройка уведомлений'",
+    containsAll('lib/screens/settings_screen.dart', const [
+      "'Правила уведомлений компании'",
       'NotificationControlCenterScreen',
       "'Push-уведомления'",
       'PushNotificationSettingsScreen',
       "'Компания и пользователи'",
       "'Архив и удаление'",
-      "'Документы'",
+      "'Шаблоны документов'",
     ]);
     containsAll('lib/screens/push_notification_settings_screen.dart', const [
       "'Push на устройстве'",
