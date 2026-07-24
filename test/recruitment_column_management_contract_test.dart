@@ -23,6 +23,8 @@ void main() {
     ).readAsStringSync();
 
     expect(board, contains('createPipelineStageAtEnd('));
+    expect(board, contains('final liveConfiguration = await'));
+    expect(board, contains('orderedIds: requestedIds'));
     expect(board, contains('добавлена справа'));
     expect(settings, contains('createPipelineStageAtEnd('));
     expect(repository, contains("'create_recruitment_pipeline_stage_at_end'"));
@@ -30,7 +32,7 @@ void main() {
     expect(migration, contains('coalesce(max(stage.sort_order), 0) + 10'));
   });
 
-  test('column drag persists the exact server-confirmed order', () {
+  test('column order changes only in an explicit reorder dialog', () {
     final board = File(
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
     ).readAsStringSync();
@@ -44,13 +46,15 @@ void main() {
       'supabase/migrations/20260724180000_fix_recruitment_column_order.sql',
     ).readAsStringSync();
 
-    expect(board, contains('Draggable<RecruitmentPipelineStage>'));
-    expect(board, contains('LongPressDraggable<RecruitmentPipelineStage>'));
-    expect(board, contains('ids.insert(insertionIndex, movedId)'));
-    expect(board, contains('final confirmedIds ='));
-    expect(board, contains('Сервер сохранил другой порядок колонок'));
-    expect(board, contains('!stageMutationBusy'));
-    expect(board, isNot(contains('placeAfter:')));
+    expect(board, contains('Future<void> showStageOrderDialog('));
+    expect(board, contains('ReorderableListView.builder'));
+    expect(board, contains('buildDefaultDragHandles: false'));
+    expect(board, contains('stageOrderButton(configuration)'));
+    expect(board, contains('controller: boardScrollController'));
+    expect(board, contains('textDirection: TextDirection.ltr'));
+    expect(board, contains('DragTarget<RecruitmentApplication>'));
+    expect(board, isNot(contains('DragTarget<RecruitmentPipelineStage>')));
+    expect(board, isNot(contains('Draggable<RecruitmentPipelineStage>')));
     expect(settings, contains('ReorderableListView.builder'));
     expect(repository, contains("'reorder_recruitment_pipeline_stages_v2'"));
     expect(migration, contains('reorder_recruitment_pipeline_stages_v2'));

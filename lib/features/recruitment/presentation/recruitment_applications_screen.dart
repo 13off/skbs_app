@@ -49,8 +49,8 @@ class _RecruitmentApplicationsScreenState
   final Set<String> movingIds = <String>{};
   final Map<String, String> pendingStageIds = <String, String>{};
   final Set<String> selectedIds = <String>{};
+  final ScrollController boardScrollController = ScrollController();
   String? draggingApplicationId;
-  String? draggingStageId;
   List<String>? pendingStageOrder;
   bool stageMutationBusy = false;
   RecruitmentViewMode viewMode = RecruitmentViewMode.board;
@@ -88,6 +88,7 @@ class _RecruitmentApplicationsScreenState
   @override
   void dispose() {
     changesSubscription?.cancel();
+    boardScrollController.dispose();
     searchController
       ..removeListener(handleSearchChanged)
       ..dispose();
@@ -620,7 +621,7 @@ class _RecruitmentApplicationsScreenState
     if (title == null || !mounted) return;
     setState(() => stageMutationBusy = true);
     try {
-      await RecruitmentRepository.createPipelineStageAtEnd(
+      final created = await RecruitmentRepository.createPipelineStageAtEnd(
         companyId: widget.profile.activeCompanyId,
         title: title,
         description: '',
@@ -628,8 +629,33 @@ class _RecruitmentApplicationsScreenState
         legacyStatus: 'new',
         isFinal: false,
       );
+      final liveConfiguration = await RecruitmentRepository.fetchConfiguration(
+        companyId: widget.profile.activeCompanyId,
+      );
+      final requestedIds = <String>[
+        ...liveConfiguration.stages
+            .where((stage) => stage.id != created.id)
+            .map((stage) => stage.id),
+        created.id,
+      ];
+      final confirmedIds = await RecruitmentRepository.reorderPipelineStages(
+        companyId: widget.profile.activeCompanyId,
+        orderedIds: requestedIds,
+      );
+      if (confirmedIds.join('|') != requestedIds.join('|')) {
+        throw Exception('Сервер не поставил новую колонку последней');
+      }
+      if (mounted) setState(() => pendingStageOrder = confirmedIds);
       await refresh();
       if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !boardScrollController.hasClients) return;
+        boardScrollController.animateTo(
+          boardScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Колонка «$title» добавлена справа')),
       );
@@ -830,41 +856,103 @@ class _RecruitmentApplicationsScreenState
     }
   }
 
-  Future<void> reorderStageOnBoard(
+  Future<void> showStageOrderDialog(
     RecruitmentCrmConfiguration configuration,
-    RecruitmentPipelineStage dragged,
-    RecruitmentPipelineStage target,
   ) async {
-    if (stageMutationBusy || dragged.id == target.id) return;
-    final current = orderedStages(configuration);
-    final fromIndex = current.indexWhere((stage) => stage.id == dragged.id);
-    final targetIndex = current.indexWhere((stage) => stage.id == target.id);
-    if (fromIndex < 0 || targetIndex < 0) return;
-
-    final ids = current.map((stage) => stage.id).toList();
-    final movedId = ids.removeAt(fromIndex);
-    final insertionIndex = fromIndex < targetIndex ? targetIndex : targetIndex;
-    ids.insert(insertionIndex, movedId);
-    if (ids.join('|') == current.map((stage) => stage.id).join('|')) return;
+    if (stageMutationBusy) return;
+    final initial = orderedStages(configuration);
+    if (initial.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Для изменения порядка нужно две колонки')),
+      );
+      return;
+    }
+    final draft = List<RecruitmentPipelineStage>.from(initial);
+    final orderedIds = await showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Порядок колонок'),
+          content: SizedBox(
+            width: 460,
+            height: 420,
+            child: ReorderableListView.builder(
+              buildDefaultDragHandles: false,
+              itemCount: draft.length,
+              onReorder: (oldIndex, newIndex) {
+                if (newIndex > oldIndex) newIndex -= 1;
+                if (newIndex == oldIndex) return;
+                setDialogState(() {
+                  final item = draft.removeAt(oldIndex);
+                  draft.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final stage = draft[index];
+                return Card(
+                  key: ValueKey<String>(stage.id),
+                  margin: const EdgeInsets.only(bottom: AppUi.gap8),
+                  child: ListTile(
+                    leading: ReorderableDragStartListener(
+                      index: index,
+                      child: Icon(
+                        Icons.drag_indicator_rounded,
+                        color: stageColor(stage),
+                      ),
+                    ),
+                    title: Text(
+                      stage.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text('Позиция ${index + 1}'),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                draft.map((stage) => stage.id).toList(growable: false),
+              ),
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (orderedIds == null || !mounted) return;
+    final initialIds = initial.map((stage) => stage.id).toList(growable: false);
+    if (orderedIds.join('|') == initialIds.join('|')) return;
 
     setState(() {
       stageMutationBusy = true;
-      pendingStageOrder = ids;
-      draggingStageId = null;
+      pendingStageOrder = orderedIds;
     });
     try {
       final confirmedIds = await RecruitmentRepository.reorderPipelineStages(
         companyId: widget.profile.activeCompanyId,
-        orderedIds: ids,
+        orderedIds: orderedIds,
       );
-      if (confirmedIds.join('|') != ids.join('|')) {
+      if (confirmedIds.join('|') != orderedIds.join('|')) {
         throw Exception('Сервер сохранил другой порядок колонок');
       }
-      pendingStageOrder = confirmedIds;
+      if (mounted) setState(() => pendingStageOrder = confirmedIds);
       await refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Порядок колонок сохранён')),
+      );
     } catch (error) {
       if (!mounted) return;
-      setState(() => pendingStageOrder = null);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось изменить порядок колонок: $error')),
       );
@@ -873,7 +961,6 @@ class _RecruitmentApplicationsScreenState
         setState(() {
           stageMutationBusy = false;
           pendingStageOrder = null;
-          draggingStageId = null;
         });
       }
     }
@@ -1655,78 +1742,13 @@ class _RecruitmentApplicationsScreenState
     );
   }
 
-  Widget stageDragHandle(RecruitmentPipelineStage stage) {
-    final handle = Tooltip(
-      message: kIsWeb ? 'Перетащить колонку' : 'Удерживай и перетащи колонку',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.grab,
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(Icons.drag_indicator_rounded, size: 20, color: _muted),
-        ),
-      ),
-    );
-    final feedback = Material(
-      color: AppAdaptivePalette.surfaceElevated,
-      elevation: 18,
-      borderRadius: BorderRadius.circular(AppUi.controlRadius),
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppUi.controlRadius),
-          border: Border.all(color: stageColor(stage).withValues(alpha: 0.45)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.drag_indicator_rounded, color: stageColor(stage)),
-            const SizedBox(width: AppUi.gap8),
-            Expanded(
-              child: Text(
-                stage.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    void started() {
-      if (mounted) setState(() => draggingStageId = stage.id);
-    }
-
-    void finished() {
-      if (mounted && draggingStageId == stage.id) {
-        setState(() => draggingStageId = null);
-      }
-    }
-
-    if (kIsWeb) {
-      return Draggable<RecruitmentPipelineStage>(
-        data: stage,
-        rootOverlay: true,
-        maxSimultaneousDrags: stageMutationBusy ? 0 : 1,
-        feedback: feedback,
-        onDragStarted: started,
-        onDragEnd: (_) => finished(),
-        onDraggableCanceled: (_, _) => finished(),
-        childWhenDragging: Opacity(opacity: 0.35, child: handle),
-        child: handle,
-      );
-    }
-    return LongPressDraggable<RecruitmentPipelineStage>(
-      data: stage,
-      rootOverlay: true,
-      maxSimultaneousDrags: stageMutationBusy ? 0 : 1,
-      feedback: feedback,
-      onDragStarted: started,
-      onDragEnd: (_) => finished(),
-      onDraggableCanceled: (_, _) => finished(),
-      childWhenDragging: Opacity(opacity: 0.35, child: handle),
-      child: handle,
+  Widget stageOrderButton(RecruitmentCrmConfiguration configuration) {
+    return IconButton(
+      tooltip: 'Изменить порядок колонок',
+      onPressed: stageMutationBusy
+          ? null
+          : () => showStageOrderDialog(configuration),
+      icon: Icon(Icons.drag_indicator_rounded, size: 20, color: _muted),
     );
   }
 
@@ -1737,13 +1759,9 @@ class _RecruitmentApplicationsScreenState
     RecruitmentBoardSupportData support,
   ) {
     final color = stageColor(stage);
-    return DragTarget<RecruitmentPipelineStage>(
-      onWillAcceptWithDetails: (details) =>
-          canConfigureCrm && !stageMutationBusy && details.data.id != stage.id,
-      onAcceptWithDetails: (details) =>
-          reorderStageOnBoard(configuration, details.data, stage),
-      builder: (context, stageCandidates, rejectedStages) {
-        final stageHighlighted = stageCandidates.isNotEmpty;
+    return Builder(
+      builder: (context) {
+        const stageHighlighted = false;
         return AnimatedScale(
           scale: stageHighlighted ? 1.018 : 1,
           duration: const Duration(milliseconds: 180),
@@ -1813,7 +1831,7 @@ class _RecruitmentApplicationsScreenState
                       children: [
                         Row(
                           children: [
-                            if (canConfigureCrm) stageDragHandle(stage),
+                            if (canConfigureCrm) stageOrderButton(configuration),
                             Container(
                               width: 10,
                               height: 10,
@@ -2036,9 +2054,12 @@ class _RecruitmentApplicationsScreenState
       children.add(addColumnTile(configuration));
     }
     return SingleChildScrollView(
+      controller: boardScrollController,
       scrollDirection: Axis.horizontal,
+      reverse: false,
       padding: const EdgeInsets.only(bottom: AppUi.gap8),
       child: Row(
+        textDirection: TextDirection.ltr,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
       ),
