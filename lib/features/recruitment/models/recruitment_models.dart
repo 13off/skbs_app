@@ -15,6 +15,7 @@ class RecruitmentApplication {
   final DateTime? departureDate;
   final String status;
   final String stageId;
+  final String responsibleUserId;
   final String comment;
   final Map<String, dynamic> customValues;
   final DateTime? archivedAt;
@@ -38,6 +39,7 @@ class RecruitmentApplication {
     required this.departureDate,
     required this.status,
     required this.stageId,
+    this.responsibleUserId = '',
     required this.comment,
     required this.customValues,
     this.archivedAt,
@@ -104,6 +106,7 @@ class RecruitmentApplication {
       departureDate: optionalDate(map['ready_date']),
       status: map['status']?.toString() ?? 'new',
       stageId: map['stage_id']?.toString() ?? '',
+      responsibleUserId: map['responsible_user_id']?.toString() ?? '',
       comment: map['hr_comment']?.toString() ?? '',
       customValues: nested(map['custom_values']),
       archivedAt: optionalDate(map['archived_at']),
@@ -257,7 +260,6 @@ class RecruitmentVacancyOption {
     required this.title,
   });
 }
-
 
 class RecruitmentPipelineStage {
   final String id;

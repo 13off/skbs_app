@@ -17,6 +17,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
+import 'recruitment_candidate_crm_section.dart';
 
 Color get _detailText => AppAdaptivePalette.textPrimary;
 Color get _detailMuted => AppAdaptivePalette.textMuted;
@@ -537,11 +538,8 @@ class _RecruitmentApplicationDetailScreenState
           if (application.comment.isNotEmpty)
             infoRow(Icons.notes_rounded, 'Комментарий HR', application.comment),
           ...customFields.map(
-            (entry) => infoRow(
-              Icons.tune_rounded,
-              entry.key.title,
-              entry.value,
-            ),
+            (entry) =>
+                infoRow(Icons.tune_rounded, entry.key.title, entry.value),
           ),
           SizedBox(height: 4),
           Row(
@@ -1030,6 +1028,12 @@ class _RecruitmentApplicationDetailScreenState
           ),
           SizedBox(height: 12),
           summaryCard(),
+          SizedBox(height: 24),
+          RecruitmentCandidateCrmSection(
+            profile: widget.profile,
+            application: widget.application,
+            onChanged: refresh,
+          ),
           SizedBox(height: 24),
           sectionTitle(
             'Документы',
