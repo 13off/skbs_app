@@ -851,7 +851,7 @@ class _RecruitmentApplicationsScreenState
     var targetIndex = ids.indexOf(target.id);
     if (targetIndex < 0) return;
     if (placeAfter) targetIndex += 1;
-    ids.insert(targetIndex, dragged.id);
+    ids.replaceRange(targetIndex, targetIndex, <String>[dragged.id]);
     if (ids.join('|') ==
         orderedStages(configuration).map((stage) => stage.id).join('|')) {
       return;
@@ -1859,7 +1859,7 @@ class _RecruitmentApplicationsScreenState
                             ),
                             if (canConfigureCrm)
                               PopupMenuButton<String>(
-                                tooltip: 'Действия с колонкой',
+                                tooltip: 'Переименовать колонку',
                                 enabled: !stageMutationBusy,
                                 onSelected: (value) {
                                   if (value == 'rename') renameStage(stage);
