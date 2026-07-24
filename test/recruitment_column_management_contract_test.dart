@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 // Этот контракт также не даёт вернуть откат порядка после realtime-обновления.
 // Отдельный прогон подтверждает стабильность порядка и переносов на Web/PWA.
 // Окончательный сценарий разделяет перенос кандидатов и порядок колонок.
+// Публикация Web/PWA обязана собираться уже с этим безопасным сценарием.
 void main() {
   test('new CRM columns are created atomically at the right edge', () {
     final board = File(
