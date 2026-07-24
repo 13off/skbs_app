@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 // Полный прогон подтверждает совместимость с существующими экранами AppСтрой.
 // Этот контракт также не даёт вернуть откат порядка после realtime-обновления.
 // Отдельный прогон подтверждает стабильность порядка и переносов на Web/PWA.
+// Окончательный сценарий разделяет перенос кандидатов и порядок колонок.
 void main() {
   test('new CRM columns are created atomically at the right edge', () {
     final board = File(
