@@ -48,8 +48,11 @@ class _RecruitmentApplicationsScreenState
   final Set<String> archiveBusyIds = <String>{};
   final Set<String> movingIds = <String>{};
   final Map<String, String> pendingStageIds = <String, String>{};
+  final Map<String, GlobalKey> stageColumnKeys = <String, GlobalKey>{};
   final Set<String> selectedIds = <String>{};
   String? draggingApplicationId;
+  String? draggingStageId;
+  List<String>? pendingStageOrder;
   bool stageMutationBusy = false;
   RecruitmentViewMode viewMode = RecruitmentViewMode.board;
   RecruitmentSortMode sortMode = RecruitmentSortMode.updatedDesc;
@@ -189,6 +192,22 @@ class _RecruitmentApplicationsScreenState
     final clean = stage.colorHex.replaceFirst('#', '');
     final parsed = int.tryParse(clean, radix: 16) ?? 0x2F80ED;
     return Color(0xFF000000 | parsed);
+  }
+
+  List<RecruitmentPipelineStage> orderedStages(
+    RecruitmentCrmConfiguration configuration,
+  ) {
+    final order = pendingStageOrder;
+    if (order == null ||
+        order.length != configuration.stages.length ||
+        order.toSet().length != configuration.stages.length) {
+      return configuration.stages;
+    }
+    final byId = <String, RecruitmentPipelineStage>{
+      for (final stage in configuration.stages) stage.id: stage,
+    };
+    if (order.any((id) => !byId.containsKey(id))) return configuration.stages;
+    return order.map((id) => byId[id]!).toList(growable: false);
   }
 
   String formatDate(DateTime value) {
@@ -595,7 +614,7 @@ class _RecruitmentApplicationsScreenState
           : configuration.stages
                 .map((stage) => stage.sortOrder)
                 .reduce((first, second) => first > second ? first : second);
-      await RecruitmentRepository.savePipelineStage(
+      final created = await RecruitmentRepository.savePipelineStage(
         id: '',
         companyId: widget.profile.activeCompanyId,
         title: title,
@@ -605,18 +624,36 @@ class _RecruitmentApplicationsScreenState
         isFinal: false,
         sortOrder: maxSortOrder + 10,
       );
+      final latest = await RecruitmentRepository.fetchConfiguration(
+        companyId: widget.profile.activeCompanyId,
+      );
+      final orderedIds = latest.stages
+          .where((stage) => stage.id != created.id)
+          .map((stage) => stage.id)
+          .followedBy(<String>[created.id])
+          .toList(growable: false);
+      await RecruitmentRepository.reorderPipelineStages(
+        companyId: widget.profile.activeCompanyId,
+        orderedIds: orderedIds,
+      );
+      pendingStageOrder = orderedIds;
       await refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Колонка «$title» добавлена')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Колонка «$title» добавлена справа')),
+      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось добавить колонку: $error')),
       );
     } finally {
-      if (mounted) setState(() => stageMutationBusy = false);
+      if (mounted) {
+        setState(() {
+          stageMutationBusy = false;
+          pendingStageOrder = null;
+        });
+      }
     }
   }
 
@@ -648,6 +685,203 @@ class _RecruitmentApplicationsScreenState
       );
     } finally {
       if (mounted) setState(() => stageMutationBusy = false);
+    }
+  }
+
+  Future<String?> confirmStageDeletion({
+    required RecruitmentPipelineStage stage,
+    required RecruitmentCrmConfiguration configuration,
+    required int candidateCount,
+  }) async {
+    final alternatives = configuration.stages
+        .where((item) => item.id != stage.id && item.isActive)
+        .toList(growable: false);
+    if (candidateCount > 0 && alternatives.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Сначала создайте другую колонку, чтобы перенести туда кандидатов',
+          ),
+        ),
+      );
+      return null;
+    }
+
+    var replacementId = candidateCount > 0 ? alternatives.first.id : '';
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Удалить колонку «${stage.title}»?'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (candidateCount > 0) ...[
+                  Text(
+                    'В колонке кандидатов: $candidateCount. '
+                    'Перед удалением они будут перенесены.',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  DropdownButtonFormField<String>(
+                    initialValue: replacementId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Перенести кандидатов в',
+                      prefixIcon: Icon(Icons.drive_file_move_outline),
+                    ),
+                    items: alternatives
+                        .map(
+                          (item) => DropdownMenuItem<String>(
+                            value: item.id,
+                            child: Text(
+                              item.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) => setDialogState(
+                      () => replacementId = value ?? replacementId,
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                ],
+                if (stage.systemKey.isNotEmpty) ...[
+                  const Text(
+                    'Это системная колонка. После удаления её можно будет '
+                    'создать заново как обычную.',
+                  ),
+                  const SizedBox(height: AppUi.gap8),
+                ],
+                const Text(
+                  'Автоматизации, привязанные к этой колонке, тоже будут '
+                  'удалены. Действие нельзя отменить.',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppAdaptivePalette.danger,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, replacementId),
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Удалить колонку'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> deleteStage(
+    RecruitmentPipelineStage stage,
+    RecruitmentCrmConfiguration configuration,
+  ) async {
+    if (stageMutationBusy) return;
+    try {
+      final values = await Future.wait<List<RecruitmentApplication>>([
+        RecruitmentRepository.fetchApplications(
+          companyId: widget.profile.activeCompanyId,
+        ),
+        RecruitmentRepository.fetchApplications(
+          companyId: widget.profile.activeCompanyId,
+          archived: true,
+        ),
+      ]);
+      if (!mounted) return;
+      final candidateCount = values
+          .expand((items) => items)
+          .where((application) => application.stageId == stage.id)
+          .length;
+      final replacementId = await confirmStageDeletion(
+        stage: stage,
+        configuration: configuration,
+        candidateCount: candidateCount,
+      );
+      if (replacementId == null || !mounted) return;
+
+      setState(() => stageMutationBusy = true);
+      final moved = await RecruitmentRepository.deletePipelineStage(
+        companyId: widget.profile.activeCompanyId,
+        stageId: stage.id,
+        replacementStageId: replacementId,
+      );
+      if (listStage == stage.id) listStage = 'all';
+      pendingStageOrder = null;
+      await refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            moved > 0
+                ? 'Колонка удалена. Перенесено кандидатов: $moved'
+                : 'Колонка «${stage.title}» удалена',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось удалить колонку: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => stageMutationBusy = false);
+    }
+  }
+
+  Future<void> reorderStageOnBoard(
+    RecruitmentCrmConfiguration configuration,
+    RecruitmentPipelineStage dragged,
+    RecruitmentPipelineStage target, {
+    required bool placeAfter,
+  }) async {
+    if (stageMutationBusy || dragged.id == target.id) return;
+    final ids = orderedStages(configuration).map((stage) => stage.id).toList();
+    if (!ids.remove(dragged.id)) return;
+    var targetIndex = ids.indexOf(target.id);
+    if (targetIndex < 0) return;
+    if (placeAfter) targetIndex += 1;
+    ids.insert(targetIndex, dragged.id);
+    if (ids.join('|') ==
+        orderedStages(configuration).map((stage) => stage.id).join('|')) {
+      return;
+    }
+
+    setState(() {
+      stageMutationBusy = true;
+      pendingStageOrder = ids;
+      draggingStageId = null;
+    });
+    try {
+      await RecruitmentRepository.reorderPipelineStages(
+        companyId: widget.profile.activeCompanyId,
+        orderedIds: ids,
+      );
+      await refresh();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => pendingStageOrder = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось изменить порядок колонок: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          stageMutationBusy = false;
+          pendingStageOrder = null;
+          draggingStageId = null;
+        });
+      }
     }
   }
 
@@ -1425,6 +1659,87 @@ class _RecruitmentApplicationsScreenState
     );
   }
 
+  Widget stageDragHandle(RecruitmentPipelineStage stage) {
+    final handle = Tooltip(
+      message: kIsWeb
+          ? 'Перетащить колонку'
+          : 'Удерживай и перетащи колонку',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.grab,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            Icons.drag_indicator_rounded,
+            size: 20,
+            color: _muted,
+          ),
+        ),
+      ),
+    );
+    final feedback = Material(
+      color: AppAdaptivePalette.surfaceElevated,
+      elevation: 18,
+      borderRadius: BorderRadius.circular(AppUi.controlRadius),
+      child: Container(
+        width: 250,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+          border: Border.all(color: stageColor(stage).withValues(alpha: 0.45)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.drag_indicator_rounded, color: stageColor(stage)),
+            const SizedBox(width: AppUi.gap8),
+            Expanded(
+              child: Text(
+                stage.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    void started() {
+      if (mounted) setState(() => draggingStageId = stage.id);
+    }
+
+    void finished() {
+      if (mounted && draggingStageId == stage.id) {
+        setState(() => draggingStageId = null);
+      }
+    }
+
+    if (kIsWeb) {
+      return Draggable<RecruitmentPipelineStage>(
+        data: stage,
+        rootOverlay: true,
+        maxSimultaneousDrags: stageMutationBusy ? 0 : 1,
+        feedback: feedback,
+        onDragStarted: started,
+        onDragEnd: (_) => finished(),
+        onDraggableCanceled: (_, _) => finished(),
+        childWhenDragging: Opacity(opacity: 0.35, child: handle),
+        child: handle,
+      );
+    }
+    return LongPressDraggable<RecruitmentPipelineStage>(
+      data: stage,
+      rootOverlay: true,
+      maxSimultaneousDrags: stageMutationBusy ? 0 : 1,
+      feedback: feedback,
+      onDragStarted: started,
+      onDragEnd: (_) => finished(),
+      onDraggableCanceled: (_, _) => finished(),
+      childWhenDragging: Opacity(opacity: 0.35, child: handle),
+      child: handle,
+    );
+  }
+
   Widget kanbanColumn(
     RecruitmentPipelineStage stage,
     List<RecruitmentApplication> applications,
@@ -1432,155 +1747,239 @@ class _RecruitmentApplicationsScreenState
     RecruitmentBoardSupportData support,
   ) {
     final color = stageColor(stage);
-    return DragTarget<RecruitmentApplication>(
+    final columnKey = stageColumnKeys.putIfAbsent(stage.id, () => GlobalKey());
+    return DragTarget<RecruitmentPipelineStage>(
       onWillAcceptWithDetails: (details) =>
-          !movingIds.contains(details.data.id) &&
-          effectiveStageFor(details.data, configuration)?.id != stage.id,
-      onAcceptWithDetails: (details) => moveToStage(details.data, stage),
-      builder: (context, candidates, rejected) {
-        final highlighted = candidates.isNotEmpty;
+          canConfigureCrm &&
+          !stageMutationBusy &&
+          details.data.id != stage.id,
+      onAcceptWithDetails: (details) {
+        final renderBox =
+            columnKey.currentContext?.findRenderObject() as RenderBox?;
+        final localOffset = renderBox?.globalToLocal(details.offset);
+        final placeAfter =
+            renderBox != null &&
+            localOffset != null &&
+            localOffset.dx >= renderBox.size.width / 2;
+        reorderStageOnBoard(
+          configuration,
+          details.data,
+          stage,
+          placeAfter: placeAfter,
+        );
+      },
+      builder: (context, stageCandidates, rejectedStages) {
+        final stageHighlighted = stageCandidates.isNotEmpty;
         return AnimatedScale(
-          scale: highlighted ? 1.012 : 1,
-          duration: const Duration(milliseconds: 220),
+          scale: stageHighlighted ? 1.018 : 1,
+          duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            width: 310,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: highlighted
-                  ? color.withValues(alpha: 0.12)
-                  : AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.62),
-              borderRadius: BorderRadius.circular(AppUi.cardRadius),
-              border: Border.all(
-                color: highlighted
-                    ? color.withValues(alpha: 0.62)
-                    : AppAdaptivePalette.border,
-                width: highlighted ? 2 : 1,
-              ),
-              boxShadow: highlighted
-                  ? <BoxShadow>[
+          child: Container(
+            key: columnKey,
+            decoration: stageHighlighted
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppUi.cardRadius),
+                    boxShadow: [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.16),
-                        blurRadius: 22,
-                        spreadRadius: 1,
+                        color: AppAdaptivePalette.accent.withValues(alpha: 0.22),
+                        blurRadius: 24,
+                        spreadRadius: 2,
                       ),
-                    ]
-                  : const <BoxShadow>[],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: AppUi.gap8),
-                    Expanded(
-                      child: Text(
-                        stage.title,
-                        style: TextStyle(
-                          color: _text,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    if (canConfigureCrm) ...[
-                      IconButton(
-                        tooltip: 'Переименовать колонку',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: stageMutationBusy
-                            ? null
-                            : () => renameStage(stage),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                      ),
-                      const SizedBox(width: AppUi.gap4),
                     ],
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${applications.length}',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (stage.description.isNotEmpty) ...[
-                  const SizedBox(height: AppUi.gap4),
-                  Text(
-                    stage.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: _muted,
-                      fontSize: 11.5,
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppUi.gap12),
-                if (applications.isEmpty)
-                  Container(
-                    height: 118,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppAdaptivePalette.surfaceElevated.withValues(
-                        alpha: 0.55,
-                      ),
-                      borderRadius: BorderRadius.circular(AppUi.controlRadius),
-                      border: Border.all(
-                        color: highlighted
-                            ? color.withValues(alpha: 0.40)
-                            : AppAdaptivePalette.border,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        highlighted
-                            ? 'Отпусти кандидата здесь'
-                            : 'Нет кандидатов',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: highlighted ? color : _muted,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
                   )
-                else
-                  ...applications.expand(
-                    (application) => <Widget>[
-                      candidateCard(
-                        application,
-                        configuration,
-                        indicator:
-                            support.indicators[application.id] ??
-                            const RecruitmentCandidateIndicator(),
+                : null,
+            child: DragTarget<RecruitmentApplication>(
+              onWillAcceptWithDetails: (details) =>
+                  !movingIds.contains(details.data.id) &&
+                  effectiveStageFor(details.data, configuration)?.id != stage.id,
+              onAcceptWithDetails: (details) =>
+                  moveToStage(details.data, stage),
+              builder: (context, candidates, rejected) {
+                final highlighted = candidates.isNotEmpty;
+                return AnimatedScale(
+                  scale: highlighted ? 1.012 : 1,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    width: 310,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: stageHighlighted
+                          ? AppAdaptivePalette.accent.withValues(alpha: 0.09)
+                          : highlighted
+                          ? color.withValues(alpha: 0.12)
+                          : AppAdaptivePalette.surfaceSoft.withValues(
+                              alpha: 0.62,
+                            ),
+                      borderRadius: BorderRadius.circular(AppUi.cardRadius),
+                      border: Border.all(
+                        color: stageHighlighted
+                            ? AppAdaptivePalette.accent.withValues(alpha: 0.70)
+                            : highlighted
+                            ? color.withValues(alpha: 0.62)
+                            : AppAdaptivePalette.border,
+                        width: stageHighlighted || highlighted ? 2 : 1,
                       ),
-                      const SizedBox(height: AppUi.gap12),
-                    ],
+                      boxShadow: highlighted
+                          ? <BoxShadow>[
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.16),
+                                blurRadius: 22,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : const <BoxShadow>[],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            if (canConfigureCrm) stageDragHandle(stage),
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: AppUi.gap8),
+                            Expanded(
+                              child: Text(
+                                stage.title,
+                                style: TextStyle(
+                                  color: _text,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            if (canConfigureCrm)
+                              PopupMenuButton<String>(
+                                tooltip: 'Действия с колонкой',
+                                enabled: !stageMutationBusy,
+                                onSelected: (value) {
+                                  if (value == 'rename') renameStage(stage);
+                                  if (value == 'delete') {
+                                    deleteStage(stage, configuration);
+                                  }
+                                },
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem<String>(
+                                    value: 'rename',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_outlined),
+                                        SizedBox(width: AppUi.gap8),
+                                        Text('Переименовать'),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline_rounded),
+                                        SizedBox(width: AppUi.gap8),
+                                        Text('Удалить колонку'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                icon: const Icon(Icons.more_horiz_rounded),
+                              ),
+                            const SizedBox(width: AppUi.gap4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${applications.length}',
+                                style: TextStyle(
+                                  color: color,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (stage.description.isNotEmpty) ...[
+                          const SizedBox(height: AppUi.gap4),
+                          Text(
+                            stage.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: _muted,
+                              fontSize: 11.5,
+                              height: 1.25,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppUi.gap12),
+                        if (applications.isEmpty)
+                          Container(
+                            height: 118,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppAdaptivePalette.surfaceElevated
+                                  .withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(
+                                AppUi.controlRadius,
+                              ),
+                              border: Border.all(
+                                color: highlighted
+                                    ? color.withValues(alpha: 0.40)
+                                    : AppAdaptivePalette.border,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                highlighted
+                                    ? 'Отпусти кандидата здесь'
+                                    : stageHighlighted
+                                    ? 'Отпусти колонку здесь'
+                                    : 'Нет кандидатов',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: highlighted
+                                      ? color
+                                      : stageHighlighted
+                                      ? AppAdaptivePalette.accent
+                                      : _muted,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ...applications.expand(
+                            (application) => <Widget>[
+                              candidateCard(
+                                application,
+                                configuration,
+                                indicator:
+                                    support.indicators[application.id] ??
+                                    const RecruitmentCandidateIndicator(),
+                              ),
+                              const SizedBox(height: AppUi.gap12),
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
-              ],
+                );
+              },
             ),
           ),
         );
@@ -1648,7 +2047,7 @@ class _RecruitmentApplicationsScreenState
     RecruitmentBoardSupportData support,
   ) {
     final children = <Widget>[];
-    for (final stage in configuration.stages) {
+    for (final stage in orderedStages(configuration)) {
       final items = applications.where((application) {
         return effectiveStageFor(application, configuration)?.id == stage.id;
       }).toList();

@@ -487,6 +487,28 @@ static Future<RecruitmentPipelineStage> savePipelineStage({
   _notifyConfiguration('recruitment_pipeline_stages', 'order');
 }
 
+  static Future<int> deletePipelineStage({
+    required String companyId,
+    required String stageId,
+    String replacementStageId = '',
+  }) async {
+    if (companyId.trim().isEmpty || stageId.trim().isEmpty) {
+      throw Exception('Колонка не найдена');
+    }
+    final dynamic result = await _client.rpc(
+      'delete_recruitment_pipeline_stage',
+      params: <String, dynamic>{
+        'p_stage_id': stageId.trim(),
+        'p_replacement_stage_id': replacementStageId.trim().isEmpty
+            ? null
+            : replacementStageId.trim(),
+      },
+    );
+    _notifyConfiguration('recruitment_pipeline_stages', stageId.trim());
+    if (result is num) return result.toInt();
+    return int.tryParse(result?.toString() ?? '') ?? 0;
+  }
+
 static Future<void> setPipelineStageActive({
     required String companyId,
     required String stageId,

@@ -64,7 +64,7 @@ class _RecruitmentCrmSettingsScreenState
     if (result == null || !mounted) return;
     setState(() => busy = true);
     try {
-      await RecruitmentRepository.savePipelineStage(
+      final saved = await RecruitmentRepository.savePipelineStage(
         id: stage?.id ?? '',
         companyId: widget.profile.activeCompanyId,
         title: result.title,
@@ -81,6 +81,20 @@ class _RecruitmentCrmSettingsScreenState
                           .reduce((a, b) => a > b ? a : b)) +
                 10),
       );
+      if (stage == null) {
+        final latest = await RecruitmentRepository.fetchConfiguration(
+          companyId: widget.profile.activeCompanyId,
+        );
+        final orderedIds = latest.stages
+            .where((item) => item.id != saved.id)
+            .map((item) => item.id)
+            .followedBy(<String>[saved.id])
+            .toList(growable: false);
+        await RecruitmentRepository.reorderPipelineStages(
+          companyId: widget.profile.activeCompanyId,
+          orderedIds: orderedIds,
+        );
+      }
       await refresh();
     } catch (error) {
       showError(error);
@@ -106,18 +120,21 @@ class _RecruitmentCrmSettingsScreenState
     }
   }
 
-  Future<void> moveStage(
+  Future<void> reorderStages(
     RecruitmentCrmConfiguration configuration,
-    RecruitmentPipelineStage stage,
-    int direction,
+    int oldIndex,
+    int newIndex,
   ) async {
+    if (busy) return;
     final active = configuration.stages.where((item) => item.isActive).toList();
-    final index = active.indexWhere((item) => item.id == stage.id);
-    final target = index + direction;
-    if (index < 0 || target < 0 || target >= active.length || busy) return;
+    if (oldIndex < 0 || oldIndex >= active.length) return;
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (newIndex < 0 || newIndex >= active.length || newIndex == oldIndex) {
+      return;
+    }
     final moved = List<RecruitmentPipelineStage>.from(active);
-    final item = moved.removeAt(index);
-    moved.insert(target, item);
+    final item = moved.removeAt(oldIndex);
+    moved.insert(newIndex, item);
     setState(() => busy = true);
     try {
       await RecruitmentRepository.reorderPipelineStages(
@@ -125,6 +142,150 @@ class _RecruitmentCrmSettingsScreenState
         orderedIds: moved.map((item) => item.id).toList(),
       );
       await refresh();
+    } catch (error) {
+      showError(error);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<String?> confirmStageDeletion({
+    required RecruitmentPipelineStage stage,
+    required RecruitmentCrmConfiguration configuration,
+    required int candidateCount,
+  }) async {
+    final alternatives = configuration.stages
+        .where((item) => item.id != stage.id && item.isActive)
+        .toList(growable: false);
+    if (candidateCount > 0 && alternatives.isEmpty) {
+      showError(
+        Exception(
+          'Сначала создайте другую колонку, чтобы перенести туда кандидатов',
+        ),
+      );
+      return null;
+    }
+
+    var replacementId = candidateCount > 0 ? alternatives.first.id : '';
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Удалить колонку «${stage.title}»?'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (candidateCount > 0) ...[
+                  Text(
+                    'В колонке кандидатов: $candidateCount. '
+                    'Перед удалением они будут перенесены.',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  DropdownButtonFormField<String>(
+                    initialValue: replacementId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Перенести кандидатов в',
+                      prefixIcon: Icon(Icons.drive_file_move_outline),
+                    ),
+                    items: alternatives
+                        .map(
+                          (item) => DropdownMenuItem<String>(
+                            value: item.id,
+                            child: Text(
+                              item.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) => setDialogState(
+                      () => replacementId = value ?? replacementId,
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                ],
+                if (stage.systemKey.isNotEmpty) ...[
+                  const Text(
+                    'Это системная колонка. После удаления её можно будет '
+                    'создать заново как обычную.',
+                  ),
+                  const SizedBox(height: AppUi.gap8),
+                ],
+                const Text(
+                  'Автоматизации, привязанные к этой колонке, тоже будут '
+                  'удалены. Действие нельзя отменить.',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppAdaptivePalette.danger,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, replacementId),
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Удалить колонку'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> deleteStage(
+    RecruitmentCrmConfiguration configuration,
+    RecruitmentPipelineStage stage,
+  ) async {
+    if (busy) return;
+    try {
+      final values = await Future.wait<List<RecruitmentApplication>>([
+        RecruitmentRepository.fetchApplications(
+          companyId: widget.profile.activeCompanyId,
+        ),
+        RecruitmentRepository.fetchApplications(
+          companyId: widget.profile.activeCompanyId,
+          archived: true,
+        ),
+      ]);
+      if (!mounted) return;
+      final candidateCount = values
+          .expand((items) => items)
+          .where((application) => application.stageId == stage.id)
+          .length;
+      final replacementId = await confirmStageDeletion(
+        stage: stage,
+        configuration: configuration,
+        candidateCount: candidateCount,
+      );
+      if (replacementId == null || !mounted) return;
+
+      setState(() => busy = true);
+      final moved = await RecruitmentRepository.deletePipelineStage(
+        companyId: widget.profile.activeCompanyId,
+        stageId: stage.id,
+        replacementStageId: replacementId,
+      );
+      await refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            moved > 0
+                ? 'Колонка удалена. Перенесено кандидатов: $moved'
+                : 'Колонка «${stage.title}» удалена',
+          ),
+        ),
+      );
     } catch (error) {
       showError(error);
     } finally {
@@ -298,7 +459,8 @@ class _RecruitmentCrmSettingsScreenState
         _intro(
           title: 'Воронка найма',
           text:
-              'HR может добавлять колонки, менять названия и порядок. Кандидаты перемещаются между ними мышью или удержанием на телефоне.',
+              'Новые колонки добавляются справа. Для изменения порядка '
+              'зажмите значок с полосками и перетащите колонку.',
           button: FilledButton.icon(
             onPressed: busy ? null : () => editStage(configuration),
             icon: const Icon(Icons.add_rounded),
@@ -306,14 +468,35 @@ class _RecruitmentCrmSettingsScreenState
           ),
         ),
         const SizedBox(height: AppUi.gap12),
-        ...active.asMap().entries.map(
-          (entry) => _stageCard(
-            configuration,
-            entry.value,
-            canMoveUp: entry.key > 0,
-            canMoveDown: entry.key < active.length - 1,
+        if (active.isEmpty)
+          const _SettingsMessage(
+            icon: Icons.view_column_outlined,
+            title: 'Активных колонок пока нет',
+            text: 'Добавьте первую колонку воронки.',
+          )
+        else
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            itemCount: active.length,
+            onReorder: (oldIndex, newIndex) =>
+                reorderStages(configuration, oldIndex, newIndex),
+            proxyDecorator: (child, index, animation) => Material(
+              color: Colors.transparent,
+              elevation: 12,
+              borderRadius: BorderRadius.circular(AppUi.cardRadius),
+              child: child,
+            ),
+            itemBuilder: (context, index) => KeyedSubtree(
+              key: ValueKey<String>('stage:${active[index].id}'),
+              child: _stageCard(
+                configuration,
+                active[index],
+                index: index,
+              ),
+            ),
           ),
-        ),
         if (archived.isNotEmpty) ...[
           const SizedBox(height: AppUi.gap16),
           _sectionLabel('Скрытые колонки'),
@@ -321,8 +504,7 @@ class _RecruitmentCrmSettingsScreenState
             (stage) => _stageCard(
               configuration,
               stage,
-              canMoveUp: false,
-              canMoveDown: false,
+              index: -1,
             ),
           ),
         ],
@@ -435,8 +617,7 @@ class _RecruitmentCrmSettingsScreenState
   Widget _stageCard(
     RecruitmentCrmConfiguration configuration,
     RecruitmentPipelineStage stage, {
-    required bool canMoveUp,
-    required bool canMoveDown,
+    required int index,
   }) {
     final color = _hexColor(stage.colorHex);
     return Padding(
@@ -446,6 +627,24 @@ class _RecruitmentCrmSettingsScreenState
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (stage.isActive)
+              ReorderableDragStartListener(
+                index: index,
+                enabled: !busy,
+                child: Tooltip(
+                  message: 'Перетащить колонку',
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.grab,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(2, 10, 10, 10),
+                      child: Icon(
+                        Icons.drag_indicator_rounded,
+                        color: AppAdaptivePalette.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Container(
               width: 42,
               height: 42,
@@ -494,33 +693,29 @@ class _RecruitmentCrmSettingsScreenState
               ),
             ),
             const SizedBox(width: AppUi.gap8),
-            if (stage.isActive) ...[
-              IconButton(
-                tooltip: 'Выше',
-                onPressed: busy || !canMoveUp
-                    ? null
-                    : () => moveStage(configuration, stage, -1),
-                icon: const Icon(Icons.keyboard_arrow_up_rounded),
-              ),
-              IconButton(
-                tooltip: 'Ниже',
-                onPressed: busy || !canMoveDown
-                    ? null
-                    : () => moveStage(configuration, stage, 1),
-                icon: const Icon(Icons.keyboard_arrow_down_rounded),
-              ),
-            ],
             PopupMenuButton<String>(
               enabled: !busy,
               onSelected: (value) {
                 if (value == 'edit') editStage(configuration, stage);
                 if (value == 'toggle') toggleStage(stage);
+                if (value == 'delete') deleteStage(configuration, stage);
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Изменить')),
                 PopupMenuItem(
                   value: 'toggle',
                   child: Text(stage.isActive ? 'Скрыть' : 'Восстановить'),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded),
+                      SizedBox(width: AppUi.gap8),
+                      Text('Удалить колонку'),
+                    ],
+                  ),
                 ),
               ],
             ),
