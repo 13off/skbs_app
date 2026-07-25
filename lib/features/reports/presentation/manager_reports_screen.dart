@@ -46,6 +46,19 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     weeklyContributionFuture = future.then((_) => fetchWeeklyContribution());
   }
 
+  @override
+  void didUpdateWidget(covariant ManagerReportsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.activeCompanyId == widget.profile.activeCompanyId) {
+      return;
+    }
+    selectedObjectId = null;
+    ManagerReportsRepository.setPreferredObjectName(widget.selectedObjectName);
+    ManagerWeeklyContributionRepository.clearCache();
+    future = loadInitial();
+    weeklyContributionFuture = future.then((_) => fetchWeeklyContribution());
+  }
+
   Future<ManagerReportsCenter> loadInitial() async {
     final center = await ManagerReportsRepository.fetch(reportDate: reportDate);
     selectedObjectId = center.selectedObject?.id;
@@ -74,6 +87,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     bool forceRefresh = false,
   }) {
     return ManagerWeeklyContributionRepository.fetch(
+      companyId: widget.profile.activeCompanyId,
       objectId: selectedObjectId,
       forceRefresh: forceRefresh,
     );
