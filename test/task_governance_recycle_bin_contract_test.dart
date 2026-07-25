@@ -46,10 +46,11 @@ void main() {
       'lib/features/developer/presentation/data_governance_screen.dart',
     );
 
-    expect(navigation, contains('static const int pageCount = 6;'));
-    expect(navigation, contains("label: 'Права'"));
+    expect(navigation, contains('static const int pageCount = 3;'));
+    expect(navigation, contains("label: 'Конструктор'"));
     expect(navigation, contains('const DataGovernanceScreen()'));
     expect(navigation, contains("label: 'Контроль'"));
+    expect(navigation, isNot(contains("label: 'Права'")));
 
     expect(screen, contains("title: 'Контроль данных'"));
     expect(screen, contains("label: Text('Корзина')"));

@@ -17,7 +17,6 @@ void main() {
     const targets = <String>[
       'lib/features/dispatcher/presentation/dispatcher_settings_screen.dart',
       'lib/features/dispatcher/presentation/dispatcher_summary_details_screen.dart',
-      'lib/features/developer/presentation/developer_system_screen.dart',
       'lib/features/developer/presentation/developer_role_acceptance_screen.dart',
       'lib/features/developer/presentation/developer_readiness_screen.dart',
       'lib/features/developer/presentation/developer_demo_center_screen.dart',
@@ -35,6 +34,12 @@ void main() {
       final source = File(path).readAsStringSync();
       expect(source, contains('showBackButton: true'), reason: path);
     }
+
+    final developerRoot = File(
+      'lib/features/developer/presentation/developer_system_screen.dart',
+    ).readAsStringSync();
+    expect(developerRoot, contains("title: 'Конструктор'"));
+    expect(developerRoot, isNot(contains('showBackButton: true')));
   });
 
   test('secondary Scaffold screens expose an explicit AppBar back button', () {

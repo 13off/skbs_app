@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('developer role opens a dedicated system platform', () {
+  test('developer role opens a dedicated constructor platform', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
     final platform = File(
       'lib/features/developer/presentation/developer_main_screen.dart',
@@ -19,10 +19,13 @@ void main() {
       main,
       isNot(contains('profile.isDeveloper && !profile.isRolePreview')),
     );
-    expect(platform, contains("label: 'Система'"));
-    expect(platform, contains("label: 'Диспетчер'"));
-    expect(platform, contains("label: 'Ограничения'"));
-    expect(system, contains('Общие настройки AppСтрой без правок в коде'));
+    expect(platform, contains("label: 'Конструктор'"));
+    expect(platform, contains("label: 'Контроль'"));
+    expect(platform, isNot(contains("label: 'Диспетчер'")));
+    expect(platform, isNot(contains("label: 'Ограничения'")));
+    expect(system, contains('Конфигурация текущей компании'));
+    expect(system, contains('DispatcherSettingsScreen'));
+    expect(system, contains('DeveloperPanelScreen'));
     expect(system, contains('DeveloperConstructorScreen'));
     expect(profile, isNot(contains("title: 'Панель разработчика'")));
     expect(profile, isNot(contains("'Для разработчика'")));
