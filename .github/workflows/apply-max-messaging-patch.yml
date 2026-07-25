@@ -1,5 +1,6 @@
 name: Apply MAX messaging patch
 
+# One-time trigger for MAX candidate messaging.
 on:
   push:
     paths:
