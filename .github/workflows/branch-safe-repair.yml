@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v4 for agent/full-safe-hardening.
+# One-time trigger v5 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -44,22 +44,31 @@ jobs:
             set -euo pipefail
             dart fix --apply
 
-            # Flutter's current automatic fix can emit ScrollCacheExtent even
-            # though it is unavailable in the pinned SDK. Preserve the working
-            # cacheExtent API instead of accepting broken generated code.
             python3 - <<'PY'
           from pathlib import Path
           import re
 
-          pattern = re.compile(
+          cache_pattern = re.compile(
               r'(?m)^(\s*)(?:scrollCacheExtent|cacheExtent):\s*'
               r'(?:const\s+)?ScrollCacheExtent(?:\.\w+)?\(([^)\n]*)\),?\s*$'
           )
           for path in Path('lib').rglob('*.dart'):
               source = path.read_text(encoding='utf-8')
-              repaired = pattern.sub(r'\1cacheExtent: \2,', source)
+              repaired = cache_pattern.sub(r'\1cacheExtent: \2,', source)
               if repaired != source:
                   path.write_text(repaired, encoding='utf-8')
+
+          user_repository = Path(
+              'lib/features/auth/data/user_repository.dart'
+          )
+          source = user_repository.read_text(encoding='utf-8')
+          repaired = source.replace(
+              "final title = html.document.title.trim() ?? '';",
+              'final title = html.document.title.trim();',
+          )
+          if repaired == source and 'final title = html.document.title.trim();' not in source:
+              raise RuntimeError('Browser title source shape changed unexpectedly')
+          user_repository.write_text(repaired, encoding='utf-8')
           PY
 
             mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
