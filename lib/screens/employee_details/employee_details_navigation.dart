@@ -18,6 +18,15 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     ).showSnackBar(const SnackBar(content: Text('Сотрудник обновлён')));
   }
 
+  Future<void> openContribution() async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => EmployeeContributionScreen(employee: employee),
+      ),
+    );
+  }
+
   Future<void> openTimesheet() async {
     await Navigator.push<void>(
       context,
