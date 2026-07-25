@@ -11,7 +11,12 @@ void main() {
       contains('PushNotificationService.navigationRequest.value == null'),
     );
     expect(source, contains('auth.onAuthStateChange'));
-    expect(source, contains('final request = PushNotificationService.takeNavigationRequest();'));
+    expect(
+      source,
+      contains(
+        'final request = PushNotificationService.takeNavigationRequest();',
+      ),
+    );
 
     final readinessCheck = source.indexOf(
       'Supabase.instance.client.auth.currentUser == null',
@@ -35,8 +40,12 @@ void main() {
     final worker = File('web/firebase-messaging-sw.js').readAsStringSync();
 
     expect(worker, contains('const safeNotificationTarget'));
+    expect(worker, contains('new URL(value || appPublicLocation.href'));
     expect(worker, contains('target.origin === appPublicLocation.origin'));
     expect(worker, contains('target.pathname.startsWith(appScopePath)'));
-    expect(worker, contains('return insideApp ? target.href : appPublicLocation.href'));
+    expect(
+      worker,
+      contains('return insideApp ? target.href : appPublicLocation.href'),
+    );
   });
 }
