@@ -44,9 +44,11 @@ jobs:
 
       # BEGIN TEMP NAVIGATION PATCH
       - name: Preserve proven back-navigation semantics
+        id: navigation-patch
         if: github.head_ref == 'agent/full-safe-hardening'
         shell: bash
         run: |
+          exec > >(tee /tmp/navigation-patch.log) 2>&1
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -60,6 +62,15 @@ jobs:
           git add -A
           git commit -m "Сохранить проверенное поведение навигации назад"
           git push origin HEAD:"$GITHUB_HEAD_REF"
+
+      - name: Upload navigation patch failure log
+        if: failure() && steps.navigation-patch.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: navigation-patch-log
+          path: /tmp/navigation-patch.log
+          if-no-files-found: error
+          retention-days: 3
       # END TEMP NAVIGATION PATCH
 
       - name: Install locked dependencies
