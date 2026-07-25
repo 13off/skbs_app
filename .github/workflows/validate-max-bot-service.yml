@@ -26,6 +26,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Prepare non-secret validation environment
+        run: |
+          cp .env.example .env
+          sed -i 's/^BOT_TOKEN=$/BOT_TOKEN=validation-token/' .env
+          sed -i 's/^ADMIN_SETUP_CODE=$/ADMIN_SETUP_CODE=validation-admin-code/' .env
+          sed -i 's/^APPSTROY_BRIDGE_SECRET=$/APPSTROY_BRIDGE_SECRET=validation-bridge-secret/' .env
       - name: Check JavaScript syntax
         run: npm run check
       - name: Validate Docker Compose
