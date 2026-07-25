@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v7 for agent/full-safe-hardening.
+# One-time trigger v8 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: appstroy-one-time-safe-repair
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   repair:
