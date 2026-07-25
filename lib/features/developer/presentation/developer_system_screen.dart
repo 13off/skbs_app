@@ -9,7 +9,6 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../company/presentation/company_management_screen.dart';
-import '../../company/presentation/company_setup_screen.dart';
 import '../../company/presentation/company_switcher_screen.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
 import '../../dispatcher/presentation/dispatcher_settings_screen.dart';
@@ -294,17 +293,6 @@ class DeveloperSystemScreen extends StatelessWidget {
             onTap: () => open(
               context,
               DeveloperReadinessScreen(profile: profile),
-            ),
-          ),
-          actionCard(
-            context,
-            icon: Icons.rocket_launch_outlined,
-            title: 'Запуск компании',
-            subtitle:
-                'Проверить первый объект, назначенного прораба, сотрудников, задачу, табель и уведомления.',
-            onTap: () => open(
-              context,
-              CompanySetupScreen(profile: profile),
             ),
           ),
           actionCard(
