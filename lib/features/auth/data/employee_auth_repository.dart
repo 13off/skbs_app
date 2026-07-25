@@ -23,12 +23,8 @@ class EmployeeAuthRepository {
     UserRepository.clearProfileCache();
     await _client.auth.signInWithOtp(
       phone: phone,
-      shouldCreateUser: true,
+      shouldCreateUser: false,
       channel: OtpChannel.sms,
-      data: const <String, dynamic>{
-        'role': 'employee',
-        'must_set_password': false,
-      },
     );
   }
 
