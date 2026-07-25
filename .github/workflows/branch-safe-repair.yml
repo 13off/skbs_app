@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v3 for agent/full-safe-hardening.
+# One-time trigger v4 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -52,18 +52,24 @@ jobs:
           import re
 
           pattern = re.compile(
-              r'scrollCacheExtent:\s*ScrollCacheExtent(?:\.\w+)?\(([^)]*)\)'
+              r'(?m)^(\s*)(?:scrollCacheExtent|cacheExtent):\s*'
+              r'(?:const\s+)?ScrollCacheExtent(?:\.\w+)?\(([^)\n]*)\),?\s*$'
           )
           for path in Path('lib').rglob('*.dart'):
               source = path.read_text(encoding='utf-8')
-              repaired = pattern.sub(r'cacheExtent: \1', source)
+              repaired = pattern.sub(r'\1cacheExtent: \2,', source)
               if repaired != source:
                   path.write_text(repaired, encoding='utf-8')
           PY
 
-            mapfile -t dart_files < <(git diff --name-only -- '*.dart')
+            mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
             if [ "${#dart_files[@]}" -gt 0 ]; then
               dart format "${dart_files[@]}"
+            fi
+
+            if grep -R -n 'ScrollCacheExtent' lib; then
+              echo 'Unsupported ScrollCacheExtent remained after compatibility repair'
+              exit 1
             fi
 
             flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee /tmp/flutter-analyze.log
