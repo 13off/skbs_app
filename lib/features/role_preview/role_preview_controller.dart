@@ -13,6 +13,7 @@ class RolePreviewState {
   bool get isAdminMode => role == 'admin';
   bool get isDeveloperMode => role == 'developer';
   bool get isForemanMode => role == 'foreman';
+  bool get isEmployeeMode => role == 'employee';
   bool get isLawyerMode => role == 'lawyer';
   bool get isAccountantMode => role == 'accountant';
   bool get isHrMode => role == 'hr';
@@ -23,6 +24,8 @@ class RolePreviewState {
         return 'Разработчик';
       case 'foreman':
         return 'Прораб';
+      case 'employee':
+        return 'Сотрудник';
       case 'lawyer':
         return 'Юрист';
       case 'accountant':
@@ -57,6 +60,10 @@ class RolePreviewController {
         role: 'foreman',
         objectName: savedObjectName,
       );
+      return;
+    }
+    if (savedRole == 'employee') {
+      state.value = const RolePreviewState(role: 'employee');
       return;
     }
     if (savedRole == 'lawyer') {
@@ -97,6 +104,10 @@ class RolePreviewController {
     final cleanObjectName = objectName.trim();
     if (cleanObjectName.isEmpty) return;
     setState(RolePreviewState(role: 'foreman', objectName: cleanObjectName));
+  }
+
+  static void showEmployee() {
+    setState(const RolePreviewState(role: 'employee'));
   }
 
   static void showLawyer() {

@@ -28,6 +28,7 @@ class AppUserProfile {
   bool get isAdmin => role == 'admin' || role == 'developer';
   bool get isDeveloper => role == 'developer';
   bool get isForeman => role == 'foreman';
+  bool get isEmployee => role == 'employee';
   bool get isLawyer => role == 'lawyer';
   bool get isAccountant => role == 'accountant';
   bool get isHr => role == 'hr';
@@ -47,6 +48,8 @@ class AppUserProfile {
         return 'Разработчик';
       case 'foreman':
         return 'Прораб';
+      case 'employee':
+        return 'Сотрудник';
       case 'lawyer':
         return 'Юрист';
       case 'accountant':
