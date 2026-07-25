@@ -88,11 +88,16 @@ abstract final class ManagerWeeklyContributionRepository {
       <String, Future<ManagerWeeklyContributionReport>>{};
 
   static Future<ManagerWeeklyContributionReport> fetch({
+    required String companyId,
     String? objectId,
     bool forceRefresh = false,
   }) async {
+    final cleanCompanyId = companyId.trim();
     final cleanObjectId = _clean(objectId);
-    final key = _cacheKey(cleanObjectId);
+    final key = _cacheKey(
+      companyId: cleanCompanyId,
+      objectId: cleanObjectId,
+    );
     final cached = _cache[key];
     if (!forceRefresh && cached != null && _isFresh(cached)) {
       return cached.report;
@@ -130,11 +135,14 @@ abstract final class ManagerWeeklyContributionRepository {
     return ManagerWeeklyContributionReport.fromJson(_asMap(result));
   }
 
-  static String _cacheKey(String? objectId) {
+  static String _cacheKey({
+    required String companyId,
+    required String? objectId,
+  }) {
     final sessionPart =
         _client.auth.currentSession?.accessToken.hashCode.toString() ??
             '__guest__';
-    return '$sessionPart::${objectId ?? '__all__'}';
+    return '$sessionPart::$companyId::${objectId ?? '__all__'}';
   }
 
   static bool _isFresh(_WeeklyContributionCacheEntry entry) {
