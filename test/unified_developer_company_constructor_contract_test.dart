@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Единый конструктор остаётся только в профессиональной платформе разработчика.
 void main() {
   test('developer platform has one compact constructor entry point', () {
     final main = File(
