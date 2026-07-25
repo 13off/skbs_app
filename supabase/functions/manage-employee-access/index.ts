@@ -30,7 +30,9 @@ function normalizePhone(value: unknown) {
 }
 
 async function findUserByPhone(
-  adminClient: ReturnType<typeof createClient>,
+  // SupabaseClient carries project-specific generics that are irrelevant for Auth Admin.
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
   phone: string,
 ): Promise<User | null> {
   for (let page = 1; page <= 20; page += 1) {
@@ -40,7 +42,7 @@ async function findUserByPhone(
     });
     if (error) throw error;
     const match = data.users.find(
-      (candidate) => normalizePhone(candidate.phone) === phone,
+      (candidate: User) => normalizePhone(candidate.phone) === phone,
     );
     if (match) return match;
     if (data.users.length < 1000) return null;
