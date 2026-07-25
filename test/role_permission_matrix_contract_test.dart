@@ -98,6 +98,9 @@ void main() {
     final mainScreen = File(
       'lib/features/developer/presentation/developer_main_screen.dart',
     ).readAsStringSync();
+    final systemScreen = File(
+      'lib/features/developer/presentation/developer_system_screen.dart',
+    ).readAsStringSync();
     final matrixScreen = File(
       'lib/features/developer/presentation/role_permission_matrix_screen.dart',
     ).readAsStringSync();
@@ -122,9 +125,11 @@ void main() {
       ),
     );
 
-    expect(mainScreen, contains('static const int pageCount = 6'));
-    expect(mainScreen, contains("label: 'Права'"));
-    expect(mainScreen, contains('RolePermissionMatrixScreen'));
+    expect(mainScreen, contains('static const int pageCount = 3'));
+    expect(mainScreen, contains("label: 'Конструктор'"));
+    expect(mainScreen, isNot(contains("label: 'Права'")));
+    expect(systemScreen, contains("title: 'Роли и права'"));
+    expect(systemScreen, contains('RolePermissionMatrixScreen'));
     expect(matrixScreen, contains('DataTable('));
     expect(matrixScreen, contains("'Вся компания'"));
     expect(matrixScreen, contains('settings_backup_restore_rounded'));
