@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time final hardening pass for agent/full-safe-hardening.
+# Diagnostic strict hardening pass for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -27,44 +27,49 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Merge latest main without publishing
-        shell: bash
-        run: |
-          git fetch origin main agent/full-safe-hardening
-          git merge --no-edit origin/main
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Apply exact hardening pass
+      - name: Merge, harden and validate
         shell: bash
         run: |
-          python3 tool/full_hardening_pass.py
-          flutter pub get
-          mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
-          if [ "${#dart_files[@]}" -gt 0 ]; then
-            dart format "${dart_files[@]}"
+          set +e
+          {
+            set -euo pipefail
+            git fetch origin main agent/full-safe-hardening
+            git merge --no-edit origin/main
+            python3 tool/full_hardening_pass.py
+            flutter pub get
+            mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
+            if [ "${#dart_files[@]}" -gt 0 ]; then
+              dart format "${dart_files[@]}"
+            fi
+            flutter analyze
+            flutter test --reporter compact
+            flutter build web --release --base-href /appstroy-web/
+          } 2>&1 | tee /tmp/full-hardening.log
+          status=${PIPESTATUS[0]}
+          set -e
+
+          git fetch origin main agent/full-safe-hardening
+
+          if [ "$status" -ne 0 ]; then
+            git merge --abort || true
+            git reset --hard origin/agent/full-safe-hardening
+            cp /tmp/full-hardening.log hardening_failure.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f hardening_failure.log
+            git commit -m "Сохранить причину строгого прохода" || true
+            git push origin HEAD:agent/full-safe-hardening
+            exit "$status"
           fi
 
-      - name: Require a clean analyzer
-        shell: bash
-        run: flutter analyze 2>&1 | tee /tmp/flutter-analyze.log
-
-      - name: Run all regression tests
-        shell: bash
-        run: flutter test --reporter compact 2>&1 | tee /tmp/flutter-test.log
-
-      - name: Build release Web/PWA
-        shell: bash
-        run: flutter build web --release --base-href /appstroy-web/ 2>&1 | tee /tmp/flutter-web-build.log
-
-      - name: Save only fully validated changes
-        shell: bash
-        run: |
           rm -rf repair_logs
+          rm -f hardening_failure.log
           rm -f tool/full_hardening_pass.py tool/safe_repair.py
           rm -f .github/workflows/temporary-safe-repair.yml
           rm -f .github/workflows/branch-safe-repair.yml
