@@ -1,0 +1,169 @@
+name: Preserve proven back navigation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/branch-navigation-preservation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-preserve-back-navigation
+  cancel-in-progress: true
+
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/full-safe-hardening
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Preserve navigation semantics and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main agent/full-safe-hardening
+          git merge --no-edit origin/main
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str, label: str) -> None:
+              file = Path(path)
+              source = file.read_text(encoding='utf-8')
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected one match, found {count}')
+              file.write_text(source.replace(old, new, 1), encoding='utf-8')
+
+          persistent = 'lib/features/shell/presentation/persistent_tab_shell.dart'
+          replace_once(
+              persistent,
+              '  bool _allowOuterPop = false;\n',
+              '',
+              'persistent outer-pop state',
+          )
+          replace_once(
+              persistent,
+              '''    return PopScope<void>(
+                canPop: _allowOuterPop,
+                onPopInvokedWithResult: (didPop, _) async {
+                  if (didPop) return;
+                  final allowOuterPop = await widget.controller.handleBack(
+                    returnToFirstTab: widget.returnToFirstTabOnBack,
+                  );
+                  if (!mounted || !allowOuterPop) return;
+                  setState(() => _allowOuterPop = true);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) Navigator.of(context).maybePop();
+                  });
+                },
+                child: Scaffold(
+          ''',
+              '''    // Keep the established nested-navigation and root-route behavior.
+                // Flutter 3.44 deprecates this API before the replacement is fully
+                // covered by route-level integration tests in every target shell.
+                // ignore: deprecated_member_use
+                return WillPopScope(
+                  onWillPop: () => widget.controller.handleBack(
+                    returnToFirstTab: widget.returnToFirstTabOnBack,
+                  ),
+                  child: Scaffold(
+          ''',
+              'persistent PopScope block',
+          )
+
+          premium = 'lib/features/shell/presentation/premium_main_screen.dart'
+          replace_once(
+              premium,
+              '  bool _allowOuterPop = false;\n',
+              '',
+              'premium outer-pop state',
+          )
+          replace_once(
+              premium,
+              '''    return PopScope<void>(
+                canPop: _allowOuterPop,
+                onPopInvokedWithResult: (didPop, _) async {
+                  if (didPop) return;
+                  final handledInsideApp = await handleBackRequest();
+                  if (!mounted || handledInsideApp) return;
+                  setState(() => _allowOuterPop = true);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) Navigator.of(context).maybePop();
+                  });
+                },
+                child: Scaffold(
+          ''',
+              '''    // Keep the established nested-navigation and root-route behavior.
+                // ignore: deprecated_member_use
+                return WillPopScope(
+                  onWillPop: () async => !(await handleBackRequest()),
+                  child: Scaffold(
+          ''',
+              'premium PopScope block',
+          )
+
+          test = 'test/specialist_role_preview_navigation_contract_test.dart'
+          replace_once(
+              test,
+              '''  expect(shell, contains('return PopScope<void>('));
+                expect(shell, contains('canPop: _allowOuterPop'));
+                expect(shell, contains('onPopInvokedWithResult: (didPop, _) async'));
+                expect(shell, contains('widget.controller.handleBack('));
+                expect(shell, contains('Navigator.of(context).maybePop()'));
+                expect(shell, isNot(contains('WillPopScope(')));
+          ''',
+              '''  expect(shell, contains('return WillPopScope('));
+                expect(shell, contains('widget.controller.handleBack('));
+                expect(shell, contains('returnToFirstTab: widget.returnToFirstTabOnBack'));
+                expect(shell, isNot(contains('PopScope<void>(')));
+          ''',
+              'navigation contract expectations',
+          )
+          PY
+
+          dart format \
+            lib/features/shell/presentation/persistent_tab_shell.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/specialist_role_preview_navigation_contract_test.dart
+          flutter pub get --enforce-lockfile >/dev/null
+          flutter analyze
+          flutter test --reporter compact
+          flutter build web --release --base-href /appstroy-web/
+          python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
+          python3 tool/web_smoke.py
+
+          git add -A
+          git commit -m "Сохранить проверенное поведение навигации назад"
+          git push origin HEAD:agent/full-safe-hardening
+
+      - name: Remove one-time workflow from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git worktree add /tmp/appstroy-main origin/main
+          cd /tmp/appstroy-main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/branch-navigation-preservation.yml
+          git add -A
+          git commit -m "Удалить одноразовую проверку навигации"
+          git push origin HEAD:main
