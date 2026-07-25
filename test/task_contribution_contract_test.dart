@@ -1,3 +1,4 @@
+// Контракт также служит безопасным триггером публикации Web/PWA.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
