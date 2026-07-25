@@ -17,9 +17,9 @@ void main() {
     expect(reports, contains('ManagerWeeklyContributionSection('));
     expect(reports, contains('ManagerWeeklyContributionRepository.fetch('));
     expect(reports, contains('companyId: widget.profile.activeCompanyId'));
+    expect(reports, contains('EmployeeContributionScreen('));
     expect(section, contains("'Вклад команды за неделю'"));
     expect(section, contains('обновляется после завершения недели'));
-    expect(section, contains('EmployeeContributionScreen'));
     expect(managerShell, contains('static const int pageCount = 5;'));
     expect(managerShell, isNot(contains("label: 'Вклад команды'")));
   });
@@ -35,7 +35,10 @@ void main() {
     expect(foreman, isNot(contains('ManagerWeeklyContributionSection')));
     expect(foreman, isNot(contains('get_manager_weekly_team_contribution')));
     expect(migration, contains('if not public.is_admin()'));
-    expect(migration, contains("raise exception 'manager report is not available'"));
+    expect(
+      migration,
+      contains("raise exception 'manager report is not available'"),
+    );
     expect(migration, contains('from public, anon'));
     expect(migration, contains('to authenticated'));
   });
@@ -50,12 +53,16 @@ void main() {
 
     expect(
       migration,
-      contains('v_week_end := v_today - extract(isodow from v_today)::integer'),
+      contains(
+        'v_week_end := v_today - extract(isodow from v_today)::integer',
+      ),
     );
     expect(migration, contains('v_week_start := v_week_end - 6'));
     expect(
       migration,
-      contains('order by lower(employee_totals.object_name), lower(employee_totals.employee_name)'),
+      contains(
+        'order by lower(employee_totals.object_name), lower(employee_totals.employee_name)',
+      ),
     );
     expect(section, isNot(contains('Лучший')));
     expect(section, isNot(contains('Худший')));
