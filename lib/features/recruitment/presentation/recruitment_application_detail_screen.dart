@@ -404,6 +404,7 @@ class _RecruitmentApplicationDetailScreenState
       await RecruitmentRepository.sendCandidateMessage(
         applicationId: widget.application.id,
         message: text,
+        source: widget.application.source,
       );
       messageController.clear();
       if (mounted) {
@@ -946,7 +947,7 @@ class _RecruitmentApplicationDetailScreenState
               color: _detailSurface,
               border: Border(top: BorderSide(color: _detailBorder)),
             ),
-            child: widget.application.canMessageInTelegram
+            child: widget.application.canMessageInBot
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -959,8 +960,14 @@ class _RecruitmentApplicationDetailScreenState
                           textCapitalization: TextCapitalization.sentences,
                           onSubmitted: (_) => sendMessage(),
                           decoration: InputDecoration(
-                            hintText: 'Сообщение',
-                            prefixIcon: Icon(Icons.telegram),
+                            hintText: widget.application.canMessageInMax
+                                ? 'Сообщение в MAX'
+                                : 'Сообщение в Telegram',
+                            prefixIcon: Icon(
+                              widget.application.canMessageInMax
+                                  ? Icons.chat_bubble_outline_rounded
+                                  : Icons.telegram,
+                            ),
                             filled: true,
                             fillColor: _detailInput,
                             border: OutlineInputBorder(
@@ -996,7 +1003,7 @@ class _RecruitmentApplicationDetailScreenState
                 : const _DetailMessage(
                     icon: Icons.info_outline_rounded,
                     text:
-                        'Эта заявка создана не через Telegram-бота. Для связи используйте номер телефона.',
+                        'Эта заявка создана вручную. Для связи используйте номер телефона.',
                   ),
           ),
         ],

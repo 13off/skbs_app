@@ -220,32 +220,36 @@ abstract final class RecruitmentRepository {
   }
 
   static Future<void> sendCandidateMessage({
-    required String applicationId,
-    required String message,
-  }) async {
-    final cleanApplicationId = applicationId.trim();
+  required String applicationId,
+  required String message,
+  required String source,
+}) async {
+  final cleanApplicationId = applicationId.trim();
+  final cleanSource = source.trim().toLowerCase();
+  if (cleanSource == 'telegram') {
     await _client.rpc(
       'activate_recruitment_telegram_conversation',
       params: <String, dynamic>{'p_application_id': cleanApplicationId},
     );
-
-    final response = await _client.functions.invoke(
-      'recruitment-candidate-action',
-      body: <String, dynamic>{
-        'action': 'send_message',
-        'application_id': cleanApplicationId,
-        'message': message.trim(),
-      },
-    );
-    final data = _map(response.data);
-    final error = data['error']?.toString().trim() ?? '';
-    if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
-      throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
-    }
-    _notify(cleanApplicationId);
   }
 
-  static Future<List<RecruitmentObjectOption>> fetchObjects({
+  final response = await _client.functions.invoke(
+    'recruitment-candidate-action',
+    body: <String, dynamic>{
+      'action': 'send_message',
+      'application_id': cleanApplicationId,
+      'message': message.trim(),
+    },
+  );
+  final data = _map(response.data);
+  final error = data['error']?.toString().trim() ?? '';
+  if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
+    throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
+  }
+  _notify(cleanApplicationId);
+}
+
+static Future<List<RecruitmentObjectOption>> fetchObjects({
     required String companyId,
   }) async {
     final rows = await _client
