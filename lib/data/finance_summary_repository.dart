@@ -120,13 +120,6 @@ class FinanceSummaryRepository {
     return clean;
   }
 
-  static String _dateKey(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '${date.year}-$month-$day';
-  }
-
   static String _requestKey({
     required FinancePeriod period,
     required String? objectName,

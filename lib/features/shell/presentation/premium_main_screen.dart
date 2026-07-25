@@ -40,6 +40,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final PageController pageController;
 
   Offset? topTapStart;
+  bool _allowOuterPop = false;
 
   int get pageCount => widget.profile.isAdmin ? 5 : 4;
 
@@ -497,8 +498,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final activeIndex = safeCurrentIndex;
     final tabItems = buildTabItems();
 
-    return WillPopScope(
-      onWillPop: () async => !(await handleBackRequest()),
+    return PopScope<void>(
+      canPop: _allowOuterPop,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final handledInsideApp = await handleBackRequest();
+        if (!mounted || handledInsideApp) return;
+        setState(() => _allowOuterPop = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).maybePop();
+        });
+      },
       child: Scaffold(
         body: Listener(
           behavior: HitTestBehavior.translucent,

@@ -641,6 +641,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   : visibleRows.length;
 
               return ListView.builder(
+                // Flutter 3.44 deprecates this field before exposing its replacement.
+                // ignore: deprecated_member_use
                 cacheExtent: 700,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),

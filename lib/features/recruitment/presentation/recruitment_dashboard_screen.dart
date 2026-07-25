@@ -13,9 +13,6 @@ import '../models/recruitment_models.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
-Color get _success => AppAdaptivePalette.success;
-Color get _warning => AppAdaptivePalette.warning;
-Color get _danger => AppAdaptivePalette.danger;
 
 class RecruitmentDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -109,10 +106,7 @@ class _RecruitmentDashboardScreenState
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: _muted,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -154,10 +148,7 @@ class _RecruitmentDashboardScreenState
                     application.fullName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: _text,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
                   ),
                   SizedBox(height: 3),
                   Text(
@@ -342,7 +333,9 @@ class _RecruitmentDashboardScreenState
                   ),
                 )
               else
-                ...latest.map((application) => candidateTile(application, data)),
+                ...latest.map(
+                  (application) => candidateTile(application, data),
+                ),
             ],
           );
         },
@@ -350,7 +343,6 @@ class _RecruitmentDashboardScreenState
     );
   }
 }
-
 
 Color _stageColor(String value) {
   final clean = value.replaceFirst('#', '');

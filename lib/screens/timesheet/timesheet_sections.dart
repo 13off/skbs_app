@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../timesheet_screen.dart';
 
 extension _TimesheetSections on _TimesheetScreenState {
@@ -296,7 +300,10 @@ extension _TimesheetSections on _TimesheetScreenState {
               ),
               AnimatedContainer(
                 duration: AppMotion.regular,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: hasWorked
                       ? AppAdaptivePalette.accent

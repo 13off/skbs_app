@@ -29,30 +29,6 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
     );
   }
 
-  Widget buildInfoTile({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    final cleanValue = value.trim();
-    return Card(
-      elevation: 0,
-      color: AppAdaptivePalette.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        minVerticalPadding: 14,
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: cleanValue.isEmpty
-            ? null
-            : Text(
-                cleanValue,
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-      ),
-    );
-  }
-
   Widget buildStatusBadge() {
     final isFired = !employee.isActive;
     return Container(
@@ -313,10 +289,7 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       ),

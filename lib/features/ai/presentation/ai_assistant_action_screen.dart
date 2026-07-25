@@ -184,6 +184,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         showMessage('Для этой даты у текущей роли нет права создавать задачу');
         return;
       }
+      if (!mounted) return;
 
       final draft = await Navigator.of(context).push<TaskCreateDraft>(
         CupertinoPageRoute<TaskCreateDraft>(

@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsLoading on _TaskDetailsScreenState {

@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsActions on _TaskDetailsScreenState {
@@ -38,9 +42,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
 
     final taskId = widget.task.id;
     if (taskId == null || taskId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Сначала сохраните задачу')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Сначала сохраните задачу')));
       return;
     }
 
@@ -83,9 +87,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       await TaskRepository.openTaskPhoto(photo);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка открытия фото: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка открытия фото: $error')));
     }
   }
 
@@ -130,9 +134,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
         photos = photos.where((item) => item.id != photo.id).toList();
         signedUrlFutures.remove(photo.id);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Фотография удалена')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Фотография удалена')));
     } catch (error) {
       if (!mounted) return;
       setState(() => errorText = 'Ошибка удаления фото: $error');
@@ -180,9 +184,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
   }
 
   void showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> saveChanges() async {
@@ -231,7 +235,8 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     final isPastOrToday = !taskDate.isAfter(TaskEditPolicy.operationalToday);
     final afterCount = photos.where((photo) => photo.isAfter).length;
     final photoError = TaskDraftValidation.requiredPhotos(
-      required: policy.requireAfterPhotoOnComplete &&
+      required:
+          policy.requireAfterPhotoOnComplete &&
           selectedStatus == 'Выполнено' &&
           widget.task.status != 'Выполнено',
       actualCount: afterCount,

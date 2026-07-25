@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../period_timesheet_screen.dart';
 
 extension _PeriodTimesheetExport on _PeriodTimesheetScreenState {
@@ -18,10 +22,14 @@ extension _PeriodTimesheetExport on _PeriodTimesheetScreenState {
       for (final month in months) {
         var monthRows = await fetchRowsForMonth(month);
         if (employeeKey != null) {
-          monthRows = monthRows.where((row) {
-            return PeriodTimesheetReport.normalizedEmployeeKey(row.employee) ==
-                employeeKey;
-          }).toList(growable: false);
+          monthRows = monthRows
+              .where((row) {
+                return PeriodTimesheetReport.normalizedEmployeeKey(
+                      row.employee,
+                    ) ==
+                    employeeKey;
+              })
+              .toList(growable: false);
         }
         rowsByMonth.add(monthRows);
       }
@@ -38,9 +46,9 @@ extension _PeriodTimesheetExport on _PeriodTimesheetScreenState {
       ).showSnackBar(const SnackBar(content: Text('Excel-файл создан')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка создания Excel: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка создания Excel: $error')));
     } finally {
       if (mounted) setState(() => isExporting = false);
     }

@@ -40,6 +40,8 @@ extension _EmployeesView on _EmployeesScreenState {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: ListView.builder(
+                // Flutter 3.44 deprecates this field before exposing its replacement.
+                // ignore: deprecated_member_use
                 cacheExtent: 700,
                 key: PageStorageKey(
                   'employees-${widget.selectedObjectName ?? 'all'}',

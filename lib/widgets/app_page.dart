@@ -161,6 +161,8 @@ class AppLazyPage extends StatelessWidget {
     }
 
     final list = ListView.builder(
+      // Flutter 3.44 deprecates this field before exposing its replacement.
+      // ignore: deprecated_member_use
       cacheExtent: cacheExtent,
       key: scrollKey,
       controller: controller,

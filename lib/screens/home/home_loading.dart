@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../home_screen.dart';
 
 extension _HomeLoading on _HomeScreenState {
@@ -113,9 +117,9 @@ extension _HomeLoading on _HomeScreenState {
   }
 
   void refreshObjectsAndDashboard() {
-    AppCacheCoordinator.invalidate(
-      const <AppDataDomain>{AppDataDomain.objects},
-    );
+    AppCacheCoordinator.invalidate(const <AppDataDomain>{
+      AppDataDomain.objects,
+    });
 
     if (!mounted) return;
     setState(() {
