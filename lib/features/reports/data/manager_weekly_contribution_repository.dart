@@ -60,21 +60,14 @@ class ManagerWeeklyContributionReport {
     required this.rows,
   });
 
-  const ManagerWeeklyContributionReport.empty()
-      : weekStart = const DateTime(1970),
-        weekEnd = const DateTime(1970),
-        completedTasks = 0,
-        participants = 0,
-        objectsCount = 0,
-        rows = const <ManagerWeeklyContributionEmployee>[];
-
   factory ManagerWeeklyContributionReport.fromJson(Map<String, dynamic> json) {
     return ManagerWeeklyContributionReport(
       weekStart:
           DateTime.tryParse(json['week_start']?.toString() ?? '') ??
               DateTime.now(),
       weekEnd:
-          DateTime.tryParse(json['week_end']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['week_end']?.toString() ?? '') ??
+              DateTime.now(),
       completedTasks: _asInt(json['completed_tasks']),
       participants: _asInt(json['participants']),
       objectsCount: _asInt(json['objects_count']),
