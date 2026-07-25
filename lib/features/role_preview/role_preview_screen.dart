@@ -30,6 +30,8 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
 
   void selectDeveloper() => RolePreviewController.showDeveloper();
 
+  void selectEmployee() => RolePreviewController.showEmployee();
+
   void selectLawyer() => RolePreviewController.showLawyer();
 
   void selectAccountant() => RolePreviewController.showAccountant();
@@ -288,6 +290,15 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                     onTap: snapshot.connectionState == ConnectionState.waiting
                         ? null
                         : () => selectForeman(objectNames),
+                  ),
+                  roleCard(
+                    icon: Icons.construction_rounded,
+                    title: 'Сотрудник',
+                    subtitle:
+                        'Открыть личный кабинет сотрудника: задачи, деньги, документы и профиль.',
+                    selected: preview.isEmployeeMode,
+                    onTap: selectEmployee,
+                    badge: 'ЛИЧНЫЙ КАБИНЕТ',
                   ),
                   roleCard(
                     icon: Icons.gavel_rounded,
