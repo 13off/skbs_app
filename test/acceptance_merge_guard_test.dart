@@ -4,16 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('final acceptance entry points remain connected', () {
-    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
-    final system = File(
-      'lib/features/developer/presentation/developer_system_screen.dart',
+    final manager = File(
+      'lib/features/reports/presentation/manager_main_screen.dart',
+    ).readAsStringSync();
+    final recommendation = File(
+      'lib/features/company/presentation/company_setup_recommendation_card.dart',
     ).readAsStringSync();
     final setup = File(
       'lib/features/company/data/company_setup_repository.dart',
     ).readAsStringSync();
 
-    expect(profile, contains("title: 'Запуск компании'"));
-    expect(system, contains("title: 'Запуск компании'"));
+    expect(manager, contains('CompanySetupRecommendationCard'));
+    expect(recommendation, contains('CompanySetupScreen'));
+    expect(recommendation, contains('progress.nextRequiredStep'));
     expect(setup, contains("id: 'rates'"));
     expect(setup, contains('_allActiveEmployeesHaveRates'));
   });
