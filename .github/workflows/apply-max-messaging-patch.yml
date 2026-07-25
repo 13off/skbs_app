@@ -1,8 +1,10 @@
 name: Apply MAX messaging patch
 
-# One-time trigger for MAX candidate messaging.
+# One-time trigger v2 for MAX candidate messaging.
 on:
   push:
+    branches:
+      - main
     paths:
       - .github/workflows/apply-max-messaging-patch.yml
 
@@ -18,8 +20,10 @@ jobs:
           fetch-depth: 0
 
       - name: Patch AppStroy MAX messaging
-        shell: python
+        shell: bash
         run: |
+          set -euo pipefail
+          python3 - <<'PY'
           from pathlib import Path
           import re
 
@@ -44,36 +48,36 @@ jobs:
               re.S,
           )
           replacement = """  static Future<void> sendCandidateMessage({
-    required String applicationId,
-    required String message,
-    required String source,
-  }) async {
-    final cleanApplicationId = applicationId.trim();
-    final cleanSource = source.trim().toLowerCase();
-    if (cleanSource == 'telegram') {
-      await _client.rpc(
-        'activate_recruitment_telegram_conversation',
-        params: <String, dynamic>{'p_application_id': cleanApplicationId},
-      );
-    }
+            required String applicationId,
+            required String message,
+            required String source,
+          }) async {
+            final cleanApplicationId = applicationId.trim();
+            final cleanSource = source.trim().toLowerCase();
+            if (cleanSource == 'telegram') {
+              await _client.rpc(
+                'activate_recruitment_telegram_conversation',
+                params: <String, dynamic>{'p_application_id': cleanApplicationId},
+              );
+            }
 
-    final response = await _client.functions.invoke(
-      'recruitment-candidate-action',
-      body: <String, dynamic>{
-        'action': 'send_message',
-        'application_id': cleanApplicationId,
-        'message': message.trim(),
-      },
-    );
-    final data = _map(response.data);
-    final error = data['error']?.toString().trim() ?? '';
-    if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
-      throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
-    }
-    _notify(cleanApplicationId);
-  }
+            final response = await _client.functions.invoke(
+              'recruitment-candidate-action',
+              body: <String, dynamic>{
+                'action': 'send_message',
+                'application_id': cleanApplicationId,
+                'message': message.trim(),
+              },
+            );
+            final data = _map(response.data);
+            final error = data['error']?.toString().trim() ?? '';
+            if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
+              throw Exception(error.isEmpty ? 'Не удалось отправить сообщение' : error);
+            }
+            _notify(cleanApplicationId);
+          }
 
-  static Future<List<RecruitmentObjectOption>> fetchObjects"""
+          static Future<List<RecruitmentObjectOption>> fetchObjects"""
           repository_text, count = pattern.subn(replacement, repository_text, count=1)
           if count != 1:
               raise SystemExit(f'Repository method replacement count: {count}')
@@ -102,6 +106,18 @@ jobs:
           )
 
           Path('.github/workflows/apply-max-messaging-patch.yml').unlink()
+          PY
+
+      - name: Format and validate affected files
+        run: |
+          dart format \
+            lib/features/recruitment/models/recruitment_models.dart \
+            lib/features/recruitment/data/recruitment_repository.dart \
+            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
+          dart analyze \
+            lib/features/recruitment/models/recruitment_models.dart \
+            lib/features/recruitment/data/recruitment_repository.dart \
+            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
 
       - name: Commit patch
         run: |
