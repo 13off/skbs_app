@@ -105,7 +105,7 @@ Formatted lib/screens/employees/employee_directory_controller.dart
 Formatted lib/screens/employees/employees_view.dart
 Formatted lib/screens/timesheet/timesheet_view.dart
 Formatted lib/widgets/app_page.dart
-Formatted 28 files (15 changed) in 0.38 seconds.
+Formatted 28 files (15 changed) in 0.36 seconds.
 lib/screens/employees/employees_view.dart:43:                scrollCacheExtent: ScrollCacheExtent.pixels(700),
 lib/screens/timesheet/timesheet_view.dart:81:                            scrollCacheExtent: ScrollCacheExtent.pixels(700),
 lib/features/payments/presentation/screens/payments_screen.dart:644:                scrollCacheExtent: ScrollCacheExtent.pixels(700),
