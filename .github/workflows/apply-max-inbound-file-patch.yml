@@ -1,0 +1,294 @@
+name: Apply MAX inbound file patch
+
+on:
+  push:
+    branches:
+      - feature/max-inbound-files
+    paths:
+      - .github/workflows/apply-max-inbound-file-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/max-inbound-files
+          fetch-depth: 0
+
+      - name: Patch MAX bot file intake
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('services/max-recruiting-bot/src/index.js')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one match, got {text.count(old)}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "const debug = process.env.DEBUG === '1';\n",
+              "const debug = process.env.DEBUG === '1';\nconst maxInboundFileMaxBytes = Number.parseInt(process.env.MAX_INBOUND_FILE_MAX_BYTES ?? '20971520', 10);\n",
+          )
+
+          replace_once(
+              "  url: process.env.APPSTROY_BRIDGE_URL,\n  secret: process.env.APPSTROY_BRIDGE_SECRET,\n",
+              "  url: process.env.APPSTROY_BRIDGE_URL,\n  fileUrl: process.env.APPSTROY_FILE_BRIDGE_URL,\n  secret: process.env.APPSTROY_BRIDGE_SECRET,\n",
+          )
+
+          anchor = """function maxResponseMessageId(response) {
+            return String(
+              response?.message?.body?.mid
+                ?? response?.body?.mid
+                ?? response?.message_id
+                ?? response?.id
+                ?? '',
+            );
+          }
+          """
+          helpers = anchor + r'''
+          const allowedInboundMimeTypes = new Set([
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          ]);
+
+          function cleanMimeType(value) {
+            return String(value ?? '').split(';')[0].trim().toLowerCase();
+          }
+
+          function inferAttachmentMimeType(fileName, declaredMimeType, attachmentType) {
+            const declared = cleanMimeType(declaredMimeType);
+            if (allowedInboundMimeTypes.has(declared)) return declared;
+            const lower = String(fileName ?? '').toLowerCase();
+            if (lower.endsWith('.pdf')) return 'application/pdf';
+            if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            if (lower.endsWith('.png')) return 'image/png';
+            if (lower.endsWith('.webp')) return 'image/webp';
+            if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+            return attachmentType === 'image' ? 'image/jpeg' : '';
+          }
+
+          function firstUrl(value) {
+            if (typeof value === 'string' && /^https:\/\//i.test(value)) return value;
+            if (!value || typeof value !== 'object') return '';
+            if (typeof value.url === 'string' && /^https:\/\//i.test(value.url)) return value.url;
+            for (const nested of Object.values(value)) {
+              const found = firstUrl(nested);
+              if (found) return found;
+            }
+            return '';
+          }
+
+          function extractDownloadableAttachments(attachments) {
+            return (attachments ?? []).flatMap((attachment, index) => {
+              const type = String(attachment?.type ?? '').toLowerCase();
+              if (type !== 'image' && type !== 'file') return [];
+              const payload = attachment?.payload ?? {};
+              const url = firstUrl(payload) || firstUrl(attachment?.url);
+              if (!url) return [];
+              const fileName = String(
+                attachment?.filename
+                  ?? attachment?.file_name
+                  ?? payload?.filename
+                  ?? payload?.file_name
+                  ?? (type === 'image' ? `photo-${index + 1}.jpg` : `file-${index + 1}`),
+              ).trim();
+              const id = String(
+                attachment?.id
+                  ?? attachment?.hash
+                  ?? payload?.token
+                  ?? payload?.id
+                  ?? `${type}-${index}-${url}`,
+              );
+              const size = Number(attachment?.size ?? payload?.size ?? 0);
+              const declaredMimeType = attachment?.mime_type ?? attachment?.mimeType ?? payload?.mime_type ?? payload?.mimeType;
+              return [{ id, type, url, fileName, size, declaredMimeType }];
+            }).slice(0, 10);
+          }
+
+          async function downloadMaxAttachment(attachment) {
+            const url = new URL(attachment.url);
+            if (url.protocol !== 'https:') throw new Error('MAX вернул небезопасную ссылку на файл');
+            if (Number.isFinite(attachment.size) && attachment.size > maxInboundFileMaxBytes) {
+              throw new Error('Файл больше 20 МБ');
+            }
+
+            const response = await fetch(url, {
+              redirect: 'follow',
+              signal: AbortSignal.timeout(60_000),
+            });
+            if (!response.ok) throw new Error(`Не удалось скачать файл из MAX: HTTP ${response.status}`);
+
+            const contentLength = Number(response.headers.get('content-length') ?? 0);
+            if (contentLength > maxInboundFileMaxBytes) throw new Error('Файл больше 20 МБ');
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            if (bytes.byteLength === 0) throw new Error('MAX вернул пустой файл');
+            if (bytes.byteLength > maxInboundFileMaxBytes) throw new Error('Файл больше 20 МБ');
+
+            const mimeType = inferAttachmentMimeType(
+              attachment.fileName,
+              response.headers.get('content-type') || attachment.declaredMimeType,
+              attachment.type,
+            );
+            if (!allowedInboundMimeTypes.has(mimeType)) {
+              throw new Error('Этот формат файла пока не поддерживается');
+            }
+
+            let fileName = attachment.fileName || (attachment.type === 'image' ? 'photo.jpg' : 'document');
+            if (!fileName.includes('.')) {
+              const extension = mimeType === 'application/pdf'
+                ? '.pdf'
+                : mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                  ? '.docx'
+                  : mimeType === 'image/png'
+                    ? '.png'
+                    : mimeType === 'image/webp'
+                      ? '.webp'
+                      : '.jpg';
+              fileName += extension;
+            }
+            return { ...attachment, bytes, mimeType, fileName };
+          }
+          '''
+          replace_once(anchor, helpers)
+
+          old_forward = r'''async function forwardCandidateMessageToAppStroy(update, application) {
+            const message = update.message;
+            const userId = message?.sender?.user_id;
+            const text = (message?.body?.text ?? '').trim();
+            const attachments = message?.body?.attachments ?? [];
+
+            if (!text) {
+              if (attachments.length > 0) {
+                await api.sendMessageToUser(
+                  userId,
+                  'Файлы из MAX пока не прикрепляются автоматически. Отправьте текст или позвоните специалисту по номеру из вакансии.',
+                );
+                return true;
+              }
+              return false;
+            }
+
+            try {
+              await appstroy.ingestCandidateMessage(application, {
+                id: maxMessageId(message, update),
+                text,
+              });
+              await api.sendMessageToUser(userId, 'Сообщение передано HR в AppСтрой ✅');
+            } catch (error) {
+              console.error('Не удалось передать сообщение кандидата в AppСтрой:', error.message);
+              await api.sendMessageToUser(
+                userId,
+                'Не удалось передать сообщение. Попробуйте ещё раз через минуту.',
+              );
+            }
+            return true;
+          }
+          '''
+          new_forward = r'''async function forwardCandidateMessageToAppStroy(update, application) {
+            const message = update.message;
+            const userId = message?.sender?.user_id;
+            const text = (message?.body?.text ?? '').trim();
+            const allAttachments = message?.body?.attachments ?? [];
+            const downloadable = extractDownloadableAttachments(allAttachments);
+            const identity = {
+              application,
+              maxUserId: userId,
+              maxChatId: userId,
+            };
+
+            if (!text && downloadable.length === 0) {
+              if (allAttachments.length > 0) {
+                await api.sendMessageToUser(
+                  userId,
+                  'Сейчас можно отправлять фотографии, PDF и DOCX. Этот тип вложения пока не поддерживается.',
+                );
+                return true;
+              }
+              return false;
+            }
+
+            const messageId = maxMessageId(message, update);
+            let uploaded = 0;
+            let failed = 0;
+            let applicationMissing = false;
+
+            for (const [index, attachment] of downloadable.entries()) {
+              try {
+                const downloaded = await downloadMaxAttachment(attachment);
+                await appstroy.ingestCandidateAttachment(identity, {
+                  ...downloaded,
+                  messageId,
+                  text: index === 0 ? text : '',
+                  documentType: 'other',
+                });
+                uploaded += 1;
+              } catch (error) {
+                if (error?.status === 404) applicationMissing = true;
+                failed += 1;
+                console.error(`Не удалось принять вложение MAX ${attachment.id}:`, error.message);
+              }
+            }
+
+            if (uploaded > 0) {
+              const suffix = failed > 0 ? ` Не удалось обработать: ${failed}.` : '';
+              await api.sendMessageToUser(
+                userId,
+                `${uploaded === 1 ? 'Файл получен' : `Файлы получены: ${uploaded}`} и прикреплён${uploaded === 1 ? '' : 'ы'} к заявке в AppСтрой ✅${suffix}`,
+              );
+              return true;
+            }
+
+            if (text) {
+              try {
+                await appstroy.ingestCandidateMessage(identity, { id: messageId, text });
+                await api.sendMessageToUser(userId, 'Сообщение передано HR в AppСтрой ✅');
+                return true;
+              } catch (error) {
+                if (error?.status === 404 || applicationMissing) return false;
+                console.error('Не удалось передать сообщение кандидата в AppСтрой:', error.message);
+              }
+            } else if (applicationMissing) {
+              return false;
+            }
+
+            await api.sendMessageToUser(
+              userId,
+              'Не удалось сохранить файл. Поддерживаются фотографии, PDF и DOCX до 20 МБ. Попробуйте ещё раз через минуту.',
+            );
+            return true;
+          }
+          '''
+          replace_once(old_forward, new_forward)
+
+          replace_once(
+              "    if (application && await forwardCandidateMessageToAppStroy(update, application)) return;\n",
+              "    if (await forwardCandidateMessageToAppStroy(update, application)) return;\n",
+          )
+
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/apply-max-inbound-file-patch.yml').unlink()
+          PY
+
+      - name: Verify syntax and commit patch
+        run: |
+          cd services/max-recruiting-bot
+          npm run check
+          cd ../..
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Принимать фото и документы кандидатов из MAX"
+          git push origin HEAD:feature/max-inbound-files
