@@ -1,0 +1,88 @@
+name: One-time safe branch repair
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/branch-safe-repair.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: appstroy-one-time-safe-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/full-safe-hardening
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Apply, validate and save only safe repairs
+        shell: bash
+        run: |
+          set +e
+          {
+            set -euo pipefail
+            python3 tool/safe_repair.py
+            dart fix --apply
+            dart format lib test
+            flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee /tmp/flutter-analyze.log
+            flutter test --reporter compact
+            flutter build web --release --base-href /appstroy-web/
+          } 2>&1 | tee /tmp/appstroy-safe-repair.log
+          repair_status=${PIPESTATUS[0]}
+          set -e
+
+          git fetch origin main agent/full-safe-hardening
+
+          if [ "$repair_status" -ne 0 ]; then
+            git reset --hard origin/agent/full-safe-hardening
+            mkdir -p repair_logs
+            cp /tmp/appstroy-safe-repair.log repair_logs/failure.log
+            git checkout origin/main -- .github/workflows/pr-check.yml
+            rm -f .github/workflows/temporary-safe-repair.yml tool/safe_repair.py
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Сохранить причину остановки безопасного ремонта" || true
+            git push origin HEAD:agent/full-safe-hardening
+            exit "$repair_status"
+          fi
+
+          mkdir -p repair_logs
+          cp /tmp/flutter-analyze.log repair_logs/flutter-analyze.log
+          cp /tmp/appstroy-safe-repair.log repair_logs/full-validation.log
+          {
+            echo "structural_repair=completed"
+            echo "dart_fix=completed"
+            echo "format=completed"
+            echo "analyze=completed"
+            echo "tests=completed"
+            echo "web_build=completed"
+          } > repair_logs/status.txt
+
+          git checkout origin/main -- .github/workflows/pr-check.yml
+          rm -f .github/workflows/temporary-safe-repair.yml tool/safe_repair.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Применить проверенные исправления анализатора"
+          git push origin HEAD:agent/full-safe-hardening
