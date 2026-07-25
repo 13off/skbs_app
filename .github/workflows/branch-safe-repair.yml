@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# Final strict hardening pass for agent/full-safe-hardening.
+# Final strict hardening pass v2 for agent/full-safe-hardening.
 on:
   push:
     branches:
