@@ -32,74 +32,49 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+          import textwrap
 
           def replace(path: str, old: str, new: str) -> None:
               file = Path(path)
               text = file.read_text()
               if old not in text:
-                  raise SystemExit(f'Expected block not found in {path}: {old[:100]!r}')
+                  raise SystemExit(f'Expected text not found in {path}: {old[:100]!r}')
               file.write_text(text.replace(old, new))
+
+          def sub(path: str, pattern: str, replacement: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              text, count = re.subn(pattern, replacement, text, count=1, flags=re.S | re.M)
+              if count != 1:
+                  raise SystemExit(f'Expected pattern not found in {path}: {pattern[:120]!r}')
+              file.write_text(text)
 
           home = 'lib/screens/adaptive_home_base_screen.dart'
           replace(home, "import '../features/ai/presentation/ai_assistant_screen.dart';\n", '')
           replace(home, "import '../navigation/app_page_route.dart';\n", '')
-          replace(
+          sub(
               home,
-              """  void openAiAssistant() {
-            Navigator.of(context).push(
-              AppPageRoute<void>(
-                builder: (_) => AiAssistantScreen(
-                  profile: widget.profile,
-                  selectedObjectName: widget.selectedObjectName,
-                ),
-              ),
-            );
-          }
-
-          """,
-              '',
+              r"\n  void openAiAssistant\(\) \{.*?\n  \}\n\n  Future<void> showFinancePeriodPicker",
+              "\n  Future<void> showFinancePeriodPicker",
           )
-          replace(
+          sub(
               home,
-              """        Positioned(
-                    right: 28,
-                    bottom: 20,
-                    child: SafeArea(
-                      top: false,
-                      left: false,
-                      child: FloatingActionButton.extended(
-                        heroTag: 'desktop-home-ai-assistant',
-                        onPressed: openAiAssistant,
-                        backgroundColor: AppAdaptivePalette.accentStrong,
-                        foregroundColor: AppAdaptivePalette.onAccent,
-                        icon: Icon(Icons.auto_awesome_rounded),
-                        label: const Text('ИИ-помощник'),
-                      ),
-                    ),
-                  ),
-          """,
+              r"\n        Positioned\(\n          right: 28,\n          bottom: 20,\n          child: SafeArea\(\n            top: false,\n            left: false,\n            child: FloatingActionButton\.extended\(\n              heroTag: 'desktop-home-ai-assistant',.*?\n            \),\n          \),\n        \),",
               '',
           )
 
           developer = 'lib/features/developer/presentation/developer_main_screen.dart'
           replace(developer, "import 'data_governance_screen.dart';\n", '')
           replace(developer, 'static const int pageCount = 3;', 'static const int pageCount = 2;')
+          replace(developer, '      1 => const DataGovernanceScreen(),\n', '')
           replace(
               developer,
-              """      1 => const DataGovernanceScreen(),
-                    2 => ProfileScreen(profile: widget.profile),
-          """,
-              """      1 => ProfileScreen(profile: widget.profile),
-          """,
+              '      2 => ProfileScreen(profile: widget.profile),\n',
+              '      1 => ProfileScreen(profile: widget.profile),\n',
           )
-          replace(
+          sub(
               developer,
-              """        ProfessionalBottomNavigationItem(
-                    label: 'Контроль',
-                    icon: Icons.manage_history_outlined,
-                    selectedIcon: Icons.manage_history_rounded,
-                  ),
-          """,
+              r"\n        ProfessionalBottomNavigationItem\(\n          label: 'Контроль',\n          icon: Icons\.manage_history_outlined,\n          selectedIcon: Icons\.manage_history_rounded,\n        \),",
               '',
           )
 
@@ -109,15 +84,9 @@ jobs:
               "import '../features/developer/presentation/data_governance_screen.dart';\n",
               '',
           )
-          replace(
+          sub(
               settings,
-              """        actionTile(
-                    icon: Icons.manage_history_outlined,
-                    title: 'Контроль данных',
-                    subtitle: 'Диагностика, аудит и управление рабочими данными',
-                    onTap: () => open(const DataGovernanceScreen()),
-                  ),
-          """,
+              r"\n        actionTile\(\n          icon: Icons\.manage_history_outlined,\n          title: 'Контроль данных',\n          subtitle: 'Диагностика, аудит и управление рабочими данными',\n          onTap: \(\) => open\(const DataGovernanceScreen\(\)\),\n        \),",
               '',
           )
 
@@ -144,24 +113,26 @@ jobs:
 
           task_test = Path('test/task_governance_recycle_bin_contract_test.dart')
           task_text = task_test.read_text()
-          pattern = re.compile(
+          task_text, count = re.subn(
               r"  test\('developer navigation exposes unified control center', \(\) \{.*?\n  \}\);\n\n",
-              re.S,
+              textwrap.dedent("""\
+                test('developer navigation keeps task safety without a duplicate control tab', () {
+                  final navigation = source(
+                    'lib/features/developer/presentation/developer_main_screen.dart',
+                  );
+
+                  expect(navigation, contains('static const int pageCount = 2;'));
+                  expect(navigation, contains("label: 'Конструктор'"));
+                  expect(navigation, contains("label: 'Профиль'"));
+                  expect(navigation, isNot(contains('DataGovernanceScreen')));
+                  expect(navigation, isNot(contains("label: 'Контроль'")));
+                });
+
+              """),
+              task_text,
+              count=1,
+              flags=re.S,
           )
-          replacement = """  test('developer navigation keeps task safety without a duplicate control tab', () {
-            final navigation = source(
-              'lib/features/developer/presentation/developer_main_screen.dart',
-            );
-
-            expect(navigation, contains('static const int pageCount = 2;'));
-            expect(navigation, contains("label: 'Конструктор'"));
-            expect(navigation, contains("label: 'Профиль'"));
-            expect(navigation, isNot(contains('DataGovernanceScreen')));
-            expect(navigation, isNot(contains("label: 'Контроль'")));
-          });
-
-          """
-          task_text, count = pattern.subn(replacement, task_text, count=1)
           if count != 1:
               raise SystemExit('Could not replace obsolete task governance navigation test')
           task_test.write_text(task_text)
@@ -174,58 +145,61 @@ jobs:
           ):
               Path(obsolete).unlink()
 
-          Path('test/redundant_control_and_ai_entry_contract_test.dart').write_text("""import 'dart:io';
+          Path('test/redundant_control_and_ai_entry_contract_test.dart').write_text(
+              textwrap.dedent("""\
+                import 'dart:io';
 
-          import 'package:flutter_test/flutter_test.dart';
+                import 'package:flutter_test/flutter_test.dart';
 
-          void main() {
-            test('dedicated data control screen and entry points are removed', () {
-              final developer = File(
-                'lib/features/developer/presentation/developer_main_screen.dart',
-              ).readAsStringSync();
-              final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+                void main() {
+                  test('dedicated data control screen and entry points are removed', () {
+                    final developer = File(
+                      'lib/features/developer/presentation/developer_main_screen.dart',
+                    ).readAsStringSync();
+                    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
-              expect(developer, contains('static const int pageCount = 2;'));
-              expect(developer, isNot(contains('DataGovernanceScreen')));
-              expect(developer, isNot(contains("label: 'Контроль'")));
-              expect(settings, isNot(contains('DataGovernanceScreen')));
-              expect(settings, isNot(contains("title: 'Контроль данных'")));
-              expect(
-                File(
-                  'lib/features/developer/presentation/data_governance_screen.dart',
-                ).existsSync(),
-                isFalse,
-              );
-              expect(
-                File(
-                  'lib/features/developer/data/data_governance_repository.dart',
-                ).existsSync(),
-                isFalse,
-              );
-              expect(
-                File('lib/features/developer/models/data_governance.dart').existsSync(),
-                isFalse,
-              );
-            });
+                    expect(developer, contains('static const int pageCount = 2;'));
+                    expect(developer, isNot(contains('DataGovernanceScreen')));
+                    expect(developer, isNot(contains("label: 'Контроль'")));
+                    expect(settings, isNot(contains('DataGovernanceScreen')));
+                    expect(settings, isNot(contains("title: 'Контроль данных'")));
+                    expect(
+                      File(
+                        'lib/features/developer/presentation/data_governance_screen.dart',
+                      ).existsSync(),
+                      isFalse,
+                    );
+                    expect(
+                      File(
+                        'lib/features/developer/data/data_governance_repository.dart',
+                      ).existsSync(),
+                      isFalse,
+                    );
+                    expect(
+                      File('lib/features/developer/models/data_governance.dart').existsSync(),
+                      isFalse,
+                    );
+                  });
 
-            test('duplicate desktop AI button is removed while chat launcher remains', () {
-              final home = File(
-                'lib/screens/adaptive_home_base_screen.dart',
-              ).readAsStringSync();
-              final chat = File(
-                'lib/features/company_chat/presentation/company_chat_shell.dart',
-              ).readAsStringSync();
+                  test('duplicate desktop AI button is removed while chat launcher remains', () {
+                    final home = File(
+                      'lib/screens/adaptive_home_base_screen.dart',
+                    ).readAsStringSync();
+                    final chat = File(
+                      'lib/features/company_chat/presentation/company_chat_shell.dart',
+                    ).readAsStringSync();
 
-              expect(home, isNot(contains('desktop-home-ai-assistant')));
-              expect(home, isNot(contains('AiAssistantScreen')));
-              expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
-              expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
-              expect(chat, contains('class _ChatLauncherButton'));
-              expect(chat, contains('thread.isAssistant'));
-              expect(chat, contains("'Личный диалог с ИИ-помощником'"));
-            });
-          }
-          """)
+                    expect(home, isNot(contains('desktop-home-ai-assistant')));
+                    expect(home, isNot(contains('AiAssistantScreen')));
+                    expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
+                    expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
+                    expect(chat, contains('class _ChatLauncherButton'));
+                    expect(chat, contains('thread.isAssistant'));
+                    expect(chat, contains("'Личный диалог с ИИ-помощником'"));
+                  });
+                }
+              """)
+          )
           PY
 
           if grep -R -nE 'DataGovernance|data_governance_screen|Контроль данных' lib; then
