@@ -9,7 +9,6 @@ import '../../../screens/tasks_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
-import '../../developer/presentation/developer_demo_center_screen.dart';
 import '../data/company_setup_repository.dart';
 import 'company_management_screen.dart';
 
@@ -110,8 +109,8 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
                     const SizedBox(height: 4),
                     Text(
                       progress.coreCompleted
-                          ? 'Компания готова к базовой работе'
-                          : 'Следующий шаг: ${progress.nextRequiredStep?.title ?? 'проверить настройки'}',
+                          ? 'Основные рекомендации выполнены'
+                          : 'Далее рекомендуется: ${progress.nextRequiredStep?.title ?? 'проверить настройки'}',
                       style: TextStyle(
                         color: scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w700,
@@ -139,7 +138,7 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
           ),
           const SizedBox(height: 9),
           Text(
-            '${progress.completedRequired} из ${progress.requiredSteps.length} обязательных шагов',
+            '${progress.completedRequired} из ${progress.requiredSteps.length} основных шагов',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
@@ -196,7 +195,7 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
                         ),
                         if (!step.required)
                           Text(
-                            'РЕКОМЕНДУЕТСЯ',
+                            'ДОПОЛНИТЕЛЬНО',
                             style: TextStyle(
                               color: scheme.onSurfaceVariant,
                               fontSize: 10,
@@ -229,9 +228,9 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Запуск компании',
+      title: 'Настройка компании',
       showBackButton: true,
-      subtitle: 'Пошаговая настройка первого рабочего контура',
+      subtitle: 'Рекомендованный чек-лист для начала работы',
       headerTrailing: IconButton(
         tooltip: 'Проверить снова',
         onPressed: refresh,
@@ -248,7 +247,7 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Text(
-                  'Не удалось проверить запуск компании: ${snapshot.error}',
+                  'Не удалось проверить рекомендации: ${snapshot.error}',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w800,
@@ -265,32 +264,26 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
               progressCard(progress),
               const SizedBox(height: 16),
               ...progress.steps.map(stepCard),
-              const SizedBox(height: 6),
-              PremiumPressable(
-                onTap: () => open(const DeveloperDemoCenterScreen()),
-                borderRadius: BorderRadius.circular(22),
-                child: const PremiumWorkCard(
-                  radius: 22,
-                  padding: EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.science_outlined),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Открыть безопасное демо на полностью вымышленных данных',
-                          style: TextStyle(fontWeight: FontWeight.w900),
+              const SizedBox(height: 8),
+              const PremiumWorkCard(
+                radius: 22,
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded),
+                    SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        'Это рекомендации, а не обязательные правила. Чек-лист ничего не блокирует и только помогает увидеть, что уже настроено, а что ещё можно сделать.',
+                        style: TextStyle(
+                          height: 1.4,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Icon(Icons.chevron_right_rounded),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Проверка только читает состояние компании. Она не создаёт сотрудников, задачи, табель или выплаты автоматически.',
-                style: TextStyle(height: 1.4, fontWeight: FontWeight.w700),
               ),
             ],
           );
