@@ -75,13 +75,26 @@ void main() {
     expect(repository, isNot(contains("'status': 'proposed'")));
   });
 
-  test('each action returns a typed target when completed', () {
+  test('each action returns its exact typed target when completed', () {
     final coordinator = source(
       'lib/features/ai/actions/ai_action_execution_coordinator.dart',
     );
 
-    expect(coordinator, contains('targetEntityType:'));
-    expect(coordinator, contains('targetEntityId:'));
+    for (final target in <String>[
+      'task',
+      'document_download',
+      'employee',
+      'payment',
+      'operational_audit',
+      'period_timesheet',
+      'work_act',
+      'attendance',
+      'developer_reminder',
+    ]) {
+      expect(coordinator, contains("targetEntityType: '$target'"));
+    }
+    expect(coordinator, contains("? 'payment_receipt_report'"));
+    expect(coordinator, contains(": 'candidate_document_package'"));
     expect(coordinator, contains('targetEntityType: result.targetEntityType'));
     expect(coordinator, contains('targetEntityId: result.targetEntityId'));
   });
