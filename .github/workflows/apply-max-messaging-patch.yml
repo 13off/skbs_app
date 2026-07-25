@@ -1,6 +1,6 @@
 name: Apply MAX messaging patch
 
-# One-time trigger v2 for MAX candidate messaging.
+# One-time trigger v3 for MAX candidate messaging.
 on:
   push:
     branches:
@@ -107,17 +107,6 @@ jobs:
 
           Path('.github/workflows/apply-max-messaging-patch.yml').unlink()
           PY
-
-      - name: Format and validate affected files
-        run: |
-          dart format \
-            lib/features/recruitment/models/recruitment_models.dart \
-            lib/features/recruitment/data/recruitment_repository.dart \
-            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
-          dart analyze \
-            lib/features/recruitment/models/recruitment_models.dart \
-            lib/features/recruitment/data/recruitment_repository.dart \
-            lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
 
       - name: Commit patch
         run: |
