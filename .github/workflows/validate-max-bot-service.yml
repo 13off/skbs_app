@@ -1,0 +1,40 @@
+name: Validate MAX bot service
+
+on:
+  push:
+    branches:
+      - feature/max-bot-vps-service
+    paths:
+      - services/max-recruiting-bot/**
+      - .github/workflows/validate-max-bot-service.yml
+  pull_request:
+    paths:
+      - services/max-recruiting-bot/**
+      - .github/workflows/validate-max-bot-service.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/max-recruiting-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare non-secret validation environment
+        run: |
+          cp .env.example .env
+          sed -i 's/^BOT_TOKEN=$/BOT_TOKEN=validation-token/' .env
+          sed -i 's/^ADMIN_SETUP_CODE=$/ADMIN_SETUP_CODE=validation-admin-code/' .env
+          sed -i 's/^APPSTROY_BRIDGE_SECRET=$/APPSTROY_BRIDGE_SECRET=validation-bridge-secret/' .env
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Validate Docker Compose
+        run: docker compose -f compose.yml config
+      - name: Build production image
+        run: docker build --pull -t skbs-max-recruiting-bot:test .
