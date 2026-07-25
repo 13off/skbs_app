@@ -1,0 +1,11 @@
+From https://github.com/13off/skbs_app
+ * branch            main       -> FETCH_HEAD
+ * branch            agent/full-safe-hardening -> FETCH_HEAD
+Merge made by the 'ort' strategy.
+ .../workflows/branch-navigation-preservation.yml   | 180 +++++++++++++++++++++
+ 1 file changed, 180 insertions(+)
+ create mode 100644 .github/workflows/branch-navigation-preservation.yml
+Traceback (most recent call last):
+  File "<stdin>", line 80, in <module>
+  File "<stdin>", line 8, in replace_once
+RuntimeError: navigation contract expectations: expected one match, found 0
