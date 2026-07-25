@@ -6,12 +6,20 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: Text(employee.name)),
+        leading: const BackButton(),
+        title: Text(employee.name),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
         children: [
           buildHeader(),
           const SizedBox(height: 30),
+          buildActionTile(
+            icon: Icons.donut_large_rounded,
+            title: 'Личный вклад',
+            subtitle: 'Доля в завершённых задачах, сводка и история',
+            onTap: openContribution,
+          ),
           buildActionTile(
             icon: Icons.calendar_month_outlined,
             title: 'Индивидуальный табель',

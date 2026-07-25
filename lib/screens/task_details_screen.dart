@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../data/task_contribution_repository.dart';
 import '../data/task_progress_repository.dart';
+import '../features/tasks/presentation/task_contribution_dialog.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import 'task_details/task_details_editor_screen.dart' as editor;
 
-/// Публичный слой дополняет редактор задачи учётом дневного прогресса.
+/// Публичный слой дополняет редактор задачи учётом дневного прогресса
+/// и распределением личного вклада между назначенными участниками.
 class TaskDetailsScreen extends StatefulWidget {
   final TaskItemData task;
   final AppUserProfile profile;
@@ -42,6 +45,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final previousChecklistItemFuture = _fetchPreviousChecklistItemId(taskId);
 
     while (mounted) {
+      final previousTask = currentTask;
       final result = await Navigator.of(context).push<dynamic>(
         PageRouteBuilder<dynamic>(
           transitionDuration: Duration.zero,
@@ -67,6 +71,38 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       try {
         final previousChecklistItemId = await previousChecklistItemFuture;
         final linked = _isLinked(result);
+        List<TaskContributionEntry>? contributionsToSave;
+        TaskContributionDraft? contributionDraft;
+
+        if (result.status == 'Выполнено') {
+          contributionDraft = await TaskContributionRepository.fetchDraft(
+            result.id!,
+          );
+          if (!mounted) return;
+          if (contributionDraft.entries.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Чтобы завершить задачу, добавьте хотя бы одного участника',
+                ),
+              ),
+            );
+            continue;
+          }
+
+          final needsContributionConfirmation =
+              previousTask.status != 'Выполнено' ||
+              !contributionDraft.hasSavedExactDistribution;
+          if (needsContributionConfirmation) {
+            contributionsToSave = await showTaskContributionDialog(
+              context: context,
+              entries: contributionDraft.entries,
+            );
+            if (!mounted) return;
+            if (contributionsToSave == null) continue;
+          }
+        }
+
         if (result.status == 'Выполнено' && linked) {
           final progressContext = await TaskProgressRepository.fetchContext(
             taskId: result.id!,
@@ -97,13 +133,24 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           );
         }
 
+        if (result.status == 'Выполнено') {
+          if (contributionsToSave != null) {
+            await TaskContributionRepository.save(
+              taskId: result.id!,
+              entries: contributionsToSave,
+            );
+          }
+        } else if (previousTask.status == 'Выполнено') {
+          await TaskContributionRepository.clear(result.id!);
+        }
+
         if (!mounted) return;
         Navigator.of(context).pop(result);
         return;
       } catch (error) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось сохранить прогресс: $error')),
+          SnackBar(content: Text('Не удалось сохранить выполнение: $error')),
         );
       }
     }
