@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v2 for agent/full-safe-hardening.
+# One-time trigger v3 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -42,9 +42,30 @@ jobs:
           set +e
           {
             set -euo pipefail
-            python3 tool/safe_repair.py
             dart fix --apply
-            dart format lib test
+
+            # Flutter's current automatic fix can emit ScrollCacheExtent even
+            # though it is unavailable in the pinned SDK. Preserve the working
+            # cacheExtent API instead of accepting broken generated code.
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          pattern = re.compile(
+              r'scrollCacheExtent:\s*ScrollCacheExtent(?:\.\w+)?\(([^)]*)\)'
+          )
+          for path in Path('lib').rglob('*.dart'):
+              source = path.read_text(encoding='utf-8')
+              repaired = pattern.sub(r'cacheExtent: \1', source)
+              if repaired != source:
+                  path.write_text(repaired, encoding='utf-8')
+          PY
+
+            mapfile -t dart_files < <(git diff --name-only -- '*.dart')
+            if [ "${#dart_files[@]}" -gt 0 ]; then
+              dart format "${dart_files[@]}"
+            fi
+
             flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee /tmp/flutter-analyze.log
             flutter test --reporter compact
             flutter build web --release --base-href /appstroy-web/
@@ -73,9 +94,8 @@ jobs:
           cp /tmp/flutter-analyze.log repair_logs/flutter-analyze.log
           cp /tmp/appstroy-safe-repair.log repair_logs/full-validation.log
           {
-            echo "structural_repair=completed"
             echo "dart_fix=completed"
-            echo "format=completed"
+            echo "targeted_format=completed"
             echo "analyze=completed"
             echo "tests=completed"
             echo "web_build=completed"
@@ -87,5 +107,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git add -f repair_logs/flutter-analyze.log repair_logs/full-validation.log repair_logs/status.txt
-          git commit -m "Применить проверенные исправления анализатора"
+          git commit -m "Применить проверенные автоматические исправления"
           git push origin HEAD:agent/full-safe-hardening
