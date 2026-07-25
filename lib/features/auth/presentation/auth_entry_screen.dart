@@ -10,10 +10,18 @@ class LoginScreen extends StatelessWidget {
 
   const LoginScreen({super.key, this.onSignedIn});
 
+  Future<void> finishSignIn(BuildContext routeContext) async {
+    await onSignedIn?.call();
+    if (!routeContext.mounted) return;
+    Navigator.of(routeContext).popUntil((route) => route.isFirst);
+  }
+
   Future<void> openEmployeeLogin(BuildContext context) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => EmployeeSmsLoginScreen(onSignedIn: onSignedIn),
+        builder: (routeContext) => EmployeeSmsLoginScreen(
+          onSignedIn: () => finishSignIn(routeContext),
+        ),
       ),
     );
   }
@@ -21,7 +29,9 @@ class LoginScreen extends StatelessWidget {
   Future<void> openManagementLogin(BuildContext context) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => management.LoginScreen(onSignedIn: onSignedIn),
+        builder: (routeContext) => management.LoginScreen(
+          onSignedIn: () => finishSignIn(routeContext),
+        ),
       ),
     );
   }
