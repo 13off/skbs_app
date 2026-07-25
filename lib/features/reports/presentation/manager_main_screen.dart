@@ -18,6 +18,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../company/presentation/company_setup_recommendation_card.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
@@ -186,18 +187,29 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     }
   }
 
+  Widget managerHome(String? selectedObjectName) {
+    return Column(
+      children: [
+        CompanySetupRecommendationCard(profile: widget.profile),
+        Expanded(
+          child: AdaptiveHomeScreen(
+            profile: widget.profile,
+            selectedObjectName: selectedObjectName,
+            onObjectChanged: changeSelectedObject,
+            onOpenEmployees: openEmployees,
+            onOpenTimesheet: openTimesheet,
+            onOpenTasks: openTasks,
+            onOpenTask: openTask,
+            onOpenPayments: openPayments,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget rootPage(int index, String? selectedObjectName) {
     return switch (index) {
-      0 => AdaptiveHomeScreen(
-        profile: widget.profile,
-        selectedObjectName: selectedObjectName,
-        onObjectChanged: changeSelectedObject,
-        onOpenEmployees: openEmployees,
-        onOpenTimesheet: openTimesheet,
-        onOpenTasks: openTasks,
-        onOpenTask: openTask,
-        onOpenPayments: openPayments,
-      ),
+      0 => managerHome(selectedObjectName),
       1 => AdaptiveEmployeesScreen(
         profile: widget.profile,
         selectedObjectName: selectedObjectName,
