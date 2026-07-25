@@ -14,6 +14,10 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
         children: [
           buildHeader(),
           const SizedBox(height: 30),
+          if (isAdmin) ...[
+            buildEmployeeAccessTile(),
+            const SizedBox(height: 8),
+          ],
           buildActionTile(
             icon: Icons.donut_large_rounded,
             title: 'Личный вклад',
