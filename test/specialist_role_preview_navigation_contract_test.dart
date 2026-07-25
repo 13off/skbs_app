@@ -21,12 +21,10 @@ void expectPersistentTabNavigation(String path) {
   expect(shell, contains('onGenerateRoute: (settings)'));
   expect(shell, contains('widget.tabBuilder(context, index)'));
   expect(shell, contains('navigator.popUntil((route) => route.isFirst)'));
-  expect(shell, contains('return PopScope<void>('));
-  expect(shell, contains('canPop: _allowOuterPop'));
-  expect(shell, contains('onPopInvokedWithResult: (didPop, _) async'));
+  expect(shell, contains('return WillPopScope('));
   expect(shell, contains('widget.controller.handleBack('));
-  expect(shell, contains('Navigator.of(context).maybePop()'));
-  expect(shell, isNot(contains('WillPopScope(')));
+  expect(shell, contains('returnToFirstTab: widget.returnToFirstTabOnBack'));
+  expect(shell, isNot(contains('PopScope<void>(')));
 }
 
 void main() {
@@ -36,9 +34,12 @@ void main() {
     );
   });
 
-  test('платформа бухгалтера открывает вложенные экраны внутри своей вкладки', () {
-    expectPersistentTabNavigation(
-      'lib/features/accounting/presentation/accounting_main_screen.dart',
-    );
-  });
+  test(
+    'платформа бухгалтера открывает вложенные экраны внутри своей вкладки',
+    () {
+      expectPersistentTabNavigation(
+        'lib/features/accounting/presentation/accounting_main_screen.dart',
+      );
+    },
+  );
 }

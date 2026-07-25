@@ -93,7 +93,6 @@ class PersistentTabShell extends StatefulWidget {
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
-  bool _allowOuterPop = false;
 
   @override
   void initState() {
@@ -146,19 +145,14 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
   Widget build(BuildContext context) {
     assert(widget.items.length == widget.controller.pageCount);
     final activeIndex = widget.controller.currentIndex;
-    return PopScope<void>(
-      canPop: _allowOuterPop,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        final allowOuterPop = await widget.controller.handleBack(
-          returnToFirstTab: widget.returnToFirstTabOnBack,
-        );
-        if (!mounted || !allowOuterPop) return;
-        setState(() => _allowOuterPop = true);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) Navigator.of(context).maybePop();
-        });
-      },
+    // Keep the established nested-navigation and root-route behavior.
+    // Flutter 3.44 deprecates this API before the replacement is covered
+    // by route-level integration tests in every target shell.
+    // ignore: deprecated_member_use
+    return WillPopScope(
+      onWillPop: () => widget.controller.handleBack(
+        returnToFirstTab: widget.returnToFirstTabOnBack,
+      ),
       child: Scaffold(
         body: IndexedStack(
           index: activeIndex,
