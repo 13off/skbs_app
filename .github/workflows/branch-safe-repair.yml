@@ -1,5 +1,6 @@
 name: One-time safe branch repair
 
+# One-time trigger for agent/full-safe-hardening.
 on:
   push:
     branches:
