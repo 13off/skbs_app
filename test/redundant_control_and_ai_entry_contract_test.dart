@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Web/PWA publication trigger after redundant controls cleanup.
 void main() {
   test('dedicated data control screen and entry points are removed', () {
     final developer = File(
