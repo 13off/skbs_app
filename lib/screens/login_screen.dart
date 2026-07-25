@@ -1,1 +1,1 @@
-export '../features/auth/presentation/premium_login_screen_v2.dart';
+export '../features/auth/presentation/auth_entry_screen.dart';
