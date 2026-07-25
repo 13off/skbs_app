@@ -9,6 +9,7 @@ on:
       - test/**
       - assets/**
       - web/**
+      - tool/web_smoke.py
       - pubspec.yaml
       - pubspec.lock
       - .fvmrc
@@ -89,10 +90,10 @@ jobs:
         shell: bash
         run: flutter test --reporter compact 2>&1 | tee ../flutter-test.log
 
-      - name: Analyze source
+      - name: Analyze source strictly
         working-directory: skbs_app
         shell: bash
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee ../flutter-analyze.log
+        run: flutter analyze 2>&1 | tee ../flutter-analyze.log
 
       - name: Configure public Firebase web values
         working-directory: skbs_app
@@ -143,6 +144,23 @@ jobs:
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
           cp skbs_app/build/web/index.html skbs_app/build/web/404.html
+
+      - name: Install browser smoke dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
+
+      - name: Validate built PWA in headless Chrome
+        id: browser-smoke
+        working-directory: skbs_app
+        run: python3 tool/web_smoke.py
+
+      - name: Upload browser smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-browser-smoke-evidence
+          path: skbs_app/.artifacts/browser-smoke
+          if-no-files-found: warn
+          retention-days: 3
 
       - name: Publish web files with conflict-safe retries
         working-directory: appstroy-web
@@ -202,13 +220,9 @@ jobs:
 
             printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
             printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
-            {
-              test -f ../flutter-test.log && cat ../flutter-test.log
-              test -f ../flutter-analyze.log && cat ../flutter-analyze.log
-              test -f ../flutter-web-build.log && cat ../flutter-web-build.log
-            } > downloads/web-build.log || true
+            rm -f downloads/web-build.log
 
-            git add downloads/web-build-status.txt downloads/web-source-commit.txt downloads/web-build.log
+            git add -A downloads
             if git diff --cached --quiet; then
               echo "Web build status is already current"
               exit 0
