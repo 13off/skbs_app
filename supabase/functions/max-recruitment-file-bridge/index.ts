@@ -75,6 +75,34 @@ function pathSegment(value: string): string {
   return clean(value).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180) || crypto.randomUUID();
 }
 
+function startsWith(bytes: Uint8Array, signature: number[]): boolean {
+  return signature.every((value, index) => bytes[index] === value);
+}
+
+async function hasValidSignature(file: File, mimeType: string): Promise<boolean> {
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (mimeType === "application/pdf") {
+    return startsWith(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
+  }
+  if (mimeType === "image/jpeg") {
+    return startsWith(bytes, [0xff, 0xd8, 0xff]);
+  }
+  if (mimeType === "image/png") {
+    return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  }
+  if (mimeType === "image/webp") {
+    return startsWith(bytes, [0x52, 0x49, 0x46, 0x46])
+      && bytes[8] === 0x57
+      && bytes[9] === 0x45
+      && bytes[10] === 0x42
+      && bytes[11] === 0x50;
+  }
+  if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    return startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]);
+  }
+  return false;
+}
+
 async function expectedSecret(): Promise<string> {
   const { data, error } = await admin.rpc("get_recruitment_secret", {
     p_name: "max_recruitment_bridge_secret",
@@ -197,6 +225,9 @@ Deno.serve(async (request: Request) => {
     }
     if (fileValue.size <= 0 || fileValue.size > MAX_BYTES) {
       return json({ error: "file_too_large", maxBytes: MAX_BYTES }, 413);
+    }
+    if (!(await hasValidSignature(fileValue, mimeType))) {
+      return json({ error: "file_signature_mismatch" }, 415);
     }
 
     const originalName = safeName(fields.originalName || fileValue.name, mimeType);
