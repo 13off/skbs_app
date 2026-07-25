@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также служит безопасным триггером публикации Web/PWA после merge.
 void main() {
   test('weekly contribution summary stays inside manager reports', () {
     final reports = File(
