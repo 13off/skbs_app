@@ -222,12 +222,16 @@ abstract final class RecruitmentRepository {
   static Future<void> sendCandidateMessage({
     required String applicationId,
     required String message,
+    required String source,
   }) async {
     final cleanApplicationId = applicationId.trim();
-    await _client.rpc(
-      'activate_recruitment_telegram_conversation',
-      params: <String, dynamic>{'p_application_id': cleanApplicationId},
-    );
+    final cleanSource = source.trim().toLowerCase();
+    if (cleanSource == 'telegram') {
+      await _client.rpc(
+        'activate_recruitment_telegram_conversation',
+        params: <String, dynamic>{'p_application_id': cleanApplicationId},
+      );
+    }
 
     final response = await _client.functions.invoke(
       'recruitment-candidate-action',
