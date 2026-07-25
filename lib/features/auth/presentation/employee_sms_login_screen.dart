@@ -38,6 +38,12 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
       if (text.contains('invalid') || text.contains('expired')) {
         return 'Код неверный или уже истёк';
       }
+      if (text.contains('signup') ||
+          text.contains('sign up') ||
+          text.contains('not found') ||
+          text.contains('user not')) {
+        return 'Этот номер ещё не подключён к кабинету сотрудника. Обратись к руководителю';
+      }
     }
     return 'Не получилось войти. Проверь номер и интернет';
   }
