@@ -13,15 +13,33 @@ const firebaseConfig = {
   appId: "__FIREBASE_WEB_APP_ID__",
 };
 const appPublicUrl = "__APP_PUBLIC_URL__";
+const appPublicLocation = new URL(appPublicUrl, self.location.origin);
+const appScopePath = appPublicLocation.pathname.endsWith("/")
+  ? appPublicLocation.pathname
+  : `${appPublicLocation.pathname}/`;
+
+const safeNotificationTarget = (value) => {
+  try {
+    const target = new URL(value || appPublicLocation.href, appPublicLocation);
+    const insideApp =
+      target.origin === appPublicLocation.origin &&
+      (target.pathname === appPublicLocation.pathname ||
+        target.pathname.startsWith(appScopePath));
+    return insideApp ? target.href : appPublicLocation.href;
+  } catch (_) {
+    return appPublicLocation.href;
+  }
+};
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const fcmMessage = event.notification.data?.FCM_MSG;
-  const target =
+  const target = safeNotificationTarget(
     event.notification.data?.link ||
-    fcmMessage?.fcmOptions?.link ||
-    fcmMessage?.data?.link ||
-    appPublicUrl;
+      fcmMessage?.fcmOptions?.link ||
+      fcmMessage?.data?.link ||
+      appPublicUrl,
+  );
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
