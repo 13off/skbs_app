@@ -4,7 +4,6 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
-import 'data_governance_screen.dart';
 import 'developer_system_screen.dart';
 
 class DeveloperMainScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class DeveloperMainScreen extends StatefulWidget {
 }
 
 class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
-  static const int pageCount = 3;
+  static const int pageCount = 2;
   late final PersistentTabController tabs;
 
   @override
@@ -35,8 +34,7 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
   Widget rootPage(int index) {
     return switch (index) {
       0 => DeveloperSystemScreen(profile: widget.profile),
-      1 => const DataGovernanceScreen(),
-      2 => ProfileScreen(profile: widget.profile),
+      1 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -51,11 +49,6 @@ class _DeveloperMainScreenState extends State<DeveloperMainScreen> {
           label: 'Конструктор',
           icon: Icons.dashboard_customize_outlined,
           selectedIcon: Icons.dashboard_customize_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'Контроль',
-          icon: Icons.manage_history_outlined,
-          selectedIcon: Icons.manage_history_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',

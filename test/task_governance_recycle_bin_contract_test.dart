@@ -38,26 +38,17 @@ void main() {
     expect(migration, contains('with check (false)'));
   });
 
-  test('developer navigation exposes unified control center', () {
-    final navigation = source(
-      'lib/features/developer/presentation/developer_main_screen.dart',
-    );
-    final screen = source(
-      'lib/features/developer/presentation/data_governance_screen.dart',
-    );
+test('developer navigation keeps task safety without a duplicate control tab', () {
+  final navigation = source(
+    'lib/features/developer/presentation/developer_main_screen.dart',
+  );
 
-    expect(navigation, contains('static const int pageCount = 3;'));
-    expect(navigation, contains("label: 'Конструктор'"));
-    expect(navigation, contains('const DataGovernanceScreen()'));
-    expect(navigation, contains("label: 'Контроль'"));
-    expect(navigation, isNot(contains("label: 'Права'")));
-
-    expect(screen, contains("title: 'Контроль данных'"));
-    expect(screen, contains("label: Text('Корзина')"));
-    expect(screen, contains("label: Text('Журнал')"));
-    expect(screen, contains("label: const Text('Восстановить')"));
-    expect(screen, contains('DataGovernanceRepository.restore'));
-  });
+  expect(navigation, contains('static const int pageCount = 2;'));
+  expect(navigation, contains("label: 'Конструктор'"));
+  expect(navigation, contains("label: 'Профиль'"));
+  expect(navigation, isNot(contains('DataGovernanceScreen')));
+  expect(navigation, isNot(contains("label: 'Контроль'")));
+});
 
   test('delete confirmation explains recovery and retained data', () {
     final actions = source(
