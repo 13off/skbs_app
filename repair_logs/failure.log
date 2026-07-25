@@ -1,0 +1,502 @@
+Computing fixes in skbs_app...
+Applying fixes...
+
+lib/data/finance_summary_repository.dart
+  prefer_initializing_formals - 2 fixes
+
+lib/features/ai/presentation/ai_assistant_action_screen.dart
+  unused_element_parameter - 1 fix
+
+lib/features/ai/presentation/ai_assistant_confirmed_screen.dart
+  unused_element_parameter - 1 fix
+
+lib/features/auth/data/user_repository.dart
+  invalid_null_aware_operator - 1 fix
+
+lib/features/company/presentation/desktop_company_management_screen.dart
+  use_null_aware_elements - 1 fix
+
+lib/features/company_chat/presentation/company_chat_screen.dart
+  curly_braces_in_flow_control_structures - 1 fix
+  unnecessary_underscores - 1 fix
+
+lib/features/developer/presentation/developer_constructor_screen.dart
+  deprecated_member_use - 3 fixes
+
+lib/features/developer/presentation/developer_panel_screen.dart
+  unnecessary_import - 1 fix
+
+lib/features/developer/presentation/developer_readiness_screen.dart
+  curly_braces_in_flow_control_structures - 6 fixes
+
+lib/features/developer/presentation/role_permission_matrix_screen.dart
+  deprecated_member_use - 2 fixes
+
+lib/features/dispatcher/presentation/dispatcher_settings_screen.dart
+  deprecated_member_use - 2 fixes
+
+lib/features/documents/data/document_template_repository.dart
+  unnecessary_import - 1 fix
+
+lib/features/payments/presentation/screens/payments_screen.dart
+  deprecated_member_use - 1 fix
+
+lib/features/recruitment/data/candidate_onboarding_package_service.dart
+  unnecessary_import - 1 fix
+
+lib/features/recruitment/models/recruitment_crm_workspace_models.dart
+  unused_import - 1 fix
+
+lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
+  unnecessary_import - 1 fix
+  use_null_aware_elements - 1 fix
+
+lib/features/recruitment/presentation/recruitment_candidate_crm_section.dart
+  curly_braces_in_flow_control_structures - 1 fix
+
+lib/features/recruitment/presentation/recruitment_import_screen.dart
+  curly_braces_in_flow_control_structures - 1 fix
+  unnecessary_null_comparison - 1 fix
+
+lib/features/role_preview/role_preview_screen.dart
+  unnecessary_underscores - 1 fix
+
+lib/features/shell/presentation/premium_main_screen.dart
+  unused_import - 1 fix
+
+lib/screens/desktop_object_management_dialog.dart
+  unused_import - 1 fix
+
+lib/screens/employees/employee_directory_controller.dart
+  prefer_initializing_formals - 1 fix
+  unnecessary_import - 1 fix
+
+lib/screens/employees/employees_view.dart
+  deprecated_member_use - 1 fix
+
+lib/screens/main_screen.dart
+  unnecessary_underscores - 1 fix
+
+lib/screens/period_timesheet_screen.dart
+  unused_import - 1 fix
+
+lib/screens/task_details_screen.dart
+  unnecessary_underscores - 2 fixes
+
+lib/screens/timesheet/timesheet_view.dart
+  deprecated_member_use - 1 fix
+
+lib/widgets/app_page.dart
+  deprecated_member_use - 1 fix
+
+43 fixes made in 28 files.
+Formatted lib/app/app_dark_theme.dart
+Formatted lib/app/app_scale_viewport.dart
+Formatted lib/app/app_theme.dart
+Formatted lib/app/premium_depth_theme.dart
+Formatted lib/app/theme_controller.dart
+Formatted lib/app/theme_platform_sync.dart
+Formatted lib/data/act_context_repository.dart
+Formatted lib/data/app_cache_coordinator.dart
+Formatted lib/data/employee_private_data_repository.dart
+Formatted lib/data/task_assignee_repository.dart
+Formatted lib/data/task_contribution_repository.dart
+Formatted lib/data/task_progress_repository.dart
+Formatted lib/features/accounting/data/accounting_repository.dart
+Formatted lib/features/accounting/presentation/accounting_dashboard_screen.dart
+Formatted lib/features/accounting/presentation/accounting_reports_screen.dart
+Formatted lib/features/accounting/presentation/adaptive_accounting_dashboard_screen.dart
+Formatted lib/features/accounting/presentation/adaptive_accounting_payments_screen.dart
+Formatted lib/features/accounting/presentation/adaptive_accounting_reports_screen.dart
+Formatted lib/features/ai/actions/ai_action_execution_coordinator.dart
+Formatted lib/features/ai/data/ai_action_audit_repository.dart
+Formatted lib/features/ai/documents/ai_document_download_service.dart
+Formatted lib/features/ai/documents/ai_document_draft.dart
+Formatted lib/features/ai/presentation/ai_action_confirmation_sheet.dart
+Formatted lib/features/ai/presentation/ai_action_history_screen.dart
+Formatted lib/features/ai/presentation/ai_assistant_action_screen.dart
+Formatted lib/features/ai/presentation/ai_assistant_confirmed_screen.dart
+Formatted lib/features/ai/presentation/ai_diagnostics_screen.dart
+Formatted lib/features/ai/presentation/ai_document_draft_screen.dart
+Formatted lib/features/ai/presentation/ai_employee_draft_screen.dart
+Formatted lib/features/ai/presentation/ai_exact_document_screen.dart
+Formatted lib/features/ai/presentation/ai_operational_audit_screen.dart
+Formatted lib/features/ai/presentation/ai_operational_report_screen.dart
+Formatted lib/features/ai/presentation/ai_payment_draft_screen.dart
+Formatted lib/features/ai/presentation/ai_reminder_draft_screen.dart
+Formatted lib/features/ai/presentation/operational_audit_launcher_screen.dart
+Formatted lib/features/archive/presentation/archive_management_screen_v2.dart
+Formatted lib/features/archive/presentation/archive_management_screen_v3.dart
+Formatted lib/features/auth/presentation/premium_auth_gate.dart
+Formatted lib/features/company/presentation/company_management_screen.dart
+Formatted lib/features/company/presentation/company_plans_screen.dart
+Formatted lib/features/company/presentation/company_setup_recommendation_card.dart
+Formatted lib/features/company_chat/models/company_chat_models.dart
+Formatted lib/features/company_chat/presentation/company_chat_shell.dart
+Formatted lib/features/compliance/data/company_compliance_repository.dart
+Formatted lib/features/compliance/models/company_compliance_models.dart
+Formatted lib/features/compliance/presentation/company_compliance_screen.dart
+Formatted lib/features/developer/data/developer_constructor_repository.dart
+Formatted lib/features/developer/models/role_permission_matrix.dart
+Formatted lib/features/developer/models/task_governance.dart
+Formatted lib/features/developer/models/task_policy.dart
+Formatted lib/features/developer/presentation/developer_constructor_screen.dart
+Formatted lib/features/developer/presentation/developer_demo_center_screen.dart
+Formatted lib/features/developer/presentation/developer_panel_screen.dart
+Formatted lib/features/developer/presentation/developer_panel_screen_legacy.dart
+Formatted lib/features/developer/presentation/developer_role_acceptance_screen.dart
+Formatted lib/features/developer/presentation/developer_system_screen.dart
+Formatted lib/features/developer/presentation/task_governance_screen.dart
+Formatted lib/features/dispatcher/data/dispatcher_summary_details_repository.dart
+Formatted lib/features/dispatcher/data/dispatcher_summary_repository.dart
+Formatted lib/features/dispatcher/presentation/dispatcher_settings_screen.dart
+Formatted lib/features/dispatcher/presentation/dispatcher_summary_details_screen.dart
+Formatted lib/features/documents/data/document_template_repository.dart
+Formatted lib/features/documents/data/exact_docx_service.dart
+Formatted lib/features/documents/models/document_template.dart
+Formatted lib/features/employees/presentation/screens/add_employee_screen.dart
+Formatted lib/features/employees/presentation/screens/private_data_import_screen.dart
+Formatted lib/features/foreman/data/foreman_workspace_repository.dart
+Formatted lib/features/foreman/presentation/foreman_attendance_control.dart
+Formatted lib/features/foreman/presentation/foreman_home_summary_widgets.dart
+Formatted lib/features/foreman/presentation/foreman_task_control.dart
+Formatted lib/features/foreman/presentation/foreman_task_filters.dart
+Formatted lib/features/foreman/presentation/foreman_task_table.dart
+Formatted lib/features/legal/data/legal_directory_repository_part.dart
+Formatted lib/features/legal/data/legal_document_repository_part.dart
+Formatted lib/features/legal/data/legal_matter_repository_part.dart
+Formatted lib/features/legal/data/legal_report_repository_part.dart
+Formatted lib/features/legal/data/legal_repository.dart
+Formatted lib/features/legal/models/legal_models.dart
+Formatted lib/features/legal/presentation/adaptive_legal_dashboard_screen.dart
+Formatted lib/features/legal/presentation/adaptive_legal_documents_screen.dart
+Formatted lib/features/legal/presentation/legal_document_details_part.dart
+Formatted lib/features/legal/presentation/legal_document_editor_part.dart
+Formatted lib/features/legal/presentation/legal_documents_screen.dart
+Formatted lib/features/legal/presentation/legal_matter_details_part.dart
+Formatted lib/features/legal/presentation/legal_matter_editor_part.dart
+Formatted lib/features/legal/presentation/legal_member_invitation_screen.dart
+Formatted lib/features/legal/presentation/legal_weekly_report_screen.dart
+Formatted lib/features/milestones/data/milestone_repository.dart
+Formatted lib/features/milestones/presentation/milestone_detail_screen.dart
+Formatted lib/features/milestones/presentation/milestone_editor_dialog.dart
+Formatted lib/features/payments/presentation/screens/payments_screen.dart
+Formatted lib/features/payments/presentation/widgets/payment_report_sheet.dart
+Formatted lib/features/profile/data/personal_profile_controller.dart
+Formatted lib/features/profile/data/profile_repository.dart
+Formatted lib/features/recruitment/data/candidate_document_repository.dart
+Formatted lib/features/recruitment/data/candidate_onboarding_package_service.dart
+Formatted lib/features/recruitment/data/candidate_onboarding_repository.dart
+Formatted lib/features/recruitment/data/candidate_package_archive.dart
+Formatted lib/features/recruitment/data/candidate_package_service.dart
+Formatted lib/features/recruitment/data/employee_mobilization_repository.dart
+Formatted lib/features/recruitment/models/candidate_onboarding_candidate.dart
+Formatted lib/features/recruitment/models/candidate_onboarding_models.dart
+Formatted lib/features/recruitment/models/employee_mobilization_models.dart
+Formatted lib/features/recruitment/models/recruitment_crm_workspace_models.dart
+Formatted lib/features/recruitment/presentation/recruitment_applications_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_archive_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_dashboard_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_mobilization_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_onboarding_screen.dart
+Formatted lib/features/reports/data/manager_report_models.dart
+Formatted lib/features/reports/data/manager_reports_repository.dart
+Formatted lib/features/reports/data/manager_weekly_contribution_repository.dart
+Formatted lib/features/reports/presentation/manager_report_formatters.dart
+Formatted lib/features/reports/presentation/manager_report_header_widgets.dart
+Formatted lib/features/reports/presentation/manager_report_sections.dart
+Formatted lib/features/reports/presentation/manager_reports_screen.dart
+Formatted lib/features/reports/presentation/manager_weekly_contribution_section.dart
+Formatted lib/features/role_preview/role_preview_screen.dart
+Formatted lib/features/tasks/presentation/employee_contribution_screen.dart
+Formatted lib/features/tasks/presentation/task_contribution_dialog.dart
+Formatted lib/features/timesheet/models/timesheet_draft.dart
+Formatted lib/main.dart
+Formatted lib/navigation/navigation_session.dart
+Formatted lib/screens/act_preview_screen.dart
+Formatted lib/screens/adaptive_employees_screen.dart
+Formatted lib/screens/adaptive_timesheet_screen.dart
+Formatted lib/screens/attendance_report_screen.dart
+Formatted lib/screens/desktop_object_management_dialog.dart
+Formatted lib/screens/desktop_timesheet_screen.dart
+Formatted lib/screens/edit_employee_screen.dart
+Formatted lib/screens/employee_details/employee_details_copy.dart
+Formatted lib/screens/employee_details/employee_details_sections.dart
+Formatted lib/screens/employee_details/employee_details_status.dart
+Formatted lib/screens/employee_details/employee_details_view.dart
+Formatted lib/screens/employee_private_data_screen.dart
+Formatted lib/screens/employees/employee_directory_controller.dart
+Formatted lib/screens/employees/employees_actions.dart
+Formatted lib/screens/employees/employees_view.dart
+Formatted lib/screens/home/home_actions.dart
+Formatted lib/screens/home/home_loading.dart
+Formatted lib/screens/home/home_object_actions.dart
+Formatted lib/screens/home/home_sections.dart
+Formatted lib/screens/home/home_widgets.dart
+Formatted lib/screens/monthly_timesheet_screen.dart
+Formatted lib/screens/notifications_screen.dart
+Formatted lib/screens/period_timesheet/period_timesheet_export.dart
+Formatted lib/screens/period_timesheet/period_timesheet_formatting.dart
+Formatted lib/screens/period_timesheet/period_timesheet_launch_intent.dart
+Formatted lib/screens/period_timesheet/period_timesheet_loading.dart
+Formatted lib/screens/period_timesheet/period_timesheet_report.dart
+Formatted lib/screens/profile_screen.dart
+Formatted lib/screens/settings_screen.dart
+Formatted lib/screens/task_create/task_create_actions.dart
+Formatted lib/screens/task_create/task_create_sections.dart
+Formatted lib/screens/task_details/task_details_actions.dart
+Formatted lib/screens/template_documents_screen.dart
+Formatted lib/screens/timesheet/timesheet_sections.dart
+Formatted lib/screens/timesheet/timesheet_view.dart
+Formatted lib/services/push_notification_service.dart
+Formatted lib/services/web_push_bridge_stub.dart
+Formatted lib/services/web_push_bridge_web.dart
+Formatted lib/widgets/app_page.dart
+Formatted lib/widgets/premium_surfaces_v3.dart
+Formatted lib/widgets/premium_ui_v2.dart
+Formatted lib/widgets/professional_bottom_navigation.dart
+Formatted lib/widgets/task_tile.dart
+Formatted test/acceptance_demo_audit_contract_test.dart
+Formatted test/acceptance_release_guard_test.dart
+Formatted test/ai_action_audit_migration_test.dart
+Formatted test/ai_action_confirmation_contract_test.dart
+Formatted test/ai_assistant_contract_test.dart
+Formatted test/ai_chat_dark_enter_contract_test.dart
+Formatted test/ai_diagnostics_contract_test.dart
+Formatted test/ai_document_flow_contract_test.dart
+Formatted test/ai_extended_operational_actions_test.dart
+Formatted test/ai_operational_action_contract_test.dart
+Formatted test/app_cache_coordinator_test.dart
+Formatted test/archive_payment_page_contract_test.dart
+Formatted test/browser_history_title_contract_test.dart
+Formatted test/candidate_onboarding_full_flow_contract_test.dart
+Formatted test/candidate_package_test.dart
+Formatted test/compact_page_headers_contract_test.dart
+Formatted test/company_chat_compact_window_contract_test.dart
+Formatted test/company_membership_relationship_contract_test.dart
+Formatted test/company_setup_acceptance_contract_test.dart
+Formatted test/configurable_recruitment_crm_contract_test.dart
+Formatted test/core_role_permission_rls_contract_test.dart
+Formatted test/cumulative_task_progress_contract_test.dart
+Formatted test/dark_control_states_contract_test.dart
+Formatted test/dark_theme_contract_test.dart
+Formatted test/desktop_dark_contrast_contract_test.dart
+Formatted test/desktop_employees_contract_test.dart
+Formatted test/desktop_pwa_navigation_contract_test.dart
+Formatted test/desktop_secondary_ui_contract_test.dart
+Formatted test/desktop_timesheet_contract_test.dart
+Formatted test/desktop_ui_completion_contract_test.dart
+Formatted test/developer_panel_invitation_security_contract_test.dart
+Formatted test/developer_panel_scroll_contract_test.dart
+Formatted test/dispatcher_timezone_validation_performance_contract_test.dart
+Formatted test/document_template_platform_test.dart
+Formatted test/employee_directory_structure_test.dart
+Formatted test/employee_private_data_cache_contract_test.dart
+Formatted test/exact_docx_service_test.dart
+Formatted test/fast_notification_visibility_contract_test.dart
+Formatted test/foreman_task_edit_window_contract_test.dart
+Formatted test/foreman_timesheet_phone_contract_test.dart
+Formatted test/full_dark_theme_and_back_navigation_contract_test.dart
+Formatted test/full_ui_dynamic_color_const_contract_test.dart
+Formatted test/global_ui_scale_contract_test.dart
+Formatted test/home_screen_structure_test.dart
+Formatted test/invitation_links_session_contract_test.dart
+Formatted test/invitation_token_link_contract_test.dart
+Formatted test/ios_unsigned_workflow_contract_test.dart
+Formatted test/live_profile_sync_avatar_contract_test.dart
+Formatted test/manager_report_analysis_test.dart
+Formatted test/manager_reports_flow_regression_test.dart
+Formatted test/manager_setup_recommendation_contract_test.dart
+Formatted test/manager_weekly_team_contribution_contract_test.dart
+Formatted test/milestone_act_progress_contract_test.dart
+Formatted test/navigation_session_persistence_test.dart
+Formatted test/operational_notifications_regression_test.dart
+Formatted test/performance_final_contract_test.dart
+Formatted test/period_timesheet_initial_month_test.dart
+Formatted test/period_timesheet_report_test.dart
+Formatted test/period_timesheet_structure_test.dart
+Formatted test/permission_foreign_key_indexes_contract_test.dart
+Formatted test/personal_data_production_gate_test.dart
+Formatted test/push_notification_contract_test.dart
+Formatted test/recruitment_column_management_contract_test.dart
+Formatted test/recruitment_crm_kanban_contract_test.dart
+Formatted test/redundant_control_and_ai_entry_contract_test.dart
+Formatted test/repository_hardening_test.dart
+Formatted test/role_capability_matrix_contract_test.dart
+Formatted test/role_notifications_task_photos_contract_test.dart
+Formatted test/role_permission_matrix_navigation_contract_test.dart
+Formatted test/russian_invitation_route_contract_test.dart
+Formatted test/shell_visibility_contract_test.dart
+Formatted test/specialist_desktop_workspaces_contract_test.dart
+Formatted test/specialist_role_preview_navigation_contract_test.dart
+Formatted test/stable_shell_release_contract_test.dart
+Formatted test/startup_and_employee_integrity_test.dart
+Formatted test/support/home_source.dart
+Formatted test/task_contribution_contract_test.dart
+Formatted test/task_details_editor_structure_test.dart
+Formatted test/task_governance_recycle_bin_contract_test.dart
+Formatted test/task_photo_services_test.dart
+Formatted test/task_relation_repositories_test.dart
+Formatted test/task_shared_editor_components_test.dart
+Formatted test/theme_aware_splash_icon_contract_test.dart
+Formatted test/timesheet_audit_action_test.dart
+Formatted test/timesheet_draft_test.dart
+Formatted test/unified_developer_company_constructor_contract_test.dart
+Formatted test/unified_role_settings_profile_contract_test.dart
+Formatted test/unread_notification_check_performance_contract_test.dart
+Formatted test/web_deployment_contract_test.dart
+Formatted test/web_push_contract_test.dart
+Formatted 535 files (257 changed) in 2.34 seconds.
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  file_saver 0.2.14 (0.4.0 available)
+  file_selector_android 0.5.2+8 (0.5.2+9 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  image 4.3.0 (4.9.1 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  pdf 3.12.0 (3.13.0 available)
+  qr 3.0.2 (4.0.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.1 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+25 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing skbs_app...                                           
+
+warning • The declaration '_dateKey' isn't referenced. Try removing the declaration of '_dateKey' • lib/data/finance_summary_repository.dart:123:17 • unused_element
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:112:52 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:115:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:118:56 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:119:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:121:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:125:38 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:126:61 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:127:51 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:128:50 • use_build_context_synchronously
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/ai/documents/ai_document_draft.dart:156:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/ai/presentation/ai_action_history_screen.dart:66:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/ai/presentation/ai_action_history_screen.dart:68:13 • curly_braces_in_flow_control_structures
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/auth/data/user_repository.dart:37:46 • dead_code
+warning • The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand • lib/features/auth/data/user_repository.dart:37:49 • dead_null_aware_expression
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_details_part.dart:82:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_details_part.dart:87:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_details_part.dart:146:25 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_details_part.dart:149:25 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_editor_part.dart:173:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_editor_part.dart:235:17 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_document_editor_part.dart:454:29 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/legal/presentation/legal_matter_editor_part.dart:133:9 • curly_braces_in_flow_control_structures
+  error • Undefined name 'ScrollCacheExtent'. Try correcting the name to one that is defined, or defining the name • lib/features/payments/presentation/screens/payments_screen.dart:644:36 • undefined_identifier
+   info • 'onReorder' is deprecated and shouldn't be used. Use the onReorderItem callback instead. The onReorderItem callback adjusts the newIndex parameter for a removed item at the oldIndex. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/recruitment/presentation/recruitment_applications_screen.dart:884:15 • deprecated_member_use
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1768:37 • dead_code
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1773:19 • dead_code
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1806:29 • dead_code
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1815:31 • dead_code
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1948:39 • dead_code
+warning • Dead code. Try removing the code, or fixing the code before it so that it can be reached • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1955:41 • dead_code
+   info • 'onReorder' is deprecated and shouldn't be used. Use the onReorderItem callback instead. The onReorderItem callback adjusts the newIndex parameter for a removed item at the oldIndex. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart:473:13 • deprecated_member_use
+warning • The declaration '_success' isn't referenced. Try removing the declaration of '_success' • lib/features/recruitment/presentation/recruitment_dashboard_screen.dart:16:11 • unused_element
+warning • The declaration '_warning' isn't referenced. Try removing the declaration of '_warning' • lib/features/recruitment/presentation/recruitment_dashboard_screen.dart:17:11 • unused_element
+warning • The declaration '_danger' isn't referenced. Try removing the declaration of '_danger' • lib/features/recruitment/presentation/recruitment_dashboard_screen.dart:18:11 • unused_element
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/recruitment/presentation/recruitment_onboarding_screen.dart:423:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/recruitment/presentation/recruitment_onboarding_screen.dart:428:7 • curly_braces_in_flow_control_structures
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/shell/presentation/persistent_tab_shell.dart:148:12 • deprecated_member_use
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/shell/presentation/premium_main_screen.dart:500:12 • deprecated_member_use
+   info • 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead. Try replacing the use of the deprecated member with the replacement • lib/navigation/web_edge_swipe_platform_web.dart:2:1 • deprecated_member_use
+   info • Don't use web-only libraries outside Flutter web plugins. Try finding a different library for your needs • lib/navigation/web_edge_swipe_platform_web.dart:2:1 • avoid_web_libraries_in_flutter
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_copy.dart:156:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_copy.dart:176:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_navigation.dart:13:5 • invalid_use_of_protected_member
+warning • The declaration 'buildInfoTile' isn't referenced. Try removing the declaration of 'buildInfoTile' • lib/screens/employee_details/employee_details_sections.dart:32:10 • unused_element
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:30:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:41:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:86:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:97:22 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:102:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:111:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employee_details/employee_details_status.dart:140:20 • invalid_use_of_protected_member
+warning • The declaration 'duplicateKey' isn't referenced. Try removing the declaration of 'duplicateKey' • lib/screens/employees/employees_filtering.dart:4:10 • unused_element
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employees/employees_sections.dart:83:25 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/employees/employees_sections.dart:92:19 • invalid_use_of_protected_member
+  error • Undefined name 'ScrollCacheExtent'. Try correcting the name to one that is defined, or defining the name • lib/screens/employees/employees_view.dart:43:36 • undefined_identifier
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/home/home_actions.dart:111:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/home/home_loading.dart:16:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/home/home_loading.dart:121:5 • invalid_use_of_protected_member
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/screens/home/home_object_actions.dart:124:31 • curly_braces_in_flow_control_structures
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_export.dart:11:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_export.dart:49:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_export.dart:102:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_loading.dart:25:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_loading.dart:39:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_loading.dart:45:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_period_picker.dart:108:5 • invalid_use_of_protected_member
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/screens/period_timesheet/period_timesheet_report.dart:45:7 • curly_braces_in_flow_control_structures
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_view.dart:72:31 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/period_timesheet/period_timesheet_view.dart:82:25 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:17:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:30:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:38:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:46:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:51:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:56:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:64:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_actions.dart:76:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:32:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:38:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:46:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:57:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:64:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_create/task_create_loading.dart:69:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:16:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:29:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:47:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:63:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:75:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:77:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:121:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:129:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:138:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:140:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:160:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:173:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:255:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:284:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_actions.dart:286:20 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_loading.dart:38:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_loading.dart:62:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/task_details/task_details_loading.dart:83:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:33:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:56:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:87:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:183:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:197:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:210:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_actions.dart:213:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_loading.dart:25:5 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_loading.dart:38:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_loading.dart:43:7 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_loading.dart:46:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_sections.dart:183:19 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_sections.dart:205:25 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/screens/timesheet/timesheet_sync.dart:26:7 • invalid_use_of_protected_member
+  error • Undefined name 'ScrollCacheExtent'. Try correcting the name to one that is defined, or defining the name • lib/screens/timesheet/timesheet_view.dart:81:48 • undefined_identifier
+  error • Undefined name 'ScrollCacheExtent'. Try correcting the name to one that is defined, or defining the name • lib/widgets/app_page.dart:164:26 • undefined_identifier
+
+118 issues found. (ran in 8.8s)
