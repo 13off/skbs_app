@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../data/app_data_sync.dart';
@@ -12,9 +11,9 @@ import '../../models/employee_private_data.dart';
 
 class EmployeeDirectoryController extends ChangeNotifier {
   EmployeeDirectoryController({
-    required String? selectedObjectName,
+    required this._selectedObjectName,
     required this.loadPrivateData,
-  }) : _selectedObjectName = selectedObjectName;
+  });
 
   final bool loadPrivateData;
   String? _selectedObjectName;
@@ -204,9 +203,9 @@ class EmployeeDirectoryLogic {
 
     final groups = <String, List<Employee>>{};
     for (final employee in source) {
-      groups.putIfAbsent(duplicateKey(employee), () => <Employee>[]).add(
-            employee,
-          );
+      groups
+          .putIfAbsent(duplicateKey(employee), () => <Employee>[])
+          .add(employee);
     }
 
     source = groups.values.map((group) {
@@ -222,12 +221,13 @@ class EmployeeDirectoryLogic {
         );
       });
       final main = group.first;
-      final objects = group
-          .map((employee) => employee.objectName.trim())
-          .where((name) => name.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+      final objects =
+          group
+              .map((employee) => employee.objectName.trim())
+              .where((name) => name.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
 
       return Employee(
         main.name,

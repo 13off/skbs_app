@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_saver/file_saver.dart';
@@ -92,8 +91,8 @@ abstract final class CandidateOnboardingPackageService {
     final readyDate = privateData?.employmentStartDate.trim().isNotEmpty == true
         ? privateData!.employmentStartDate.trim()
         : candidate.readyDate == null
-            ? documentDate
-            : DateFormat('dd.MM.yyyy').format(candidate.readyDate!);
+        ? documentDate
+        : DateFormat('dd.MM.yyyy').format(candidate.readyDate!);
     final phone = privateData?.phone.trim().isNotEmpty == true
         ? privateData!.phone.trim()
         : candidate.phone.trim();
@@ -118,10 +117,7 @@ abstract final class CandidateOnboardingPackageService {
       'employer_representative': representative,
       'employer_basis': employer.representativeBasis,
       'work_schedule': employer.workSchedule,
-      'salary_terms': _salaryTerms(
-        employer.salaryTermsTemplate,
-        dailyRate,
-      ),
+      'salary_terms': _salaryTerms(employer.salaryTermsTemplate, dailyRate),
       'contract_number': privateData?.contractNumber ?? '',
       'contract_city': employer.contractCity,
       'employee_birth_date': privateData?.birthDate ?? '',
@@ -154,7 +150,8 @@ abstract final class CandidateOnboardingPackageService {
       final raw = ExactDocxService.build(
         templateCode: code,
         values: values,
-        fileBaseName: '${candidateOnboardingFormTitle(code)}_${candidate.fullName}',
+        fileBaseName:
+            '${candidateOnboardingFormTitle(code)}_${candidate.fullName}',
       );
       final generated = EmployerDocxProfileService.apply(
         source: raw,
@@ -176,7 +173,8 @@ abstract final class CandidateOnboardingPackageService {
     );
     final selectedDocuments = documents
         .where(
-          (item) => item.isStored &&
+          (item) =>
+              item.isStored &&
               (candidate.isTestRecord ? item.isTestCopy : !item.isTestCopy),
         )
         .toList(growable: false);
@@ -192,7 +190,9 @@ abstract final class CandidateOnboardingPackageService {
           path: document.storagePath,
         );
         if (totalBytes + bytes.length > maxPackageBytes) {
-          warnings.add('Не добавлен «${document.title}»: превышен лимит пакета.');
+          warnings.add(
+            'Не добавлен «${document.title}»: превышен лимит пакета.',
+          );
           continue;
         }
         final fileName = _uniqueName(
@@ -216,10 +216,15 @@ abstract final class CandidateOnboardingPackageService {
     }
 
     final requiredTypes = <String>{'passport_main', 'snils', 'inn'};
-    final availableTypes = selectedDocuments.map((item) => item.documentType).toSet();
-    final missingDocuments = requiredTypes.difference(availableTypes).toList()..sort();
+    final availableTypes = selectedDocuments
+        .map((item) => item.documentType)
+        .toSet();
+    final missingDocuments = requiredTypes.difference(availableTypes).toList()
+      ..sort();
     if (missingDocuments.isNotEmpty) {
-      warnings.add('Не хватает исходных документов: ${missingDocuments.join(', ')}.');
+      warnings.add(
+        'Не хватает исходных документов: ${missingDocuments.join(', ')}.',
+      );
     }
     if (candidate.employeeId.isEmpty) {
       warnings.add(
@@ -267,7 +272,8 @@ abstract final class CandidateOnboardingPackageService {
     }
     return CandidateOnboardingPackageResult(
       bytes: bytes,
-      fileName: '${candidate.isTestRecord ? 'ТЕСТ_' : ''}'
+      fileName:
+          '${candidate.isTestRecord ? 'ТЕСТ_' : ''}'
           'Кадровый_комплект_${_safeName(candidate.fullName)}_'
           '${DateFormat('yyyyMMdd').format(now)}.zip',
       missingFieldsByForm: Map<String, List<String>>.unmodifiable(
@@ -280,7 +286,10 @@ abstract final class CandidateOnboardingPackageService {
 
   static Future<void> save(CandidateOnboardingPackageResult result) async {
     await FileSaver.instance.saveFile(
-      name: result.fileName.replaceFirst(RegExp(r'\.zip$', caseSensitive: false), ''),
+      name: result.fileName.replaceFirst(
+        RegExp(r'\.zip$', caseSensitive: false),
+        '',
+      ),
       bytes: result.bytes,
       ext: 'zip',
       mimeType: MimeType.zip,
@@ -296,16 +305,20 @@ abstract final class CandidateOnboardingPackageService {
     required String employerName,
     required bool gateEnabled,
   }) {
-    final forms = candidateOnboardingFormCodes.map((code) {
-      final missing = missingFieldsByForm[code] ?? const <String>[];
-      return '— ${candidateOnboardingFormTitle(code)}: '
-          '${missing.isEmpty ? 'готово' : 'проверить ${missing.length} полей'}';
-    }).join('\n');
+    final forms = candidateOnboardingFormCodes
+        .map((code) {
+          final missing = missingFieldsByForm[code] ?? const <String>[];
+          return '— ${candidateOnboardingFormTitle(code)}: '
+              '${missing.isEmpty ? 'готово' : 'проверить ${missing.length} полей'}';
+        })
+        .join('\n');
     final files = selectedDocuments.isEmpty
         ? '— документы не добавлены'
         : selectedDocuments
-            .map((item) => '— ${item.title}${item.isTestCopy ? ' (ТЕСТ)' : ''}')
-            .join('\n');
+              .map(
+                (item) => '— ${item.title}${item.isTestCopy ? ' (ТЕСТ)' : ''}',
+              )
+              .join('\n');
     final warningText = warnings.isEmpty
         ? '— предупреждений нет'
         : warnings.map((item) => '— $item').join('\n');
@@ -343,7 +356,10 @@ $warningText
   static String _salaryTerms(String template, int dailyRate) {
     final clean = template.trim();
     if (clean.isNotEmpty) {
-      return clean.replaceAll('{daily_rate}', dailyRate > 0 ? '$dailyRate' : '');
+      return clean.replaceAll(
+        '{daily_rate}',
+        dailyRate > 0 ? '$dailyRate' : '',
+      );
     }
     return dailyRate > 0
         ? 'дневная ставка $dailyRate ₽, начисление по данным табеля'

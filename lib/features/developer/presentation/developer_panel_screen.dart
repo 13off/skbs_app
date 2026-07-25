@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 import '../../../models/app_user_profile.dart';
 import 'developer_panel_screen_legacy.dart' as legacy;
@@ -34,7 +33,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
             renderObject.hasSize &&
             position.hasContentDimensions &&
             position.maxScrollExtent > position.minScrollExtent) {
-          final rect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
+          final rect =
+              renderObject.localToGlobal(Offset.zero) & renderObject.size;
           if (rect.contains(globalPosition)) result = position;
         }
       }

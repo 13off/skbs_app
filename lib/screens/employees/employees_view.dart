@@ -40,12 +40,12 @@ extension _EmployeesView on _EmployeesScreenState {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: ListView.builder(
+                cacheExtent: 700,
                 key: PageStorageKey(
                   'employees-${widget.selectedObjectName ?? 'all'}',
                 ),
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                cacheExtent: 700,
                 itemCount: leading.length + sectionCount,
                 itemBuilder: (context, index) {
                   if (index < leading.length) return leading[index];

@@ -4,9 +4,7 @@ class FinancePeriod {
   final int? year;
   final int? month;
 
-  const FinancePeriod.month({required int year, required int month})
-    : year = year,
-      month = month;
+  const FinancePeriod.month({required int this.year, required int this.month});
 
   const FinancePeriod.allTime() : year = null, month = null;
 

@@ -835,7 +835,7 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: pendingFiles.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  separatorBuilder: (_, _) => const SizedBox(width: 6),
                   itemBuilder: (context, index) {
                     final item = pendingFiles[index];
                     return InputChip(
@@ -961,8 +961,9 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
   }
 
   String _fileSize(int bytes) {
-    if (bytes >= 1024 * 1024)
+    if (bytes >= 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+    }
     if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(0)} КБ';
     return '$bytes Б';
   }

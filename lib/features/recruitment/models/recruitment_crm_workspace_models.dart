@@ -1,5 +1,3 @@
-import 'recruitment_models.dart';
-
 class RecruitmentResponsibleOption {
   final String userId;
   final String fullName;

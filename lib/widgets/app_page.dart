@@ -161,10 +161,10 @@ class AppLazyPage extends StatelessWidget {
     }
 
     final list = ListView.builder(
+      cacheExtent: cacheExtent,
       key: scrollKey,
       controller: controller,
       physics: physics ?? const AlwaysScrollableScrollPhysics(),
-      cacheExtent: cacheExtent,
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
         topPadding,
@@ -284,17 +284,11 @@ class AppPageHeader extends StatelessWidget {
               child: IconButtonTheme(
                 data: IconButtonThemeData(
                   style: IconButton.styleFrom(
-                    minimumSize: const Size.square(
-                      AppUi.pageHeaderActionSize,
-                    ),
-                    maximumSize: const Size.square(
-                      AppUi.pageHeaderActionSize,
-                    ),
+                    minimumSize: const Size.square(AppUi.pageHeaderActionSize),
+                    maximumSize: const Size.square(AppUi.pageHeaderActionSize),
                     padding: const EdgeInsets.all(10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppUi.controlRadius,
-                      ),
+                      borderRadius: BorderRadius.circular(AppUi.controlRadius),
                     ),
                   ),
                 ),

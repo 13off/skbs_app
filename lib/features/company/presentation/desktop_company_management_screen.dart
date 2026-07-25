@@ -547,7 +547,7 @@ class _DesktopCompanyManagementScreenState
               ],
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );

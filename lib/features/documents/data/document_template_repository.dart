@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_selector/file_selector.dart';
@@ -60,13 +59,16 @@ class DocumentTemplateRepository {
       }
     }
 
-    final parsed = rawTemplates.map((row) {
-      final id = row['id']?.toString() ?? '';
-      return DocumentTemplateRecord.fromMap(
-        row,
-        versions: versionsByTemplate[id] ?? const <DocumentTemplateVersion>[],
-      );
-    }).toList(growable: false);
+    final parsed = rawTemplates
+        .map((row) {
+          final id = row['id']?.toString() ?? '';
+          return DocumentTemplateRecord.fromMap(
+            row,
+            versions:
+                versionsByTemplate[id] ?? const <DocumentTemplateVersion>[],
+          );
+        })
+        .toList(growable: false);
 
     final byCode = <String, DocumentTemplateRecord>{};
     for (final template in parsed) {
@@ -173,7 +175,9 @@ class DocumentTemplateRepository {
         ? inspectDocxContentControls(bytes)
         : const <String>[];
 
-    await _client.storage.from(bucketName).uploadBinary(
+    await _client.storage
+        .from(bucketName)
+        .uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
@@ -194,9 +198,7 @@ class DocumentTemplateRepository {
             'mime_type': mimeType,
             'source_kind': 'storage',
             'storage_path': storagePath,
-            'field_schema': <String, dynamic>{
-              'content_controls': controls,
-            },
+            'field_schema': <String, dynamic>{'content_controls': controls},
             'notes': notes.trim(),
             'is_approved': approve,
           })
@@ -208,11 +210,14 @@ class DocumentTemplateRepository {
           .single();
       final version = DocumentTemplateVersion.fromMap(versionRow);
 
-      await _client.from('document_templates').update(<String, dynamic>{
-        'current_version_id': version.id,
-        'status': approve ? 'active' : 'review',
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', workingTemplate.id);
+      await _client
+          .from('document_templates')
+          .update(<String, dynamic>{
+            'current_version_id': version.id,
+            'status': approve ? 'active' : 'review',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', workingTemplate.id);
     } catch (_) {
       await _client.storage.from(bucketName).remove(<String>[storagePath]);
       rethrow;
@@ -236,14 +241,18 @@ class DocumentTemplateRepository {
     if (version.templateId != template.id) {
       throw StateError('Версия не относится к выбранному шаблону');
     }
-    await _client.from('document_template_versions').update(<String, dynamic>{
-      'is_approved': approve,
-    }).eq('id', version.id);
-    await _client.from('document_templates').update(<String, dynamic>{
-      'current_version_id': version.id,
-      'status': approve ? 'active' : 'review',
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', template.id);
+    await _client
+        .from('document_template_versions')
+        .update(<String, dynamic>{'is_approved': approve})
+        .eq('id', version.id);
+    await _client
+        .from('document_templates')
+        .update(<String, dynamic>{
+          'current_version_id': version.id,
+          'status': approve ? 'active' : 'review',
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', template.id);
   }
 
   static List<String> inspectDocxContentControls(Uint8List bytes) {

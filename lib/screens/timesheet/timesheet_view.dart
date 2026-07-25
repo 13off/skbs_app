@@ -78,8 +78,8 @@ extension _TimesheetView on _TimesheetScreenState {
                           ];
 
                           return ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
                             cacheExtent: 700,
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];

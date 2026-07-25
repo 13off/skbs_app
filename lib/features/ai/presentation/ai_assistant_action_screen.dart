@@ -113,9 +113,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> runAction(int index, AiAssistantAction action) async {
@@ -133,10 +133,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     }
   }
 
-  Future<void> openDocumentDraft(
-    int index,
-    AiAssistantAction action,
-  ) async {
+  Future<void> openDocumentDraft(int index, AiAssistantAction action) async {
     if (runningActionIds.contains(action.id) ||
         completedActionIds.contains(action.id)) {
       return;
@@ -146,10 +143,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     try {
       final completed = await Navigator.of(context).push<bool>(
         CupertinoPageRoute<bool>(
-          builder: (_) => AiDocumentDraftScreen(
-            profile: widget.profile,
-            action: action,
-          ),
+          builder: (_) =>
+              AiDocumentDraftScreen(profile: widget.profile, action: action),
         ),
       );
       if (!mounted || completed != true) return;
@@ -198,9 +193,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             initialAxes: action.text('axes'),
             initialWork: action.text('work'),
             initialAssigneeIds: action.stringList('assignee_ids'),
-            initialRequireBeforePhoto: action.boolean(
-              'require_before_photo',
-            ),
+            initialRequireBeforePhoto: action.boolean('require_before_photo'),
             allowAnyDate:
                 widget.profile.isAdmin ||
                 TaskEditPolicy.forObject(objectName).foremanCanCreateAnyDate,
@@ -543,7 +536,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('ИИ-помощник')),
+        leading: const BackButton(),
+        title: const Text('ИИ-помощник'),
+      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
           top: false,
@@ -577,12 +572,8 @@ class _AiConversationEntry {
   final String? errorText;
   bool reviewed;
 
-  _AiConversationEntry._({
-    this.userText,
-    this.result,
-    this.errorText,
-    this.reviewed = false,
-  });
+  _AiConversationEntry._({this.userText, this.result, this.errorText})
+    : reviewed = false;
 
   factory _AiConversationEntry.user(String text) {
     return _AiConversationEntry._(userText: text);

@@ -118,7 +118,7 @@ class _RecruitmentImportScreenState extends State<RecruitmentImportScreen> {
       final excel = Excel.decodeBytes(bytes);
       if (excel.tables.isEmpty) throw Exception('В книге нет листов');
       final sheet = excel.tables.values.first;
-      if (sheet == null || sheet.rows.isEmpty) {
+      if (sheet.rows.isEmpty) {
         throw Exception('В первом листе нет строк');
       }
       final parsedHeaders = sheet.rows.first
@@ -198,8 +198,9 @@ class _RecruitmentImportScreenState extends State<RecruitmentImportScreen> {
 
   String valueFor(List<String> row, String fieldKey) {
     for (final entry in mapping.entries) {
-      if (entry.value == fieldKey && entry.key < row.length)
+      if (entry.value == fieldKey && entry.key < row.length) {
         return row[entry.key];
+      }
     }
     return '';
   }

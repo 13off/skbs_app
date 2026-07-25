@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../app/app_adaptive_palette.dart';
 
 import '../data/object_repository.dart';
-import '../widgets/premium_ui.dart';
 import 'desktop_home_widgets.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
@@ -500,10 +499,7 @@ class ObjectSectionTitle extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: TextStyle(
-              color: _muted,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: _muted, fontWeight: FontWeight.w900),
           ),
         ),
       ],

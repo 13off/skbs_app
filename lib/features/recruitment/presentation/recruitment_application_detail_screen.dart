@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_saver/file_saver.dart';
@@ -451,7 +450,7 @@ class _RecruitmentApplicationDetailScreenState
               ),
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );

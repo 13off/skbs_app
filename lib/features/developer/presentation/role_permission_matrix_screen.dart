@@ -232,7 +232,7 @@ class _RolePermissionMatrixScreenState
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
-            value: selectedScope,
+            initialValue: selectedScope,
             decoration: const InputDecoration(
               labelText: 'Компания или объект',
               prefixIcon: Icon(Icons.apartment_rounded),
@@ -410,7 +410,7 @@ class _RolePermissionMatrixScreenState
           radius: 22,
           padding: const EdgeInsets.all(14),
           child: DropdownButtonFormField<String>(
-            value: role.code,
+            initialValue: role.code,
             decoration: const InputDecoration(
               labelText: 'Настраиваемая роль',
               prefixIcon: Icon(Icons.badge_outlined),

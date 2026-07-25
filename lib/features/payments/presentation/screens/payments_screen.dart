@@ -641,9 +641,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   : visibleRows.length;
 
               return ListView.builder(
+                cacheExtent: 700,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                cacheExtent: 700,
                 itemCount: leading.length + rowCount,
                 itemBuilder: (context, index) {
                   final child = index < leading.length
