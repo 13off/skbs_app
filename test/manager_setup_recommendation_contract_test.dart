@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также служит безопасным триггером публикации Web/PWA.
 void main() {
   test('setup recommendation appears only on the real manager home', () {
     final manager = File(
