@@ -112,13 +112,13 @@ export class AppStroyBridge {
     });
   }
 
-  ingestCandidateMessage(application, message) {
+  ingestCandidateMessage({ application = null, maxUserId, maxChatId }, message) {
     return this.request('POST', {
       action: 'ingest_message',
-      applicationId: application.appstroyApplicationId,
-      externalApplicationId: application.id,
-      maxUserId: application.maxUserId,
-      maxChatId: application.maxChatId || application.maxUserId,
+      applicationId: application?.appstroyApplicationId,
+      externalApplicationId: application?.id,
+      maxUserId: String(maxUserId ?? application?.maxUserId ?? ''),
+      maxChatId: String(maxChatId ?? application?.maxChatId ?? maxUserId ?? application?.maxUserId ?? ''),
       maxMessageId: message.id,
       text: message.text,
     });
