@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger for agent/full-safe-hardening.
+# One-time trigger v2 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -63,6 +63,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
+            git add -f repair_logs/failure.log
             git commit -m "Сохранить причину остановки безопасного ремонта" || true
             git push origin HEAD:agent/full-safe-hardening
             exit "$repair_status"
@@ -85,5 +86,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          git add -f repair_logs/flutter-analyze.log repair_logs/full-validation.log repair_logs/status.txt
           git commit -m "Применить проверенные исправления анализатора"
           git push origin HEAD:agent/full-safe-hardening
