@@ -50,8 +50,7 @@ class RecruitmentApplication {
   bool get isArchived => archivedAt != null;
   bool get canMessageInTelegram =>
       source == 'telegram' && sourceChatId.trim().isNotEmpty;
-  bool get canMessageInMax =>
-      source == 'max' && sourceUserId.trim().isNotEmpty;
+  bool get canMessageInMax => source == 'max' && sourceUserId.trim().isNotEmpty;
   bool get canMessageInBot => canMessageInTelegram || canMessageInMax;
 
   String get messageChannelTitle => canMessageInMax ? 'MAX' : 'Telegram';
