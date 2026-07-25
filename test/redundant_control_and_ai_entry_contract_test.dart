@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // Web/PWA publication trigger after redundant controls cleanup.
 // Web/PWA publication trigger after MAX candidate messaging integration.
+// Web/PWA retry after updating the MAX messaging regression contract.
 void main() {
   test('dedicated data control screen and entry points are removed', () {
     final developer = File(
