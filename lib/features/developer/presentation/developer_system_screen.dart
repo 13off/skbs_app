@@ -10,10 +10,14 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../company/presentation/company_management_screen.dart';
 import '../../company/presentation/company_setup_screen.dart';
+import '../../company/presentation/company_switcher_screen.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
+import '../../dispatcher/presentation/dispatcher_settings_screen.dart';
 import 'developer_constructor_screen.dart';
+import 'developer_panel_screen.dart';
 import 'developer_readiness_screen.dart';
 import 'developer_role_acceptance_screen.dart';
+import 'role_permission_matrix_screen.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -26,33 +30,83 @@ class DeveloperSystemScreen extends StatelessWidget {
     ).push(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
-  Widget statusCard(BuildContext context) {
-    return const PremiumWorkCard(
+  Widget constructorCard(BuildContext context) {
+    final companySelected = profile.activeCompanyId.trim().isNotEmpty;
+    final scheme = Theme.of(context).colorScheme;
+    return PremiumWorkCard(
       radius: 28,
-      padding: EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.developer_board_rounded, size: 28),
-              SizedBox(width: 12),
-              Expanded(
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.dashboard_customize_rounded),
+              ),
+              const SizedBox(width: 13),
+              const Expanded(
                 child: Text(
-                  'Системные настройки',
+                  'Конструктор текущей компании',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 11),
           Text(
-            'Здесь собраны настройки, которые влияют на работу всей компании. '
-            'Фактическое состояние базы, прав и серверных функций показывается '
-            'только после запуска диагностики — статические статусы здесь не используются.',
-            style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
+            companySelected
+                ? 'Все изменения относятся только к выбранной компании. Общие правила наследуются объектами, а исключения создаются внутри уже действующих редакторов.'
+                : 'Сначала выберите рабочую компанию. Без активной компании системные настройки не сохраняются.',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 13),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const [
+              _ArchitectureBadge(
+                icon: Icons.apartment_rounded,
+                label: 'Компания',
+              ),
+              _ArchitectureArrow(),
+              _ArchitectureBadge(
+                icon: Icons.account_tree_outlined,
+                label: 'Объект',
+              ),
+              _ArchitectureArrow(),
+              _ArchitectureBadge(
+                icon: Icons.badge_outlined,
+                label: 'Роль',
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget sectionTitle(BuildContext context, String value) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 5, 4, 10),
+      child: Text(
+        value.toUpperCase(),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -118,33 +172,129 @@ class DeveloperSystemScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Система',
-      showBackButton: true,
-      subtitle: 'Общие настройки AppСтрой без правок в коде',
+      title: 'Конструктор',
+      subtitle: 'Конфигурация текущей компании без второго механизма настроек',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          statusCard(context),
+          constructorCard(context),
           const SizedBox(height: 18),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
-            child: Text(
-              'КОНТРОЛЬ И ПРИЁМКА',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-              ),
+          sectionTitle(context, 'Логика приложения'),
+          actionCard(
+            context,
+            icon: Icons.rule_outlined,
+            title: 'Ограничения задач и объектов',
+            subtitle:
+                'Фотографии, даты, редактирование, исполнители и удаление. Компания задаёт основу, объект — исключение.',
+            onTap: () => open(
+              context,
+              DeveloperPanelScreen(profile: profile),
             ),
           ),
+          actionCard(
+            context,
+            icon: Icons.admin_panel_settings_outlined,
+            title: 'Роли и права',
+            subtitle:
+                'Единая матрица разрешений с наследованием стандарт роли → компания → объект.',
+            onTap: () => open(context, const RolePermissionMatrixScreen()),
+          ),
+          actionCard(
+            context,
+            icon: Icons.auto_awesome_outlined,
+            title: 'ИИ-диспетчер',
+            subtitle:
+                'Состав автоматических сводок, расписание и доставка по действующим ролям.',
+            onTap: () => open(context, const DispatcherSettingsScreen()),
+          ),
+          actionCard(
+            context,
+            icon: Icons.schedule_outlined,
+            title: 'Напоминания и системные параметры',
+            subtitle:
+                'Рабочие расписания и технические значения текущей компании. Ограничения и права здесь не дублируются.',
+            onTap: () => open(context, const DeveloperConstructorScreen()),
+          ),
+          const SizedBox(height: 8),
+          sectionTitle(context, 'Состав компании и документы'),
+          actionCard(
+            context,
+            icon: Icons.manage_accounts_outlined,
+            title: 'Компания и пользователи',
+            subtitle:
+                'Приглашения, профессии, роли, объектный доступ и отключение пользователей.',
+            onTap: () => open(
+              context,
+              CompanyManagementScreen(companyId: profile.activeCompanyId),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.policy_outlined,
+            title: 'Работодатель и персональные данные',
+            subtitle:
+                'Юридические реквизиты, утверждённые формы и серверный production gate.',
+            onTap: () => open(
+              context,
+              CompanyComplianceScreen(profile: profile),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.folder_copy_outlined,
+            title: 'Шаблоны документов',
+            subtitle:
+                'Системные формы договоров, актов и кадровых документов текущей компании.',
+            onTap: () => open(
+              context,
+              TemplateDocumentsScreen(profile: profile),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.notifications_none_rounded,
+            title: 'Уведомления компании',
+            subtitle:
+                'Базовые роли, события, колокольчик, push и встроенные напоминания.',
+            onTap: () => open(
+              context,
+              const NotificationControlCenterScreen(),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.devices_rounded,
+            title: 'Устройства и push',
+            subtitle:
+                'Регистрация текущего браузера или телефона и диагностика доставки.',
+            onTap: () => open(
+              context,
+              const PushNotificationSettingsScreen(),
+            ),
+          ),
+          actionCard(
+            context,
+            icon: Icons.swap_horiz_rounded,
+            title: 'Сменить рабочую компанию',
+            subtitle:
+                'Переключить контекст перед настройкой другой организации. Правила между компаниями не смешиваются.',
+            onTap: () => open(
+              context,
+              CompanySwitcherScreen(activeCompanyId: profile.activeCompanyId),
+            ),
+          ),
+          const SizedBox(height: 8),
+          sectionTitle(context, 'Контроль и приёмка'),
           actionCard(
             context,
             icon: Icons.health_and_safety_outlined,
             title: 'Готовность и диагностика',
             subtitle:
                 'Проверить сессию, RLS, базу, ограничения, шаблоны, Edge Function и production-gates.',
-            onTap: () =>
-                open(context, DeveloperReadinessScreen(profile: profile)),
+            onTap: () => open(
+              context,
+              DeveloperReadinessScreen(profile: profile),
+            ),
           ),
           actionCard(
             context,
@@ -152,16 +302,21 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Запуск компании',
             subtitle:
                 'Проверить первый объект, назначенного прораба, сотрудников, задачу, табель и уведомления.',
-            onTap: () => open(context, CompanySetupScreen(profile: profile)),
+            onTap: () => open(
+              context,
+              CompanySetupScreen(profile: profile),
+            ),
           ),
           actionCard(
             context,
             icon: Icons.verified_user_outlined,
             title: 'Проверка текущей роли',
             subtitle:
-                'Проверить JWT, разрешения, Data API и объектные границы только текущего входа — без имитации других ролей.',
-            onTap: () =>
-                open(context, DeveloperRoleAcceptanceScreen(profile: profile)),
+                'Проверить JWT, разрешения, Data API и объектные границы фактического входа.',
+            onTap: () => open(
+              context,
+              DeveloperRoleAcceptanceScreen(profile: profile),
+            ),
           ),
           actionCard(
             context,
@@ -176,71 +331,49 @@ class DeveloperSystemScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
-            child: Text(
-              'СИСТЕМНЫЕ РАЗДЕЛЫ',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-          actionCard(
-            context,
-            icon: Icons.policy_outlined,
-            title: 'Работодатель и персональные данные',
-            subtitle:
-                'Заполнить юридические реквизиты, утвердить формы и управлять серверным production gate.',
-            onTap: () =>
-                open(context, CompanyComplianceScreen(profile: profile)),
-          ),
-          actionCard(
-            context,
-            icon: Icons.schedule_outlined,
-            title: 'Напоминания и системные параметры',
-            subtitle:
-                'Настраивать расписание уведомлений и технические параметры. Ограничения задач находятся только в отдельной вкладке «Ограничения».',
-            onTap: () => open(context, const DeveloperConstructorScreen()),
-          ),
-          actionCard(
-            context,
-            icon: Icons.notifications_none_rounded,
-            title: 'Уведомления и напоминания',
-            subtitle:
-                'Базовые роли, события, колокольчик, push и встроенные напоминания.',
-            onTap: () => open(context, const NotificationControlCenterScreen()),
-          ),
-          actionCard(
-            context,
-            icon: Icons.devices_rounded,
-            title: 'Устройства и push',
-            subtitle:
-                'Регистрация текущего телефона или браузера и диагностика доставки.',
-            onTap: () => open(context, const PushNotificationSettingsScreen()),
-          ),
-          actionCard(
-            context,
-            icon: Icons.manage_accounts_outlined,
-            title: 'Роли и пользователи',
-            subtitle:
-                'Приглашения, профессии, доступ и отключение пользователей компании.',
-            onTap: () => open(
-              context,
-              CompanyManagementScreen(companyId: profile.activeCompanyId),
-            ),
-          ),
-          actionCard(
-            context,
-            icon: Icons.folder_copy_outlined,
-            title: 'Шаблоны документов',
-            subtitle: 'Системные формы договоров, актов и кадровых документов.',
-            onTap: () =>
-                open(context, TemplateDocumentsScreen(profile: profile)),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ArchitectureBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _ArchitectureBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 17),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchitectureArrow extends StatelessWidget {
+  const _ArchitectureArrow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
