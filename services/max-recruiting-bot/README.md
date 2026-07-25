@@ -2,6 +2,8 @@
 
 Сервис принимает заявки кандидатов из MAX, передаёт их в кадровую CRM AppСтрой, доставляет исходящие сообщения HR и сохраняет незавершённые анкеты в постоянном каталоге `data`.
 
+Фото, PDF и DOCX до 20 МБ скачиваются из MAX, загружаются в закрытый бакет `recruitment-documents` и появляются одновременно в переписке и документах кандидата. Публичные ссылки на файлы не создаются.
+
 ## Первый запуск на VPS
 
 Требования: установлен Docker с плагином `docker compose`, каталог `/opt/appstroy-max-bot` доступен пользователю деплоя.
@@ -20,8 +22,10 @@ nano .env
 BOT_TOKEN=<токен MAX-бота>
 ADMIN_SETUP_CODE=<длинный секретный код>
 APPSTROY_BRIDGE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/max-recruitment-bridge
+APPSTROY_FILE_BRIDGE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co/functions/v1/max-recruitment-file-bridge
 APPSTROY_BRIDGE_SECRET=<секрет моста AppСтрой>
 MAX_API_BASE_URL=https://platform-api2.max.ru
+MAX_INBOUND_FILE_MAX_BYTES=20971520
 DEBUG=0
 DATA_FILE=/app/data/bot-data.json
 ```
@@ -43,6 +47,17 @@ docker compose -f compose.yml ps
 docker inspect --format '{{json .State.Health}}' appstroy-max-recruiting-bot
 docker compose -f compose.yml logs --tail=100 max-recruiting-bot
 ```
+
+## Обновление одной командой
+
+После первого размещения сервиса следующие версии можно устанавливать без архивов:
+
+```bash
+cd /opt/appstroy-max-bot
+bash update.sh
+```
+
+Скрипт сохраняет существующие `.env` и `data`, загружает актуальный код, пересобирает контейнер и выводит последние логи.
 
 ## Автоматические обновления
 
