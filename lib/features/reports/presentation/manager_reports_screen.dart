@@ -2,12 +2,16 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
+import '../../../models/employee.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../tasks/presentation/employee_contribution_screen.dart';
 import '../data/manager_reports_repository.dart';
+import '../data/manager_weekly_contribution_repository.dart';
 import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
+import 'manager_weekly_contribution_section.dart';
 
 class ManagerReportsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -28,6 +32,7 @@ class ManagerReportsScreen extends StatefulWidget {
 class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   late DateTime reportDate;
   late Future<ManagerReportsCenter> future;
+  late Future<ManagerWeeklyContributionReport> weeklyContributionFuture;
   String? selectedObjectId;
   bool onlyProblems = false;
 
@@ -38,6 +43,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     reportDate = DateTime(now.year, now.month, now.day);
     ManagerReportsRepository.setPreferredObjectName(widget.selectedObjectName);
     future = loadInitial();
+    weeklyContributionFuture = future.then((_) => fetchWeeklyContribution());
   }
 
   Future<ManagerReportsCenter> loadInitial() async {
@@ -47,15 +53,28 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   }
 
   Future<void> reload() async {
-    final next = fetchReports(forceRefresh: true);
-    setState(() => future = next);
-    await next;
+    final nextReports = fetchReports(forceRefresh: true);
+    final nextWeekly = fetchWeeklyContribution(forceRefresh: true);
+    setState(() {
+      future = nextReports;
+      weeklyContributionFuture = nextWeekly;
+    });
+    await Future.wait<dynamic>([nextReports, nextWeekly]);
   }
 
   Future<ManagerReportsCenter> fetchReports({bool forceRefresh = false}) {
     return ManagerReportsRepository.fetch(
       objectId: selectedObjectId,
       reportDate: reportDate,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<ManagerWeeklyContributionReport> fetchWeeklyContribution({
+    bool forceRefresh = false,
+  }) {
+    return ManagerWeeklyContributionRepository.fetch(
+      objectId: selectedObjectId,
       forceRefresh: forceRefresh,
     );
   }
@@ -96,12 +115,28 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     setState(() {
       selectedObjectId = nextId;
       future = fetchReports();
+      weeklyContributionFuture = fetchWeeklyContribution(forceRefresh: true);
     });
   }
 
   void openScreen(Widget screen) {
     Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(builder: (_) => screen),
+    );
+  }
+
+  void openContribution(ManagerWeeklyContributionEmployee item) {
+    openScreen(
+      EmployeeContributionScreen(
+        employee: Employee(
+          item.employeeName,
+          item.position,
+          'не отмечен',
+          id: item.employeeId,
+          objectId: item.objectId,
+          objectName: item.objectName,
+        ),
+      ),
     );
   }
 
@@ -123,6 +158,10 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
           },
         ),
         const SizedBox(height: 12),
+        ManagerWeeklyContributionSection(
+          future: weeklyContributionFuture,
+          onOpenEmployee: openContribution,
+        ),
         ManagerReportOverview(center: center),
         const SizedBox(height: 18),
         ManagerReportSections(
