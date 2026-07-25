@@ -1,5 +1,6 @@
 name: Preserve proven back navigation
 
+# Trigger the one-time validation after the workflow exists on main.
 on:
   push:
     branches:
