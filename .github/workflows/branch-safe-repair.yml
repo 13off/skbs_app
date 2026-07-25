@@ -36,6 +36,9 @@ jobs:
       - name: Merge, harden and validate
         shell: bash
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           set +e
           {
             set -euo pipefail
@@ -60,8 +63,6 @@ jobs:
             git merge --abort || true
             git reset --hard origin/agent/full-safe-hardening
             cp /tmp/full-hardening.log hardening_failure.log
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -f hardening_failure.log
             git commit -m "Сохранить причину строгого прохода" || true
             git push origin HEAD:agent/full-safe-hardening
@@ -73,8 +74,6 @@ jobs:
           rm -f tool/full_hardening_pass.py tool/safe_repair.py
           rm -f .github/workflows/temporary-safe-repair.yml
           rm -f .github/workflows/branch-safe-repair.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Завершить точечное укрепление приложения"
           git push origin HEAD:agent/full-safe-hardening
