@@ -1,1 +1,1 @@
-export '../features/auth/presentation/premium_auth_gate_v2.dart';
+export '../features/auth/presentation/employee_aware_auth_gate.dart';
