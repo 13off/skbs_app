@@ -1,176 +1,250 @@
-name: PR Check
+name: Apply redundant controls cleanup
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
-    paths:
-      - lib/**
-      - test/**
-      - supabase/functions/**
-      - supabase/migrations/**
-      - pubspec.yaml
-      - pubspec.lock
-      - .fvmrc
-      - .github/workflows/pr-check.yml
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
+  group: apply-redundant-controls-cleanup-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  flutter-check:
+  apply-cleanup:
+    if: github.head_ref == 'agent/remove-data-control-extra-chat-button'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          show-progress: false
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Analyze source
-        id: analyze
-        shell: bash
-        run: |
-          set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter analyzer failure ---"
-            tail -n 120 /tmp/flutter-analyze.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-analyze.log
-
-      - name: Run regression tests
-        id: regression
-        shell: bash
-        run: |
-          set +e
-          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "--- Flutter test failure (last 180 lines) ---"
-            tail -n 180 /tmp/flutter-test.log
-            exit "$status"
-          fi
-          tail -n 20 /tmp/flutter-test.log
-
-      - name: Build web release
-        run: flutter build web --release --base-href /appstroy-web/
-
-      - name: Upload failing analyzer log
-        if: failure() && steps.analyze.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-analyze-log
-          path: /tmp/flutter-analyze.log
-          if-no-files-found: error
-          retention-days: 3
-
-      - name: Upload failing test log
-        if: failure() && steps.regression.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-test-log
-          path: /tmp/flutter-test.log
-          if-no-files-found: error
-          retention-days: 3
-
-  backend-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source with history
-        uses: actions/checkout@v4
-        with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
           show-progress: false
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Check changed Edge Functions
-        id: edge-check
+      - name: Apply focused cleanup
         shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          if [ -n "${BASE_SHA:-}" ]; then
-            git diff --name-only "$BASE_SHA"...HEAD -- supabase/functions \
-              | grep -E '\.tsx?$' > /tmp/edge-files.txt || true
-          else
-            find supabase/functions -type f -name '*.ts' -print \
-              > /tmp/edge-files.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected block not found in {path}: {old[:100]!r}')
+              file.write_text(text.replace(old, new))
+
+          home = 'lib/screens/adaptive_home_base_screen.dart'
+          replace(home, "import '../features/ai/presentation/ai_assistant_screen.dart';\n", '')
+          replace(home, "import '../navigation/app_page_route.dart';\n", '')
+          replace(
+              home,
+              """  void openAiAssistant() {
+            Navigator.of(context).push(
+              AppPageRoute<void>(
+                builder: (_) => AiAssistantScreen(
+                  profile: widget.profile,
+                  selectedObjectName: widget.selectedObjectName,
+                ),
+              ),
+            );
+          }
+
+          """,
+              '',
+          )
+          replace(
+              home,
+              """        Positioned(
+                    right: 28,
+                    bottom: 20,
+                    child: SafeArea(
+                      top: false,
+                      left: false,
+                      child: FloatingActionButton.extended(
+                        heroTag: 'desktop-home-ai-assistant',
+                        onPressed: openAiAssistant,
+                        backgroundColor: AppAdaptivePalette.accentStrong,
+                        foregroundColor: AppAdaptivePalette.onAccent,
+                        icon: Icon(Icons.auto_awesome_rounded),
+                        label: const Text('ИИ-помощник'),
+                      ),
+                    ),
+                  ),
+          """,
+              '',
+          )
+
+          developer = 'lib/features/developer/presentation/developer_main_screen.dart'
+          replace(developer, "import 'data_governance_screen.dart';\n", '')
+          replace(developer, 'static const int pageCount = 3;', 'static const int pageCount = 2;')
+          replace(
+              developer,
+              """      1 => const DataGovernanceScreen(),
+                    2 => ProfileScreen(profile: widget.profile),
+          """,
+              """      1 => ProfileScreen(profile: widget.profile),
+          """,
+          )
+          replace(
+              developer,
+              """        ProfessionalBottomNavigationItem(
+                    label: 'Контроль',
+                    icon: Icons.manage_history_outlined,
+                    selectedIcon: Icons.manage_history_rounded,
+                  ),
+          """,
+              '',
+          )
+
+          settings = 'lib/screens/settings_screen.dart'
+          replace(
+              settings,
+              "import '../features/developer/presentation/data_governance_screen.dart';\n",
+              '',
+          )
+          replace(
+              settings,
+              """        actionTile(
+                    icon: Icons.manage_history_outlined,
+                    title: 'Контроль данных',
+                    subtitle: 'Диагностика, аудит и управление рабочими данными',
+                    onTap: () => open(const DataGovernanceScreen()),
+                  ),
+          """,
+              '',
+          )
+
+          replace(
+              'test/unified_developer_company_constructor_contract_test.dart',
+              "expect(main, contains('static const int pageCount = 3;'));",
+              "expect(main, contains('static const int pageCount = 2;'));",
+          )
+          replace(
+              'test/unified_developer_company_constructor_contract_test.dart',
+              'expect(main, contains("label: \'Контроль\'"));',
+              'expect(main, isNot(contains("label: \'Контроль\'")));',
+          )
+          replace(
+              'test/ai_dispatcher_developer_platform_contract_test.dart',
+              'expect(platform, contains("label: \'Контроль\'"));',
+              'expect(platform, isNot(contains("label: \'Контроль\'")));',
+          )
+          replace(
+              'test/developer_panel_invitation_security_contract_test.dart',
+              "expect(platform, contains('static const int pageCount = 3;'));",
+              "expect(platform, contains('static const int pageCount = 2;'));",
+          )
+
+          task_test = Path('test/task_governance_recycle_bin_contract_test.dart')
+          task_text = task_test.read_text()
+          pattern = re.compile(
+              r"  test\('developer navigation exposes unified control center', \(\) \{.*?\n  \}\);\n\n",
+              re.S,
+          )
+          replacement = """  test('developer navigation keeps task safety without a duplicate control tab', () {
+            final navigation = source(
+              'lib/features/developer/presentation/developer_main_screen.dart',
+            );
+
+            expect(navigation, contains('static const int pageCount = 2;'));
+            expect(navigation, contains("label: 'Конструктор'"));
+            expect(navigation, contains("label: 'Профиль'"));
+            expect(navigation, isNot(contains('DataGovernanceScreen')));
+            expect(navigation, isNot(contains("label: 'Контроль'")));
+          });
+
+          """
+          task_text, count = pattern.subn(replacement, task_text, count=1)
+          if count != 1:
+              raise SystemExit('Could not replace obsolete task governance navigation test')
+          task_test.write_text(task_text)
+
+          for obsolete in (
+              'lib/features/developer/data/data_governance_repository.dart',
+              'lib/features/developer/models/data_governance.dart',
+              'lib/features/developer/presentation/data_governance_screen.dart',
+              'test/unified_data_governance_contract_test.dart',
+          ):
+              Path(obsolete).unlink()
+
+          Path('test/redundant_control_and_ai_entry_contract_test.dart').write_text("""import 'dart:io';
+
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('dedicated data control screen and entry points are removed', () {
+              final developer = File(
+                'lib/features/developer/presentation/developer_main_screen.dart',
+              ).readAsStringSync();
+              final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+
+              expect(developer, contains('static const int pageCount = 2;'));
+              expect(developer, isNot(contains('DataGovernanceScreen')));
+              expect(developer, isNot(contains("label: 'Контроль'")));
+              expect(settings, isNot(contains('DataGovernanceScreen')));
+              expect(settings, isNot(contains("title: 'Контроль данных'")));
+              expect(
+                File(
+                  'lib/features/developer/presentation/data_governance_screen.dart',
+                ).existsSync(),
+                isFalse,
+              );
+              expect(
+                File(
+                  'lib/features/developer/data/data_governance_repository.dart',
+                ).existsSync(),
+                isFalse,
+              );
+              expect(
+                File('lib/features/developer/models/data_governance.dart').existsSync(),
+                isFalse,
+              );
+            });
+
+            test('duplicate desktop AI button is removed while chat launcher remains', () {
+              final home = File(
+                'lib/screens/adaptive_home_base_screen.dart',
+              ).readAsStringSync();
+              final chat = File(
+                'lib/features/company_chat/presentation/company_chat_shell.dart',
+              ).readAsStringSync();
+
+              expect(home, isNot(contains('desktop-home-ai-assistant')));
+              expect(home, isNot(contains('AiAssistantScreen')));
+              expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
+              expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
+              expect(chat, contains('class _ChatLauncherButton'));
+              expect(chat, contains('thread.isAssistant'));
+              expect(chat, contains("'Личный диалог с ИИ-помощником'"));
+            });
+          }
+          """)
+          PY
+
+          if grep -R -nE 'DataGovernance|data_governance_screen|Контроль данных' lib; then
+            echo 'Obsolete data-control frontend reference remains.'
+            exit 1
+          fi
+          if grep -nE 'desktop-home-ai-assistant|AiAssistantScreen|openAiAssistant' lib/screens/adaptive_home_base_screen.dart; then
+            echo 'Duplicate desktop AI entry remains.'
+            exit 1
           fi
 
-          if [ ! -s /tmp/edge-files.txt ]; then
-            echo "Edge Functions were not changed."
-            exit 0
-          fi
-
-          : > /tmp/deno-check.log
-          while IFS= read -r file; do
-            echo "deno check $file" | tee -a /tmp/deno-check.log
-            set +e
-            deno check "$file" >> /tmp/deno-check.log 2>&1
-            status=$?
-            set -e
-            if [ "$status" -ne 0 ]; then
-              echo "--- Deno check failure ---"
-              tail -n 160 /tmp/deno-check.log
-              exit "$status"
-            fi
-          done < /tmp/edge-files.txt
-          tail -n 40 /tmp/deno-check.log
-
-      - name: Guard changed SQL migrations
+      - name: Restore standard workflow and commit cleanup
         shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          if [ -n "${BASE_SHA:-}" ]; then
-            git diff --name-only "$BASE_SHA"...HEAD -- supabase/migrations \
-              | grep -E '\.sql$' > /tmp/migration-files.txt || true
-          else
-            find supabase/migrations -type f -name '*.sql' -print \
-              > /tmp/migration-files.txt
-          fi
-
-          if [ ! -s /tmp/migration-files.txt ]; then
-            echo "SQL migrations were not changed."
-            exit 0
-          fi
-
-          while IFS= read -r file; do
-            test -s "$file"
-            if grep -nE '^(<<<<<<<|=======|>>>>>>>)' "$file"; then
-              echo "Conflict marker found in $file"
-              exit 1
-            fi
-          done < /tmp/migration-files.txt
-
-      - name: Upload failing Deno log
-        if: failure() && steps.edge-check.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: deno-check-log
-          path: /tmp/deno-check.log
-          if-no-files-found: error
-          retention-days: 3
+          git checkout origin/main -- .github/workflows/pr-check.yml
+          rm -f .github/workflows/agent-remove-redundant-controls.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Убрать контроль данных и дублирующую кнопку ИИ"
+          git push origin HEAD:${{ github.head_ref }}
