@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v6 for agent/full-safe-hardening.
+# One-time trigger v7 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -47,18 +47,31 @@ jobs:
             python3 - <<'PY'
           from pathlib import Path
 
-          generated_cache = 'scrollCacheExtent: ScrollCacheExtent.pixels(700),'
-          working_cache = 'cacheExtent: 700,'
-          cache_replacements = 0
+          replacements = {
+              'scrollCacheExtent: ScrollCacheExtent.pixels(700),':
+                  'cacheExtent: 700,',
+              'scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),':
+                  'cacheExtent: cacheExtent,',
+          }
+          replacement_counts = {key: 0 for key in replacements}
           for path in Path('lib').rglob('*.dart'):
               source = path.read_text(encoding='utf-8')
-              repaired = source.replace(generated_cache, working_cache)
+              repaired = source
+              for generated, working in replacements.items():
+                  count = repaired.count(generated)
+                  replacement_counts[generated] += count
+                  repaired = repaired.replace(generated, working)
               if repaired != source:
-                  cache_replacements += source.count(generated_cache)
                   path.write_text(repaired, encoding='utf-8')
-          if cache_replacements != 3:
+
+          expected = {
+              'scrollCacheExtent: ScrollCacheExtent.pixels(700),': 3,
+              'scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),': 1,
+          }
+          if replacement_counts != expected:
               raise RuntimeError(
-                  f'Expected exactly 3 ScrollCacheExtent fixes, got {cache_replacements}'
+                  f'Unexpected ScrollCacheExtent replacement counts: '
+                  f'{replacement_counts}'
               )
 
           user_repository = Path(
