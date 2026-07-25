@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v8 for agent/full-safe-hardening.
+# One-time trigger v9 for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -78,11 +78,14 @@ jobs:
               'lib/features/auth/data/user_repository.dart'
           )
           source = user_repository.read_text(encoding='utf-8')
-          repaired = source.replace(
-              "final title = html.document.title.trim() ?? '';",
-              'final title = html.document.title.trim();',
+          generated_title = "final title = html.document.title.trim() ?? '';"
+          compatible_title = (
+              '// universal_html exposes a nullable title in VM tests.\n'
+              '    // ignore: invalid_null_aware_operator\n'
+              "    final title = html.document.title?.trim() ?? '';"
           )
-          if repaired == source and 'final title = html.document.title.trim();' not in source:
+          repaired = source.replace(generated_title, compatible_title)
+          if repaired == source and "html.document.title?.trim() ?? ''" not in source:
               raise RuntimeError('Browser title source shape changed unexpectedly')
           user_repository.write_text(repaired, encoding='utf-8')
           PY
