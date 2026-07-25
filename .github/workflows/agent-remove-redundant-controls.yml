@@ -1,280 +1,59 @@
-name: Agent remove redundant controls
+name: Remove hidden governance dependency
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - agent/remove-data-control-extra-chat-button
+      - main
 
 permissions:
   contents: write
 
 concurrency:
-  group: agent-remove-redundant-controls
+  group: remove-hidden-governance-dependency-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  patch:
+  patch-readiness:
+    if: github.head_ref == 'agent/remove-data-control-extra-chat-button'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout branch
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          ref: agent/remove-data-control-extra-chat-button
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
           show-progress: false
 
-      - name: Apply focused cleanup
+      - name: Remove readiness dependency and helper workflow
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          def replace(path: str, old: str, new: str) -> None:
-              file = Path(path)
-              text = file.read_text()
-              if old not in text:
-                  raise SystemExit(f'Expected block not found in {path}: {old[:100]!r}')
-              file.write_text(text.replace(old, new))
-
-          home = 'lib/screens/adaptive_home_base_screen.dart'
-          replace(home, "import '../features/ai/presentation/ai_assistant_screen.dart';\n", '')
-          replace(home, "import '../navigation/app_page_route.dart';\n", '')
-          replace(
-              home,
-              """  void openAiAssistant() {
-            Navigator.of(context).push(
-              AppPageRoute<void>(
-                builder: (_) => AiAssistantScreen(
-                  profile: widget.profile,
-                  selectedObjectName: widget.selectedObjectName,
-                ),
-              ),
-            );
-          }
-
-          """,
-              '',
+          path = Path(
+              'lib/features/developer/presentation/developer_readiness_screen.dart'
           )
-          replace(
-              home,
-              """        Positioned(
-                    right: 28,
-                    bottom: 20,
-                    child: SafeArea(
-                      top: false,
-                      left: false,
-                      child: FloatingActionButton.extended(
-                        heroTag: 'desktop-home-ai-assistant',
-                        onPressed: openAiAssistant,
-                        backgroundColor: AppAdaptivePalette.accentStrong,
-                        foregroundColor: AppAdaptivePalette.onAccent,
-                        icon: Icon(Icons.auto_awesome_rounded),
-                        label: const Text('ИИ-помощник'),
-                      ),
-                    ),
-                  ),
-          """,
-              '',
-          )
+          text = path.read_text()
+          import_line = "import '../data/data_governance_repository.dart';\n"
+          if text.count(import_line) != 1:
+              raise SystemExit('Unexpected data governance import count')
+          text = text.replace(import_line, '', 1)
 
-          developer = 'lib/features/developer/presentation/developer_main_screen.dart'
-          replace(developer, "import 'data_governance_screen.dart';\n", '')
-          replace(developer, 'static const int pageCount = 3;', 'static const int pageCount = 2;')
-          replace(
-              developer,
-              """      1 => const DataGovernanceScreen(),
-                    2 => ProfileScreen(profile: widget.profile),
-          """,
-              """      1 => ProfileScreen(profile: widget.profile),
-          """,
-          )
-          replace(
-              developer,
-              """        ProfessionalBottomNavigationItem(
-                    label: 'Контроль',
-                    icon: Icons.manage_history_outlined,
-                    selectedIcon: Icons.manage_history_rounded,
-                  ),
-          """,
-              '',
-          )
-
-          settings = 'lib/screens/settings_screen.dart'
-          replace(
-              settings,
-              "import '../features/developer/presentation/data_governance_screen.dart';\n",
-              '',
-          )
-          replace(
-              settings,
-              """        actionTile(
-                    icon: Icons.manage_history_outlined,
-                    title: 'Контроль данных',
-                    subtitle: 'Диагностика, аудит и управление рабочими данными',
-                    onTap: () => open(const DataGovernanceScreen()),
-                  ),
-          """,
-              '',
-          )
-
-          replace(
-              'test/unified_developer_company_constructor_contract_test.dart',
-              "expect(main, contains('static const int pageCount = 3;'));",
-              "expect(main, contains('static const int pageCount = 2;'));",
-          )
-          replace(
-              'test/unified_developer_company_constructor_contract_test.dart',
-              'expect(main, contains("label: \'Контроль\'"));',
-              'expect(main, isNot(contains("label: \'Контроль\'")));',
-          )
-          replace(
-              'test/ai_dispatcher_developer_platform_contract_test.dart',
-              'expect(platform, contains("label: \'Контроль\'"));',
-              'expect(platform, isNot(contains("label: \'Контроль\'")));',
-          )
-          replace(
-              'test/developer_panel_invitation_security_contract_test.dart',
-              "expect(platform, contains('static const int pageCount = 3;'));",
-              "expect(platform, contains('static const int pageCount = 2;'));",
-          )
-
-          task_test = Path('test/task_governance_recycle_bin_contract_test.dart')
-          task_text = task_test.read_text()
-          pattern = re.compile(
-              r"  test\('developer navigation exposes unified control center', \(\) \{.*?\n  \}\);\n\n",
-              re.S,
-          )
-          replacement = """  test('developer navigation keeps task safety without a duplicate control tab', () {
-            final navigation = source(
-              'lib/features/developer/presentation/developer_main_screen.dart',
-            );
-
-            expect(navigation, contains('static const int pageCount = 2;'));
-            expect(navigation, contains("label: 'Конструктор'"));
-            expect(navigation, contains("label: 'Профиль'"));
-            expect(navigation, isNot(contains('DataGovernanceScreen')));
-            expect(navigation, isNot(contains("label: 'Контроль'")));
-          });
-
-          """
-          task_text, count = pattern.subn(replacement, task_text, count=1)
-          if count != 1:
-              raise SystemExit('Could not replace obsolete task governance navigation test')
-          task_test.write_text(task_text)
-
-          for obsolete in (
-              'lib/features/developer/data/data_governance_repository.dart',
-              'lib/features/developer/models/data_governance.dart',
-              'lib/features/developer/presentation/data_governance_screen.dart',
-              'test/unified_data_governance_contract_test.dart',
-          ):
-              Path(obsolete).unlink()
-
-          Path('test/redundant_control_and_ai_entry_contract_test.dart').write_text("""import 'dart:io';
-
-          import 'package:flutter_test/flutter_test.dart';
-
-          void main() {
-            test('dedicated data control screen and entry points are removed', () {
-              final developer = File(
-                'lib/features/developer/presentation/developer_main_screen.dart',
-              ).readAsStringSync();
-              final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
-
-              expect(developer, contains('static const int pageCount = 2;'));
-              expect(developer, isNot(contains('DataGovernanceScreen')));
-              expect(developer, isNot(contains("label: 'Контроль'")));
-              expect(settings, isNot(contains('DataGovernanceScreen')));
-              expect(settings, isNot(contains("title: 'Контроль данных'")));
-              expect(
-                File(
-                  'lib/features/developer/presentation/data_governance_screen.dart',
-                ).existsSync(),
-                isFalse,
-              );
-              expect(
-                File(
-                  'lib/features/developer/data/data_governance_repository.dart',
-                ).existsSync(),
-                isFalse,
-              );
-              expect(
-                File('lib/features/developer/models/data_governance.dart').existsSync(),
-                isFalse,
-              );
-            });
-
-            test('duplicate desktop AI button is removed while chat launcher remains', () {
-              final home = File(
-                'lib/screens/adaptive_home_base_screen.dart',
-              ).readAsStringSync();
-              final chat = File(
-                'lib/features/company_chat/presentation/company_chat_shell.dart',
-              ).readAsStringSync();
-
-              expect(home, isNot(contains('desktop-home-ai-assistant')));
-              expect(home, isNot(contains('AiAssistantScreen')));
-              expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
-              expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
-              expect(chat, contains('class _ChatLauncherButton'));
-              expect(chat, contains('thread.isAssistant'));
-              expect(chat, contains("'Личный диалог с ИИ-помощником'"));
-            });
-          }
-          """)
+          marker = "'Корзина и общий журнал'"
+          marker_at = text.index(marker)
+          check_start = text.rfind('\n      await check(', 0, marker_at)
+          check_end = text.index('\n      await check(', marker_at)
+          if check_start < 0:
+              raise SystemExit('Could not find hidden readiness check start')
+          text = text[:check_start] + text[check_end:]
+          path.write_text(text)
           PY
 
-          if grep -R -nE 'DataGovernance|data_governance_screen|Контроль данных' lib; then
-            echo 'Obsolete data-control frontend reference remains.'
-            exit 1
-          fi
-          if grep -nE 'desktop-home-ai-assistant|AiAssistantScreen|openAiAssistant' lib/screens/adaptive_home_base_screen.dart; then
-            echo 'Duplicate desktop AI entry remains.'
-            exit 1
-          fi
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/screens/adaptive_home_base_screen.dart \
-            lib/features/developer/presentation/developer_main_screen.dart \
-            lib/screens/settings_screen.dart \
-            test/unified_developer_company_constructor_contract_test.dart \
-            test/ai_dispatcher_developer_platform_contract_test.dart \
-            test/developer_panel_invitation_security_contract_test.dart \
-            test/task_governance_recycle_bin_contract_test.dart \
-            test/redundant_control_and_ai_entry_contract_test.dart
-
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Analyze source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Run focused regression tests
-        run: |
-          flutter test --reporter compact \
-            test/redundant_control_and_ai_entry_contract_test.dart \
-            test/unified_developer_company_constructor_contract_test.dart \
-            test/ai_dispatcher_developer_platform_contract_test.dart \
-            test/developer_panel_invitation_security_contract_test.dart \
-            test/task_governance_recycle_bin_contract_test.dart
-
-      - name: Commit cleanup and remove temporary workflow
-        shell: bash
-        run: |
-          set -euo pipefail
           rm .github/workflows/agent-remove-redundant-controls.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
-          git commit -m "Убрать контроль данных и дублирующую кнопку ИИ"
-          git push origin HEAD:agent/remove-data-control-extra-chat-button
+          git commit -m "Убрать скрытую проверку контроля данных"
+          git push origin HEAD:${{ github.head_ref }}
