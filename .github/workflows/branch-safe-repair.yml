@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# Diagnostic strict hardening pass for agent/full-safe-hardening.
+# Final strict hardening pass for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -45,6 +45,7 @@ jobs:
             git fetch origin main agent/full-safe-hardening
             git merge --no-edit origin/main
             python3 tool/full_hardening_pass.py
+            python3 tool/finalize_hardening_pass.py
             flutter pub get
             mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
             if [ "${#dart_files[@]}" -gt 0 ]; then
@@ -71,7 +72,7 @@ jobs:
 
           rm -rf repair_logs
           rm -f hardening_failure.log
-          rm -f tool/full_hardening_pass.py tool/safe_repair.py
+          rm -f tool/full_hardening_pass.py tool/finalize_hardening_pass.py tool/safe_repair.py
           rm -f .github/workflows/temporary-safe-repair.yml
           rm -f .github/workflows/branch-safe-repair.yml
           git add -A
