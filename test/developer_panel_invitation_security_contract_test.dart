@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('developer system shows one restrictions editor and no fake demo status', () {
+  test('developer platform keeps one constructor and no fake demo status', () {
     final system = File(
       'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
@@ -11,9 +11,18 @@ void main() {
       'lib/features/developer/presentation/developer_main_screen.dart',
     ).readAsStringSync();
 
-    expect(platform, contains("label: 'Ограничения'"));
-    expect(system, contains('Напоминания и системные параметры'));
-    expect(system, contains('отдельной вкладке «Ограничения»'));
+    expect(platform, contains('static const int pageCount = 3;'));
+    expect(platform, contains("label: 'Конструктор'"));
+    expect(platform, isNot(contains("label: 'Ограничения'")));
+    expect(platform, isNot(contains("label: 'Права'")));
+    expect(platform, isNot(contains("label: 'Диспетчер'")));
+    expect(system, contains("title: 'Ограничения задач и объектов'"));
+    expect(system, contains("title: 'Роли и права'"));
+    expect(system, contains("title: 'Напоминания и системные параметры'"));
+    expect(system, contains('DeveloperPanelScreen'));
+    expect(system, contains('RolePermissionMatrixScreen'));
+    expect(system, contains('DispatcherSettingsScreen'));
+    expect(system, contains('DeveloperConstructorScreen'));
     expect(system, isNot(contains('DeveloperDemoCenterScreen')));
     expect(system, isNot(contains('База подключена')));
     expect(system, isNot(contains('Планировщик активен')));
