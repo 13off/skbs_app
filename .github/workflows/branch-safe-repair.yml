@@ -1,6 +1,6 @@
 name: One-time safe branch repair
 
-# One-time trigger v9 for agent/full-safe-hardening.
+# One-time final hardening pass for agent/full-safe-hardening.
 on:
   push:
     branches:
@@ -27,119 +27,49 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Merge latest main without publishing
+        shell: bash
+        run: |
+          git fetch origin main agent/full-safe-hardening
+          git merge --no-edit origin/main
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Install locked dependencies
-        run: flutter pub get --enforce-lockfile >/dev/null
-
-      - name: Apply, validate and save only safe repairs
+      - name: Apply exact hardening pass
         shell: bash
         run: |
-          set +e
-          {
-            set -euo pipefail
-            dart fix --apply
-
-            python3 - <<'PY'
-          from pathlib import Path
-
-          replacements = {
-              'scrollCacheExtent: ScrollCacheExtent.pixels(700),':
-                  'cacheExtent: 700,',
-              'scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),':
-                  'cacheExtent: cacheExtent,',
-          }
-          replacement_counts = {key: 0 for key in replacements}
-          for path in Path('lib').rglob('*.dart'):
-              source = path.read_text(encoding='utf-8')
-              repaired = source
-              for generated, working in replacements.items():
-                  count = repaired.count(generated)
-                  replacement_counts[generated] += count
-                  repaired = repaired.replace(generated, working)
-              if repaired != source:
-                  path.write_text(repaired, encoding='utf-8')
-
-          expected = {
-              'scrollCacheExtent: ScrollCacheExtent.pixels(700),': 3,
-              'scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),': 1,
-          }
-          if replacement_counts != expected:
-              raise RuntimeError(
-                  f'Unexpected ScrollCacheExtent replacement counts: '
-                  f'{replacement_counts}'
-              )
-
-          user_repository = Path(
-              'lib/features/auth/data/user_repository.dart'
-          )
-          source = user_repository.read_text(encoding='utf-8')
-          generated_title = "final title = html.document.title.trim() ?? '';"
-          compatible_title = (
-              '// universal_html exposes a nullable title in VM tests.\n'
-              '    // ignore: invalid_null_aware_operator\n'
-              "    final title = html.document.title?.trim() ?? '';"
-          )
-          repaired = source.replace(generated_title, compatible_title)
-          if repaired == source and "html.document.title?.trim() ?? ''" not in source:
-              raise RuntimeError('Browser title source shape changed unexpectedly')
-          user_repository.write_text(repaired, encoding='utf-8')
-          PY
-
-            mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
-            if [ "${#dart_files[@]}" -gt 0 ]; then
-              dart format "${dart_files[@]}"
-            fi
-
-            if grep -R -n 'ScrollCacheExtent' lib; then
-              echo 'Unsupported ScrollCacheExtent remained after compatibility repair'
-              exit 1
-            fi
-
-            flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee /tmp/flutter-analyze.log
-            flutter test --reporter compact
-            flutter build web --release --base-href /appstroy-web/
-          } 2>&1 | tee /tmp/appstroy-safe-repair.log
-          repair_status=${PIPESTATUS[0]}
-          set -e
-
-          git fetch origin main agent/full-safe-hardening
-
-          if [ "$repair_status" -ne 0 ]; then
-            git reset --hard origin/agent/full-safe-hardening
-            mkdir -p repair_logs
-            cp /tmp/appstroy-safe-repair.log repair_logs/failure.log
-            git checkout origin/main -- .github/workflows/pr-check.yml
-            rm -f .github/workflows/temporary-safe-repair.yml tool/safe_repair.py
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git add -f repair_logs/failure.log
-            git commit -m "Сохранить причину остановки безопасного ремонта" || true
-            git push origin HEAD:agent/full-safe-hardening
-            exit "$repair_status"
+          python3 tool/full_hardening_pass.py
+          flutter pub get
+          mapfile -t dart_files < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
+          if [ "${#dart_files[@]}" -gt 0 ]; then
+            dart format "${dart_files[@]}"
           fi
 
-          mkdir -p repair_logs
-          cp /tmp/flutter-analyze.log repair_logs/flutter-analyze.log
-          cp /tmp/appstroy-safe-repair.log repair_logs/full-validation.log
-          {
-            echo "dart_fix=completed"
-            echo "targeted_format=completed"
-            echo "analyze=completed"
-            echo "tests=completed"
-            echo "web_build=completed"
-          } > repair_logs/status.txt
+      - name: Require a clean analyzer
+        shell: bash
+        run: flutter analyze 2>&1 | tee /tmp/flutter-analyze.log
 
-          git checkout origin/main -- .github/workflows/pr-check.yml
-          rm -f .github/workflows/temporary-safe-repair.yml tool/safe_repair.py
+      - name: Run all regression tests
+        shell: bash
+        run: flutter test --reporter compact 2>&1 | tee /tmp/flutter-test.log
+
+      - name: Build release Web/PWA
+        shell: bash
+        run: flutter build web --release --base-href /appstroy-web/ 2>&1 | tee /tmp/flutter-web-build.log
+
+      - name: Save only fully validated changes
+        shell: bash
+        run: |
+          rm -rf repair_logs
+          rm -f tool/full_hardening_pass.py tool/safe_repair.py
+          rm -f .github/workflows/temporary-safe-repair.yml
+          rm -f .github/workflows/branch-safe-repair.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git add -f repair_logs/flutter-analyze.log repair_logs/full-validation.log repair_logs/status.txt
-          git commit -m "Применить проверенные автоматические исправления"
+          git commit -m "Завершить точечное укрепление приложения"
           git push origin HEAD:agent/full-safe-hardening
