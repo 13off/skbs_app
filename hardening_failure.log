@@ -1,16 +1,76 @@
 From https://github.com/13off/skbs_app
  * branch            main       -> FETCH_HEAD
  * branch            agent/full-safe-hardening -> FETCH_HEAD
-Committer identity unknown
+Auto-merging lib/features/recruitment/presentation/recruitment_application_detail_screen.dart
+Merge made by the 'ort' strategy.
+ .github/workflows/branch-safe-repair.yml           | 79 ++++++++++++++++++++++
+ .../recruitment/data/recruitment_repository.dart   | 12 ++--
+ .../recruitment/models/recruitment_models.dart     |  4 ++
+ .../recruitment_application_detail_screen.dart     | 15 ++--
+ ...ecruitment_detail_dark_theme_contract_test.dart |  5 +-
+ ...dundant_control_and_ai_entry_contract_test.dart |  2 +
+ 6 files changed, 107 insertions(+), 10 deletions(-)
+ create mode 100644 .github/workflows/branch-safe-repair.yml
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.73 (1.3.75 available)
+  archive 3.6.1 (4.0.9 available)
+  dio 5.10.0 (5.11.0 available)
+  dio_web_adapter 2.2.0 (2.2.1 available)
+  file_saver 0.2.14 (0.4.0 available)
+  file_selector_android 0.5.2+8 (0.5.2+9 available)
+  firebase_core 4.11.0 (4.12.1 available)
+  firebase_core_platform_interface 7.1.0 (8.0.0 available)
+  firebase_core_web 3.9.0 (3.9.1 available)
+  firebase_messaging 16.4.1 (16.4.3 available)
+  firebase_messaging_platform_interface 4.9.0 (4.9.2 available)
+  firebase_messaging_web 4.2.1 (4.2.3 available)
+  google_fonts 8.1.0 (8.2.0 available)
+  hooks 2.0.2 (2.1.0 available)
+  image 4.3.0 (4.9.1 available)
+  intl 0.19.0 (0.20.3 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  pdf 3.12.0 (3.13.0 available)
+  qr 3.0.2 (4.0.0 available)
+  record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.26 (2.4.27 available)
+  test_api 0.7.11 (0.7.13 available)
+  vector_math 2.2.0 (2.4.1 available)
+  web 1.1.1 (from transitive dependency to direct dependency)
+  xml 6.6.1 (7.0.1 available)
+Changed 1 dependency!
+27 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Formatted lib/features/ai/actions/ai_action_execution_coordinator.dart
+Formatted lib/features/recruitment/presentation/recruitment_applications_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart
+Formatted lib/features/recruitment/presentation/recruitment_dashboard_screen.dart
+Formatted lib/screens/employee_details/employee_details_copy.dart
+Formatted lib/screens/employee_details/employee_details_sections.dart
+Formatted lib/screens/employee_details/employee_details_status.dart
+Formatted lib/screens/home/home_actions.dart
+Formatted lib/screens/home/home_loading.dart
+Formatted lib/screens/period_timesheet/period_timesheet_export.dart
+Formatted lib/screens/period_timesheet/period_timesheet_loading.dart
+Formatted lib/screens/task_create/task_create_actions.dart
+Formatted lib/screens/task_details/task_details_actions.dart
+Formatted lib/screens/template_documents_screen.dart
+Formatted lib/screens/timesheet/timesheet_sections.dart
+Formatted 34 files (15 changed) in 0.23 seconds.
+Analyzing skbs_app...                                           
 
-*** Please tell me who you are.
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:112:52 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:115:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:118:56 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:119:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:121:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:125:38 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:126:61 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:127:51 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/ai/actions/ai_action_execution_coordinator.dart:128:50 • use_build_context_synchronously
+   info • Unnecessary instance of 'Container'. Try removing the 'Container' (but not its children) from the widget tree • lib/features/recruitment/presentation/recruitment_applications_screen.dart:1769:18 • avoid_unnecessary_containers
 
-Run
-
-  git config --global user.email "you@example.com"
-  git config --global user.name "Your Name"
-
-to set your account's default identity.
-Omit --global to set the identity only in this repository.
-
-fatal: empty ident name (for <runner@runnervmvrwv9.ykpjs2xbt34uxgulnpvtw1u53f.yx.internal.cloudapp.net>) not allowed
+10 issues found. (ran in 15.0s)
