@@ -8,12 +8,15 @@ on:
     paths:
       - lib/**
       - test/**
+      - assets/**
+      - web/**
+      - tool/web_smoke.py
       - supabase/functions/**
       - supabase/migrations/**
       - pubspec.yaml
       - pubspec.lock
       - .fvmrc
-      - .github/workflows/pr-check.yml
+      - .github/workflows/**
   workflow_dispatch:
 
 permissions:
@@ -41,16 +44,16 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile >/dev/null
 
-      - name: Analyze source
+      - name: Analyze source strictly
         id: analyze
         shell: bash
         run: |
           set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/flutter-analyze.log 2>&1
+          flutter analyze > /tmp/flutter-analyze.log 2>&1
           status=$?
           if [ "$status" -ne 0 ]; then
             echo "--- Flutter analyzer failure ---"
-            tail -n 120 /tmp/flutter-analyze.log
+            tail -n 160 /tmp/flutter-analyze.log
             exit "$status"
           fi
           tail -n 20 /tmp/flutter-analyze.log
@@ -63,14 +66,30 @@ jobs:
           flutter test --reporter compact > /tmp/flutter-test.log 2>&1
           status=$?
           if [ "$status" -ne 0 ]; then
-            echo "--- Flutter test failure (last 180 lines) ---"
-            tail -n 180 /tmp/flutter-test.log
+            echo "--- Flutter test failure (last 220 lines) ---"
+            tail -n 220 /tmp/flutter-test.log
             exit "$status"
           fi
           tail -n 20 /tmp/flutter-test.log
 
       - name: Build web release
         run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Install browser smoke dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
+
+      - name: Run headless Chrome browser smoke
+        id: browser-smoke
+        run: python3 tool/web_smoke.py
+
+      - name: Upload browser smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-evidence
+          path: .artifacts/browser-smoke
+          if-no-files-found: warn
+          retention-days: 3
 
       - name: Upload failing analyzer log
         if: failure() && steps.analyze.outcome == 'failure'

@@ -34,6 +34,8 @@ class UserRepository {
   }
 
   static String get _browserDocumentTitle {
+    // universal_html exposes a nullable title in VM tests.
+    // ignore: invalid_null_aware_operator
     final title = html.document.title?.trim() ?? '';
     return title.isEmpty ? 'AppСтрой' : title;
   }

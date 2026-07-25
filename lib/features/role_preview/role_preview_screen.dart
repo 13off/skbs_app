@@ -86,7 +86,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: objectNames.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final objectName = objectNames[index];
                     final selectedNow = objectName == currentObject;
@@ -251,7 +251,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
       builder: (context, preview, _) {
         return AppPage(
           title: 'Режим платформы',
-      showBackButton: true,
+          showBackButton: true,
           subtitle:
               'Реальная роль администратора не меняется. Меняется только интерфейс, который вы видите.',
           child: FutureBuilder<List<String>>(

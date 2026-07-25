@@ -50,7 +50,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         PageRouteBuilder<dynamic>(
           transitionDuration: Duration.zero,
           reverseTransitionDuration: Duration.zero,
-          pageBuilder: (_, __, ___) => editor.TaskDetailsScreen(
+          pageBuilder: (_, _, _) => editor.TaskDetailsScreen(
             task: currentTask,
             profile: widget.profile,
           ),

@@ -863,7 +863,9 @@ class _RecruitmentApplicationsScreenState
     final initial = orderedStages(configuration);
     if (initial.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Для изменения порядка нужно две колонки')),
+        const SnackBar(
+          content: Text('Для изменения порядка нужно две колонки'),
+        ),
       );
       return;
     }
@@ -879,8 +881,7 @@ class _RecruitmentApplicationsScreenState
             child: ReorderableListView.builder(
               buildDefaultDragHandles: false,
               itemCount: draft.length,
-              onReorder: (oldIndex, newIndex) {
-                if (newIndex > oldIndex) newIndex -= 1;
+              onReorderItem: (oldIndex, newIndex) {
                 if (newIndex == oldIndex) return;
                 setDialogState(() {
                   final item = draft.removeAt(oldIndex);
@@ -948,9 +949,9 @@ class _RecruitmentApplicationsScreenState
       if (mounted) setState(() => pendingStageOrder = confirmedIds);
       await refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Порядок колонок сохранён')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Порядок колонок сохранён')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1761,26 +1762,13 @@ class _RecruitmentApplicationsScreenState
     final color = stageColor(stage);
     return Builder(
       builder: (context) {
-        const stageHighlighted = false;
         return AnimatedScale(
-          scale: stageHighlighted ? 1.018 : 1,
+          scale: 1,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
+          // This neutral wrapper preserves the established kanban geometry.
+          // ignore: avoid_unnecessary_containers
           child: Container(
-            decoration: stageHighlighted
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppUi.cardRadius),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppAdaptivePalette.accent.withValues(
-                          alpha: 0.22,
-                        ),
-                        blurRadius: 24,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  )
-                : null,
             child: DragTarget<RecruitmentApplication>(
               onWillAcceptWithDetails: (details) =>
                   !movingIds.contains(details.data.id) &&
@@ -1800,21 +1788,17 @@ class _RecruitmentApplicationsScreenState
                     width: 310,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: stageHighlighted
-                          ? AppAdaptivePalette.accent.withValues(alpha: 0.09)
-                          : highlighted
+                      color: highlighted
                           ? color.withValues(alpha: 0.12)
                           : AppAdaptivePalette.surfaceSoft.withValues(
                               alpha: 0.62,
                             ),
                       borderRadius: BorderRadius.circular(AppUi.cardRadius),
                       border: Border.all(
-                        color: stageHighlighted
-                            ? AppAdaptivePalette.accent.withValues(alpha: 0.70)
-                            : highlighted
+                        color: highlighted
                             ? color.withValues(alpha: 0.62)
                             : AppAdaptivePalette.border,
-                        width: stageHighlighted || highlighted ? 2 : 1,
+                        width: highlighted ? 2 : 1,
                       ),
                       boxShadow: highlighted
                           ? <BoxShadow>[
@@ -1831,7 +1815,8 @@ class _RecruitmentApplicationsScreenState
                       children: [
                         Row(
                           children: [
-                            if (canConfigureCrm) stageOrderButton(configuration),
+                            if (canConfigureCrm)
+                              stageOrderButton(configuration),
                             Container(
                               width: 10,
                               height: 10,
@@ -1941,16 +1926,10 @@ class _RecruitmentApplicationsScreenState
                               child: Text(
                                 highlighted
                                     ? 'Отпусти кандидата здесь'
-                                    : stageHighlighted
-                                    ? 'Отпусти колонку здесь'
                                     : 'Нет кандидатов',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: highlighted
-                                      ? color
-                                      : stageHighlighted
-                                      ? AppAdaptivePalette.accent
-                                      : _muted,
+                                  color: highlighted ? color : _muted,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),

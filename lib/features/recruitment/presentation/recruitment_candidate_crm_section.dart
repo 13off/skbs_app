@@ -352,8 +352,9 @@ class _RecruitmentCandidateCrmSectionState
   Widget _tasks(RecruitmentCandidateWorkspaceData workspace) {
     final tasks = List<RecruitmentCrmTask>.from(workspace.tasks)
       ..sort((first, second) {
-        if (first.isPending != second.isPending)
+        if (first.isPending != second.isPending) {
           return first.isPending ? -1 : 1;
+        }
         final firstDue = first.dueAt ?? DateTime(9999);
         final secondDue = second.dueAt ?? DateTime(9999);
         return firstDue.compareTo(secondDue);

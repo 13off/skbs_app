@@ -1,15 +1,20 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../employee_details_screen.dart';
 
 extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
   Future<String?> pickTargetObject(List<String> objectNames) async {
     final currentObjectName = employee.objectName.trim();
-    final objects = objectNames
-        .map((objectName) => objectName.trim())
-        .where((objectName) => objectName.isNotEmpty)
-        .where((objectName) => objectName != currentObjectName)
-        .toSet()
-        .toList()
-      ..sort();
+    final objects =
+        objectNames
+            .map((objectName) => objectName.trim())
+            .where((objectName) => objectName.isNotEmpty)
+            .where((objectName) => objectName != currentObjectName)
+            .toSet()
+            .toList()
+          ..sort();
 
     if (objects.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +102,9 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
                             decoration: BoxDecoration(
                               color: AppAdaptivePalette.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppAdaptivePalette.border),
+                              border: Border.all(
+                                color: AppAdaptivePalette.border,
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -166,9 +173,9 @@ extension _EmployeeDetailsCopy on _EmployeeDetailsScreenState {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка копирования: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка копирования: $error')));
     } finally {
       if (mounted) setState(() => isCopyingEmployee = false);
     }

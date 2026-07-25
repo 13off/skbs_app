@@ -66,23 +66,23 @@ class _RecruitmentCrmSettingsScreenState
     try {
       if (stage == null) {
         await RecruitmentRepository.createPipelineStageAtEnd(
-companyId: widget.profile.activeCompanyId,
-title: result.title,
-description: result.description,
-colorHex: result.colorHex,
-legacyStatus: 'new',
-isFinal: result.isFinal,
+          companyId: widget.profile.activeCompanyId,
+          title: result.title,
+          description: result.description,
+          colorHex: result.colorHex,
+          legacyStatus: 'new',
+          isFinal: result.isFinal,
         );
       } else {
         await RecruitmentRepository.savePipelineStage(
-id: stage.id,
-companyId: widget.profile.activeCompanyId,
-title: result.title,
-description: result.description,
-colorHex: result.colorHex,
-legacyStatus: stage.legacyStatus,
-isFinal: result.isFinal,
-sortOrder: stage.sortOrder,
+          id: stage.id,
+          companyId: widget.profile.activeCompanyId,
+          title: result.title,
+          description: result.description,
+          colorHex: result.colorHex,
+          legacyStatus: stage.legacyStatus,
+          isFinal: result.isFinal,
+          sortOrder: stage.sortOrder,
         );
       }
       await refresh();
@@ -118,7 +118,6 @@ sortOrder: stage.sortOrder,
     if (busy) return;
     final active = configuration.stages.where((item) => item.isActive).toList();
     if (oldIndex < 0 || oldIndex >= active.length) return;
-    if (newIndex > oldIndex) newIndex -= 1;
     if (newIndex < 0 || newIndex >= active.length || newIndex == oldIndex) {
       return;
     }
@@ -470,7 +469,7 @@ sortOrder: stage.sortOrder,
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
             itemCount: active.length,
-            onReorder: (oldIndex, newIndex) =>
+            onReorderItem: (oldIndex, newIndex) =>
                 reorderStages(configuration, oldIndex, newIndex),
             proxyDecorator: (child, index, animation) => Material(
               color: Colors.transparent,
@@ -480,22 +479,14 @@ sortOrder: stage.sortOrder,
             ),
             itemBuilder: (context, index) => KeyedSubtree(
               key: ValueKey<String>('stage:${active[index].id}'),
-              child: _stageCard(
-                configuration,
-                active[index],
-                index: index,
-              ),
+              child: _stageCard(configuration, active[index], index: index),
             ),
           ),
         if (archived.isNotEmpty) ...[
           const SizedBox(height: AppUi.gap16),
           _sectionLabel('Скрытые колонки'),
           ...archived.map(
-            (stage) => _stageCard(
-              configuration,
-              stage,
-              index: -1,
-            ),
+            (stage) => _stageCard(configuration, stage, index: -1),
           ),
         ],
       ],

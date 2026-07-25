@@ -4,9 +4,7 @@ class FinancePeriod {
   final int? year;
   final int? month;
 
-  const FinancePeriod.month({required int year, required int month})
-    : year = year,
-      month = month;
+  const FinancePeriod.month({required int this.year, required int this.month});
 
   const FinancePeriod.allTime() : year = null, month = null;
 
@@ -120,13 +118,6 @@ class FinanceSummaryRepository {
     if (clean == null || clean.isEmpty) return null;
 
     return clean;
-  }
-
-  static String _dateKey(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '${date.year}-$month-$day';
   }
 
   static String _requestKey({

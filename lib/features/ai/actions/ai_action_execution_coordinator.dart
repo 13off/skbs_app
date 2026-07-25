@@ -36,10 +36,10 @@ class AiActionExecutionResult {
   });
 
   const AiActionExecutionResult.cancelled()
-      : completed = false,
-        message = 'Действие отменено',
-        targetEntityType = null,
-        targetEntityId = null;
+    : completed = false,
+      message = 'Действие отменено',
+      targetEntityType = null,
+      targetEntityId = null;
 }
 
 class AiActionExecutionCoordinator {
@@ -80,25 +80,11 @@ class AiActionExecutionCoordinator {
         return const AiActionExecutionResult.cancelled();
       }
 
-      final result = switch (action.type) {
-        'create_task_draft' => await _createTask(context, profile, action),
-        'prepare_document' => await _prepareDocument(context, profile, action),
-        'prepare_timesheet_correction' => await _correctTimesheet(action),
-        'prepare_employee_update' =>
-          await _prepareEmployeeUpdate(context, action),
-        'create_employee_draft' => await _createEmployee(context, action),
-        'prepare_payment' => await _preparePayment(context, action),
-        'find_operational_anomalies' =>
-          await _openOperationalAudit(context, action),
-        'find_missing_receipts' || 'prepare_candidate_documents' =>
-          await _openOperationalReport(context, profile, action),
-        'open_period_timesheet' => await _openPeriodTimesheet(context, action),
-        'prepare_work_act' => await _prepareWorkAct(context, action),
-        'create_reminder' => await _createReminder(context, action),
-        _ => throw UnsupportedError(
-            'Действие «${action.type}» пока не поддерживается',
-          ),
-      };
+      final result = await _executeConfirmedAction(
+        context: context,
+        profile: profile,
+        action: action,
+      );
 
       if (result.completed) {
         await AiActionAuditRepository.markCompleted(
@@ -114,6 +100,30 @@ class AiActionExecutionCoordinator {
       await AiActionAuditRepository.markFailed(audit.id, error);
       rethrow;
     }
+  }
+
+  static Future<AiActionExecutionResult> _executeConfirmedAction({
+    required BuildContext context,
+    required AppUserProfile profile,
+    required AiAssistantAction action,
+  }) {
+    return switch (action.type) {
+      'create_task_draft' => _createTask(context, profile, action),
+      'prepare_document' => _prepareDocument(context, profile, action),
+      'prepare_timesheet_correction' => _correctTimesheet(action),
+      'prepare_employee_update' => _prepareEmployeeUpdate(context, action),
+      'create_employee_draft' => _createEmployee(context, action),
+      'prepare_payment' => _preparePayment(context, action),
+      'find_operational_anomalies' => _openOperationalAudit(context, action),
+      'find_missing_receipts' || 'prepare_candidate_documents' =>
+        _openOperationalReport(context, profile, action),
+      'open_period_timesheet' => _openPeriodTimesheet(context, action),
+      'prepare_work_act' => _prepareWorkAct(context, action),
+      'create_reminder' => _createReminder(context, action),
+      _ => Future<AiActionExecutionResult>.error(
+        UnsupportedError('Действие «${action.type}» пока не поддерживается'),
+      ),
+    };
   }
 
   static Future<void> _loadCurrentTimesheetValue(
@@ -148,7 +158,9 @@ class AiActionExecutionCoordinator {
       taskDate,
       objectName: objectName,
     )) {
-      throw StateError('Для этой даты у текущей роли нет права создавать задачу');
+      throw StateError(
+        'Для этой даты у текущей роли нет права создавать задачу',
+      );
     }
     if (!context.mounted) return const AiActionExecutionResult.cancelled();
 
@@ -190,10 +202,8 @@ class AiActionExecutionCoordinator {
   ) async {
     final completed = await Navigator.of(context).push<bool>(
       CupertinoPageRoute<bool>(
-        builder: (_) => AiDocumentTemplateScreen(
-          profile: profile,
-          action: action,
-        ),
+        builder: (_) =>
+            AiDocumentTemplateScreen(profile: profile, action: action),
       ),
     );
     if (completed != true) return const AiActionExecutionResult.cancelled();
@@ -269,10 +279,8 @@ class AiActionExecutionCoordinator {
   ) async {
     final completed = await Navigator.of(context).push<bool>(
       CupertinoPageRoute<bool>(
-        builder: (_) => AiOperationalReportScreen(
-          profile: profile,
-          action: action,
-        ),
+        builder: (_) =>
+            AiOperationalReportScreen(profile: profile, action: action),
       ),
     );
     if (completed != true) return const AiActionExecutionResult.cancelled();

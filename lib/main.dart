@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -65,12 +67,28 @@ class SkbsApp extends StatefulWidget {
 }
 
 class _SkbsAppState extends State<SkbsApp> {
+  StreamSubscription<AuthState>? _authStateSubscription;
+  bool _pushNavigationScheduled = false;
+
   @override
   void initState() {
     super.initState();
     PushNotificationService.navigationRequest.addListener(
       _handlePushNavigation,
     );
+
+    if (widget.startupError == null) {
+      _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange
+          .listen((authState) {
+            if (authState.event == AuthChangeEvent.signedIn ||
+                authState.event == AuthChangeEvent.initialSession ||
+                authState.event == AuthChangeEvent.userUpdated ||
+                authState.event == AuthChangeEvent.tokenRefreshed) {
+              _handlePushNavigation();
+            }
+          });
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handlePushNavigation();
     });
@@ -81,18 +99,40 @@ class _SkbsAppState extends State<SkbsApp> {
     PushNotificationService.navigationRequest.removeListener(
       _handlePushNavigation,
     );
+    final authStateSubscription = _authStateSubscription;
+    if (authStateSubscription != null) {
+      unawaited(authStateSubscription.cancel());
+    }
     super.dispose();
   }
 
   void _handlePushNavigation() {
-    final request = PushNotificationService.takeNavigationRequest();
-    if (request == null) return;
+    if (_pushNavigationScheduled ||
+        PushNotificationService.navigationRequest.value == null) {
+      return;
+    }
 
+    _pushNavigationScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = appNavigatorKey.currentContext;
-      if (context == null || Supabase.instance.client.auth.currentUser == null) {
+      _pushNavigationScheduled = false;
+      if (!mounted ||
+          PushNotificationService.navigationRequest.value == null) {
         return;
       }
+
+      final context = appNavigatorKey.currentContext;
+      if (context == null) {
+        _handlePushNavigation();
+        return;
+      }
+      if (Supabase.instance.client.auth.currentUser == null) {
+        // Запрос остаётся ожидающим и будет повторён после восстановления сессии.
+        return;
+      }
+
+      final request = PushNotificationService.takeNavigationRequest();
+      if (request == null) return;
+
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => NotificationsScreen(
@@ -127,7 +167,7 @@ class _SkbsAppState extends State<SkbsApp> {
           ),
           home: widget.startupError == null
               ? const AppBrowserBackBridge(child: AuthGate())
-              : _StartupErrorScreen(error: widget.startupError!),
+              : const _StartupErrorScreen(),
         );
       },
     );
@@ -135,9 +175,7 @@ class _SkbsAppState extends State<SkbsApp> {
 }
 
 class _StartupErrorScreen extends StatelessWidget {
-  final Object error;
-
-  const _StartupErrorScreen({required this.error});
+  const _StartupErrorScreen();
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +197,7 @@ class _StartupErrorScreen extends StatelessWidget {
                       : Colors.white.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: dark
-                        ? theme.colorScheme.outline
-                        : Colors.white,
+                    color: dark ? theme.colorScheme.outline : Colors.white,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -196,15 +232,6 @@ class _StartupErrorScreen extends StatelessWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SelectableText(
-                      error.toString(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
-                        fontSize: 12,
                       ),
                     ),
                   ],

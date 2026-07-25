@@ -150,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget buildPlatform() {
     return ValueListenableBuilder(
       valueListenable: PersonalProfileController.state,
-      builder: (context, _, __) {
+      builder: (context, _, _) {
         final liveBaseProfile = PersonalProfileController.merge(widget.profile);
         return ValueListenableBuilder<RolePreviewState>(
           valueListenable: RolePreviewController.state,

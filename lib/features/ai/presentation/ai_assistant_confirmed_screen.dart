@@ -509,12 +509,8 @@ class _ConversationEntry {
   final String? errorText;
   bool reviewed;
 
-  _ConversationEntry._({
-    this.userText,
-    this.result,
-    this.errorText,
-    this.reviewed = false,
-  });
+  _ConversationEntry._({this.userText, this.result, this.errorText})
+    : reviewed = false;
 
   factory _ConversationEntry.user(String text) =>
       _ConversationEntry._(userText: text);

@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../employee_details_screen.dart';
 
 extension _EmployeeDetailsStatus on _EmployeeDetailsScreenState {
@@ -34,9 +38,9 @@ extension _EmployeeDetailsStatus on _EmployeeDetailsScreenState {
       Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка архивирования: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка архивирования: $error')));
     } finally {
       if (mounted) setState(() => isArchivingEmployee = false);
     }
@@ -90,9 +94,9 @@ extension _EmployeeDetailsStatus on _EmployeeDetailsScreenState {
         Navigator.pop(context);
       } catch (error) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка архивирования: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка архивирования: $error')));
       } finally {
         if (mounted) setState(() => isArchivingEmployee = false);
       }

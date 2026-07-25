@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of '../home_screen.dart';
 
 extension _HomeActions on _HomeScreenState {
@@ -91,10 +95,7 @@ extension _HomeActions on _HomeScreenState {
                                   ),
                                 ),
                                 if (isSelected)
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: _accent,
-                                  ),
+                                  Icon(Icons.check_circle, color: _accent),
                               ],
                             ),
                           ),

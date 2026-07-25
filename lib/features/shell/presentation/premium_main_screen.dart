@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/services.dart';
 
-import '../../../app/app_theme.dart';
 import '../../../data/app_cache_coordinator.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
@@ -498,6 +497,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final activeIndex = safeCurrentIndex;
     final tabItems = buildTabItems();
 
+    // Keep the established nested-navigation and root-route behavior.
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async => !(await handleBackRequest()),
       child: Scaffold(

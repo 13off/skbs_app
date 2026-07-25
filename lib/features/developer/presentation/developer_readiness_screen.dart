@@ -112,16 +112,18 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Активная компания',
         'Все системные проверки должны выполняться только внутри выбранной компании.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
         },
       ),
       await check(
         'RLS объектов',
         'Выполняет минимальный пользовательский запрос без service role.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
           await client
               .from('objects')
               .select('id')
@@ -133,8 +135,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Ключевые рабочие таблицы',
         'Проверяет сотрудников, табель, задачи, выплаты и уведомления одним пользовательским JWT.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
           await Future.wait<dynamic>([
             client
                 .from('employees')
@@ -168,8 +171,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Оперативная аналитика ИИ',
         'Выполняет безопасную недельную сводку без создания или изменения данных.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
           final response = await client.functions.invoke(
             'ai-operational-insights',
             body: <String, dynamic>{
@@ -205,8 +209,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Шаблоны документов',
         'Проверяет доступ к каталогу шаблонов через текущую роль и RLS.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
           await DocumentTemplateRepository.fetchTemplates(companyId: companyId);
         },
       ),
@@ -214,8 +219,9 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         'Edge Function и JWT',
         'Запрашивает только read-only черновик месячного табеля.',
         () async {
-          if (companyId.isEmpty)
+          if (companyId.isEmpty) {
             throw Exception('Активная компания не выбрана');
+          }
           final response = await client.functions.invoke(
             'ai-operational-draft',
             body: <String, dynamic>{
