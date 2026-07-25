@@ -60,7 +60,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
           decoration: BoxDecoration(
             color: AppAdaptivePalette.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -332,7 +332,7 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.info_outline_rounded, color: _roleMuted),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Все действия выполняются от имени вашего администратора. Роль в компании, приглашения и права доступа в базе не изменяются.',
