@@ -31,111 +31,134 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
           import textwrap
 
-          def replace(path: str, old: str, new: str) -> None:
+          def replace_once(path: str, old: str, new: str) -> None:
               file = Path(path)
               text = file.read_text()
-              if old not in text:
-                  raise SystemExit(f'Expected text not found in {path}: {old[:100]!r}')
-              file.write_text(text.replace(old, new))
-
-          def sub(path: str, pattern: str, replacement: str) -> None:
-              file = Path(path)
-              text = file.read_text()
-              text, count = re.subn(pattern, replacement, text, count=1, flags=re.S | re.M)
+              count = text.count(old)
               if count != 1:
-                  raise SystemExit(f'Expected pattern not found in {path}: {pattern[:120]!r}')
-              file.write_text(text)
+                  raise SystemExit(f'Expected one occurrence in {path}, found {count}: {old[:100]!r}')
+              file.write_text(text.replace(old, new, 1))
 
-          home = 'lib/screens/adaptive_home_base_screen.dart'
-          replace(home, "import '../features/ai/presentation/ai_assistant_screen.dart';\n", '')
-          replace(home, "import '../navigation/app_page_route.dart';\n", '')
-          sub(
-              home,
-              r"\n  void openAiAssistant\(\) \{.*?\n  \}\n\n  Future<void> showFinancePeriodPicker",
-              "\n  Future<void> showFinancePeriodPicker",
-          )
-          sub(
-              home,
-              r"\n        Positioned\(\n          right: 28,\n          bottom: 20,\n          child: SafeArea\(\n            top: false,\n            left: false,\n            child: FloatingActionButton\.extended\(\n              heroTag: 'desktop-home-ai-assistant',.*?\n            \),\n          \),\n        \),",
-              '',
-          )
+          home_path = Path('lib/screens/adaptive_home_base_screen.dart')
+          home = home_path.read_text()
+          for import_line in (
+              "import '../features/ai/presentation/ai_assistant_screen.dart';\n",
+              "import '../navigation/app_page_route.dart';\n",
+          ):
+              if home.count(import_line) != 1:
+                  raise SystemExit(f'Unexpected import count: {import_line!r}')
+              home = home.replace(import_line, '', 1)
 
-          developer = 'lib/features/developer/presentation/developer_main_screen.dart'
-          replace(developer, "import 'data_governance_screen.dart';\n", '')
-          replace(developer, 'static const int pageCount = 3;', 'static const int pageCount = 2;')
-          replace(developer, '      1 => const DataGovernanceScreen(),\n', '')
-          replace(
-              developer,
-              '      2 => ProfileScreen(profile: widget.profile),\n',
-              '      1 => ProfileScreen(profile: widget.profile),\n',
-          )
-          sub(
-              developer,
-              r"\n        ProfessionalBottomNavigationItem\(\n          label: 'Контроль',\n          icon: Icons\.manage_history_outlined,\n          selectedIcon: Icons\.manage_history_rounded,\n        \),",
-              '',
-          )
+          method_start = home.index('\n  void openAiAssistant()')
+          method_end = home.index('\n  Future<void> showFinancePeriodPicker', method_start)
+          home = home[:method_start] + home[method_end:]
 
-          settings = 'lib/screens/settings_screen.dart'
-          replace(
-              settings,
-              "import '../features/developer/presentation/data_governance_screen.dart';\n",
-              '',
-          )
-          sub(
-              settings,
-              r"\n        actionTile\(\n          icon: Icons\.manage_history_outlined,\n          title: 'Контроль данных',\n          subtitle: 'Диагностика, аудит и управление рабочими данными',\n          onTap: \(\) => open\(const DataGovernanceScreen\(\)\),\n        \),",
-              '',
-          )
+          button_marker = "heroTag: 'desktop-home-ai-assistant'"
+          marker_at = home.index(button_marker)
+          button_start = home.rfind('\n        Positioned(', 0, marker_at)
+          button_end = home.index('\n      ],', marker_at)
+          if button_start < 0:
+              raise SystemExit('Could not find desktop AI Positioned start')
+          home = home[:button_start] + home[button_end:]
+          home_path.write_text(home)
 
-          replace(
+          developer_path = Path(
+              'lib/features/developer/presentation/developer_main_screen.dart'
+          )
+          developer = developer_path.read_text()
+          required_replacements = (
+              ("import 'data_governance_screen.dart';\n", ''),
+              ('static const int pageCount = 3;', 'static const int pageCount = 2;'),
+              ('      1 => const DataGovernanceScreen(),\n', ''),
+              (
+                  '      2 => ProfileScreen(profile: widget.profile),\n',
+                  '      1 => ProfileScreen(profile: widget.profile),\n',
+              ),
+          )
+          for old, new in required_replacements:
+              if developer.count(old) != 1:
+                  raise SystemExit(f'Unexpected developer marker count: {old!r}')
+              developer = developer.replace(old, new, 1)
+
+          control_marker = "label: 'Контроль'"
+          marker_at = developer.index(control_marker)
+          control_start = developer.rfind(
+              '\n        ProfessionalBottomNavigationItem(', 0, marker_at
+          )
+          control_end = developer.index(
+              '\n        ProfessionalBottomNavigationItem(', marker_at
+          )
+          if control_start < 0:
+              raise SystemExit('Could not find Control navigation item start')
+          developer = developer[:control_start] + developer[control_end:]
+          developer_path.write_text(developer)
+
+          settings_path = Path('lib/screens/settings_screen.dart')
+          settings = settings_path.read_text()
+          settings_import = (
+              "import '../features/developer/presentation/data_governance_screen.dart';\n"
+          )
+          if settings.count(settings_import) != 1:
+              raise SystemExit('Unexpected settings governance import count')
+          settings = settings.replace(settings_import, '', 1)
+
+          settings_marker = "title: 'Контроль данных'"
+          marker_at = settings.index(settings_marker)
+          tile_start = settings.rfind('\n        actionTile(', 0, marker_at)
+          tile_end = settings.index('\n        ),', marker_at) + len('\n        ),')
+          if tile_start < 0:
+              raise SystemExit('Could not find Control data tile start')
+          settings = settings[:tile_start] + settings[tile_end:]
+          settings_path.write_text(settings)
+
+          replace_once(
               'test/unified_developer_company_constructor_contract_test.dart',
               "expect(main, contains('static const int pageCount = 3;'));",
               "expect(main, contains('static const int pageCount = 2;'));",
           )
-          replace(
+          replace_once(
               'test/unified_developer_company_constructor_contract_test.dart',
               'expect(main, contains("label: \'Контроль\'"));',
               'expect(main, isNot(contains("label: \'Контроль\'")));',
           )
-          replace(
+          replace_once(
               'test/ai_dispatcher_developer_platform_contract_test.dart',
               'expect(platform, contains("label: \'Контроль\'"));',
               'expect(platform, isNot(contains("label: \'Контроль\'")));',
           )
-          replace(
+          replace_once(
               'test/developer_panel_invitation_security_contract_test.dart',
               "expect(platform, contains('static const int pageCount = 3;'));",
               "expect(platform, contains('static const int pageCount = 2;'));",
           )
 
-          task_test = Path('test/task_governance_recycle_bin_contract_test.dart')
-          task_text = task_test.read_text()
-          task_text, count = re.subn(
-              r"  test\('developer navigation exposes unified control center', \(\) \{.*?\n  \}\);\n\n",
-              textwrap.dedent("""\
-                test('developer navigation keeps task safety without a duplicate control tab', () {
-                  final navigation = source(
-                    'lib/features/developer/presentation/developer_main_screen.dart',
-                  );
-
-                  expect(navigation, contains('static const int pageCount = 2;'));
-                  expect(navigation, contains("label: 'Конструктор'"));
-                  expect(navigation, contains("label: 'Профиль'"));
-                  expect(navigation, isNot(contains('DataGovernanceScreen')));
-                  expect(navigation, isNot(contains("label: 'Контроль'")));
-                });
-
-              """),
-              task_text,
-              count=1,
-              flags=re.S,
+          task_path = Path('test/task_governance_recycle_bin_contract_test.dart')
+          task = task_path.read_text()
+          old_test_start = task.index(
+              "  test('developer navigation exposes unified control center'"
           )
-          if count != 1:
-              raise SystemExit('Could not replace obsolete task governance navigation test')
-          task_test.write_text(task_text)
+          next_test_start = task.index(
+              "  test('delete confirmation explains recovery and retained data'",
+              old_test_start,
+          )
+          new_test = textwrap.dedent("""\
+            test('developer navigation keeps task safety without a duplicate control tab', () {
+              final navigation = source(
+                'lib/features/developer/presentation/developer_main_screen.dart',
+              );
+
+              expect(navigation, contains('static const int pageCount = 2;'));
+              expect(navigation, contains("label: 'Конструктор'"));
+              expect(navigation, contains("label: 'Профиль'"));
+              expect(navigation, isNot(contains('DataGovernanceScreen')));
+              expect(navigation, isNot(contains("label: 'Контроль'")));
+            });
+
+          """)
+          task = task[:old_test_start] + new_test + task[next_test_start:]
+          task_path.write_text(task)
 
           for obsolete in (
               'lib/features/developer/data/data_governance_repository.dart',
@@ -143,7 +166,10 @@ jobs:
               'lib/features/developer/presentation/data_governance_screen.dart',
               'test/unified_data_governance_contract_test.dart',
           ):
-              Path(obsolete).unlink()
+              obsolete_path = Path(obsolete)
+              if not obsolete_path.exists():
+                  raise SystemExit(f'Expected obsolete file is missing: {obsolete}')
+              obsolete_path.unlink()
 
           Path('test/redundant_control_and_ai_entry_contract_test.dart').write_text(
               textwrap.dedent("""\
