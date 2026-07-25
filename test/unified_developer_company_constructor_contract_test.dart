@@ -12,9 +12,9 @@ void main() {
       'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
 
-    expect(main, contains('static const int pageCount = 3;'));
+    expect(main, contains('static const int pageCount = 2;'));
     expect(main, contains("label: 'Конструктор'"));
-    expect(main, contains("label: 'Контроль'"));
+    expect(main, isNot(contains("label: 'Контроль'")));
     expect(main, contains("label: 'Профиль'"));
     expect(main, isNot(contains("label: 'Ограничения'")));
     expect(main, isNot(contains("label: 'Права'")));

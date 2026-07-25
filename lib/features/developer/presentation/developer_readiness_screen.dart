@@ -7,7 +7,6 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../../compliance/data/company_compliance_repository.dart';
 import '../../compliance/models/company_compliance_models.dart';
-import '../data/data_governance_repository.dart';
 import '../data/developer_policy_repository.dart';
 
 class DeveloperReadinessScreen extends StatefulWidget {
@@ -163,13 +162,6 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
                 .eq('company_id', companyId)
                 .limit(1),
           ]);
-        },
-      ),
-      await check(
-        'Корзина и общий журнал',
-        'Проверяет защищённый read-only центр контроля данных.',
-        () async {
-          await DataGovernanceRepository.fetchCenter(limit: 1);
         },
       ),
       await check(

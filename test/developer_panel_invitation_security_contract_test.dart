@@ -11,7 +11,7 @@ void main() {
       'lib/features/developer/presentation/developer_main_screen.dart',
     ).readAsStringSync();
 
-    expect(platform, contains('static const int pageCount = 3;'));
+    expect(platform, contains('static const int pageCount = 2;'));
     expect(platform, contains("label: 'Конструктор'"));
     expect(platform, isNot(contains("label: 'Ограничения'")));
     expect(platform, isNot(contains("label: 'Права'")));

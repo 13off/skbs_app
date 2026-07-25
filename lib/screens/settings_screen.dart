@@ -6,7 +6,6 @@ import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
-import '../features/developer/presentation/data_governance_screen.dart';
 import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/developer/presentation/developer_system_screen.dart';
 import '../features/developer/presentation/role_permission_matrix_screen.dart';
@@ -202,12 +201,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: 'ИИ-диспетчер',
           subtitle: 'Расписание, разделы и доставка автоматических сводок',
           onTap: () => open(const DispatcherSettingsScreen()),
-        ),
-        actionTile(
-          icon: Icons.manage_history_outlined,
-          title: 'Контроль данных',
-          subtitle: 'Диагностика, аудит и управление рабочими данными',
-          onTap: () => open(const DataGovernanceScreen()),
         ),
       ];
     }

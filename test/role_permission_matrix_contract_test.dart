@@ -125,9 +125,10 @@ void main() {
       ),
     );
 
-    expect(mainScreen, contains('static const int pageCount = 3'));
+    expect(mainScreen, contains('static const int pageCount = 2'));
     expect(mainScreen, contains("label: 'Конструктор'"));
     expect(mainScreen, isNot(contains("label: 'Права'")));
+    expect(mainScreen, isNot(contains("label: 'Контроль'")));
     expect(systemScreen, contains("title: 'Роли и права'"));
     expect(systemScreen, contains('RolePermissionMatrixScreen'));
     expect(matrixScreen, contains('DataTable('));

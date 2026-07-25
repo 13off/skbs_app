@@ -20,7 +20,7 @@ void main() {
       isNot(contains('profile.isDeveloper && !profile.isRolePreview')),
     );
     expect(platform, contains("label: 'Конструктор'"));
-    expect(platform, contains("label: 'Контроль'"));
+    expect(platform, isNot(contains("label: 'Контроль'")));
     expect(platform, isNot(contains("label: 'Диспетчер'")));
     expect(platform, isNot(contains("label: 'Ограничения'")));
     expect(system, contains('Конфигурация текущей компании'));

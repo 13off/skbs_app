@@ -11,12 +11,10 @@ import '../data/employee_repository.dart';
 import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
-import '../features/ai/presentation/ai_assistant_screen.dart';
 import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
-import '../navigation/app_page_route.dart';
 import '../widgets/app_page.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/premium_ui.dart';
@@ -254,17 +252,6 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
     }
 
     return '${negative ? '-' : ''}${buffer.toString()} ₽';
-  }
-
-  void openAiAssistant() {
-    Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (_) => AiAssistantScreen(
-          profile: widget.profile,
-          selectedObjectName: widget.selectedObjectName,
-        ),
-      ),
-    );
   }
 
   Future<void> showFinancePeriodPicker() async {
@@ -610,22 +597,6 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
 
                 return buildDashboard(data, isLoading: isLoading);
               },
-            ),
-          ),
-        ),
-        Positioned(
-          right: 28,
-          bottom: 20,
-          child: SafeArea(
-            top: false,
-            left: false,
-            child: FloatingActionButton.extended(
-              heroTag: 'desktop-home-ai-assistant',
-              onPressed: openAiAssistant,
-              backgroundColor: AppAdaptivePalette.accentStrong,
-              foregroundColor: AppAdaptivePalette.onAccent,
-              icon: Icon(Icons.auto_awesome_rounded),
-              label: const Text('ИИ-помощник'),
             ),
           ),
         ),
