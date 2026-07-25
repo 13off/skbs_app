@@ -97,22 +97,6 @@ def main() -> None:
         "navigation contract expectations",
     )
 
-    workflow = Path(".github/workflows/pr-check.yml")
-    workflow_source = workflow.read_text(encoding="utf-8")
-    workflow_source = workflow_source.replace(
-        "permissions:\n  contents: write\n",
-        "permissions:\n  contents: read\n",
-        1,
-    )
-    start_marker = "      # BEGIN TEMP NAVIGATION PATCH\n"
-    end_marker = "      # END TEMP NAVIGATION PATCH\n"
-    start = workflow_source.index(start_marker)
-    end = workflow_source.index(end_marker, start) + len(end_marker)
-    workflow.write_text(
-        workflow_source[:start] + workflow_source[end:],
-        encoding="utf-8",
-    )
-
     Path(__file__).unlink()
 
 
