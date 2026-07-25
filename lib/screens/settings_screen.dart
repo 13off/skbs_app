@@ -5,7 +5,6 @@ import '../app/theme_controller.dart';
 import '../features/archive/presentation/archive_management_screen_v3.dart';
 import '../features/company/data/company_repository.dart';
 import '../features/company/presentation/company_management_screen.dart';
-import '../features/company/presentation/company_setup_screen.dart';
 import '../features/company/presentation/company_switcher_screen.dart';
 import '../features/developer/presentation/data_governance_screen.dart';
 import '../features/developer/presentation/developer_panel_screen.dart';
@@ -252,12 +251,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<Widget> companyManagement() {
     if (!profile.isAdmin) return const <Widget>[];
     return [
-      actionTile(
-        icon: Icons.rocket_launch_outlined,
-        title: 'Запуск компании',
-        subtitle: 'Объект, сотрудники, первая задача, табель и уведомления',
-        onTap: () => open(CompanySetupScreen(profile: profile)),
-      ),
       actionTile(
         icon: Icons.manage_accounts_outlined,
         title: 'Компания и пользователи',

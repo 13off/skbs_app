@@ -6,15 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('first launch has real progress and never seeds production data', () {
+  test('recommended setup has real progress and never seeds production data', () {
     final repository = source(
       'lib/features/company/data/company_setup_repository.dart',
     );
     final screen = source(
       'lib/features/company/presentation/company_setup_screen.dart',
     );
-    final nudge = source(
-      'lib/features/company/presentation/company_setup_nudge.dart',
+    final recommendation = source(
+      'lib/features/company/presentation/company_setup_recommendation_card.dart',
     );
 
     expect(repository, contains("from('employees')"));
@@ -25,24 +25,49 @@ void main() {
     expect(repository, contains("from('tasks')"));
     expect(repository, contains("from('attendance')"));
     expect(repository, contains('hasAssignedForeman'));
-    expect(screen, contains("title: 'Запуск компании'"));
-    expect(screen, contains('не создаёт сотрудников'));
-    expect(nudge, contains('company_setup_nudge'));
-    expect('$repository\n$screen\n$nudge', isNot(contains('.insert(')));
-    expect('$repository\n$screen\n$nudge', isNot(contains('.update(')));
-    expect('$repository\n$screen\n$nudge', isNot(contains('.delete(')));
+    expect(screen, contains("title: 'Настройка компании'"));
+    expect(screen, contains('Это рекомендации, а не обязательные правила'));
+    expect(recommendation, contains('CompanySetupRepository.fetch'));
+    expect(
+      '$repository\n$screen\n$recommendation',
+      isNot(contains('.insert(')),
+    );
+    expect(
+      '$repository\n$screen\n$recommendation',
+      isNot(contains('.update(')),
+    );
+    expect(
+      '$repository\n$screen\n$recommendation',
+      isNot(contains('.delete(')),
+    );
   });
 
-  test('setup remains reachable after the one-time prompt', () {
-    final profile = source('lib/screens/profile_screen.dart');
-    final system = source(
-      'lib/features/developer/presentation/developer_system_screen.dart',
+  test('setup is only a dismissible manager-home recommendation', () {
+    final manager = source(
+      'lib/features/reports/presentation/manager_main_screen.dart',
+    );
+    final recommendation = source(
+      'lib/features/company/presentation/company_setup_recommendation_card.dart',
     );
     final main = source('lib/screens/main_screen.dart');
+    final settings = source('lib/screens/settings_screen.dart');
+    final developer = source(
+      'lib/features/developer/presentation/developer_system_screen.dart',
+    );
 
-    expect(profile, contains("title: 'Запуск компании'"));
-    expect(system, contains("title: 'Запуск компании'"));
-    expect(main, contains('CompanySetupNudge'));
+    expect(manager, contains('CompanySetupRecommendationCard'));
+    expect(recommendation, contains('Больше не показывать'));
+    expect(recommendation, contains('progress.coreCompleted'));
+    expect(recommendation, contains("widget.profile.actualRole == 'admin'"));
+    expect(main, isNot(contains('CompanySetupNudge')));
+    expect(settings, isNot(contains('CompanySetupScreen')));
+    expect(developer, isNot(contains('CompanySetupScreen')));
+    expect(
+      File(
+        'lib/features/company/presentation/company_setup_nudge.dart',
+      ).existsSync(),
+      isFalse,
+    );
   });
 
   test(
