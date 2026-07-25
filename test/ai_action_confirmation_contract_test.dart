@@ -20,13 +20,19 @@ void main() {
       'AiActionAuditRepository.markConfirmed(',
     );
     final execution = coordinator.indexOf(
-      "'create_task_draft' => await _createTask",
+      "'create_task_draft' => _createTask(context, profile, action)",
     );
 
     expect(proposed, greaterThanOrEqualTo(0));
     expect(confirmation, greaterThan(proposed));
     expect(confirmed, greaterThan(confirmation));
     expect(execution, greaterThan(confirmed));
+    expect(coordinator, contains('final result = await _executeConfirmedAction('));
+    expect(
+      coordinator,
+      contains('static Future<AiActionExecutionResult> _executeConfirmedAction'),
+    );
+    expect(coordinator, isNot(contains("'create_task_draft' => await _createTask")));
     expect(coordinator, contains('AiActionAuditRepository.markCancelled('));
     expect(coordinator, contains('AiActionAuditRepository.markCompleted('));
     expect(coordinator, contains('AiActionAuditRepository.markFailed('));
@@ -63,7 +69,7 @@ void main() {
     );
 
     expect(repository, contains(".from('ai_action_audit')"));
-    expect(repository, contains(".insert(<String, dynamic>{"));
+    expect(repository, contains('.insert(<String, dynamic>{'));
     expect(repository, contains("'transition_ai_action_audit'"));
     expect(repository, isNot(contains(".from('ai_action_audit')\n        .update")));
     expect(repository, isNot(contains("'status': 'proposed'")));
@@ -74,10 +80,9 @@ void main() {
       'lib/features/ai/actions/ai_action_execution_coordinator.dart',
     );
 
-    expect(coordinator, contains("targetEntityType: 'task'"));
-    expect(coordinator, contains("targetEntityType: 'document_download'"));
-    expect(coordinator, contains("targetEntityType: 'attendance'"));
-    expect(coordinator, contains("targetEntityType: 'employee'"));
-    expect(coordinator, contains("targetEntityType: 'developer_reminder'"));
+    expect(coordinator, contains('targetEntityType:'));
+    expect(coordinator, contains('targetEntityId:'));
+    expect(coordinator, contains('targetEntityType: result.targetEntityType'));
+    expect(coordinator, contains('targetEntityId: result.targetEntityId'));
   });
 }
