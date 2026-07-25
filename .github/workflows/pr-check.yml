@@ -26,9 +26,11 @@ jobs:
           show-progress: false
 
       - name: Apply focused cleanup
+        id: patch
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee /tmp/patch.log) 2>&1
           python3 - <<'PY'
           from pathlib import Path
           import textwrap
@@ -236,6 +238,15 @@ jobs:
             echo 'Duplicate desktop AI entry remains.'
             exit 1
           fi
+
+      - name: Upload patch diagnostics
+        if: failure() && steps.patch.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: redundant-controls-patch-log
+          path: /tmp/patch.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Restore standard workflow and commit cleanup
         shell: bash
