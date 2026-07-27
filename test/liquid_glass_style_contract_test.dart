@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также запускает штатную Web/PWA-публикацию Liquid-интерфейса.
 void main() {
   test('Liquid Glass is limited to safe shared surfaces', () {
     final liquid = File('lib/widgets/liquid_glass.dart').readAsStringSync();
