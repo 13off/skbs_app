@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // Контракт также служит безопасной точкой запуска штатной Web/PWA-сборки.
 void main() {
-  test('touch feedback is local, clipped and springy', () {
+  test('touch feedback is local, clipped, subtle and behind content', () {
     final pressable = File(
       'lib/widgets/premium_pressable_v3.dart',
     ).readAsStringSync();
@@ -16,6 +16,11 @@ void main() {
     expect(pressable, contains('ClipRRect('));
     expect(pressable, contains('RepaintBoundary('));
     expect(pressable, contains('disableAnimations'));
+    expect(pressable, contains('0.055 * fade'));
+    expect(
+      pressable.indexOf('painter: _TouchGlowPainter'),
+      lessThan(pressable.indexOf('widget.child')),
+    );
   });
 
   test('bottom navigation uses spring selection without rebuilding routes', () {

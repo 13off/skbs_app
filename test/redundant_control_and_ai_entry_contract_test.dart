@@ -35,12 +35,15 @@ void main() {
     );
   });
 
-  test('duplicate desktop AI button is removed while chat launcher remains', () {
+  test('AI entry is removed while the ordinary chat launcher remains', () {
     final home = File(
       'lib/screens/adaptive_home_base_screen.dart',
     ).readAsStringSync();
     final chat = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/company_chat/data/company_chat_repository.dart',
     ).readAsStringSync();
 
     expect(home, isNot(contains('desktop-home-ai-assistant')));
@@ -48,7 +51,6 @@ void main() {
     expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
     expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
     expect(chat, contains('class _ChatLauncherButton'));
-    expect(chat, contains('thread.isAssistant'));
-    expect(chat, contains("'Личный диалог с ИИ-помощником'"));
+    expect(repository, contains('!value.isAssistant'));
   });
 }
