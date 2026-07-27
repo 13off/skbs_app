@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Этот контракт также служит безопасной точкой штатной Web/PWA-публикации.
 void main() {
   test('global touch glow covers the complete application viewport', () {
     final viewport = File(
