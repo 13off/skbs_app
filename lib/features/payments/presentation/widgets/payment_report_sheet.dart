@@ -14,6 +14,7 @@ Color get _sheetMuted => AppAdaptivePalette.textMuted;
 Future<PaymentReportRequest?> showPaymentReportSheet({
   required BuildContext context,
   required DateTime initialMonth,
+  DateTimeRange? initialDateRange,
   required List<PaymentReportEmployeeOption> employees,
 }) {
   return showModalBottomSheet<PaymentReportRequest>(
@@ -23,6 +24,7 @@ Future<PaymentReportRequest?> showPaymentReportSheet({
     builder: (_) {
       return _PaymentReportSheet(
         initialMonth: initialMonth,
+        initialDateRange: initialDateRange,
         employees: employees,
       );
     },
@@ -31,10 +33,12 @@ Future<PaymentReportRequest?> showPaymentReportSheet({
 
 class _PaymentReportSheet extends StatefulWidget {
   final DateTime initialMonth;
+  final DateTimeRange? initialDateRange;
   final List<PaymentReportEmployeeOption> employees;
 
   const _PaymentReportSheet({
     required this.initialMonth,
+    required this.initialDateRange,
     required this.employees,
   });
 
@@ -43,11 +47,13 @@ class _PaymentReportSheet extends StatefulWidget {
 }
 
 class _PaymentReportSheetState extends State<_PaymentReportSheet> {
-  static const _allTimeKey = '__all_time__';
   static const _allEmployeesKey = '__all_employees__';
 
   late final List<DateTime> availableMonths;
   late String selectedPeriodKey;
+  late DateTimeRange selectedDateRange;
+  PaymentReportPeriodMode selectedPeriodMode =
+      PaymentReportPeriodMode.settlementMonth;
   String? selectedObjectKey;
   String selectedEmployeeKey = _allEmployeesKey;
 
@@ -67,6 +73,12 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
     );
 
     selectedPeriodKey = _monthKey(initial);
+    selectedDateRange =
+        widget.initialDateRange ??
+        DateTimeRange(
+          start: DateTime(initial.year, initial.month, 1),
+          end: DateTime(initial.year, initial.month + 1, 0),
+        );
   }
 
   String _monthKey(DateTime month) {
@@ -93,8 +105,6 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
   }
 
   DateTime? get selectedMonth {
-    if (selectedPeriodKey == _allTimeKey) return null;
-
     for (final month in availableMonths) {
       if (_monthKey(month) == selectedPeriodKey) return month;
     }
@@ -102,14 +112,36 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
     return widget.initialMonth;
   }
 
+  String _formatDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    return '$day.$month.${value.year}';
+  }
+
+  Future<void> pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: selectedDateRange,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2035, 12, 31),
+      helpText: 'Выберите даты фактических выплат',
+      cancelText: 'Отмена',
+      confirmText: 'Выбрать',
+      saveText: 'Выбрать',
+    );
+    if (picked == null || !mounted) return;
+    setState(() => selectedDateRange = picked);
+  }
+
   List<String> get objectNames {
-    final values = widget.employees
-        .expand((employee) => employee.objectNames)
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        widget.employees
+            .expand((employee) => employee.objectNames)
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return values;
   }
 
@@ -129,7 +161,18 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
     Navigator.pop(
       context,
       PaymentReportRequest(
-        month: selectedMonth,
+        periodMode: selectedPeriodMode,
+        month: selectedPeriodMode == PaymentReportPeriodMode.settlementMonth
+            ? selectedMonth
+            : null,
+        paymentDateFrom:
+            selectedPeriodMode == PaymentReportPeriodMode.paymentDateRange
+            ? selectedDateRange.start
+            : null,
+        paymentDateTo:
+            selectedPeriodMode == PaymentReportPeriodMode.paymentDateRange
+            ? selectedDateRange.end
+            : null,
         employeeKey: selectedEmployeeKey == _allEmployeesKey
             ? null
             : selectedEmployeeKey,
@@ -197,7 +240,7 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Сначала выбери объект или «Все объекты», затем период и сотрудника.',
+                  'Выбери объект, способ отбора периода и сотрудника.',
                   style: TextStyle(
                     color: _sheetMuted,
                     fontWeight: FontWeight.w600,
@@ -243,34 +286,110 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
                         },
                       ),
                       SizedBox(height: 14),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedPeriodKey,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Период',
-                          prefixIcon: Icon(Icons.calendar_month_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: _allTimeKey,
-                            child: Text('За всё время'),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Период отчёта',
+                          style: TextStyle(
+                            color: _sheetText,
+                            fontWeight: FontWeight.w800,
                           ),
-                          ...availableMonths.map((month) {
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('Расчётный месяц'),
+                            selected:
+                                selectedPeriodMode ==
+                                PaymentReportPeriodMode.settlementMonth,
+                            onSelected: (_) {
+                              setState(() {
+                                selectedPeriodMode =
+                                    PaymentReportPeriodMode.settlementMonth;
+                              });
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('По датам выплаты'),
+                            selected:
+                                selectedPeriodMode ==
+                                PaymentReportPeriodMode.paymentDateRange,
+                            onSelected: (_) {
+                              setState(() {
+                                selectedPeriodMode =
+                                    PaymentReportPeriodMode.paymentDateRange;
+                              });
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('За всё время'),
+                            selected:
+                                selectedPeriodMode ==
+                                PaymentReportPeriodMode.allTime,
+                            onSelected: (_) {
+                              setState(() {
+                                selectedPeriodMode =
+                                    PaymentReportPeriodMode.allTime;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (selectedPeriodMode ==
+                          PaymentReportPeriodMode.settlementMonth)
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedPeriodKey,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Расчётный месяц',
+                            prefixIcon: Icon(Icons.calendar_month_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          items: availableMonths.map((month) {
                             return DropdownMenuItem<String>(
                               value: _monthKey(month),
                               child: Text(_monthTitle(month)),
                             );
-                          }),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
-
-                          setState(() {
-                            selectedPeriodKey = value;
-                          });
-                        },
-                      ),
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => selectedPeriodKey = value);
+                          },
+                        )
+                      else if (selectedPeriodMode ==
+                          PaymentReportPeriodMode.paymentDateRange)
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: pickDateRange,
+                            icon: const Icon(Icons.date_range_outlined),
+                            label: Text(
+                              '${_formatDate(selectedDateRange.start)} — ${_formatDate(selectedDateRange.end)}',
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _sheetCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _sheetLine),
+                          ),
+                          child: Text(
+                            'В отчёт войдут выплаты за всё время.',
+                            style: TextStyle(
+                              color: _sheetMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         key: ValueKey(
