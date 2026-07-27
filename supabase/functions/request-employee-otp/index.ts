@@ -47,7 +47,7 @@ Deno.serve(async (request: Request) => {
     const input = await request.json();
     const phone = normalizePhone(input.phone);
     if (!phone) {
-      return json({ error: "Некорректный номер телефона" }, 400);
+      return json({ ok: false, error: "Некорректный номер телефона" });
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -69,10 +69,10 @@ Deno.serve(async (request: Request) => {
       new Set((links ?? []).map((row) => String(row.user_id))),
     );
     if (companyIds.length === 0 || userIds.length === 0) {
-      return json(
-        { error: "Этот номер не подключён к кабинету сотрудника" },
-        403,
-      );
+      return json({
+        ok: false,
+        error: "Этот номер не подключён к кабинету сотрудника",
+      });
     }
 
     const [{ data: company }, { data: profile }] = await Promise.all([
@@ -94,10 +94,10 @@ Deno.serve(async (request: Request) => {
     ]);
 
     if (!company || !profile) {
-      return json(
-        { error: "Доступ сотрудника отключён. Обратитесь к руководителю" },
-        403,
-      );
+      return json({
+        ok: false,
+        error: "Доступ сотрудника отключён. Обратитесь к руководителю",
+      });
     }
 
     const authClient = createClient(supabaseUrl, anonKey, {
