@@ -101,6 +101,7 @@ Deno.serve(async (request: Request) => {
       );
     }
 
+    let claimedTokenHash = "";
     let accountLink: {
       company_id: string;
       person_id: string;
@@ -113,11 +114,11 @@ Deno.serve(async (request: Request) => {
       if (connectToken.length < 24 || connectToken.length > 128) {
         return json({ error: "Код подключения некорректен" }, 400);
       }
-      const tokenHash = await sha256(connectToken);
+      claimedTokenHash = await sha256(connectToken);
       const { data: pendingToken, error: tokenError } = await adminClient
         .from("employee_max_link_tokens")
         .select("company_id, person_id, user_id, phone_e164, expires_at, used_at")
-        .eq("token_hash", tokenHash)
+        .eq("token_hash", claimedTokenHash)
         .maybeSingle();
       if (tokenError) throw tokenError;
       if (
@@ -139,16 +140,6 @@ Deno.serve(async (request: Request) => {
         user_id: String(pendingToken.user_id),
         phone_e164: phone,
       };
-
-      const { error: useTokenError } = await adminClient
-        .from("employee_max_link_tokens")
-        .update({
-          used_at: new Date().toISOString(),
-          claimed_max_user_id: maxUserId,
-        })
-        .eq("token_hash", tokenHash)
-        .is("used_at", null);
-      if (useTokenError) throw useTokenError;
     } else if (action === "link_verified_phone") {
       const { data: links, error: linksError } = await adminClient
         .from("employee_account_links")
@@ -225,6 +216,18 @@ Deno.serve(async (request: Request) => {
         { onConflict: "company_id,person_id" },
       );
     if (linkError) throw linkError;
+
+    if (claimedTokenHash) {
+      const { error: useTokenError } = await adminClient
+        .from("employee_max_link_tokens")
+        .update({
+          used_at: now,
+          claimed_max_user_id: maxUserId,
+        })
+        .eq("token_hash", claimedTokenHash)
+        .is("used_at", null);
+      if (useTokenError) throw useTokenError;
+    }
 
     return json({
       ok: true,
