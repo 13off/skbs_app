@@ -32,4 +32,4 @@ line 43, column 5 of test/web_performance_contract_test.dart: Expected to find '
 43 │     expect(scale, contains('filterQuality: FilterQuality.none'));
    │     ^^^^^^
    ╵
-Formatted 10 files (7 changed) in 0.09 seconds.
+Formatted 10 files (7 changed) in 0.10 seconds.
