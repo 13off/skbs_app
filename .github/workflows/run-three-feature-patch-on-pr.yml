@@ -25,14 +25,34 @@ jobs:
             exit 0
           fi
           rm -f .github/patch-error.txt
+          set +e
           ruby -ryaml -e '
             workflow = YAML.load_file(".github/workflows/apply-three-backlog-features.yml")
             step = workflow.dig("jobs", "apply", "steps").find { |item| item["name"] == "Apply source changes" }
             abort("Apply source changes step not found") unless step
             puts step["run"]
-          ' > /tmp/apply-three-features.sh
-          bash /tmp/apply-three-features.sh
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          ' > /tmp/apply-three-features.sh 2> .github/patch-error.txt
+          status=$?
+          if [ "$status" -eq 0 ]; then
+            bash /tmp/apply-three-features.sh 2>> .github/patch-error.txt
+            status=$?
+          fi
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "changed=error" >> "$GITHUB_OUTPUT"
+          else
+            rm -f .github/patch-error.txt
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.apply.outputs.changed == 'error'
+        name: Commit patch diagnostics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/patch-error.txt
+          git commit -m "Сохранить ошибку применения патча"
+          git push
 
       - if: steps.apply.outputs.changed == 'true'
         uses: subosito/flutter-action@v2
