@@ -7,6 +7,12 @@ on:
     paths:
       - tool/apply_web_performance_patch.py
       - .github/workflows/apply-web-performance.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tool/apply_web_performance_patch.py
+      - .github/workflows/apply-web-performance.yml
 
 permissions:
   contents: write
