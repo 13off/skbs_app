@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Контракт одновременно защищает live-переключение и сохранение текущего state.
   test('working platform rebuilds when inherited theme changes', () {
     final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
     final adaptivePalette = File(
