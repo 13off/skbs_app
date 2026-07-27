@@ -18,19 +18,21 @@ String actionExecutionSource() => <String>[
 ].map(source).join('\n');
 
 void main() {
-  test('home opens AI chat from a fixed bottom-right button', () {
+  test('AI entry lives inside chat without a duplicate home button', () {
     final home = homeSource();
+    final chat = source(
+      'lib/features/company_chat/presentation/company_chat_shell.dart',
+    );
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
 
-    expect(home, contains('AiAssistantScreen('));
-    expect(home, contains('FloatingActionButton('));
-    expect(home, contains("heroTag: 'home-ai-assistant'"));
-    expect(home, contains('Positioned('));
-    expect(home, contains('right: 18'));
-    expect(home, contains('bottom: 18'));
-    expect(home, isNot(contains('buildAiAssistantCard')));
+    expect(home, isNot(contains("heroTag: 'home-ai-assistant'")));
+    expect(home, isNot(contains('buildAiAssistantButton')));
+    expect(chat, contains("'ИИ-помощник'"));
+    expect(chat, contains("'Временно недоступен'"));
+    expect(chat, contains('Icons.lock_rounded'));
+    expect(chat, contains('class _ChatLauncherButton'));
     expect(shell, isNot(contains("label: 'ИИ'")));
   });
 
