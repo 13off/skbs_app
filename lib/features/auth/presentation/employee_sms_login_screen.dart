@@ -31,13 +31,23 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
 
   String friendlyError(Object error) {
     if (error is AuthException) {
-      final text = error.message.toLowerCase();
+      final message = error.message.trim();
+      final text = message.toLowerCase();
       if (text.contains('rate limit')) {
         return 'Слишком много попыток. Подожди немного и попробуй снова';
       }
       if (text.contains('invalid') || text.contains('expired')) {
         return 'Код неверный или уже истёк';
       }
+      if (text.contains('не подключ') ||
+          text.contains('доступ сотрудника отключ') ||
+          text.contains('signup') ||
+          text.contains('sign up') ||
+          text.contains('not found') ||
+          text.contains('user not')) {
+        return 'Этот номер не подключён к кабинету сотрудника. Обратись к руководителю';
+      }
+      if (text.contains('некорректный номер')) return message;
     }
     return 'Не получилось войти. Проверь номер и интернет';
   }

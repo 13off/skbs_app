@@ -5,6 +5,7 @@ import '../app/app_adaptive_palette.dart';
 
 import '../data/employee_archive_repository.dart';
 import '../data/employee_repository.dart';
+import '../features/employee/data/employee_access_repository.dart';
 import '../features/tasks/presentation/employee_contribution_screen.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
@@ -16,6 +17,7 @@ import 'employee_private_data_screen.dart';
 import 'employee_timesheet_screen.dart';
 import 'payment_history_screen.dart';
 
+part 'employee_details/employee_details_access.dart';
 part 'employee_details/employee_details_copy.dart';
 part 'employee_details/employee_details_formatting.dart';
 part 'employee_details/employee_details_navigation.dart';
@@ -39,14 +41,22 @@ class EmployeeDetailsScreen extends StatefulWidget {
 
 class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   late Employee employee;
+  Future<EmployeeAccessState>? employeeAccessFuture;
   bool isChangingStatus = false;
   bool isCopyingEmployee = false;
   bool isArchivingEmployee = false;
+  bool isChangingEmployeeAccess = false;
+
+  void rebuildEmployeeDetails(VoidCallback update) {
+    if (!mounted) return;
+    setState(update);
+  }
 
   @override
   void initState() {
     super.initState();
     employee = widget.employee;
+    refreshEmployeeAccess();
   }
 
   @override

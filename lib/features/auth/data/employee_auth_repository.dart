@@ -21,15 +21,22 @@ class EmployeeAuthRepository {
   static Future<void> requestCode(String rawPhone) async {
     final phone = normalizeRussianPhone(rawPhone);
     UserRepository.clearProfileCache();
-    await _client.auth.signInWithOtp(
-      phone: phone,
-      shouldCreateUser: true,
-      channel: OtpChannel.sms,
-      data: const <String, dynamic>{
-        'role': 'employee',
-        'must_set_password': false,
-      },
+
+    final response = await _client.functions.invoke(
+      'request-employee-otp',
+      body: <String, dynamic>{'phone': phone},
     );
+    final raw = response.data;
+    if (raw is! Map) {
+      throw const AuthException('Не удалось проверить доступ сотрудника');
+    }
+    final data = Map<String, dynamic>.from(raw);
+    final error = data['error']?.toString().trim() ?? '';
+    if (data['ok'] != true) {
+      throw AuthException(
+        error.isEmpty ? 'Этот номер не подключён к кабинету сотрудника' : error,
+      );
+    }
   }
 
   static Future<void> verifyCode({
