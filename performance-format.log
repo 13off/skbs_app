@@ -1,0 +1,35 @@
+Formatted lib/app/app_theme.dart
+Formatted lib/app/premium_scroll_behavior.dart
+Formatted lib/app/app_scale_viewport.dart
+Formatted lib/app/premium_depth_theme.dart
+Formatted lib/main.dart
+Formatted lib/widgets/premium_ui_v2.dart
+Formatted lib/widgets/professional_bottom_navigation.dart
+Could not format because the source could not be parsed:
+
+line 41, column 43 of test/web_performance_contract_test.dart: Unterminated string literal.
+   ╷
+41 │     expect(page, contains('Positioned.fill(
+   │                                           ^
+   ╵
+line 42, column 37 of test/web_performance_contract_test.dart: Unterminated string literal.
+   ╷
+42 │           child: RepaintBoundary('));
+   │                                     ^
+   ╵
+line 48, column 3 of test/web_performance_contract_test.dart: Expected to find ')'.
+   ╷
+48 │   });
+   │   ^
+   ╵
+line 42, column 11 of test/web_performance_contract_test.dart: Expected to find ','.
+   ╷
+42 │           child: RepaintBoundary('));
+   │           ^^^^^
+   ╵
+line 43, column 5 of test/web_performance_contract_test.dart: Expected to find ','.
+   ╷
+43 │     expect(scale, contains('filterQuality: FilterQuality.none'));
+   │     ^^^^^^
+   ╵
+Formatted 10 files (7 changed) in 0.09 seconds.
