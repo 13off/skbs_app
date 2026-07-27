@@ -85,7 +85,7 @@ class LoginScreen extends StatelessWidget {
                       _LoginChoice(
                         icon: Icons.engineering_rounded,
                         title: 'Я сотрудник',
-                        subtitle: 'Войти по номеру телефона и коду из СМС',
+                        subtitle: 'Войти по номеру и бесплатному коду из MAX',
                         onTap: () => openEmployeeLogin(context),
                         primary: true,
                       ),
