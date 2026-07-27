@@ -25,18 +25,12 @@ jobs:
             exit 0
           fi
           rm -f .github/patch-error.txt
+          sed -n "/python3 <<'PY'/,/^          PY$/p" \
+            .github/workflows/apply-three-backlog-features.yml \
+            | sed '1d;$d;s/^          //' > /tmp/apply-three-features.py
           set +e
-          ruby -ryaml -e '
-            workflow = YAML.load_file(".github/workflows/apply-three-backlog-features.yml")
-            step = workflow.dig("jobs", "apply", "steps").find { |item| item["name"] == "Apply source changes" }
-            abort("Apply source changes step not found") unless step
-            puts step["run"]
-          ' > /tmp/apply-three-features.sh 2> .github/patch-error.txt
+          python3 /tmp/apply-three-features.py 2> .github/patch-error.txt
           status=$?
-          if [ "$status" -eq 0 ]; then
-            bash /tmp/apply-three-features.sh 2>> .github/patch-error.txt
-            status=$?
-          fi
           set -e
           if [ "$status" -ne 0 ]; then
             echo "changed=error" >> "$GITHUB_OUTPUT"
