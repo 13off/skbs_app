@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Отдельный контракт также служит безопасной точкой запуска Web/PWA-сборки.
 void main() {
   test('safe interaction tuning keeps the visual renderer intact', () {
     final viewport = File(
