@@ -1,7 +1,8 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
 class PremiumScrollBehavior extends MaterialScrollBehavior {
   const PremiumScrollBehavior();
@@ -17,24 +18,7 @@ class PremiumScrollBehavior extends MaterialScrollBehavior {
 
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) {
-    final desktopPlatform =
-        defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.macOS ||
-        defaultTargetPlatform == TargetPlatform.linux;
-
-    if (kIsWeb || desktopPlatform) {
-      return const ClampingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      );
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      );
-    }
-
-    return const ClampingScrollPhysics(
+    return const PremiumBouncingScrollPhysics(
       parent: AlwaysScrollableScrollPhysics(),
     );
   }
@@ -46,5 +30,30 @@ class PremiumScrollBehavior extends MaterialScrollBehavior {
     ScrollableDetails details,
   ) {
     return child;
+  }
+}
+
+/// Более заметная, но контролируемая iOS-пружина для всех платформ.
+///
+/// Она разрешает слегка вытянуть страницу за верхнюю и нижнюю границы, после
+/// чего контент мягко возвращается на место. Работает также на Web/PWA.
+class PremiumBouncingScrollPhysics extends BouncingScrollPhysics {
+  const PremiumBouncingScrollPhysics({super.parent});
+
+  @override
+  PremiumBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return PremiumBouncingScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  @override
+  SpringDescription get spring => const SpringDescription(
+    mass: 0.58,
+    stiffness: 118,
+    damping: 13.2,
+  );
+
+  @override
+  double frictionFactor(double overscrollFraction) {
+    return 0.68 * math.pow(1 - overscrollFraction, 2).toDouble();
   }
 }
