@@ -26,6 +26,23 @@ jobs:
           ref: performance/web-fast-smooth
           fetch-depth: 0
 
+      - name: Fix temporary patch indentation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tool/apply_web_performance_patch.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "old_pressable_tree = '''        child: AnimatedSlide(",
+              "old_pressable_tree = '''          child: AnimatedSlide(",
+          )
+          text = text.replace(
+              "new_pressable_tree = '''        child: AnimatedScale(",
+              "new_pressable_tree = '''          child: AnimatedScale(",
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Apply performance patch
         id: patch
         continue-on-error: true
