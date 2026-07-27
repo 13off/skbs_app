@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Также служит публикационным guard для живого обновления кэшированных вкладок.
 void main() {
   test('cached persistent tabs rebuild on live theme changes', () {
     final shell = File(
