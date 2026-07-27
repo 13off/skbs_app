@@ -33,7 +33,7 @@ void main() {
     expect(theme, contains('static const background = Color(0xFFF5F4F1)'));
   });
 
-  test('desktop interactions use short non-zero animation intervals', () {
+  test('desktop interactions remain fast and use controlled overscroll', () {
     final pressable = File(
       'lib/widgets/premium_pressable_v3.dart',
     ).readAsStringSync();
@@ -45,7 +45,9 @@ void main() {
     expect(pressable, contains('_releaseDuration'));
     expect(pressable, contains('Duration(milliseconds: 85)'));
     expect(pressable, contains('Duration(milliseconds: 95)'));
-    expect(scroll, contains('ClampingScrollPhysics'));
-    expect(scroll, contains('BouncingScrollPhysics'));
+    expect(scroll, contains('PremiumBouncingScrollPhysics'));
+    expect(scroll, contains('AlwaysScrollableScrollPhysics'));
+    expect(scroll, contains('SpringDescription('));
+    expect(scroll, isNot(contains('GlowingOverscrollIndicator')));
   });
 }
