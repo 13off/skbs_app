@@ -74,13 +74,34 @@ jobs:
           cache: true
 
       - if: steps.apply.outputs.changed == 'true'
+        id: verify
         run: |
-          dart format lib test
-          flutter pub get
-          flutter analyze
-          flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
+          rm -f .github/feature-check.txt
+          set +e
+          {
+            dart format lib test
+            flutter pub get
+            flutter analyze
+            flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
+          } > .github/feature-check.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "result=error" >> "$GITHUB_OUTPUT"
+          else
+            rm -f .github/feature-check.txt
+            echo "result=ok" >> "$GITHUB_OUTPUT"
+          fi
 
-      - if: steps.apply.outputs.changed == 'true'
+      - if: steps.verify.outputs.result == 'error'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/feature-check.txt
+          git commit -m "Сохранить ошибки проверки трёх функций"
+          git push
+
+      - if: steps.verify.outputs.result == 'ok'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
