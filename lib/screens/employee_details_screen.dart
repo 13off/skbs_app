@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app/app_adaptive_palette.dart';
 
@@ -50,6 +51,12 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   void rebuildEmployeeDetails(VoidCallback update) {
     if (!mounted) return;
     setState(update);
+  }
+
+  String formatDateTime(DateTime value) {
+    String twoDigits(int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.day)}.${twoDigits(value.month)}.${value.year} '
+        '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
   }
 
   @override

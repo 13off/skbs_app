@@ -15,13 +15,16 @@ type MaxLink = {
 };
 
 function hookError(message: string, status = 500) {
-  return new Response(JSON.stringify({ error: { http_code: status, message } }), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
+  return new Response(
+    JSON.stringify({ error: { http_code: status, message } }),
+    {
+      status,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
     },
-  });
+  );
 }
 
 function normalizePhone(value: unknown) {
@@ -34,7 +37,12 @@ function normalizePhone(value: unknown) {
   return "";
 }
 
-async function readSecret(adminClient: any, envName: string, vaultName: string) {
+async function readSecret(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  envName: string,
+  vaultName: string,
+) {
   const fromEnvironment = Deno.env.get(envName)?.trim() ?? "";
   if (fromEnvironment) return fromEnvironment;
   const { data, error } = await adminClient.rpc("get_recruitment_secret", {
@@ -44,7 +52,11 @@ async function readSecret(adminClient: any, envName: string, vaultName: string) 
   return String(data ?? "").trim();
 }
 
-async function validateMaxLink(adminClient: any, phone: string): Promise<MaxLink> {
+async function validateMaxLink(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  phone: string,
+): Promise<MaxLink> {
   const { data: links, error: linksError } = await adminClient
     .from("employee_max_links")
     .select("company_id, person_id, user_id, max_user_id")
@@ -88,6 +100,7 @@ async function validateMaxLink(adminClient: any, phone: string): Promise<MaxLink
       ]);
     if (account && company && profile) return link;
   }
+
   throw new Error("Доступ сотрудника отключён");
 }
 
@@ -100,8 +113,15 @@ async function sendMaxMessage({
   maxUserId: string;
   body: string;
 }) {
-  const hosts = ["https://platform-api2.max.ru", "https://platform-api.max.ru"];
+  // MAX требует новый API-домен, но часть серверных окружений пока не
+  // доверяет его российской цепочке сертификатов. Старый домен оставлен
+  // временным резервом, чтобы действующий бот не терял доставку кодов.
+  const hosts = [
+    "https://platform-api2.max.ru",
+    "https://platform-api.max.ru",
+  ];
   let lastError: unknown = null;
+
   for (const host of hosts) {
     const endpoint = new URL("/messages", host);
     endpoint.searchParams.set("user_id", maxUserId);
@@ -125,13 +145,17 @@ async function sendMaxMessage({
       });
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("MAX API недоступен");
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("MAX API недоступен");
 }
 
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
     return hookError("Метод не поддерживается", 405);
   }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -152,7 +176,11 @@ Deno.serve(async (request: Request) => {
 
     const rawPayload = await request.text();
     const webhook = new Webhook(hookSecret.replace(/^v1,whsec_/, ""));
-    const payload = webhook.verify(rawPayload, Object.fromEntries(request.headers)) as HookPayload;
+    const payload = webhook.verify(
+      rawPayload,
+      Object.fromEntries(request.headers),
+    ) as HookPayload;
+
     const phone = normalizePhone(payload.user?.phone);
     const otp = String(payload.sms?.otp ?? "").trim();
     if (!phone || !/^\d{6}$/.test(otp)) {
@@ -170,7 +198,15 @@ Deno.serve(async (request: Request) => {
         {
           type: "inline_keyboard",
           payload: {
-            buttons: [[{ type: "link", text: "Открыть AppСтрой", url: appUrl }]],
+            buttons: [
+              [
+                {
+                  type: "link",
+                  text: "Открыть AppСтрой",
+                  url: appUrl,
+                },
+              ],
+            ],
           },
         },
       ],
@@ -180,9 +216,14 @@ Deno.serve(async (request: Request) => {
       maxUserId: String(maxLink.max_user_id),
       body: messageBody,
     });
+
     if (!maxResponse.ok) {
+      console.error("MAX rejected employee auth message", {
+        httpStatus: maxResponse.status,
+      });
       return hookError("MAX не смог доставить код входа", 502);
     }
+
     return new Response("{}", {
       status: 200,
       headers: {
@@ -194,7 +235,9 @@ Deno.serve(async (request: Request) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error("MAX auth hook failed", {
       name: error instanceof Error ? error.name : "UnknownError",
-      reason: message.includes("MAX не подключён") ? "max_not_connected" : "delivery_failed",
+      reason: message.includes("MAX не подключён")
+        ? "max_not_connected"
+        : "delivery_failed",
     });
     const status = message.includes("MAX не подключён") ? 403 : 500;
     return hookError(message || "Не удалось отправить код через MAX", status);

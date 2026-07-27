@@ -56,7 +56,7 @@ Deno.serve(async (request: Request) => {
 
     const { data: links, error: linksError } = await adminClient
       .from("employee_account_links")
-      .select("company_id, user_id")
+      .select("company_id, person_id, user_id")
       .eq("phone_e164", phone)
       .eq("is_active", true)
       .limit(20);
@@ -75,28 +75,55 @@ Deno.serve(async (request: Request) => {
       });
     }
 
-    const [{ data: company }, { data: profile }] = await Promise.all([
-      adminClient
-        .from("companies")
-        .select("id")
-        .in("id", companyIds)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle(),
-      adminClient
-        .from("user_profiles")
-        .select("id")
-        .in("id", userIds)
-        .eq("role", "employee")
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    const [{ data: company }, { data: profile }, { data: maxLinks }] =
+      await Promise.all([
+        adminClient
+          .from("companies")
+          .select("id")
+          .in("id", companyIds)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle(),
+        adminClient
+          .from("user_profiles")
+          .select("id")
+          .in("id", userIds)
+          .eq("role", "employee")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle(),
+        adminClient
+          .from("employee_max_links")
+          .select("company_id, person_id, user_id, max_user_id")
+          .eq("phone_e164", phone)
+          .eq("is_active", true)
+          .limit(20),
+      ]);
 
     if (!company || !profile) {
       return json({
         ok: false,
         error: "Доступ сотрудника отключён. Обратитесь к руководителю",
+      });
+    }
+
+    const accountKeys = new Set(
+      (links ?? []).map(
+        (row) => `${row.company_id}:${row.person_id}:${row.user_id}`,
+      ),
+    );
+    const validMaxUsers = new Set(
+      (maxLinks ?? [])
+        .filter((row) =>
+          accountKeys.has(`${row.company_id}:${row.person_id}:${row.user_id}`)
+        )
+        .map((row) => String(row.max_user_id)),
+    );
+    if (validMaxUsers.size !== 1) {
+      return json({
+        ok: false,
+        error:
+          "MAX не подключён к кабинету сотрудника. Получите ссылку подключения у руководителя",
       });
     }
 
@@ -109,10 +136,12 @@ Deno.serve(async (request: Request) => {
     });
     if (otpError) throw otpError;
 
-    return json({ ok: true });
+    return json({ ok: true, channel: "max" });
   } catch (error) {
-    console.error(error);
+    console.error("Employee MAX OTP request failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
     const message = error instanceof Error ? error.message : String(error);
-    return json({ error: message || "Не удалось отправить код" }, 500);
+    return json({ error: message || "Не удалось отправить код в MAX" }, 500);
   }
 });
