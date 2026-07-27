@@ -45,7 +45,6 @@ class AppScaleViewport extends StatelessWidget {
         child: Transform.scale(
           scale: effectiveScale,
           alignment: Alignment.topLeft,
-          filterQuality: FilterQuality.none,
           child: SizedBox(
             width: logicalSize.width,
             height: logicalSize.height,
