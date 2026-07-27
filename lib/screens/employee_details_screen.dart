@@ -47,6 +47,11 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   bool isArchivingEmployee = false;
   bool isChangingEmployeeAccess = false;
 
+  void rebuildEmployeeDetails(VoidCallback update) {
+    if (!mounted) return;
+    setState(update);
+  }
+
   @override
   void initState() {
     super.initState();
