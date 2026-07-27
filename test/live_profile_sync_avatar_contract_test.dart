@@ -13,17 +13,12 @@ void main() {
     expect(controller, contains('ValueNotifier<PersonalProfileData>'));
     expect(controller, contains('static AppUserProfile merge'));
     expect(controller, contains('static void apply'));
-    expect(
-      main,
-      contains('PersonalProfileController.configure(widget.profile)'),
-    );
+    expect(main, contains('PersonalProfileController.configure(widget.profile)'));
     expect(main, contains('PersonalProfileController.state'));
     expect(main, contains('PersonalProfileController.merge(widget.profile)'));
     expect(
       main,
-      contains(
-        r"'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}'",
-      ),
+      contains(r"'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}'"),
     );
   });
 
@@ -40,10 +35,7 @@ void main() {
     expect(profile, contains("title: const Text('Заменить')"));
     expect(profile, contains("title: const Text('Удалить фотографию')"));
     expect(profile, contains('PersonalProfileController.apply(updated)'));
-    expect(
-      repository,
-      contains('static Future<PersonalProfileData> removeAvatar'),
-    );
+    expect(repository, contains('static Future<PersonalProfileData> removeAvatar'));
     expect(repository, contains("avatarPath: ''"));
     expect(repository, contains('_removeFileQuietly(current.avatarPath)'));
   });

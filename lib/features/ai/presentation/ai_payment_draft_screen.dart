@@ -126,9 +126,7 @@ class _AiPaymentDraftScreenState extends State<AiPaymentDraftScreen> {
     };
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Черновик выплаты'),
-      ),
+        leading: const BackButton(),title: const Text('Черновик выплаты')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

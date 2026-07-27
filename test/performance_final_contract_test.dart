@@ -59,17 +59,16 @@ void main() {
       RegExp(r'Future\.wait<dynamic>\(\[').allMatches(attendance).length,
       greaterThanOrEqualTo(4),
     );
-    expect(
-      attendance,
-      contains('final paymentRows = data[2] as List<dynamic>;'),
-    );
+    expect(attendance, contains('final paymentRows = data[2] as List<dynamic>;'));
   });
 
   test('private data and archives invalidate short-lived caches', () {
     final privateData = source(
       'lib/data/employee_private_data_repository.dart',
     );
-    final employeeArchive = source('lib/data/employee_archive_repository.dart');
+    final employeeArchive = source(
+      'lib/data/employee_archive_repository.dart',
+    );
     final objects = source('lib/data/object_repository.dart');
 
     expect(privateData, contains('_cacheTtl = Duration(seconds: 25)'));

@@ -13,17 +13,11 @@ void main() {
 
     expect(legacy.existsSync(), isTrue);
     expect(wrapper, contains("import 'package:flutter/gestures.dart';"));
-    expect(
-      wrapper,
-      contains("import 'developer_panel_screen_legacy.dart' as legacy;"),
-    );
+    expect(wrapper, contains("import 'developer_panel_screen_legacy.dart' as legacy;"));
     expect(wrapper, contains('constraints.maxWidth >= 1000'));
     expect(wrapper, contains('PointerScrollEvent'));
     expect(wrapper, contains('ScrollableState'));
     expect(wrapper, contains('position.jumpTo(target)'));
-    expect(
-      wrapper,
-      contains('legacy.DeveloperPanelScreen(profile: widget.profile)'),
-    );
+    expect(wrapper, contains('legacy.DeveloperPanelScreen(profile: widget.profile)'));
   });
 }

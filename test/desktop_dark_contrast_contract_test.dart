@@ -3,32 +3,29 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'desktop screens use the adaptive palette instead of light constants',
-    () {
-      final paths = <String>[
-        'lib/screens/adaptive_home_base_screen.dart',
-        'lib/screens/desktop_home_widgets.dart',
-        'lib/screens/desktop_employees_view.dart',
-        'lib/screens/desktop_tasks_screen.dart',
-      ];
+  test('desktop screens use the adaptive palette instead of light constants', () {
+    final paths = <String>[
+      'lib/screens/adaptive_home_base_screen.dart',
+      'lib/screens/desktop_home_widgets.dart',
+      'lib/screens/desktop_employees_view.dart',
+      'lib/screens/desktop_tasks_screen.dart',
+    ];
 
-      for (final path in paths) {
-        final source = File(path).readAsStringSync();
-        expect(source, contains('AppAdaptivePalette'), reason: path);
-        expect(
-          source,
-          isNot(contains('const Color _text = Color(0xFF1F2328)')),
-          reason: path,
-        );
-        expect(
-          source,
-          isNot(contains('const Color _muted = Color(0xFF6B7075)')),
-          reason: path,
-        );
-      }
-    },
-  );
+    for (final path in paths) {
+      final source = File(path).readAsStringSync();
+      expect(source, contains('AppAdaptivePalette'), reason: path);
+      expect(
+        source,
+        isNot(contains('const Color _text = Color(0xFF1F2328)')),
+        reason: path,
+      );
+      expect(
+        source,
+        isNot(contains('const Color _muted = Color(0xFF6B7075)')),
+        reason: path,
+      );
+    }
+  });
 
   test('desktop employee filters and table stay dark in dark mode', () {
     final source = File(
@@ -58,10 +55,7 @@ void main() {
     expect(home, contains('color: _surfaceElevated'));
     expect(home, contains('color: _input'));
 
-    expect(
-      tasks,
-      contains('Color get _text => AppAdaptivePalette.textPrimary'),
-    );
+    expect(tasks, contains('Color get _text => AppAdaptivePalette.textPrimary'));
     expect(tasks, contains('Color get _muted => AppAdaptivePalette.textMuted'));
     expect(tasks, contains('fillColor: _input'));
     expect(tasks, contains('dropdownColor: _surfaceElevated'));
@@ -80,10 +74,7 @@ void main() {
     expect(palette, contains('darkDisabledSurface = Color(0xFF22303D)'));
     expect(palette, contains('darkDisabledText = Color(0xFF8DA1B4)'));
     expect(tasks, contains('onPressed: sourceForAct.isEmpty ? null'));
-    expect(
-      tasks,
-      contains('onPressed: canCreateTask ? openAddTaskScreen : null'),
-    );
+    expect(tasks, contains('onPressed: canCreateTask ? openAddTaskScreen : null'));
   });
 
   test('contrast patch remains presentation-only', () {
@@ -95,11 +86,7 @@ void main() {
       'lib/screens/desktop_tasks_screen.dart',
     ]) {
       final source = File(path).readAsStringSync();
-      expect(
-        source,
-        isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
-        reason: path,
-      );
+      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
       expect(source, isNot(contains('Supabase.instance.client')), reason: path);
       expect(source, isNot(contains(".from('")), reason: path);
       expect(source, isNot(contains('.rpc(')), reason: path);

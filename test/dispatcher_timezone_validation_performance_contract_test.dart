@@ -33,10 +33,7 @@ void main() {
     );
     expect(sql, contains('new.object_name := v_object_name'));
     expect(sql, contains('new.updated_at := now()'));
-    expect(
-      sql,
-      contains('new.updated_by := coalesce(auth.uid(), new.updated_by)'),
-    );
+    expect(sql, contains('new.updated_by := coalesce(auth.uid(), new.updated_by)'));
     expect(sql, contains('security definer'));
   });
 }

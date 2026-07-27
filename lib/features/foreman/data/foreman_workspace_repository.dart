@@ -84,7 +84,10 @@ abstract final class ForemanWorkspaceRepository {
           .from('task_assignees')
           .select('task_id, employee_id, employees(fio, position)')
           .inFilter('task_id', ids),
-      _client.from('task_photos').select('task_id').inFilter('task_id', ids),
+      _client
+          .from('task_photos')
+          .select('task_id')
+          .inFilter('task_id', ids),
     ]);
 
     final assigneesByTask = <String, List<TaskAssigneeData>>{};

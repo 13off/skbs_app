@@ -18,7 +18,9 @@ extension _EmployeeDetailsAccess on _EmployeeDetailsScreenState {
   void showEmployeeAccessError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+      SnackBar(
+        content: Text(error.toString().replaceFirst('Exception: ', '')),
+      ),
     );
   }
 

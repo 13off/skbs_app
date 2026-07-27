@@ -12,10 +12,7 @@ void main() {
     expect(source, contains("show CupertinoPageRoute"));
     expect(source, contains('PageView.builder'));
     expect(source, contains('return CupertinoPageRoute<void>('));
-    expect(
-      source,
-      contains('return buildRootPage(index, selectedObjectName);'),
-    );
+    expect(source, contains('return buildRootPage(index, selectedObjectName);'));
     expect(source, isNot(contains('final isDesktop = screenWidth >= 760')));
   });
 

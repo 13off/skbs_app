@@ -213,7 +213,10 @@ class _AuthGateState extends State<AuthGate> {
       layoutBuilder: (currentChild, previousChildren) {
         return Stack(
           fit: StackFit.expand,
-          children: <Widget>[...previousChildren, ?currentChild],
+          children: <Widget>[
+            ...previousChildren,
+            ?currentChild,
+          ],
         );
       },
       transitionBuilder: (child, animation) {

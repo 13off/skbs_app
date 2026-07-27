@@ -64,17 +64,15 @@ class ManagerWeeklyContributionReport {
     return ManagerWeeklyContributionReport(
       weekStart:
           DateTime.tryParse(json['week_start']?.toString() ?? '') ??
-          DateTime.now(),
+              DateTime.now(),
       weekEnd:
           DateTime.tryParse(json['week_end']?.toString() ?? '') ??
-          DateTime.now(),
+              DateTime.now(),
       completedTasks: _asInt(json['completed_tasks']),
       participants: _asInt(json['participants']),
       objectsCount: _asInt(json['objects_count']),
       rows: _asList(json['rows'])
-          .map(
-            (item) => ManagerWeeklyContributionEmployee.fromJson(_asMap(item)),
-          )
+          .map((item) => ManagerWeeklyContributionEmployee.fromJson(_asMap(item)))
           .where((item) => item.employeeId.isNotEmpty)
           .toList(growable: false),
     );
@@ -96,7 +94,10 @@ abstract final class ManagerWeeklyContributionRepository {
   }) async {
     final cleanCompanyId = companyId.trim();
     final cleanObjectId = _clean(objectId);
-    final key = _cacheKey(companyId: cleanCompanyId, objectId: cleanObjectId);
+    final key = _cacheKey(
+      companyId: cleanCompanyId,
+      objectId: cleanObjectId,
+    );
     final cached = _cache[key];
     if (!forceRefresh && cached != null && _isFresh(cached)) {
       return cached.report;
@@ -140,7 +141,7 @@ abstract final class ManagerWeeklyContributionRepository {
   }) {
     final sessionPart =
         _client.auth.currentSession?.accessToken.hashCode.toString() ??
-        '__guest__';
+            '__guest__';
     return '$sessionPart::$companyId::${objectId ?? '__all__'}';
   }
 

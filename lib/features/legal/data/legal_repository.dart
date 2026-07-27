@@ -154,8 +154,10 @@ abstract final class LegalRepository {
   static Future<List<LegalMatter>> fetchMatters({
     String search = '',
     bool attentionOnly = false,
-  }) =>
-      _LegalMatters.fetchMatters(search: search, attentionOnly: attentionOnly);
+  }) => _LegalMatters.fetchMatters(
+    search: search,
+    attentionOnly: attentionOnly,
+  );
   static Future<LegalMatter> fetchMatter(String id) =>
       _LegalMatters.fetchMatter(id);
   static Future<LegalMatter> saveMatter({
@@ -211,7 +213,8 @@ abstract final class LegalRepository {
 
   static Future<LegalDashboardData> fetchDashboard() =>
       _LegalReports.fetchDashboard();
-  static Future<void> refreshReminders() => _LegalReports.refreshReminders();
+  static Future<void> refreshReminders() =>
+      _LegalReports.refreshReminders();
   static DateTime currentWeekStart([DateTime? value]) =>
       _LegalReports.currentWeekStart(value);
   static Map<String, dynamic> buildWeeklyDraft({
@@ -245,7 +248,10 @@ abstract final class LegalRepository {
 void _notifyLegalChanged(String table, {String? entityId}) {
   AppDataSync.notifyLocal(
     const <AppDataDomain>{AppDataDomain.legal},
-    context: <String, dynamic>{'table': table, 'entity_id': entityId},
+    context: <String, dynamic>{
+      'table': table,
+      'entity_id': entityId,
+    },
   );
 }
 

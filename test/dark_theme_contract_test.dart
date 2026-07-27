@@ -19,10 +19,10 @@ void main() {
 
   test('dark theme is enabled and persisted by the application controller', () {
     final mainSource = File('lib/main.dart').readAsStringSync();
-    final controller = File('lib/app/theme_controller.dart').readAsStringSync();
-    final settings = File(
-      'lib/screens/settings_screen.dart',
+    final controller = File(
+      'lib/app/theme_controller.dart',
     ).readAsStringSync();
+    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
     expect(mainSource, contains('darkTheme: AppDarkTheme.theme'));
     expect(mainSource, contains('themeMode: themeController.themeMode'));
@@ -74,52 +74,49 @@ void main() {
     expect(darkThemeSource, contains('indicatorColor: accentSoft'));
   });
 
-  test(
-    'shared navigation uses blue selected states and flat dark surfaces',
-    () {
-      final navigation = File(
-        'lib/widgets/professional_bottom_navigation.dart',
-      ).readAsStringSync();
-      final surfaces = File(
-        'lib/widgets/premium_ui_v2.dart',
-      ).readAsStringSync();
-      final appPage = File('lib/widgets/app_page.dart').readAsStringSync();
-      final surfacesV3 = File(
-        'lib/widgets/premium_surfaces_v3.dart',
-      ).readAsStringSync();
-      final desktop = File(
-        'lib/features/shared/presentation/specialist_desktop_ui.dart',
-      ).readAsStringSync();
+  test('shared navigation uses blue selected states and flat dark surfaces', () {
+    final navigation = File(
+      'lib/widgets/professional_bottom_navigation.dart',
+    ).readAsStringSync();
+    final surfaces = File(
+      'lib/widgets/premium_ui_v2.dart',
+    ).readAsStringSync();
+    final appPage = File('lib/widgets/app_page.dart').readAsStringSync();
+    final surfacesV3 = File(
+      'lib/widgets/premium_surfaces_v3.dart',
+    ).readAsStringSync();
+    final desktop = File(
+      'lib/features/shared/presentation/specialist_desktop_ui.dart',
+    ).readAsStringSync();
 
-      expect(navigation, contains('color: scheme.surface'));
-      expect(navigation, contains('scheme.primary.withValues(alpha: 0.11)'));
-      expect(
-        navigation,
-        contains('color: selected ? scheme.primary : scheme.onSurfaceVariant'),
-      );
-      expect(navigation, isNot(contains('scheme.onPrimary')));
+    expect(navigation, contains('color: scheme.surface'));
+    expect(navigation, contains('scheme.primary.withValues(alpha: 0.11)'));
+    expect(
+      navigation,
+      contains('color: selected ? scheme.primary : scheme.onSurfaceVariant'),
+    );
+    expect(navigation, isNot(contains('scheme.onPrimary')));
 
-      expect(surfaces, contains('AppSurfaceBackdrop'));
-      expect(appPage, contains('class AppSurfaceBackdrop'));
-      expect(appPage, contains('AppAdaptivePalette.darkBackground'));
-      expect(appPage, contains('AppAdaptivePalette.background'));
-      expect(surfaces, contains('theme.colorScheme.outlineVariant'));
-      expect(surfaces, contains('const Color(0xFF2278BF)'));
-      expect(
-        surfaces,
-        isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
-      );
-      expect(surfacesV3, contains('AppSurfaceBackdrop'));
-      expect(
-        surfacesV3,
-        isNot(contains('theme.colorScheme.primary.withValues(alpha: 0.09)')),
-      );
+    expect(surfaces, contains('AppSurfaceBackdrop'));
+    expect(appPage, contains('class AppSurfaceBackdrop'));
+    expect(appPage, contains('AppAdaptivePalette.darkBackground'));
+    expect(appPage, contains('AppAdaptivePalette.background'));
+    expect(surfaces, contains('theme.colorScheme.outlineVariant'));
+    expect(surfaces, contains('const Color(0xFF2278BF)'));
+    expect(
+      surfaces,
+      isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
+    );
+    expect(surfacesV3, contains('AppSurfaceBackdrop'));
+    expect(
+      surfacesV3,
+      isNot(contains('theme.colorScheme.primary.withValues(alpha: 0.09)')),
+    );
 
-      expect(desktop, contains("import '../../../app/theme_controller.dart';"));
-      expect(desktop, contains('AppThemeController.instance.isDark'));
-      expect(desktop, contains('Theme.of(context).colorScheme.onSurface'));
-    },
-  );
+    expect(desktop, contains("import '../../../app/theme_controller.dart';"));
+    expect(desktop, contains('AppThemeController.instance.isDark'));
+    expect(desktop, contains('Theme.of(context).colorScheme.onSurface'));
+  });
 
   test('dark theme remains a presentation-only change', () {
     final changedSources = <String>[
@@ -135,11 +132,7 @@ void main() {
 
     for (final path in changedSources) {
       final source = File(path).readAsStringSync();
-      expect(
-        source,
-        isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
-        reason: path,
-      );
+      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
       expect(source, isNot(contains('.insert(')), reason: path);
       expect(source, isNot(contains('.update(')), reason: path);
       expect(source, isNot(contains('.delete(')), reason: path);

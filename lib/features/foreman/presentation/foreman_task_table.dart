@@ -112,7 +112,9 @@ class ForemanTaskTable extends StatelessWidget {
         label: taskMeta.photoCount > 0
             ? 'Фото: ${taskMeta.photoCount}'
             : 'Нет фото',
-        color: taskMeta.photoCount > 0 ? specialistSuccess : specialistDanger,
+        color: taskMeta.photoCount > 0
+            ? specialistSuccess
+            : specialistDanger,
         icon: taskMeta.photoCount > 0
             ? Icons.photo_camera_outlined
             : Icons.no_photography_outlined,
@@ -144,7 +146,10 @@ class ForemanTaskTable extends StatelessWidget {
         return SpecialistTableRowData(
           onTap: () => onOpenTask(task),
           cells: [
-            SpecialistStatusPill(label: task.status, color: statusColor(task)),
+            SpecialistStatusPill(
+              label: task.status,
+              color: statusColor(task),
+            ),
             specialistCellText(
               task.work.trim().isEmpty ? 'Работа без названия' : task.work,
               weight: FontWeight.w900,
@@ -153,9 +158,15 @@ class ForemanTaskTable extends StatelessWidget {
               task.axes.trim().isEmpty ? 'Не указаны' : task.axes,
               color: specialistMuted,
             ),
-            specialistCellText(taskMeta.assigneeTitle, color: specialistMuted),
+            specialistCellText(
+              taskMeta.assigneeTitle,
+              color: specialistMuted,
+            ),
             confirmation(task, taskMeta),
-            specialistCellText(task.notDoneComment, color: specialistMuted),
+            specialistCellText(
+              task.notDoneComment,
+              color: specialistMuted,
+            ),
           ],
         );
       }).toList(),

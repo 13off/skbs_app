@@ -12,8 +12,7 @@ class AiDocumentDownloadService {
   }) {
     final safeTitle = _escapeHtml(title);
     final safeBody = _escapeHtml(body).replaceAll('\n', '<br>');
-    final document =
-        '''
+    final document = '''
 <!doctype html>
 <html>
 <head>
@@ -28,7 +27,10 @@ body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.45; margi
 ''';
 
     final bytes = utf8.encode(document);
-    final blob = html.Blob(<Object>[bytes], 'application/msword;charset=utf-8');
+    final blob = html.Blob(
+      <Object>[bytes],
+      'application/msword;charset=utf-8',
+    );
     final url = html.Url.createObjectUrlFromBlob(blob);
     try {
       html.AnchorElement(href: url)

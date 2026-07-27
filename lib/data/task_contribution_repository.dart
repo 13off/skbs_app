@@ -55,9 +55,7 @@ class EmployeeContributionHistoryRow {
   factory EmployeeContributionHistoryRow.fromMap(Map<String, dynamic> map) {
     return EmployeeContributionHistoryRow(
       taskId: map['task_id']?.toString() ?? '',
-      date:
-          DateTime.tryParse(map['task_date']?.toString() ?? '') ??
-          DateTime.now(),
+      date: DateTime.tryParse(map['task_date']?.toString() ?? '') ?? DateTime.now(),
       objectName: map['object_name']?.toString().trim() ?? '',
       axes: map['axes']?.toString().trim() ?? '',
       work: map['work']?.toString().trim() ?? '',
@@ -86,13 +84,13 @@ class EmployeeContributionSummary {
   });
 
   const EmployeeContributionSummary.empty()
-    : taskCount = 0,
-      totalPercent = 0,
-      equivalentTasks = 0,
-      averagePercent = 0,
-      objectTaskCount = 0,
-      objectSharePercent = 0,
-      history = const <EmployeeContributionHistoryRow>[];
+      : taskCount = 0,
+        totalPercent = 0,
+        equivalentTasks = 0,
+        averagePercent = 0,
+        objectTaskCount = 0,
+        objectSharePercent = 0,
+        history = const <EmployeeContributionHistoryRow>[];
 
   factory EmployeeContributionSummary.fromMap(Map<String, dynamic> map) {
     final rawHistory = map['history'];
@@ -105,13 +103,11 @@ class EmployeeContributionSummary {
       objectSharePercent: _doubleValue(map['object_share_percent']),
       history: rawHistory is List
           ? rawHistory
-                .whereType<Map>()
-                .map(
-                  (row) => EmployeeContributionHistoryRow.fromMap(
+              .whereType<Map>()
+              .map((row) => EmployeeContributionHistoryRow.fromMap(
                     Map<String, dynamic>.from(row),
-                  ),
-                )
-                .toList(growable: false)
+                  ))
+              .toList(growable: false)
           : const <EmployeeContributionHistoryRow>[],
     );
   }
@@ -143,8 +139,7 @@ abstract final class TaskContributionRepository {
 
     final assigneeIds = assignees.map((item) => item.employeeId).toSet();
     final savedTotal = saved.values.fold<int>(0, (sum, value) => sum + value);
-    final exact =
-        assignees.isNotEmpty &&
+    final exact = assignees.isNotEmpty &&
         saved.length == assignees.length &&
         saved.keys.toSet().containsAll(assigneeIds) &&
         assigneeIds.containsAll(saved.keys) &&
@@ -216,9 +211,7 @@ abstract final class TaskContributionRepository {
       },
     );
     if (raw is Map) {
-      return EmployeeContributionSummary.fromMap(
-        Map<String, dynamic>.from(raw),
-      );
+      return EmployeeContributionSummary.fromMap(Map<String, dynamic>.from(raw));
     }
     return const EmployeeContributionSummary.empty();
   }

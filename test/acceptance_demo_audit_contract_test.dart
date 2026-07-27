@@ -76,32 +76,29 @@ void main() {
     expect(launcher, isNot(contains('.delete(')));
   });
 
-  test(
-    'демонстрационный сценарий остаётся синтетическим, но скрыт из системы',
-    () {
-      final screen = File(
-        'lib/features/developer/presentation/developer_demo_center_screen.dart',
-      ).readAsStringSync();
-      final system = File(
-        'lib/features/developer/presentation/developer_system_screen.dart',
-      ).readAsStringSync();
-      final demo =
-          jsonDecode(File('config/demo-scenario.json').readAsStringSync())
-              as Map<String, dynamic>;
+  test('демонстрационный сценарий остаётся синтетическим, но скрыт из системы', () {
+    final screen = File(
+      'lib/features/developer/presentation/developer_demo_center_screen.dart',
+    ).readAsStringSync();
+    final system = File(
+      'lib/features/developer/presentation/developer_system_screen.dart',
+    ).readAsStringSync();
+    final demo =
+        jsonDecode(File('config/demo-scenario.json').readAsStringSync())
+            as Map<String, dynamic>;
 
-      expect(screen, contains('все данные вымышлены'));
-      expect(screen, contains('не подключается к Supabase'));
-      expect(screen, isNot(contains('supabase_flutter')));
-      expect(screen, isNot(contains('Supabase.instance')));
-      expect(system, isNot(contains('DeveloperDemoCenterScreen')));
-      expect(system, isNot(contains("title: 'Демонстрационный центр'")));
-      expect(demo['mode'], 'synthetic_only');
-      expect(demo['contains_personal_data'], isFalse);
-      expect(demo['uses_production_company'], isFalse);
-      expect(demo['uses_production_storage'], isFalse);
-      expect((demo['forbidden_during_demo'] as List<dynamic>), isNotEmpty);
-    },
-  );
+    expect(screen, contains('все данные вымышлены'));
+    expect(screen, contains('не подключается к Supabase'));
+    expect(screen, isNot(contains('supabase_flutter')));
+    expect(screen, isNot(contains('Supabase.instance')));
+    expect(system, isNot(contains('DeveloperDemoCenterScreen')));
+    expect(system, isNot(contains("title: 'Демонстрационный центр'")));
+    expect(demo['mode'], 'synthetic_only');
+    expect(demo['contains_personal_data'], isFalse);
+    expect(demo['uses_production_company'], isFalse);
+    expect(demo['uses_production_storage'], isFalse);
+    expect((demo['forbidden_during_demo'] as List<dynamic>), isNotEmpty);
+  });
 
   test('кадровый путь сохраняет тестовый режим и не придумывает ставку', () {
     final onboarding = File(

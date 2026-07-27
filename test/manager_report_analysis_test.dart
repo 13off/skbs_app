@@ -91,7 +91,11 @@ void main() {
           'missing': 4,
           'shifts': 48.5,
         },
-        'employees': <String, dynamic>{'active': 54, 'added': 2, 'archived': 1},
+        'employees': <String, dynamic>{
+          'active': 54,
+          'added': 2,
+          'archived': 1,
+        },
         'tasks': <String, dynamic>{
           'total': 12,
           'done': 7,
@@ -116,7 +120,11 @@ void main() {
           'high_risk': 2,
           'expiring_documents': 5,
         },
-        'milestones': <String, dynamic>{'open': 8, 'overdue': 2, 'upcoming': 3},
+        'milestones': <String, dynamic>{
+          'open': 8,
+          'overdue': 2,
+          'upcoming': 3,
+        },
       },
       trend: <String, dynamic>{
         'tasks_done_rate': 58.3,

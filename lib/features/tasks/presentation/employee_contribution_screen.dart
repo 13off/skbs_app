@@ -129,8 +129,8 @@ class _EmployeeContributionScreenState
               onRetry: reload,
             );
           }
-          final summary =
-              snapshot.data ?? const EmployeeContributionSummary.empty();
+          final summary = snapshot.data ??
+              const EmployeeContributionSummary.empty();
           return RefreshIndicator(
             onRefresh: () async {
               reload();
@@ -182,7 +182,7 @@ class _EmployeeContributionScreenState
                     final spacing = 10.0;
                     final width =
                         (constraints.maxWidth - spacing * (columns - 1)) /
-                        columns;
+                            columns;
                     return Wrap(
                       spacing: spacing,
                       runSpacing: spacing,
@@ -229,7 +229,9 @@ class _EmployeeContributionScreenState
                 if (summary.history.isEmpty)
                   _EmptyState(periodTitle: periodTitle())
                 else
-                  ...summary.history.map((row) => _HistoryCard(row: row)),
+                  ...summary.history.map(
+                    (row) => _HistoryCard(row: row),
+                  ),
               ],
             ),
           );

@@ -69,11 +69,14 @@ class AiActionAuditRecord {
       targetEntityType: map['target_entity_type']?.toString() ?? '',
       targetEntityId: map['target_entity_id']?.toString() ?? '',
       errorText: map['error_text']?.toString() ?? '',
-      createdAt:
-          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
-      confirmedAt: DateTime.tryParse(map['confirmed_at']?.toString() ?? ''),
-      completedAt: DateTime.tryParse(map['completed_at']?.toString() ?? ''),
+      confirmedAt: DateTime.tryParse(
+        map['confirmed_at']?.toString() ?? '',
+      ),
+      completedAt: DateTime.tryParse(
+        map['completed_at']?.toString() ?? '',
+      ),
     );
   }
 
@@ -165,17 +168,15 @@ class AiActionAuditRepository {
       }
     }
 
-    return normalizedRows
-        .map((row) {
-          final userId = row['user_id']?.toString() ?? '';
-          final actor = actors[userId];
-          return AiActionAuditRecord.fromMap(
-            row,
-            actorName: actor?.name ?? '',
-            actorEmail: actor?.email ?? '',
-          );
-        })
-        .toList(growable: false);
+    return normalizedRows.map((row) {
+      final userId = row['user_id']?.toString() ?? '';
+      final actor = actors[userId];
+      return AiActionAuditRecord.fromMap(
+        row,
+        actorName: actor?.name ?? '',
+        actorEmail: actor?.email ?? '',
+      );
+    }).toList(growable: false);
   }
 
   static Future<AiActionAuditRecord> createProposed({

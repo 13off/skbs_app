@@ -137,7 +137,9 @@ class PremiumActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           color: dark
-              ? (enabled ? const Color(0xFF2278BF) : const Color(0xFF1C2733))
+              ? (enabled
+                    ? const Color(0xFF2278BF)
+                    : const Color(0xFF1C2733))
               : null,
           gradient: dark
               ? null
@@ -157,9 +159,7 @@ class PremiumActionButton extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: dark
-                  ? theme.colorScheme.primary.withValues(
-                      alpha: enabled ? 0.16 : 0,
-                    )
+                  ? theme.colorScheme.primary.withValues(alpha: enabled ? 0.16 : 0)
                   : const Color(0xFF15171A).withValues(alpha: 0.24),
               blurRadius: dark ? 18 : 24,
               spreadRadius: dark ? -10 : 0,

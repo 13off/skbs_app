@@ -145,7 +145,8 @@ class _DesktopAccountingPaymentsScreenState
       ...data.payments
           .map((row) => row.objectName.trim())
           .where((value) => value.isNotEmpty),
-    }.toList()..sort();
+    }.toList()
+      ..sort();
   }
 
   bool matchesSearch(String values) {
@@ -414,8 +415,8 @@ class _DesktopAccountingPaymentsScreenState
                   color: row.balance > 0
                       ? specialistWarning
                       : row.balance < 0
-                      ? specialistDanger
-                      : specialistSuccess,
+                          ? specialistDanger
+                          : specialistSuccess,
                 ),
               ],
             ),
@@ -445,8 +446,14 @@ class _DesktopAccountingPaymentsScreenState
                   accountingDate(row.paymentDate),
                   maxLines: 1,
                 ),
-                specialistCellText(row.employeeName, weight: FontWeight.w900),
-                specialistCellText(row.objectName, color: specialistMuted),
+                specialistCellText(
+                  row.employeeName,
+                  weight: FontWeight.w900,
+                ),
+                specialistCellText(
+                  row.objectName,
+                  color: specialistMuted,
+                ),
                 specialistCellText(paymentType(row.paymentType), maxLines: 1),
                 specialistCellText(
                   accountingMoney(row.amount),
@@ -463,7 +470,10 @@ class _DesktopAccountingPaymentsScreenState
                       ? Icons.receipt_long_outlined
                       : Icons.verified_outlined,
                 ),
-                specialistCellText(row.comment, color: specialistMuted),
+                specialistCellText(
+                  row.comment,
+                  color: specialistMuted,
+                ),
               ],
             ),
           )

@@ -31,21 +31,10 @@ void main() {
 
     expect(
       confirmation,
-      contains(
-        "PeriodTimesheetLaunchIntent.setFromYearMonth(action.text('month'))",
-      ),
+      contains("PeriodTimesheetLaunchIntent.setFromYearMonth(action.text('month'))"),
     );
-    expect(
-      screen,
-      contains('final pendingMonth = PeriodTimesheetLaunchIntent.take()'),
-    );
-    expect(
-      screen,
-      contains('final requestedMonth = widget.initialMonth ?? pendingMonth'),
-    );
-    expect(
-      screen,
-      contains('selectedMonth = DateTime(base.year, base.month, 1)'),
-    );
+    expect(screen, contains('final pendingMonth = PeriodTimesheetLaunchIntent.take()'));
+    expect(screen, contains('final requestedMonth = widget.initialMonth ?? pendingMonth'));
+    expect(screen, contains('selectedMonth = DateTime(base.year, base.month, 1)'));
   });
 }

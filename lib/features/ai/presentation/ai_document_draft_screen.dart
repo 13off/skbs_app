@@ -23,7 +23,8 @@ class AiDocumentDraftScreen extends StatefulWidget {
   });
 
   @override
-  State<AiDocumentDraftScreen> createState() => _AiDocumentDraftScreenState();
+  State<AiDocumentDraftScreen> createState() =>
+      _AiDocumentDraftScreenState();
 }
 
 class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
@@ -84,11 +85,9 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
       }
       if (employee == null && employeeName.isNotEmpty) {
         final normalizedName = employeeName.trim().toLowerCase();
-        final matches = employees
-            .where((item) {
-              return item.name.trim().toLowerCase() == normalizedName;
-            })
-            .toList(growable: false);
+        final matches = employees.where((item) {
+          return item.name.trim().toLowerCase() == normalizedName;
+        }).toList(growable: false);
         if (matches.length == 1) employee = matches.single;
       }
 
@@ -139,9 +138,9 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
   void downloadWord() {
     final body = bodyController.text.trim();
     if (body.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Документ пустой')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Документ пустой')),
+      );
       return;
     }
 
@@ -151,9 +150,9 @@ class _AiDocumentDraftScreenState extends State<AiDocumentDraftScreen> {
       fileBaseName: fileBaseName,
     );
     setState(() => downloaded = true);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Word-файл скачан')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Word-файл скачан')),
+    );
   }
 
   Widget buildMissingFields() {

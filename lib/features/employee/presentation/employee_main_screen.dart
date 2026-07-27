@@ -108,8 +108,9 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
           }
           if (snapshot.hasError || snapshot.data == null) {
             return _EmployeeLoadError(
-              message:
-                  snapshot.error?.toString().replaceFirst('Exception: ', '') ??
+              message: snapshot.error
+                      ?.toString()
+                      .replaceFirst('Exception: ', '') ??
                   'Не удалось загрузить личный кабинет',
               onRetry: refresh,
             );
@@ -117,8 +118,7 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
 
           final data = snapshot.data!;
           final now = DateTime.now();
-          final canMoveForward =
-              data.year < now.year ||
+          final canMoveForward = data.year < now.year ||
               (data.year == now.year && data.month < now.month);
           final pages = <Widget>[
             _EmployeeHome(data: data, onRefresh: refresh),
@@ -155,7 +155,9 @@ class _EmployeeLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(child: Center(child: CircularProgressIndicator()));
+    return const SafeArea(
+      child: Center(child: CircularProgressIndicator()),
+    );
   }
 }
 
@@ -182,9 +184,9 @@ class _EmployeeLoadError extends StatelessWidget {
                     'Кабинет не загрузился',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppAdaptivePalette.textPrimary,
-                      fontWeight: FontWeight.w900,
-                    ),
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -239,9 +241,9 @@ class _EmployeeHome extends StatelessWidget {
             Text(
               'Привет, $firstName',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppAdaptivePalette.textPrimary,
-                fontWeight: FontWeight.w900,
-              ),
+                    color: AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -249,9 +251,9 @@ class _EmployeeHome extends StatelessWidget {
                   ? 'Твой рабочий кабинет'
                   : 'Объект: ${data.currentObject}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppAdaptivePalette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: AppAdaptivePalette.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 22),
             _EmployeeCard(
@@ -265,7 +267,9 @@ class _EmployeeHome extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Задача на сегодня',
-                          style: Theme.of(context).textTheme.titleMedium
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -278,9 +282,9 @@ class _EmployeeHome extends StatelessWidget {
                         ? task!.work
                         : 'Пока задача не назначена',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppAdaptivePalette.textPrimary,
-                      fontWeight: FontWeight.w800,
-                    ),
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   if (task != null) ...[
                     const SizedBox(height: 8),
@@ -355,7 +359,9 @@ class _EmployeeHome extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Расчёт за ${_monthTitle(data.month).toLowerCase()}',
-                          style: Theme.of(context).textTheme.titleMedium
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -405,8 +411,7 @@ class _EmployeeTasks extends StatelessWidget {
               const _EmptyEmployeeSection(
                 icon: Icons.task_alt_rounded,
                 title: 'Задач пока нет',
-                text:
-                    'Назначенные мастером задачи появятся здесь автоматически.',
+                text: 'Назначенные мастером задачи появятся здесь автоматически.',
               )
             else
               for (final task in data.tasks) ...[
@@ -568,11 +573,11 @@ class _EmployeeTimesheet extends StatelessWidget {
                     itemCount: itemCount,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          mainAxisSpacing: 6,
-                          crossAxisSpacing: 6,
-                          childAspectRatio: 0.82,
-                        ),
+                      crossAxisCount: 7,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      childAspectRatio: 0.82,
+                    ),
                     itemBuilder: (context, index) {
                       final day = index - leadingCells + 1;
                       if (day < 1 || day > daysInMonth) {
@@ -683,9 +688,9 @@ class _EmployeeTimesheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 'Выплаты за период',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
             ),
             const SizedBox(height: 10),
@@ -693,8 +698,7 @@ class _EmployeeTimesheet extends StatelessWidget {
               const _EmptyEmployeeSection(
                 icon: Icons.receipt_long_outlined,
                 title: 'Выплат за этот месяц нет',
-                text:
-                    'Авансы, выплаты и удержания появятся после внесения бухгалтером.',
+                text: 'Авансы, выплаты и удержания появятся после внесения бухгалтером.',
               )
             else
               for (final payment in payments) ...[
@@ -713,16 +717,16 @@ class _EmployeeTimesheet extends StatelessWidget {
                           children: [
                             Text(
                               payment.isFine ? 'Удержание' : 'Выплата',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                              ),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               <String>[
                                 if (payment.date != null)
                                   _formatDate(payment.date!),
-                                if (payment.comment.isNotEmpty) payment.comment,
+                                if (payment.comment.isNotEmpty)
+                                  payment.comment,
                               ].join(' · '),
                               style: TextStyle(
                                 color: AppAdaptivePalette.textMuted,
@@ -837,8 +841,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                   const _EmptyEmployeeSection(
                     icon: Icons.event_busy_outlined,
                     title: 'Записи в табеле нет',
-                    text:
-                        'Если смена была, обратись к мастеру или руководителю для проверки.',
+                    text: 'Если смена была, обратись к мастеру или руководителю для проверки.',
                   )
                 else ...[
                   for (final record in records) ...[
@@ -846,15 +849,12 @@ class _EmployeeTimesheet extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _dayColor(
-                          _kindForRecords(<EmployeeCabinetAttendance>[record]),
-                        ).withValues(alpha: 0.10),
+                        color: _dayColor(_kindForRecords(<EmployeeCabinetAttendance>[record]))
+                            .withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: _dayColor(
-                            _kindForRecords(<EmployeeCabinetAttendance>[
-                              record,
-                            ]),
+                            _kindForRecords(<EmployeeCabinetAttendance>[record]),
                           ).withValues(alpha: 0.35),
                         ),
                       ),
@@ -946,10 +946,9 @@ class _TimesheetDayCell extends StatelessWidget {
     final isToday = now.year == year && now.month == month && now.day == day;
     final color = _dayColor(kind);
     final marker = switch (kind) {
-      _DayKind.worked =>
-        totalShifts > 0
-            ? _formatDecimal(totalShifts)
-            : '${_formatDecimal(totalHours)}ч',
+      _DayKind.worked => totalShifts > 0
+          ? _formatDecimal(totalShifts)
+          : '${_formatDecimal(totalHours)}ч',
       _DayKind.noShow => 'Н',
       _DayKind.empty => '',
     };
@@ -970,8 +969,8 @@ class _TimesheetDayCell extends StatelessWidget {
               color: isToday
                   ? AppAdaptivePalette.accentStrong
                   : kind == _DayKind.empty
-                  ? AppAdaptivePalette.border
-                  : color.withValues(alpha: 0.42),
+                      ? AppAdaptivePalette.border
+                      : color.withValues(alpha: 0.42),
             ),
           ),
           child: Padding(
@@ -1093,8 +1092,7 @@ class _EmployeeDocuments extends StatelessWidget {
               const _EmptyEmployeeSection(
                 icon: Icons.folder_copy_rounded,
                 title: 'Документы пока не добавлены',
-                text:
-                    'Подготовленные кадровые и рабочие документы появятся здесь.',
+                text: 'Подготовленные кадровые и рабочие документы появятся здесь.',
               )
             else
               for (final document in data.documents) ...[
@@ -1181,9 +1179,9 @@ class _EmployeeProfile extends StatelessWidget {
                     data.fullName.trim().isEmpty ? 'Сотрудник' : data.fullName,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppAdaptivePalette.textPrimary,
-                      fontWeight: FontWeight.w900,
-                    ),
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   if (data.profession.isNotEmpty) ...[
                     const SizedBox(height: 5),
@@ -1271,9 +1269,9 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: AppAdaptivePalette.textPrimary,
-            fontWeight: FontWeight.w900,
-          ),
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -1310,18 +1308,18 @@ class _EmptyEmployeeSection extends StatelessWidget {
             title,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppAdaptivePalette.textPrimary,
-              fontWeight: FontWeight.w900,
-            ),
+                  color: AppAdaptivePalette.textPrimary,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppAdaptivePalette.textMuted,
-              height: 1.45,
-            ),
+                  color: AppAdaptivePalette.textMuted,
+                  height: 1.45,
+                ),
           ),
         ],
       ),

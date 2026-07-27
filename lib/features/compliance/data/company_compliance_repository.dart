@@ -11,9 +11,7 @@ abstract final class CompanyComplianceRepository {
     return const <String, dynamic>{};
   }
 
-  static Future<CompanyComplianceSnapshot> fetchSnapshot(
-    String companyId,
-  ) async {
+  static Future<CompanyComplianceSnapshot> fetchSnapshot(String companyId) async {
     final cleanCompanyId = companyId.trim();
     if (cleanCompanyId.isEmpty) {
       throw StateError('Активная компания не выбрана');

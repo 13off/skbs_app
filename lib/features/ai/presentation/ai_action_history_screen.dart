@@ -60,26 +60,22 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
 
   List<AiActionAuditRecord> get visibleRecords {
     final query = searchController.text.trim().toLowerCase();
-    return records
-        .where((record) {
-          if (statusFilter != 'all' && record.status != statusFilter)
-            return false;
-          if (typeFilter != 'all' && record.actionType != typeFilter)
-            return false;
-          if (query.isEmpty) return true;
-          final haystack = <String>[
-            record.title,
-            record.actorLabel,
-            record.objectName,
-            record.actionType,
-            record.targetEntityType,
-            record.targetEntityId,
-            record.errorText,
-            jsonEncode(record.payload),
-          ].join(' ').toLowerCase();
-          return haystack.contains(query);
-        })
-        .toList(growable: false);
+    return records.where((record) {
+      if (statusFilter != 'all' && record.status != statusFilter) return false;
+      if (typeFilter != 'all' && record.actionType != typeFilter) return false;
+      if (query.isEmpty) return true;
+      final haystack = <String>[
+        record.title,
+        record.actorLabel,
+        record.objectName,
+        record.actionType,
+        record.targetEntityType,
+        record.targetEntityId,
+        record.errorText,
+        jsonEncode(record.payload),
+      ].join(' ').toLowerCase();
+      return haystack.contains(query);
+    }).toList(growable: false);
   }
 
   Set<String> get actionTypes => records
@@ -190,7 +186,11 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _detailLine('Статус', statusTitle(record.status), scheme),
+                  _detailLine(
+                    'Статус',
+                    statusTitle(record.status),
+                    scheme,
+                  ),
                   _detailLine(
                     'Тип',
                     AiActionAuditRecord.actionTypeTitle(record.actionType),
@@ -218,9 +218,17 @@ class _AiActionHistoryScreenState extends State<AiActionHistoryScreen> {
                       scheme,
                     ),
                   if (record.targetEntityType.isNotEmpty)
-                    _detailLine('Результат', record.targetEntityType, scheme),
+                    _detailLine(
+                      'Результат',
+                      record.targetEntityType,
+                      scheme,
+                    ),
                   if (record.targetEntityId.isNotEmpty)
-                    _detailLine('ID результата', record.targetEntityId, scheme),
+                    _detailLine(
+                      'ID результата',
+                      record.targetEntityId,
+                      scheme,
+                    ),
                   if (record.errorText.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     _warningCard(record.errorText, scheme),

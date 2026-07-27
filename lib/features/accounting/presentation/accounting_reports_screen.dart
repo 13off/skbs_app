@@ -17,8 +17,7 @@ class AccountingReportsScreen extends StatefulWidget {
   const AccountingReportsScreen({super.key});
 
   @override
-  State<AccountingReportsScreen> createState() =>
-      _AccountingReportsScreenState();
+  State<AccountingReportsScreen> createState() => _AccountingReportsScreenState();
 }
 
 class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
@@ -33,7 +32,9 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
     super.initState();
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month, 1);
-    registerFuture = Future.value(const <AccountingPaymentRegisterRow>[]);
+    registerFuture = Future.value(
+      const <AccountingPaymentRegisterRow>[],
+    );
     loadObjects();
   }
 
@@ -344,31 +345,29 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
               padding: EdgeInsets.symmetric(vertical: 18),
               child: Center(child: Text('Выплат за выбранный период нет')),
             ),
-          ...rows
-              .take(20)
-              .map(
-                (row) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    row.receiptCount == 0
-                        ? Icons.receipt_long_outlined
-                        : Icons.verified_outlined,
-                  ),
-                  title: Text(
-                    row.employeeName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: Text(
-                    '${accountingDate(row.paymentDate)} · ${row.objectName.isEmpty ? 'Без объекта' : row.objectName}',
-                  ),
-                  trailing: Text(
-                    accountingMoney(row.amount),
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ),
+          ...rows.take(20).map(
+            (row) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                row.receiptCount == 0
+                    ? Icons.receipt_long_outlined
+                    : Icons.verified_outlined,
               ),
+              title: Text(
+                row.employeeName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                '${accountingDate(row.paymentDate)} · ${row.objectName.isEmpty ? 'Без объекта' : row.objectName}',
+              ),
+              trailing: Text(
+                accountingMoney(row.amount),
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -20,10 +20,7 @@ void main() {
     }
 
     expect(screen, contains('Widget build(BuildContext context) =>'));
-    expect(
-      screen,
-      isNot(contains('AttendanceRepository.fetchMonthlyTimesheet')),
-    );
+    expect(screen, isNot(contains('AttendanceRepository.fetchMonthlyTimesheet')));
     expect(screen, isNot(contains('TimesheetExcelExporter')));
     expect(screen, isNot(contains('showModalBottomSheet')));
     expect(screen, isNot(contains('DataTable(')));

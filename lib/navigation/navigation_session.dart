@@ -51,7 +51,10 @@ class NavigationSession {
     if (objectName.trim().isEmpty) {
       await preferences.remove(_key('preview.object'));
     } else {
-      await preferences.setString(_key('preview.object'), objectName.trim());
+      await preferences.setString(
+        _key('preview.object'),
+        objectName.trim(),
+      );
     }
   }
 

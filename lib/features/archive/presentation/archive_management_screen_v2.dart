@@ -19,7 +19,8 @@ class ArchiveManagementScreenV2 extends StatefulWidget {
       _ArchiveManagementScreenV2State();
 }
 
-class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
+class _ArchiveManagementScreenV2State
+    extends State<ArchiveManagementScreenV2> {
   final TextEditingController searchController = TextEditingController();
 
   _ArchiveKind kind = _ArchiveKind.employees;
@@ -270,18 +271,14 @@ class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            archive
-                ? 'Выбранное перемещено в архив'
-                : 'Выбранное восстановлено',
-          ),
+          content: Text(archive ? 'Выбранное перемещено в архив' : 'Выбранное восстановлено'),
         ),
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка: $error')),
+      );
     } finally {
       if (mounted) setState(() => isBusy = false);
     }
@@ -311,9 +308,9 @@ class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка удаления: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка удаления: $error')),
+      );
     } finally {
       if (mounted) setState(() => isBusy = false);
     }
@@ -386,7 +383,9 @@ class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           value: allVisibleSelected,
-          onChanged: isBusy ? null : (value) => selectAllVisible(value == true),
+          onChanged: isBusy
+              ? null
+              : (value) => selectAllVisible(value == true),
           title: const Text(
             'Выбрать все',
             style: TextStyle(fontWeight: FontWeight.w800),
@@ -419,11 +418,9 @@ class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
       subtitle: Text(
-        [
-          employee.position,
-          employee.objectName,
-          employee.phone,
-        ].where((value) => value.trim().isNotEmpty).join(' • '),
+        [employee.position, employee.objectName, employee.phone]
+            .where((value) => value.trim().isNotEmpty)
+            .join(' • '),
       ),
       secondary: Icon(
         showArchived ? Icons.inventory_2_outlined : Icons.person_outline,
@@ -558,7 +555,9 @@ class _ArchiveManagementScreenV2State extends State<ArchiveManagementScreenV2> {
                                   ? Icons.restore_outlined
                                   : Icons.archive_outlined,
                             ),
-                      label: Text(showArchived ? 'Восстановить' : 'В архив'),
+                      label: Text(
+                        showArchived ? 'Восстановить' : 'В архив',
+                      ),
                     ),
                   ),
                   if (showArchived) ...[

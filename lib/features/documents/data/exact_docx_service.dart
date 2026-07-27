@@ -145,9 +145,7 @@ class ExactDocxService {
   }) {
     final template = templateFor(templateCode);
     if (template == null) {
-      throw UnsupportedError(
-        'Точный DOCX-шаблон «$templateCode» не поддерживается',
-      );
+      throw UnsupportedError('Точный DOCX-шаблон «$templateCode» не поддерживается');
     }
 
     final normalizedValues = <String, String>{
@@ -169,9 +167,7 @@ class ExactDocxService {
       ..addFile(_textFile('[Content_Types].xml', _contentTypes))
       ..addFile(_textFile('_rels/.rels', _rootRelationships))
       ..addFile(_textFile('word/document.xml', documentXml))
-      ..addFile(
-        _textFile('word/_rels/document.xml.rels', _documentRelationships),
-      )
+      ..addFile(_textFile('word/_rels/document.xml.rels', _documentRelationships))
       ..addFile(_textFile('word/settings.xml', _settings))
       ..addFile(_textFile('word/styles.xml', _styles))
       ..addFile(_textFile('word/fontTable.xml', _fontTable));
@@ -249,8 +245,10 @@ class ExactDocxService {
         '</w:pPr>$runs</w:p>';
   }
 
-  static String _blank([int count = 1]) =>
-      List<String>.filled(count, _paragraph('')).join();
+  static String _blank([int count = 1]) => List<String>.filled(
+        count,
+        _paragraph(''),
+      ).join();
 
   static String _heading(String text) =>
       _paragraph(_run(text, bold: true), align: 'center', after: 180);
@@ -275,9 +273,7 @@ class ExactDocxService {
       ),
       _blank(5),
       _paragraph(_run('Заявление'), align: 'center', after: 360),
-      _paragraph(
-        _run('Прошу принять меня на работу в ООО «СКБС» по должности'),
-      ),
+      _paragraph(_run('Прошу принять меня на работу в ООО «СКБС» по должности')),
       _paragraph(
         '${_run(position)}${_run('  с ', preserve: true)}'
         '${_run(employmentDate)}${_run(' г.', preserve: true)}',
@@ -322,22 +318,13 @@ class ExactDocxService {
         align: 'right',
       ),
       _blank(3),
+      _paragraph(_run('ЗАЯВЛЕНИЕ', bold: true, size: 28), align: 'center', after: 360),
       _paragraph(
-        _run('ЗАЯВЛЕНИЕ', bold: true, size: 28),
-        align: 'center',
-        after: 360,
-      ),
-      _paragraph(
-        _run(
-          'Прошу перечислять мою заработную плату по указанным реквизитам банковского счёта.',
-        ),
+        _run('Прошу перечислять мою заработную плату по указанным реквизитам банковского счёта.'),
         after: 320,
         firstLine: 709,
       ),
-      _paragraph(
-        _run('Реквизиты получателя зарплаты:', bold: true),
-        after: 120,
-      ),
+      _paragraph(_run('Реквизиты получателя зарплаты:', bold: true), after: 120),
       _detailsTable(rows),
       _paragraph(''),
       _salarySignatureTable(documentDate: documentDate, shortName: shortName),
@@ -370,11 +357,7 @@ class ExactDocxService {
 
     return <String>[
       _paragraph(
-        _run(
-          'СОГЛАСИЕ НА ХРАНЕНИЕ И ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ',
-          bold: true,
-          size: 28,
-        ),
+        _run('СОГЛАСИЕ НА ХРАНЕНИЕ И ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ', bold: true, size: 28),
         align: 'center',
         after: 300,
       ),
@@ -389,16 +372,8 @@ class ExactDocxService {
         firstLine: 709,
         after: 180,
       ),
-      _paragraph(
-        _run(
-          'К моим персональным данным относится следующая информация:',
-          bold: true,
-        ),
-        after: 100,
-      ),
-      ...categories.map(
-        (item) => _paragraph(_run('— $item'), firstLine: 360, after: 60),
-      ),
+      _paragraph(_run('К моим персональным данным относится следующая информация:', bold: true), after: 100),
+      ...categories.map((item) => _paragraph(_run('— $item'), firstLine: 360, after: 60)),
       _paragraph(
         _run(
           'Согласен на сбор, систематизацию, накопление, хранение, уточнение, использование, обезличивание, блокирование и уничтожение персональных данных с использованием средств автоматизации и без них в целях оформления и сопровождения трудовых отношений, исполнения требований законодательства, расчёта и выплаты заработной платы.',
@@ -424,13 +399,7 @@ class ExactDocxService {
         left: '$documentDate г.',
         right: '________________ / $shortName /',
       ),
-      _paragraph(
-        _run(
-          'Перед подписанием проверить реквизиты оператора персональных данных и сроки хранения.',
-          size: 20,
-        ),
-        after: 0,
-      ),
+      _paragraph(_run('Перед подписанием проверить реквизиты оператора персональных данных и сроки хранения.', size: 20), after: 0),
       '<w:p/>',
       _section(pageWidth: 11906, pageHeight: 16838),
     ].join();
@@ -463,11 +432,7 @@ class ExactDocxService {
     final employerDetails = _value(values, 'employer_details');
 
     return <String>[
-      _paragraph(
-        _run('ТРУДОВОЙ ДОГОВОР № $contractNumber', bold: true, size: 28),
-        align: 'center',
-        after: 220,
-      ),
+      _paragraph(_run('ТРУДОВОЙ ДОГОВОР № $contractNumber', bold: true, size: 28), align: 'center', after: 220),
       _borderlessSignatureTable(left: 'г. $city', right: '$documentDate г.'),
       _paragraph(
         '${_run(employerName)}${_run(' в лице ', preserve: true)}${_run(representative)}'
@@ -478,114 +443,35 @@ class ExactDocxService {
         after: 180,
       ),
       _heading('1. ПРЕДМЕТ ДОГОВОРА'),
-      _paragraph(
-        _run(
-          '1.1. Работник принимается на должность $position по основному месту работы.',
-        ),
-        firstLine: 360,
-        after: 80,
-      ),
-      _paragraph(
-        _run('1.2. Место выполнения работы: $workAddress.'),
-        firstLine: 360,
-        after: 80,
-      ),
-      _paragraph(
-        _run(
-          '1.3. Дата начала работы: $employmentDate. Договор действует до его прекращения в порядке, установленном законодательством Российской Федерации.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('1.1. Работник принимается на должность $position по основному месту работы.'), firstLine: 360, after: 80),
+      _paragraph(_run('1.2. Место выполнения работы: $workAddress.'), firstLine: 360, after: 80),
+      _paragraph(_run('1.3. Дата начала работы: $employmentDate. Договор действует до его прекращения в порядке, установленном законодательством Российской Федерации.'), firstLine: 360, after: 160),
       _heading('2. ПРАВА И ОБЯЗАННОСТИ РАБОТНИКА'),
-      _paragraph(
-        _run(
-          '2.1. Работник имеет права, предусмотренные Трудовым кодексом Российской Федерации, включая право на обусловленную договором работу, безопасное рабочее место, отдых, своевременную выплату заработной платы и обязательное социальное страхование.',
-        ),
-        firstLine: 360,
-        after: 100,
-      ),
-      _paragraph(
-        _run(
-          '2.2. Работник обязан добросовестно исполнять трудовые обязанности, выполнять законные распоряжения руководителей, соблюдать правила внутреннего трудового распорядка, требования охраны труда, бережно относиться к имуществу Работодателя и не разглашать охраняемую законом и договором информацию.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('2.1. Работник имеет права, предусмотренные Трудовым кодексом Российской Федерации, включая право на обусловленную договором работу, безопасное рабочее место, отдых, своевременную выплату заработной платы и обязательное социальное страхование.'), firstLine: 360, after: 100),
+      _paragraph(_run('2.2. Работник обязан добросовестно исполнять трудовые обязанности, выполнять законные распоряжения руководителей, соблюдать правила внутреннего трудового распорядка, требования охраны труда, бережно относиться к имуществу Работодателя и не разглашать охраняемую законом и договором информацию.'), firstLine: 360, after: 160),
       _heading('3. ПРАВА И ОБЯЗАННОСТИ РАБОТОДАТЕЛЯ'),
-      _paragraph(
-        _run(
-          '3.1. Работодатель вправе требовать исполнения трудовых обязанностей, поощрять Работника и привлекать его к ответственности в порядке, установленном законодательством.',
-        ),
-        firstLine: 360,
-        after: 100,
-      ),
-      _paragraph(
-        _run(
-          '3.2. Работодатель обязан предоставить работу, обеспечить безопасные условия и необходимые средства, вести учёт рабочего времени, выплачивать заработную плату в полном размере и соблюдать требования законодательства о труде и персональных данных.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('3.1. Работодатель вправе требовать исполнения трудовых обязанностей, поощрять Работника и привлекать его к ответственности в порядке, установленном законодательством.'), firstLine: 360, after: 100),
+      _paragraph(_run('3.2. Работодатель обязан предоставить работу, обеспечить безопасные условия и необходимые средства, вести учёт рабочего времени, выплачивать заработную плату в полном размере и соблюдать требования законодательства о труде и персональных данных.'), firstLine: 360, after: 160),
       _heading('4. РЕЖИМ ТРУДА И ОТДЫХА'),
-      _paragraph(
-        _run(
-          '4.1. Работнику устанавливается следующий режим: $schedule. Конкретное распределение рабочего времени и дней отдыха определяется графиком и локальными актами с соблюдением требований законодательства.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('4.1. Работнику устанавливается следующий режим: $schedule. Конкретное распределение рабочего времени и дней отдыха определяется графиком и локальными актами с соблюдением требований законодательства.'), firstLine: 360, after: 160),
       _heading('5. УСЛОВИЯ ОПЛАТЫ ТРУДА'),
-      _paragraph(
-        _run(
-          '5.1. Условия оплаты труда: $salary. Сроки и порядок выплаты определяются законодательством, локальными актами и соглашениями сторон.',
-        ),
-        firstLine: 360,
-        after: 100,
-      ),
-      _paragraph(
-        _run(
-          '5.2. Компенсационные и стимулирующие выплаты начисляются при наличии оснований и в порядке, установленном Работодателем и законодательством.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('5.1. Условия оплаты труда: $salary. Сроки и порядок выплаты определяются законодательством, локальными актами и соглашениями сторон.'), firstLine: 360, after: 100),
+      _paragraph(_run('5.2. Компенсационные и стимулирующие выплаты начисляются при наличии оснований и в порядке, установленном Работодателем и законодательством.'), firstLine: 360, after: 160),
       _heading('6. ОТВЕТСТВЕННОСТЬ И РАЗРЕШЕНИЕ СПОРОВ'),
-      _paragraph(
-        _run(
-          '6.1. Стороны несут ответственность в соответствии с Трудовым кодексом Российской Федерации и иными нормативными актами. Споры разрешаются путём переговоров, а при недостижении соглашения — в установленном законом порядке.',
-        ),
-        firstLine: 360,
-        after: 160,
-      ),
+      _paragraph(_run('6.1. Стороны несут ответственность в соответствии с Трудовым кодексом Российской Федерации и иными нормативными актами. Споры разрешаются путём переговоров, а при недостижении соглашения — в установленном законом порядке.'), firstLine: 360, after: 160),
       _heading('7. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ'),
-      _paragraph(
-        _run(
-          '7.1. Договор составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для каждой стороны. Изменения оформляются письменным соглашением.',
-        ),
-        firstLine: 360,
-        after: 180,
-      ),
+      _paragraph(_run('7.1. Договор составлен в двух экземплярах, имеющих одинаковую юридическую силу, по одному для каждой стороны. Изменения оформляются письменным соглашением.'), firstLine: 360, after: 180),
       _heading('8. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН'),
       _detailsTable(<(String, String)>[
         ('Работодатель', '$employerName\n$employerDetails'),
-        (
-          'Работник',
-          '$employee\nДата рождения: $birthDate\nМесто рождения: $birthPlace\nПаспорт: $passportSeries № $passportNumber\nВыдан: $passportIssuedBy, $passportIssuedDate\nКод подразделения: $departmentCode\nАдрес регистрации: $registrationAddress\nТелефон: $phone\nИНН: $inn\nСНИЛС: $snils',
-        ),
+        ('Работник', '$employee\nДата рождения: $birthDate\nМесто рождения: $birthPlace\nПаспорт: $passportSeries № $passportNumber\nВыдан: $passportIssuedBy, $passportIssuedDate\nКод подразделения: $departmentCode\nАдрес регистрации: $registrationAddress\nТелефон: $phone\nИНН: $inn\nСНИЛС: $snils'),
       ]),
       _blank(),
       _borderlessSignatureTable(
         left: 'Работодатель: ________________',
         right: 'Работник: ________________ / $employee /',
       ),
-      _paragraph(
-        _run(
-          'Работник получил один экземпляр договора: ________________ / $employee /',
-          size: 20,
-        ),
-        after: 0,
-      ),
+      _paragraph(_run('Работник получил один экземпляр договора: ________________ / $employee /', size: 20), after: 0),
       '<w:p/>',
       _section(pageWidth: 11906, pageHeight: 16838),
     ].join();
@@ -607,8 +493,7 @@ class ExactDocxService {
   }
 
   static String _detailCell(String value, {bool labelCell = false}) {
-    const borders =
-        '<w:tcBorders>'
+    const borders = '<w:tcBorders>'
         '<w:top w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
         '<w:left w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
         '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
@@ -616,11 +501,7 @@ class ExactDocxService {
         '</w:tcBorders>';
     final lines = value.split('\n');
     final paragraphs = lines
-        .map(
-          (line) => _paragraph(
-            _run(line, bold: labelCell, size: labelCell ? 22 : null),
-          ),
-        )
+        .map((line) => _paragraph(_run(line, bold: labelCell, size: labelCell ? 22 : null)))
         .join();
     return '<w:tc><w:tcPr><w:tcW w:w="${labelCell ? 3685 : 5953}" '
         'w:type="dxa"/>$borders'
@@ -678,8 +559,7 @@ class ExactDocxService {
         '<w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr>';
   }
 
-  static const _contentTypes =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _contentTypes = '<?xml version="1.0" encoding="UTF-8"?>'
       '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
       '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
       '<Default Extension="xml" ContentType="application/xml"/>'
@@ -689,30 +569,26 @@ class ExactDocxService {
       '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
       '</Types>';
 
-  static const _rootRelationships =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _rootRelationships = '<?xml version="1.0" encoding="UTF-8"?>'
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
       '</Relationships>';
 
-  static const _documentRelationships =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _documentRelationships = '<?xml version="1.0" encoding="UTF-8"?>'
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
       '<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>'
       '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>'
       '</Relationships>';
 
-  static const _settings =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _settings = '<?xml version="1.0" encoding="UTF-8"?>'
       '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
       '<w:zoom w:percent="100"/><w:defaultTabStop w:val="720"/>'
       '<w:characterSpacingControl w:val="doNotCompress"/>'
       '<w:decimalSymbol w:val=","/><w:listSeparator w:val=";"/>'
       '</w:settings>';
 
-  static const _styles =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _styles = '<?xml version="1.0" encoding="UTF-8"?>'
       '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
       '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" '
       'w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/>'
@@ -727,8 +603,7 @@ class ExactDocxService {
       '<w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/>'
       '</w:tblBorders></w:tblPr></w:style></w:styles>';
 
-  static const _fontTable =
-      '<?xml version="1.0" encoding="UTF-8"?>'
+  static const _fontTable = '<?xml version="1.0" encoding="UTF-8"?>'
       '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
       '<w:font w:name="Times New Roman"><w:family w:val="roman"/>'
       '<w:pitch w:val="variable"/></w:font></w:fonts>';

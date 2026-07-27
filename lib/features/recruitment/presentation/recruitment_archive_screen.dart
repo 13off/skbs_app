@@ -214,7 +214,10 @@ class _RecruitmentArchiveScreenState extends State<RecruitmentArchiveScreen> {
                     color: _archiveSoft,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.inventory_2_outlined, color: _archiveMuted),
+                  child: Icon(
+                    Icons.inventory_2_outlined,
+                    color: _archiveMuted,
+                  ),
                 ),
                 SizedBox(width: 12),
                 Expanded(

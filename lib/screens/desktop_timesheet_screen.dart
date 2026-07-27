@@ -34,7 +34,8 @@ class DesktopTimesheetScreen extends StatefulWidget {
   });
 
   @override
-  State<DesktopTimesheetScreen> createState() => _DesktopTimesheetScreenState();
+  State<DesktopTimesheetScreen> createState() =>
+      _DesktopTimesheetScreenState();
 }
 
 class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
@@ -353,17 +354,15 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.center,
-                      children: quickOptions
-                          .map((option) {
-                            return ChoiceChip(
-                              label: Text(formatShift(option)),
-                              selected: selected == option,
-                              onSelected: (_) {
-                                setDialogState(() => selected = option);
-                              },
-                            );
-                          })
-                          .toList(growable: false),
+                      children: quickOptions.map((option) {
+                        return ChoiceChip(
+                          label: Text(formatShift(option)),
+                          selected: selected == option,
+                          onSelected: (_) {
+                            setDialogState(() => selected = option);
+                          },
+                        );
+                      }).toList(growable: false),
                     ),
                   ],
                 ),
@@ -433,13 +432,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   List<String> get objectOptions {
-    final values =
-        employees
-            .map((employee) => employee.objectName.trim())
-            .where((name) => name.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final values = employees
+        .map((employee) => employee.objectName.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return values;
   }
 
@@ -475,9 +473,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       CupertinoPageRoute<void>(
         builder: (_) => Scaffold(
           appBar: AppBar(
-            leading: const BackButton(),
-            title: Text('Отчет по табелю — $objectTitle'),
-          ),
+        leading: const BackButton(),title: Text('Отчет по табелю — $objectTitle')),
           body: PeriodTimesheetScreen(
             selectedObjectName: widget.selectedObjectName,
           ),
@@ -498,8 +494,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             icon: Icons.chevron_left_rounded,
             tooltip: 'Предыдущий день',
             onTap: enabled
-                ? () =>
-                      changeDate(selectedDate.subtract(const Duration(days: 1)))
+                ? () => changeDate(selectedDate.subtract(const Duration(days: 1)))
                 : null,
           ),
           SizedBox(width: 10),
@@ -583,9 +578,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   Widget buildMetrics(List<Employee> visible) {
-    final workedCount = visible
-        .where((employee) => shiftValueFor(employee) > 0)
-        .length;
+    final workedCount = visible.where((employee) => shiftValueFor(employee) > 0).length;
     final totalShifts = visible.fold<double>(
       0,
       (sum, employee) => sum + shiftValueFor(employee),
@@ -682,7 +675,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                   ...objectOptions.map(
                     (objectName) => DropdownMenuItem<String?>(
                       value: objectName,
-                      child: Text(objectName, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        objectName,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -700,19 +696,18 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               child: DropdownButton<String>(
                 value: attendanceFilter,
                 isExpanded: true,
-                items:
-                    const <String>[
-                          'Все сотрудники',
-                          'Только вышедшие',
-                          'Не вышли',
-                        ]
-                        .map(
-                          (value) => DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          ),
-                        )
-                        .toList(growable: false),
+                items: const <String>[
+                  'Все сотрудники',
+                  'Только вышедшие',
+                  'Не вышли',
+                ]
+                    .map(
+                      (value) => DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      ),
+                    )
+                    .toList(growable: false),
                 onChanged: (value) {
                   if (value != null) setState(() => attendanceFilter = value);
                 },
@@ -754,7 +749,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child: Text(
                   'Сотрудники не найдены',
-                  style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: _muted,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               )
             else
@@ -862,8 +860,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                         SizedBox(
                           width: 280,
                           child: FilledButton.icon(
-                            onPressed:
-                                employees.isEmpty || isLoading || isSaving
+                            onPressed: employees.isEmpty || isLoading || isSaving
                                 ? null
                                 : saveTimesheet,
                             icon: isSaving
@@ -1091,7 +1088,9 @@ class _TimesheetRow extends StatelessWidget {
                   height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: hasWorked ? _worked.withValues(alpha: 0.12) : _soft,
+                    color: hasWorked
+                        ? _worked.withValues(alpha: 0.12)
+                        : _soft,
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Text(
@@ -1110,7 +1109,10 @@ class _TimesheetRow extends StatelessWidget {
                     employee.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      color: _text,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
@@ -1122,7 +1124,10 @@ class _TimesheetRow extends StatelessWidget {
               employee.objectName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           Expanded(
@@ -1131,7 +1136,10 @@ class _TimesheetRow extends StatelessWidget {
               employee.position,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: _muted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           Expanded(
@@ -1150,17 +1158,14 @@ class _TimesheetRow extends StatelessWidget {
                   ),
                 ),
                 _ShiftButton(
-                  label:
-                      value > 2 ||
+                  label: value > 2 ||
                           !DesktopTimesheetScreenStateQuickOptions.values
                               .contains(value)
                       ? formatShift(value)
                       : 'Другое',
-                  selected:
-                      value > 2 ||
-                      !DesktopTimesheetScreenStateQuickOptions.values.contains(
-                        value,
-                      ),
+                  selected: value > 2 ||
+                      !DesktopTimesheetScreenStateQuickOptions.values
+                          .contains(value),
                   enabled: enabled,
                   onTap: onCustom,
                   wide: true,

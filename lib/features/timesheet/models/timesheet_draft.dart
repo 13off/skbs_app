@@ -5,8 +5,8 @@ class TimesheetDraft {
   TimesheetDraft._({
     required Map<String, double> originalValues,
     required Map<String, double> values,
-  }) : _originalValues = Map<String, double>.unmodifiable(originalValues),
-       _values = Map<String, double>.unmodifiable(values);
+  })  : _originalValues = Map<String, double>.unmodifiable(originalValues),
+        _values = Map<String, double>.unmodifiable(values);
 
   factory TimesheetDraft.empty() {
     return TimesheetDraft._(

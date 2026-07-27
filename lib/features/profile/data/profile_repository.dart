@@ -76,9 +76,7 @@ class ProfileRepository {
       };
       uploadedPath =
           '${user.id}/avatar_${DateTime.now().millisecondsSinceEpoch}.$cleanExtension';
-      await _client.storage
-          .from(avatarBucket)
-          .uploadBinary(
+      await _client.storage.from(avatarBucket).uploadBinary(
             uploadedPath,
             avatarBytes,
             fileOptions: FileOptions(
@@ -99,9 +97,7 @@ class ProfileRepository {
     } catch (_) {
       if (uploadedPath != null) {
         try {
-          await _client.storage.from(avatarBucket).remove(<String>[
-            uploadedPath,
-          ]);
+          await _client.storage.from(avatarBucket).remove(<String>[uploadedPath]);
         } catch (_) {
           // Не скрываем исходную ошибку сохранения профиля.
         }

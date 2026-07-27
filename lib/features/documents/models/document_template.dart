@@ -38,8 +38,7 @@ class DocumentTemplateVersion {
       companyId: map['company_id']?.toString(),
       versionNo: int.tryParse(map['version_no']?.toString() ?? '') ?? 1,
       fileName: map['file_name']?.toString() ?? 'document.docx',
-      mimeType:
-          map['mime_type']?.toString() ??
+      mimeType: map['mime_type']?.toString() ??
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       sourceKind: map['source_kind']?.toString() ?? 'asset',
       assetPath: map['asset_path']?.toString() ?? '',
@@ -50,8 +49,7 @@ class DocumentTemplateVersion {
           : const <String, dynamic>{},
       notes: map['notes']?.toString() ?? '',
       isApproved: map['is_approved'] == true,
-      createdAt:
-          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -110,8 +108,7 @@ class DocumentTemplateRecord {
       description: map['description']?.toString() ?? '',
       status: map['status']?.toString() ?? 'review',
       currentVersionId: map['current_version_id']?.toString() ?? '',
-      updatedAt:
-          DateTime.tryParse(map['updated_at']?.toString() ?? '') ??
+      updatedAt: DateTime.tryParse(map['updated_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       versions: versions,
     );

@@ -5,9 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('completed task asks for one exact 100 percent contribution split', () {
-    final wrapper = File(
-      'lib/screens/task_details_screen.dart',
-    ).readAsStringSync();
+    final wrapper = File('lib/screens/task_details_screen.dart').readAsStringSync();
     final dialog = File(
       'lib/features/tasks/presentation/task_contribution_dialog.dart',
     ).readAsStringSync();
@@ -33,10 +31,7 @@ void main() {
     ).readAsStringSync();
 
     expect(migration, contains('enable row level security'));
-    expect(
-      migration,
-      contains("current_user_has_object_permission('tasks.edit'"),
-    );
+    expect(migration, contains("current_user_has_object_permission('tasks.edit'"));
     expect(migration, contains('v_total <> 100'));
     expect(migration, contains('every participant exactly once'));
     expect(migration, contains('contribution contains a non-participant'));

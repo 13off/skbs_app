@@ -50,8 +50,7 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
   @override
   void initState() {
     super.initState();
-    objectName =
-        _clean(widget.selectedObjectName) ??
+    objectName = _clean(widget.selectedObjectName) ??
         (widget.profile.isForeman ? _clean(widget.profile.objectName) : null);
     if (widget.profile.isAdmin) loadObjects();
   }
@@ -158,9 +157,7 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
             const SizedBox(height: 16),
             if (widget.profile.isAdmin)
               DropdownButtonFormField<String>(
-                initialValue: objectNames.contains(objectName)
-                    ? objectName
-                    : null,
+                initialValue: objectNames.contains(objectName) ? objectName : null,
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: loadingObjects ? 'Загрузка объектов...' : 'Объект',
@@ -230,8 +227,7 @@ class _MilestoneEditorDialogState extends State<MilestoneEditorDialog> {
                   child: Text('Пустой чек-лист'),
                 ),
               ],
-              onChanged: (value) =>
-                  setState(() => template = value ?? 'concrete'),
+              onChanged: (value) => setState(() => template = value ?? 'concrete'),
             ),
             const SizedBox(height: 12),
             TextField(

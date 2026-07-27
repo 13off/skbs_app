@@ -19,36 +19,24 @@ void main() {
 
     expect(
       archive,
-      isNot(
-        contains(
-          "const Text(\n                    'Не удалось загрузить архив'",
-        ),
-      ),
+      isNot(contains("const Text(\n                    'Не удалось загрузить архив'")),
     );
+    expect(dashboard, contains('Color color = AppAdaptivePalette.telegramBlue'));
     expect(
       dashboard,
-      contains('Color color = AppAdaptivePalette.telegramBlue'),
-    );
-    expect(
-      dashboard,
-      isNot(
-        contains(
-          "const Text(\n                    'Не удалось загрузить HR-сводку'",
-        ),
-      ),
+      isNot(contains("const Text(\n                    'Не удалось загрузить HR-сводку'")),
     );
     expect(
       timesheet,
       contains('this.accent = AppAdaptivePalette.telegramBlue'),
     );
-    expect(objects, isNot(contains("const Text(\n            'Объекты'")));
     expect(
       objects,
-      isNot(
-        contains(
-          "child: const Text(\n                  'Объекты пока не найдены'",
-        ),
-      ),
+      isNot(contains("const Text(\n            'Объекты'")),
+    );
+    expect(
+      objects,
+      isNot(contains("child: const Text(\n                  'Объекты пока не найдены'")),
     );
   });
 }

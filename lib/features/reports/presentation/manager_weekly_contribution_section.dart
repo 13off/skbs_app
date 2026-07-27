@@ -48,8 +48,7 @@ class ManagerWeeklyContributionSection extends StatelessWidget {
           );
         }
         return _WeeklyContributionCard(
-          report:
-              snapshot.data ??
+          report: snapshot.data ??
               ManagerWeeklyContributionReport(
                 weekStart: DateTime.now(),
                 weekEnd: DateTime.now(),
@@ -106,7 +105,9 @@ class _WeeklyContributionCard extends StatelessWidget {
             'Вклад команды за неделю',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
-          subtitle: Text('$periodTitle · обновляется после завершения недели'),
+          subtitle: Text(
+            '$periodTitle · обновляется после завершения недели',
+          ),
           children: [
             Align(
               alignment: Alignment.centerLeft,
@@ -145,11 +146,7 @@ class _WeeklyContributionCard extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    for (
-                      var index = 0;
-                      index < report.rows.length;
-                      index++
-                    ) ...[
+                    for (var index = 0; index < report.rows.length; index++) ...[
                       _EmployeeContributionTile(
                         item: report.rows[index],
                         equivalentTitle: number(

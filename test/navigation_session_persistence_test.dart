@@ -18,7 +18,10 @@ void main() {
     expect(RolePreviewController.state.value.objectName, isEmpty);
     expect(NavigationSession.readTabIndex('lawyer'), 2);
 
-    await NavigationSession.writePreview(role: 'foreman', objectName: 'Чона');
+    await NavigationSession.writePreview(
+      role: 'foreman',
+      objectName: 'Чона',
+    );
     RolePreviewController.reset(clearPersisted: false);
     await RolePreviewController.restore(canPreviewRoles: true);
 

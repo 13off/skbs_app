@@ -82,10 +82,7 @@ void main() {
     expect(repository, contains("'delete_recruitment_pipeline_stage'"));
     expect(migration, contains('security definer'));
     expect(migration, contains('update public.recruitment_applications'));
-    expect(
-      migration,
-      contains('delete from public.recruitment_pipeline_stages'),
-    );
+    expect(migration, contains('delete from public.recruitment_pipeline_stages'));
     expect(migration, contains('recruitment.crm.configure'));
   });
 }

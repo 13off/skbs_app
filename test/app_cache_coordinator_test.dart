@@ -6,57 +6,69 @@ import 'package:skbs_app/data/app_data_sync.dart';
 
 void main() {
   test('сотрудники очищают зависимые операционные кеши', () {
-    final areas = AppCacheCoordinator.areasFor(const <AppDataDomain>{
-      AppDataDomain.employees,
-    });
+    final areas = AppCacheCoordinator.areasFor(
+      const <AppDataDomain>{AppDataDomain.employees},
+    );
 
-    expect(areas, const <AppCacheArea>{
-      AppCacheArea.employees,
-      AppCacheArea.attendance,
-      AppCacheArea.financeSummary,
-      AppCacheArea.managerReports,
-    });
+    expect(
+      areas,
+      const <AppCacheArea>{
+        AppCacheArea.employees,
+        AppCacheArea.attendance,
+        AppCacheArea.financeSummary,
+        AppCacheArea.managerReports,
+      },
+    );
   });
 
   test('выплаты очищают финансы, табель и отчёты', () {
-    final areas = AppCacheCoordinator.areasFor(const <AppDataDomain>{
-      AppDataDomain.payments,
-    });
+    final areas = AppCacheCoordinator.areasFor(
+      const <AppDataDomain>{AppDataDomain.payments},
+    );
 
-    expect(areas, const <AppCacheArea>{
-      AppCacheArea.payments,
-      AppCacheArea.attendance,
-      AppCacheArea.financeSummary,
-      AppCacheArea.managerReports,
-    });
+    expect(
+      areas,
+      const <AppCacheArea>{
+        AppCacheArea.payments,
+        AppCacheArea.attendance,
+        AppCacheArea.financeSummary,
+        AppCacheArea.managerReports,
+      },
+    );
   });
 
   test('задачи не сбрасывают несвязанные справочники', () {
-    final areas = AppCacheCoordinator.areasFor(const <AppDataDomain>{
-      AppDataDomain.tasks,
-    });
+    final areas = AppCacheCoordinator.areasFor(
+      const <AppDataDomain>{AppDataDomain.tasks},
+    );
 
-    expect(areas, const <AppCacheArea>{
-      AppCacheArea.tasks,
-      AppCacheArea.managerReports,
-    });
+    expect(
+      areas,
+      const <AppCacheArea>{
+        AppCacheArea.tasks,
+        AppCacheArea.managerReports,
+      },
+    );
   });
 
   test('изменение объектов очищает все зависимые данные объекта', () {
-    final areas = AppCacheCoordinator.areasFor(const <AppDataDomain>{
-      AppDataDomain.objects,
-    });
+    final areas = AppCacheCoordinator.areasFor(
+      const <AppDataDomain>{AppDataDomain.objects},
+    );
 
-    expect(areas, const <AppCacheArea>{
-      AppCacheArea.objects,
-      AppCacheArea.developerPolicies,
-      AppCacheArea.employees,
-      AppCacheArea.attendance,
-      AppCacheArea.financeSummary,
-      AppCacheArea.payments,
-      AppCacheArea.tasks,
-      AppCacheArea.managerReports,
-    });
+    expect(
+      areas,
+      const <AppCacheArea>{
+        AppCacheArea.objects,
+        AppCacheArea.developerPolicies,
+        AppCacheArea.employees,
+        AppCacheArea.attendance,
+        AppCacheArea.financeSummary,
+        AppCacheArea.payments,
+        AppCacheArea.tasks,
+        AppCacheArea.managerReports,
+      },
+    );
   });
 
   test('служебные направления очищают только центр отчётов', () {
@@ -74,9 +86,9 @@ void main() {
 
   test('смена компании очищает весь пользовательский кеш', () {
     expect(
-      AppCacheCoordinator.areasFor(const <AppDataDomain>{
-        AppDataDomain.company,
-      }),
+      AppCacheCoordinator.areasFor(
+        const <AppDataDomain>{AppDataDomain.company},
+      ),
       AppCacheCoordinator.allAreas,
     );
   });

@@ -20,57 +20,48 @@ void main() {
     expect(adaptive, contains('return _DesktopEmployeesScreen('));
 
     expect(mobile, contains('BoxConstraints(maxWidth: 760)'));
-    expect(
-      mobile,
-      contains("'employees-\${widget.selectedObjectName ?? 'all'}'"),
-    );
+    expect(mobile, contains("'employees-\${widget.selectedObjectName ?? 'all'}'"));
 
     expect(
       shell,
       contains("import '../../../screens/adaptive_employees_screen.dart';"),
     );
     expect(shell, contains('return AdaptiveEmployeesScreen('));
-    expect(
-      shell,
-      isNot(contains("import '../../../screens/employees_screen.dart';")),
-    );
+    expect(shell, isNot(contains("import '../../../screens/employees_screen.dart';")));
   });
 
-  test(
-    'desktop employees provide filters, document state and clickable rows',
-    () {
-      final adaptive = source('lib/screens/adaptive_employees_screen.dart');
-      final controller = source(
-        'lib/screens/employees/employee_directory_controller.dart',
-      );
-      final desktop = source('lib/screens/desktop_employees_view.dart');
+  test('desktop employees provide filters, document state and clickable rows', () {
+    final adaptive = source('lib/screens/adaptive_employees_screen.dart');
+    final controller = source(
+      'lib/screens/employees/employee_directory_controller.dart',
+    );
+    final desktop = source('lib/screens/desktop_employees_view.dart');
 
-      expect(adaptive, contains('EmployeeDirectoryController('));
-      expect(adaptive, contains('loadPrivateData: true'));
-      expect(
-        controller,
-        contains('EmployeePrivateDataRepository.fetchMapByEmployeeIds'),
-      );
-      expect(adaptive, contains('EmployeeDetailsScreen('));
-      expect(
-        controller,
-        contains('EmployeePrivateSummaryExporter.downloadSummary'),
-      );
+    expect(adaptive, contains('EmployeeDirectoryController('));
+    expect(adaptive, contains('loadPrivateData: true'));
+    expect(
+      controller,
+      contains('EmployeePrivateDataRepository.fetchMapByEmployeeIds'),
+    );
+    expect(adaptive, contains('EmployeeDetailsScreen('));
+    expect(
+      controller,
+      contains('EmployeePrivateSummaryExporter.downloadSummary'),
+    );
 
-      expect(desktop, contains('BoxConstraints(maxWidth: 1400)'));
-      expect(desktop, contains("label: 'Объект'"));
-      expect(desktop, contains("label: 'Должность'"));
-      expect(desktop, contains("label: 'Статус'"));
-      expect(desktop, contains("label: 'Документы'"));
-      expect(desktop, contains("text: 'Сотрудник'"));
-      expect(desktop, contains("text: 'Телефон'"));
-      expect(desktop, contains("text: 'Ставка'"));
-      expect(desktop, contains("label: 'Готово'"));
-      expect(desktop, contains("label: 'Частично'"));
-      expect(desktop, contains("label: 'Нет данных'"));
-      expect(desktop, contains(r'onTap: () => onOpenEmployee(entry.$2)'));
-      expect(desktop, contains('SingleChildScrollView('));
-      expect(desktop, contains('scrollDirection: Axis.horizontal'));
-    },
-  );
+    expect(desktop, contains('BoxConstraints(maxWidth: 1400)'));
+    expect(desktop, contains("label: 'Объект'"));
+    expect(desktop, contains("label: 'Должность'"));
+    expect(desktop, contains("label: 'Статус'"));
+    expect(desktop, contains("label: 'Документы'"));
+    expect(desktop, contains("text: 'Сотрудник'"));
+    expect(desktop, contains("text: 'Телефон'"));
+    expect(desktop, contains("text: 'Ставка'"));
+    expect(desktop, contains("label: 'Готово'"));
+    expect(desktop, contains("label: 'Частично'"));
+    expect(desktop, contains("label: 'Нет данных'"));
+    expect(desktop, contains(r'onTap: () => onOpenEmployee(entry.$2)'));
+    expect(desktop, contains('SingleChildScrollView('));
+    expect(desktop, contains('scrollDirection: Axis.horizontal'));
+  });
 }

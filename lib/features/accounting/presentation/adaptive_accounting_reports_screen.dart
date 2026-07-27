@@ -128,9 +128,7 @@ class _DesktopAccountingReportsScreenState
       RegExp(r'\s+'),
       ' ',
     );
-    return cleanName.isNotEmpty
-        ? cleanName
-        : employee.id ?? employee.objectName;
+    return cleanName.isNotEmpty ? cleanName : employee.id ?? employee.objectName;
   }
 
   Future<List<PaymentReportEmployeeOption>> reportEmployees() async {
@@ -203,8 +201,9 @@ class _DesktopAccountingReportsScreenState
     Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) =>
-            PeriodTimesheetScreen(selectedObjectName: selectedObjectName),
+        builder: (_) => PeriodTimesheetScreen(
+          selectedObjectName: selectedObjectName,
+        ),
       ),
     );
   }
@@ -436,8 +435,14 @@ class _DesktopAccountingReportsScreenState
                   accountingDate(row.paymentDate),
                   maxLines: 1,
                 ),
-                specialistCellText(row.employeeName, weight: FontWeight.w900),
-                specialistCellText(row.objectName, color: specialistMuted),
+                specialistCellText(
+                  row.employeeName,
+                  weight: FontWeight.w900,
+                ),
+                specialistCellText(
+                  row.objectName,
+                  color: specialistMuted,
+                ),
                 specialistCellText(paymentType(row.paymentType), maxLines: 1),
                 specialistCellText(
                   accountingMoney(row.amount),
@@ -454,7 +459,10 @@ class _DesktopAccountingReportsScreenState
                       ? Icons.receipt_long_outlined
                       : Icons.verified_outlined,
                 ),
-                specialistCellText(row.comment, color: specialistMuted),
+                specialistCellText(
+                  row.comment,
+                  color: specialistMuted,
+                ),
               ],
             ),
           )

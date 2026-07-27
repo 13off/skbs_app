@@ -32,7 +32,9 @@ class AppThemeController extends ChangeNotifier {
   double _normalizeUiScale(double value) {
     return uiScaleOptions.reduce(
       (current, option) =>
-          (option - value).abs() < (current - value).abs() ? option : current,
+          (option - value).abs() < (current - value).abs()
+          ? option
+          : current,
     );
   }
 

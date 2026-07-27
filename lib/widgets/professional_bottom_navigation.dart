@@ -236,9 +236,7 @@ class _ProfessionalBottomNavigationState
                           onTap: () => handleSelected(index),
                           pressedScale: 0.97,
                           hoverScale: isDesktop ? AppMotion.hoverScale : 1,
-                          borderRadius: BorderRadius.circular(
-                            AppUi.controlRadius,
-                          ),
+                          borderRadius: BorderRadius.circular(AppUi.controlRadius),
                           child: AnimatedContainer(
                             duration: duration,
                             curve: AppMotion.interactionCurve,
@@ -251,9 +249,7 @@ class _ProfessionalBottomNavigationState
                               color: selected
                                   ? scheme.primary.withValues(alpha: 0.11)
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(
-                                AppUi.controlRadius,
-                              ),
+                              borderRadius: BorderRadius.circular(AppUi.controlRadius),
                               border: selected
                                   ? Border.all(
                                       color: scheme.primary.withValues(

@@ -43,9 +43,7 @@ class CandidateOnboardingCandidate {
       positionTitle: map['position_title']?.toString() ?? '',
       objectName: object['name']?.toString() ?? '',
       status: map['status']?.toString() ?? 'new',
-      readyDate: readyText.isEmpty
-          ? null
-          : DateTime.tryParse(readyText)?.toLocal(),
+      readyDate: readyText.isEmpty ? null : DateTime.tryParse(readyText)?.toLocal(),
       consentPersonalData: map['consent_personal_data'] == true,
       isTestRecord: map['is_test_record'] == true,
     );

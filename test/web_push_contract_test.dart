@@ -38,7 +38,9 @@ void main() {
       'showNotification',
       'clients.openWindow',
     ]);
-    containsAll('web/appstroy-push-config.json', const ['public_key']);
+    containsAll('web/appstroy-push-config.json', const [
+      'public_key',
+    ]);
     containsAll(
       'supabase/migrations/20260718093000_add_standard_web_push.sql',
       const [
@@ -81,4 +83,5 @@ void main() {
     expect(edge, contains('{ onConflict: "endpoint" }'));
     expect(edge, isNot(contains('endpointDeleteError')));
   });
+
 }

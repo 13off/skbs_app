@@ -192,9 +192,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Редактировать сотрудника'),
-      ),
+        leading: const BackButton(),title: const Text('Редактировать сотрудника')),
       body: Form(
         key: formKey,
         child: ListView(

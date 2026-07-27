@@ -11,7 +11,8 @@ class DeveloperDemoCenterScreen extends StatefulWidget {
       _DeveloperDemoCenterScreenState();
 }
 
-class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
+class _DeveloperDemoCenterScreenState
+    extends State<DeveloperDemoCenterScreen> {
   int selectedIndex = 0;
 
   static const scenarios = <_DemoScenario>[
@@ -36,7 +37,8 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
     ),
     _DemoScenario(
       title: 'Кандидат → сотрудник',
-      promise: 'Оформление человека без повторного ввода и потери документов.',
+      promise:
+          'Оформление человека без повторного ввода и потери документов.',
       icon: Icons.badge_outlined,
       metrics: <_DemoMetric>[
         _DemoMetric('Кандидат', '1 тестовый'),
@@ -104,7 +106,9 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
     final selected = selectedIndex == index;
     return Expanded(
       child: Padding(
-        padding: EdgeInsets.only(right: index == scenarios.length - 1 ? 0 : 8),
+        padding: EdgeInsets.only(
+          right: index == scenarios.length - 1 ? 0 : 8,
+        ),
         child: PremiumPressable(
           onTap: () => setState(() => selectedIndex = index),
           borderRadius: BorderRadius.circular(20),
@@ -156,7 +160,10 @@ class _DeveloperDemoCenterScreenState extends State<DeveloperDemoCenterScreen> {
         children: [
           Text(
             item.value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 3),
           Text(

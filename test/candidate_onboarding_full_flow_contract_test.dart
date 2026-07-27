@@ -22,10 +22,7 @@ void main() {
     expect(migration, contains('ready_to_print'));
     expect(migration, contains('printed'));
     expect(migration, contains('signed'));
-    expect(
-      migration,
-      contains('unique (company_id, application_id, form_code)'),
-    );
+    expect(migration, contains('unique (company_id, application_id, form_code)'));
     expect(migration, contains('recruitment.documents.edit'));
     expect(migration, contains('enable row level security'));
   });
@@ -47,10 +44,7 @@ void main() {
     final service = File(
       'lib/features/recruitment/data/candidate_onboarding_package_service.dart',
     ).readAsStringSync();
-    expect(
-      service,
-      contains('EmployeePrivateDataRepository.fetchByEmployeeId'),
-    );
+    expect(service, contains('EmployeePrivateDataRepository.fetchByEmployeeId'));
     expect(service, contains("'passport_series'"));
     expect(service, contains("'bank_account'"));
     expect(service, contains("'employee_snils'"));

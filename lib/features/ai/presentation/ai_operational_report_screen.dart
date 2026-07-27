@@ -26,7 +26,8 @@ class AiOperationalReportScreen extends StatefulWidget {
       _AiOperationalReportScreenState();
 }
 
-class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
+class _AiOperationalReportScreenState
+    extends State<AiOperationalReportScreen> {
   List<DocumentTemplateRecord> templates = const [];
   bool loadingTemplates = false;
   bool buildingPackage = false;
@@ -34,7 +35,8 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
   bool candidateConverted = false;
   String? packageMessage;
 
-  bool get isCandidate => widget.action.type == 'prepare_candidate_documents';
+  bool get isCandidate =>
+      widget.action.type == 'prepare_candidate_documents';
 
   List<Map<String, dynamic>> maps(String key) {
     final value = widget.action.payload[key];
@@ -77,7 +79,10 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
 
   String money(Object? value) {
     final number = num.tryParse(value?.toString() ?? '') ?? 0;
-    return '${number.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ')} ₽';
+    return '${number.round().toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => ' ',
+    )} ₽';
   }
 
   String fileSize(int bytes) {
@@ -127,8 +132,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
       await CandidatePackageService.download(result);
       if (!mounted) return;
       setState(() {
-        packageMessage =
-            'ZIP сохранён: ${result.includedFiles} файлов, '
+        packageMessage = 'ZIP сохранён: ${result.includedFiles} файлов, '
             '${fileSize(result.archiveBytes)}. '
             'Проверить предупреждений: ${result.warnings.length}.';
       });
@@ -138,8 +142,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        packageMessage =
-            'Не удалось собрать пакет: '
+        packageMessage = 'Не удалось собрать пакет: '
             '${error.toString().replaceFirst('Exception: ', '')}';
       });
     } finally {
@@ -153,8 +156,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
     if (creatingEmployee || candidateConverted) return;
     if (!widget.action.boolean('consent_personal_data')) {
       setState(() {
-        packageMessage =
-            'Сначала подтверди согласие кандидата на обработку данных.';
+        packageMessage = 'Сначала подтверди согласие кандидата на обработку данных.';
       });
       return;
     }
@@ -174,18 +176,16 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
       final phoneDigits = _digits(phone);
       final duplicate = employees.any((employee) {
         final sameName = employee.name.trim().toLowerCase() == normalizedName;
-        final samePhone =
-            phoneDigits.length >= 10 &&
-            _digits(
-              employee.phone,
-            ).endsWith(phoneDigits.substring(phoneDigits.length - 10));
+        final samePhone = phoneDigits.length >= 10 &&
+            _digits(employee.phone).endsWith(
+              phoneDigits.substring(phoneDigits.length - 10),
+            );
         return sameName || samePhone;
       });
       if (duplicate) {
         if (!mounted) return;
         setState(() {
-          packageMessage =
-              'Сотрудник с таким ФИО или телефоном уже существует. '
+          packageMessage = 'Сотрудник с таким ФИО или телефоном уже существует. '
               'Новая карточка не создана.';
         });
         return;
@@ -203,8 +203,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
           'phone': phone,
           'object_name': widget.action.text('object_name'),
           'daily_rate': 6000,
-          'comment':
-              'Создан из подбора. Заявка: '
+          'comment': 'Создан из подбора. Заявка: '
               '${widget.action.text('application_id')}',
         },
       );
@@ -225,22 +224,19 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
         if (!mounted) return;
         setState(() {
           candidateConverted = true;
-          packageMessage =
-              'Сотрудник создан, заявка переведена в статус «Оформлен».';
+          packageMessage = 'Сотрудник создан, заявка переведена в статус «Оформлен».';
         });
       } catch (error) {
         if (!mounted) return;
         setState(() {
           candidateConverted = true;
-          packageMessage =
-              'Сотрудник создан, но статус заявки не обновился: $error';
+          packageMessage = 'Сотрудник создан, но статус заявки не обновился: $error';
         });
       }
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        packageMessage =
-            'Не удалось подготовить сотрудника: '
+        packageMessage = 'Не удалось подготовить сотрудника: '
             '${error.toString().replaceFirst('Exception: ', '')}';
       });
     } finally {
@@ -404,7 +400,9 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
             (row) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.check_circle_outline),
-              title: Text(documentType(row['document_type']?.toString() ?? '')),
+              title: Text(
+                documentType(row['document_type']?.toString() ?? ''),
+              ),
               subtitle: Text(row['original_name']?.toString() ?? ''),
             ),
           ),
@@ -426,9 +424,8 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
           ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: buildingPackage || !consent
-              ? null
-              : downloadCandidatePackage,
+          onPressed:
+              buildingPackage || !consent ? null : downloadCandidatePackage,
           icon: buildingPackage
               ? const SizedBox(
                   width: 18,
@@ -440,8 +437,8 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
             buildingPackage
                 ? 'Собираем пакет…'
                 : consent
-                ? 'Скачать кадровый пакет ZIP'
-                : 'Нужно согласие кандидата',
+                    ? 'Скачать кадровый пакет ZIP'
+                    : 'Нужно согласие кандидата',
           ),
         ),
         const SizedBox(height: 10),
@@ -464,8 +461,8 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
             creatingEmployee
                 ? 'Проверяем карточку…'
                 : candidateConverted
-                ? 'Кандидат уже оформлен'
-                : 'Создать сотрудника из кандидата',
+                    ? 'Кандидат уже оформлен'
+                    : 'Создать сотрудника из кандидата',
           ),
         ),
         const SizedBox(height: 8),
@@ -492,8 +489,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
           const Center(child: CircularProgressIndicator())
         else
           ...templates.map((template) {
-            final enabled =
-                template.isActive && template.currentVersion != null;
+            final enabled = template.isActive && template.currentVersion != null;
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(

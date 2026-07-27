@@ -7,7 +7,10 @@ import '../data/dispatcher_summary_details_repository.dart';
 class DispatcherSummaryDetailsScreen extends StatefulWidget {
   final String runId;
 
-  const DispatcherSummaryDetailsScreen({super.key, required this.runId});
+  const DispatcherSummaryDetailsScreen({
+    super.key,
+    required this.runId,
+  });
 
   @override
   State<DispatcherSummaryDetailsScreen> createState() =>
@@ -129,9 +132,7 @@ class _DispatcherSummaryDetailsScreenState
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Icon(iconFor(group.key)),
@@ -163,14 +164,9 @@ class _DispatcherSummaryDetailsScreenState
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 7,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -204,9 +200,8 @@ class _DispatcherSummaryDetailsScreenState
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Text('${index + 1}'),
                   ),
                   title: Text(
@@ -223,9 +218,7 @@ class _DispatcherSummaryDetailsScreenState
                         Text(
                           group.items[index].note,
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -233,7 +226,8 @@ class _DispatcherSummaryDetailsScreenState
                     ],
                   ),
                 ),
-                if (index != group.items.length - 1) const Divider(height: 12),
+                if (index != group.items.length - 1)
+                  const Divider(height: 12),
               ],
             ],
           ],

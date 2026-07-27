@@ -94,7 +94,9 @@ class _LegalMemberInvitationScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString().replaceFirst('Exception: ', '')),
+            content: Text(
+              error.toString().replaceFirst('Exception: ', ''),
+            ),
           ),
         );
       }
@@ -107,13 +109,10 @@ class _LegalMemberInvitationScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Пригласить специалиста'),
-      ),
+        leading: const BackButton(),title: const Text('Пригласить специалиста')),
       body: AppPage(
         title: 'Новый специалист',
-        subtitle:
-            'Юрист или бухгалтер получает отдельный рабочий раздел без доступа к лишним данным',
+        subtitle: 'Юрист или бухгалтер получает отдельный рабочий раздел без доступа к лишним данным',
         child: PremiumWorkCard(
           radius: 26,
           padding: const EdgeInsets.all(18),
@@ -146,10 +145,7 @@ class _LegalMemberInvitationScreenState
                 ),
                 items: const [
                   DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
-                  DropdownMenuItem(
-                    value: 'accountant',
-                    child: Text('Бухгалтер'),
-                  ),
+                  DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
                 ],
                 onChanged: saving
                     ? null

@@ -37,19 +37,14 @@ void main() {
     expect(sql, contains('grant usage on schema private to authenticated'));
     expect(sql, contains('from public, anon'));
     expect(sql, contains('to authenticated'));
-    expect(
-      sql,
-      contains('drop policy if exists notifications_select_company_role'),
-    );
+    expect(sql, contains('drop policy if exists notifications_select_company_role'));
     expect(
       sql,
       contains('select private.current_user_visible_notification_ids()'),
     );
     expect(
       sql,
-      contains(
-        'drop function if exists public.current_user_visible_notification_ids()',
-      ),
+      contains('drop function if exists public.current_user_visible_notification_ids()'),
     );
   });
 }

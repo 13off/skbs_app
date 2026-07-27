@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const editorPath = 'lib/screens/task_details/task_details_editor_screen.dart';
+  const editorPath =
+      'lib/screens/task_details/task_details_editor_screen.dart';
   const legacyPath = 'lib/screens/task_details_legacy_screen.dart';
 
   test('редактор задачи разделён по ответственности', () {
@@ -44,9 +45,7 @@ void main() {
     final actions = File(
       'lib/screens/task_details/task_details_actions.dart',
     ).readAsStringSync();
-    final facade = File(
-      'lib/screens/task_details_screen.dart',
-    ).readAsStringSync();
+    final facade = File('lib/screens/task_details_screen.dart').readAsStringSync();
 
     expect(shell, contains('required this.task'));
     expect(shell, contains('required this.profile'));

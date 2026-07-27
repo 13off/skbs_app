@@ -104,8 +104,10 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) =>
-            EmployeeDetailsScreen(profile: widget.profile, employee: employee),
+        builder: (_) => EmployeeDetailsScreen(
+          profile: widget.profile,
+          employee: employee,
+        ),
       ),
     );
 
@@ -134,8 +136,9 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
     Navigator.push<void>(
       context,
       AppPageRoute<void>(
-        builder: (_) =>
-            PaymentsScreen(selectedObjectName: widget.selectedObjectName),
+        builder: (_) => PaymentsScreen(
+          selectedObjectName: widget.selectedObjectName,
+        ),
       ),
     );
   }
@@ -144,14 +147,16 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
     try {
       await directoryController.downloadSummary();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Сводка скачана')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сводка скачана')),
+        );
       }
     } catch (summaryError) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка формирования сводки: $summaryError')),
+          SnackBar(
+            content: Text('Ошибка формирования сводки: $summaryError'),
+          ),
         );
       }
     }

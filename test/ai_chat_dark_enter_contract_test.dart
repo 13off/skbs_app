@@ -17,9 +17,18 @@ void main() {
     expect(screen, isNot(contains('AppColors.textMuted')));
 
     expect(screen, contains('CallbackShortcuts('));
-    expect(screen, contains('SingleActivator(LogicalKeyboardKey.enter)'));
-    expect(screen, contains('SingleActivator(LogicalKeyboardKey.numpadEnter)'));
-    expect(screen, contains('Enter — отправить · Shift+Enter — новая строка'));
+    expect(
+      screen,
+      contains('SingleActivator(LogicalKeyboardKey.enter)'),
+    );
+    expect(
+      screen,
+      contains('SingleActivator(LogicalKeyboardKey.numpadEnter)'),
+    );
+    expect(
+      screen,
+      contains('Enter — отправить · Shift+Enter — новая строка'),
+    );
     expect(screen, contains('textInputAction: TextInputAction.newline'));
   });
 }

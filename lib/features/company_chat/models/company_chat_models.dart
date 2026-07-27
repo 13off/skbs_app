@@ -30,7 +30,8 @@ class CompanyChatThread {
       lastMessageAt: DateTime.tryParse(
         map['last_message_at']?.toString() ?? '',
       )?.toLocal(),
-      lastMessagePreview: map['last_message_preview']?.toString().trim() ?? '',
+      lastMessagePreview:
+          map['last_message_preview']?.toString().trim() ?? '',
     );
   }
 

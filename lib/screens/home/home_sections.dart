@@ -51,7 +51,11 @@ extension _HomeSections on _HomeScreenState {
             children: [
               Row(
                 children: [
-                  Icon(Icons.calendar_month_outlined, color: _muted, size: 16),
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    color: _muted,
+                    size: 16,
+                  ),
                   const SizedBox(width: 7),
                   Text(
                     'Сегодня, ${dateText(today)}',

@@ -23,19 +23,16 @@ void main() {
       'is_approved': true,
       'created_at': '2026-07-21T00:00:00Z',
     });
-    final template = DocumentTemplateRecord.fromMap(
-      <String, dynamic>{
-        'id': 'template-1',
-        'company_id': 'company-1',
-        'code': 'employment_application',
-        'title': 'Заявление на работу',
-        'category': 'hr',
-        'status': 'active',
-        'current_version_id': 'version-2',
-        'updated_at': '2026-07-21T00:00:00Z',
-      },
-      versions: <DocumentTemplateVersion>[version],
-    );
+    final template = DocumentTemplateRecord.fromMap(<String, dynamic>{
+      'id': 'template-1',
+      'company_id': 'company-1',
+      'code': 'employment_application',
+      'title': 'Заявление на работу',
+      'category': 'hr',
+      'status': 'active',
+      'current_version_id': 'version-2',
+      'updated_at': '2026-07-21T00:00:00Z',
+    }, versions: <DocumentTemplateVersion>[version]);
 
     expect(template.currentVersion, same(version));
     expect(version.supportsAutoFill, isTrue);
@@ -49,7 +46,9 @@ void main() {
       '</w:document>',
     );
     final archive = Archive()
-      ..addFile(ArchiveFile('word/document.xml', xmlBytes.length, xmlBytes));
+      ..addFile(
+        ArchiveFile('word/document.xml', xmlBytes.length, xmlBytes),
+      );
     final bytes = Uint8List.fromList(ZipEncoder().encode(archive)!);
 
     expect(

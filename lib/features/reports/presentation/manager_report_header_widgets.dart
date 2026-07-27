@@ -56,7 +56,10 @@ class ManagerReportFilters extends StatelessWidget {
                   ...center.objects.map(
                     (object) => DropdownMenuItem<String>(
                       value: object.id,
-                      child: Text(object.name, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        object.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -95,7 +98,11 @@ class ManagerReportFilters extends StatelessWidget {
                 );
               }
               return Column(
-                children: [objectField, const SizedBox(height: 12), dateField],
+                children: [
+                  objectField,
+                  const SizedBox(height: 12),
+                  dateField,
+                ],
               );
             },
           ),

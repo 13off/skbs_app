@@ -35,14 +35,8 @@ void main() {
     expect(repository, contains('setPreferredObjectName'));
     expect(repository, contains('_resolvePreferredObjectId'));
     expect(repository, contains('ObjectRepository.fetchObjects'));
-    expect(
-      shell,
-      contains('ManagerReportsRepository.setPreferredObjectName(next)'),
-    );
-    expect(
-      shell,
-      contains("'manager-reports:\${selectedObjectName ?? '__all__'}'"),
-    );
+    expect(shell, contains('ManagerReportsRepository.setPreferredObjectName(next)'));
+    expect(shell, contains("'manager-reports:\${selectedObjectName ?? '__all__'}'"));
   });
 
   test('дневные чеки не скрывают месячный остаток', () {

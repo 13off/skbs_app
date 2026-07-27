@@ -39,7 +39,9 @@ extension _TaskCreateSections on _AddTaskScreenState {
           decoration: InputDecoration(
             labelText: 'Оси',
             hintText: 'Например: Оси 1-4 / А-Б',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
         ),
         if (!isGoalTask) ...[
@@ -63,7 +65,9 @@ extension _TaskCreateSections on _AddTaskScreenState {
 
   Widget buildAssigneesBlock() {
     return TaskAssigneeSummaryCard(
-      title: isLoadingEmployees ? 'Загружаем сотрудников...' : assigneeTitle(),
+      title: isLoadingEmployees
+          ? 'Загружаем сотрудников...'
+          : assigneeTitle(),
       subtitle: selectedEmployeeNames(),
       enabled: !isLoadingEmployees,
       onTap: openAssigneesPicker,
@@ -90,7 +94,11 @@ extension _TaskCreateSections on _AddTaskScreenState {
                 color: Colors.black54,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, size: 16, color: Colors.white),
+              child: const Icon(
+                Icons.close,
+                size: 16,
+                color: Colors.white,
+              ),
             ),
           ),
         ),

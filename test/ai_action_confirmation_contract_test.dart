@@ -13,7 +13,9 @@ void main() {
     final proposed = coordinator.indexOf(
       'AiActionAuditRepository.createProposed(',
     );
-    final confirmation = coordinator.indexOf('AiActionConfirmationSheet.show(');
+    final confirmation = coordinator.indexOf(
+      'AiActionConfirmationSheet.show(',
+    );
     final confirmed = coordinator.indexOf(
       'AiActionAuditRepository.markConfirmed(',
     );
@@ -25,52 +27,41 @@ void main() {
     expect(confirmation, greaterThan(proposed));
     expect(confirmed, greaterThan(confirmation));
     expect(execution, greaterThan(confirmed));
+    expect(coordinator, contains('final result = await _executeConfirmedAction('));
     expect(
       coordinator,
-      contains('final result = await _executeConfirmedAction('),
+      contains('static Future<AiActionExecutionResult> _executeConfirmedAction'),
     );
-    expect(
-      coordinator,
-      contains(
-        'static Future<AiActionExecutionResult> _executeConfirmedAction',
-      ),
-    );
-    expect(
-      coordinator,
-      isNot(contains("'create_task_draft' => await _createTask")),
-    );
+    expect(coordinator, isNot(contains("'create_task_draft' => await _createTask")));
     expect(coordinator, contains('AiActionAuditRepository.markCancelled('));
     expect(coordinator, contains('AiActionAuditRepository.markCompleted('));
     expect(coordinator, contains('AiActionAuditRepository.markFailed('));
   });
 
-  test(
-    'confirmation sheet shows exact proposal and distinguishes direct write',
-    () {
-      final sheet = source(
-        'lib/features/ai/presentation/ai_action_confirmation_sheet.dart',
-      );
+  test('confirmation sheet shows exact proposal and distinguishes direct write', () {
+    final sheet = source(
+      'lib/features/ai/presentation/ai_action_confirmation_sheet.dart',
+    );
 
-      expect(sheet, contains("'Работы'"));
-      expect(sheet, contains("'Оси'"));
-      expect(sheet, contains("'Исполнители'"));
-      expect(sheet, contains("'Документ'"));
-      expect(sheet, contains("'Текущее значение'"));
-      expect(sheet, contains("'Новое значение'"));
-      expect(sheet, contains("'Текущая ставка'"));
-      expect(sheet, contains("'Новая ставка'"));
-      expect(sheet, contains("'Получатели'"));
-      expect(sheet, contains("action.type == 'prepare_timesheet_correction'"));
-      expect(sheet, contains("'Подтвердить и изменить'"));
-      expect(sheet, contains("child: const Text('Отмена')"));
-      expect(
-        sheet,
-        contains(
-          'В журнале сохранятся предложение ИИ, пользователь и результат действия.',
-        ),
-      );
-    },
-  );
+    expect(sheet, contains("'Работы'"));
+    expect(sheet, contains("'Оси'"));
+    expect(sheet, contains("'Исполнители'"));
+    expect(sheet, contains("'Документ'"));
+    expect(sheet, contains("'Текущее значение'"));
+    expect(sheet, contains("'Новое значение'"));
+    expect(sheet, contains("'Текущая ставка'"));
+    expect(sheet, contains("'Новая ставка'"));
+    expect(sheet, contains("'Получатели'"));
+    expect(sheet, contains("action.type == 'prepare_timesheet_correction'"));
+    expect(sheet, contains("'Подтвердить и изменить'"));
+    expect(sheet, contains("child: const Text('Отмена')"));
+    expect(
+      sheet,
+      contains(
+        'В журнале сохранятся предложение ИИ, пользователь и результат действия.',
+      ),
+    );
+  });
 
   test('audit repository cannot directly update immutable proposal', () {
     final repository = source(
@@ -80,10 +71,7 @@ void main() {
     expect(repository, contains(".from('ai_action_audit')"));
     expect(repository, contains('.insert(<String, dynamic>{'));
     expect(repository, contains("'transition_ai_action_audit'"));
-    expect(
-      repository,
-      isNot(contains(".from('ai_action_audit')\n        .update")),
-    );
+    expect(repository, isNot(contains(".from('ai_action_audit')\n        .update")));
     expect(repository, isNot(contains("'status': 'proposed'")));
   });
 

@@ -34,8 +34,9 @@ extension _EmployeesActions on _EmployeesScreenState {
     Navigator.push<void>(
       context,
       AppPageRoute<void>(
-        builder: (_) =>
-            PaymentsScreen(selectedObjectName: widget.selectedObjectName),
+        builder: (_) => PaymentsScreen(
+          selectedObjectName: widget.selectedObjectName,
+        ),
       ),
     );
   }

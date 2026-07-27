@@ -72,10 +72,7 @@ void main() {
       contains('.map((employee) => _positionLabel(employee.position))'),
     );
     expect(value, contains('.toSet()'));
-    expect(
-      value,
-      contains('_positionLabel(employee.position) != positionFilter'),
-    );
+    expect(value, contains('_positionLabel(employee.position) != positionFilter'));
     expect(
       value,
       contains('_TextCell(flex: 2, text: _positionLabel(employee.position))'),
@@ -103,18 +100,10 @@ void main() {
       'lib/features/legal/presentation/legal_manager_summary_screen.dart',
     );
 
-    expect(
-      specialist,
-      contains(
-        'specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint',
-      ),
-    );
+    expect(specialist, contains('specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint'));
     expect(specialist, contains('final bool showBackButton'));
     expect(company, contains('showBackButton: true'));
-    expect(
-      adaptiveLegal,
-      contains('showBackButton: Navigator.of(context).canPop()'),
-    );
+    expect(adaptiveLegal, contains('showBackButton: Navigator.of(context).canPop()'));
     expect(legal, contains('showBackButton: Navigator.of(context).canPop()'));
     expect(manager, contains('AdaptiveLegalMattersScreen('));
   });

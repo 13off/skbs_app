@@ -4,9 +4,7 @@ class PeriodTimesheetLaunchIntent {
   static DateTime? _pendingMonth;
 
   static DateTime? parseYearMonth(String value) {
-    final match = RegExp(
-      r'^(20\d{2})-(0[1-9]|1[0-2])$',
-    ).firstMatch(value.trim());
+    final match = RegExp(r'^(20\d{2})-(0[1-9]|1[0-2])$').firstMatch(value.trim());
     if (match == null) return null;
 
     final year = int.tryParse(match.group(1)!);

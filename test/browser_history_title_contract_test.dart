@@ -12,11 +12,14 @@ void main() {
     expect(repository, contains("html.document.title?.trim() ?? ''"));
     expect(repository, contains("return title.isEmpty ? 'AppСтрой' : title;"));
     expect(
-      RegExp(
-        r'replaceState\(\s*null,\s*_browserDocumentTitle,',
-      ).allMatches(repository).length,
+      RegExp(r'replaceState\(\s*null,\s*_browserDocumentTitle,').allMatches(
+        repository,
+      ).length,
       2,
     );
-    expect(repository, isNot(contains('null,\n      html.document.title,\n')));
+    expect(
+      repository,
+      isNot(contains('null,\n      html.document.title,\n')),
+    );
   });
 }

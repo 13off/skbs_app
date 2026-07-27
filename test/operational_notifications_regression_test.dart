@@ -17,15 +17,9 @@ void main() {
     expect(engine, contains('refresh_operational_notifications'));
     expect(engine, contains('create_ai_draft_ready_notification'));
     expect(engine, contains('on conflict do nothing'));
-    expect(
-      engine,
-      contains("current_user_has_permission('notifications.center.view')"),
-    );
+    expect(engine, contains("current_user_has_permission('notifications.center.view')"));
     expect(engine, contains("current_user_has_permission('ai.use')"));
-    expect(
-      schedule,
-      contains('private.refresh_all_operational_notifications()'),
-    );
+    expect(schedule, contains('private.refresh_all_operational_notifications()'));
     expect(schedule, contains("'15 * * * *'"));
   });
 
@@ -56,10 +50,7 @@ void main() {
     );
 
     expect(notifications, contains('_refreshOperationalNotifications'));
-    expect(
-      notifications,
-      contains("rpc<void>('refresh_operational_notifications')"),
-    );
+    expect(notifications, contains("rpc<void>('refresh_operational_notifications')"));
     expect(refreshCall, greaterThanOrEqualTo(0));
     expect(feedRpc, greaterThan(refreshCall));
     expect(notifications, contains("'p_object_name'"));

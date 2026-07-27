@@ -59,12 +59,15 @@ void main() {
       "'Разрешить и подключить'",
       'Общие правила задаются руководителем отдельно',
     ]);
-    containsAll('lib/screens/notification_control_center_screen.dart', const [
-      'Внутренний колокольчик',
-      'Системные push',
-      'Роли и направления',
-      'Типы событий',
-    ]);
+    containsAll(
+      'lib/screens/notification_control_center_screen.dart',
+      const [
+        'Внутренний колокольчик',
+        'Системные push',
+        'Роли и направления',
+        'Типы событий',
+      ],
+    );
     containsAll(
       'supabase/migrations/20260713123000_add_push_notification_delivery.sql',
       const [
@@ -92,18 +95,15 @@ void main() {
       'push_device_tokens',
       'SUPABASE_SERVICE_ROLE_KEY',
     ]);
-    containsAll(
-      'supabase/functions/dispatch-push-notification/index.ts',
-      const [
-        'notification.actor_user_id !== userData.user.id',
-        '.eq("company_id", notification.company_id)',
-        'foremanAllowedEntityTypes',
-        '.neq("user_id", userData.user.id)',
-        'FIREBASE_SERVICE_ACCOUNT_JSON',
-        'UNREGISTERED',
-        'https://fcm.googleapis.com/v1/projects/',
-      ],
-    );
+    containsAll('supabase/functions/dispatch-push-notification/index.ts', const [
+      'notification.actor_user_id !== userData.user.id',
+      '.eq("company_id", notification.company_id)',
+      'foremanAllowedEntityTypes',
+      '.neq("user_id", userData.user.id)',
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+      'UNREGISTERED',
+      'https://fcm.googleapis.com/v1/projects/',
+    ]);
     containsAll(
       'supabase/migrations/20260717210809_add_automatic_push_jobs_and_reminders.sql',
       const [
@@ -147,7 +147,9 @@ void main() {
       'UIBackgroundModes',
       'remote-notification',
     ]);
-    containsAll('ios/Runner/Runner.entitlements', const ['aps-environment']);
+    containsAll('ios/Runner/Runner.entitlements', const [
+      'aps-environment',
+    ]);
     containsAll('docs/FUNCTIONAL_BASELINE.md', const [
       'Push работает поверх внутренней истории и не заменяет её.',
       'Ошибка Firebase, APNs, Web Push или Edge Function не должна ломать',

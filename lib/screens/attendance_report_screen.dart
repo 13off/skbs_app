@@ -180,9 +180,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Отчёт по табелю'),
-      ),
+        leading: const BackButton(),title: const Text('Отчёт по табелю')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

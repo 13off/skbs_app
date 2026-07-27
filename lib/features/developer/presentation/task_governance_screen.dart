@@ -101,9 +101,9 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
     try {
       await TaskGovernanceRepository.restoreTask(task.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Задача восстановлена')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Задача восстановлена')),
+      );
       await load();
     } catch (error) {
       if (!mounted) return;
@@ -124,13 +124,10 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
   }) {
     final query = searchController.text.trim().toLowerCase();
     if (query.isEmpty) return true;
-    return <String>[
-      objectName,
-      work,
-      axes,
-      actorName,
-      action,
-    ].join(' ').toLowerCase().contains(query);
+    return <String>[objectName, work, axes, actorName, action]
+        .join(' ')
+        .toLowerCase()
+        .contains(query);
   }
 
   List<DeletedTaskEntry> get visibleTrash {
@@ -156,12 +153,10 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
         .where(
           (item) => matchesSearch(
             objectName: item.objectName,
-            work:
-                item.afterValue['work']?.toString() ??
+            work: item.afterValue['work']?.toString() ??
                 item.beforeValue['work']?.toString() ??
                 '',
-            axes:
-                item.afterValue['axes']?.toString() ??
+            axes: item.afterValue['axes']?.toString() ??
                 item.beforeValue['axes']?.toString() ??
                 '',
             actorName: item.actorName,
@@ -173,9 +168,7 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
 
   String formatDate(DateTime? value, {bool withTime = true}) {
     if (value == null) return '—';
-    return DateFormat(
-      withTime ? 'dd.MM.yyyy HH:mm' : 'dd.MM.yyyy',
-    ).format(value);
+    return DateFormat(withTime ? 'dd.MM.yyyy HH:mm' : 'dd.MM.yyyy').format(value);
   }
 
   String actionTitle(String action) {
@@ -217,9 +210,8 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
 
   Color actionColor(String action) {
     return switch (action) {
-      'archived' ||
-      'photo_removed' ||
-      'assignee_removed' => AppAdaptivePalette.danger,
+      'archived' || 'photo_removed' || 'assignee_removed' =>
+        AppAdaptivePalette.danger,
       'restored' || 'created' => AppAdaptivePalette.success,
       'status_changed' => AppAdaptivePalette.warning,
       _ => AppAdaptivePalette.accent,
@@ -310,7 +302,11 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
               );
             }
             return Column(
-              children: [objectPicker, const SizedBox(height: 12), search],
+              children: [
+                objectPicker,
+                const SizedBox(height: 12),
+                search,
+              ],
             );
           },
         ),
@@ -405,9 +401,7 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
                   ),
                   const SizedBox(width: 10),
                   FilledButton.tonalIcon(
-                    onPressed: restoringTaskId == null
-                        ? () => restore(task)
-                        : null,
+                    onPressed: restoringTaskId == null ? () => restore(task) : null,
                     icon: isRestoring
                         ? const SizedBox(
                             width: 16,
@@ -420,9 +414,7 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(
-                '${task.objectName} · ${task.axes} · ${formatDate(task.taskDate, withTime: false)}',
-              ),
+              Text('${task.objectName} · ${task.axes} · ${formatDate(task.taskDate, withTime: false)}'),
               const SizedBox(height: 5),
               Text(
                 'Удалил: ${task.deletedByName.isEmpty ? 'неизвестно' : task.deletedByName} · ${formatDate(task.deletedAt)}',
@@ -470,8 +462,7 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
 
   Widget _auditTile(TaskActionAuditEntry entry) {
     final title = actionTitle(entry.action);
-    final work =
-        entry.afterValue['work']?.toString() ??
+    final work = entry.afterValue['work']?.toString() ??
         entry.beforeValue['work']?.toString() ??
         '';
     final details = <String>[
@@ -501,10 +492,7 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               _auditDetails(entry),
-              style: TextStyle(
-                color: AppAdaptivePalette.textMuted,
-                height: 1.4,
-              ),
+              style: TextStyle(color: AppAdaptivePalette.textMuted, height: 1.4),
             ),
           ),
         ],
@@ -520,13 +508,10 @@ class _TaskGovernanceScreenState extends State<TaskGovernanceScreen> {
     }
     if (entry.action == 'archived') {
       final reason = entry.metadata['reason']?.toString().trim() ?? '';
-      return reason.isEmpty
-          ? 'Задача перемещена в корзину'
-          : 'Причина: $reason';
+      return reason.isEmpty ? 'Задача перемещена в корзину' : 'Причина: $reason';
     }
     if (entry.action.startsWith('photo_')) {
-      final stage =
-          entry.metadata['photo_stage']?.toString() ??
+      final stage = entry.metadata['photo_stage']?.toString() ??
           entry.metadata['new_stage']?.toString() ??
           '';
       final name = entry.metadata['original_name']?.toString() ?? '';

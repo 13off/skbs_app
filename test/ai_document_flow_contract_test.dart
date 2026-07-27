@@ -26,29 +26,23 @@ void main() {
     expect(edge, isNot(contains('.delete(')));
   });
 
-  test(
-    'закрытые данные подставляются только локально через существующий RLS',
-    () {
-      final screen = source(
-        'lib/features/ai/presentation/ai_document_draft_screen.dart',
-      );
-      final builder = source(
-        'lib/features/ai/documents/ai_document_draft.dart',
-      );
+  test('закрытые данные подставляются только локально через существующий RLS', () {
+    final screen = source(
+      'lib/features/ai/presentation/ai_document_draft_screen.dart',
+    );
+    final builder = source(
+      'lib/features/ai/documents/ai_document_draft.dart',
+    );
 
-      expect(screen, contains('EmployeeRepository.fetchEmployees('));
-      expect(
-        screen,
-        contains('EmployeePrivateDataRepository.fetchByEmployeeId('),
-      );
-      expect(screen, contains('widget.profile.isAdmin || widget.profile.isHr'));
-      expect(screen, contains('CompanyRepository.fetchCompany('));
-      expect(screen, contains('AiDocumentDraftBuilder.build('));
-      expect(builder, contains('EmployeePrivateData? privateData'));
-      expect(builder, contains("'[указать \$field]'"));
-      expect(builder, contains('ЧЕРНОВИК — ТРЕБУЕТ ПРОВЕРКИ'));
-    },
-  );
+    expect(screen, contains('EmployeeRepository.fetchEmployees('));
+    expect(screen, contains('EmployeePrivateDataRepository.fetchByEmployeeId('));
+    expect(screen, contains('widget.profile.isAdmin || widget.profile.isHr'));
+    expect(screen, contains('CompanyRepository.fetchCompany('));
+    expect(screen, contains('AiDocumentDraftBuilder.build('));
+    expect(builder, contains('EmployeePrivateData? privateData'));
+    expect(builder, contains("'[указать \$field]'"));
+    expect(builder, contains('ЧЕРНОВИК — ТРЕБУЕТ ПРОВЕРКИ'));
+  });
 
   test('предпросмотр редактируется и не отправляет документ автоматически', () {
     final screen = source(

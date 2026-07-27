@@ -100,8 +100,9 @@ class DispatcherSummaryDetails {
     return value
         .whereType<Map>()
         .map(
-          (item) =>
-              DispatcherDetailGroup.fromJson(Map<String, dynamic>.from(item)),
+          (item) => DispatcherDetailGroup.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
         )
         .where((group) => group.count > 0)
         .toList();

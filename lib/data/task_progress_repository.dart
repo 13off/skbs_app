@@ -87,12 +87,15 @@ abstract final class TaskProgressRepository {
       throw Exception('Задача не привязана к цели и пункту чек-листа');
     }
 
-    await _client.from('task_milestone_links').upsert({
-      'task_id': taskId,
-      'milestone_id': milestoneId,
-      'checklist_item_id': checklistItemId,
-      'progress_percent': progressPercent.clamp(0, 100).toInt(),
-    }, onConflict: 'task_id');
+    await _client.from('task_milestone_links').upsert(
+      {
+        'task_id': taskId,
+        'milestone_id': milestoneId,
+        'checklist_item_id': checklistItemId,
+        'progress_percent': progressPercent.clamp(0, 100).toInt(),
+      },
+      onConflict: 'task_id',
+    );
 
     await TaskRepository.updateTask(task);
     await _recalculateItem(checklistItemId);
@@ -114,12 +117,15 @@ abstract final class TaskProgressRepository {
       final taskId = task.id?.trim() ?? '';
       final milestoneId = task.milestoneId?.trim() ?? '';
       if (taskId.isNotEmpty && milestoneId.isNotEmpty) {
-        await _client.from('task_milestone_links').upsert({
-          'task_id': taskId,
-          'milestone_id': milestoneId,
-          'checklist_item_id': selectedItem,
-          'progress_percent': 0,
-        }, onConflict: 'task_id');
+        await _client.from('task_milestone_links').upsert(
+          {
+            'task_id': taskId,
+            'milestone_id': milestoneId,
+            'checklist_item_id': selectedItem,
+            'progress_percent': 0,
+          },
+          onConflict: 'task_id',
+        );
       }
     }
 
@@ -160,17 +166,14 @@ abstract final class TaskProgressRepository {
     final nextState = currentState == 'blocked'
         ? 'blocked'
         : total >= 100
-        ? 'done'
-        : total > 0
-        ? 'in_progress'
-        : 'not_started';
+            ? 'done'
+            : total > 0
+                ? 'in_progress'
+                : 'not_started';
 
-    await _client
-        .from('milestone_checklist_items')
-        .update({
-          'state': nextState,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', checklistItemId);
+    await _client.from('milestone_checklist_items').update({
+      'state': nextState,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', checklistItemId);
   }
 }

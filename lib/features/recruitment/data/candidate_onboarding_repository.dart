@@ -51,9 +51,7 @@ abstract final class CandidateOnboardingRepository {
     )) {
       return;
     }
-    final compliance = await CompanyComplianceRepository.fetchSnapshot(
-      companyId,
-    );
+    final compliance = await CompanyComplianceRepository.fetchSnapshot(companyId);
     if (!compliance.realDocumentsAllowed) {
       throw StateError(
         'Production gate персональных данных закрыт. Реальные подписанные '
@@ -116,27 +114,26 @@ abstract final class CandidateOnboardingRepository {
   }) async {
     final now = DateTime.now().toUtc().toIso8601String();
     final userId = _client.auth.currentUser?.id;
-    final rows = candidateOnboardingFormCodes
-        .map((code) {
-          return <String, dynamic>{
-            'company_id': candidate.companyId,
-            'application_id': candidate.id,
-            'employee_id': candidate.employeeId.trim().isEmpty
-                ? null
-                : candidate.employeeId.trim(),
-            'form_code': code,
-            'status': 'ready_to_print',
-            'missing_fields': missingFieldsByForm[code] ?? const <String>[],
-            'generated_at': now,
-            'updated_at': now,
-            'updated_by': userId,
-            'created_by': userId,
-          };
-        })
-        .toList(growable: false);
-    await _client
-        .from('recruitment_onboarding_forms')
-        .upsert(rows, onConflict: 'company_id,application_id,form_code');
+    final rows = candidateOnboardingFormCodes.map((code) {
+      return <String, dynamic>{
+        'company_id': candidate.companyId,
+        'application_id': candidate.id,
+        'employee_id': candidate.employeeId.trim().isEmpty
+            ? null
+            : candidate.employeeId.trim(),
+        'form_code': code,
+        'status': 'ready_to_print',
+        'missing_fields': missingFieldsByForm[code] ?? const <String>[],
+        'generated_at': now,
+        'updated_at': now,
+        'updated_by': userId,
+        'created_by': userId,
+      };
+    }).toList(growable: false);
+    await _client.from('recruitment_onboarding_forms').upsert(
+          rows,
+          onConflict: 'company_id,application_id,form_code',
+        );
     await CompanyComplianceRepository.logAccess(
       companyId: candidate.companyId,
       action: 'generate',
@@ -181,12 +178,9 @@ abstract final class CandidateOnboardingRepository {
       throw StateError('Подписанный файл больше 20 МБ');
     }
     final extension = _safeExtension(fileName, mimeType);
-    final path =
-        '${form.companyId}/${form.applicationId}/signed/'
+    final path = '${form.companyId}/${form.applicationId}/signed/'
         '${form.formCode}_${DateTime.now().millisecondsSinceEpoch}.$extension';
-    await _client.storage
-        .from(storageBucket)
-        .uploadBinary(
+    await _client.storage.from(storageBucket).uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(contentType: mimeType, upsert: false),

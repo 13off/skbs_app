@@ -88,9 +88,7 @@ class PremiumLoadingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  PremiumDots(
-                    color: dark ? theme.colorScheme.primary : textColor,
-                  ),
+                  PremiumDots(color: dark ? theme.colorScheme.primary : textColor),
                 ],
               ),
             ),

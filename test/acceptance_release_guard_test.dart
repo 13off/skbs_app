@@ -5,13 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('acceptance release stays web-only and production-safe', () {
-    final config =
-        jsonDecode(File('config/acceptance-scenarios.json').readAsStringSync())
-            as Map<String, dynamic>;
+    final config = jsonDecode(
+      File('config/acceptance-scenarios.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
     final setupRepository = File(
       'lib/features/company/data/company_setup_repository.dart',
     ).readAsStringSync();
-    final runbook = File('docs/full-acceptance-runbook.md').readAsStringSync();
+    final runbook = File(
+      'docs/full-acceptance-runbook.md',
+    ).readAsStringSync();
 
     expect(config['mode'], 'production_safe');
     expect(config['automatic_writes'], isFalse);

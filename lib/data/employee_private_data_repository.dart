@@ -64,9 +64,7 @@ class EmployeePrivateDataRepository {
     }
   }
 
-  static Future<EmployeePrivateData?> _loadByEmployeeId(
-    String employeeId,
-  ) async {
+  static Future<EmployeePrivateData?> _loadByEmployeeId(String employeeId) async {
     final row = await _client
         .from('employee_private_data')
         .select()
@@ -94,13 +92,12 @@ class EmployeePrivateDataRepository {
     List<String> employeeIds, {
     bool forceRefresh = false,
   }) async {
-    final ids =
-        employeeIds
-            .map((id) => id.trim())
-            .where((id) => id.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final ids = employeeIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
 
     if (ids.isEmpty) return <String, EmployeePrivateData>{};
 
@@ -160,7 +157,9 @@ class EmployeePrivateDataRepository {
     return _mapRows(chunks.expand((rows) => rows));
   }
 
-  static Map<String, EmployeePrivateData> _mapRows(Iterable<dynamic> rows) {
+  static Map<String, EmployeePrivateData> _mapRows(
+    Iterable<dynamic> rows,
+  ) {
     final result = <String, EmployeePrivateData>{};
 
     for (final rawRow in rows) {

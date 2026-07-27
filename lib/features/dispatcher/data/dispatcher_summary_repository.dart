@@ -125,10 +125,14 @@ class DispatcherSummarySettings {
       enabled: json['enabled'] == true,
       localTime: _time(json['local_time']),
       timezone: json['timezone']?.toString() ?? 'Europe/Moscow',
-      weekdays: _intSet(json['weekdays'], const <int>{1, 2, 3, 4, 5, 6, 7}),
-      recipientRoles: _stringSet(json['recipient_roles'], const <String>{
-        'admin',
-      }),
+      weekdays: _intSet(
+        json['weekdays'],
+        const <int>{1, 2, 3, 4, 5, 6, 7},
+      ),
+      recipientRoles: _stringSet(
+        json['recipient_roles'],
+        const <String>{'admin'},
+      ),
       inAppEnabled: json['in_app_enabled'] != false,
       pushEnabled: json['push_enabled'] != false,
       includeTasks: json['include_tasks'] != false,

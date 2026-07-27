@@ -80,8 +80,7 @@ abstract final class EmployeeMobilizationRepository {
         .map(
           (candidate) => EmployeeMobilizationEntry(
             candidate: candidate,
-            mobilization:
-                byEmployee[candidate.employeeId] ??
+            mobilization: byEmployee[candidate.employeeId] ??
                 EmployeeMobilization.empty(candidate),
           ),
         )

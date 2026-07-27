@@ -20,7 +20,9 @@ abstract final class ActContextRepository {
 
     final rawLinks = await _client
         .from('task_milestone_links')
-        .select('task_id, milestone_id, checklist_item_id, progress_percent')
+        .select(
+          'task_id, milestone_id, checklist_item_id, progress_percent',
+        )
         .inFilter('task_id', taskIds);
 
     if (rawLinks.isEmpty) return const <String, TaskActContext>{};
@@ -37,7 +39,8 @@ abstract final class ActContextRepository {
       final row = Map<String, dynamic>.from(raw);
       final taskId = row['task_id']?.toString().trim() ?? '';
       final milestoneId = row['milestone_id']?.toString().trim() ?? '';
-      final checklistItemId = row['checklist_item_id']?.toString().trim() ?? '';
+      final checklistItemId =
+          row['checklist_item_id']?.toString().trim() ?? '';
       if (taskId.isEmpty || milestoneId.isEmpty || checklistItemId.isEmpty) {
         continue;
       }
@@ -45,13 +48,16 @@ abstract final class ActContextRepository {
       final milestone = milestonesById[milestoneId];
       if (milestone == null) continue;
 
-      final itemById = {for (final item in milestone.items) item.id: item};
+      final itemById = {
+        for (final item in milestone.items) item.id: item,
+      };
       final item = itemById[checklistItemId];
       if (item == null) continue;
 
-      final dailyPercent = ((row['progress_percent'] as num?)?.toInt() ?? 0)
-          .clamp(0, 100)
-          .toInt();
+      final dailyPercent =
+          ((row['progress_percent'] as num?)?.toInt() ?? 0)
+              .clamp(0, 100)
+              .toInt();
       final stateWithDailyProgress = dailyPercent > 0
           ? '${item.stateTitle}; за день +$dailyPercent%'
           : item.stateTitle;

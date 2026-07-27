@@ -25,18 +25,15 @@ void main() {
     }
   });
 
-  test(
-    'служебная задача по найденной проблеме остаётся обычным черновиком',
-    () {
-      expect(
-        AiAssistantRepository.functionNameFor(
-          mode: 'chat',
-          prompt: 'Создай задачу по проблеме: у Иванова отсутствует чек',
-        ),
-        'ai-action-draft',
-      );
-    },
-  );
+  test('служебная задача по найденной проблеме остаётся обычным черновиком', () {
+    expect(
+      AiAssistantRepository.functionNameFor(
+        mode: 'chat',
+        prompt: 'Создай задачу по проблеме: у Иванова отсутствует чек',
+      ),
+      'ai-action-draft',
+    );
+  });
 
   test('операционный сервер проверяет роли и остаётся read only', () {
     final edge = aiOperationalSource();

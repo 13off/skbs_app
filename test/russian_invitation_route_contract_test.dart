@@ -25,7 +25,10 @@ void main() {
       landing,
       contains("const supabaseUrl = 'https://api.appstroy-web.ru'"),
     );
-    expect(landing, contains(r"fetch(`${supabaseUrl}/auth/v1/verify`"));
+    expect(
+      landing,
+      contains(r"fetch(`${supabaseUrl}/auth/v1/verify`"),
+    );
     expect(
       landing,
       contains("accept.addEventListener('click', acceptInvitation)"),

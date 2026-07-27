@@ -26,12 +26,10 @@ void main() {
   });
 
   test('массовое изменение пропускает пустые идентификаторы', () {
-    final draft = TimesheetDraft.empty().withValues(const <String?>[
-      'one',
-      null,
-      '',
-      'two',
-    ], 1);
+    final draft = TimesheetDraft.empty().withValues(
+      const <String?>['one', null, '', 'two'],
+      1,
+    );
 
     expect(draft.values, const <String, double>{'one': 1, 'two': 1});
     expect(draft.workedCountFor(const <String>['one', 'two']), 2);

@@ -52,10 +52,7 @@ void main() {
 
     expect(coordinator, contains("'open_period_timesheet'"));
     expect(coordinator, contains('PeriodTimesheetScreen('));
-    expect(
-      confirmation,
-      contains('PeriodTimesheetLaunchIntent.setFromYearMonth'),
-    );
+    expect(confirmation, contains('PeriodTimesheetLaunchIntent.setFromYearMonth'));
     expect(screen, contains('PeriodTimesheetLaunchIntent.take()'));
     expect(screen, contains('widget.initialMonth'));
   });

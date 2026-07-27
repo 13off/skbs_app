@@ -13,16 +13,10 @@ void main() {
 
     expect(source, contains("show CupertinoPageRoute"));
     expect(source, contains('return CupertinoPageRoute<void>('));
-    expect(
-      source,
-      contains('return buildRootPage(index, selectedObjectName);'),
-    );
+    expect(source, contains('return buildRootPage(index, selectedObjectName);'));
     expect(source, contains('return ProfessionalBottomNavigation('));
 
-    expect(
-      navigation,
-      contains("key: const ValueKey('professional-bottom-navigation')"),
-    );
+    expect(navigation, contains("key: const ValueKey('professional-bottom-navigation')"));
     expect(navigation, contains('height: totalHeight'));
     expect(navigation, contains('final totalHeight ='));
     expect(navigation, isNot(contains('child: Align(')));

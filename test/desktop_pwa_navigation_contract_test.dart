@@ -12,17 +12,11 @@ void main() {
     final main = source('lib/main.dart');
 
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
-    expect(
-      navigation,
-      contains('ProfessionalBottomNavigation extends StatefulWidget'),
-    );
+    expect(navigation, contains('ProfessionalBottomNavigation extends StatefulWidget'));
     expect(navigation, contains('NavigationSession.writeTabIndex'));
     expect(navigation, isNot(contains('NavigationRail(')));
     expect(navigation, isNot(contains('ProfessionalDesktopShell')));
     expect(main, isNot(contains('ProfessionalDesktopShell(')));
-    expect(
-      main,
-      isNot(contains("widgets/professional_bottom_navigation.dart")),
-    );
+    expect(main, isNot(contains("widgets/professional_bottom_navigation.dart")));
   });
 }

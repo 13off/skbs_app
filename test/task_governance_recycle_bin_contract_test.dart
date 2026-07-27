@@ -14,14 +14,8 @@ void main() {
     );
 
     expect(migration, contains('add column if not exists deleted_at'));
-    expect(
-      migration,
-      contains('create table if not exists public.task_action_audit'),
-    );
-    expect(
-      migration,
-      contains('create or replace function public.restore_task'),
-    );
+    expect(migration, contains('create table if not exists public.task_action_audit'));
+    expect(migration, contains('create or replace function public.restore_task'));
     expect(
       migration,
       contains('create or replace function public.get_task_governance_center'),
@@ -44,20 +38,17 @@ void main() {
     expect(migration, contains('with check (false)'));
   });
 
-  test(
-    'developer navigation keeps task safety without a duplicate control tab',
-    () {
-      final navigation = source(
-        'lib/features/developer/presentation/developer_main_screen.dart',
-      );
-
-      expect(navigation, contains('static const int pageCount = 2;'));
-      expect(navigation, contains("label: 'Конструктор'"));
-      expect(navigation, contains("label: 'Профиль'"));
-      expect(navigation, isNot(contains('DataGovernanceScreen')));
-      expect(navigation, isNot(contains("label: 'Контроль'")));
-    },
+test('developer navigation keeps task safety without a duplicate control tab', () {
+  final navigation = source(
+    'lib/features/developer/presentation/developer_main_screen.dart',
   );
+
+  expect(navigation, contains('static const int pageCount = 2;'));
+  expect(navigation, contains("label: 'Конструктор'"));
+  expect(navigation, contains("label: 'Профиль'"));
+  expect(navigation, isNot(contains('DataGovernanceScreen')));
+  expect(navigation, isNot(contains("label: 'Контроль'")));
+});
 
   test('delete confirmation explains recovery and retained data', () {
     final actions = source(
@@ -65,14 +56,8 @@ void main() {
     );
 
     expect(actions, contains('Переместить задачу в корзину?'));
-    expect(
-      actions,
-      contains('исполнители, фотографии и связь с целью сохранятся'),
-    );
+    expect(actions, contains('исполнители, фотографии и связь с целью сохранятся'));
     expect(actions, contains("child: const Text('В корзину')"));
-    expect(
-      actions,
-      isNot(contains('Задача, исполнители и фото будут удалены.')),
-    );
+    expect(actions, isNot(contains('Задача, исполнители и фото будут удалены.')));
   });
 }

@@ -306,9 +306,13 @@ class ManagerReportTrend {
   factory ManagerReportTrend.fromJson(Map<String, dynamic> json) {
     return ManagerReportTrend(
       tasksDoneRate: _asDouble(json['tasks_done_rate']),
-      tasksYesterdayDoneRate: _asDouble(json['tasks_yesterday_done_rate']),
+      tasksYesterdayDoneRate: _asDouble(
+        json['tasks_yesterday_done_rate'],
+      ),
       tasksWeekDoneRate: _asDouble(json['tasks_week_done_rate']),
-      attendanceMissingYesterday: _asInt(json['attendance_missing_yesterday']),
+      attendanceMissingYesterday: _asInt(
+        json['attendance_missing_yesterday'],
+      ),
     );
   }
 
@@ -317,7 +321,8 @@ class ManagerReportTrend {
       'tasks_done_rate' => tasksDoneRate,
       'tasks_yesterday_done_rate' => tasksYesterdayDoneRate,
       'tasks_week_done_rate' => tasksWeekDoneRate,
-      'attendance_missing_yesterday' => attendanceMissingYesterday.toDouble(),
+      'attendance_missing_yesterday' =>
+        attendanceMissingYesterday.toDouble(),
       _ => 0,
     };
   }
@@ -347,15 +352,15 @@ class ManagerReportsCenter {
     final rawDetails = _map(json['details']);
     final parsedDetails = <String, List<ManagerReportDetailItem>>{};
     for (final entry in rawDetails.entries) {
-      parsedDetails[entry.key] = _list(
-        entry.value,
-      ).map((item) => ManagerReportDetailItem.fromJson(_map(item))).toList();
+      parsedDetails[entry.key] = _list(entry.value)
+          .map((item) => ManagerReportDetailItem.fromJson(_map(item)))
+          .toList();
     }
 
     return ManagerReportsCenter(
       reportDate:
           DateTime.tryParse(json['report_date']?.toString() ?? '') ??
-          DateTime.now(),
+              DateTime.now(),
       selectedObject: selected.isEmpty
           ? null
           : ManagerReportObjectOption.fromJson(selected),
@@ -366,9 +371,9 @@ class ManagerReportsCenter {
       metrics: ManagerReportMetrics.fromJson(_map(json['metrics'])),
       trend: ManagerReportTrend.fromJson(_map(json['trend'])),
       details: parsedDetails,
-      dispatcherRuns: _list(
-        json['dispatcher_runs'],
-      ).map((item) => DispatcherSummaryRun.fromJson(_map(item))).toList(),
+      dispatcherRuns: _list(json['dispatcher_runs'])
+          .map((item) => DispatcherSummaryRun.fromJson(_map(item)))
+          .toList(),
     );
   }
 

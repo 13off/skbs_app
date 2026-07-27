@@ -81,6 +81,9 @@ extension _PeriodTimesheetFormatting on _PeriodTimesheetScreenState {
   }
 
   List<MonthlyTimesheetRow> buildFilteredRows() {
-    return PeriodTimesheetReport.filterRows(rows, query: searchController.text);
+    return PeriodTimesheetReport.filterRows(
+      rows,
+      query: searchController.text,
+    );
   }
 }

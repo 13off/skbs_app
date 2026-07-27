@@ -468,12 +468,18 @@ class _SystemMessage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: _text, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: _text,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   text,
-                  style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: _muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

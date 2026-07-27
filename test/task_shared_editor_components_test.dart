@@ -7,7 +7,11 @@ import 'package:skbs_app/features/tasks/task_draft_support.dart';
 void main() {
   test('общая валидация сохраняет тексты полей и фотографий', () {
     expect(
-      TaskDraftValidation.coreFields(axes: '', work: '', linkedToGoal: false),
+      TaskDraftValidation.coreFields(
+        axes: '',
+        work: '',
+        linkedToGoal: false,
+      ),
       'Заполни оси',
     );
     expect(

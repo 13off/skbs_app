@@ -62,6 +62,9 @@ void main() {
     expect(migration, contains('for insert to authenticated'));
     expect(migration, contains('for update to authenticated'));
     expect(migration, contains('for delete to authenticated'));
-    expect(migration, isNot(contains("auth.role() = 'authenticated'")));
+    expect(
+      migration,
+      isNot(contains("auth.role() = 'authenticated'")),
+    );
   });
 }

@@ -61,10 +61,7 @@ void main() {
     final personalData = File('docs/personal-data.md').readAsStringSync();
     final checklist = File('docs/release-checklist.md').readAsStringSync();
 
-    expect(
-      gateDoc,
-      contains('Статус на момент создания документа: **BLOCKED**'),
-    );
+    expect(gateDoc, contains('Статус на момент создания документа: **BLOCKED**'));
     expect(gateDoc, contains('тестовые, обезличенные'));
     expect(gateDoc, contains('Российское хранение'));
     expect(gateDoc, contains('Журнал доступа'));

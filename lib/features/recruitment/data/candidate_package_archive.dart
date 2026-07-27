@@ -164,8 +164,7 @@ class CandidatePackageArchive {
           'Пакет_${_safeName(fullName)}_${DateFormat('yyyyMMdd').format(now)}.zip',
       includedFiles: includedFiles,
       warnings: List<String>.unmodifiable(packageWarnings),
-      sourceBytes:
-          sourceBytes ??
+      sourceBytes: sourceBytes ??
           attachments.fold<int>(0, (sum, file) => sum + file.bytes.length),
     );
   }
@@ -201,29 +200,25 @@ class CandidatePackageArchive {
     final existing = attachments.isEmpty
         ? '— файлы не получены'
         : attachments
-              .map(
-                (file) =>
-                    '— ${_documentTitle(file.documentType)}: '
-                    '${file.fileName.isEmpty ? 'без названия' : file.fileName}',
-              )
-              .join('\n');
+            .map(
+              (file) => '— ${_documentTitle(file.documentType)}: '
+                  '${file.fileName.isEmpty ? 'без названия' : file.fileName}',
+            )
+            .join('\n');
     final missing = action.stringList('missing_documents');
     final missingText = missing.isEmpty
         ? '— базовый комплект по данным приложения собран'
         : missing.map((item) => '— ${_documentTitle(item)}').join('\n');
-    final forms =
-        <String>[
-              'employment_application',
-              'salary_transfer_application',
-              'personal_data_consent',
-              'employment_contract',
-            ]
-            .map((code) {
-              final fields = formStates[code] ?? const <String>[];
-              return '— ${_formTitle(code)}: добавлено'
-                  '${fields.isEmpty ? '' : ', проверить ${fields.length} полей'}';
-            })
-            .join('\n');
+    final forms = <String>[
+      'employment_application',
+      'salary_transfer_application',
+      'personal_data_consent',
+      'employment_contract',
+    ].map((code) {
+      final fields = formStates[code] ?? const <String>[];
+      return '— ${_formTitle(code)}: добавлено'
+          '${fields.isEmpty ? '' : ', проверить ${fields.length} полей'}';
+    }).join('\n');
 
     return '''ПАКЕТ ДОКУМЕНТОВ КАНДИДАТА
 
