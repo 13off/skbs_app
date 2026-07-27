@@ -1,0 +1,45 @@
+name: Fix payments desktop lazy list
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feature/payments-desktop-date-report'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/payments-desktop-date-report
+
+      - name: Apply lazy desktop fix
+        run: python3 tool/fix_payments_desktop_lazy.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Verify desktop list
+        run: |
+          dart format lib/features/payments/presentation/screens/payments_screen.dart
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test test/lazy_primary_lists_contract_test.dart
+          flutter test test/payments_desktop_date_report_contract_test.dart
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm tool/fix_payments_desktop_lazy.py
+          git rm .github/workflows/fix-payments-desktop-lazy.yml
+          git add lib/features/payments/presentation/screens/payments_screen.dart
+          git commit -m "Сохранить ленивую загрузку выплат на ПК"
+          git push
