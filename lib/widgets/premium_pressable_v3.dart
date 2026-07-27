@@ -34,7 +34,7 @@ class _PremiumPressableState extends State<PremiumPressable>
   static const Duration _hoverDuration = Duration(milliseconds: 85);
   static const Duration _opacityReleaseDuration = Duration(milliseconds: 95);
   static const Duration _releaseDuration = Duration(milliseconds: 190);
-  static const Duration _glowDuration = Duration(milliseconds: 430);
+  static const Duration _glowDuration = Duration(milliseconds: 620);
 
   late final AnimationController glowController;
 
@@ -213,7 +213,6 @@ class _PremiumPressableState extends State<PremiumPressable>
                     child: Stack(
                       fit: StackFit.passthrough,
                       children: [
-                        widget.child,
                         if (isEnabled && !animationsDisabled)
                           Positioned.fill(
                             child: IgnorePointer(
@@ -233,6 +232,7 @@ class _PremiumPressableState extends State<PremiumPressable>
                               ),
                             ),
                           ),
+                        widget.child,
                       ],
                     ),
                   ),
@@ -265,18 +265,18 @@ class _TouchGlowPainter extends CustomPainter {
       (origin?.dx ?? size.width / 2).clamp(0.0, size.width).toDouble(),
       (origin?.dy ?? size.height / 2).clamp(0.0, size.height).toDouble(),
     );
-    final eased = Curves.easeOutCubic.transform(progress);
-    final fade = math.pow(1 - progress, 1.7).toDouble();
-    final radius = 18 + math.max(size.width, size.height) * 0.92 * eased;
+    final eased = Curves.easeOutQuint.transform(progress);
+    final fade = math.pow(1 - progress, 2.2).toDouble();
+    final radius = 34 + math.max(size.width, size.height) * 1.18 * eased;
     final rect = Rect.fromCircle(center: center, radius: radius);
     final paint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withValues(alpha: 0.22 * fade),
-          color.withValues(alpha: 0.13 * fade),
+          Colors.white.withValues(alpha: 0.055 * fade),
+          color.withValues(alpha: 0.035 * fade),
           color.withValues(alpha: 0),
         ],
-        stops: const [0, 0.38, 1],
+        stops: const [0, 0.52, 1],
       ).createShader(rect);
 
     canvas.drawCircle(center, radius, paint);
