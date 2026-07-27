@@ -158,8 +158,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       final employeeId = row.employee.id?.trim() ?? '';
       final paidValue =
           employeeId.isNotEmpty && appliedPaymentIds.add(employeeId)
-          ? paidByEmployeeId[employeeId] ?? 0
-          : 0;
+          ? paidByEmployeeId[employeeId] ?? 0.0
+          : 0.0;
       draft.add(
         employee: row.employee,
         accruedValue: row.accrued,
@@ -169,8 +169,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
     for (final employee in paymentEmployees) {
       final employeeId = employee.id?.trim() ?? '';
-      if (employeeId.isEmpty || appliedPaymentIds.contains(employeeId))
+      if (employeeId.isEmpty || appliedPaymentIds.contains(employeeId)) {
         continue;
+      }
       final paidValue = paidByEmployeeId[employeeId];
       if (paidValue == null || paidValue == 0) continue;
       appliedPaymentIds.add(employeeId);
