@@ -15,7 +15,7 @@ void main() {
     expect(source, contains('onPanUpdate: onResize'));
     expect(source, contains('SystemMouseCursors.resizeUpLeftDownRight'));
     expect(source, isNot(contains("'Открыть полный чат'")));
-    expect(source, isNot(contains('CompanyChatScreen'));
+    expect(source, isNot(contains('CompanyChatScreen')));
   });
 
   test('workspace contains general, employee and assistant conversations', () {
