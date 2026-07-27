@@ -25,9 +25,29 @@ jobs:
             exit 0
           fi
           rm -f .github/patch-error.txt
-          sed -n "/python3 <<'PY'/,/^          PY$/p" \
-            .github/workflows/apply-three-backlog-features.yml \
-            | sed '1d;$d;s/^          //' > /tmp/apply-three-features.py
+          python3 <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
+          start_marker = "          python3 <<'PY'\n"
+          start = workflow.index(start_marker) + len(start_marker)
+          end = workflow.index("\n          PY", start)
+          raw_lines = workflow[start:end].splitlines()
+          output = []
+          inside_triple_string = False
+          for line in raw_lines:
+              if inside_triple_string:
+                  processed = line
+              else:
+                  processed = line[10:] if line.startswith('          ') else line
+              output.append(processed)
+              if processed.count('"""') % 2 == 1:
+                  inside_triple_string = not inside_triple_string
+          Path('/tmp/apply-three-features.py').write_text(
+              '\n'.join(output) + '\n',
+              encoding='utf-8',
+          )
+          PY
           set +e
           python3 /tmp/apply-three-features.py 2> .github/patch-error.txt
           status=$?
