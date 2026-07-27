@@ -109,8 +109,6 @@ class _ProfessionalBottomNavigationState
   }
 
   void handleSelected(int index) {
-    // didUpdateWidget persists the final selected index once. Writing here as
-    // well caused two SharedPreferences operations for every bottom-tab tap.
     widget.onSelected(index);
   }
 
@@ -121,19 +119,40 @@ class _ProfessionalBottomNavigationState
     bool isDesktop,
   ) {
     final scheme = Theme.of(context).colorScheme;
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return SizedBox(
       width: isDesktop ? 34 : 31,
       height: isDesktop ? 34 : 30,
-      child: AnimatedSwitcher(
-        duration: AppMotion.regular,
-        switchInCurve: AppMotion.enterCurve,
-        switchOutCurve: AppMotion.exitCurve,
-        child: Icon(
-          selected ? item.selectedIcon : item.icon,
-          key: ValueKey('${item.label}-$selected'),
-          size: isDesktop ? 21 : 20,
-          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: selected ? 1 : 0),
+        duration: animationsDisabled
+            ? Duration.zero
+            : const Duration(milliseconds: 360),
+        curve: selected ? Curves.easeOutBack : Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(0, -2.2 * value),
+            child: Transform.scale(scale: 1 + 0.065 * value, child: child),
+          );
+        },
+        child: AnimatedSwitcher(
+          duration: animationsDisabled ? Duration.zero : AppMotion.regular,
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: AppMotion.exitCurve,
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(
+              scale: Tween<double>(begin: 0.82, end: 1).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          child: Icon(
+            selected ? item.selectedIcon : item.icon,
+            key: ValueKey('${item.label}-$selected'),
+            size: isDesktop ? 21 : 20,
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -175,7 +194,6 @@ class _ProfessionalBottomNavigationState
     final dark = theme.brightness == Brightness.dark;
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final duration = animationsDisabled ? Duration.zero : AppMotion.regular;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final isDesktop = screenWidth >= 880;
@@ -221,57 +239,74 @@ class _ProfessionalBottomNavigationState
                           ),
                           child: PremiumPressable(
                             onTap: () => handleSelected(index),
-                            pressedScale: 0.97,
+                            pressedScale: 0.965,
                             hoverScale: isDesktop ? 1.012 : 1,
                             borderRadius: BorderRadius.circular(22),
-                            child: AnimatedContainer(
-                              duration: duration,
-                              curve: AppMotion.interactionCurve,
-                              height: double.infinity,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isDesktop ? 13 : 4,
-                                vertical: isDesktop ? 6 : 2,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: selected
-                                    ? LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          scheme.primary.withValues(
-                                            alpha: dark ? 0.28 : 0.16,
-                                          ),
-                                          scheme.primary.withValues(
-                                            alpha: dark ? 0.14 : 0.075,
-                                          ),
-                                        ],
-                                      )
-                                    : null,
-                                borderRadius: BorderRadius.circular(22),
-                                border: selected
-                                    ? Border.all(
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween<double>(end: selected ? 1 : 0),
+                              duration: animationsDisabled
+                                  ? Duration.zero
+                                  : Duration(milliseconds: selected ? 420 : 190),
+                              curve: selected
+                                  ? Curves.easeOutBack
+                                  : Curves.easeOutCubic,
+                              builder: (context, value, child) {
+                                return Transform.scale(
+                                  scale: 0.965 + 0.035 * value,
+                                  child: Container(
+                                    height: double.infinity,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isDesktop ? 13 : 4,
+                                      vertical: isDesktop ? 6 : 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: value <= 0.001
+                                          ? null
+                                          : LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                scheme.primary.withValues(
+                                                  alpha:
+                                                      (dark ? 0.28 : 0.16) * value,
+                                                ),
+                                                scheme.primary.withValues(
+                                                  alpha:
+                                                      (dark ? 0.14 : 0.075) * value,
+                                                ),
+                                              ],
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        19 + 3 * value,
+                                      ),
+                                      border: Border.all(
                                         color: Colors.white.withValues(
-                                          alpha: dark ? 0.10 : 0.52,
+                                          alpha:
+                                              (dark ? 0.10 : 0.52) * value,
                                         ),
-                                      )
-                                    : null,
-                                boxShadow: selected
-                                    ? [
-                                        BoxShadow(
-                                          color: scheme.primary.withValues(
-                                            alpha: dark ? 0.16 : 0.10,
-                                          ),
-                                          blurRadius: 16,
-                                          spreadRadius: -8,
-                                          offset: const Offset(0, 7),
-                                        ),
-                                      ]
-                                    : const <BoxShadow>[],
-                              ),
+                                        width: 0.7 + 0.5 * value,
+                                      ),
+                                      boxShadow: value <= 0.001
+                                          ? const <BoxShadow>[]
+                                          : [
+                                              BoxShadow(
+                                                color: scheme.primary.withValues(
+                                                  alpha:
+                                                      (dark ? 0.16 : 0.10) * value,
+                                                ),
+                                                blurRadius: 8 + 10 * value,
+                                                spreadRadius: -8,
+                                                offset: Offset(0, 3 + 5 * value),
+                                              ),
+                                            ],
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
                               child: isDesktop
                                   ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         buildIcon(context, item, selected, true),
                                         const SizedBox(width: 9),
@@ -286,8 +321,7 @@ class _ProfessionalBottomNavigationState
                                       ],
                                     )
                                   : Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         buildIcon(context, item, selected, false),
                                         const SizedBox(height: 1),
