@@ -18,7 +18,7 @@ void main() {
     expect(source, isNot(contains('CompanyChatScreen')));
   });
 
-  test('workspace contains general, employee and assistant conversations', () {
+  test('workspace shows general and employee conversations without AI entry', () {
     final source = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();
@@ -31,9 +31,9 @@ void main() {
 
     expect(source, contains("'Общий чат сотрудников'"));
     expect(source, contains("'СОТРУДНИКИ'"));
-    expect(source, contains("'ИИ-помощник'"));
     expect(source, contains('CompanyChatRepository.fetchThreads()'));
     expect(repository, contains("'get_company_chat_threads'"));
+    expect(repository, contains('!value.isAssistant'));
     expect(repository, contains("'p_channel_kind'"));
     expect(repository, contains("'p_peer_user_id'"));
     expect(
@@ -43,17 +43,18 @@ void main() {
     expect(migration, contains('get_company_chat_threads'));
   });
 
-  test('assistant is visibly locked and cannot be opened or used', () {
+  test('assistant backend remains locked while its chat entry is hidden', () {
     final source = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
+    ).readAsStringSync();
+    final repository = File(
+      'lib/features/company_chat/data/company_chat_repository.dart',
     ).readAsStringSync();
 
     expect(source, contains('const bool _aiAssistantLocked = true'));
     expect(source, contains("showMessage('ИИ-помощник временно недоступен')"));
-    expect(source, contains("'Временно недоступен'"));
-    expect(source, contains('Icons.lock_rounded'));
     expect(source, contains('if (thread.isAssistant && _aiAssistantLocked)'));
-    expect(source, contains('final locked = assistant && _aiAssistantLocked'));
+    expect(repository, contains('!value.isAssistant'));
   });
 
   test('photos and files are sent inside the compact workspace', () {
