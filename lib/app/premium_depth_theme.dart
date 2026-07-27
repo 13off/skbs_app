@@ -128,8 +128,8 @@ abstract final class PremiumDepthTheme {
           ),
           elevation: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) return 0;
-            if (states.contains(WidgetState.hovered)) return 3;
-            return 1.5;
+            if (states.contains(WidgetState.hovered)) return 1;
+            return 0.5;
           }),
         ),
       ),
@@ -162,8 +162,8 @@ abstract final class PremiumDepthTheme {
           ),
           elevation: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) return 0;
-            if (states.contains(WidgetState.hovered)) return 2;
-            return 0.5;
+            if (states.contains(WidgetState.hovered)) return 0.5;
+            return 0;
           }),
         ),
       ),

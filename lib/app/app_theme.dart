@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -15,16 +16,18 @@ abstract final class AppColors {
 }
 
 abstract final class AppMotion {
-  static const fast = Duration(milliseconds: 110);
-  static const regular = Duration(milliseconds: 180);
-  static const hover = Duration(milliseconds: 180);
-  static const page = Duration(milliseconds: 240);
-  static const tab = Duration(milliseconds: 240);
-  static const pressIn = Duration(milliseconds: 65);
-  static const pressOut = Duration(milliseconds: 180);
+  // Короткие системные интервалы сохраняют характер интерфейса, но не
+  // заставляют пользователя ждать завершения декоративной анимации.
+  static const fast = Duration(milliseconds: 55);
+  static const regular = Duration(milliseconds: 95);
+  static const hover = Duration(milliseconds: 70);
+  static const page = Duration(milliseconds: 130);
+  static const tab = Duration(milliseconds: 105);
+  static const pressIn = Duration(milliseconds: 28);
+  static const pressOut = Duration(milliseconds: 65);
 
-  static const double hoverScale = 1.018;
-  static const double pressedScale = 0.974;
+  static const double hoverScale = 1.004;
+  static const double pressedScale = 0.988;
 
   static const Curve enterCurve = Curves.easeOutCubic;
   static const Curve exitCurve = Curves.easeInCubic;
@@ -47,7 +50,15 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
-    if (animationsDisabled || route.isFirst) {
+    final desktopPlatform =
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux;
+
+    // Полноэкранный slide на CanvasKit задерживал первый интерактивный кадр.
+    // На Web/PWA и desktop переход выполняется сразу; мобильная навигация
+    // сохраняет привычное движение.
+    if (animationsDisabled || route.isFirst || kIsWeb || desktopPlatform) {
       return child;
     }
 
@@ -185,18 +196,18 @@ abstract final class AppTheme {
                               : 0.10,
                         ),
                         blurRadius: pressed
-                            ? 8
+                            ? 3
                             : activeHover
-                            ? 22
-                            : 12,
-                        spreadRadius: activeHover ? -4 : -6,
+                            ? 8
+                            : 5,
+                        spreadRadius: activeHover ? -5 : -4,
                         offset: Offset(
                           0,
                           pressed
-                              ? 2
+                              ? 1
                               : activeHover
-                              ? 10
-                              : 5,
+                              ? 3
+                              : 2,
                         ),
                       ),
                     ],

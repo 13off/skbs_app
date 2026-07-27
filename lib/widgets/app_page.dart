@@ -313,44 +313,53 @@ class AppSurfaceBackdrop extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: dark
-            ? AppAdaptivePalette.darkBackground
-            : AppAdaptivePalette.background,
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: -140,
-            right: -100,
-            child: IgnorePointer(
-              child: Container(
-                width: 330,
-                height: 330,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: dark
-                        ? [
-                            AppAdaptivePalette.telegramBlue.withValues(
-                              alpha: 0.12,
-                            ),
-                            Colors.transparent,
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.68),
-                            Colors.white.withValues(alpha: 0),
-                          ],
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: RepaintBoundary(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: dark
+                    ? AppAdaptivePalette.darkBackground
+                    : AppAdaptivePalette.background,
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned(
+                    top: -140,
+                    right: -100,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 330,
+                        height: 330,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: dark
+                                ? [
+                                    AppAdaptivePalette.telegramBlue.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    Colors.transparent,
+                                  ]
+                                : [
+                                    Colors.white.withValues(alpha: 0.68),
+                                    Colors.white.withValues(alpha: 0),
+                                  ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
-          child,
-        ],
-      ),
+        ),
+        child,
+      ],
     );
   }
 }

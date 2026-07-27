@@ -216,9 +216,9 @@ class _ProfessionalBottomNavigationState
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: dark ? 0.22 : 0.08),
-                      blurRadius: isDesktop ? 20 : 18,
-                      spreadRadius: -10,
-                      offset: Offset(0, isDesktop ? 10 : 8),
+                      blurRadius: isDesktop ? 10 : 8,
+                      spreadRadius: -6,
+                      offset: Offset(0, isDesktop ? 4 : 3),
                     ),
                   ],
                 ),
