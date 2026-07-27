@@ -15,12 +15,6 @@ extension _EmployeeDetailsFormatting on _EmployeeDetailsScreenState {
     return '$text ₽';
   }
 
-  String formatDateTime(DateTime value) {
-    String twoDigits(int number) => number.toString().padLeft(2, '0');
-    return '${twoDigits(value.day)}.${twoDigits(value.month)}.${value.year} '
-        '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
-  }
-
   String monthName(int month) {
     const monthNames = <String>[
       'Январь',
