@@ -85,31 +85,6 @@ jobs:
         working-directory: skbs_app
         run: flutter pub get --enforce-lockfile >/dev/null
 
-      - name: Apply verified AI assistant lock
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          if [ -f tool/apply_ai_assistant_lock.py ]; then
-            python3 tool/apply_ai_assistant_lock.py
-            dart format \
-              lib/features/company_chat/presentation/company_chat_shell.dart \
-              test/company_chat_compact_window_contract_test.dart
-            flutter analyze
-            flutter test test/company_chat_compact_window_contract_test.dart --reporter compact
-
-            if ! git diff --quiet -- \
-              lib/features/company_chat/presentation/company_chat_shell.dart \
-              test/company_chat_compact_window_contract_test.dart; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add \
-                lib/features/company_chat/presentation/company_chat_shell.dart \
-                test/company_chat_compact_window_contract_test.dart
-              git commit -m "ИИ помощник временно закрыт замком"
-              git push origin HEAD:main
-            fi
-          fi
-
       - name: Run regression tests
         working-directory: skbs_app
         shell: bash
