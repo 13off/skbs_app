@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 // Этот контракт также служит безопасной точкой штатной Web/PWA-публикации.
+// Повторная точка публикации мягкого фонового касания и чата без кнопки ИИ.
 void main() {
   test('global touch glow stays broad, soft and visually unobtrusive', () {
     final viewport = File(
