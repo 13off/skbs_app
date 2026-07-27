@@ -204,7 +204,6 @@ class _ProfessionalBottomNavigationState
               ),
               child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
-                height: null,
                 blur: true,
                 blurSigma: isDesktop ? 18 : 14,
                 radius: isDesktop ? 30 : 26,
