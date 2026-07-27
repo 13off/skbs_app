@@ -37,7 +37,7 @@ jobs:
 
           def indent_block(source: str, variable: str) -> str:
               pattern = re.compile(
-                  rf"({variable} = ''')(?P<body>.*?)(\n''')",
+                  rf"({variable} = ''')(?P<body>.*?)(''')",
                   re.DOTALL,
               )
               match = pattern.search(source)
