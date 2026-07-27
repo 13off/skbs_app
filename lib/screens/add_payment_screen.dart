@@ -36,6 +36,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   String? selectedObjectName;
   String? selectedEmployeeId;
   DateTime paymentDate = DateTime.now();
+  late DateTime settlementMonth;
 
   String selectedPaymentType = 'advance';
 
@@ -58,6 +59,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   void initState() {
     super.initState();
 
+    settlementMonth = DateTime(widget.periodYear, widget.periodMonth, 1);
     final initialObject = widget.initialObjectName?.trim();
     selectedObjectName = initialObject == null || initialObject.isEmpty
         ? null
@@ -75,6 +77,106 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
 
   String formatDate(DateTime date) {
     return DateFormat('dd.MM.yyyy').format(date);
+  }
+
+  String monthName(int month) {
+    const names = <String>[
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь',
+    ];
+    if (month < 1 || month > names.length) return 'Месяц';
+    return names[month - 1];
+  }
+
+  String get settlementPeriodTitle =>
+      '${monthName(settlementMonth.month)} ${settlementMonth.year}';
+
+  Future<void> pickSettlementPeriod() async {
+    final picked = await showDialog<DateTime>(
+      context: context,
+      builder: (dialogContext) {
+        var year = settlementMonth.year;
+        var month = settlementMonth.month;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Расчётный период'),
+              content: SizedBox(
+                width: 430,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Предыдущий год',
+                          onPressed: () => setDialogState(() => year -= 1),
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '$year',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Следующий год',
+                          onPressed: () => setDialogState(() => year += 1),
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List<Widget>.generate(12, (index) {
+                        final value = index + 1;
+                        return ChoiceChip(
+                          label: Text(monthName(value)),
+                          selected: month == value,
+                          onSelected: (_) {
+                            setDialogState(() => month = value);
+                          },
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Отмена'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext, DateTime(year, month, 1));
+                  },
+                  child: const Text('Выбрать'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (picked == null || !mounted) return;
+    setState(() => settlementMonth = picked);
   }
 
   double? parseAmount() {
@@ -265,8 +367,8 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     try {
       await PaymentRepository.addPayment(
         employeeId: selectedEmployee.id!,
-        periodYear: widget.periodYear,
-        periodMonth: widget.periodMonth,
+        periodYear: settlementMonth.year,
+        periodMonth: settlementMonth.month,
         paymentDate: paymentDate,
         amount: amount,
         paymentType: selectedPaymentType,
@@ -450,11 +552,26 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Период выплаты',
+                  'Расчётный период',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 8),
-                Text(widget.periodTitle, style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 6),
+                Text(
+                  'За какой месяц относится эта выплата',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isSaving ? null : pickSettlementPeriod,
+                    icon: const Icon(Icons.event_note_outlined),
+                    label: Text('За период: $settlementPeriodTitle'),
+                  ),
+                ),
               ],
             ),
           ),
