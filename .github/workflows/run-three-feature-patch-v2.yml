@@ -1,0 +1,68 @@
+name: Run three feature patch v2
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/foreman-drafts-payment-filters-first-run-guide
+
+      - id: apply
+        shell: bash
+        run: |
+          if [ -f lib/features/onboarding/presentation/first_run_guide.dart ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
+          marker = "          python3 <<'PY'\n"
+          start = source.index(marker) + len(marker)
+          end = source.index("\n          PY", start)
+          lines = source[start:end].splitlines()
+          output = []
+          triple = False
+          for line in lines:
+              processed = line if triple else (line[10:] if line.startswith('          ') else line)
+              output.append(processed)
+              if processed.count('"""') % 2 == 1:
+                  triple = not triple
+          script = '\n'.join(output) + '\n'
+          script = script.replace(
+              '"""                 Text(\n                  monthTitle,\n"""',
+              '"""                Text(\n                  monthTitle,\n"""',
+          )
+          Path('/tmp/apply.py').write_text(script, encoding='utf-8')
+          PY
+          python3 /tmp/apply.py
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.apply.outputs.changed == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - if: steps.apply.outputs.changed == 'true'
+        run: |
+          dart format lib test
+          flutter pub get
+          flutter analyze
+          flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
+
+      - if: steps.apply.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          git commit -m "Применить черновики, фильтры выплат и обучение"
+          git push
