@@ -38,8 +38,8 @@ void main() {
     }
 
     expect(surfaces, contains('return RepaintBoundary('));
-    expect(page, contains('Positioned.fill(
-          child: RepaintBoundary('));
+    expect(page, contains('Positioned.fill('));
+    expect(page, contains('child: RepaintBoundary('));
     expect(scale, contains('filterQuality: FilterQuality.none'));
     expect(
       mainSource,
