@@ -70,7 +70,11 @@ class _PremiumPressableState extends State<PremiumPressable> {
         : activeHover
         ? widget.hoverScale
         : 1.0;
-    final duration = isPressed ? AppMotion.pressIn : AppMotion.hover;
+    final duration = isPressed
+        ? AppMotion.pressIn
+        : activeHover
+        ? AppMotion.hover
+        : AppMotion.pressOut;
     final curve = isPressed ? Curves.easeOut : AppMotion.interactionCurve;
 
     return Semantics(
@@ -107,17 +111,15 @@ class _PremiumPressableState extends State<PremiumPressable> {
           onTapCancel: isEnabled ? () => updatePressed(false) : null,
           onTapUp: isEnabled ? (_) => updatePressed(false) : null,
           onTap: widget.onTap,
-          child: AnimatedSlide(
-            offset: activeHover ? const Offset(0, -0.012) : Offset.zero,
+          child: AnimatedScale(
+            scale: scale,
             duration: duration,
             curve: curve,
-            child: AnimatedScale(
-              scale: scale,
-              duration: duration,
-              curve: curve,
-              child: AnimatedContainer(
-                duration: AppMotion.regular,
-                curve: AppMotion.interactionCurve,
+            child: AnimatedOpacity(
+              opacity: isEnabled ? (isPressed ? 0.96 : 1) : 0.46,
+              duration: AppMotion.fast,
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
                 decoration: BoxDecoration(
                   borderRadius: widget.borderRadius,
                   border: Border.all(
@@ -126,27 +128,8 @@ class _PremiumPressableState extends State<PremiumPressable> {
                         : Colors.transparent,
                     width: 1,
                   ),
-                  boxShadow: activeHover
-                      ? [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF17191C,
-                            ).withValues(alpha: 0.10),
-                            blurRadius: 24,
-                            spreadRadius: -8,
-                            offset: const Offset(0, 11),
-                          ),
-                        ]
-                      : const [],
                 ),
-                child: AnimatedOpacity(
-                  opacity: isEnabled ? (isPressed ? 0.95 : 1) : 0.46,
-                  duration: AppMotion.fast,
-                  child: ClipRRect(
-                    borderRadius: widget.borderRadius,
-                    child: widget.child,
-                  ),
-                ),
+                child: widget.child,
               ),
             ),
           ),
