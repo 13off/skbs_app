@@ -74,7 +74,7 @@ void main() {
     expect(darkThemeSource, contains('indicatorColor: accentSoft'));
   });
 
-  test('shared navigation uses blue selected states and flat dark surfaces', () {
+  test('shared navigation uses blue selected states and Liquid surfaces', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
@@ -89,8 +89,9 @@ void main() {
       'lib/features/shared/presentation/specialist_desktop_ui.dart',
     ).readAsStringSync();
 
-    expect(navigation, contains('color: scheme.surface'));
-    expect(navigation, contains('scheme.primary.withValues(alpha: 0.11)'));
+    expect(navigation, contains('LiquidGlassSurface('));
+    expect(navigation, contains('blur: true'));
+    expect(navigation, contains('scheme.primary.withValues('));
     expect(
       navigation,
       contains('color: selected ? scheme.primary : scheme.onSurfaceVariant'),
@@ -98,10 +99,12 @@ void main() {
     expect(navigation, isNot(contains('scheme.onPrimary')));
 
     expect(surfaces, contains('AppSurfaceBackdrop'));
+    expect(surfaces, contains('LiquidGlassSurface('));
+    expect(surfaces, contains('blur: false'));
     expect(appPage, contains('class AppSurfaceBackdrop'));
     expect(appPage, contains('AppAdaptivePalette.darkBackground'));
     expect(appPage, contains('AppAdaptivePalette.background'));
-    expect(surfaces, contains('theme.colorScheme.outlineVariant'));
+    expect(appPage, contains('LiquidGlassSurface('));
     expect(surfaces, contains('const Color(0xFF2278BF)'));
     expect(
       surfaces,
@@ -123,6 +126,7 @@ void main() {
       'lib/app/app_adaptive_palette.dart',
       'lib/app/app_dark_theme.dart',
       'lib/app/theme_controller.dart',
+      'lib/widgets/liquid_glass.dart',
       'lib/widgets/professional_bottom_navigation.dart',
       'lib/widgets/app_page.dart',
       'lib/widgets/premium_surfaces_v3.dart',
