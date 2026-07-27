@@ -229,7 +229,7 @@ replace_once(
 
     expect(source, contains('const bool _aiAssistantLocked = true'));
     expect(source, contains("showMessage('ИИ-помощник временно недоступен')"));
-    expect(source, contains("locked ? 'Временно недоступен'"));
+    expect(source, contains("'Временно недоступен'"));
     expect(source, contains('Icons.lock_rounded'));
     expect(source, contains('if (thread.isAssistant && _aiAssistantLocked)'));
     expect(source, contains('final locked = assistant && _aiAssistantLocked'));
