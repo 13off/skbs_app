@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Единый лёгкий засвет от касания для всего приложения.
+/// Единый очень мягкий световой отклик от касания для всего приложения.
 ///
-/// Эффект рисуется поверх интерфейса, но не перехватывает жесты. Он включается
-/// только на короткое время после нажатия и не создаёт постоянной нагрузки.
+/// Эффект большой и малоконтрастный: он воспринимается как краткое изменение
+/// света под интерфейсом, не перекрывает текст и не перехватывает жесты.
 class AppTouchGlowOverlay extends StatefulWidget {
   final Widget child;
 
@@ -17,7 +17,7 @@ class AppTouchGlowOverlay extends StatefulWidget {
 
 class _AppTouchGlowOverlayState extends State<AppTouchGlowOverlay>
     with SingleTickerProviderStateMixin {
-  static const Duration _pulseDuration = Duration(milliseconds: 560);
+  static const Duration _pulseDuration = Duration(milliseconds: 760);
 
   late final AnimationController _controller;
   late final ValueNotifier<Offset?> _origin;
@@ -122,31 +122,27 @@ class _GlobalTouchGlowPainter extends CustomPainter {
       rawOrigin.dx.clamp(0.0, size.width).toDouble(),
       rawOrigin.dy.clamp(0.0, size.height).toDouble(),
     );
-    final eased = Curves.easeOutQuart.transform(progress);
-    final fade = math.pow(1 - progress, 1.85).toDouble();
+    final eased = Curves.easeOutQuint.transform(progress);
+    final fade = math.pow(1 - progress, 2.35).toDouble();
     final maximumRadius = math.min(
-      310.0,
-      math.max(size.width, size.height) * 0.24,
+      620.0,
+      math.max(size.width, size.height) * 0.46,
     );
-    final radius = 30 + maximumRadius * eased;
+    final radius = 82 + maximumRadius * eased;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
     final glowPaint = Paint()
+      ..blendMode = dark ? BlendMode.screen : BlendMode.softLight
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withValues(alpha: (dark ? 0.13 : 0.19) * fade),
-          color.withValues(alpha: (dark ? 0.13 : 0.10) * fade),
+          Colors.white.withValues(alpha: (dark ? 0.048 : 0.036) * fade),
+          color.withValues(alpha: (dark ? 0.035 : 0.024) * fade),
           color.withValues(alpha: 0),
         ],
-        stops: const [0, 0.34, 1],
+        stops: const [0, 0.56, 1],
       ).createShader(rect);
-    canvas.drawCircle(center, radius, glowPaint);
 
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15
-      ..color = color.withValues(alpha: 0.075 * fade);
-    canvas.drawCircle(center, 22 + maximumRadius * 0.66 * eased, ringPaint);
+    canvas.drawCircle(center, radius, glowPaint);
   }
 
   @override
