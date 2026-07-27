@@ -27,6 +27,10 @@ class PremiumPressable extends StatefulWidget {
 }
 
 class _PremiumPressableState extends State<PremiumPressable> {
+  static const Duration _pressDuration = Duration(milliseconds: 38);
+  static const Duration _hoverDuration = Duration(milliseconds: 85);
+  static const Duration _releaseDuration = Duration(milliseconds: 95);
+
   bool isPressed = false;
   bool isHovered = false;
   bool isFocused = false;
@@ -70,7 +74,11 @@ class _PremiumPressableState extends State<PremiumPressable> {
         : activeHover
         ? widget.hoverScale
         : 1.0;
-    final duration = isPressed ? AppMotion.pressIn : AppMotion.hover;
+    final duration = isPressed
+        ? _pressDuration
+        : activeHover
+        ? _hoverDuration
+        : _releaseDuration;
     final curve = isPressed ? Curves.easeOut : AppMotion.interactionCurve;
 
     return Semantics(
@@ -116,7 +124,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
               duration: duration,
               curve: curve,
               child: AnimatedContainer(
-                duration: AppMotion.regular,
+                duration: _releaseDuration,
                 curve: AppMotion.interactionCurve,
                 decoration: BoxDecoration(
                   borderRadius: widget.borderRadius,
@@ -141,7 +149,7 @@ class _PremiumPressableState extends State<PremiumPressable> {
                 ),
                 child: AnimatedOpacity(
                   opacity: isEnabled ? (isPressed ? 0.95 : 1) : 0.46,
-                  duration: AppMotion.fast,
+                  duration: duration,
                   child: ClipRRect(
                     borderRadius: widget.borderRadius,
                     child: widget.child,
