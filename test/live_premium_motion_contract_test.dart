@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Контракт также служит безопасной точкой запуска штатной Web/PWA-сборки.
 void main() {
   test('touch feedback is local, clipped and springy', () {
     final pressable = File(
