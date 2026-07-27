@@ -159,7 +159,7 @@ class _SkbsAppState extends State<SkbsApp> {
           theme: PremiumDepthTheme.apply(AppTheme.light),
           darkTheme: AppDarkTheme.theme,
           themeMode: themeController.themeMode,
-          themeAnimationDuration: const Duration(milliseconds: 110),
+          themeAnimationDuration: const Duration(milliseconds: 220),
           themeAnimationCurve: Curves.easeOutCubic,
           builder: (context, child) => AppScaleViewport(
             scale: themeController.uiScale,

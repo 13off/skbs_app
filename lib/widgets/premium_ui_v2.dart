@@ -62,45 +62,43 @@ class PremiumWorkCard extends StatelessWidget {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
 
-    return RepaintBoundary(
-      child: Container(
-        margin: margin,
-        padding: padding,
-        decoration: BoxDecoration(
-          color: dark ? (tint ?? theme.colorScheme.surface) : tint,
-          gradient: !dark && tint == null
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.91),
-                    Colors.white.withValues(alpha: 0.72),
-                  ],
-                )
-              : null,
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(
-            color: dark
-                ? theme.colorScheme.outlineVariant
-                : Colors.white.withValues(alpha: 0.94),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: dark ? 0.15 : 0.055),
-              blurRadius: dark ? 9 : 13,
-              spreadRadius: dark ? -5 : -7,
-              offset: Offset(0, dark ? 4 : 6),
-            ),
-            if (!dark)
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.72),
-                blurRadius: 1,
-                offset: const Offset(0, 1),
-              ),
-          ],
+    return Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: dark ? (tint ?? theme.colorScheme.surface) : tint,
+        gradient: !dark && tint == null
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.91),
+                  Colors.white.withValues(alpha: 0.72),
+                ],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: dark
+              ? theme.colorScheme.outlineVariant
+              : Colors.white.withValues(alpha: 0.94),
         ),
-        child: child,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.20 : 0.075),
+            blurRadius: dark ? 18 : 28,
+            spreadRadius: dark ? -10 : -12,
+            offset: Offset(0, dark ? 9 : 16),
+          ),
+          if (!dark)
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.78),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+        ],
       ),
+      child: child,
     );
   }
 }
@@ -163,9 +161,9 @@ class PremiumActionButton extends StatelessWidget {
               color: dark
                   ? theme.colorScheme.primary.withValues(alpha: enabled ? 0.16 : 0)
                   : const Color(0xFF15171A).withValues(alpha: 0.24),
-              blurRadius: dark ? 9 : 11,
-              spreadRadius: dark ? -6 : -4,
-              offset: Offset(0, dark ? 4 : 5),
+              blurRadius: dark ? 18 : 24,
+              spreadRadius: dark ? -10 : 0,
+              offset: Offset(0, dark ? 8 : 12),
             ),
           ],
         ),
