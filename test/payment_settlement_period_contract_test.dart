@@ -42,5 +42,7 @@ void main() {
     expect(screen, contains('payment.paymentDate.year'));
     expect(screen, contains("label: const Text('За расчётный период')"));
     expect(screen, contains("label: const Text('По дате выплаты')"));
+    expect(screen, contains("title: 'Фактически выплачено'"));
+    expect(screen, contains('mode == _PaymentAccountingMode.settlementPeriod'));
   });
 }

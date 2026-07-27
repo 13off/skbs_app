@@ -313,7 +313,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         selectedMonth = targetMonth;
         selectedRange = targetRange;
         rows = buildPaymentRows(
-          periodRows,
+          mode == _PaymentAccountingMode.settlementPeriod
+              ? periodRows
+              : const <PeriodTimesheetRow>[],
           paidByEmployeeId,
           paymentEmployees: scopedEmployees,
         );
@@ -535,28 +537,35 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _MoneySummaryItem(
-                  title: 'Начислено',
-                  value: formatMoney(totalAccrued),
+          if (accountingMode == _PaymentAccountingMode.paymentDate)
+            _MoneySummaryItem(
+              title: 'Фактически выплачено',
+              value: formatMoney(totalPaid),
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _MoneySummaryItem(
+                    title: 'Начислено',
+                    value: formatMoney(totalAccrued),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MoneySummaryItem(
-                  title: 'Выплачено',
-                  value: formatMoney(totalPaid),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _MoneySummaryItem(
+                    title: 'Выплачено за период',
+                    value: formatMoney(totalPaid),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _MoneySummaryItem(
-            title: totalBalance >= 0 ? 'Остаток' : 'Переплата',
-            value: formatMoney(totalBalance.abs()),
-          ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _MoneySummaryItem(
+              title: totalBalance >= 0 ? 'Остаток' : 'Переплата',
+              value: formatMoney(totalBalance.abs()),
+            ),
+          ],
         ],
       ),
     );
@@ -770,29 +779,36 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _MoneyLine(
-                  title: 'Начислено',
-                  value: formatMoney(row.accrued),
+          if (accountingMode == _PaymentAccountingMode.paymentDate)
+            _MoneyLine(
+              title: 'Фактически выплачено',
+              value: formatMoney(row.paid),
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _MoneyLine(
+                    title: 'Начислено',
+                    value: formatMoney(row.accrued),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MoneyLine(
-                  title: 'Выплачено',
-                  value: formatMoney(row.paid),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _MoneyLine(
+                    title: 'Выплачено за период',
+                    value: formatMoney(row.paid),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _MoneyLine(
-            title: balanceTitle,
-            value: formatMoney(balance.abs()),
-            valueColor: balanceColor,
-          ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _MoneyLine(
+              title: balanceTitle,
+              value: formatMoney(balance.abs()),
+              valueColor: balanceColor,
+            ),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
