@@ -4,23 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 
 // Контракт также служит безопасной точкой запуска штатной Web/PWA-сборки.
 void main() {
-  test('touch feedback is local, clipped, subtle and behind content', () {
+  test('touch feedback stays responsive without glow painters', () {
     final pressable = File(
       'lib/widgets/premium_pressable_v3.dart',
     ).readAsStringSync();
 
-    expect(pressable, contains('class _TouchGlowPainter'));
-    expect(pressable, contains('RadialGradient('));
-    expect(pressable, contains('details.localPosition'));
-    expect(pressable, contains('Curves.easeOutBack'));
+    expect(pressable, isNot(contains('class _TouchGlowPainter')));
+    expect(pressable, isNot(contains('RadialGradient(')));
+    expect(pressable, isNot(contains('glowController')));
+    expect(pressable, isNot(contains('triggerGlow')));
+    expect(pressable, contains('AnimatedSlide('));
+    expect(pressable, contains('AnimatedScale('));
     expect(pressable, contains('ClipRRect('));
-    expect(pressable, contains('RepaintBoundary('));
+    expect(pressable, contains('HapticFeedback.selectionClick()'));
+    expect(pressable, contains('Curves.easeOutBack'));
     expect(pressable, contains('disableAnimations'));
-    expect(pressable, contains('0.055 * fade'));
-    expect(
-      pressable.indexOf('painter: _TouchGlowPainter'),
-      lessThan(pressable.indexOf('widget.child')),
-    );
   });
 
   test('bottom navigation uses spring selection without rebuilding routes', () {
