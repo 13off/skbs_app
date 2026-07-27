@@ -9,7 +9,7 @@ extension _EmployeeDetailsAccess on _EmployeeDetailsScreenState {
     }
     final next = EmployeeAccessRepository.fetchStatus(employeeId);
     if (rebuild && mounted) {
-      setState(() => employeeAccessFuture = next);
+      rebuildEmployeeDetails(() => employeeAccessFuture = next);
     } else {
       employeeAccessFuture = next;
     }
@@ -56,13 +56,13 @@ extension _EmployeeDetailsAccess on _EmployeeDetailsScreenState {
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() => isChangingEmployeeAccess = true);
+    rebuildEmployeeDetails(() => isChangingEmployeeAccess = true);
     try {
       final next = enable
           ? await EmployeeAccessRepository.enable(employeeId)
           : await EmployeeAccessRepository.disable(employeeId);
       if (!mounted) return;
-      setState(() {
+      rebuildEmployeeDetails(() {
         employeeAccessFuture = Future<EmployeeAccessState>.value(next);
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +77,7 @@ extension _EmployeeDetailsAccess on _EmployeeDetailsScreenState {
     } catch (error) {
       showEmployeeAccessError(error);
     } finally {
-      if (mounted) setState(() => isChangingEmployeeAccess = false);
+      rebuildEmployeeDetails(() => isChangingEmployeeAccess = false);
     }
   }
 
