@@ -11,28 +11,15 @@ extension _HomeView on _HomeScreenState {
             snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData;
 
-        return Stack(
-          children: [
-            buildDashboard(
-              context: context,
-              today: today,
-              employees: data.employees,
-              workedEmployeeIds: data.workedEmployeeIds,
-              tasks: data.tasks,
-              finance: data.finance,
-              isLoading: isLoading,
-              hasError: snapshot.hasError,
-            ),
-            Positioned(
-              right: 18,
-              bottom: 18,
-              child: SafeArea(
-                top: false,
-                left: false,
-                child: buildAiAssistantButton(context),
-              ),
-            ),
-          ],
+        return buildDashboard(
+          context: context,
+          today: today,
+          employees: data.employees,
+          workedEmployeeIds: data.workedEmployeeIds,
+          tasks: data.tasks,
+          finance: data.finance,
+          isLoading: isLoading,
+          hasError: snapshot.hasError,
         );
       },
     );

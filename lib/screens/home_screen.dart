@@ -11,12 +11,10 @@ import '../data/employee_repository.dart';
 import '../data/finance_summary_repository.dart';
 import '../data/object_repository.dart';
 import '../data/task_repository.dart';
-import '../features/ai/presentation/ai_assistant_screen.dart';
 import '../features/milestones/presentation/milestone_home_overlay.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
-import '../navigation/app_page_route.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/premium_ui.dart';
 

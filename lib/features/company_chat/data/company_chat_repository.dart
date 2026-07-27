@@ -103,7 +103,7 @@ class CompanyChatRepository {
           (value) =>
               CompanyChatThread.fromMap(Map<String, dynamic>.from(value)),
         )
-        .where((value) => value.threadKey.isNotEmpty && !value.isAssistant)
+        .where((value) => value.threadKey.isNotEmpty)
         .toList(growable: false);
   }
 

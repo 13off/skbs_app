@@ -31,7 +31,7 @@ void main() {
     expect(widgets, contains('class _FinanceSummaryCard'));
   });
 
-  test('главная сохраняет объекты архив финансы и помощника', () {
+  test('главная сохраняет объекты архив и финансы без отдельного ИИ-FAB', () {
     final source = homeSource();
     for (final fragment in const <String>[
       "'Главная'",
@@ -41,10 +41,11 @@ void main() {
       "'Выполненные задачи'",
       "'Выплаты \${financePeriod.title()}'",
       'MilestoneHomeSection(',
-      "tooltip: 'ИИ-помощник'",
     ]) {
       expect(source, contains(fragment));
     }
+    expect(source, isNot(contains("heroTag: 'home-ai-assistant'")));
+    expect(source, isNot(contains("tooltip: 'ИИ-помощник'")));
   });
 
   test('очистка кешей главной проходит через координатор', () {
