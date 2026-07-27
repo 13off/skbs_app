@@ -1,0 +1,73 @@
+name: Run three feature patch on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/foreman-drafts-payment-filters-first-run-guide
+
+      - id: apply
+        name: Apply embedded patch
+        shell: bash
+        run: |
+          if [ -f lib/features/onboarding/presentation/first_run_guide.dart ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
+          start = workflow.index("          python3 <<'PY'\n") + len("          python3 <<'PY'\n")
+          end = workflow.index("\n          PY", start)
+          script = textwrap.dedent(workflow[start:end])
+          exec(compile(script, 'apply-three-backlog-features', 'exec'))
+          PY
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.apply.outputs.changed == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - if: steps.apply.outputs.changed == 'true'
+        name: Format and verify
+        run: |
+          dart format \
+            lib/data/task_repository.dart \
+            lib/screens/add_task_screen.dart \
+            lib/screens/task_create/task_create_actions.dart \
+            lib/screens/task_create/task_create_view.dart \
+            lib/features/tasks/presentation/task_drafts_sheet.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_desktop_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_main_screen.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/features/onboarding/presentation/first_run_guide.dart \
+            lib/features/whats_new/presentation/whats_new_gate.dart \
+            lib/screens/main_screen.dart \
+            test/foreman_drafts_payments_onboarding_contract_test.dart
+          flutter pub get
+          flutter analyze
+          flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
+
+      - if: steps.apply.outputs.changed == 'true'
+        name: Commit feature changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          git commit -m "Применить черновики, фильтры выплат и обучение"
+          git push
