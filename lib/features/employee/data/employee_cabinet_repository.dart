@@ -34,6 +34,47 @@ class EmployeeCabinetSummary {
   }
 }
 
+class EmployeeCabinetAttendance {
+  final String id;
+  final String employeeId;
+  final DateTime? date;
+  final String status;
+  final double shifts;
+  final double hours;
+  final String objectName;
+  final double dailyRate;
+  final double estimatedAmount;
+
+  const EmployeeCabinetAttendance({
+    required this.id,
+    required this.employeeId,
+    required this.date,
+    required this.status,
+    required this.shifts,
+    required this.hours,
+    required this.objectName,
+    required this.dailyRate,
+    required this.estimatedAmount,
+  });
+
+  bool get isWorked => status == 'worked' || shifts > 0 || hours > 0;
+  bool get isNoShow => status == 'no_show';
+
+  factory EmployeeCabinetAttendance.fromJson(Map<String, dynamic> json) {
+    return EmployeeCabinetAttendance(
+      id: _text(json['id']),
+      employeeId: _text(json['employee_id']),
+      date: DateTime.tryParse(_text(json['work_date'])),
+      status: _text(json['status']),
+      shifts: _number(json['shifts']),
+      hours: _number(json['hours']),
+      objectName: _text(json['object_name']),
+      dailyRate: _number(json['daily_rate']),
+      estimatedAmount: _number(json['estimated_amount']),
+    );
+  }
+}
+
 class EmployeeCabinetTask {
   final String id;
   final DateTime? date;
@@ -143,6 +184,7 @@ class EmployeeCabinetData {
   final int month;
   final int year;
   final EmployeeCabinetSummary summary;
+  final List<EmployeeCabinetAttendance> attendance;
   final List<EmployeeCabinetTask> tasks;
   final List<EmployeeCabinetPayment> payments;
   final List<EmployeeCabinetDocument> documents;
@@ -158,6 +200,7 @@ class EmployeeCabinetData {
     required this.month,
     required this.year,
     required this.summary,
+    required this.attendance,
     required this.tasks,
     required this.payments,
     required this.documents,
@@ -168,6 +211,22 @@ class EmployeeCabinetData {
       if (!task.isCompleted) return task;
     }
     return null;
+  }
+
+  List<EmployeeCabinetAttendance> attendanceForDay(int day) {
+    return attendance
+        .where((record) =>
+            record.date?.year == year &&
+            record.date?.month == month &&
+            record.date?.day == day)
+        .toList(growable: false);
+  }
+
+  List<EmployeeCabinetPayment> get paymentsForMonth {
+    return payments
+        .where((payment) =>
+            payment.periodYear == year && payment.periodMonth == month)
+        .toList(growable: false);
   }
 
   factory EmployeeCabinetData.fromJson(Map<String, dynamic> json) {
@@ -187,6 +246,12 @@ class EmployeeCabinetData {
       month: _integer(month['month']),
       year: _integer(month['year']),
       summary: EmployeeCabinetSummary.fromJson(_map(json['summary'])),
+      attendance: _list(json['attendance'])
+          .whereType<Map>()
+          .map((row) => EmployeeCabinetAttendance.fromJson(
+                Map<String, dynamic>.from(row),
+              ))
+          .toList(growable: false),
       tasks: _list(json['tasks'])
           .whereType<Map>()
           .map((row) => EmployeeCabinetTask.fromJson(
@@ -208,7 +273,11 @@ class EmployeeCabinetData {
     );
   }
 
-  factory EmployeeCabinetData.preview(AppUserProfile profile) {
+  factory EmployeeCabinetData.preview(
+    AppUserProfile profile, {
+    int? year,
+    int? month,
+  }) {
     final now = DateTime.now();
     return EmployeeCabinetData(
       fullName: profile.fullName,
@@ -220,8 +289,8 @@ class EmployeeCabinetData {
           : <String>[profile.objectName.trim()],
       dailyRate: 0,
       avatarPath: profile.avatarPath,
-      month: now.month,
-      year: now.year,
+      month: month ?? now.month,
+      year: year ?? now.year,
       summary: const EmployeeCabinetSummary(
         shifts: 0,
         hours: 0,
@@ -231,6 +300,7 @@ class EmployeeCabinetData {
         completedTasks: 0,
         documents: 0,
       ),
+      attendance: const <EmployeeCabinetAttendance>[],
       tasks: const <EmployeeCabinetTask>[],
       payments: const <EmployeeCabinetPayment>[],
       documents: const <EmployeeCabinetDocument>[],
@@ -241,9 +311,18 @@ class EmployeeCabinetData {
 class EmployeeCabinetRepository {
   static final _client = Supabase.instance.client;
 
-  static Future<EmployeeCabinetData> fetch() async {
+  static Future<EmployeeCabinetData> fetch({
+    int? year,
+    int? month,
+  }) async {
     try {
-      final response = await _client.functions.invoke('employee-cabinet');
+      final response = await _client.functions.invoke(
+        'employee-cabinet',
+        body: <String, dynamic>{
+          if (year != null) 'year': year,
+          if (month != null) 'month': month,
+        },
+      );
       final raw = response.data;
       if (raw is! Map) {
         throw Exception('Личный кабинет вернул некорректный ответ');
