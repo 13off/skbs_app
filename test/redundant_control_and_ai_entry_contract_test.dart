@@ -35,9 +35,13 @@ void main() {
     );
   });
 
-  test('AI entry is removed while the ordinary chat launcher remains', () {
-    final home = File(
-      'lib/screens/adaptive_home_base_screen.dart',
+  test('floating AI launcher is removed while AI remains inside chat', () {
+    final homeScreen = File('lib/screens/home_screen.dart').readAsStringSync();
+    final homeActions = File(
+      'lib/screens/home/home_actions.dart',
+    ).readAsStringSync();
+    final homeView = File(
+      'lib/screens/home/home_view.dart',
     ).readAsStringSync();
     final chat = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
@@ -46,11 +50,16 @@ void main() {
       'lib/features/company_chat/data/company_chat_repository.dart',
     ).readAsStringSync();
 
-    expect(home, isNot(contains('desktop-home-ai-assistant')));
-    expect(home, isNot(contains('AiAssistantScreen')));
-    expect(home, isNot(contains("label: const Text('ИИ-помощник')")));
+    expect(homeScreen, isNot(contains('AiAssistantScreen')));
+    expect(homeScreen, isNot(contains('app_page_route.dart')));
+    expect(homeActions, isNot(contains('home-ai-assistant')));
+    expect(homeActions, isNot(contains('buildAiAssistantButton')));
+    expect(homeView, isNot(contains('buildAiAssistantButton')));
+
     expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
     expect(chat, contains('class _ChatLauncherButton'));
-    expect(repository, contains('!value.isAssistant'));
+    expect(chat, contains("'ИИ-помощник'"));
+    expect(chat, contains('Icons.lock_rounded'));
+    expect(repository, isNot(contains('!value.isAssistant')));
   });
 }
