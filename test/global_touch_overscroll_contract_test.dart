@@ -19,7 +19,7 @@ void main() {
     expect(viewport, contains('systemGestureInsets'));
   });
 
-  test('all scrollable pages can stretch past both boundaries and spring back', () {
+  test('scroll stays inertial, controlled and springy at both boundaries', () {
     final scroll = File(
       'lib/app/premium_scroll_behavior.dart',
     ).readAsStringSync();
@@ -27,8 +27,14 @@ void main() {
     expect(scroll, contains('class PremiumBouncingScrollPhysics'));
     expect(scroll, contains('BouncingScrollPhysics'));
     expect(scroll, contains('AlwaysScrollableScrollPhysics'));
+    expect(scroll, contains('ScrollDecelerationRate.normal'));
+    expect(scroll, contains('double get minFlingVelocity => 28'));
+    expect(scroll, contains('double get maxFlingVelocity => 7200'));
+    expect(scroll, contains('carriedMomentum'));
+    expect(scroll, contains('mass: 0.72'));
+    expect(scroll, contains('stiffness: 92'));
+    expect(scroll, contains('damping: 14.8'));
     expect(scroll, contains('frictionFactor'));
-    expect(scroll, contains('SpringDescription('));
     expect(scroll, isNot(contains('ClampingScrollPhysics')));
   });
 }
