@@ -1,0 +1,48 @@
+name: Refine payment cash mode
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    if: github.head_ref == 'feature/payment-settlement-period'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/payment-settlement-period
+
+      - name: Refine source
+        run: python3 tool/refine_payment_cash_mode.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Verify refinement
+        run: |
+          dart format \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            test/payment_settlement_period_contract_test.dart
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test test/payment_settlement_period_contract_test.dart
+
+      - name: Commit verified refinement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm tool/refine_payment_cash_mode.py
+          git rm .github/workflows/refine-payment-cash-mode.yml
+          git add \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            test/payment_settlement_period_contract_test.dart
+          git commit -m "Отделить движение денег от расчётного баланса"
+          git push
