@@ -20,16 +20,17 @@ void main() {
     expect(sections, contains('AppAdaptivePalette.textMuted'));
     expect(view, contains('AppAdaptivePalette.danger'));
 
-    // Экран возвращает проверенный черновик, а вызывающий сценарий сохраняет его.
+    // Экран возвращает проверенный результат, а вызывающий сценарий сохраняет
+    // его как рабочую задачу или личный черновик прораба.
     expect(actions, contains('TaskCreateDraft('));
-    expect(actions, contains('task: newTask'));
+    expect(actions, contains('TaskCreateDraft buildResult'));
+    expect(actions, contains('task: task'));
     expect(actions, contains('assigneeIds: selectedAssigneeIds.toList()'));
-    expect(
-      actions,
-      contains('photos: List<TaskPhotoFile>.from(selectedPhotos)'),
-    );
+    expect(actions, contains('List<TaskPhotoFile>.from(selectedPhotos)'));
+    expect(actions, contains('saveAsDraft: asDraft'));
     expect(actions, contains('required: requiresBeforePhoto'));
     expect(view, contains("label: const Text('Сохранить задачу')"));
+    expect(view, contains("Icons.drafts_outlined"));
     expect(sections, contains("label: const Text('Добавить фото «До»')"));
 
     expect(sections, isNot(contains('color: Colors.grey.shade100')));

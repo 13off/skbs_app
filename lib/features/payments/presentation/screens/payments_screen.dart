@@ -6,8 +6,9 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import '../../../../app/app_adaptive_palette.dart';
 import '../../../../data/app_data_sync.dart';
 import '../../../../data/attendance_repository.dart';
+import '../../../../data/payment_repository.dart';
 import '../../../../models/employee.dart';
-import '../../../../models/monthly_timesheet_row.dart';
+import '../../../../models/period_timesheet_row.dart';
 import '../../../../screens/add_payment_screen.dart';
 import '../../../../screens/payment_history_screen.dart';
 import '../../../../widgets/premium_ui.dart';
@@ -27,6 +28,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   final searchController = TextEditingController();
 
   late DateTime selectedMonth;
+  DateTimeRange? selectedRange;
+  _PaymentEmploymentFilter employmentFilter = _PaymentEmploymentFilter.all;
   List<_PaymentDisplayRow> rows = [];
 
   bool isLoading = false;
@@ -90,6 +93,26 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return '${monthName(selectedMonth.month)} ${selectedMonth.year}';
   }
 
+  DateTime get periodStart =>
+      selectedRange?.start ??
+      DateTime(selectedMonth.year, selectedMonth.month, 1);
+
+  DateTime get periodEnd =>
+      selectedRange?.end ??
+      DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
+
+  String formatDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    return '$day.$month.${value.year}';
+  }
+
+  String get periodTitle {
+    final range = selectedRange;
+    if (range == null) return monthTitle;
+    return '${formatDate(range.start)} — ${formatDate(range.end)}';
+  }
+
   String formatMoney(num value) {
     final text = value.round().toString();
     final formatted = text.replaceAllMapped(
@@ -114,7 +137,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     return '${employee.position}_${employee.objectName}'.toLowerCase();
   }
 
-  List<_PaymentDisplayRow> buildPaymentRows(List<MonthlyTimesheetRow> source) {
+  List<_PaymentDisplayRow> buildPaymentRows(
+    List<PeriodTimesheetRow> source,
+    Map<String, double> paidByEmployeeId,
+  ) {
     final drafts = <String, _PaymentDisplayDraft>{};
 
     for (final row in source) {
@@ -123,8 +149,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         key,
         () => _PaymentDisplayDraft(row.employee),
       );
-
-      draft.add(row);
+      final employeeId = row.employee.id?.trim() ?? '';
+      draft.add(
+        employee: row.employee,
+        accruedValue: row.accrued,
+        paidValue: employeeId.isEmpty ? 0 : paidByEmployeeId[employeeId] ?? 0,
+      );
     }
 
     final result = drafts.values
@@ -138,10 +168,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   List<_PaymentDisplayRow> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return rows;
-
     return rows.where((row) {
       final employee = row.employee;
+      final employmentMatches = switch (employmentFilter) {
+        _PaymentEmploymentFilter.all => true,
+        _PaymentEmploymentFilter.active => employee.isActive,
+        _PaymentEmploymentFilter.fired => !employee.isActive,
+      };
+      if (!employmentMatches) return false;
+      if (query.isEmpty) return true;
 
       return employee.name.toLowerCase().contains(query) ||
           employee.position.toLowerCase().contains(query) ||
@@ -163,11 +198,21 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   Future<void> loadPaymentsData({
     DateTime? month,
+    DateTimeRange? range,
     bool forceRefresh = false,
   }) async {
     final generation = ++_loadGeneration;
-    final requestedMonth = month ?? selectedMonth;
-    final targetMonth = DateTime(requestedMonth.year, requestedMonth.month, 1);
+    final targetRange = range ?? (month == null ? selectedRange : null);
+    final targetMonth = month != null
+        ? DateTime(month.year, month.month, 1)
+        : targetRange != null
+        ? DateTime(targetRange.start.year, targetRange.start.month, 1)
+        : selectedMonth;
+    final startDate =
+        targetRange?.start ?? DateTime(targetMonth.year, targetMonth.month, 1);
+    final endDate =
+        targetRange?.end ??
+        DateTime(targetMonth.year, targetMonth.month + 1, 0);
 
     setState(() {
       isLoading = true;
@@ -175,19 +220,46 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     });
 
     try {
-      final result = await AttendanceRepository.fetchMonthlyTimesheet(
-        year: targetMonth.year,
-        month: targetMonth.month,
+      final periodRows = await AttendanceRepository.fetchPeriodTimesheet(
+        startDate: startDate,
+        endDate: endDate,
         objectName: widget.selectedObjectName,
         includeFired: true,
         forceRefresh: forceRefresh,
       );
+      final employeeIds = periodRows
+          .map((row) => row.employee.id?.trim() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      final payments = await PaymentRepository.fetchPaymentsForEmployees(
+        employeeIds,
+        forceRefresh: forceRefresh,
+      );
+      final paidByEmployeeId = <String, double>{};
+      final cleanStart = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      );
+      final cleanEnd = DateTime(endDate.year, endDate.month, endDate.day);
+      for (final payment in payments) {
+        final date = DateTime(
+          payment.paymentDate.year,
+          payment.paymentDate.month,
+          payment.paymentDate.day,
+        );
+        if (date.isBefore(cleanStart) || date.isAfter(cleanEnd)) continue;
+        paidByEmployeeId[payment.employeeId] =
+            (paidByEmployeeId[payment.employeeId] ?? 0) + payment.amount;
+      }
 
       if (!mounted || generation != _loadGeneration) return;
 
       setState(() {
         selectedMonth = targetMonth;
-        rows = buildPaymentRows(result);
+        selectedRange = targetRange;
+        rows = buildPaymentRows(periodRows, paidByEmployeeId);
       });
     } catch (e) {
       if (!mounted || generation != _loadGeneration) return;
@@ -212,6 +284,25 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
 
     await loadPaymentsData(month: targetMonth);
+  }
+
+  Future<void> pickPeriod() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: DateTimeRange(start: periodStart, end: periodEnd),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2035, 12, 31),
+      helpText: 'Выберите промежуток выплат',
+      cancelText: 'Отмена',
+      confirmText: 'Выбрать',
+      saveText: 'Выбрать',
+    );
+    if (picked == null || !mounted) return;
+    await loadPaymentsData(range: picked);
+  }
+
+  Future<void> resetToMonth() async {
+    await loadPaymentsData(month: selectedMonth);
   }
 
   Future<void> openAddPayment({String? employeeId}) async {
@@ -337,7 +428,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  monthTitle,
+                  periodTitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppAdaptivePalette.textPrimary,
@@ -435,6 +526,77 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         ),
       ),
       onChanged: (_) => setState(() {}),
+    );
+  }
+
+  Widget buildPaymentFilters() {
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Показывать сотрудников',
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Все'),
+                selected: employmentFilter == _PaymentEmploymentFilter.all,
+                onSelected: (_) => setState(() {
+                  employmentFilter = _PaymentEmploymentFilter.all;
+                }),
+              ),
+              ChoiceChip(
+                label: const Text('Работающие'),
+                selected: employmentFilter == _PaymentEmploymentFilter.active,
+                onSelected: (_) => setState(() {
+                  employmentFilter = _PaymentEmploymentFilter.active;
+                }),
+              ),
+              ChoiceChip(
+                label: const Text('Уволенные'),
+                selected: employmentFilter == _PaymentEmploymentFilter.fired,
+                onSelected: (_) => setState(() {
+                  employmentFilter = _PaymentEmploymentFilter.fired;
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: isLoading ? null : pickPeriod,
+                  icon: const Icon(Icons.date_range_outlined),
+                  label: Text(
+                    selectedRange == null
+                        ? 'Выбрать промежуток'
+                        : 'Изменить промежуток',
+                  ),
+                ),
+              ),
+              if (selectedRange != null) ...[
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Вернуться к месяцу',
+                  onPressed: isLoading ? null : resetToMonth,
+                  icon: const Icon(Icons.calendar_month_outlined),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -608,6 +770,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 buildSummaryPanel(),
                 const SizedBox(height: 14),
                 buildSearch(),
+                const SizedBox(height: 12),
+                buildPaymentFilters(),
                 const SizedBox(height: 16),
                 if (isLoading)
                   const Padding(
@@ -667,6 +831,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 }
 
+enum _PaymentEmploymentFilter { all, active, fired }
+
 class _PaymentDisplayRow {
   final Employee employee;
   final String objectTitle;
@@ -696,8 +862,11 @@ class _PaymentDisplayDraft {
 
   _PaymentDisplayDraft(this.firstEmployee);
 
-  void add(MonthlyTimesheetRow row) {
-    final employee = row.employee;
+  void add({
+    required Employee employee,
+    required double accruedValue,
+    required double paidValue,
+  }) {
     final employeeId = employee.id?.trim();
     final objectName = employee.objectName.trim();
 
@@ -709,8 +878,8 @@ class _PaymentDisplayDraft {
       objectNames.add(objectName);
     }
 
-    accrued += row.accrued;
-    paid += row.paid;
+    accrued += accruedValue;
+    paid += paidValue;
   }
 
   String get objectTitle {

@@ -12,7 +12,7 @@ void main() {
       'static Future<List<TaskItemData>> _fetchTasksForDate',
     );
     final end = source.indexOf(
-      'static Stream<List<TaskItemData>> watchTasksForDate',
+      'static Future<List<TaskItemData>> fetchOwnDraftTasks',
       start,
     );
 

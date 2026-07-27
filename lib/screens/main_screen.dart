@@ -203,7 +203,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           );
         }
-        return WhatsNewGate(child: buildPlatform());
+        return WhatsNewGate(profile: widget.profile, child: buildPlatform());
       },
     );
   }

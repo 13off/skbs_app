@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../onboarding/presentation/first_run_guide.dart';
+import '../../../models/app_user_profile.dart';
+
 class WhatsNewGate extends StatefulWidget {
+  final AppUserProfile profile;
   final Widget child;
 
-  const WhatsNewGate({super.key, required this.child});
+  const WhatsNewGate({super.key, required this.profile, required this.child});
 
   @override
   State<WhatsNewGate> createState() => _WhatsNewGateState();
@@ -27,14 +31,23 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
     _checkStarted = true;
 
     SharedPreferences? preferences;
+    String? seenRelease;
     try {
       preferences = await SharedPreferences.getInstance();
-      if (preferences.getString(_preferenceKey) == releaseId) return;
+      seenRelease = preferences.getString(_preferenceKey);
     } catch (_) {
       // Окно всё равно можно показать; ошибка локального хранилища не блокирует вход.
     }
 
     if (!mounted) return;
+    final guideShown = await FirstRunGuide.showIfNeeded(
+      context: context,
+      profile: widget.profile,
+      preferences: preferences,
+    );
+    if (guideShown || !mounted) return;
+    if (seenRelease == releaseId) return;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,

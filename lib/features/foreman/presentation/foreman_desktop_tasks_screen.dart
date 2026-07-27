@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
+import '../../../features/tasks/presentation/task_drafts_sheet.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -35,6 +36,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
   final TextEditingController searchController = TextEditingController();
   DateTime selectedDate = AppState.today;
   List<TaskItemData> tasks = const <TaskItemData>[];
+  List<TaskItemData> taskDrafts = const <TaskItemData>[];
   Map<String, ForemanTaskMeta> meta = const <String, ForemanTaskMeta>{};
   String statusFilter = 'Все статусы';
   String? assigneeFilter;
@@ -105,11 +107,18 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
     }
 
     try {
-      final loaded = await TaskRepository.fetchTasksForDate(
-        selectedDate,
-        objectName: cleanObjectName(objectName),
-        forceRefresh: forceRefresh,
-      );
+      final result = await Future.wait<dynamic>([
+        TaskRepository.fetchTasksForDate(
+          selectedDate,
+          objectName: cleanObjectName(objectName),
+          forceRefresh: forceRefresh,
+        ),
+        TaskRepository.fetchOwnDraftTasks(
+          objectName: cleanObjectName(objectName),
+        ),
+      ]);
+      final loaded = result[0] as List<TaskItemData>;
+      final loadedDrafts = result[1] as List<TaskItemData>;
       final loadedMeta = await ForemanWorkspaceRepository.fetchTaskMeta(
         loaded.map((task) => task.id),
       );
@@ -117,6 +126,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
 
       setState(() {
         tasks = loaded;
+        taskDrafts = loadedDrafts;
         meta = loadedMeta;
         isLoading = false;
         errorText = null;
@@ -164,26 +174,59 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
         TaskEditPolicy.canCreateForDate(widget.profile, selectedDate);
   }
 
-  Future<void> addTask() async {
+  Future<void> addTask([TaskItemData? sourceDraft]) async {
     if (objectName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Прорабу не назначен объект')),
       );
       return;
     }
+    final sourceId = sourceDraft?.id?.trim() ?? '';
+    final initialAssignees = sourceId.isEmpty
+        ? const <String>[]
+        : await TaskRepository.fetchTaskAssigneeIds(sourceId);
+    final milestoneLink = sourceId.isEmpty
+        ? null
+        : await TaskRepository.fetchTaskMilestoneLink(sourceId);
+    if (!mounted) return;
+
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
       CupertinoPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
-          initialDate: selectedDate,
+          initialDate: sourceDraft?.date ?? selectedDate,
           objectName: objectName,
+          initialAxes: sourceDraft?.axes ?? '',
+          initialWork: sourceDraft?.work ?? '',
+          initialAssigneeIds: initialAssignees,
+          initialMilestoneId: milestoneLink?.milestoneId,
+          initialChecklistItemId: milestoneLink?.checklistItemId,
+          initialChecklistTitle: sourceDraft?.work,
           allowAnyDate: TaskEditPolicy.forObject(
             objectName,
           ).foremanCanCreateAnyDate,
+          allowDraft: true,
+          sourceDraftId: sourceDraft?.id,
         ),
       ),
     );
     if (draft == null) return;
+
+    if (draft.saveAsDraft) {
+      await TaskRepository.saveTaskDraftWithDetails(
+        draft.task,
+        objectName: objectName,
+        assigneeIds: draft.assigneeIds,
+        sourceDraftId: draft.sourceDraftId,
+      );
+      if (!mounted) return;
+      await loadTasks(silent: true, forceRefresh: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Черновик задачи сохранён')));
+      return;
+    }
 
     await TaskRepository.addTaskWithDetails(
       draft.task,
@@ -191,7 +234,29 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
       assigneeIds: draft.assigneeIds,
       photos: draft.photos,
     );
+    final sourceDraftId = draft.sourceDraftId?.trim() ?? '';
+    if (sourceDraftId.isNotEmpty) {
+      await TaskRepository.deleteTaskDraft(sourceDraftId);
+    }
     if (mounted) await loadTasks(forceRefresh: true);
+  }
+
+  Future<void> openDrafts() async {
+    final selected = await showTaskDraftsSheet(
+      context: context,
+      drafts: taskDrafts,
+      onDelete: (draft) async {
+        final id = draft.id?.trim() ?? '';
+        if (id.isEmpty) return;
+        await TaskRepository.deleteTaskDraft(id);
+        if (!mounted) return;
+        setState(() {
+          taskDrafts = taskDrafts.where((item) => item.id != id).toList();
+        });
+      },
+    );
+    if (!mounted || selected == null) return;
+    await addTask(selected);
   }
 
   Future<void> openTask(TaskItemData task) async {
@@ -342,6 +407,15 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
               ? null
               : () => changeDate(AppState.today),
           onAddTask: canCreateTask ? addTask : null,
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: taskDrafts.isEmpty ? null : openDrafts,
+            icon: const Icon(Icons.drafts_outlined),
+            label: Text('Черновики (${taskDrafts.length})'),
+          ),
         ),
         const SizedBox(height: 18),
         ForemanTaskMetrics(tasks: tasks, meta: meta, objectName: objectName),
