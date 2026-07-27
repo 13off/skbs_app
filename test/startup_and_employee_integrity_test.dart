@@ -6,7 +6,10 @@ void main() {
   test('стартовый прогрев не дублирует задачи и табель', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
-    expect(main, isNot(contains('AttendanceRepository.fetchShiftValuesForDate')));
+    expect(
+      main,
+      isNot(contains('AttendanceRepository.fetchShiftValuesForDate')),
+    );
     expect(main, isNot(contains('TaskRepository.fetchTasksForDate')));
     expect(main, contains('EmployeeRepository.fetchEmployees'));
     expect(main, contains('ObjectRepository.fetchObjects'));
@@ -61,10 +64,7 @@ void main() {
       migration,
       contains('employees_one_active_assignment_per_object_key'),
     );
-    expect(
-      migration,
-      contains('where is_active and archived_at is null'),
-    );
+    expect(migration, contains('where is_active and archived_at is null'));
     expect(migration, contains('sync_employee_personal_fields'));
     expect(migration, contains('sibling.person_id = new.person_id'));
     expect(migration, contains('from public, anon, authenticated'));

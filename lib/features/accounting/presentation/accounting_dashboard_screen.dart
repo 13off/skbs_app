@@ -29,8 +29,7 @@ class AccountingDashboardScreen extends StatefulWidget {
       _AccountingDashboardScreenState();
 }
 
-class _AccountingDashboardScreenState
-    extends State<AccountingDashboardScreen> {
+class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
   late Future<AccountingDashboardData> future;
   StreamSubscription<AppDataChange>? subscription;
 
@@ -104,7 +103,10 @@ class _AccountingDashboardScreenState
                   children: [
                     const Text(
                       'Финансовая сводка',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       accountingMonth(data.month),
@@ -213,7 +215,10 @@ class _AccountingDashboardScreenState
           const SizedBox(height: 4),
           const Text(
             'Проверьте подтверждающие файлы',
-            style: TextStyle(color: accountingMuted, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: accountingMuted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           if (data.missingReceipts.isEmpty)
@@ -231,7 +236,9 @@ class _AccountingDashboardScreenState
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: Text('${accountingDate(item.paymentDate)} · ${item.objectName}'),
+              subtitle: Text(
+                '${accountingDate(item.paymentDate)} · ${item.objectName}',
+              ),
               trailing: Text(
                 accountingMoney(item.amount),
                 style: const TextStyle(fontWeight: FontWeight.w900),
@@ -275,7 +282,10 @@ class _AccountingDashboardScreenState
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                    FilledButton(
+                      onPressed: refresh,
+                      child: const Text('Повторить'),
+                    ),
                   ],
                 ),
               ),

@@ -164,6 +164,32 @@ class TaskRepository {
     return _copyTasks(tasks);
   }
 
+  static Future<List<TaskItemData>> fetchOwnDraftTasks({
+    String? objectName,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) return <TaskItemData>[];
+
+    var query = _client
+        .from('tasks')
+        .select(
+          'id, task_date, object_name, axes, work, status, not_done_comment',
+        )
+        .eq('is_draft', true)
+        .eq('created_by_user_id', userId);
+    final cleanObject = cleanObjectName(objectName);
+    if (cleanObject != null) {
+      query = query.eq('object_name', cleanObject);
+    }
+
+    final response = await query.order('updated_at', ascending: false);
+    return response
+        .map<TaskItemData>(
+          (row) => TaskItemData.fromSupabase(Map<String, dynamic>.from(row)),
+        )
+        .toList(growable: false);
+  }
+
   static Stream<List<TaskItemData>> watchTasksForDate(
     DateTime date, {
     String? objectName,
@@ -218,6 +244,69 @@ class TaskRepository {
         .single();
 
     return TaskItemData.fromSupabase(row);
+  }
+
+  static Future<TaskItemData> saveTaskDraftWithDetails(
+    TaskItemData task, {
+    required String objectName,
+    required List<String> assigneeIds,
+    String? sourceDraftId,
+  }) async {
+    final createdTask = await addTask(
+      task.copyWith(status: 'Запланировано'),
+      objectName: objectName,
+    );
+    final taskId = createdTask.id;
+    if (taskId == null || taskId.isEmpty) return createdTask;
+
+    try {
+      await TaskAssigneeRepository.saveAssignees(
+        taskId: taskId,
+        assigneeIds: assigneeIds,
+      );
+      final linkedTask = task.copyWith(id: taskId, status: 'Запланировано');
+      await TaskMilestoneLinkRepository.saveLink(linkedTask);
+
+      final cleanSourceId = sourceDraftId?.trim() ?? '';
+      if (cleanSourceId.isNotEmpty && cleanSourceId != taskId) {
+        await deleteTaskDraft(cleanSourceId);
+      }
+
+      clearTaskListCache();
+      final result = createdTask.copyWith(
+        milestoneId: task.milestoneId,
+        checklistItemId: task.checklistItemId,
+      );
+      _notifyTasksChanged(result);
+      return result;
+    } catch (_) {
+      try {
+        await _client.from('tasks').delete().eq('id', taskId);
+      } catch (_) {
+        // Не оставляем повреждённый черновик, если сохранение деталей не удалось.
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteTaskDraft(String taskId) async {
+    final cleanTaskId = taskId.trim();
+    if (cleanTaskId.isEmpty) return;
+
+    await _client
+        .from('tasks')
+        .delete()
+        .eq('id', cleanTaskId)
+        .eq('is_draft', true);
+    clearTaskListCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.tasks},
+      context: <String, dynamic>{
+        'table': 'tasks',
+        'task_id': cleanTaskId,
+        'is_draft': true,
+      },
+    );
   }
 
   static Future<TaskItemData> addTaskWithDetails(

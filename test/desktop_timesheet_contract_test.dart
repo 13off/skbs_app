@@ -44,28 +44,31 @@ void main() {
     );
   });
 
-  test('desktop timesheet preserves input save realtime and report actions', () {
-    final desktop = source('lib/screens/desktop_timesheet_screen.dart');
+  test(
+    'desktop timesheet preserves input save realtime and report actions',
+    () {
+      final desktop = source('lib/screens/desktop_timesheet_screen.dart');
 
-    expect(desktop, contains('AppDataSync.changes.listen'));
-    expect(desktop, contains('AttendanceRepository.fetchShiftValuesForDate'));
-    expect(desktop, contains('AttendanceRepository.saveTimesheet'));
-    expect(desktop, contains('originalShiftValuesByEmployeeId'));
-    expect(desktop, contains('hasPendingRemoteAttendance'));
-    expect(desktop, contains('hasUnsavedChanges'));
+      expect(desktop, contains('AppDataSync.changes.listen'));
+      expect(desktop, contains('AttendanceRepository.fetchShiftValuesForDate'));
+      expect(desktop, contains('AttendanceRepository.saveTimesheet'));
+      expect(desktop, contains('originalShiftValuesByEmployeeId'));
+      expect(desktop, contains('hasPendingRemoteAttendance'));
+      expect(desktop, contains('hasUnsavedChanges'));
 
-    expect(desktop, contains("'Всем 1'"));
-    expect(desktop, contains("'Всем 0'"));
-    expect(desktop, contains("'Все сотрудники'"));
-    expect(desktop, contains("'Только вышедшие'"));
-    expect(desktop, contains("'Не вышли'"));
-    expect(desktop, contains('showShiftPicker(employee)'));
-    expect(desktop, contains('setVisibleShifts(visible, 1)'));
-    expect(desktop, contains('setVisibleShifts(visible, 0)'));
+      expect(desktop, contains("'Всем 1'"));
+      expect(desktop, contains("'Всем 0'"));
+      expect(desktop, contains("'Все сотрудники'"));
+      expect(desktop, contains("'Только вышедшие'"));
+      expect(desktop, contains("'Не вышли'"));
+      expect(desktop, contains('showShiftPicker(employee)'));
+      expect(desktop, contains('setVisibleShifts(visible, 1)'));
+      expect(desktop, contains('setVisibleShifts(visible, 0)'));
 
-    expect(desktop, contains("label: const Text('Отчёт')"));
-    expect(desktop, contains('PeriodTimesheetScreen('));
-    expect(desktop, contains("'Сохранить изменения'"));
-    expect(desktop, contains("'Сохранить табель'"));
-  });
+      expect(desktop, contains("label: const Text('Отчёт')"));
+      expect(desktop, contains('PeriodTimesheetScreen('));
+      expect(desktop, contains("'Сохранить изменения'"));
+      expect(desktop, contains("'Сохранить табель'"));
+    },
+  );
 }

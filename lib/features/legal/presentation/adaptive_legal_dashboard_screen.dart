@@ -185,50 +185,63 @@ class _DesktopLegalDashboardScreenState
               padding: EdgeInsets.symmetric(vertical: 28),
               child: Center(child: Text('Критичных документов сейчас нет')),
             ),
-          ...attention.take(7).map(
-            (document) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: documentAccent(document).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+          ...attention
+              .take(7)
+              .map(
+                (document) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: documentAccent(document).withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.description_outlined,
+                      color: documentAccent(document),
+                    ),
+                  ),
+                  title: Text(
+                    document.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    '${document.statusTitle} • ${document.expiryTitle}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => widget.onOpenDocument(document),
                 ),
-                child: Icon(
-                  Icons.description_outlined,
-                  color: documentAccent(document),
-                ),
               ),
-              title: Text(
-                document.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(
-                '${document.statusTitle} • ${document.expiryTitle}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => widget.onOpenDocument(document),
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget matterPanel(List<LegalMatter> matters) {
-    final attention = matters
-        .where((item) => item.isHighRisk || item.needsManager || item.isOverdue)
-        .toList()
-      ..sort((a, b) {
-        final first = a.riskLevel == 'critical' ? 0 : a.isHighRisk ? 1 : 2;
-        final second = b.riskLevel == 'critical' ? 0 : b.isHighRisk ? 1 : 2;
-        return first.compareTo(second);
-      });
+    final attention =
+        matters
+            .where(
+              (item) => item.isHighRisk || item.needsManager || item.isOverdue,
+            )
+            .toList()
+          ..sort((a, b) {
+            final first = a.riskLevel == 'critical'
+                ? 0
+                : a.isHighRisk
+                ? 1
+                : 2;
+            final second = b.riskLevel == 'critical'
+                ? 0
+                : b.isHighRisk
+                ? 1
+                : 2;
+            return first.compareTo(second);
+          });
 
     return PremiumWorkCard(
       radius: 26,
@@ -263,38 +276,40 @@ class _DesktopLegalDashboardScreenState
               padding: EdgeInsets.symmetric(vertical: 28),
               child: Center(child: Text('Срочных юридических вопросов нет')),
             ),
-          ...attention.take(7).map(
-            (matter) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: matterAccent(matter).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+          ...attention
+              .take(7)
+              .map(
+                (matter) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: matterAccent(matter).withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      matter.isHighRisk
+                          ? Icons.warning_amber_rounded
+                          : Icons.gavel_outlined,
+                      color: matterAccent(matter),
+                    ),
+                  ),
+                  title: Text(
+                    matter.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    '${matter.riskTitle} риск • ${matter.statusTitle}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => widget.onOpenMatter(matter),
                 ),
-                child: Icon(
-                  matter.isHighRisk
-                      ? Icons.warning_amber_rounded
-                      : Icons.gavel_outlined,
-                  color: matterAccent(matter),
-                ),
               ),
-              title: Text(
-                matter.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(
-                '${matter.riskTitle} риск • ${matter.statusTitle}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => widget.onOpenMatter(matter),
-            ),
-          ),
         ],
       ),
     );

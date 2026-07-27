@@ -276,7 +276,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Добавить сотрудника')),
+        leading: const BackButton(),
+        title: const Text('Добавить сотрудника'),
+      ),
       body: Form(
         key: formKey,
         child: ListView(

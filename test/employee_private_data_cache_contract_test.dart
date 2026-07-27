@@ -42,9 +42,14 @@ void main() {
     final source = File(
       'lib/data/employee_private_data_repository.dart',
     ).readAsStringSync();
-    final upsert = source.substring(source.indexOf('static Future<void> upsert'));
+    final upsert = source.substring(
+      source.indexOf('static Future<void> upsert'),
+    );
 
-    expect(upsert, contains(".upsert(data.toSupabaseMap(), onConflict: 'employee_id')"));
+    expect(
+      upsert,
+      contains(".upsert(data.toSupabaseMap(), onConflict: 'employee_id')"),
+    );
     expect(upsert, contains('clearCache();'));
     expect(source, contains('_employeeCache.clear();'));
     expect(source, contains('_employeeRequests.clear();'));

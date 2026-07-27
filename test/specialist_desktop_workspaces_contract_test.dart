@@ -75,19 +75,27 @@ void main() {
     expect(repository, contains('fetchBalanceRows'));
   });
 
-  test('desktop specialist layout keeps web breakpoint and mobile fallbacks', () {
-    final ui = source(
-      'lib/features/shared/presentation/specialist_desktop_ui.dart',
-    );
-    final table = source(
-      'lib/features/shared/presentation/specialist_desktop_table.dart',
-    );
+  test(
+    'desktop specialist layout keeps web breakpoint and mobile fallbacks',
+    () {
+      final ui = source(
+        'lib/features/shared/presentation/specialist_desktop_ui.dart',
+      );
+      final table = source(
+        'lib/features/shared/presentation/specialist_desktop_table.dart',
+      );
 
-    expect(ui, contains('specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint'));
-    expect(ui, contains('maxContentWidth: AppUi.specialistContentWidth'));
-    expect(ui, contains('return AppPage('));
-    expect(table, contains('SingleChildScrollView'));
-    expect(table, contains('scrollDirection: Axis.horizontal'));
-    expect(table, contains('.toDouble()'));
-  });
+      expect(
+        ui,
+        contains(
+          'specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint',
+        ),
+      );
+      expect(ui, contains('maxContentWidth: AppUi.specialistContentWidth'));
+      expect(ui, contains('return AppPage('));
+      expect(table, contains('SingleChildScrollView'));
+      expect(table, contains('scrollDirection: Axis.horizontal'));
+      expect(table, contains('.toDouble()'));
+    },
+  );
 }

@@ -56,26 +56,18 @@ void main() {
     final paths = archive.files.map((file) => file.name).toList();
     expect(paths, contains('00_ПРОВЕРИТЬ_ПЕРЕД_ПЕЧАТЬЮ.txt'));
     expect(paths.where((path) => path.endsWith('.docx')).length, 4);
-    expect(
-      paths.any((path) => path.contains('Заявление_на_работу_')),
-      isTrue,
-    );
+    expect(paths.any((path) => path.contains('Заявление_на_работу_')), isTrue);
     expect(
       paths.any((path) => path.contains('Заявление_о_перечислении_зарплаты_')),
       isTrue,
     );
     expect(
       paths.any(
-        (path) => path.contains(
-          'Согласие_на_обработку_персональных_данных_',
-        ),
+        (path) => path.contains('Согласие_на_обработку_персональных_данных_'),
       ),
       isTrue,
     );
-    expect(
-      paths.any((path) => path.contains('Трудовой_договор_')),
-      isTrue,
-    );
+    expect(paths.any((path) => path.contains('Трудовой_договор_')), isTrue);
     expect(paths, contains('02_Полученные_документы/01_passport.pdf'));
     expect(paths, contains('02_Полученные_документы/02_snils.jpg'));
 
@@ -85,7 +77,10 @@ void main() {
     expect(manifestText, contains('Дата готовности: 2026-08-01'));
     expect(manifestText, contains('Объект: Мурманск'));
     expect(manifestText, contains('— ИНН'));
-    expect(manifestText, contains('Заявление о перечислении зарплаты: добавлено'));
+    expect(
+      manifestText,
+      contains('Заявление о перечислении зарплаты: добавлено'),
+    );
     expect(manifestText, contains('проверить'));
     expect(manifestText, contains('Документы не подписаны и не отправлены'));
   });
@@ -210,9 +205,7 @@ void main() {
   });
 
   test('CI проверяет изменения Edge Functions', () {
-    final workflow = File(
-      '.github/workflows/pr-check.yml',
-    ).readAsStringSync();
+    final workflow = File('.github/workflows/pr-check.yml').readAsStringSync();
 
     expect(workflow, contains('supabase/functions/**'));
     expect(workflow, contains('deno check'));

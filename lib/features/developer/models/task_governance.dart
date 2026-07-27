@@ -52,8 +52,9 @@ class DeletedTaskEntry {
       axes: json['axes']?.toString() ?? '',
       work: json['work']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
-      deletedAt: DateTime.tryParse(json['deleted_at']?.toString() ?? '')
-          ?.toLocal(),
+      deletedAt: DateTime.tryParse(
+        json['deleted_at']?.toString() ?? '',
+      )?.toLocal(),
       deletedByName: json['deleted_by_name']?.toString() ?? '',
       deleteReason: json['delete_reason']?.toString() ?? '',
     );
@@ -96,8 +97,9 @@ class TaskActionAuditEntry {
       taskDate: DateTime.tryParse(json['task_date']?.toString() ?? ''),
       action: json['action']?.toString() ?? 'updated',
       actorName: json['actor_name']?.toString() ?? '',
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '')
-          ?.toLocal(),
+      createdAt: DateTime.tryParse(
+        json['created_at']?.toString() ?? '',
+      )?.toLocal(),
       metadata: _map(json['metadata']),
       beforeValue: _map(json['before_value']),
       afterValue: _map(json['after_value']),
@@ -126,9 +128,9 @@ class TaskGovernanceCenter {
           .map(DeletedTaskEntry.fromJson)
           .where((item) => item.id.isNotEmpty)
           .toList(growable: false),
-      audit: _maps(json['audit'])
-          .map(TaskActionAuditEntry.fromJson)
-          .toList(growable: false),
+      audit: _maps(
+        json['audit'],
+      ).map(TaskActionAuditEntry.fromJson).toList(growable: false),
     );
   }
 }

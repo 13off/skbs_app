@@ -135,18 +135,20 @@ abstract final class MilestoneRepository {
       final taskRaw = row['tasks'];
       if (itemId.isEmpty || taskRaw is! Map) continue;
       final task = Map<String, dynamic>.from(taskRaw);
-      tasksByItem.putIfAbsent(itemId, () => <MilestoneTaskData>[]).add(
+      tasksByItem
+          .putIfAbsent(itemId, () => <MilestoneTaskData>[])
+          .add(
             MilestoneTaskData(
               taskId: task['id']?.toString() ?? row['task_id'].toString(),
               work: task['work']?.toString() ?? '',
               axes: task['axes']?.toString() ?? '',
               status: task['status']?.toString() ?? 'Запланировано',
-              date: DateTime.tryParse(task['task_date']?.toString() ?? '') ??
+              date:
+                  DateTime.tryParse(task['task_date']?.toString() ?? '') ??
                   DateTime.now(),
-              progressPercent:
-                  ((row['progress_percent'] as num?)?.toInt() ?? 0)
-                      .clamp(0, 100)
-                      .toInt(),
+              progressPercent: ((row['progress_percent'] as num?)?.toInt() ?? 0)
+                  .clamp(0, 100)
+                  .toInt(),
             ),
           );
     }
@@ -185,7 +187,7 @@ abstract final class MilestoneRepository {
         location: row['location']?.toString() ?? '',
         targetDate:
             DateTime.tryParse(row['target_date']?.toString() ?? '') ??
-                DateTime.now(),
+            DateTime.now(),
         status: row['status']?.toString() ?? 'planned',
         notes: row['notes']?.toString() ?? '',
         items: List<MilestoneChecklistItem>.unmodifiable(
@@ -233,7 +235,9 @@ abstract final class MilestoneRepository {
     if (id.isEmpty) throw Exception('Не удалось создать ключевой этап');
 
     if (checklist.isNotEmpty) {
-      await _client.from('milestone_checklist_items').insert(
+      await _client
+          .from('milestone_checklist_items')
+          .insert(
             List<Map<String, dynamic>>.generate(checklist.length, (index) {
               final item = checklist[index];
               return {
@@ -253,20 +257,26 @@ abstract final class MilestoneRepository {
     required String milestoneId,
     required String status,
   }) async {
-    await _client.from('project_milestones').update({
-      'status': status,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', milestoneId);
+    await _client
+        .from('project_milestones')
+        .update({
+          'status': status,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', milestoneId);
   }
 
   static Future<void> updateChecklistState({
     required String itemId,
     required String state,
   }) async {
-    await _client.from('milestone_checklist_items').update({
-      'state': state,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', itemId);
+    await _client
+        .from('milestone_checklist_items')
+        .update({
+          'state': state,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', itemId);
   }
 
   static Future<void> addChecklistItem({
@@ -291,19 +301,19 @@ abstract final class MilestoneRepository {
     required int weight,
     required bool isCritical,
   }) async {
-    await _client.from('milestone_checklist_items').update({
-      'title': title.trim(),
-      'weight': weight,
-      'is_critical': isCritical,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', itemId);
+    await _client
+        .from('milestone_checklist_items')
+        .update({
+          'title': title.trim(),
+          'weight': weight,
+          'is_critical': isCritical,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', itemId);
   }
 
   static Future<void> deleteChecklistItem(String itemId) async {
-    await _client
-        .from('milestone_checklist_items')
-        .delete()
-        .eq('id', itemId);
+    await _client.from('milestone_checklist_items').delete().eq('id', itemId);
   }
 
   static Future<void> linkTask({
@@ -311,14 +321,11 @@ abstract final class MilestoneRepository {
     required String milestoneId,
     required String checklistItemId,
   }) async {
-    await _client.from('task_milestone_links').upsert(
-      {
-        'task_id': taskId,
-        'milestone_id': milestoneId,
-        'checklist_item_id': checklistItemId,
-      },
-      onConflict: 'task_id',
-    );
+    await _client.from('task_milestone_links').upsert({
+      'task_id': taskId,
+      'milestone_id': milestoneId,
+      'checklist_item_id': checklistItemId,
+    }, onConflict: 'task_id');
   }
 
   static Future<void> unlinkTask(String taskId) async {

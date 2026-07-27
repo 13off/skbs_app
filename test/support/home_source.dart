@@ -11,7 +11,5 @@ const List<String> _homePaths = <String>[
 ];
 
 String homeSource() {
-  return _homePaths
-      .map((path) => File(path).readAsStringSync())
-      .join('\n');
+  return _homePaths.map((path) => File(path).readAsStringSync()).join('\n');
 }

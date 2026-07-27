@@ -361,7 +361,9 @@ class LegalFile {
       storagePath: map['storage_path']?.toString() ?? '',
       mimeType: map['mime_type']?.toString() ?? '',
       sizeBytes: int.tryParse(map['size_bytes']?.toString() ?? '') ?? 0,
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal(),
+      createdAt: DateTime.tryParse(
+        map['created_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }
@@ -381,19 +383,18 @@ class LegalDashboardData {
       .where((item) => item.status == LegalDocumentStatus.awaitingSignature)
       .toList();
 
-  List<LegalDocument> get expiring => documents
-      .where((item) => item.isExpired || item.isExpiringSoon)
-      .toList();
+  List<LegalDocument> get expiring =>
+      documents.where((item) => item.isExpired || item.isExpiringSoon).toList();
 
-  List<LegalDocument> get pendingApproval => documents
-      .where((item) => item.approvalStatus == 'pending')
-      .toList();
+  List<LegalDocument> get pendingApproval =>
+      documents.where((item) => item.approvalStatus == 'pending').toList();
 
   List<LegalMatter> get overdueMatters =>
       matters.where((item) => item.isOverdue).toList();
 
-  List<LegalMatter> get highRisks =>
-      matters.where((item) => item.isHighRisk && item.status != 'closed').toList();
+  List<LegalMatter> get highRisks => matters
+      .where((item) => item.isHighRisk && item.status != 'closed')
+      .toList();
 
   List<LegalMatter> get managerDecisions =>
       matters.where((item) => item.needsManager).toList();
@@ -427,9 +428,11 @@ class LegalWeeklyReport {
     return LegalWeeklyReport(
       id: map['id']?.toString() ?? '',
       weekStart:
-          DateTime.tryParse(map['week_start']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(map['week_start']?.toString() ?? '') ??
+          DateTime.now(),
       weekEnd:
-          DateTime.tryParse(map['week_end']?.toString() ?? '') ?? DateTime.now(),
+          DateTime.tryParse(map['week_end']?.toString() ?? '') ??
+          DateTime.now(),
       status: map['status']?.toString() ?? 'draft',
       autoDraft: draft is Map
           ? Map<String, dynamic>.from(draft)
@@ -437,8 +440,9 @@ class LegalWeeklyReport {
       authorComment: map['author_comment']?.toString() ?? '',
       nextWeekPlan: map['next_week_plan']?.toString() ?? '',
       managerDecisions: map['manager_decisions']?.toString() ?? '',
-      submittedAt:
-          DateTime.tryParse(map['submitted_at']?.toString() ?? '')?.toLocal(),
+      submittedAt: DateTime.tryParse(
+        map['submitted_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }

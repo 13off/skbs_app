@@ -26,14 +26,10 @@ class WebPushBridge {
   static bool get _hasNotification => _window.has('Notification');
 
   static bool get isSupported {
-    final secure = _window.has('isSecureContext') &&
-        _window
-            .getProperty<JSBoolean>('isSecureContext'.toJS)
-            .toDart;
-    return secure &&
-        _hasServiceWorker &&
-        _hasPushManager &&
-        _hasNotification;
+    final secure =
+        _window.has('isSecureContext') &&
+        _window.getProperty<JSBoolean>('isSecureContext'.toJS).toDart;
+    return secure && _hasServiceWorker && _hasPushManager && _hasNotification;
   }
 
   static bool get isStandalone {
@@ -42,7 +38,8 @@ class WebPushBridge {
       '(display-mode: standalone)'.toJS,
     );
     final mediaStandalone = media.getProperty<JSBoolean>('matches'.toJS).toDart;
-    final navigatorStandalone = _navigator.has('standalone') &&
+    final navigatorStandalone =
+        _navigator.has('standalone') &&
         _navigator.getProperty<JSBoolean>('standalone'.toJS).toDart;
     return mediaStandalone || navigatorStandalone;
   }
@@ -61,11 +58,11 @@ class WebPushBridge {
   }
 
   static Map<String, dynamic> get status => <String, dynamic>{
-        'supported': isSupported,
-        'standalone': isStandalone,
-        'permission': permission,
-        'requires_home_screen': _isAppleMobile && !isStandalone,
-      };
+    'supported': isSupported,
+    'standalone': isStandalone,
+    'permission': permission,
+    'requires_home_screen': _isAppleMobile && !isStandalone,
+  };
 
   static Future<JSObject> _registration() async {
     if (!isSupported) {
@@ -124,7 +121,10 @@ class WebPushBridge {
       final jsonPromise = response.callMethod<JSPromise<JSObject>>('json'.toJS);
       final payload = await jsonPromise.toDart;
       if (payload.has('public_key')) {
-        final value = payload.getProperty<JSString>('public_key'.toJS).toDart.trim();
+        final value = payload
+            .getProperty<JSString>('public_key'.toJS)
+            .toDart
+            .trim();
         if (value.isNotEmpty) return value;
       }
     } catch (_) {
@@ -173,7 +173,9 @@ class WebPushBridge {
     var subscription = await _currentSubscription(registration);
     if (subscription == null) {
       final resolvedPublicKey = await _resolvePublicKey(publicKey);
-      final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
+      final pushManager = registration.getProperty<JSObject>(
+        'pushManager'.toJS,
+      );
       final options = JSObject()
         ..setProperty('userVisibleOnly'.toJS, true.toJS)
         ..setProperty(

@@ -70,9 +70,7 @@ class FirebaseRuntimeConfiguration {
     'FIREBASE_STORAGE_BUCKET',
   );
   static const webAppId = String.fromEnvironment('FIREBASE_WEB_APP_ID');
-  static const androidAppId = String.fromEnvironment(
-    'FIREBASE_ANDROID_APP_ID',
-  );
+  static const androidAppId = String.fromEnvironment('FIREBASE_ANDROID_APP_ID');
   static const iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
   static const vapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 
@@ -143,8 +141,9 @@ class PushNotificationService {
       <StreamSubscription<dynamic>>[];
 
   static SupabaseClient get _client => Supabase.instance.client;
-  static bool get _isConfigured =>
-      kIsWeb ? WebPushBridge.isSupported : FirebaseRuntimeConfiguration.isConfigured;
+  static bool get _isConfigured => kIsWeb
+      ? WebPushBridge.isSupported
+      : FirebaseRuntimeConfiguration.isConfigured;
 
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -196,9 +195,7 @@ class PushNotificationService {
         await Firebase.initializeApp(options: options);
       }
 
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
@@ -341,8 +338,7 @@ class PushNotificationService {
     );
 
     try {
-      var settings = await FirebaseMessaging.instance
-          .getNotificationSettings();
+      var settings = await FirebaseMessaging.instance.getNotificationSettings();
       if (requestPermission &&
           settings.authorizationStatus == AuthorizationStatus.notDetermined) {
         settings = await FirebaseMessaging.instance.requestPermission(
@@ -397,9 +393,7 @@ class PushNotificationService {
 
       final token = await FirebaseMessaging.instance.getToken(
         vapidKey: kIsWeb ? FirebaseRuntimeConfiguration.vapidKey : null,
-        serviceWorkerScriptPath: kIsWeb
-            ? 'firebase-messaging-sw.js'
-            : null,
+        serviceWorkerScriptPath: kIsWeb ? 'firebase-messaging-sw.js' : null,
       );
       if (token == null || token.trim().isEmpty) {
         _publish(
@@ -475,7 +469,8 @@ class PushNotificationService {
         enabled: true,
         registered: false,
         permission: PushPermissionState.notDetermined,
-        message: 'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
+        message:
+            'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
       );
       return;
     }
@@ -515,11 +510,13 @@ class PushNotificationService {
           enabled: true,
           registered: false,
           permission: permission,
-          message: 'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
+          message:
+              'На iPhone добавьте AppСтрой на экран «Домой» и откройте с иконки',
         );
         return;
       }
-      if (permission == PushPermissionState.denied || resultStatus == 'denied') {
+      if (permission == PushPermissionState.denied ||
+          resultStatus == 'denied') {
         _publish(
           configured: true,
           enabled: true,
@@ -771,9 +768,10 @@ class PushNotificationService {
     if (existing != null && existing.isNotEmpty) return existing;
 
     final random = Random.secure();
-    final generated = List<int>.generate(24, (_) => random.nextInt(256))
-        .map((value) => value.toRadixString(16).padLeft(2, '0'))
-        .join();
+    final generated = List<int>.generate(
+      24,
+      (_) => random.nextInt(256),
+    ).map((value) => value.toRadixString(16).padLeft(2, '0')).join();
     await preferences.setString(_deviceIdKey, generated);
     return generated;
   }

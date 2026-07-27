@@ -24,12 +24,27 @@ class ForemanTaskToolbar extends StatelessWidget {
 
   String longDate(DateTime date) {
     const months = <String>[
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря',
     ];
     const weekdays = <String>[
-      'понедельник', 'вторник', 'среда', 'четверг',
-      'пятница', 'суббота', 'воскресенье',
+      'понедельник',
+      'вторник',
+      'среда',
+      'четверг',
+      'пятница',
+      'суббота',
+      'воскресенье',
     ];
     return '${date.day} ${months[date.month - 1]} · ${weekdays[date.weekday - 1]}';
   }
@@ -184,7 +199,8 @@ class ForemanTaskFilters extends StatelessWidget {
               controller: searchController,
               onChanged: (_) => onSearchChanged(),
               decoration: InputDecoration(
-                hintText: 'Поиск по работе, осям, исполнителю или комментарию...',
+                hintText:
+                    'Поиск по работе, осям, исполнителю или комментарию...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: searchController.text.isEmpty
                     ? null

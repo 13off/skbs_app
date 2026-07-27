@@ -36,7 +36,10 @@ void main() {
     expect(repository, contains("'get_company_chat_threads'"));
     expect(repository, contains("'p_channel_kind'"));
     expect(repository, contains("'p_peer_user_id'"));
-    expect(migration, contains("channel_kind in ('general', 'direct', 'assistant')"));
+    expect(
+      migration,
+      contains("channel_kind in ('general', 'direct', 'assistant')"),
+    );
     expect(migration, contains('get_company_chat_threads'));
   });
 
@@ -48,6 +51,9 @@ void main() {
     expect(source, contains('openFiles()'));
     expect(source, contains('CompanyChatRepository.uploadAttachment('));
     expect(source, contains("'Прикрепить фото или файл'"));
-    expect(source, contains('CompanyChatRepository.createSignedAttachmentUrl('));
+    expect(
+      source,
+      contains('CompanyChatRepository.createSignedAttachmentUrl('),
+    );
   });
 }

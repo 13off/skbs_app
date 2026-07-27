@@ -159,9 +159,7 @@ void main() {
     final repository = source(
       'lib/features/ai/data/ai_assistant_repository.dart',
     );
-    final model = source(
-      'lib/features/ai/models/ai_assistant_result.dart',
-    );
+    final model = source('lib/features/ai/models/ai_assistant_result.dart');
 
     expect(repository, contains('functions.invoke('));
     expect(repository, contains("'ai-action-draft'"));

@@ -84,10 +84,7 @@ class DeveloperSystemScreen extends StatelessWidget {
                 label: 'Объект',
               ),
               _ArchitectureArrow(),
-              _ArchitectureBadge(
-                icon: Icons.badge_outlined,
-                label: 'Роль',
-              ),
+              _ArchitectureBadge(icon: Icons.badge_outlined, label: 'Роль'),
             ],
           ),
         ],
@@ -185,10 +182,7 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Ограничения задач и объектов',
             subtitle:
                 'Фотографии, даты, редактирование, исполнители и удаление. Компания задаёт основу, объект — исключение.',
-            onTap: () => open(
-              context,
-              DeveloperPanelScreen(profile: profile),
-            ),
+            onTap: () => open(context, DeveloperPanelScreen(profile: profile)),
           ),
           actionCard(
             context,
@@ -233,10 +227,8 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Работодатель и персональные данные',
             subtitle:
                 'Юридические реквизиты, утверждённые формы и серверный production gate.',
-            onTap: () => open(
-              context,
-              CompanyComplianceScreen(profile: profile),
-            ),
+            onTap: () =>
+                open(context, CompanyComplianceScreen(profile: profile)),
           ),
           actionCard(
             context,
@@ -244,10 +236,8 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Шаблоны документов',
             subtitle:
                 'Системные формы договоров, актов и кадровых документов текущей компании.',
-            onTap: () => open(
-              context,
-              TemplateDocumentsScreen(profile: profile),
-            ),
+            onTap: () =>
+                open(context, TemplateDocumentsScreen(profile: profile)),
           ),
           actionCard(
             context,
@@ -255,10 +245,7 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Уведомления компании',
             subtitle:
                 'Базовые роли, события, колокольчик, push и встроенные напоминания.',
-            onTap: () => open(
-              context,
-              const NotificationControlCenterScreen(),
-            ),
+            onTap: () => open(context, const NotificationControlCenterScreen()),
           ),
           actionCard(
             context,
@@ -266,10 +253,7 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Устройства и push',
             subtitle:
                 'Регистрация текущего браузера или телефона и диагностика доставки.',
-            onTap: () => open(
-              context,
-              const PushNotificationSettingsScreen(),
-            ),
+            onTap: () => open(context, const PushNotificationSettingsScreen()),
           ),
           actionCard(
             context,
@@ -290,10 +274,8 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Готовность и диагностика',
             subtitle:
                 'Проверить сессию, RLS, базу, ограничения, шаблоны, Edge Function и production-gates.',
-            onTap: () => open(
-              context,
-              DeveloperReadinessScreen(profile: profile),
-            ),
+            onTap: () =>
+                open(context, DeveloperReadinessScreen(profile: profile)),
           ),
           actionCard(
             context,
@@ -301,10 +283,8 @@ class DeveloperSystemScreen extends StatelessWidget {
             title: 'Проверка текущей роли',
             subtitle:
                 'Проверить JWT, разрешения, Data API и объектные границы фактического входа.',
-            onTap: () => open(
-              context,
-              DeveloperRoleAcceptanceScreen(profile: profile),
-            ),
+            onTap: () =>
+                open(context, DeveloperRoleAcceptanceScreen(profile: profile)),
           ),
           actionCard(
             context,

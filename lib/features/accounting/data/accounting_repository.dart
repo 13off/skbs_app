@@ -41,9 +41,10 @@ class AccountingRepository {
           payment.periodMonth == targetMonth.month;
     }).toList();
 
-    final missingReceipts = monthPayments
-        .where((payment) => payment.receipts.isEmpty)
-        .map((payment) {
+    final missingReceipts =
+        monthPayments.where((payment) => payment.receipts.isEmpty).map((
+          payment,
+        ) {
           final employee = employeeById[payment.employeeId];
           return AccountingMissingReceipt(
             paymentId: payment.id,
@@ -54,17 +55,12 @@ class AccountingRepository {
             paymentDate: payment.paymentDate,
             paymentType: payment.paymentType,
           );
-        })
-        .toList()
-      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+        }).toList()..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
 
     final balances = rows.where((row) => row.balance > 0.009).toList()
       ..sort((a, b) => b.balance.compareTo(a.balance));
 
-    final totalAccrued = rows.fold<double>(
-      0,
-      (sum, row) => sum + row.accrued,
-    );
+    final totalAccrued = rows.fold<double>(0, (sum, row) => sum + row.accrued);
     final totalPaid = rows.fold<double>(0, (sum, row) => sum + row.paid);
 
     return AccountingDashboardData(
@@ -125,23 +121,27 @@ class AccountingRepository {
     final start = DateTime(startDate.year, startDate.month, startDate.day);
     final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
 
-    final rows = payments.where((payment) {
-      return !payment.paymentDate.isBefore(start) &&
-          !payment.paymentDate.isAfter(end);
-    }).map((payment) {
-      final employee = employeeById[payment.employeeId];
-      return AccountingPaymentRegisterRow(
-        paymentId: payment.id,
-        employeeName: employee?.name ?? 'Сотрудник',
-        objectName: employee?.objectName ?? '',
-        paymentDate: payment.paymentDate,
-        amount: payment.amount,
-        paymentType: payment.paymentType,
-        comment: payment.comment,
-        receiptCount: payment.receipts.length,
-      );
-    }).toList()
-      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+    final rows =
+        payments
+            .where((payment) {
+              return !payment.paymentDate.isBefore(start) &&
+                  !payment.paymentDate.isAfter(end);
+            })
+            .map((payment) {
+              final employee = employeeById[payment.employeeId];
+              return AccountingPaymentRegisterRow(
+                paymentId: payment.id,
+                employeeName: employee?.name ?? 'Сотрудник',
+                objectName: employee?.objectName ?? '',
+                paymentDate: payment.paymentDate,
+                amount: payment.amount,
+                paymentType: payment.paymentType,
+                comment: payment.comment,
+                receiptCount: payment.receipts.length,
+              );
+            })
+            .toList()
+          ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
 
     return rows;
   }

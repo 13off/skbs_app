@@ -113,7 +113,9 @@ class ForemanTodayTasks extends StatelessWidget {
                     color: statusColor(task),
                   ),
                   specialistCellText(
-                    task.work.trim().isEmpty ? 'Работа без названия' : task.work,
+                    task.work.trim().isEmpty
+                        ? 'Работа без названия'
+                        : task.work,
                     weight: FontWeight.w900,
                   ),
                   specialistCellText(
@@ -209,10 +211,7 @@ class ForemanOverdueTasks extends StatelessWidget {
                   task.axes.trim().isEmpty ? 'Не указаны' : task.axes,
                   color: specialistMuted,
                 ),
-                specialistCellText(
-                  meta.assigneeTitle,
-                  color: specialistMuted,
-                ),
+                specialistCellText(meta.assigneeTitle, color: specialistMuted),
                 SpecialistStatusPill(
                   label: hasReport ? 'Есть комментарий' : 'Нет отчёта',
                   color: hasReport ? specialistWarning : specialistDanger,

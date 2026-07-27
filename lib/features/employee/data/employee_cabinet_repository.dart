@@ -215,17 +215,21 @@ class EmployeeCabinetData {
 
   List<EmployeeCabinetAttendance> attendanceForDay(int day) {
     return attendance
-        .where((record) =>
-            record.date?.year == year &&
-            record.date?.month == month &&
-            record.date?.day == day)
+        .where(
+          (record) =>
+              record.date?.year == year &&
+              record.date?.month == month &&
+              record.date?.day == day,
+        )
         .toList(growable: false);
   }
 
   List<EmployeeCabinetPayment> get paymentsForMonth {
     return payments
-        .where((payment) =>
-            payment.periodYear == year && payment.periodMonth == month)
+        .where(
+          (payment) =>
+              payment.periodYear == year && payment.periodMonth == month,
+        )
         .toList(growable: false);
   }
 
@@ -248,27 +252,33 @@ class EmployeeCabinetData {
       summary: EmployeeCabinetSummary.fromJson(_map(json['summary'])),
       attendance: _list(json['attendance'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetAttendance.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetAttendance.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
       tasks: _list(json['tasks'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetTask.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) =>
+                EmployeeCabinetTask.fromJson(Map<String, dynamic>.from(row)),
+          )
           .toList(growable: false),
       payments: _list(json['payments'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetPayment.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) =>
+                EmployeeCabinetPayment.fromJson(Map<String, dynamic>.from(row)),
+          )
           .toList(growable: false),
       documents: _list(json['documents'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetDocument.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetDocument.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
     );
   }
@@ -311,10 +321,7 @@ class EmployeeCabinetData {
 class EmployeeCabinetRepository {
   static final _client = Supabase.instance.client;
 
-  static Future<EmployeeCabinetData> fetch({
-    int? year,
-    int? month,
-  }) async {
+  static Future<EmployeeCabinetData> fetch({int? year, int? month}) async {
     try {
       final body = <String, dynamic>{};
       if (year != null) body['year'] = year;

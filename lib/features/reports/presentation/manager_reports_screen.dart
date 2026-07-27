@@ -134,9 +134,9 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   }
 
   void openScreen(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   void openContribution(ManagerWeeklyContributionEmployee item) {

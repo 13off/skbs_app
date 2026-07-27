@@ -123,23 +123,23 @@ class EmployeeMobilization {
   }
 
   int get completedSteps => <bool>[
-        ticketBooked,
-        arrivalConfirmed,
-        accommodationConfirmed,
-        medicalCleared,
-        clothingIssued,
-        safetyInducted,
-        objectAssigned,
-        attendanceEnabled,
-      ].where((value) => value).length;
+    ticketBooked,
+    arrivalConfirmed,
+    accommodationConfirmed,
+    medicalCleared,
+    clothingIssued,
+    safetyInducted,
+    objectAssigned,
+    attendanceEnabled,
+  ].where((value) => value).length;
 
   bool get isCompleted => status == 'completed';
 
   String get statusTitle => switch (status) {
-        'completed' => 'Готов к работе',
-        'in_progress' => 'Подготовка',
-        _ => 'Не начато',
-      };
+    'completed' => 'Готов к работе',
+    'in_progress' => 'Подготовка',
+    _ => 'Не начато',
+  };
 }
 
 class EmployeeMobilizationEntry {

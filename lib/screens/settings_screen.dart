@@ -43,9 +43,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void open(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Widget sectionTitle(String title) {
@@ -248,9 +248,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         icon: Icons.manage_accounts_outlined,
         title: 'Компания и пользователи',
         subtitle: 'Приглашения, роли и доступ пользователей компании',
-        onTap: () => open(
-          CompanyManagementScreen(companyId: profile.activeCompanyId),
-        ),
+        onTap: () =>
+            open(CompanyManagementScreen(companyId: profile.activeCompanyId)),
       ),
       actionTile(
         icon: Icons.gavel_rounded,

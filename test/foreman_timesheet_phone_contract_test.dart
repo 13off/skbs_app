@@ -28,7 +28,10 @@ void main() {
       contains('employee.position.toLowerCase().contains(searchText)'),
     );
     expect(desktop, contains('employee.position'));
-    expect(desktop, contains('employee.position.toLowerCase().contains(query)'));
+    expect(
+      desktop,
+      contains('employee.position.toLowerCase().contains(query)'),
+    );
   });
 
   test('phone visibility has no role restriction', () {

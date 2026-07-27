@@ -227,7 +227,9 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+        ),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -258,7 +260,9 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+        ),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -274,7 +278,9 @@ abstract final class AppTheme {
 
     final textButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size(0, AppUi.compactControlHeight)),
+      minimumSize: const WidgetStatePropertyAll(
+        Size(0, AppUi.compactControlHeight),
+      ),
       tapTargetSize: MaterialTapTargetSize.padded,
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -289,7 +295,9 @@ abstract final class AppTheme {
       ),
       side: const WidgetStatePropertyAll(BorderSide.none),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+        ),
       ),
       textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
       backgroundBuilder: buttonSurface(
@@ -302,7 +310,9 @@ abstract final class AppTheme {
 
     final iconButtonStyle = ButtonStyle(
       animationDuration: AppMotion.regular,
-      minimumSize: const WidgetStatePropertyAll(Size.square(AppUi.controlHeight)),
+      minimumSize: const WidgetStatePropertyAll(
+        Size.square(AppUi.controlHeight),
+      ),
       tapTargetSize: MaterialTapTargetSize.padded,
       padding: const WidgetStatePropertyAll(EdgeInsets.all(12)),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
@@ -414,7 +424,9 @@ abstract final class AppTheme {
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppUi.controlRadius)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+        ),
       ),
       dividerColor: AppColors.border,
       progressIndicatorTheme: const ProgressIndicatorThemeData(

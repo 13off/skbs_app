@@ -6,10 +6,7 @@ import '../models/ai_assistant_result.dart';
 class AiActionConfirmationSheet extends StatelessWidget {
   final AiAssistantAction action;
 
-  const AiActionConfirmationSheet({
-    super.key,
-    required this.action,
-  });
+  const AiActionConfirmationSheet({super.key, required this.action});
 
   static Future<bool> show(
     BuildContext context, {
@@ -143,10 +140,7 @@ class AiActionConfirmationSheet extends StatelessWidget {
 
   String _money(num value) {
     if (value <= 0) return '';
-    return '${value.round().toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => ' ',
-    )} ₽';
+    return '${value.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ')} ₽';
   }
 
   String _paymentType(String value) {
@@ -194,7 +188,10 @@ class AiActionConfirmationSheet extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 actionTitle,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

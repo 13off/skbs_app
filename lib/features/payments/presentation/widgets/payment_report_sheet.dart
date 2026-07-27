@@ -103,13 +103,14 @@ class _PaymentReportSheetState extends State<_PaymentReportSheet> {
   }
 
   List<String> get objectNames {
-    final values = widget.employees
-        .expand((employee) => employee.objectNames)
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        widget.employees
+            .expand((employee) => employee.objectNames)
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return values;
   }
 

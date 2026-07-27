@@ -22,11 +22,15 @@ class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
   final List<TaskPhotoFile> photos;
+  final bool saveAsDraft;
+  final String? sourceDraftId;
 
   const TaskCreateDraft({
     required this.task,
     required this.assigneeIds,
     required this.photos,
+    this.saveAsDraft = false,
+    this.sourceDraftId,
   });
 }
 
@@ -35,11 +39,14 @@ class AddTaskScreen extends StatefulWidget {
   final String objectName;
   final String? initialMilestoneId;
   final String? initialChecklistItemId;
+  final String? initialChecklistTitle;
   final String initialAxes;
   final String initialWork;
   final List<String> initialAssigneeIds;
   final bool initialRequireBeforePhoto;
   final bool allowAnyDate;
+  final bool allowDraft;
+  final String? sourceDraftId;
 
   const AddTaskScreen({
     super.key,
@@ -47,11 +54,14 @@ class AddTaskScreen extends StatefulWidget {
     required this.objectName,
     this.initialMilestoneId,
     this.initialChecklistItemId,
+    this.initialChecklistTitle,
     this.initialAxes = '',
     this.initialWork = '',
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
     this.allowAnyDate = false,
+    this.allowDraft = false,
+    this.sourceDraftId,
   });
 
   @override
@@ -92,6 +102,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedDate = widget.initialDate;
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
+    selectedChecklistTitle = widget.initialChecklistTitle;
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     axesController.text = widget.initialAxes.trim();
     workController.text = widget.initialWork.trim();

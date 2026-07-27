@@ -134,7 +134,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       if (!mounted || request != threadRequestSerial) return;
       final nextThreads = values[0] as List<CompanyChatThread>;
       final nextUnread = values[1] as CompanyChatUnreadState;
-      final nextSelected = _resolveSelected(nextThreads, selectedThread?.threadKey);
+      final nextSelected = _resolveSelected(
+        nextThreads,
+        selectedThread?.threadKey,
+      );
       final nextMessages = nextSelected == null
           ? const <CompanyChatMessage>[]
           : await _fetchThreadMessages(nextSelected);
@@ -848,10 +851,8 @@ class _ChatWorkspacePanel extends StatelessWidget {
         controller: scrollController,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         itemCount: messages.length,
-        itemBuilder: (context, index) => _messageBubble(
-          context,
-          messages[index],
-        ),
+        itemBuilder: (context, index) =>
+            _messageBubble(context, messages[index]),
       ),
     );
   }
@@ -1137,7 +1138,10 @@ class _ThreadSidebar extends StatelessWidget {
     final assistant = threads.where((item) => item.isAssistant).toList();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = math.min(230.0, math.max(150.0, constraints.maxWidth * 0.31));
+        final width = math.min(
+          230.0,
+          math.max(150.0, constraints.maxWidth * 0.31),
+        );
         return SizedBox(
           width: width,
           child: ColoredBox(
@@ -1155,7 +1159,8 @@ class _ThreadSidebar extends StatelessWidget {
                 if (general.isNotEmpty)
                   _ThreadTile(
                     thread: general.first,
-                    selected: selectedThread?.threadKey == general.first.threadKey,
+                    selected:
+                        selectedThread?.threadKey == general.first.threadKey,
                     onTap: () => onSelectThread(general.first),
                   ),
                 Padding(
@@ -1207,7 +1212,8 @@ class _ThreadSidebar extends StatelessWidget {
                     child: _ThreadTile(
                       thread: assistant.first,
                       selected:
-                          selectedThread?.threadKey == assistant.first.threadKey,
+                          selectedThread?.threadKey ==
+                          assistant.first.threadKey,
                       onTap: () => onSelectThread(assistant.first),
                       assistant: true,
                     ),
@@ -1249,9 +1255,7 @@ class _ThreadTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: selected
-            ? (assistant
-                  ? scheme.tertiaryContainer
-                  : scheme.primaryContainer)
+            ? (assistant ? scheme.tertiaryContainer : scheme.primaryContainer)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(13),
         child: InkWell(
@@ -1397,11 +1401,7 @@ class _ChatLauncherButton extends StatelessWidget {
             ),
           ),
           if (count > 0)
-            Positioned(
-              right: -4,
-              top: -5,
-              child: _UnreadBadge(count: count),
-            ),
+            Positioned(right: -4, top: -5, child: _UnreadBadge(count: count)),
         ],
       ),
     );

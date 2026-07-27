@@ -210,7 +210,8 @@ class _OperationalAuditLauncherScreenState
                     ],
                     onChanged: running
                         ? null
-                        : (value) => setState(() => selectedObjectScope = value),
+                        : (value) =>
+                              setState(() => selectedObjectScope = value),
                   ),
                 if (errorText != null) ...[
                   const SizedBox(height: 12),

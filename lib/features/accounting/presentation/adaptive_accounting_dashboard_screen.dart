@@ -400,8 +400,7 @@ class _DesktopAccountingDashboardScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-accounting-dashboard',
           title: 'Финансовый контроль',
-          subtitle:
-              'Начисления, выплаты, остатки и подтверждающие документы',
+          subtitle: 'Начисления, выплаты, остатки и подтверждающие документы',
           trailing: actions(),
           onRefresh: refresh,
           children: children,

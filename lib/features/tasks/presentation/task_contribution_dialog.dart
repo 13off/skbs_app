@@ -21,7 +21,8 @@ class _TaskContributionDialog extends StatefulWidget {
   const _TaskContributionDialog({required this.entries});
 
   @override
-  State<_TaskContributionDialog> createState() => _TaskContributionDialogState();
+  State<_TaskContributionDialog> createState() =>
+      _TaskContributionDialogState();
 }
 
 class _TaskContributionDialogState extends State<_TaskContributionDialog> {
@@ -59,9 +60,7 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
     );
     final weights = <double>[
       for (final index in otherIndexes)
-        currentOtherTotal == 0
-            ? 1
-            : entries[index].percent / currentOtherTotal,
+        currentOtherTotal == 0 ? 1 : entries[index].percent / currentOtherTotal,
     ];
     final raw = <double>[
       for (final weight in weights)
@@ -130,7 +129,10 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: total == 100
                           ? scheme.primaryContainer
@@ -160,7 +162,8 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: entries.length,
-                  separatorBuilder: (_, _) => Divider(color: scheme.outlineVariant),
+                  separatorBuilder: (_, _) =>
+                      Divider(color: scheme.outlineVariant),
                   itemBuilder: (context, index) {
                     final entry = entries[index];
                     return Padding(
@@ -176,7 +179,9 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                                   children: [
                                     Text(
                                       entry.employeeName,
-                                      style: const TextStyle(fontWeight: FontWeight.w900),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
                                     if (entry.position.trim().isNotEmpty)
                                       Text(
@@ -209,7 +214,8 @@ class _TaskContributionDialogState extends State<_TaskContributionDialog> {
                             value: entry.percent.toDouble(),
                             onChanged: entries.length == 1
                                 ? null
-                                : (value) => changePercent(index, value.round()),
+                                : (value) =>
+                                      changePercent(index, value.round()),
                           ),
                         ],
                       ),

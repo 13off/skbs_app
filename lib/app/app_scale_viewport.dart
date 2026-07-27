@@ -9,11 +9,7 @@ class AppScaleViewport extends StatelessWidget {
   final double scale;
   final Widget child;
 
-  const AppScaleViewport({
-    super.key,
-    required this.scale,
-    required this.child,
-  });
+  const AppScaleViewport({super.key, required this.scale, required this.child});
 
   EdgeInsets _scaledInsets(EdgeInsets value, double effectiveScale) {
     return EdgeInsets.fromLTRB(

@@ -128,12 +128,11 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
   Future<void> submitRequest(CompanyBillingPlan plan) async {
     if (isSubmitting) return;
 
-    final email = Supabase.instance.client.auth.currentUser?.email?.trim() ?? '';
+    final email =
+        Supabase.instance.client.auth.currentUser?.email?.trim() ?? '';
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('В профиле не найден email для связи'),
-        ),
+        const SnackBar(content: Text('В профиле не найден email для связи')),
       );
       return;
     }
@@ -187,9 +186,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -267,10 +264,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 7,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
                 color: _billingSoft,
                 borderRadius: BorderRadius.circular(999),
@@ -296,7 +290,8 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
           _UsageLine(
             icon: Icons.apartment_outlined,
             label: 'Объекты',
-            value: '${widget.dashboard.objects.length} из ${company.objectLimit}',
+            value:
+                '${widget.dashboard.objects.length} из ${company.objectLimit}',
             progress: objectProgress,
           ),
         ],
@@ -381,8 +376,7 @@ class _CompanyPlansScreenState extends State<CompanyPlansScreen> {
                           ),
                           if (isRecommended)
                             const _PlanBadge(text: 'Рекомендуем'),
-                          if (isCurrent)
-                            const _PlanBadge(text: 'Текущий'),
+                          if (isCurrent) const _PlanBadge(text: 'Текущий'),
                         ],
                       ),
                       SizedBox(height: 5),
@@ -605,10 +599,7 @@ class _CompanyPlansData {
   final List<CompanyBillingPlan> plans;
   final CompanyPlanRequest? openRequest;
 
-  const _CompanyPlansData({
-    required this.plans,
-    required this.openRequest,
-  });
+  const _CompanyPlansData({required this.plans, required this.openRequest});
 }
 
 class _UsageLine extends StatelessWidget {

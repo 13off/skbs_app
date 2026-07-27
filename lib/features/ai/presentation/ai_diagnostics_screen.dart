@@ -138,10 +138,7 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
     });
   }
 
-  Future<void> _run(
-    String title,
-    Future<String> Function() operation,
-  ) async {
+  Future<void> _run(String title, Future<String> Function() operation) async {
     try {
       final details = await operation();
       _append(_DiagnosticResult.success(title: title, details: details));
@@ -187,10 +184,7 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                 children: [
                   const Text(
                     'Безопасный smoke-тест',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -198,10 +192,7 @@ class _AiDiagnosticsScreenState extends State<AiDiagnosticsScreen> {
                     'и получение предварительных ответов edge-функций. '
                     'Диагностика не подтверждает, не сохраняет и не выполняет '
                     'действия.',
-                    style: TextStyle(
-                      height: 1.45,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(height: 1.45, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -259,29 +250,17 @@ class _DiagnosticResult {
   const _DiagnosticResult.success({
     required String title,
     required String details,
-  }) : this._(
-         title: title,
-         details: details,
-         state: _DiagnosticState.success,
-       );
+  }) : this._(title: title, details: details, state: _DiagnosticState.success);
 
   const _DiagnosticResult.warning({
     required String title,
     required String details,
-  }) : this._(
-         title: title,
-         details: details,
-         state: _DiagnosticState.warning,
-       );
+  }) : this._(title: title, details: details, state: _DiagnosticState.warning);
 
   const _DiagnosticResult.failure({
     required String title,
     required String details,
-  }) : this._(
-         title: title,
-         details: details,
-         state: _DiagnosticState.failure,
-       );
+  }) : this._(title: title, details: details, state: _DiagnosticState.failure);
 }
 
 class _DiagnosticCard extends StatelessWidget {
@@ -325,10 +304,7 @@ class _DiagnosticCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 SelectableText(
                   result.details,
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.4,
-                  ),
+                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
                 ),
               ],
             ),

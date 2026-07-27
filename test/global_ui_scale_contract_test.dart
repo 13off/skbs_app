@@ -5,12 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('the entire app is rendered through one persisted scale viewport', () {
     final main = File('lib/main.dart').readAsStringSync();
-    final controller = File(
-      'lib/app/theme_controller.dart',
-    ).readAsStringSync();
-    final viewport = File(
-      'lib/app/app_scale_viewport.dart',
-    ).readAsStringSync();
+    final controller = File('lib/app/theme_controller.dart').readAsStringSync();
+    final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
 
     expect(main, contains("import 'app/app_scale_viewport.dart';"));
     expect(main, contains('builder: (context, child) => AppScaleViewport('));
@@ -24,13 +20,11 @@ void main() {
   });
 
   test('scale is configured inside settings without a floating overlay', () {
-    final controller = File(
-      'lib/app/theme_controller.dart',
+    final controller = File('lib/app/theme_controller.dart').readAsStringSync();
+    final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
     ).readAsStringSync();
-    final viewport = File(
-      'lib/app/app_scale_viewport.dart',
-    ).readAsStringSync();
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
     for (final option in <String>['0.80', '0.90', '1.00', '1.10', '1.20']) {
       expect(controller, contains(option));

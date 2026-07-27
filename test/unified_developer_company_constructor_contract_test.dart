@@ -50,25 +50,28 @@ void main() {
     );
   });
 
-  test('company and object inheritance stays in existing protected repositories', () {
-    final policies = File(
-      'lib/features/developer/data/developer_policy_repository.dart',
-    ).readAsStringSync();
-    final permissions = File(
-      'lib/features/developer/data/role_permission_repository.dart',
-    ).readAsStringSync();
-    final constructor = File(
-      'lib/features/developer/data/developer_constructor_repository.dart',
-    ).readAsStringSync();
+  test(
+    'company and object inheritance stays in existing protected repositories',
+    () {
+      final policies = File(
+        'lib/features/developer/data/developer_policy_repository.dart',
+      ).readAsStringSync();
+      final permissions = File(
+        'lib/features/developer/data/role_permission_repository.dart',
+      ).readAsStringSync();
+      final constructor = File(
+        'lib/features/developer/data/developer_constructor_repository.dart',
+      ).readAsStringSync();
 
-    expect(policies, contains("'get_developer_task_policy_center'"));
-    expect(policies, contains("'save_task_policy_setting'"));
-    expect(policies, contains("'reset_task_policy_override'"));
-    expect(permissions, contains('get_role_permission_center'));
-    expect(permissions, contains('save_role_permission_override'));
-    expect(permissions, contains('reset_role_permission_override'));
-    expect(constructor, contains('get_developer_constructor_center'));
-  });
+      expect(policies, contains("'get_developer_task_policy_center'"));
+      expect(policies, contains("'save_task_policy_setting'"));
+      expect(policies, contains("'reset_task_policy_override'"));
+      expect(permissions, contains('get_role_permission_center'));
+      expect(permissions, contains('save_role_permission_override'));
+      expect(permissions, contains('reset_role_permission_override'));
+      expect(constructor, contains('get_developer_constructor_center'));
+    },
+  );
 
   test('manager platform receives no constructor navigation or screen', () {
     final manager = File(

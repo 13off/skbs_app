@@ -2,17 +2,20 @@ part of '../add_task_screen.dart';
 
 extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
+    final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Новая задача'),
+        title: Text(editingDraft ? 'Черновик задачи' : 'Новая задача'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Прораб добавляет задачу на объект',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          Text(
+            editingDraft
+                ? 'Продолжите заполнение черновика'
+                : 'Прораб добавляет задачу на объект',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 14),
           buildObjectCard(),
@@ -51,6 +54,19 @@ extension _TaskCreateView on _AddTaskScreenState {
             ),
           ],
           const SizedBox(height: 24),
+          if (widget.allowDraft) ...[
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: isLoadingPolicy ? null : saveDraft,
+                icon: const Icon(Icons.drafts_outlined),
+                label: Text(
+                  editingDraft ? 'Обновить черновик' : 'Сохранить черновик',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             height: 54,
             child: FilledButton.icon(

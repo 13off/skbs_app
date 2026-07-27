@@ -31,7 +31,9 @@ abstract final class _LegalMatters {
     }
     if (attentionOnly) {
       matters = matters
-          .where((item) => item.isOverdue || item.isHighRisk || item.needsManager)
+          .where(
+            (item) => item.isOverdue || item.isHighRisk || item.needsManager,
+          )
           .toList();
     }
     final query = search.trim().toLowerCase();
@@ -89,9 +91,7 @@ abstract final class _LegalMatters {
           : responsibleUserId,
       'employee_id': _clean(employeeId).isEmpty ? null : employeeId,
       'object_id': _clean(objectId).isEmpty ? null : objectId,
-      'counterparty_id': _clean(counterpartyId).isEmpty
-          ? null
-          : counterpartyId,
+      'counterparty_id': _clean(counterpartyId).isEmpty ? null : counterpartyId,
       'document_id': _clean(documentId).isEmpty ? null : documentId,
       'required_actions': requiredActions.trim(),
       'result': result.trim(),

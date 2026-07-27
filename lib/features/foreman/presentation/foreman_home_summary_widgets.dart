@@ -60,10 +60,7 @@ class ForemanShiftIdentity extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      color: specialistMuted,
-                    ),
+                    Icon(Icons.lock_outline_rounded, color: specialistMuted),
                     const SizedBox(width: 11),
                     Expanded(
                       child: Text(
@@ -95,10 +92,7 @@ class ForemanShiftIdentity extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.calendar_month_outlined,
-                    color: specialistMuted,
-                  ),
+                  Icon(Icons.calendar_month_outlined, color: specialistMuted),
                   const SizedBox(width: 10),
                   Text(
                     dateText(AppState.today),

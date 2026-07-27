@@ -21,7 +21,10 @@ void main() {
     expect(header, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
     expect(header, isNot(contains('PremiumWorkCard(')));
     expect(specialist, contains('return AppPage('));
-    expect(specialist, contains('maxContentWidth: AppUi.specialistContentWidth'));
+    expect(
+      specialist,
+      contains('maxContentWidth: AppUi.specialistContentWidth'),
+    );
   });
 
   test('home tab keeps the same plain title style', () {

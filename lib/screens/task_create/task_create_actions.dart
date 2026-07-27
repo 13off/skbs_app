@@ -92,12 +92,48 @@ extension _TaskCreateActions on _AddTaskScreenState {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  TaskCreateDraft buildResult({required bool asDraft}) {
+    final axes = axesController.text.trim();
+    final work = workController.text.trim();
+    final goalWork = selectedChecklistTitle?.trim() ?? '';
+    final savedWork = isGoalTask && goalWork.isNotEmpty ? goalWork : work;
+    final task = TaskItemData(
+      axes,
+      savedWork,
+      'Запланировано',
+      selectedDate,
+      objectName: widget.objectName,
+      milestoneId: selectedMilestoneId ?? '',
+      checklistItemId: selectedChecklistItemId ?? '',
+    );
+
+    return TaskCreateDraft(
+      task: task,
+      assigneeIds: selectedAssigneeIds.toList(),
+      photos: asDraft
+          ? const <TaskPhotoFile>[]
+          : List<TaskPhotoFile>.from(selectedPhotos),
+      saveAsDraft: asDraft,
+      sourceDraftId: widget.sourceDraftId,
+    );
+  }
+
+  void saveDraft() {
+    final axes = axesController.text.trim();
+    final work = workController.text.trim();
+    final goalWork = selectedChecklistTitle?.trim() ?? '';
+    if (axes.isEmpty && work.isEmpty && goalWork.isEmpty) {
+      showValidationError('Заполни хотя бы оси или вид работ');
+      return;
+    }
+    Navigator.pop(context, buildResult(asDraft: true));
+  }
+
   void saveTask() {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
     final linkedToGoal = isGoalTask;
     final goalWork = selectedChecklistTitle?.trim() ?? '';
-    final savedWork = linkedToGoal ? goalWork : work;
 
     final coreError = TaskDraftValidation.coreFields(
       axes: axes,
@@ -130,23 +166,6 @@ extension _TaskCreateActions on _AddTaskScreenState {
       return;
     }
 
-    final newTask = TaskItemData(
-      axes,
-      savedWork,
-      'Запланировано',
-      selectedDate,
-      objectName: widget.objectName,
-      milestoneId: selectedMilestoneId ?? '',
-      checklistItemId: selectedChecklistItemId ?? '',
-    );
-
-    Navigator.pop(
-      context,
-      TaskCreateDraft(
-        task: newTask,
-        assigneeIds: selectedAssigneeIds.toList(),
-        photos: List<TaskPhotoFile>.from(selectedPhotos),
-      ),
-    );
+    Navigator.pop(context, buildResult(asDraft: false));
   }
 }

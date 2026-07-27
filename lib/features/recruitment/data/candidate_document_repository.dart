@@ -33,7 +33,8 @@ class CandidateDocumentFile {
     );
   }
 
-  bool get canDownload => bucket.trim().isNotEmpty && storagePath.trim().isNotEmpty;
+  bool get canDownload =>
+      bucket.trim().isNotEmpty && storagePath.trim().isNotEmpty;
 }
 
 class CandidateDocumentRepository {
@@ -65,9 +66,10 @@ class CandidateDocumentRepository {
 
     return rows
         .whereType<Map>()
-        .map((row) => CandidateDocumentFile.fromMap(
-              Map<String, dynamic>.from(row),
-            ))
+        .map(
+          (row) =>
+              CandidateDocumentFile.fromMap(Map<String, dynamic>.from(row)),
+        )
         .toList(growable: false);
   }
 

@@ -21,8 +21,7 @@ class AdaptiveTimesheetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useDesktop =
-            kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+        final useDesktop = kIsWeb && constraints.maxWidth >= desktopBreakpoint;
 
         if (!useDesktop) {
           return TimesheetScreen(

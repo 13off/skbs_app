@@ -46,9 +46,9 @@ class ManagerReportSections extends StatelessWidget {
       children: [
         Text(
           'Все отчёты',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 4),
         Text(
@@ -87,9 +87,8 @@ class ManagerReportSections extends StatelessWidget {
             ),
           ),
           openLabel: 'Открыть табель',
-          onSecondary: () => onOpen(
-            PeriodTimesheetScreen(selectedObjectName: objectName),
-          ),
+          onSecondary: () =>
+              onOpen(PeriodTimesheetScreen(selectedObjectName: objectName)),
           secondaryLabel: 'Отчёт за период',
         ),
         _ReportSection(
@@ -129,10 +128,7 @@ class ManagerReportSections extends StatelessWidget {
           ],
           details: center.detailItems('pending_tasks'),
           onOpen: () => onOpen(
-            TasksScreen(
-              profile: profile,
-              selectedObjectName: objectName,
-            ),
+            TasksScreen(profile: profile, selectedObjectName: objectName),
           ),
           openLabel: 'Открыть задачи',
         ),
@@ -184,9 +180,8 @@ class ManagerReportSections extends StatelessWidget {
           onOpen: () => onOpen(
             RecruitmentDashboardScreen(
               profile: profile,
-              onOpenApplications: () => onOpen(
-                RecruitmentApplicationsScreen(profile: profile),
-              ),
+              onOpenApplications: () =>
+                  onOpen(RecruitmentApplicationsScreen(profile: profile)),
             ),
           ),
           openLabel: 'Открыть HR-сводку',
@@ -218,10 +213,7 @@ class ManagerReportSections extends StatelessWidget {
           problemCount: milestones.overdue,
           metrics: [
             _ReportMetric(label: 'Открыто', value: '${milestones.open}'),
-            _ReportMetric(
-              label: 'Просрочено',
-              value: '${milestones.overdue}',
-            ),
+            _ReportMetric(label: 'Просрочено', value: '${milestones.overdue}'),
             _ReportMetric(
               label: 'Срок до 7 дней',
               value: '${milestones.upcoming}',
@@ -333,7 +325,9 @@ class _ReportSection extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -394,8 +388,9 @@ class _ReportDetailItems extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               child: Text('${index + 1}'),
             ),
             title: Text(
@@ -443,11 +438,12 @@ class _DispatcherReports extends StatelessWidget {
     final runs = center.dispatcherRuns.take(12).toList();
     if (onlyProblems) {
       runs.removeWhere((run) {
-        final critical = int.tryParse(
+        final critical =
+            int.tryParse(
               (run.body.contains('отклонений')
-                      ? RegExp(r'(\d+) отклонений')
-                          .firstMatch(run.body)
-                          ?.group(1)
+                      ? RegExp(
+                          r'(\d+) отклонений',
+                        ).firstMatch(run.body)?.group(1)
                       : null) ??
                   '',
             ) ??
@@ -470,7 +466,9 @@ class _DispatcherReports extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: const Icon(Icons.auto_awesome_outlined),
@@ -521,8 +519,8 @@ class _DispatcherReports extends StatelessWidget {
                       child: Text(
                         run.body.trim().isEmpty
                             ? run.errorText.trim().isEmpty
-                                ? 'Отчёт ещё не сформирован.'
-                                : run.errorText
+                                  ? 'Отчёт ещё не сформирован.'
+                                  : run.errorText
                             : run.body,
                         style: const TextStyle(
                           height: 1.4,

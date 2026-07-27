@@ -57,7 +57,8 @@ class AppCacheCoordinator {
         objectsChanged || domains.contains(AppDataDomain.attendance);
     final paymentsChanged =
         objectsChanged || domains.contains(AppDataDomain.payments);
-    final tasksChanged = objectsChanged || domains.contains(AppDataDomain.tasks);
+    final tasksChanged =
+        objectsChanged || domains.contains(AppDataDomain.tasks);
 
     if (objectsChanged) {
       areas.add(AppCacheArea.objects);

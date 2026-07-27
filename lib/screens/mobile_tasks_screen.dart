@@ -8,6 +8,7 @@ import '../app/app_adaptive_palette.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
+import '../features/tasks/presentation/task_drafts_sheet.dart';
 import '../features/tasks/task_edit_policy.dart';
 import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
@@ -41,6 +42,7 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   DateTime selectedDate = AppState.today;
   List<TaskItemData> tasks = <TaskItemData>[];
+  List<TaskItemData> taskDrafts = <TaskItemData>[];
   bool isLoading = true;
   String? loadError;
   int _loadToken = 0;
@@ -145,16 +147,26 @@ class _TasksScreenState extends State<TasksScreen> {
     }
 
     try {
-      final rows = await TaskRepository.fetchTasksForDate(
-        selectedDate,
-        objectName: widget.selectedObjectName,
-        forceRefresh: forceRefresh,
-      );
+      final result = await Future.wait<dynamic>([
+        TaskRepository.fetchTasksForDate(
+          selectedDate,
+          objectName: widget.selectedObjectName,
+          forceRefresh: forceRefresh,
+        ),
+        widget.profile.isForeman
+            ? TaskRepository.fetchOwnDraftTasks(
+                objectName: widget.selectedObjectName,
+              )
+            : Future<List<TaskItemData>>.value(const <TaskItemData>[]),
+      ]);
+      final rows = result[0] as List<TaskItemData>;
+      final drafts = result[1] as List<TaskItemData>;
 
       if (!mounted || token != _loadToken) return;
 
       setState(() {
         tasks = rows;
+        taskDrafts = drafts;
         isLoading = false;
         loadError = null;
       });
@@ -196,7 +208,7 @@ class _TasksScreenState extends State<TasksScreen> {
     changeDate(pickedDate);
   }
 
-  Future<void> openAddTaskScreen() async {
+  Future<void> openAddTaskScreen([TaskItemData? sourceDraft]) async {
     final objectName = cleanObjectName(widget.selectedObjectName);
 
     if (objectName == null) {
@@ -210,20 +222,52 @@ class _TasksScreenState extends State<TasksScreen> {
       return;
     }
 
+    final sourceId = sourceDraft?.id?.trim() ?? '';
+    final initialAssignees = sourceId.isEmpty
+        ? const <String>[]
+        : await TaskRepository.fetchTaskAssigneeIds(sourceId);
+    final milestoneLink = sourceId.isEmpty
+        ? null
+        : await TaskRepository.fetchTaskMilestoneLink(sourceId);
+    if (!mounted) return;
+
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
       CupertinoPageRoute(
         builder: (_) => AddTaskScreen(
-          initialDate: selectedDate,
+          initialDate: sourceDraft?.date ?? selectedDate,
           objectName: objectName,
+          initialAxes: sourceDraft?.axes ?? '',
+          initialWork: sourceDraft?.work ?? '',
+          initialAssigneeIds: initialAssignees,
+          initialMilestoneId: milestoneLink?.milestoneId,
+          initialChecklistItemId: milestoneLink?.checklistItemId,
+          initialChecklistTitle: sourceDraft?.work,
           allowAnyDate:
               widget.profile.isAdmin ||
               TaskEditPolicy.forObject(objectName).foremanCanCreateAnyDate,
+          allowDraft: widget.profile.isForeman,
+          sourceDraftId: sourceDraft?.id,
         ),
       ),
     );
 
     if (draft == null) return;
+    if (draft.saveAsDraft) {
+      await TaskRepository.saveTaskDraftWithDetails(
+        draft.task,
+        objectName: objectName,
+        assigneeIds: draft.assigneeIds,
+        sourceDraftId: draft.sourceDraftId,
+      );
+      if (!mounted) return;
+      await loadTasks(silent: true, forceRefresh: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Черновик задачи сохранён')));
+      return;
+    }
 
     final createdTask = await TaskRepository.addTaskWithDetails(
       draft.task,
@@ -231,6 +275,10 @@ class _TasksScreenState extends State<TasksScreen> {
       assigneeIds: draft.assigneeIds,
       photos: draft.photos,
     );
+    final sourceDraftId = draft.sourceDraftId?.trim() ?? '';
+    if (sourceDraftId.isNotEmpty) {
+      await TaskRepository.deleteTaskDraft(sourceDraftId);
+    }
 
     if (!mounted) return;
 
@@ -250,6 +298,9 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (taskFitsCurrentFilter(createdTask)) {
       setState(() {
+        taskDrafts = taskDrafts
+            .where((item) => item.id != sourceDraftId)
+            .toList();
         tasks = [
           ...tasks.where((task) => task.id != createdTask.id),
           createdTask,
@@ -259,6 +310,24 @@ class _TasksScreenState extends State<TasksScreen> {
     }
 
     await loadTasks(silent: true);
+  }
+
+  Future<void> openDrafts() async {
+    final selected = await showTaskDraftsSheet(
+      context: context,
+      drafts: taskDrafts,
+      onDelete: (draft) async {
+        final id = draft.id?.trim() ?? '';
+        if (id.isEmpty) return;
+        await TaskRepository.deleteTaskDraft(id);
+        if (!mounted) return;
+        setState(() {
+          taskDrafts = taskDrafts.where((item) => item.id != id).toList();
+        });
+      },
+    );
+    if (!mounted || selected == null) return;
+    await openAddTaskScreen(selected);
   }
 
   Future<void> openTaskDetails(TaskItemData task) async {
@@ -626,12 +695,24 @@ class _TasksScreenState extends State<TasksScreen> {
       },
       trailing: <Widget>[
         const SizedBox(height: 14),
+        if (widget.profile.isForeman) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: taskDrafts.isEmpty ? null : openDrafts,
+              icon: const Icon(Icons.drafts_outlined),
+              label: Text('Черновики (${taskDrafts.length})'),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         PremiumActionButton(
           label: 'Добавить задачу',
           icon: Icons.add_rounded,
           onPressed:
               TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)
-              ? openAddTaskScreen
+              ? () => openAddTaskScreen()
               : null,
         ),
         buildActButton(tasks),

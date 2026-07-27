@@ -116,11 +116,27 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
 
     final draft = await navigator.push<TaskCreateDraft>(
       CupertinoPageRoute<TaskCreateDraft>(
-        builder: (_) =>
-            AddTaskScreen(initialDate: date, objectName: assignedObject),
+        builder: (_) => AddTaskScreen(
+          initialDate: date,
+          objectName: assignedObject,
+          allowDraft: true,
+        ),
       ),
     );
     if (draft == null) return;
+    if (draft.saveAsDraft) {
+      await TaskRepository.saveTaskDraftWithDetails(
+        draft.task,
+        objectName: assignedObject,
+        assigneeIds: draft.assigneeIds,
+        sourceDraftId: draft.sourceDraftId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Черновик задачи сохранён')));
+      return;
+    }
     await TaskRepository.addTaskWithDetails(
       draft.task,
       objectName: assignedObject,

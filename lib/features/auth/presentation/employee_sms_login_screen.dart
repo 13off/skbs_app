@@ -122,7 +122,8 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
                       const SizedBox(height: 18),
                       Text(
                         'Вход сотрудника',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               color: AppAdaptivePalette.textPrimary,
                               fontWeight: FontWeight.w900,
                             ),

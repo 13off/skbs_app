@@ -126,10 +126,7 @@ class TaskTile extends StatelessWidget {
               SizedBox(width: 8),
               Padding(
                 padding: EdgeInsets.only(top: 10),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: _taskMuted,
-                ),
+                child: Icon(Icons.chevron_right_rounded, color: _taskMuted),
               ),
             ],
           ),

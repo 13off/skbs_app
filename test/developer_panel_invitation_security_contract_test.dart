@@ -80,7 +80,10 @@ void main() {
     expect(method, isNot(contains(".from('user_profiles')")));
 
     expect(migration, contains('update_company_member_access'));
-    expect(migration, contains('object_memberships_company_user_membership_fkey'));
+    expect(
+      migration,
+      contains('object_memberships_company_user_membership_fkey'),
+    );
     expect(migration, contains('attendance_company_object_employee_fkey'));
     expect(migration, contains('payments_company_object_employee_fkey'));
     expect(migration, contains('payment_receipts_company_payment_fkey'));

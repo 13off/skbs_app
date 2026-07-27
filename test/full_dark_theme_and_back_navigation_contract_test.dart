@@ -125,23 +125,30 @@ void main() {
     expect(paymentReport, contains('AppAdaptivePalette.textMuted'));
   });
 
-  test('presentation audit does not expose credentials or add direct mutations', () {
-    const targets = <String>[
-      'lib/widgets/app_page.dart',
-      'lib/screens/pwa_install_screen.dart',
-      'lib/screens/object_management_screen.dart',
-      'lib/screens/employee_details/employee_details_sections.dart',
-      'lib/features/company/presentation/company_plans_screen.dart',
-      'lib/features/archive/presentation/archive_management_screen_v3.dart',
-      'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
-    ];
+  test(
+    'presentation audit does not expose credentials or add direct mutations',
+    () {
+      const targets = <String>[
+        'lib/widgets/app_page.dart',
+        'lib/screens/pwa_install_screen.dart',
+        'lib/screens/object_management_screen.dart',
+        'lib/screens/employee_details/employee_details_sections.dart',
+        'lib/features/company/presentation/company_plans_screen.dart',
+        'lib/features/archive/presentation/archive_management_screen_v3.dart',
+        'lib/features/payments/presentation/widgets/payment_report_sheet.dart',
+      ];
 
-    for (final path in targets) {
-      final source = File(path).readAsStringSync();
-      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
-      expect(source, isNot(contains('.insert(')), reason: path);
-      expect(source, isNot(contains('.update(')), reason: path);
-      expect(source, isNot(contains('.delete(')), reason: path);
-    }
-  });
+      for (final path in targets) {
+        final source = File(path).readAsStringSync();
+        expect(
+          source,
+          isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
+          reason: path,
+        );
+        expect(source, isNot(contains('.insert(')), reason: path);
+        expect(source, isNot(contains('.update(')), reason: path);
+        expect(source, isNot(contains('.delete(')), reason: path);
+      }
+    },
+  );
 }
