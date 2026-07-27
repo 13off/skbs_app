@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 import '../app/app_ui_tokens.dart';
 import '../navigation/navigation_session.dart';
+import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
 class ProfessionalBottomNavigationItem {
@@ -179,8 +180,8 @@ class _ProfessionalBottomNavigationState
     final screenWidth = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final isDesktop = screenWidth >= 880;
-    final panelHeight = isDesktop ? 72.0 : 72.0;
-    final topSpacing = isDesktop ? 8.0 : 4.0;
+    final panelHeight = isDesktop ? 74.0 : 72.0;
+    final topSpacing = isDesktop ? 9.0 : 5.0;
     final bottomSpacing = isDesktop ? 14.0 : 10.0;
     final totalHeight = panelHeight + topSpacing + bottomSpacing + bottomInset;
 
@@ -188,7 +189,7 @@ class _ProfessionalBottomNavigationState
       key: const ValueKey('professional-bottom-navigation'),
       height: totalHeight,
       child: Material(
-        color: theme.scaffoldBackgroundColor,
+        type: MaterialType.transparency,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             isDesktop ? 28 : 12,
@@ -199,99 +200,113 @@ class _ProfessionalBottomNavigationState
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isDesktop ? 820 : double.infinity,
+                maxWidth: isDesktop ? 840 : double.infinity,
               ),
-              child: Container(
+              child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
-                height: panelHeight,
+                height: null,
+                blur: true,
+                blurSigma: isDesktop ? 18 : 14,
+                radius: isDesktop ? 30 : 26,
                 padding: EdgeInsets.all(isDesktop ? 7 : 6),
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(AppUi.cardRadius),
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(
-                      alpha: dark ? 0.95 : 0.72,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: dark ? 0.22 : 0.08),
-                      blurRadius: isDesktop ? 20 : 18,
-                      spreadRadius: -10,
-                      offset: Offset(0, isDesktop ? 10 : 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: List<Widget>.generate(widget.items.length, (index) {
-                    final item = widget.items[index];
-                    final selected = index == widget.selectedIndex;
+                child: SizedBox(
+                  height: panelHeight - (isDesktop ? 14 : 12),
+                  child: Row(
+                    children: List<Widget>.generate(widget.items.length, (index) {
+                      final item = widget.items[index];
+                      final selected = index == widget.selectedIndex;
 
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isDesktop ? 3 : 2,
-                        ),
-                        child: PremiumPressable(
-                          onTap: () => handleSelected(index),
-                          pressedScale: 0.97,
-                          hoverScale: isDesktop ? AppMotion.hoverScale : 1,
-                          borderRadius: BorderRadius.circular(AppUi.controlRadius),
-                          child: AnimatedContainer(
-                            duration: duration,
-                            curve: AppMotion.interactionCurve,
-                            height: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isDesktop ? 13 : 4,
-                              vertical: isDesktop ? 6 : 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? scheme.primary.withValues(alpha: 0.11)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(AppUi.controlRadius),
-                              border: selected
-                                  ? Border.all(
-                                      color: scheme.primary.withValues(
-                                        alpha: dark ? 0.22 : 0.16,
-                                      ),
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 3 : 2,
+                          ),
+                          child: PremiumPressable(
+                            onTap: () => handleSelected(index),
+                            pressedScale: 0.97,
+                            hoverScale: isDesktop ? 1.012 : 1,
+                            borderRadius: BorderRadius.circular(22),
+                            child: AnimatedContainer(
+                              duration: duration,
+                              curve: AppMotion.interactionCurve,
+                              height: double.infinity,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isDesktop ? 13 : 4,
+                                vertical: isDesktop ? 6 : 2,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: selected
+                                    ? LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          scheme.primary.withValues(
+                                            alpha: dark ? 0.28 : 0.16,
+                                          ),
+                                          scheme.primary.withValues(
+                                            alpha: dark ? 0.14 : 0.075,
+                                          ),
+                                        ],
+                                      )
+                                    : null,
+                                borderRadius: BorderRadius.circular(22),
+                                border: selected
+                                    ? Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: dark ? 0.10 : 0.52,
+                                        ),
+                                      )
+                                    : null,
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color: scheme.primary.withValues(
+                                            alpha: dark ? 0.16 : 0.10,
+                                          ),
+                                          blurRadius: 16,
+                                          spreadRadius: -8,
+                                          offset: const Offset(0, 7),
+                                        ),
+                                      ]
+                                    : const <BoxShadow>[],
+                              ),
+                              child: isDesktop
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        buildIcon(context, item, selected, true),
+                                        const SizedBox(width: 9),
+                                        Flexible(
+                                          child: buildLabel(
+                                            context,
+                                            item,
+                                            selected,
+                                            true,
+                                          ),
+                                        ),
+                                      ],
                                     )
-                                  : null,
-                            ),
-                            child: isDesktop
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      buildIcon(context, item, selected, true),
-                                      const SizedBox(width: 9),
-                                      Flexible(
-                                        child: buildLabel(
+                                  : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        buildIcon(context, item, selected, false),
+                                        const SizedBox(height: 1),
+                                        buildLabel(
                                           context,
                                           item,
                                           selected,
-                                          true,
+                                          false,
                                         ),
-                                      ),
-                                    ],
-                                  )
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      buildIcon(context, item, selected, false),
-                                      const SizedBox(height: 1),
-                                      buildLabel(
-                                        context,
-                                        item,
-                                        selected,
-                                        false,
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
               ),
             ),
