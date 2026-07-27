@@ -542,7 +542,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Row(
+                  Row(
                     children: [
                       for (final weekday in <String>[
                         'Пн',
@@ -557,7 +557,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                           child: Center(
                             child: Text(
                               weekday,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
                               ),
