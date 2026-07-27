@@ -6,11 +6,13 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import '../../../../app/app_adaptive_palette.dart';
 import '../../../../data/app_data_sync.dart';
 import '../../../../data/attendance_repository.dart';
+import '../../../../data/employee_repository.dart';
 import '../../../../data/payment_repository.dart';
 import '../../../../models/employee.dart';
 import '../../../../models/period_timesheet_row.dart';
 import '../../../../screens/add_payment_screen.dart';
 import '../../../../screens/payment_history_screen.dart';
+import '../../../../widgets/object_employee_scope.dart';
 import '../../../../widgets/premium_ui.dart';
 import '../../data/payment_report_exporter.dart';
 import '../widgets/payment_report_sheet.dart';
@@ -29,6 +31,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   late DateTime selectedMonth;
   DateTimeRange? selectedRange;
+  _PaymentAccountingMode accountingMode =
+      _PaymentAccountingMode.settlementPeriod;
   _PaymentEmploymentFilter employmentFilter = _PaymentEmploymentFilter.all;
   List<_PaymentDisplayRow> rows = [];
 
@@ -139,9 +143,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   List<_PaymentDisplayRow> buildPaymentRows(
     List<PeriodTimesheetRow> source,
-    Map<String, double> paidByEmployeeId,
-  ) {
+    Map<String, double> paidByEmployeeId, {
+    List<Employee> paymentEmployees = const <Employee>[],
+  }) {
     final drafts = <String, _PaymentDisplayDraft>{};
+    final appliedPaymentIds = <String>{};
 
     for (final row in source) {
       final key = normalizedEmployeeKey(row.employee);
@@ -150,11 +156,30 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         () => _PaymentDisplayDraft(row.employee),
       );
       final employeeId = row.employee.id?.trim() ?? '';
+      final paidValue =
+          employeeId.isNotEmpty && appliedPaymentIds.add(employeeId)
+          ? paidByEmployeeId[employeeId] ?? 0
+          : 0;
       draft.add(
         employee: row.employee,
         accruedValue: row.accrued,
-        paidValue: employeeId.isEmpty ? 0 : paidByEmployeeId[employeeId] ?? 0,
+        paidValue: paidValue,
       );
+    }
+
+    for (final employee in paymentEmployees) {
+      final employeeId = employee.id?.trim() ?? '';
+      if (employeeId.isEmpty || appliedPaymentIds.contains(employeeId))
+        continue;
+      final paidValue = paidByEmployeeId[employeeId];
+      if (paidValue == null || paidValue == 0) continue;
+      appliedPaymentIds.add(employeeId);
+      final key = normalizedEmployeeKey(employee);
+      final draft = drafts.putIfAbsent(
+        key,
+        () => _PaymentDisplayDraft(employee),
+      );
+      draft.add(employee: employee, accruedValue: 0, paidValue: paidValue);
     }
 
     final result = drafts.values
@@ -202,7 +227,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     bool forceRefresh = false,
   }) async {
     final generation = ++_loadGeneration;
-    final targetRange = range ?? (month == null ? selectedRange : null);
+    final mode = accountingMode;
+    final targetRange = mode == _PaymentAccountingMode.paymentDate
+        ? range ?? (month == null ? selectedRange : null)
+        : null;
     final targetMonth = month != null
         ? DateTime(month.year, month.month, 1)
         : targetRange != null
@@ -220,19 +248,38 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     });
 
     try {
-      final periodRows = await AttendanceRepository.fetchPeriodTimesheet(
-        startDate: startDate,
-        endDate: endDate,
-        objectName: widget.selectedObjectName,
-        includeFired: true,
-        forceRefresh: forceRefresh,
-      );
-      final employeeIds = periodRows
-          .map((row) => row.employee.id?.trim() ?? '')
-          .where((id) => id.isNotEmpty)
-          .toSet()
-          .toList();
-      final payments = await PaymentRepository.fetchPaymentsForEmployees(
+      final result = await Future.wait<dynamic>([
+        AttendanceRepository.fetchPeriodTimesheet(
+          startDate: startDate,
+          endDate: endDate,
+          objectName: widget.selectedObjectName,
+          includeFired: true,
+          forceRefresh: forceRefresh,
+        ),
+        EmployeeRepository.fetchEmployees(includeFired: true),
+      ]);
+      final periodRows = result[0] as List<PeriodTimesheetRow>;
+      final allEmployees = result[1] as List<Employee>;
+      final selectedObject = widget.selectedObjectName?.trim();
+      final scopedEmployees = allEmployees
+          .where((employee) {
+            if (selectedObject == null ||
+                selectedObject.isEmpty ||
+                isAllObjectsScope(selectedObject)) {
+              return true;
+            }
+            return employee.objectName.trim() == selectedObject;
+          })
+          .toList(growable: false);
+      final employeeIds = <String>{
+        ...periodRows
+            .map((row) => row.employee.id?.trim() ?? '')
+            .where((id) => id.isNotEmpty),
+        ...scopedEmployees
+            .map((employee) => employee.id?.trim() ?? '')
+            .where((id) => id.isNotEmpty),
+      }.toList(growable: false);
+      final paymentRows = await PaymentRepository.fetchPaymentsForEmployees(
         employeeIds,
         forceRefresh: forceRefresh,
       );
@@ -243,13 +290,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         startDate.day,
       );
       final cleanEnd = DateTime(endDate.year, endDate.month, endDate.day);
-      for (final payment in payments) {
-        final date = DateTime(
-          payment.paymentDate.year,
-          payment.paymentDate.month,
-          payment.paymentDate.day,
-        );
-        if (date.isBefore(cleanStart) || date.isAfter(cleanEnd)) continue;
+      for (final payment in paymentRows) {
+        final matches = mode == _PaymentAccountingMode.settlementPeriod
+            ? payment.periodYear == targetMonth.year &&
+                  payment.periodMonth == targetMonth.month
+            : () {
+                final date = DateTime(
+                  payment.paymentDate.year,
+                  payment.paymentDate.month,
+                  payment.paymentDate.day,
+                );
+                return !date.isBefore(cleanStart) && !date.isAfter(cleanEnd);
+              }();
+        if (!matches) continue;
         paidByEmployeeId[payment.employeeId] =
             (paidByEmployeeId[payment.employeeId] ?? 0) + payment.amount;
       }
@@ -259,7 +312,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       setState(() {
         selectedMonth = targetMonth;
         selectedRange = targetRange;
-        rows = buildPaymentRows(periodRows, paidByEmployeeId);
+        rows = buildPaymentRows(
+          periodRows,
+          paidByEmployeeId,
+          paymentEmployees: scopedEmployees,
+        );
       });
     } catch (e) {
       if (!mounted || generation != _loadGeneration) return;
@@ -284,6 +341,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
 
     await loadPaymentsData(month: targetMonth);
+  }
+
+  Future<void> changeAccountingMode(_PaymentAccountingMode mode) async {
+    if (mode == accountingMode || isLoading) return;
+    setState(() {
+      accountingMode = mode;
+      selectedRange = null;
+    });
+    await loadPaymentsData(month: selectedMonth, forceRefresh: true);
   }
 
   Future<void> pickPeriod() async {
@@ -418,7 +484,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             child: Column(
               children: [
                 Text(
-                  'Период выплат',
+                  accountingMode == _PaymentAccountingMode.settlementPeriod
+                      ? 'Расчётный период'
+                      : 'Дата фактической выплаты',
                   style: TextStyle(
                     color: AppAdaptivePalette.textMuted,
                     fontSize: 12,
@@ -457,7 +525,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Сводка за период',
+            accountingMode == _PaymentAccountingMode.settlementPeriod
+                ? 'Сводка за расчётный период'
+                : 'Движение денег за период',
             style: TextStyle(
               color: AppAdaptivePalette.textPrimary,
               fontSize: 15,
@@ -537,6 +607,36 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
+            'Режим учёта',
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('За расчётный период'),
+                selected:
+                    accountingMode == _PaymentAccountingMode.settlementPeriod,
+                onSelected: (_) {
+                  changeAccountingMode(_PaymentAccountingMode.settlementPeriod);
+                },
+              ),
+              ChoiceChip(
+                label: const Text('По дате выплаты'),
+                selected: accountingMode == _PaymentAccountingMode.paymentDate,
+                onSelected: (_) {
+                  changeAccountingMode(_PaymentAccountingMode.paymentDate);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
             'Показывать сотрудников',
             style: TextStyle(
               color: AppAdaptivePalette.textPrimary,
@@ -571,30 +671,32 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isLoading ? null : pickPeriod,
-                  icon: const Icon(Icons.date_range_outlined),
-                  label: Text(
-                    selectedRange == null
-                        ? 'Выбрать промежуток'
-                        : 'Изменить промежуток',
+          if (accountingMode == _PaymentAccountingMode.paymentDate) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: isLoading ? null : pickPeriod,
+                    icon: const Icon(Icons.date_range_outlined),
+                    label: Text(
+                      selectedRange == null
+                          ? 'Выбрать промежуток дат'
+                          : 'Изменить промежуток дат',
+                    ),
                   ),
                 ),
-              ),
-              if (selectedRange != null) ...[
-                const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  tooltip: 'Вернуться к месяцу',
-                  onPressed: isLoading ? null : resetToMonth,
-                  icon: const Icon(Icons.calendar_month_outlined),
-                ),
+                if (selectedRange != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Вернуться к месяцу',
+                    onPressed: isLoading ? null : resetToMonth,
+                    icon: const Icon(Icons.calendar_month_outlined),
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -830,6 +932,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 }
+
+enum _PaymentAccountingMode { settlementPeriod, paymentDate }
 
 enum _PaymentEmploymentFilter { all, active, fired }
 

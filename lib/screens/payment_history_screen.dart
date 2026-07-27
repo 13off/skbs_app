@@ -476,16 +476,22 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
             children: [
               const Icon(Icons.calendar_month, size: 18),
               const SizedBox(width: 6),
-              Text(
-                formatDate(payment.paymentDate),
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  'Выплачено: ${formatDate(payment.paymentDate)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
-              const SizedBox(width: 12),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
               const Icon(Icons.event_note_outlined, size: 18),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  periodTitle(payment),
+                  'За период: ${periodTitle(payment)}',
                   style: TextStyle(
                     color: AppAdaptivePalette.textMuted,
                     fontWeight: FontWeight.w600,
