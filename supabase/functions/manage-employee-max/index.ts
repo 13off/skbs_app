@@ -8,6 +8,21 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type EmployeeAccount = {
+  company_id: string;
+  person_id: string;
+  user_id: string;
+  phone_e164: string;
+};
+
+type RecruitmentIdentity = {
+  external_user_id?: string | number | null;
+  external_chat_id?: string | number | null;
+  external_username?: string | null;
+  phone?: string | null;
+  updated_at?: string | null;
+};
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -66,16 +81,15 @@ async function readBotUsername(
 async function readMaxLink(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
-  companyId: string,
-  personId: string,
+  account: Pick<EmployeeAccount, "company_id" | "person_id">,
 ) {
   const { data, error } = await adminClient
     .from("employee_max_links")
     .select(
       "company_id, person_id, user_id, phone_e164, max_user_id, max_chat_id, max_username, source, is_active, linked_at",
     )
-    .eq("company_id", companyId)
-    .eq("person_id", personId)
+    .eq("company_id", account.company_id)
+    .eq("person_id", account.person_id)
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -84,18 +98,9 @@ async function readMaxLink(
 async function syncFromRecruitment(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
-  account: {
-    company_id: string;
-    person_id: string;
-    user_id: string;
-    phone_e164: string;
-  },
+  account: EmployeeAccount,
 ) {
-  const current = await readMaxLink(
-    adminClient,
-    account.company_id,
-    account.person_id,
-  );
+  const current = await readMaxLink(adminClient, account);
   if (
     current &&
     normalizePhone(current.phone_e164) === account.phone_e164 &&
@@ -114,14 +119,10 @@ async function syncFromRecruitment(
         .eq("person_id", account.person_id);
       if (error) throw error;
     }
-    return await readMaxLink(
-      adminClient,
-      account.company_id,
-      account.person_id,
-    );
+    return await readMaxLink(adminClient, account);
   }
 
-  const { data: applications, error: applicationsError } = await adminClient
+  const { data: rawApplications, error: applicationsError } = await adminClient
     .from("recruitment_applications")
     .select(
       "external_user_id, external_chat_id, external_username, phone, updated_at",
@@ -132,12 +133,13 @@ async function syncFromRecruitment(
     .limit(1000);
   if (applicationsError) throw applicationsError;
 
-  const matching = (applications ?? []).filter(
-    (row) =>
+  const applications = (rawApplications ?? []) as RecruitmentIdentity[];
+  const matching = applications.filter(
+    (row: RecruitmentIdentity) =>
       normalizePhone(row.phone) === account.phone_e164 &&
-      parseMaxId(row.external_user_id),
+      parseMaxId(row.external_user_id).isNotEmpty,
   );
-  const uniqueMaxUsers = new Map<string, typeof matching[number]>();
+  const uniqueMaxUsers = new Map<string, RecruitmentIdentity>();
   for (const row of matching) {
     const id = parseMaxId(row.external_user_id);
     if (!uniqueMaxUsers.has(id)) uniqueMaxUsers.set(id, row);
@@ -165,18 +167,13 @@ async function syncFromRecruitment(
       { onConflict: "company_id,person_id" },
     );
   if (writeError) throw writeError;
-  return await readMaxLink(adminClient, account.company_id, account.person_id);
+  return await readMaxLink(adminClient, account);
 }
 
 async function createConnectToken(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
-  account: {
-    company_id: string;
-    person_id: string;
-    user_id: string;
-    phone_e164: string;
-  },
+  account: EmployeeAccount,
   actorId: string,
 ) {
   const { error: deleteError } = await adminClient
@@ -188,12 +185,11 @@ async function createConnectToken(
   if (deleteError) throw deleteError;
 
   const token = randomToken();
-  const tokenHash = await sha256(token);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const { error: insertError } = await adminClient
     .from("employee_max_link_tokens")
     .insert({
-      token_hash: tokenHash,
+      token_hash: await sha256(token),
       company_id: account.company_id,
       person_id: account.person_id,
       user_id: account.user_id,
@@ -238,7 +234,9 @@ Deno.serve(async (request: Request) => {
       data: { user: actor },
       error: actorError,
     } = await userClient.auth.getUser();
-    if (actorError || !actor) return json({ error: "Требуется повторный вход" }, 401);
+    if (actorError || !actor) {
+      return json({ error: "Требуется повторный вход" }, 401);
+    }
 
     const input = await request.json();
     const action = String(input.action ?? "status").trim();
@@ -276,7 +274,7 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Управлять MAX может только руководитель" }, 403);
     }
 
-    const { data: account, error: accountError } = await adminClient
+    const { data: rawAccount, error: accountError } = await adminClient
       .from("employee_account_links")
       .select("company_id, person_id, user_id, phone_e164, is_active")
       .eq("company_id", companyId)
@@ -301,28 +299,24 @@ Deno.serve(async (request: Request) => {
       ]);
       if (linkError) throw linkError;
       if (tokenError) throw tokenError;
-      return json({ ok: true, max_connected: false });
+      return json({ ok: true, max_connected: false, max_ready: false });
     }
 
-    if (!account || account.is_active !== true) {
-      return json({
-        ok: true,
-        max_connected: false,
-        max_ready: false,
-      });
+    if (!rawAccount || rawAccount.is_active !== true) {
+      return json({ ok: true, max_connected: false, max_ready: false });
     }
 
-    const normalizedAccount = {
-      company_id: String(account.company_id),
-      person_id: String(account.person_id),
-      user_id: String(account.user_id),
-      phone_e164: normalizePhone(account.phone_e164),
+    const account: EmployeeAccount = {
+      company_id: String(rawAccount.company_id),
+      person_id: String(rawAccount.person_id),
+      user_id: String(rawAccount.user_id),
+      phone_e164: normalizePhone(rawAccount.phone_e164),
     };
-    if (!normalizedAccount.phone_e164) {
+    if (!account.phone_e164) {
       return json({ error: "У аккаунта сотрудника некорректный номер" }, 409);
     }
 
-    const maxLink = await syncFromRecruitment(adminClient, normalizedAccount);
+    const maxLink = await syncFromRecruitment(adminClient, account);
     if (maxLink?.is_active === true) {
       return json({
         ok: true,
@@ -334,23 +328,14 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action === "status") {
-      return json({
-        ok: true,
-        max_connected: false,
-        max_ready: true,
-      });
+      return json({ ok: true, max_connected: false, max_ready: true });
     }
 
-    const connection = await createConnectToken(
-      adminClient,
-      normalizedAccount,
-      actor.id,
-    );
     return json({
       ok: true,
       max_connected: false,
       max_ready: true,
-      ...connection,
+      ...(await createConnectToken(adminClient, account, actor.id)),
     });
   } catch (error) {
     console.error("Employee MAX management failed", {
