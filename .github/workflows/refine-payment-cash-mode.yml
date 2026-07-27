@@ -26,16 +26,40 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Verify refinement
+      - id: verify
+        name: Verify refinement
+        shell: bash
         run: |
-          dart format \
-            lib/features/payments/presentation/screens/payments_screen.dart \
-            test/payment_settlement_period_contract_test.dart
-          flutter pub get --enforce-lockfile
-          flutter analyze
-          flutter test test/payment_settlement_period_contract_test.dart
+          rm -f .github/payment-cash-mode-check.txt
+          set +e
+          {
+            dart format \
+              lib/features/payments/presentation/screens/payments_screen.dart \
+              test/payment_settlement_period_contract_test.dart
+            flutter pub get --enforce-lockfile
+            flutter analyze
+            flutter test test/payment_settlement_period_contract_test.dart
+          } > .github/payment-cash-mode-check.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            rm -f .github/payment-cash-mode-check.txt
+            echo "result=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=error" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Commit verified refinement
+      - if: steps.verify.outputs.result == 'error'
+        name: Commit refinement diagnostics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/payment-cash-mode-check.txt
+          git commit -m "Сохранить ошибки денежного режима"
+          git push
+
+      - if: steps.verify.outputs.result == 'ok'
+        name: Commit verified refinement
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
