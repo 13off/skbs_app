@@ -52,7 +52,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
+          fetch-depth: 0
           show-progress: false
+
+      - name: Emergency revert broken acceleration
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          ROLLBACK_MESSAGE="Откатить сломавшее интерфейс ускорение"
+          if git log --format=%s -n 50 | grep -Fxq "$ROLLBACK_MESSAGE"; then
+            echo "Broken acceleration is already reverted"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git revert --no-commit bfe5a1f2ee18faae30257ed1bea48b02973d3777
+            git commit -m "$ROLLBACK_MESSAGE"
+            git push origin HEAD:main
+          fi
 
       - name: Checkout web repository
         uses: actions/checkout@v4
