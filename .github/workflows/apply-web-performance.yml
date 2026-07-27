@@ -94,6 +94,9 @@ jobs:
         run: flutter pub get --enforce-lockfile >/dev/null
 
       - name: Format changed source
+        id: format
+        continue-on-error: true
+        shell: bash
         run: |
           dart format \
             lib/app/app_theme.dart \
@@ -106,7 +109,23 @@ jobs:
             lib/widgets/premium_ui_v2.dart \
             lib/widgets/premium_ui_v2_legacy.dart \
             lib/widgets/professional_bottom_navigation.dart \
-            test/web_performance_contract_test.dart
+            test/web_performance_contract_test.dart \
+            > performance-format.log 2>&1
+
+      - name: Save format diagnostic
+        if: steps.format.outcome == 'failure'
+        shell: bash
+        run: |
+          cat performance-format.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f performance-format.log
+          git commit -m "сохранена диагностика форматтера performance"
+          git push origin HEAD:performance/web-fast-smooth
+
+      - name: Stop after format failure
+        if: steps.format.outcome == 'failure'
+        run: exit 1
 
       - name: Analyze source strictly
         run: flutter analyze
