@@ -39,7 +39,7 @@ jobs:
           cat performance-patch.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add performance-patch.log
+          git add -f performance-patch.log
           git commit -m "сохранена диагностика performance патча"
           git push origin HEAD:performance/web-fast-smooth
 
