@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_adaptive_palette.dart';
 import '../app/app_ui_tokens.dart';
 import '../app/theme_controller.dart';
+import 'liquid_glass.dart';
 
 class AppPage extends StatelessWidget {
   static const double desktopBreakpoint = AppUi.desktopBreakpoint;
@@ -229,76 +230,88 @@ class AppPageHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final action = trailing;
     final cleanSubtitle = subtitle.trim();
+    final isDesktop = MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: AppUi.pageHeaderMinHeight),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (showBackButton) ...[
-            SizedBox.square(
-              dimension: AppUi.pageHeaderActionSize,
-              child: BackButton(
-                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-              ),
-            ),
-            const SizedBox(width: AppUi.gap8),
-          ],
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 20,
-                    height: 1.12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.25,
-                  ),
+    return LiquidGlassSurface(
+      blur: true,
+      blurSigma: isDesktop ? 14 : 11,
+      radius: isDesktop ? 28 : 24,
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? 18 : 14,
+        isDesktop ? 12 : 10,
+        isDesktop ? 12 : 10,
+        isDesktop ? 12 : 10,
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppUi.pageHeaderMinHeight),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (showBackButton) ...[
+              SizedBox.square(
+                dimension: AppUi.pageHeaderActionSize,
+                child: BackButton(
+                  onPressed: onBack ?? () => Navigator.of(context).maybePop(),
                 ),
-                const SizedBox(height: AppUi.gap4),
-                SizedBox(
-                  height: 18,
-                  child: Text(
-                    cleanSubtitle.isEmpty ? ' ' : cleanSubtitle,
-                    maxLines: 1,
+              ),
+              const SizedBox(width: AppUi.gap8),
+            ],
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 12.5,
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 20,
+                      height: 1.12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.25,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (action != null) ...[
-            const SizedBox(width: AppUi.gap12),
-            Flexible(
-              fit: FlexFit.loose,
-              child: IconButtonTheme(
-                data: IconButtonThemeData(
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size.square(AppUi.pageHeaderActionSize),
-                    maximumSize: const Size.square(AppUi.pageHeaderActionSize),
-                    padding: const EdgeInsets.all(10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                  const SizedBox(height: AppUi.gap4),
+                  SizedBox(
+                    height: 18,
+                    child: Text(
+                      cleanSubtitle.isEmpty ? ' ' : cleanSubtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                child: action,
+                ],
               ),
             ),
+            if (action != null) ...[
+              const SizedBox(width: AppUi.gap12),
+              Flexible(
+                fit: FlexFit.loose,
+                child: IconButtonTheme(
+                  data: IconButtonThemeData(
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size.square(AppUi.pageHeaderActionSize),
+                      maximumSize: const Size.square(AppUi.pageHeaderActionSize),
+                      padding: const EdgeInsets.all(10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                      ),
+                    ),
+                  ),
+                  child: action,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -343,6 +356,27 @@ class AppSurfaceBackdrop extends StatelessWidget {
                             Colors.white.withValues(alpha: 0.68),
                             Colors.white.withValues(alpha: 0),
                           ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -190,
+            left: -130,
+            child: IgnorePointer(
+              child: Container(
+                width: 380,
+                height: 380,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppAdaptivePalette.telegramBlue.withValues(
+                        alpha: dark ? 0.08 : 0.045,
+                      ),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),

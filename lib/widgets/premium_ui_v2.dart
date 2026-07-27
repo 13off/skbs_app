@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 import '../app/app_ui_tokens.dart';
 import 'app_page.dart';
+import 'liquid_glass.dart';
 import 'premium_ui_v2_legacy.dart' as legacy;
 
 // Motion contract remains implemented in premium_ui_v2_legacy.dart:
@@ -62,42 +63,18 @@ class PremiumWorkCard extends StatelessWidget {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return LiquidGlassSurface(
       margin: margin,
       padding: padding,
-      decoration: BoxDecoration(
-        color: dark ? (tint ?? theme.colorScheme.surface) : tint,
-        gradient: !dark && tint == null
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.91),
-                  Colors.white.withValues(alpha: 0.72),
-                ],
-              )
-            : null,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: dark
-              ? theme.colorScheme.outlineVariant
-              : Colors.white.withValues(alpha: 0.94),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.20 : 0.075),
-            blurRadius: dark ? 18 : 28,
-            spreadRadius: dark ? -10 : -12,
-            offset: Offset(0, dark ? 9 : 16),
-          ),
-          if (!dark)
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.78),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-        ],
-      ),
+      radius: radius,
+      blur: false,
+      tint: tint ??
+          (dark
+              ? theme.colorScheme.surface.withValues(alpha: 0.84)
+              : Colors.white.withValues(alpha: 0.62)),
+      borderColor: dark
+          ? Colors.white.withValues(alpha: 0.085)
+          : Colors.white.withValues(alpha: 0.86),
       child: child,
     );
   }
