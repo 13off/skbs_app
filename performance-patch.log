@@ -1,3 +1,0 @@
-  File "/home/runner/work/skbs_app/skbs_app/tool/apply_web_performance_patch.py", line 190
-    new_pressable_tree = '''          child: AnimatedScale(
-IndentationError: unexpected indent
