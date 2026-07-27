@@ -185,6 +185,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Часть рабочих экранов использует AppAdaptivePalette, которая читает
+    // текущий режим из контроллера, а не через Theme.of(context). Явная
+    // зависимость корневого экрана от Theme заставляет всё рабочее дерево
+    // перестроиться при переключении темы без перезапуска и без сброса state.
+    Theme.of(context);
+
     return FutureBuilder<void>(
       future: navigationRestoreFuture,
       builder: (context, snapshot) {
