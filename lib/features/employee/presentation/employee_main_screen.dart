@@ -17,6 +17,7 @@ class EmployeeMainScreen extends StatefulWidget {
 
 class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
   int currentIndex = 0;
+  late DateTime selectedMonth;
   late Future<EmployeeCabinetData> cabinetFuture;
 
   static const destinations = <NavigationDestination>[
@@ -31,9 +32,9 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
       label: 'Задачи',
     ),
     NavigationDestination(
-      icon: Icon(Icons.account_balance_wallet_outlined),
-      selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-      label: 'Деньги',
+      icon: Icon(Icons.calendar_month_outlined),
+      selectedIcon: Icon(Icons.calendar_month_rounded),
+      label: 'Табель',
     ),
     NavigationDestination(
       icon: Icon(Icons.folder_copy_outlined),
@@ -50,22 +51,48 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    selectedMonth = DateTime(now.year, now.month, 1);
     cabinetFuture = loadCabinet();
   }
 
   Future<EmployeeCabinetData> loadCabinet() {
     if (widget.profile.isRolePreview) {
       return Future<EmployeeCabinetData>.value(
-        EmployeeCabinetData.preview(widget.profile),
+        EmployeeCabinetData.preview(
+          widget.profile,
+          year: selectedMonth.year,
+          month: selectedMonth.month,
+        ),
       );
     }
-    return EmployeeCabinetRepository.fetch();
+    return EmployeeCabinetRepository.fetch(
+      year: selectedMonth.year,
+      month: selectedMonth.month,
+    );
   }
 
   Future<void> refresh() async {
     final next = loadCabinet();
     setState(() => cabinetFuture = next);
     await next;
+  }
+
+  Future<void> changeMonth(int delta) async {
+    final nextMonth = DateTime(
+      selectedMonth.year,
+      selectedMonth.month + delta,
+      1,
+    );
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+    if (nextMonth.isAfter(currentMonth)) return;
+
+    setState(() {
+      selectedMonth = nextMonth;
+      cabinetFuture = loadCabinet();
+    });
+    await cabinetFuture;
   }
 
   @override
@@ -90,10 +117,18 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
           }
 
           final data = snapshot.data!;
+          final now = DateTime.now();
+          final canMoveForward = data.year < now.year ||
+              (data.year == now.year && data.month < now.month);
           final pages = <Widget>[
             _EmployeeHome(data: data, onRefresh: refresh),
             _EmployeeTasks(data: data, onRefresh: refresh),
-            _EmployeeMoney(data: data, onRefresh: refresh),
+            _EmployeeTimesheet(
+              data: data,
+              onRefresh: refresh,
+              onPreviousMonth: () => changeMonth(-1),
+              onNextMonth: canMoveForward ? () => changeMonth(1) : null,
+            ),
             _EmployeeDocuments(data: data, onRefresh: refresh),
             _EmployeeProfile(
               profile: widget.profile,
@@ -235,10 +270,7 @@ class _EmployeeHome extends StatelessWidget {
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
-                              ?.copyWith(
-                                color: AppAdaptivePalette.textPrimary,
-                                fontWeight: FontWeight.w900,
-                              ),
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
                       if (task != null) _StatusBadge(text: task.status),
@@ -326,7 +358,7 @@ class _EmployeeHome extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Деньги за месяц',
+                          'Расчёт за ${_monthTitle(data.month).toLowerCase()}',
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -424,6 +456,11 @@ class _EmployeeTasks extends StatelessWidget {
                           icon: Icons.photo_camera_outlined,
                           text: 'Для задачи нужны фотографии',
                         ),
+                      if (task.notDoneComment.isNotEmpty)
+                        _DetailLine(
+                          icon: Icons.info_outline_rounded,
+                          text: task.notDoneComment,
+                        ),
                     ],
                   ),
                 ),
@@ -436,37 +473,205 @@ class _EmployeeTasks extends StatelessWidget {
   }
 }
 
-class _EmployeeMoney extends StatelessWidget {
+class _EmployeeTimesheet extends StatelessWidget {
   final EmployeeCabinetData data;
   final Future<void> Function() onRefresh;
+  final Future<void> Function() onPreviousMonth;
+  final Future<void> Function()? onNextMonth;
 
-  const _EmployeeMoney({required this.data, required this.onRefresh});
+  const _EmployeeTimesheet({
+    required this.data,
+    required this.onRefresh,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final daysInMonth = DateTime(data.year, data.month + 1, 0).day;
+    final firstWeekday = DateTime(data.year, data.month, 1).weekday;
+    final leadingCells = firstWeekday - DateTime.monday;
+    final usedCells = leadingCells + daysInMonth;
+    final trailingCells = (7 - usedCells % 7) % 7;
+    final itemCount = usedCells + trailingCells;
     final remainder =
         data.summary.estimatedAccrued - data.summary.paidCurrentMonth;
+    final payments = data.paymentsForMonth;
+
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: onRefresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
+          padding: const EdgeInsets.fromLTRB(14, 18, 14, 28),
           children: [
-            _SectionHeader(
-              title: 'Мои деньги',
-              subtitle: '${_monthTitle(data.month)} ${data.year}',
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _SectionHeader(
+                title: 'Мой табель',
+                subtitle: 'Нажми на день, чтобы увидеть подробности',
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             _EmployeeCard(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
               child: Column(
                 children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Предыдущий месяц',
+                        onPressed: onPreviousMonth,
+                        icon: const Icon(Icons.chevron_left_rounded),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${_monthTitle(data.month)} ${data.year}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Следующий месяц',
+                        onPressed: onNextMonth,
+                        icon: const Icon(Icons.chevron_right_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    children: [
+                      for (final weekday in <String>[
+                        'Пн',
+                        'Вт',
+                        'Ср',
+                        'Чт',
+                        'Пт',
+                        'Сб',
+                        'Вс',
+                      ])
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              weekday,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: itemCount,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      childAspectRatio: 0.82,
+                    ),
+                    itemBuilder: (context, index) {
+                      final day = index - leadingCells + 1;
+                      if (day < 1 || day > daysInMonth) {
+                        return const SizedBox.shrink();
+                      }
+                      final records = data.attendanceForDay(day);
+                      return _TimesheetDayCell(
+                        year: data.year,
+                        month: data.month,
+                        day: day,
+                        records: records,
+                        onTap: () => _showDayDetails(
+                          context,
+                          year: data.year,
+                          month: data.month,
+                          day: day,
+                          records: records,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  const Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 14,
+                    runSpacing: 8,
+                    children: [
+                      _CalendarLegend(
+                        icon: Icons.check_circle_rounded,
+                        label: 'Работал',
+                        kind: _DayKind.worked,
+                      ),
+                      _CalendarLegend(
+                        icon: Icons.cancel_rounded,
+                        label: 'Неявка',
+                        kind: _DayKind.noShow,
+                      ),
+                      _CalendarLegend(
+                        icon: Icons.remove_circle_outline_rounded,
+                        label: 'Нет записи',
+                        kind: _DayKind.empty,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _SmallStatCard(
+                    icon: Icons.event_available_rounded,
+                    value: _formatDecimal(data.summary.shifts),
+                    label: 'смен',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SmallStatCard(
+                    icon: Icons.schedule_rounded,
+                    value: _formatDecimal(data.summary.hours),
+                    label: 'часов',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _EmployeeCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      _CardIcon(icon: Icons.payments_outlined),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Расчёт за месяц',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _MoneyLine(
                     title: 'Предварительно начислено',
                     value: _formatMoney(data.summary.estimatedAccrued),
                   ),
                   _MoneyLine(
-                    title: 'Получено с учётом штрафов',
+                    title: 'Получено с учётом удержаний',
                     value: _formatMoney(data.summary.paidCurrentMonth),
                   ),
                   Divider(color: AppAdaptivePalette.border),
@@ -479,21 +684,24 @@ class _EmployeeMoney extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            Text(
-              'История выплат',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Выплаты за период',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
             ),
-            const SizedBox(height: 12),
-            if (data.payments.isEmpty)
+            const SizedBox(height: 10),
+            if (payments.isEmpty)
               const _EmptyEmployeeSection(
                 icon: Icons.receipt_long_outlined,
-                title: 'Выплат пока нет',
+                title: 'Выплат за этот месяц нет',
                 text: 'Авансы, выплаты и удержания появятся после внесения бухгалтером.',
               )
             else
-              for (final payment in data.payments) ...[
+              for (final payment in payments) ...[
                 _EmployeeCard(
                   child: Row(
                     children: [
@@ -509,16 +717,16 @@ class _EmployeeMoney extends StatelessWidget {
                           children: [
                             Text(
                               payment.isFine ? 'Удержание' : 'Выплата',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                              ),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               <String>[
                                 if (payment.date != null)
                                   _formatDate(payment.date!),
-                                if (payment.comment.isNotEmpty) payment.comment,
+                                if (payment.comment.isNotEmpty)
+                                  payment.comment,
                               ].join(' · '),
                               style: TextStyle(
                                 color: AppAdaptivePalette.textMuted,
@@ -541,16 +749,19 @@ class _EmployeeMoney extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
               ],
             const SizedBox(height: 8),
-            Text(
-              'Начисление предварительное: окончательный расчёт подтверждает бухгалтерия.',
-              style: TextStyle(
-                color: AppAdaptivePalette.textMuted,
-                fontSize: 12,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Начисление предварительное. Окончательный расчёт подтверждает бухгалтерия.',
+                style: TextStyle(
+                  color: AppAdaptivePalette.textMuted,
+                  fontSize: 12,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -558,6 +769,303 @@ class _EmployeeMoney extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _showDayDetails(
+    BuildContext context, {
+    required int year,
+    required int month,
+    required int day,
+    required List<EmployeeCabinetAttendance> records,
+  }) async {
+    final totalShifts = records.fold<double>(
+      0,
+      (total, record) => total + record.shifts,
+    );
+    final totalHours = records.fold<double>(
+      0,
+      (total, record) => total + record.hours,
+    );
+    final totalAmount = records.fold<double>(
+      0,
+      (total, record) => total + record.estimatedAmount,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            decoration: BoxDecoration(
+              color: AppAdaptivePalette.surfaceElevated,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppAdaptivePalette.border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppAdaptivePalette.textFaint,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _formatDate(DateTime(year, month, day)),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (records.isEmpty)
+                  const _EmptyEmployeeSection(
+                    icon: Icons.event_busy_outlined,
+                    title: 'Записи в табеле нет',
+                    text: 'Если смена была, обратись к мастеру или руководителю для проверки.',
+                  )
+                else ...[
+                  for (final record in records) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _dayColor(_kindForRecords(<EmployeeCabinetAttendance>[record]))
+                            .withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: _dayColor(
+                            _kindForRecords(<EmployeeCabinetAttendance>[record]),
+                          ).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _attendanceStatusTitle(record.status),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 8),
+                          if (record.objectName.isNotEmpty)
+                            _DetailLine(
+                              icon: Icons.apartment_rounded,
+                              text: record.objectName,
+                            ),
+                          _DetailLine(
+                            icon: Icons.event_available_rounded,
+                            text: '${_formatDecimal(record.shifts)} смен',
+                          ),
+                          _DetailLine(
+                            icon: Icons.schedule_rounded,
+                            text: '${_formatDecimal(record.hours)} часов',
+                          ),
+                          if (record.estimatedAmount != 0)
+                            _DetailLine(
+                              icon: Icons.payments_outlined,
+                              text:
+                                  'Предварительно ${_formatMoney(record.estimatedAmount)}',
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  Divider(color: AppAdaptivePalette.border),
+                  _MoneyLine(
+                    title: 'Всего смен',
+                    value: _formatDecimal(totalShifts),
+                  ),
+                  _MoneyLine(
+                    title: 'Всего часов',
+                    value: _formatDecimal(totalHours),
+                  ),
+                  _MoneyLine(
+                    title: 'Предварительно за день',
+                    value: _formatMoney(totalAmount),
+                    strong: true,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+enum _DayKind { worked, noShow, empty }
+
+class _TimesheetDayCell extends StatelessWidget {
+  final int year;
+  final int month;
+  final int day;
+  final List<EmployeeCabinetAttendance> records;
+  final VoidCallback onTap;
+
+  const _TimesheetDayCell({
+    required this.year,
+    required this.month,
+    required this.day,
+    required this.records,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = _kindForRecords(records);
+    final totalShifts = records.fold<double>(
+      0,
+      (total, record) => total + record.shifts,
+    );
+    final totalHours = records.fold<double>(
+      0,
+      (total, record) => total + record.hours,
+    );
+    final now = DateTime.now();
+    final isToday = now.year == year && now.month == month && now.day == day;
+    final color = _dayColor(kind);
+    final marker = switch (kind) {
+      _DayKind.worked => totalShifts > 0
+          ? _formatDecimal(totalShifts)
+          : '${_formatDecimal(totalHours)}ч',
+      _DayKind.noShow => 'Н',
+      _DayKind.empty => '',
+    };
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: kind == _DayKind.empty
+                ? AppAdaptivePalette.surfaceSoft
+                : color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              width: isToday ? 2 : 1,
+              color: isToday
+                  ? AppAdaptivePalette.accentStrong
+                  : kind == _DayKind.empty
+                      ? AppAdaptivePalette.border
+                      : color.withValues(alpha: 0.42),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 3),
+            child: Column(
+              children: [
+                Text(
+                  '$day',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  switch (kind) {
+                    _DayKind.worked => Icons.check_circle_rounded,
+                    _DayKind.noShow => Icons.cancel_rounded,
+                    _DayKind.empty => Icons.remove_rounded,
+                  },
+                  size: 15,
+                  color: kind == _DayKind.empty
+                      ? AppAdaptivePalette.textFaint
+                      : color,
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  height: 13,
+                  child: Text(
+                    marker,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: kind == _DayKind.empty
+                          ? AppAdaptivePalette.textFaint
+                          : color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final _DayKind kind;
+
+  const _CalendarLegend({
+    required this.icon,
+    required this.label,
+    required this.kind,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = kind == _DayKind.empty
+        ? AppAdaptivePalette.textMuted
+        : _dayColor(kind);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+_DayKind _kindForRecords(List<EmployeeCabinetAttendance> records) {
+  if (records.any((record) => record.isWorked)) return _DayKind.worked;
+  if (records.any((record) => record.isNoShow)) return _DayKind.noShow;
+  return _DayKind.empty;
+}
+
+Color _dayColor(_DayKind kind) {
+  return switch (kind) {
+    _DayKind.worked => AppAdaptivePalette.success,
+    _DayKind.noShow => AppAdaptivePalette.danger,
+    _DayKind.empty => AppAdaptivePalette.textMuted,
+  };
 }
 
 class _EmployeeDocuments extends StatelessWidget {
@@ -649,7 +1157,7 @@ class _EmployeeProfile extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
           children: [
-            _SectionHeader(
+            const _SectionHeader(
               title: 'Мой профиль',
               subtitle: 'Личные и рабочие данные',
             ),
@@ -718,10 +1226,9 @@ class _EmployeeProfile extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
                 subtitle: const Text(
-                  'Скоро: рейтинг, портфолио, вакансии и работодатели',
+                  'Скоро: профиль, портфолио, вакансии и работодатели',
                 ),
                 trailing: const Icon(Icons.lock_clock_outlined),
-                onTap: () {},
               ),
             ),
             const SizedBox(height: 14),
@@ -795,8 +1302,8 @@ class _EmptyEmployeeSection extends StatelessWidget {
     return _EmployeeCard(
       child: Column(
         children: [
-          _CardIcon(icon: icon, size: 62),
-          const SizedBox(height: 18),
+          _CardIcon(icon: icon, size: 58),
+          const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -805,7 +1312,7 @@ class _EmptyEmployeeSection extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
@@ -822,13 +1329,17 @@ class _EmptyEmployeeSection extends StatelessWidget {
 
 class _EmployeeCard extends StatelessWidget {
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
-  const _EmployeeCard({required this.child});
+  const _EmployeeCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: padding,
       decoration: BoxDecoration(
         color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(24),
@@ -863,8 +1374,8 @@ class _CardIcon extends StatelessWidget {
       ),
       child: Icon(
         icon,
+        size: size * 0.48,
         color: AppAdaptivePalette.textPrimary,
-        size: size * 0.52,
       ),
     );
   }
@@ -891,10 +1402,7 @@ class _SmallStatCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppAdaptivePalette.textPrimary,
-                  fontWeight: FontWeight.w900,
-                ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
@@ -925,7 +1433,7 @@ class _MoneyLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -935,7 +1443,7 @@ class _MoneyLine extends StatelessWidget {
                 color: strong
                     ? AppAdaptivePalette.textPrimary
                     : AppAdaptivePalette.textMuted,
-                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
               ),
             ),
           ),
@@ -944,41 +1452,11 @@ class _MoneyLine extends StatelessWidget {
             value,
             style: TextStyle(
               color: AppAdaptivePalette.textPrimary,
-              fontSize: strong ? 17 : 15,
               fontWeight: FontWeight.w900,
+              fontSize: strong ? 17 : 15,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String text;
-
-  const _StatusBadge({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final completed = text == 'Выполнено';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: completed
-            ? AppAdaptivePalette.success.withValues(alpha: 0.15)
-            : AppAdaptivePalette.accentSoft,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text.isEmpty ? 'Запланировано' : text,
-        style: TextStyle(
-          color: completed
-              ? AppAdaptivePalette.success
-              : AppAdaptivePalette.textMuted,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-        ),
       ),
     );
   }
@@ -1005,6 +1483,7 @@ class _DetailLine extends StatelessWidget {
               style: TextStyle(
                 color: AppAdaptivePalette.textMuted,
                 fontWeight: FontWeight.w600,
+                height: 1.35,
               ),
             ),
           ),
@@ -1032,7 +1511,7 @@ class _ProfileLine extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, color: AppAdaptivePalette.textMuted),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1048,7 +1527,7 @@ class _ProfileLine extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -1059,30 +1538,58 @@ class _ProfileLine extends StatelessWidget {
   }
 }
 
-String _formatMoney(num value) {
-  final rounded = value.round();
-  final negative = rounded < 0;
-  final digits = rounded.abs().toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < digits.length; index++) {
-    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(' ');
-    buffer.write(digits[index]);
+class _StatusBadge extends StatelessWidget {
+  final String text;
+
+  const _StatusBadge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = text == 'Выполнено';
+    final color = completed
+        ? AppAdaptivePalette.success
+        : AppAdaptivePalette.accentStrong;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        text.isEmpty ? 'В работе' : text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
   }
-  return '${negative ? '−' : ''}${buffer.toString()} ₽';
 }
 
-String _formatDecimal(double value) {
-  if (value == value.roundToDouble()) return value.round().toString();
-  return value.toStringAsFixed(1).replaceAll('.', ',');
+String _formatMoney(num value) {
+  final rounded = value.round().toString();
+  final formatted = rounded.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ' ',
+  );
+  return '$formatted ₽';
+}
+
+String _formatDecimal(num value) {
+  final doubleValue = value.toDouble();
+  if (doubleValue == doubleValue.roundToDouble()) {
+    return doubleValue.toInt().toString();
+  }
+  return doubleValue.toStringAsFixed(1).replaceAll('.', ',');
 }
 
 String _formatDate(DateTime value) {
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${two(value.day)}.${two(value.month)}.${value.year}';
+  return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
 }
 
 String _monthTitle(int month) {
-  const titles = <String>[
+  const months = <String>[
     'Январь',
     'Февраль',
     'Март',
@@ -1096,30 +1603,34 @@ String _monthTitle(int month) {
     'Ноябрь',
     'Декабрь',
   ];
-  if (month < 1 || month > 12) return 'Текущий месяц';
-  return titles[month - 1];
+  if (month < 1 || month > months.length) return 'Месяц';
+  return months[month - 1];
 }
 
-String _documentStatusTitle(String status) {
-  return switch (status) {
-    'ready_to_print' => 'Готов к печати',
-    'printed' => 'Распечатан',
-    'signed' => 'Подписан',
-    'prepared' => 'Подготовлен',
-    'review' => 'На проверке',
-    'awaiting_signature' => 'Ожидает подписи',
-    'needs_correction' => 'Нужно исправить',
-    'archive' => 'В архиве',
-    _ => status.isEmpty ? 'Статус не указан' : status,
+String _attendanceStatusTitle(String value) {
+  return switch (value) {
+    'worked' => 'Работал',
+    'no_show' => 'Неявка',
+    _ => value.trim().isEmpty ? 'Запись в табеле' : value,
   };
 }
 
-String _documentTypeTitle(String type) {
-  return switch (type) {
-    'employment_application' => 'Заявление на работу',
-    'salary_transfer_application' => 'Перечисление зарплаты',
-    'personal_data_consent' => 'Согласие на обработку данных',
+String _documentTypeTitle(String value) {
+  return switch (value) {
     'employment_contract' => 'Трудовой договор',
-    _ => type.isEmpty ? 'Рабочий документ' : type,
+    'employment_application' => 'Заявление на работу',
+    'salary_application' => 'Заявление на перечисление зарплаты',
+    'personal_data_consent' => 'Согласие на обработку данных',
+    _ => value.trim().isEmpty ? 'Документ' : value,
+  };
+}
+
+String _documentStatusTitle(String value) {
+  return switch (value) {
+    'ready' => 'Готов',
+    'signed' => 'Подписан',
+    'draft' => 'Черновик',
+    'pending' => 'Ожидает',
+    _ => value.trim().isEmpty ? 'Добавлен' : value,
   };
 }
