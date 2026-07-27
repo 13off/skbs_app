@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/global_touch_glow.dart';
+
 /// Масштабирует весь Flutter-интерфейс, а не только текст.
 ///
 /// Обратный логический размер позволяет при масштабе меньше 100% показать
@@ -28,48 +30,52 @@ class AppScaleViewport extends StatelessWidget {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final effectiveScale = scale.clamp(0.80, 1.20).toDouble();
-    if ((effectiveScale - 1).abs() < 0.001) return child;
 
-    final logicalSize = Size(
-      mediaQuery.size.width / effectiveScale,
-      mediaQuery.size.height / effectiveScale,
-    );
-
-    return ClipRect(
-      child: OverflowBox(
-        alignment: Alignment.topLeft,
-        minWidth: 0,
-        minHeight: 0,
-        maxWidth: double.infinity,
-        maxHeight: double.infinity,
-        child: Transform.scale(
-          scale: effectiveScale,
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: logicalSize.width,
-            height: logicalSize.height,
-            child: MediaQuery(
-              data: mediaQuery.copyWith(
-                size: logicalSize,
-                padding: _scaledInsets(mediaQuery.padding, effectiveScale),
-                viewPadding: _scaledInsets(
-                  mediaQuery.viewPadding,
-                  effectiveScale,
-                ),
-                viewInsets: _scaledInsets(
-                  mediaQuery.viewInsets,
-                  effectiveScale,
-                ),
-                systemGestureInsets: _scaledInsets(
-                  mediaQuery.systemGestureInsets,
-                  effectiveScale,
+    final scaledChild = (effectiveScale - 1).abs() < 0.001
+        ? child
+        : ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topLeft,
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              child: Transform.scale(
+                scale: effectiveScale,
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: mediaQuery.size.width / effectiveScale,
+                  height: mediaQuery.size.height / effectiveScale,
+                  child: MediaQuery(
+                    data: mediaQuery.copyWith(
+                      size: Size(
+                        mediaQuery.size.width / effectiveScale,
+                        mediaQuery.size.height / effectiveScale,
+                      ),
+                      padding: _scaledInsets(
+                        mediaQuery.padding,
+                        effectiveScale,
+                      ),
+                      viewPadding: _scaledInsets(
+                        mediaQuery.viewPadding,
+                        effectiveScale,
+                      ),
+                      viewInsets: _scaledInsets(
+                        mediaQuery.viewInsets,
+                        effectiveScale,
+                      ),
+                      systemGestureInsets: _scaledInsets(
+                        mediaQuery.systemGestureInsets,
+                        effectiveScale,
+                      ),
+                    ),
+                    child: child,
+                  ),
                 ),
               ),
-              child: child,
             ),
-          ),
-        ),
-      ),
-    );
+          );
+
+    return AppTouchGlowOverlay(child: scaledChild);
   }
 }
