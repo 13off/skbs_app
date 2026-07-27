@@ -1,5 +1,6 @@
 name: Apply AI assistant lock
 
+# One-time trigger after the workflow was registered in main.
 on:
   push:
     branches:
