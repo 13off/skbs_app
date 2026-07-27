@@ -2,8 +2,7 @@ name: Run three feature patch on PR
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: write
@@ -17,7 +16,6 @@ jobs:
           ref: feature/foreman-drafts-payment-filters-first-run-guide
 
       - id: apply
-        name: Apply embedded patch
         shell: bash
         run: |
           if [ -f lib/features/onboarding/presentation/first_run_guide.dart ]; then
@@ -27,29 +25,31 @@ jobs:
           rm -f .github/patch-error.txt
           python3 <<'PY'
           from pathlib import Path
-
-          workflow = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
-          start_marker = "          python3 <<'PY'\n"
-          start = workflow.index(start_marker) + len(start_marker)
-          end = workflow.index("\n          PY", start)
-          raw_lines = workflow[start:end].splitlines()
+          source = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
+          marker = "          python3 <<'PY'\n"
+          start = source.index(marker) + len(marker)
+          end = source.index("\n          PY", start)
+          lines = source[start:end].splitlines()
           output = []
-          inside_triple_string = False
-          for line in raw_lines:
-              if inside_triple_string:
-                  processed = line
-              else:
-                  processed = line[10:] if line.startswith('          ') else line
+          triple = False
+          for line in lines:
+              processed = line if triple else (line[10:] if line.startswith('          ') else line)
               output.append(processed)
               if processed.count('"""') % 2 == 1:
-                  inside_triple_string = not inside_triple_string
-          Path('/tmp/apply-three-features.py').write_text(
-              '\n'.join(output) + '\n',
-              encoding='utf-8',
+                  triple = not triple
+          script = '\n'.join(output) + '\n'
+          script = script.replace(
+              '"""                 Text(\n                  monthTitle,\n"""',
+              '"""                Text(\n                  monthTitle,\n"""',
           )
+          script = script.replace(
+              '"""                 buildSearch(),\n                 const SizedBox(height: 16),\n"""',
+              '"""                buildSearch(),\n                const SizedBox(height: 16),\n"""',
+          )
+          Path('/tmp/apply.py').write_text(script, encoding='utf-8')
           PY
           set +e
-          python3 /tmp/apply-three-features.py 2> .github/patch-error.txt
+          python3 /tmp/apply.py 2> .github/patch-error.txt
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
@@ -60,7 +60,6 @@ jobs:
           fi
 
       - if: steps.apply.outputs.changed == 'error'
-        name: Commit patch diagnostics
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -75,31 +74,16 @@ jobs:
           cache: true
 
       - if: steps.apply.outputs.changed == 'true'
-        name: Format and verify
         run: |
-          dart format \
-            lib/data/task_repository.dart \
-            lib/screens/add_task_screen.dart \
-            lib/screens/task_create/task_create_actions.dart \
-            lib/screens/task_create/task_create_view.dart \
-            lib/features/tasks/presentation/task_drafts_sheet.dart \
-            lib/screens/mobile_tasks_screen.dart \
-            lib/features/foreman/presentation/foreman_desktop_tasks_screen.dart \
-            lib/features/foreman/presentation/foreman_main_screen.dart \
-            lib/features/payments/presentation/screens/payments_screen.dart \
-            lib/features/onboarding/presentation/first_run_guide.dart \
-            lib/features/whats_new/presentation/whats_new_gate.dart \
-            lib/screens/main_screen.dart \
-            test/foreman_drafts_payments_onboarding_contract_test.dart
+          dart format lib test
           flutter pub get
           flutter analyze
           flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
 
       - if: steps.apply.outputs.changed == 'true'
-        name: Commit feature changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib test .github/patch-error.txt
+          git add lib test
           git commit -m "Применить черновики, фильтры выплат и обучение"
           git push
