@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,20 +26,15 @@ class PremiumPressable extends StatefulWidget {
   State<PremiumPressable> createState() => _PremiumPressableState();
 }
 
-class _PremiumPressableState extends State<PremiumPressable>
-    with SingleTickerProviderStateMixin {
+class _PremiumPressableState extends State<PremiumPressable> {
   static const Duration _pressDuration = Duration(milliseconds: 38);
   static const Duration _hoverDuration = Duration(milliseconds: 85);
   static const Duration _opacityReleaseDuration = Duration(milliseconds: 95);
   static const Duration _releaseDuration = Duration(milliseconds: 190);
-  static const Duration _glowDuration = Duration(milliseconds: 620);
-
-  late final AnimationController glowController;
 
   bool isPressed = false;
   bool isHovered = false;
   bool isFocused = false;
-  Offset? glowOrigin;
 
   bool get isEnabled => widget.onTap != null;
 
@@ -52,33 +45,14 @@ class _PremiumPressableState extends State<PremiumPressable>
         defaultTargetPlatform == TargetPlatform.linux;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    glowController = AnimationController(vsync: this, duration: _glowDuration);
-  }
-
-  @override
-  void dispose() {
-    glowController.dispose();
-    super.dispose();
-  }
-
   void updatePressed(bool value) {
     if (!mounted || isPressed == value) return;
     setState(() => isPressed = value);
   }
 
-  void triggerGlow(Offset origin) {
-    if (!mounted) return;
-    setState(() => glowOrigin = origin);
-    glowController.forward(from: 0);
-  }
-
-  void handleTapDown(TapDownDetails details) {
+  void handleTapDown(TapDownDetails _) {
     if (!isEnabled) return;
     updatePressed(true);
-    triggerGlow(details.localPosition);
 
     if (widget.enableHaptics && !kIsWeb) {
       final platform = defaultTargetPlatform;
@@ -90,10 +64,6 @@ class _PremiumPressableState extends State<PremiumPressable>
 
   void invokeAction() {
     if (!isEnabled) return;
-    final renderBox = context.findRenderObject();
-    if (renderBox is RenderBox && renderBox.hasSize) {
-      triggerGlow(renderBox.size.center(Offset.zero));
-    }
     widget.onTap?.call();
   }
 
@@ -191,14 +161,6 @@ class _PremiumPressableState extends State<PremiumPressable>
                             offset: const Offset(0, 11),
                           ),
                         ]
-                      : isPressed
-                      ? [
-                          BoxShadow(
-                            color: primary.withValues(alpha: 0.10),
-                            blurRadius: 16,
-                            spreadRadius: -7,
-                          ),
-                        ]
                       : const [],
                 ),
                 child: AnimatedOpacity(
@@ -210,31 +172,7 @@ class _PremiumPressableState extends State<PremiumPressable>
                       : _opacityReleaseDuration,
                   child: ClipRRect(
                     borderRadius: widget.borderRadius,
-                    child: Stack(
-                      fit: StackFit.passthrough,
-                      children: [
-                        if (isEnabled && !animationsDisabled)
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: RepaintBoundary(
-                                child: AnimatedBuilder(
-                                  animation: glowController,
-                                  builder: (context, _) {
-                                    return CustomPaint(
-                                      painter: _TouchGlowPainter(
-                                        progress: glowController.value,
-                                        origin: glowOrigin,
-                                        color: primary,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                        widget.child,
-                      ],
-                    ),
+                    child: widget.child,
                   ),
                 ),
               ),
@@ -243,49 +181,5 @@ class _PremiumPressableState extends State<PremiumPressable>
         ),
       ),
     );
-  }
-}
-
-class _TouchGlowPainter extends CustomPainter {
-  final double progress;
-  final Offset? origin;
-  final Color color;
-
-  const _TouchGlowPainter({
-    required this.progress,
-    required this.origin,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0 || progress >= 1 || size.isEmpty) return;
-
-    final center = Offset(
-      (origin?.dx ?? size.width / 2).clamp(0.0, size.width).toDouble(),
-      (origin?.dy ?? size.height / 2).clamp(0.0, size.height).toDouble(),
-    );
-    final eased = Curves.easeOutQuint.transform(progress);
-    final fade = math.pow(1 - progress, 2.2).toDouble();
-    final radius = 34 + math.max(size.width, size.height) * 1.18 * eased;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    final paint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.055 * fade),
-          color.withValues(alpha: 0.035 * fade),
-          color.withValues(alpha: 0),
-        ],
-        stops: const [0, 0.52, 1],
-      ).createShader(rect);
-
-    canvas.drawCircle(center, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TouchGlowPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.origin != origin ||
-        oldDelegate.color != color;
   }
 }
