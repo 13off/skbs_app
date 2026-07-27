@@ -137,7 +137,7 @@ async function syncFromRecruitment(
   const matching = applications.filter(
     (row: RecruitmentIdentity) =>
       normalizePhone(row.phone) === account.phone_e164 &&
-      parseMaxId(row.external_user_id).isNotEmpty,
+      parseMaxId(row.external_user_id) !== "",
   );
   const uniqueMaxUsers = new Map<string, RecruitmentIdentity>();
   for (const row of matching) {
