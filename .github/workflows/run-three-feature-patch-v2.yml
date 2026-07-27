@@ -38,10 +38,27 @@ jobs:
               if processed.count('"""') % 2 == 1:
                   triple = not triple
           script = '\n'.join(output) + '\n'
-          script = script.replace(
-              '"""                 Text(\n                  monthTitle,\n"""',
-              '"""                Text(\n                  monthTitle,\n"""',
-          )
+          original = """def replace_once(path, old, new):
+    content = read(path)
+    if old not in content:
+        raise SystemExit(f'Marker not found in {path}: {old[:100]!r}')
+    write(path, content.replace(old, new, 1))
+"""
+          flexible = """def replace_once(path, old, new):
+    content = read(path)
+    if old in content:
+        write(path, content.replace(old, new, 1))
+        return
+    tokens = old.split()
+    pattern = re.compile(r'\\s+'.join(re.escape(token) for token in tokens), re.MULTILINE)
+    match = pattern.search(content)
+    if match is None:
+        raise SystemExit(f'Marker not found in {path}: {old[:100]!r}')
+    write(path, content[:match.start()] + new + content[match.end():])
+"""
+          if original not in script:
+              raise SystemExit('replace_once definition not found')
+          script = script.replace(original, flexible, 1)
           Path('/tmp/apply.py').write_text(script, encoding='utf-8')
           PY
           set +e
