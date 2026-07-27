@@ -1,0 +1,44 @@
+name: Fix payment settlement analyzer
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feature/payment-settlement-period'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/payment-settlement-period
+
+      - name: Apply analyzer fix
+        run: python3 tool/fix_payment_settlement_analyzer.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Verify fix
+        run: |
+          dart format lib/features/payments/presentation/screens/payments_screen.dart
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test test/payment_settlement_period_contract_test.dart
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm tool/fix_payment_settlement_analyzer.py
+          git rm .github/workflows/fix-payment-settlement-analyzer.yml
+          git add lib/features/payments/presentation/screens/payments_screen.dart
+          git commit -m "Исправить типизацию денежного режима"
+          git push
