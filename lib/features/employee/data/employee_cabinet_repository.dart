@@ -316,12 +316,13 @@ class EmployeeCabinetRepository {
     int? month,
   }) async {
     try {
+      final body = <String, dynamic>{};
+      if (year != null) body['year'] = year;
+      if (month != null) body['month'] = month;
+
       final response = await _client.functions.invoke(
         'employee-cabinet',
-        body: <String, dynamic>{
-          if (year != null) 'year': year,
-          if (month != null) 'month': month,
-        },
+        body: body,
       );
       final raw = response.data;
       if (raw is! Map) {
