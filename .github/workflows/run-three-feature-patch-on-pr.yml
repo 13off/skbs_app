@@ -1,4 +1,4 @@
-name: Run three feature patch on PR
+name: Clean three feature branch
 
 on:
   pull_request:
@@ -8,103 +8,71 @@ permissions:
   contents: write
 
 jobs:
-  patch:
+  clean:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feature/foreman-drafts-payment-filters-first-run-guide
+          fetch-depth: 0
 
-      - id: apply
-        shell: bash
+      - name: Restore main and keep only feature files
         run: |
-          if [ -f lib/features/onboarding/presentation/first_run_guide.dart ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          rm -f .github/patch-error.txt
-          python3 <<'PY'
-          from pathlib import Path
-          source = Path('.github/workflows/apply-three-backlog-features.yml').read_text(encoding='utf-8')
-          marker = "          python3 <<'PY'\n"
-          start = source.index(marker) + len(marker)
-          end = source.index("\n          PY", start)
-          lines = source[start:end].splitlines()
-          output = []
-          triple = False
-          for line in lines:
-              processed = line if triple else (line[10:] if line.startswith('          ') else line)
-              output.append(processed)
-              if processed.count('"""') % 2 == 1:
-                  triple = not triple
-          script = '\n'.join(output) + '\n'
-          script = script.replace(
-              '"""                 Text(\n                  monthTitle,\n"""',
-              '"""                Text(\n                  monthTitle,\n"""',
-          )
-          script = script.replace(
-              '"""                 buildSearch(),\n                 const SizedBox(height: 16),\n"""',
-              '"""                buildSearch(),\n                const SizedBox(height: 16),\n"""',
-          )
-          Path('/tmp/apply.py').write_text(script, encoding='utf-8')
-          PY
-          set +e
-          python3 /tmp/apply.py 2> .github/patch-error.txt
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            echo "changed=error" >> "$GITHUB_OUTPUT"
-          else
-            rm -f .github/patch-error.txt
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+          tar -cf /tmp/three-features.tar \
+            lib/data/task_repository.dart \
+            lib/screens/add_task_screen.dart \
+            lib/screens/task_create/task_create_actions.dart \
+            lib/screens/task_create/task_create_view.dart \
+            lib/features/tasks/presentation/task_drafts_sheet.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_desktop_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_main_screen.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/features/onboarding/presentation/first_run_guide.dart \
+            lib/features/whats_new/presentation/whats_new_gate.dart \
+            lib/screens/main_screen.dart \
+            test/foreman_drafts_payments_onboarding_contract_test.dart
+          git fetch origin main
+          rm -rf lib test
+          git checkout origin/main -- lib test
+          tar -xf /tmp/three-features.tar
+          rm -f \
+            .github/patch-error.txt \
+            .github/patch-v2-error.txt \
+            .github/feature-check.txt \
+            .github/workflows/apply-three-backlog-features.yml \
+            .github/workflows/run-three-feature-patch-on-pr.yml \
+            .github/workflows/run-three-feature-patch-v2.yml
 
-      - if: steps.apply.outputs.changed == 'error'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/patch-error.txt
-          git commit -m "Сохранить ошибку применения патча"
-          git push
-
-      - if: steps.apply.outputs.changed == 'true'
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - if: steps.apply.outputs.changed == 'true'
-        id: verify
+      - name: Verify clean feature diff
         run: |
-          rm -f .github/feature-check.txt
-          set +e
-          {
-            dart format lib test
-            flutter pub get
-            flutter analyze
-            flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
-          } > .github/feature-check.txt 2>&1
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            echo "result=error" >> "$GITHUB_OUTPUT"
-          else
-            rm -f .github/feature-check.txt
-            echo "result=ok" >> "$GITHUB_OUTPUT"
-          fi
+          dart format \
+            lib/data/task_repository.dart \
+            lib/screens/add_task_screen.dart \
+            lib/screens/task_create/task_create_actions.dart \
+            lib/screens/task_create/task_create_view.dart \
+            lib/features/tasks/presentation/task_drafts_sheet.dart \
+            lib/screens/mobile_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_desktop_tasks_screen.dart \
+            lib/features/foreman/presentation/foreman_main_screen.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/features/onboarding/presentation/first_run_guide.dart \
+            lib/features/whats_new/presentation/whats_new_gate.dart \
+            lib/screens/main_screen.dart \
+            test/foreman_drafts_payments_onboarding_contract_test.dart
+          flutter pub get
+          flutter analyze
+          flutter test test/foreman_drafts_payments_onboarding_contract_test.dart
 
-      - if: steps.verify.outputs.result == 'error'
+      - name: Commit clean feature diff
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/feature-check.txt
-          git commit -m "Сохранить ошибки проверки трёх функций"
-          git push
-
-      - if: steps.verify.outputs.result == 'ok'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib test
-          git commit -m "Применить черновики, фильтры выплат и обучение"
+          git add -A
+          git commit -m "Очистить изменения трёх функций"
           git push
