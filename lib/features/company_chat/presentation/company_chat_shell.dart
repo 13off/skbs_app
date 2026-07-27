@@ -9,6 +9,8 @@ import '../../../models/app_user_profile.dart';
 import '../data/company_chat_repository.dart';
 import '../models/company_chat_models.dart';
 
+const bool _aiAssistantLocked = true;
+
 class CompanyChatShell extends StatefulWidget {
   final AppUserProfile profile;
   final Widget child;
@@ -134,7 +136,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       if (!mounted || request != threadRequestSerial) return;
       final nextThreads = values[0] as List<CompanyChatThread>;
       final nextUnread = values[1] as CompanyChatUnreadState;
-      final nextSelected = _resolveSelected(nextThreads, selectedThread?.threadKey);
+      final nextSelected = _resolveSelected(
+        nextThreads,
+        selectedThread?.threadKey,
+      );
       final nextMessages = nextSelected == null
           ? const <CompanyChatMessage>[]
           : await _fetchThreadMessages(nextSelected);
@@ -258,6 +263,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
   }
 
   Future<void> selectThread(CompanyChatThread thread) async {
+    if (thread.isAssistant && _aiAssistantLocked) {
+      showMessage('ИИ-помощник временно недоступен');
+      return;
+    }
     if (selectedThread?.threadKey == thread.threadKey || sending) return;
     final request = ++threadRequestSerial;
     setState(() {
@@ -358,6 +367,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
     final thread = selectedThread;
     final text = messageController.text.trim();
     if (thread == null || sending || (text.isEmpty && pendingFiles.isEmpty)) {
+      return;
+    }
+    if (thread.isAssistant && _aiAssistantLocked) {
+      showMessage('ИИ-помощник временно недоступен');
       return;
     }
     final files = List<_PendingChatFile>.from(pendingFiles);
@@ -848,10 +861,8 @@ class _ChatWorkspacePanel extends StatelessWidget {
         controller: scrollController,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         itemCount: messages.length,
-        itemBuilder: (context, index) => _messageBubble(
-          context,
-          messages[index],
-        ),
+        itemBuilder: (context, index) =>
+            _messageBubble(context, messages[index]),
       ),
     );
   }
@@ -1001,6 +1012,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
   Widget _composer(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final assistant = selectedThread?.isAssistant == true;
+    final locked = assistant && _aiAssistantLocked;
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
@@ -1046,7 +1058,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
               children: [
                 IconButton(
                   tooltip: 'Прикрепить фото или файл',
-                  onPressed: sending || selectedThread == null
+                  onPressed: locked || sending || selectedThread == null
                       ? null
                       : onPickFiles,
                   icon: const Icon(Icons.attach_file_rounded),
@@ -1054,14 +1066,16 @@ class _ChatWorkspacePanel extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: messageController,
-                    enabled: !sending && selectedThread != null,
+                    enabled: !locked && !sending && selectedThread != null,
                     minLines: 1,
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => onSend(),
                     decoration: InputDecoration(
-                      hintText: assistant
+                      hintText: locked
+                          ? 'ИИ-помощник временно недоступен'
+                          : assistant
                           ? 'Сообщение ИИ-помощнику…'
                           : 'Сообщение…',
                       isDense: true,
@@ -1082,11 +1096,18 @@ class _ChatWorkspacePanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 IconButton.filled(
-                  tooltip: assistant ? 'Отправить ИИ' : 'Отправить',
-                  onPressed: sending || askingAi || selectedThread == null
+                  tooltip: locked
+                      ? 'ИИ-помощник временно недоступен'
+                      : assistant
+                      ? 'Отправить ИИ'
+                      : 'Отправить',
+                  onPressed:
+                      locked || sending || askingAi || selectedThread == null
                       ? null
                       : onSend,
-                  icon: sending || askingAi
+                  icon: locked
+                      ? const Icon(Icons.lock_rounded, size: 19)
+                      : sending || askingAi
                       ? const SizedBox.square(
                           dimension: 17,
                           child: CircularProgressIndicator(strokeWidth: 2),
@@ -1137,7 +1158,10 @@ class _ThreadSidebar extends StatelessWidget {
     final assistant = threads.where((item) => item.isAssistant).toList();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = math.min(230.0, math.max(150.0, constraints.maxWidth * 0.31));
+        final width = math.min(
+          230.0,
+          math.max(150.0, constraints.maxWidth * 0.31),
+        );
         return SizedBox(
           width: width,
           child: ColoredBox(
@@ -1155,7 +1179,8 @@ class _ThreadSidebar extends StatelessWidget {
                 if (general.isNotEmpty)
                   _ThreadTile(
                     thread: general.first,
-                    selected: selectedThread?.threadKey == general.first.threadKey,
+                    selected:
+                        selectedThread?.threadKey == general.first.threadKey,
                     onTap: () => onSelectThread(general.first),
                   ),
                 Padding(
@@ -1207,9 +1232,11 @@ class _ThreadSidebar extends StatelessWidget {
                     child: _ThreadTile(
                       thread: assistant.first,
                       selected:
-                          selectedThread?.threadKey == assistant.first.threadKey,
+                          selectedThread?.threadKey ==
+                          assistant.first.threadKey,
                       onTap: () => onSelectThread(assistant.first),
                       assistant: true,
+                      locked: _aiAssistantLocked,
                     ),
                   ),
                 ],
@@ -1227,18 +1254,22 @@ class _ThreadTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool assistant;
+  final bool locked;
 
   const _ThreadTile({
     required this.thread,
     required this.selected,
     required this.onTap,
     this.assistant = false,
+    this.locked = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final subtitle = thread.lastMessagePreview.isNotEmpty
+    final subtitle = locked
+        ? 'Временно недоступен'
+        : thread.lastMessagePreview.isNotEmpty
         ? thread.lastMessagePreview
         : thread.isDirect
         ? AppUserProfile.titleForRole(thread.role)
@@ -1249,9 +1280,7 @@ class _ThreadTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: selected
-            ? (assistant
-                  ? scheme.tertiaryContainer
-                  : scheme.primaryContainer)
+            ? (assistant ? scheme.tertiaryContainer : scheme.primaryContainer)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(13),
         child: InkWell(
@@ -1315,6 +1344,14 @@ class _ThreadTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (locked) ...[
+                  const SizedBox(width: 5),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 15,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
                 if (thread.unreadCount > 0) ...[
                   const SizedBox(width: 5),
                   _UnreadBadge(count: thread.unreadCount),
@@ -1397,11 +1434,7 @@ class _ChatLauncherButton extends StatelessWidget {
             ),
           ),
           if (count > 0)
-            Positioned(
-              right: -4,
-              top: -5,
-              child: _UnreadBadge(count: count),
-            ),
+            Positioned(right: -4, top: -5, child: _UnreadBadge(count: count)),
         ],
       ),
     );

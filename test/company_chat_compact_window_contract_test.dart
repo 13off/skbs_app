@@ -36,8 +36,24 @@ void main() {
     expect(repository, contains("'get_company_chat_threads'"));
     expect(repository, contains("'p_channel_kind'"));
     expect(repository, contains("'p_peer_user_id'"));
-    expect(migration, contains("channel_kind in ('general', 'direct', 'assistant')"));
+    expect(
+      migration,
+      contains("channel_kind in ('general', 'direct', 'assistant')"),
+    );
     expect(migration, contains('get_company_chat_threads'));
+  });
+
+  test('assistant is visibly locked and cannot be opened or used', () {
+    final source = File(
+      'lib/features/company_chat/presentation/company_chat_shell.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('const bool _aiAssistantLocked = true'));
+    expect(source, contains("showMessage('ИИ-помощник временно недоступен')"));
+    expect(source, contains("'Временно недоступен'"));
+    expect(source, contains('Icons.lock_rounded'));
+    expect(source, contains('if (thread.isAssistant && _aiAssistantLocked)'));
+    expect(source, contains('final locked = assistant && _aiAssistantLocked'));
   });
 
   test('photos and files are sent inside the compact workspace', () {
@@ -48,6 +64,9 @@ void main() {
     expect(source, contains('openFiles()'));
     expect(source, contains('CompanyChatRepository.uploadAttachment('));
     expect(source, contains("'Прикрепить фото или файл'"));
-    expect(source, contains('CompanyChatRepository.createSignedAttachmentUrl('));
+    expect(
+      source,
+      contains('CompanyChatRepository.createSignedAttachmentUrl('),
+    );
   });
 }
