@@ -103,7 +103,7 @@ class CompanyChatRepository {
           (value) =>
               CompanyChatThread.fromMap(Map<String, dynamic>.from(value)),
         )
-        .where((value) => value.threadKey.isNotEmpty)
+        .where((value) => value.threadKey.isNotEmpty && !value.isAssistant)
         .toList(growable: false);
   }
 
@@ -302,7 +302,7 @@ class CompanyChatRepository {
   static String _safeFileName(String value) {
     final clean = value
         .trim()
-        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'[\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), ' ');
     if (clean.isEmpty) return 'file';
     return clean.length <= 180 ? clean : clean.substring(clean.length - 180);
