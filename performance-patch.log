@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/runner/work/skbs_app/skbs_app/tool/apply_web_performance_patch.py", line 217, in <module>
+    replace_once(pressable_path, old_pressable_tree, new_pressable_tree)
+  File "/home/runner/work/skbs_app/skbs_app/tool/apply_web_performance_patch.py", line 10, in replace_once
+    raise RuntimeError(f'Не найден маркер в {path}: {old[:100]!r}')
+RuntimeError: Не найден маркер в lib/widgets/premium_pressable_v3.dart: '        child: AnimatedSlide(\n          offset: activeHover ? const Offset(0, -0.012) : Offset.zero,'
