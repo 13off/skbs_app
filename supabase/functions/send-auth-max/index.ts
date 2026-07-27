@@ -113,6 +113,9 @@ async function sendMaxMessage({
   maxUserId: string;
   body: string;
 }) {
+  // MAX требует новый API-домен, но часть серверных окружений пока не
+  // доверяет его российской цепочке сертификатов. Старый домен оставлен
+  // временным резервом, чтобы действующий бот не терял доставку кодов.
   const hosts = [
     "https://platform-api2.max.ru",
     "https://platform-api.max.ru",
