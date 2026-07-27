@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../../../app/theme_controller.dart';
 import '../../../widgets/premium_ui.dart';
 
 class PersistentTabController extends ChangeNotifier {
@@ -128,7 +129,16 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         key: widget.controller.navigatorKeys[index],
         onGenerateRoute: (settings) => CupertinoPageRoute<void>(
           settings: settings,
-          builder: (context) => widget.tabBuilder(context, index),
+          builder: (context) => AnimatedBuilder(
+            animation: AppThemeController.instance,
+            builder: (context, _) {
+              // PersistentTabShell keeps nested Navigators alive between tabs.
+              // Rebuild only their page content when the theme changes, while
+              // preserving the selected tab, route stack and screen state.
+              Theme.of(context);
+              return widget.tabBuilder(context, index);
+            },
+          ),
         ),
       ),
     );
