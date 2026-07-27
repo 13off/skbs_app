@@ -73,6 +73,17 @@ jobs:
         if: steps.patch.outcome == 'failure'
         run: exit 1
 
+      - name: Commit applied source for syntax diagnostics
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          if ! git diff --cached --quiet; then
+            git commit -m "применен performance патч для проверки синтаксиса"
+            git push origin HEAD:performance/web-fast-smooth
+          fi
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -120,8 +131,8 @@ jobs:
             lib/widgets/professional_bottom_navigation.dart \
             test/web_performance_contract_test.dart
           if git diff --cached --quiet; then
-            echo "Performance patch is already applied"
+            echo "Performance patch is already formatted"
             exit 0
           fi
-          git commit -m "ускорены анимации скроллы и отрисовка Web PWA"
+          git commit -m "отформатирован и проверен performance патч"
           git push origin HEAD:performance/web-fast-smooth
