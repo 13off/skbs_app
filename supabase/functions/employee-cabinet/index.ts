@@ -24,6 +24,11 @@ function numberValue(value: unknown) {
   return Number.isFinite(result) ? result : 0;
 }
 
+function integerValue(value: unknown) {
+  const result = Math.trunc(numberValue(value));
+  return Number.isFinite(result) ? result : 0;
+}
+
 function isoDate(year: number, monthIndex: number, day: number) {
   return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
 }
@@ -56,6 +61,29 @@ Deno.serve(async (request: Request) => {
     if (userError || !user) {
       return json({ error: "Требуется повторный вход" }, 401);
     }
+
+    let input: Record<string, unknown> = {};
+    try {
+      const parsed = await request.json();
+      if (parsed && typeof parsed === "object") {
+        input = parsed as Record<string, unknown>;
+      }
+    } catch {
+      input = {};
+    }
+
+    const now = new Date();
+    const requestedYear = integerValue(input.year);
+    const requestedMonth = integerValue(input.month);
+    const year = requestedYear >= 2020 && requestedYear <= 2100
+      ? requestedYear
+      : now.getUTCFullYear();
+    const month = requestedMonth >= 1 && requestedMonth <= 12
+      ? requestedMonth
+      : now.getUTCMonth() + 1;
+    const monthIndex = month - 1;
+    const monthStart = isoDate(year, monthIndex, 1);
+    const nextMonthStart = isoDate(year, monthIndex + 1, 1);
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -110,26 +138,23 @@ Deno.serve(async (request: Request) => {
 
     const employeeIds = employees.map((row) => String(row.id));
     const rateByEmployee = new Map<string, number>();
+    const objectByEmployee = new Map<string, string>();
     for (const row of employees) {
-      rateByEmployee.set(String(row.id), numberValue(row.daily_rate));
+      const employeeId = String(row.id);
+      rateByEmployee.set(employeeId, numberValue(row.daily_rate));
+      objectByEmployee.set(employeeId, String(row.object_name ?? "").trim());
     }
-
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const monthIndex = now.getUTCMonth();
-    const monthStart = isoDate(year, monthIndex, 1);
-    const nextMonthStart = isoDate(year, monthIndex + 1, 1);
 
     const [attendanceResult, paymentsResult, assigneesResult, formsResult, legalResult] =
       await Promise.all([
         adminClient
           .from("attendance")
-          .select("employee_id, work_date, status, shifts, hours")
+          .select("id, employee_id, work_date, status, shifts, hours")
           .in("employee_id", employeeIds)
           .is("deleted_at", null)
           .gte("work_date", monthStart)
           .lt("work_date", nextMonthStart)
-          .order("work_date", { ascending: false }),
+          .order("work_date", { ascending: true }),
         adminClient
           .from("payments")
           .select(
@@ -184,22 +209,37 @@ Deno.serve(async (request: Request) => {
       tasks = data ?? [];
     }
 
+    const attendance = (attendanceResult.data ?? []).map((row) => {
+      const employeeId = String(row.employee_id);
+      const rowShifts = numberValue(row.shifts);
+      const dailyRate = rateByEmployee.get(employeeId) ?? 0;
+      return {
+        id: row.id,
+        employee_id: employeeId,
+        work_date: row.work_date,
+        status: row.status,
+        shifts: rowShifts,
+        hours: numberValue(row.hours),
+        object_name: objectByEmployee.get(employeeId) ?? "",
+        daily_rate: dailyRate,
+        estimated_amount: rowShifts * dailyRate,
+      };
+    });
+
     let shifts = 0;
     let hours = 0;
     let estimatedAccrued = 0;
-    for (const row of attendanceResult.data ?? []) {
-      const rowShifts = numberValue(row.shifts);
-      shifts += rowShifts;
+    for (const row of attendance) {
+      shifts += numberValue(row.shifts);
       hours += numberValue(row.hours);
-      estimatedAccrued +=
-        rowShifts * (rateByEmployee.get(String(row.employee_id)) ?? 0);
+      estimatedAccrued += numberValue(row.estimated_amount);
     }
 
     let paidCurrentMonth = 0;
     for (const row of paymentsResult.data ?? []) {
       if (
         Number(row.period_year) === year &&
-        Number(row.period_month) === monthIndex + 1
+        Number(row.period_month) === month
       ) {
         const amount = numberValue(row.amount);
         paidCurrentMonth += row.payment_type === "fine" ? -amount : amount;
@@ -245,7 +285,7 @@ Deno.serve(async (request: Request) => {
       ok: true,
       month: {
         year,
-        month: monthIndex + 1,
+        month,
         start: monthStart,
         end_exclusive: nextMonthStart,
       },
@@ -267,6 +307,7 @@ Deno.serve(async (request: Request) => {
         completed_tasks: completedTasks,
         documents: documents.length,
       },
+      attendance,
       tasks,
       payments: paymentsResult.data ?? [],
       documents,
