@@ -32,6 +32,7 @@ class _PremiumPressableState extends State<PremiumPressable>
     with SingleTickerProviderStateMixin {
   static const Duration _pressDuration = Duration(milliseconds: 38);
   static const Duration _hoverDuration = Duration(milliseconds: 85);
+  static const Duration _opacityReleaseDuration = Duration(milliseconds: 95);
   static const Duration _releaseDuration = Duration(milliseconds: 190);
   static const Duration _glowDuration = Duration(milliseconds: 430);
 
@@ -202,7 +203,11 @@ class _PremiumPressableState extends State<PremiumPressable>
                 ),
                 child: AnimatedOpacity(
                   opacity: isEnabled ? (isPressed ? 0.96 : 1) : 0.46,
-                  duration: duration,
+                  duration: animationsDisabled
+                      ? Duration.zero
+                      : isPressed
+                      ? _pressDuration
+                      : _opacityReleaseDuration,
                   child: ClipRRect(
                     borderRadius: widget.borderRadius,
                     child: Stack(
@@ -257,8 +262,8 @@ class _TouchGlowPainter extends CustomPainter {
     if (progress <= 0 || progress >= 1 || size.isEmpty) return;
 
     final center = Offset(
-      (origin?.dx ?? size.width / 2).clamp(0.0, size.width),
-      (origin?.dy ?? size.height / 2).clamp(0.0, size.height),
+      (origin?.dx ?? size.width / 2).clamp(0.0, size.width).toDouble(),
+      (origin?.dy ?? size.height / 2).clamp(0.0, size.height).toDouble(),
     );
     final eased = Curves.easeOutCubic.transform(progress);
     final fade = math.pow(1 - progress, 1.7).toDouble();
