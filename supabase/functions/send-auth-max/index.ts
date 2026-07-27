@@ -65,7 +65,9 @@ async function validateMaxLink(
     .limit(10);
   if (linksError) throw linksError;
 
-  const uniqueUsers = new Set((links ?? []).map((row: MaxLink) => String(row.max_user_id)));
+  const uniqueUsers = new Set(
+    (links ?? []).map((row: MaxLink) => String(row.max_user_id)),
+  );
   if (!links?.length || uniqueUsers.size !== 1) {
     throw new Error("MAX не подключён к кабинету сотрудника");
   }
@@ -100,6 +102,50 @@ async function validateMaxLink(
   }
 
   throw new Error("Доступ сотрудника отключён");
+}
+
+async function sendMaxMessage({
+  maxBotToken,
+  maxUserId,
+  body,
+}: {
+  maxBotToken: string;
+  maxUserId: string;
+  body: string;
+}) {
+  const hosts = [
+    "https://platform-api2.max.ru",
+    "https://platform-api.max.ru",
+  ];
+  let lastError: unknown = null;
+
+  for (const host of hosts) {
+    const endpoint = new URL("/messages", host);
+    endpoint.searchParams.set("user_id", maxUserId);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: maxBotToken,
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body,
+        signal: AbortSignal.timeout(7000),
+      });
+      if (response.ok || response.status < 500) return response;
+      lastError = new Error(`MAX HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      console.warn("MAX endpoint unavailable, trying fallback", {
+        host,
+        name: error instanceof Error ? error.name : "UnknownError",
+      });
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("MAX API недоступен");
 }
 
 Deno.serve(async (request: Request) => {
@@ -142,36 +188,30 @@ Deno.serve(async (request: Request) => {
     const appUrl =
       Deno.env.get("APP_PUBLIC_URL")?.trim() ||
       "https://13off.github.io/appstroy-web/";
-    const endpoint = new URL("https://platform-api2.max.ru/messages");
-    endpoint.searchParams.set("user_id", String(maxLink.max_user_id));
-
-    const maxResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: maxBotToken,
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify({
-        text: `Код входа в AppСтрой: **${otp}**\n\nКод действует ограниченное время. Никому его не сообщайте.`,
-        format: "markdown",
-        attachments: [
-          {
-            type: "inline_keyboard",
-            payload: {
-              buttons: [
-                [
-                  {
-                    type: "link",
-                    text: "Открыть AppСтрой",
-                    url: appUrl,
-                  },
-                ],
+    const messageBody = JSON.stringify({
+      text: `Код входа в AppСтрой: **${otp}**\n\nКод действует ограниченное время. Никому его не сообщайте.`,
+      format: "markdown",
+      attachments: [
+        {
+          type: "inline_keyboard",
+          payload: {
+            buttons: [
+              [
+                {
+                  type: "link",
+                  text: "Открыть AppСтрой",
+                  url: appUrl,
+                },
               ],
-            },
+            ],
           },
-        ],
-      }),
-      signal: AbortSignal.timeout(5000),
+        },
+      ],
+    });
+    const maxResponse = await sendMaxMessage({
+      maxBotToken,
+      maxUserId: String(maxLink.max_user_id),
+      body: messageBody,
     });
 
     if (!maxResponse.ok) {
