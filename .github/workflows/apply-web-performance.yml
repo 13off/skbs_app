@@ -1,0 +1,77 @@
+name: Apply web performance pass
+
+on:
+  push:
+    branches:
+      - performance/web-fast-smooth
+    paths:
+      - tool/apply_web_performance_patch.py
+      - .github/workflows/apply-web-performance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: performance/web-fast-smooth
+          fetch-depth: 0
+
+      - name: Apply performance patch
+        run: python3 tool/apply_web_performance_patch.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed source
+        run: |
+          dart format \
+            lib/app/app_theme.dart \
+            lib/app/premium_scroll_behavior.dart \
+            lib/app/app_scale_viewport.dart \
+            lib/app/premium_depth_theme.dart \
+            lib/main.dart \
+            lib/widgets/app_page.dart \
+            lib/widgets/premium_pressable_v3.dart \
+            lib/widgets/premium_ui_v2.dart \
+            lib/widgets/premium_ui_v2_legacy.dart \
+            lib/widgets/professional_bottom_navigation.dart \
+            test/web_performance_contract_test.dart
+
+      - name: Analyze source strictly
+        run: flutter analyze
+
+      - name: Run performance contract
+        run: flutter test test/web_performance_contract_test.dart --reporter compact
+
+      - name: Commit verified source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/app/app_theme.dart \
+            lib/app/premium_scroll_behavior.dart \
+            lib/app/app_scale_viewport.dart \
+            lib/app/premium_depth_theme.dart \
+            lib/main.dart \
+            lib/widgets/app_page.dart \
+            lib/widgets/premium_pressable_v3.dart \
+            lib/widgets/premium_ui_v2.dart \
+            lib/widgets/premium_ui_v2_legacy.dart \
+            lib/widgets/professional_bottom_navigation.dart \
+            test/web_performance_contract_test.dart
+          if git diff --cached --quiet; then
+            echo "Performance patch is already applied"
+            exit 0
+          fi
+          git commit -m "ускорены анимации скроллы и отрисовка Web PWA"
+          git push origin HEAD:performance/web-fast-smooth
