@@ -117,27 +117,4 @@ extension _HomeActions on _HomeScreenState {
       dashboardFuture = loadDashboardData();
     });
   }
-
-  void openAiAssistant(BuildContext context) {
-    Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (_) => AiAssistantScreen(
-          profile: widget.profile,
-          selectedObjectName: widget.selectedObjectName,
-        ),
-      ),
-    );
-  }
-
-  Widget buildAiAssistantButton(BuildContext context) {
-    return FloatingActionButton(
-      heroTag: 'home-ai-assistant',
-      onPressed: () => openAiAssistant(context),
-      tooltip: 'ИИ-помощник',
-      backgroundColor: AppAdaptivePalette.accentSoft,
-      foregroundColor: AppAdaptivePalette.textPrimary,
-      elevation: 8,
-      child: const Icon(Icons.auto_awesome_rounded),
-    );
-  }
 }
