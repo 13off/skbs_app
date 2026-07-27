@@ -22,18 +22,36 @@ class PaymentReportEmployeeOption {
   });
 }
 
+enum PaymentReportPeriodMode { settlementMonth, paymentDateRange, allTime }
+
 class PaymentReportRequest {
+  final PaymentReportPeriodMode periodMode;
   final DateTime? month;
+  final DateTime? paymentDateFrom;
+  final DateTime? paymentDateTo;
   final String? employeeKey;
   final String? objectName;
 
   const PaymentReportRequest({
+    this.periodMode = PaymentReportPeriodMode.settlementMonth,
     required this.month,
+    this.paymentDateFrom,
+    this.paymentDateTo,
     required this.employeeKey,
     this.objectName,
   });
 
-  bool get isAllTime => month == null;
+  PaymentReportPeriodMode get effectivePeriodMode {
+    if (periodMode == PaymentReportPeriodMode.paymentDateRange) {
+      return PaymentReportPeriodMode.paymentDateRange;
+    }
+    if (periodMode == PaymentReportPeriodMode.allTime || month == null) {
+      return PaymentReportPeriodMode.allTime;
+    }
+    return PaymentReportPeriodMode.settlementMonth;
+  }
+
+  bool get isAllTime => effectivePeriodMode == PaymentReportPeriodMode.allTime;
 }
 
 class PaymentReportExporter {
@@ -86,7 +104,7 @@ class PaymentReportExporter {
 
     final paymentRows = await _fetchPaymentRows(
       employeeIds: employeeIds,
-      month: request.month,
+      request: request,
     );
 
     paymentRows.sort((first, second) {
@@ -195,7 +213,7 @@ class PaymentReportExporter {
 
   static Future<List<Map<String, dynamic>>> _fetchPaymentRows({
     required List<String> employeeIds,
-    required DateTime? month,
+    required PaymentReportRequest request,
   }) async {
     const fields =
         'employee_id, period_year, period_month, payment_date, amount, payment_type, comment';
@@ -207,15 +225,31 @@ class PaymentReportExporter {
           ? employeeIds.length
           : start + 100;
       final chunk = employeeIds.sublist(start, end);
-
+      final mode = request.effectivePeriodMode;
       final List<dynamic> rows;
 
-      if (month == null) {
+      if (mode == PaymentReportPeriodMode.allTime) {
         rows = await _client
             .from('payments')
             .select(fields)
             .inFilter('employee_id', chunk);
+      } else if (mode == PaymentReportPeriodMode.paymentDateRange) {
+        final from = request.paymentDateFrom;
+        final to = request.paymentDateTo;
+        if (from == null || to == null) {
+          throw Exception('Не выбран промежуток дат выплаты');
+        }
+        rows = await _client
+            .from('payments')
+            .select(fields)
+            .inFilter('employee_id', chunk)
+            .gte('payment_date', _isoDate(from))
+            .lte('payment_date', _isoDate(to));
       } else {
+        final month = request.month;
+        if (month == null) {
+          throw Exception('Не выбран расчётный месяц');
+        }
         rows = await _client
             .from('payments')
             .select(fields)
@@ -249,6 +283,12 @@ class PaymentReportExporter {
     if (value is num) return value.toInt();
 
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static String _isoDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   static String _formatDate(DateTime date) {
@@ -311,9 +351,13 @@ class PaymentReportExporter {
     required PaymentReportRequest request,
     required List<PaymentReportEmployeeOption> selectedEmployees,
   }) {
-    final period = request.month == null
-        ? 'за_все_время'
-        : '${request.month!.year}_${request.month!.month.toString().padLeft(2, '0')}';
+    final period = switch (request.effectivePeriodMode) {
+      PaymentReportPeriodMode.allTime => 'за_все_время',
+      PaymentReportPeriodMode.paymentDateRange =>
+        'по_датам_${_isoDate(request.paymentDateFrom!)}_${_isoDate(request.paymentDateTo!)}',
+      PaymentReportPeriodMode.settlementMonth =>
+        '${request.month!.year}_${request.month!.month.toString().padLeft(2, '0')}',
+    };
     final employee = selectedEmployees.length == 1
         ? '_${_safeFileName(selectedEmployees.first.name)}'
         : '';

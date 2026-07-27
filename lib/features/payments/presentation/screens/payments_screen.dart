@@ -35,6 +35,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       _PaymentAccountingMode.settlementPeriod;
   _PaymentEmploymentFilter employmentFilter = _PaymentEmploymentFilter.all;
   List<_PaymentDisplayRow> rows = [];
+  List<Employee> reportEmployees = [];
 
   bool isLoading = false;
   bool isExportingReport = false;
@@ -320,6 +321,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           paidByEmployeeId,
           paymentEmployees: scopedEmployees,
         );
+        reportEmployees = scopedEmployees;
       });
     } catch (e) {
       if (!mounted || generation != _loadGeneration) return;
@@ -408,16 +410,32 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   List<PaymentReportEmployeeOption> buildReportEmployeeOptions() {
-    return rows.map((row) {
-      return PaymentReportEmployeeOption(
-        key: normalizedEmployeeKey(row.employee),
-        name: row.employee.name,
-        position: row.employee.position,
-        objectTitle: row.objectTitle,
-        employeeIds: List<String>.from(row.employeeIds),
-        objectNames: List<String>.from(row.objectNames),
-      );
-    }).toList();
+    if (reportEmployees.isEmpty) {
+      return rows.map((row) {
+        return PaymentReportEmployeeOption(
+          key: normalizedEmployeeKey(row.employee),
+          name: row.employee.name,
+          position: row.employee.position,
+          objectTitle: row.objectTitle,
+          employeeIds: List<String>.from(row.employeeIds),
+          objectNames: List<String>.from(row.objectNames),
+        );
+      }).toList();
+    }
+
+    final drafts = <String, _PaymentReportOptionDraft>{};
+    for (final employee in reportEmployees) {
+      final key = normalizedEmployeeKey(employee);
+      drafts
+          .putIfAbsent(key, () => _PaymentReportOptionDraft(employee))
+          .add(employee);
+    }
+
+    final result = drafts.entries
+        .map((entry) => entry.value.toOption(entry.key))
+        .toList();
+    result.sort((a, b) => a.name.compareTo(b.name));
+    return result;
   }
 
   Future<void> openPaymentReport() async {
@@ -435,6 +453,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final request = await showPaymentReportSheet(
       context: context,
       initialMonth: selectedMonth,
+      initialDateRange:
+          selectedRange ??
+          DateTimeRange(
+            start: DateTime(selectedMonth.year, selectedMonth.month, 1),
+            end: DateTime(selectedMonth.year, selectedMonth.month + 1, 0),
+          ),
       employees: employeeOptions,
     );
 
@@ -866,6 +890,213 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
+  Widget buildDesktopSummaryPanel() {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            accountingMode == _PaymentAccountingMode.settlementPeriod
+                ? 'Сводка за расчётный период'
+                : 'Движение денег за период',
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (accountingMode == _PaymentAccountingMode.paymentDate)
+            _MoneySummaryItem(
+              title: 'Фактически выплачено',
+              value: formatMoney(totalPaid),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _MoneySummaryItem(
+                    title: 'Начислено',
+                    value: formatMoney(totalAccrued),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MoneySummaryItem(
+                    title: 'Выплачено за период',
+                    value: formatMoney(totalPaid),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MoneySummaryItem(
+                    title: totalBalance >= 0 ? 'Остаток' : 'Переплата',
+                    value: formatMoney(totalBalance.abs()),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildPaymentStatus(List<_PaymentDisplayRow> visibleRows) {
+    return [
+      if (isLoading)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: LinearProgressIndicator(),
+        ),
+      if (errorText != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            errorText!,
+            style: TextStyle(color: AppAdaptivePalette.danger),
+          ),
+        ),
+      if (!isLoading && visibleRows.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Text(
+              'Сотрудники не найдены',
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+
+  Widget buildCompactPaymentsBody(List<_PaymentDisplayRow> visibleRows) {
+    final leading = <Widget>[
+      buildMonthPanel(),
+      const SizedBox(height: 14),
+      buildSummaryPanel(),
+      const SizedBox(height: 14),
+      buildSearch(),
+      const SizedBox(height: 12),
+      buildPaymentFilters(),
+      const SizedBox(height: 16),
+      ...buildPaymentStatus(visibleRows),
+    ];
+    final rowCount = isLoading && visibleRows.isEmpty ? 0 : visibleRows.length;
+
+    return RefreshIndicator(
+      onRefresh: () => loadPaymentsData(forceRefresh: true),
+      child: ListView.builder(
+        // Flutter 3.44 deprecates this field before exposing its replacement.
+        // ignore: deprecated_member_use
+        cacheExtent: 700,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+        itemCount: leading.length + rowCount,
+        itemBuilder: (context, index) {
+          final child = index < leading.length
+              ? leading[index]
+              : buildPaymentCard(visibleRows[index - leading.length]);
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: RepaintBoundary(child: child),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildDesktopPaymentsBody(List<_PaymentDisplayRow> visibleRows) {
+    final leading = <Widget>[
+      buildMonthPanel(),
+      const SizedBox(height: 18),
+      buildDesktopSummaryPanel(),
+      const SizedBox(height: 18),
+      buildSearch(),
+      const SizedBox(height: 14),
+      ...buildPaymentStatus(visibleRows),
+    ];
+    final rowCount = isLoading && visibleRows.isEmpty ? 0 : visibleRows.length;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1360),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => loadPaymentsData(forceRefresh: true),
+                child: ListView.builder(
+                  // Flutter 3.44 deprecates this field before exposing its replacement.
+                  // ignore: deprecated_member_use
+                  cacheExtent: 800,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(28, 22, 0, 132),
+                  itemCount: leading.length + rowCount,
+                  itemBuilder: (context, index) {
+                    final child = index < leading.length
+                        ? leading[index]
+                        : buildPaymentCard(visibleRows[index - leading.length]);
+                    return RepaintBoundary(child: child);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            SizedBox(
+              width: 360,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(0, 22, 28, 132),
+                children: [
+                  buildPaymentFilters(),
+                  const SizedBox(height: 14),
+                  PremiumWorkCard(
+                    radius: 22,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          accountingMode ==
+                                  _PaymentAccountingMode.settlementPeriod
+                              ? 'Расчётный учёт'
+                              : 'Движение денег',
+                          style: TextStyle(
+                            color: AppAdaptivePalette.textPrimary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          accountingMode ==
+                                  _PaymentAccountingMode.settlementPeriod
+                              ? 'Выплаты относятся к выбранному месяцу независимо от даты выдачи денег.'
+                              : 'Показываются только деньги, фактически выданные за выбранные даты.',
+                          style: TextStyle(
+                            color: AppAdaptivePalette.textMuted,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final visibleRows = filteredRows;
@@ -879,71 +1110,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         actions: [buildReportAction(), buildAddAction()],
       ),
       body: PremiumWorkBackdrop(
-        child: RefreshIndicator(
-          onRefresh: () => loadPaymentsData(forceRefresh: true),
-          child: Builder(
-            builder: (context) {
-              final leading = <Widget>[
-                buildMonthPanel(),
-                const SizedBox(height: 14),
-                buildSummaryPanel(),
-                const SizedBox(height: 14),
-                buildSearch(),
-                const SizedBox(height: 12),
-                buildPaymentFilters(),
-                const SizedBox(height: 16),
-                if (isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (errorText != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      errorText!,
-                      style: TextStyle(color: AppAdaptivePalette.danger),
-                    ),
-                  ),
-                if (!isLoading && visibleRows.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                        'Сотрудники не найдены',
-                        style: TextStyle(
-                          color: AppAdaptivePalette.textMuted,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-              ];
-              final rowCount = isLoading && visibleRows.isEmpty
-                  ? 0
-                  : visibleRows.length;
-
-              return ListView.builder(
-                // Flutter 3.44 deprecates this field before exposing its replacement.
-                // ignore: deprecated_member_use
-                cacheExtent: 700,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
-                itemCount: leading.length + rowCount,
-                itemBuilder: (context, index) {
-                  final child = index < leading.length
-                      ? leading[index]
-                      : buildPaymentCard(visibleRows[index - leading.length]);
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
-                      child: RepaintBoundary(child: child),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktop = constraints.maxWidth >= 1120;
+            return desktop
+                ? buildDesktopPaymentsBody(visibleRows)
+                : buildCompactPaymentsBody(visibleRows);
+          },
         ),
       ),
     );
@@ -1032,6 +1205,42 @@ class _PaymentDisplayDraft {
       objectNames: objectNames.toList()..sort(),
       accrued: accrued,
       paid: paid,
+    );
+  }
+}
+
+class _PaymentReportOptionDraft {
+  final Employee firstEmployee;
+  final Set<String> employeeIds = {};
+  final Set<String> objectNames = {};
+
+  _PaymentReportOptionDraft(this.firstEmployee);
+
+  void add(Employee employee) {
+    final employeeId = employee.id?.trim();
+    final objectName = employee.objectName.trim();
+    if (employeeId != null && employeeId.isNotEmpty) {
+      employeeIds.add(employeeId);
+    }
+    if (objectName.isNotEmpty) {
+      objectNames.add(objectName);
+    }
+  }
+
+  PaymentReportEmployeeOption toOption(String key) {
+    final objects = objectNames.toList()..sort();
+    final objectTitle = objects.isEmpty
+        ? 'Все объекты'
+        : objects.length == 1
+        ? objects.first
+        : objects.join(', ');
+    return PaymentReportEmployeeOption(
+      key: key,
+      name: firstEmployee.name,
+      position: firstEmployee.position,
+      objectTitle: objectTitle,
+      employeeIds: employeeIds.toList(),
+      objectNames: objects,
     );
   }
 }
