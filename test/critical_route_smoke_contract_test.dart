@@ -37,7 +37,7 @@ void main() {
     ]);
   });
 
-  test('главная сохраняет объект, отчёты и ИИ-помощника', () {
+  test('главная сохраняет объект и отчёты, ИИ остаётся внутри чата', () {
     final home = <String>[
       'lib/screens/home_screen.dart',
       'lib/screens/home/home_actions.dart',
@@ -46,13 +46,20 @@ void main() {
       'lib/screens/home/home_view.dart',
       'lib/screens/home/home_widgets.dart',
     ].map(source).join('\n');
+    final chat = source(
+      'lib/features/company_chat/presentation/company_chat_shell.dart',
+    );
 
     expectFragments('главной', home, const <String>[
       'onObjectChanged',
-      'AiAssistantScreen(',
-      "tooltip: 'ИИ-помощник'",
       "'Архив объектов'",
       "'Архивировать объект'",
+    ]);
+    expect(home, isNot(contains("heroTag: 'home-ai-assistant'")));
+    expectFragments('чата', chat, const <String>[
+      "'ИИ-помощник'",
+      "'Временно недоступен'",
+      'Icons.lock_rounded',
     ]);
   });
 
