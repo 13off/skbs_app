@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // Этот контракт также служит безопасной точкой штатной Web/PWA-публикации.
 // Повторная публикация версии без глобального и локального touch-glow.
+// Публикация обновлённой плавной и инерционной физики прокрутки.
 void main() {
   test('global touch glow is removed while viewport scaling stays intact', () {
     final viewport = File(
