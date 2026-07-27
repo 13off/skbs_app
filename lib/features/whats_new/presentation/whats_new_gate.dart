@@ -31,9 +31,10 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
     _checkStarted = true;
 
     SharedPreferences? preferences;
+    String? seenRelease;
     try {
       preferences = await SharedPreferences.getInstance();
-      if (preferences.getString(_preferenceKey) == releaseId) return;
+      seenRelease = preferences.getString(_preferenceKey);
     } catch (_) {
       // Окно всё равно можно показать; ошибка локального хранилища не блокирует вход.
     }
@@ -45,6 +46,7 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
       preferences: preferences,
     );
     if (guideShown || !mounted) return;
+    if (seenRelease == releaseId) return;
 
     await showDialog<void>(
       context: context,
