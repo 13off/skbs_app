@@ -29,17 +29,26 @@ jobs:
       - name: Fix temporary patch indentation
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
+
           path = Path('tool/apply_web_performance_patch.py')
           text = path.read_text(encoding='utf-8')
-          text = text.replace(
-              "old_pressable_tree = '''        child: AnimatedSlide(",
-              "old_pressable_tree = '''          child: AnimatedSlide(",
-          )
-          text = text.replace(
-              "new_pressable_tree = '''        child: AnimatedScale(",
-              "new_pressable_tree = '''          child: AnimatedScale(",
-          )
+
+          def indent_block(source: str, variable: str) -> str:
+              pattern = re.compile(
+                  rf"({variable} = ''')(?P<body>.*?)(\n''')",
+                  re.DOTALL,
+              )
+              match = pattern.search(source)
+              if match is None:
+                  raise RuntimeError(f'Не найден блок {variable}')
+              body = match.group('body')
+              indented = '\n'.join(f'  {line}' for line in body.split('\n'))
+              return source[:match.start('body')] + indented + source[match.end('body'):]
+
+          text = indent_block(text, 'old_pressable_tree')
+          text = indent_block(text, 'new_pressable_tree')
           path.write_text(text, encoding='utf-8')
           PY
 
