@@ -39,6 +39,10 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
       if (text.contains('invalid') || text.contains('expired')) {
         return 'Код неверный или уже истёк';
       }
+      if (text.contains('max не подключ') ||
+          text.contains('ссылку подключения')) {
+        return 'MAX ещё не подключён к кабинету. Попроси руководителя открыть твою карточку и подключить MAX';
+      }
       if (text.contains('не подключ') ||
           text.contains('доступ сотрудника отключ') ||
           text.contains('signup') ||
@@ -49,7 +53,7 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
       }
       if (text.contains('некорректный номер')) return message;
     }
-    return 'Не получилось войти. Проверь номер и интернет';
+    return 'Не получилось получить код в MAX. Проверь номер и интернет';
   }
 
   Future<void> submit() async {
@@ -126,8 +130,8 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
                       const SizedBox(height: 8),
                       Text(
                         codeSent
-                            ? 'Введи код из СМС'
-                            : 'Введи номер из своей карточки сотрудника',
+                            ? 'Введи код из чата «СКБС Работа» в MAX'
+                            : 'Введи номер из своей карточки. Код бесплатно придёт в MAX',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppAdaptivePalette.textMuted,
@@ -175,8 +179,8 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
                             letterSpacing: 4,
                           ),
                           decoration: const InputDecoration(
-                            labelText: 'Код из СМС',
-                            prefixIcon: Icon(Icons.sms_outlined),
+                            labelText: 'Код из MAX',
+                            prefixIcon: Icon(Icons.chat_rounded),
                           ),
                           onSubmitted: (_) => submit(),
                         ),
@@ -194,10 +198,10 @@ class _EmployeeSmsLoginScreenState extends State<EmployeeSmsLoginScreen> {
                       ],
                       const SizedBox(height: 20),
                       PremiumActionButton(
-                        label: codeSent ? 'Войти' : 'Получить код',
+                        label: codeSent ? 'Войти' : 'Получить код в MAX',
                         icon: codeSent
                             ? Icons.login_rounded
-                            : Icons.sms_rounded,
+                            : Icons.chat_rounded,
                         isLoading: isLoading,
                         onPressed: submit,
                       ),
