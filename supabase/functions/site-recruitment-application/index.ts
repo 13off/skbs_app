@@ -2,19 +2,45 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 
 const COMPANY_ID = "e39c8fd5-e7f3-4beb-a269-76e893975a98";
-const OBJECT_ID = "7ff4ebbf-ade6-42da-b101-1ba196565833";
-const VACANCY_ID = "683451ca-b241-407f-b338-fafe94596355";
-const POSITION_TITLE = "Бетонщик-арматурщик";
-const OBJECT_NAME = "Мурманск";
+const MURMANSK_OBJECT_ID = "7ff4ebbf-ade6-42da-b101-1ba196565833";
+const MURMANSK_OBJECT_NAME = "Мурманск";
 const SOURCE = "site";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const ALLOWED_ORIGINS = new Set([
   "https://appstroy-web-c0ef3.ilyaodincev1999.workers.dev",
 ]);
+const VACANCIES = {
+  concrete: {
+    id: "683451ca-b241-407f-b338-fafe94596355",
+    title: "Бетонщик-арматурщик",
+    objectId: MURMANSK_OBJECT_ID,
+    objectName: MURMANSK_OBJECT_NAME,
+  },
+  general: {
+    id: "4b8ef5ee-593b-4e50-aed6-257f065e6040",
+    title: "Разнорабочий",
+    objectId: MURMANSK_OBJECT_ID,
+    objectName: MURMANSK_OBJECT_NAME,
+  },
+  foreman: {
+    id: "1c7d7aa1-0044-40fb-97d9-a83ee7ca1d2d",
+    title: "Мастер-прораб",
+    objectId: MURMANSK_OBJECT_ID,
+    objectName: MURMANSK_OBJECT_NAME,
+  },
+  site_manager: {
+    id: "1c9f54ad-47e4-417f-92d1-9f458e62aaf1",
+    title: "Начальник участка",
+    objectId: MURMANSK_OBJECT_ID,
+    objectName: MURMANSK_OBJECT_NAME,
+  },
+} as const;
 
 type JsonMap = Record<string, unknown>;
+type VacancyKey = keyof typeof VACANCIES;
 type SiteApplicationPayload = {
   requestId?: string;
+  vacancyKey?: string;
   fullName?: string;
   phone?: string;
   city?: string;
@@ -78,14 +104,23 @@ function originFor(request: Request): string {
   return ALLOWED_ORIGINS.has(origin) ? origin : "";
 }
 
-async function notifyRoles(applicationId: string, fullName: string): Promise<void> {
+function resolveVacancy(value: unknown) {
+  const key = clean(value) as VacancyKey;
+  return VACANCIES[key] ? { key, ...VACANCIES[key] } : null;
+}
+
+async function notifyRoles(
+  applicationId: string,
+  fullName: string,
+  vacancy: NonNullable<ReturnType<typeof resolveVacancy>>,
+): Promise<void> {
   const rows = ["admin", "hr"].map((role) => ({
     company_id: COMPANY_ID,
     title: "Новая заявка с сайта",
-    body: `${fullName} · ${POSITION_TITLE} · ${OBJECT_NAME}`,
+    body: `${fullName} · ${vacancy.title} · ${vacancy.objectName}`,
     actor_name: "Кандидат",
     actor_email: "",
-    object_name: OBJECT_NAME,
+    object_name: vacancy.objectName,
     entity_type: "recruitment_application",
     entity_id: applicationId,
     target_role: role,
@@ -98,7 +133,7 @@ async function notifyRoles(applicationId: string, fullName: string): Promise<voi
   if (error) console.error("Site recruitment notification failed", error);
 }
 
-async function findRecentByPhone(phone: string): Promise<JsonMap | null> {
+async function findRecentByPhone(phone: string, vacancyId: string): Promise<JsonMap | null> {
   const since = new Date(Date.now() - 30 * 60_000).toISOString();
   const { data, error } = await admin
     .from("recruitment_applications")
@@ -106,6 +141,7 @@ async function findRecentByPhone(phone: string): Promise<JsonMap | null> {
     .eq("company_id", COMPANY_ID)
     .eq("source", SOURCE)
     .eq("phone", phone)
+    .eq("vacancy_id", vacancyId)
     .gte("created_at", since)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
@@ -144,6 +180,7 @@ Deno.serve(async (request: Request) => {
       return json(origin, { error: "invalid_form_timing" }, 400);
     }
 
+    const vacancy = resolveVacancy(payload.vacancyKey);
     const fullName = clean(payload.fullName).replace(/\s+/g, " ");
     const phone = normalizePhone(payload.phone);
     const city = clean(payload.city).replace(/\s+/g, " ");
@@ -151,13 +188,14 @@ Deno.serve(async (request: Request) => {
     const comment = clean(payload.comment);
     const sourceUrl = clean(payload.sourceUrl).slice(0, 500);
 
+    if (!vacancy) return json(origin, { error: "invalid_vacancy" }, 400);
     if (payload.consent !== true) return json(origin, { error: "consent_required" }, 400);
     if (fullName.length < 5 || fullName.length > 160) return json(origin, { error: "invalid_full_name" }, 400);
     if (!phone) return json(origin, { error: "invalid_phone" }, 400);
     if (city.length < 2 || city.length > 160) return json(origin, { error: "invalid_city" }, 400);
     if (experience.length > 500 || comment.length > 2000) return json(origin, { error: "text_too_long" }, 400);
 
-    const recent = await findRecentByPhone(phone);
+    const recent = await findRecentByPhone(phone, vacancy.id);
     if (recent) {
       const id = clean(recent.id);
       return json(origin, {
@@ -190,9 +228,9 @@ Deno.serve(async (request: Request) => {
         full_name: fullName,
         phone,
         citizenship: "Не указано",
-        object_id: OBJECT_ID,
-        vacancy_id: VACANCY_ID,
-        position_title: POSITION_TITLE,
+        object_id: vacancy.objectId,
+        vacancy_id: vacancy.id,
+        position_title: vacancy.title,
         experience_text: experience,
         ready_date: null,
         status: "new",
@@ -205,9 +243,10 @@ Deno.serve(async (request: Request) => {
           city,
           experience,
           comment,
+          vacancy_key: vacancy.key,
           source_url: sourceUrl,
           user_agent: clean(request.headers.get("user-agent")).slice(0, 500),
-          integration: "skbs-recruitment-site-v1",
+          integration: "skbs-recruitment-site-v3",
         },
       })
       .select("id,status,stage_id")
@@ -222,10 +261,10 @@ Deno.serve(async (request: Request) => {
       status: "new",
       stage_id: clean(data.stage_id) || null,
       stage_title: "Новые",
-      comment: "Кандидат отправил заявку через сайт СКБС",
+      comment: `Кандидат отправил заявку через сайт СКБС: ${vacancy.title}`,
       source: "site",
     });
-    await notifyRoles(applicationId, fullName);
+    await notifyRoles(applicationId, fullName, vacancy);
 
     return json(origin, {
       ok: true,
