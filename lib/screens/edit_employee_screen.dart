@@ -140,20 +140,26 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   }
 
   Widget buildSection({required String title, required List<Widget> children}) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 14),
           ...children,
@@ -192,7 +198,9 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Редактировать сотрудника')),
+        leading: const BackButton(),
+        title: const Text('Редактировать сотрудника'),
+      ),
       body: Form(
         key: formKey,
         child: ListView(
@@ -256,9 +264,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
             buildSection(
               title: 'Работа',
               children: [
@@ -305,14 +311,14 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 ),
               ],
             ),
-
             if (errorText != null) ...[
               const SizedBox(height: 14),
-              Text(errorText!, style: const TextStyle(color: Colors.red)),
+              Text(
+                errorText!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ],
-
             const SizedBox(height: 20),
-
             SizedBox(
               height: 54,
               child: FilledButton.icon(
