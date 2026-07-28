@@ -10,7 +10,7 @@ import '../../role_preview/role_preview_controller.dart';
 class FirstRunGuide {
   FirstRunGuide._();
 
-  static const String version = '2026-07-28-v4-root-target';
+  static const String version = '2026-07-28-v5-overlay-space';
 
   static String preferenceKey(AppUserProfile profile) {
     return 'first_run_guide:$version:${profile.id}:${profile.role}';
@@ -356,6 +356,7 @@ class _GuideOverlayState extends State<_GuideOverlay>
   static const ValueKey<String> professionalPanelKey =
       ValueKey<String>('professional-bottom-navigation-panel');
 
+  final GlobalKey overlayKey = GlobalKey(debugLabel: 'first-run-guide-overlay');
   late final AnimationController pulseController;
   int stepIndex = 0;
   int retries = 0;
@@ -418,16 +419,28 @@ class _GuideOverlayState extends State<_GuideOverlay>
     });
   }
 
-  Rect? findTarget(Size screenSize) {
+  RenderBox? get overlayBox {
+    final renderObject = overlayKey.currentContext?.findRenderObject();
+    if (renderObject is RenderBox &&
+        renderObject.attached &&
+        renderObject.hasSize) {
+      return renderObject;
+    }
+    return null;
+  }
+
+  Rect? findTarget(Size fallbackSize) {
     final root = WidgetsBinding.instance.rootElement;
-    if (root == null) {
+    final coordinateBox = overlayBox;
+    if (root == null || coordinateBox == null) {
       scheduleRetry();
       return null;
     }
 
+    final overlaySize = coordinateBox.size;
     final navigationRect = widget.profile.role == 'employee'
-        ? _findEmployeeNavigationRect(root, screenSize)
-        : _findProfessionalNavigationRect(root, screenSize);
+        ? _findEmployeeNavigationRect(root, coordinateBox, overlaySize)
+        : _findProfessionalNavigationRect(root, coordinateBox, overlaySize);
     if (navigationRect == null) {
       scheduleRetry();
       return null;
@@ -441,34 +454,47 @@ class _GuideOverlayState extends State<_GuideOverlay>
       navigationRect.height,
     ).deflate(3);
     final inflated = itemRect.inflate(4);
+    final bounds = Offset.zero &
+        (overlaySize.isEmpty ? fallbackSize : overlaySize);
 
     return Rect.fromLTRB(
-      math.max(8, inflated.left),
-      math.max(8, inflated.top),
-      math.min(screenSize.width - 8, inflated.right),
-      math.min(screenSize.height - 8, inflated.bottom),
+      math.max(bounds.left + 8, inflated.left),
+      math.max(bounds.top + 8, inflated.top),
+      math.min(bounds.right - 8, inflated.right),
+      math.min(bounds.bottom - 8, inflated.bottom),
     );
   }
 
-  Rect? _findProfessionalNavigationRect(Element root, Size screenSize) {
+  Rect? _findProfessionalNavigationRect(
+    Element root,
+    RenderBox coordinateBox,
+    Size overlaySize,
+  ) {
     return _findBottommostVisibleRect(
       root,
-      screenSize,
+      coordinateBox,
+      overlaySize,
       matches: (widget) => widget.key == professionalPanelKey,
     );
   }
 
-  Rect? _findEmployeeNavigationRect(Element root, Size screenSize) {
+  Rect? _findEmployeeNavigationRect(
+    Element root,
+    RenderBox coordinateBox,
+    Size overlaySize,
+  ) {
     return _findBottommostVisibleRect(
       root,
-      screenSize,
+      coordinateBox,
+      overlaySize,
       matches: (widget) => widget is NavigationBar,
     );
   }
 
   Rect? _findBottommostVisibleRect(
     Element root,
-    Size screenSize, {
+    RenderBox coordinateBox,
+    Size overlaySize, {
     required bool Function(Widget widget) matches,
   }) {
     final candidates = <Rect>[];
@@ -484,10 +510,15 @@ class _GuideOverlayState extends State<_GuideOverlay>
         if (renderObject is RenderBox &&
             renderObject.attached &&
             renderObject.hasSize) {
-          final rect =
-              renderObject.localToGlobal(Offset.zero) & renderObject.size;
-          final nearBottom = rect.bottom >= screenSize.height * 0.65;
-          if (nearBottom && _visible(rect, screenSize)) {
+          final globalTopLeft = renderObject.localToGlobal(Offset.zero);
+          final globalBottomRight = renderObject.localToGlobal(
+            renderObject.size.bottomRight(Offset.zero),
+          );
+          final localTopLeft = coordinateBox.globalToLocal(globalTopLeft);
+          final localBottomRight = coordinateBox.globalToLocal(globalBottomRight);
+          final rect = Rect.fromPoints(localTopLeft, localBottomRight);
+          final nearBottom = rect.bottom >= overlaySize.height * 0.65;
+          if (nearBottom && _visible(rect, overlaySize)) {
             candidates.add(rect);
           }
         }
@@ -502,20 +533,21 @@ class _GuideOverlayState extends State<_GuideOverlay>
     return candidates.first;
   }
 
-  bool _visible(Rect rect, Size screenSize) {
+  bool _visible(Rect rect, Size size) {
     return rect.width > 0 &&
         rect.height > 0 &&
         rect.right > 0 &&
         rect.bottom > 0 &&
-        rect.left < screenSize.width &&
-        rect.top < screenSize.height;
+        rect.left < size.width &&
+        rect.top < size.height;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screen = MediaQuery.sizeOf(context);
-    final target = findTarget(screen);
+    final fallbackScreen = MediaQuery.sizeOf(context);
+    final screen = overlayBox?.size ?? fallbackScreen;
+    final target = findTarget(fallbackScreen);
     final targetReady = target != null || retries >= 20;
     final bubbleWidth = math.min(430.0, screen.width - 32);
     final bubbleLeft = target == null
@@ -527,69 +559,72 @@ class _GuideOverlayState extends State<_GuideOverlay>
         ? math.max(120.0, screen.height * 0.18)
         : math.max(110.0, screen.height - target.top + 24);
 
-    return Material(
-      type: MaterialType.transparency,
-      child: AnimatedBuilder(
-        animation: pulseController,
-        builder: (context, _) {
-          final pulse = pulseController.value;
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {},
-                  child: CustomPaint(
-                    painter: _SpotlightPainter(
-                      target: target,
-                      pulse: pulse,
-                      barrierColor: Colors.black.withValues(alpha: 0.76),
-                      accentColor: theme.colorScheme.primary,
+    return SizedBox.expand(
+      key: overlayKey,
+      child: Material(
+        type: MaterialType.transparency,
+        child: AnimatedBuilder(
+          animation: pulseController,
+          builder: (context, _) {
+            final pulse = pulseController.value;
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {},
+                    child: CustomPaint(
+                      painter: _SpotlightPainter(
+                        target: target,
+                        pulse: pulse,
+                        barrierColor: Colors.black.withValues(alpha: 0.76),
+                        accentColor: theme.colorScheme.primary,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (target != null)
-                Positioned(
-                  left: target.center.dx - 24,
-                  top: math.max(8, target.top - 58 + 7 * pulse),
-                  child: IgnorePointer(
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 48,
-                      color: theme.colorScheme.primary,
-                      shadows: const <Shadow>[
-                        Shadow(color: Colors.black54, blurRadius: 12),
-                      ],
+                if (target != null)
+                  Positioned(
+                    left: target.center.dx - 24,
+                    top: math.max(8, target.top - 58 + 7 * pulse),
+                    child: IgnorePointer(
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 48,
+                        color: theme.colorScheme.primary,
+                        shadows: const <Shadow>[
+                          Shadow(color: Colors.black54, blurRadius: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  left: bubbleLeft,
+                  bottom: bubbleBottom,
+                  width: bubbleWidth,
+                  child: SafeArea(
+                    minimum: const EdgeInsets.only(top: 12),
+                    child: _GuideBubble(
+                      key: ValueKey<int>(stepIndex),
+                      profile: widget.profile,
+                      step: step,
+                      stepIndex: stepIndex,
+                      stepCount: widget.steps.length,
+                      targetFound: target != null,
+                      targetReady: targetReady,
+                      onSkip: widget.onFinish,
+                      onPrevious:
+                          stepIndex == 0 ? null : () => changeStep(-1),
+                      onNext: () => changeStep(1),
                     ),
                   ),
                 ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                left: bubbleLeft,
-                bottom: bubbleBottom,
-                width: bubbleWidth,
-                child: SafeArea(
-                  minimum: const EdgeInsets.only(top: 12),
-                  child: _GuideBubble(
-                    key: ValueKey<int>(stepIndex),
-                    profile: widget.profile,
-                    step: step,
-                    stepIndex: stepIndex,
-                    stepCount: widget.steps.length,
-                    targetFound: target != null,
-                    targetReady: targetReady,
-                    onSkip: widget.onFinish,
-                    onPrevious:
-                        stepIndex == 0 ? null : () => changeStep(-1),
-                    onNext: () => changeStep(1),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -726,9 +761,7 @@ class _GuideBubble extends StatelessWidget {
                         width: active ? 22 : 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: active
-                              ? scheme.primary
-                              : scheme.outlineVariant,
+                          color: active ? scheme.primary : scheme.outlineVariant,
                           borderRadius: BorderRadius.circular(99),
                         ),
                       );
