@@ -10,7 +10,7 @@ import '../../role_preview/role_preview_controller.dart';
 class FirstRunGuide {
   FirstRunGuide._();
 
-  static const String version = '2026-07-28-v3-exact-targets';
+  static const String version = '2026-07-28-v4-root-target';
 
   static String preferenceKey(AppUserProfile profile) {
     return 'first_run_guide:$version:${profile.id}:${profile.role}';
@@ -49,285 +49,274 @@ class FirstRunGuide {
     return true;
   }
 
+  static _GuideStep _step(
+    int tabIndex,
+    int tabCount,
+    IconData icon,
+    String title,
+    String text,
+  ) {
+    return _GuideStep(
+      tabIndex: tabIndex,
+      tabCount: tabCount,
+      icon: icon,
+      title: title,
+      text: text,
+    );
+  }
+
   static List<_GuideStep> _stepsFor(AppUserProfile profile) {
     if (profile.role == 'employee') {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 5,
-          icon: Icons.home_outlined,
-          title: 'Главная',
-          text:
-              'Здесь видны текущий объект, задача на сегодня, смены и личная сводка.',
+      return <_GuideStep>[
+        _step(
+          0,
+          5,
+          Icons.home_outlined,
+          'Главная',
+          'Здесь видны текущий объект, задача на сегодня, смены и личная сводка.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 5,
-          icon: Icons.task_alt_outlined,
-          title: 'Твои задачи',
-          text:
-              'Открывай назначенные работы, проверяй описание и текущий статус.',
+        _step(
+          1,
+          5,
+          Icons.task_alt_outlined,
+          'Твои задачи',
+          'Открывай назначенные работы, проверяй описание и текущий статус.',
         ),
-        _GuideStep(
-          tabIndex: 2,
-          tabCount: 5,
-          icon: Icons.calendar_month_outlined,
-          title: 'Личный табель',
-          text:
-              'Календарь показывает смены, часы, объект и предварительное начисление.',
+        _step(
+          2,
+          5,
+          Icons.calendar_month_outlined,
+          'Личный табель',
+          'Календарь показывает смены, часы, объект и предварительное начисление.',
         ),
-        _GuideStep(
-          tabIndex: 3,
-          tabCount: 5,
-          icon: Icons.folder_copy_outlined,
-          title: 'Документы',
-          text:
-              'Здесь находятся выданные тебе документы и их текущее состояние.',
+        _step(
+          3,
+          5,
+          Icons.folder_copy_outlined,
+          'Документы',
+          'Здесь находятся выданные тебе документы и их текущее состояние.',
         ),
-        _GuideStep(
-          tabIndex: 4,
-          tabCount: 5,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль',
-          text: 'Проверяй личные данные и настройки своего кабинета.',
+        _step(
+          4,
+          5,
+          Icons.person_outline_rounded,
+          'Профиль',
+          'Проверяй личные данные и настройки своего кабинета.',
         ),
       ];
     }
 
     if (profile.isForeman) {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 4,
-          icon: Icons.home_outlined,
-          title: 'Рабочая смена',
-          text:
-              'На стартовом экране собраны состояние объекта и быстрые рабочие действия.',
+      return <_GuideStep>[
+        _step(
+          0,
+          4,
+          Icons.home_outlined,
+          'Рабочая смена',
+          'На стартовом экране собраны состояние объекта и быстрые рабочие действия.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 4,
-          icon: Icons.assignment_outlined,
-          title: 'Задачи объекта',
-          text:
-              'Создавай задачи, назначай исполнителей, добавляй фото и сохраняй черновики.',
+        _step(
+          1,
+          4,
+          Icons.assignment_outlined,
+          'Задачи объекта',
+          'Создавай задачи, назначай исполнителей, добавляй фото и сохраняй черновики.',
         ),
-        _GuideStep(
-          tabIndex: 2,
-          tabCount: 4,
-          icon: Icons.fact_check_outlined,
-          title: 'Табель',
-          text:
-              'Отмечай смены сотрудников своего объекта и проверяй выбранную дату.',
+        _step(
+          2,
+          4,
+          Icons.fact_check_outlined,
+          'Табель',
+          'Отмечай смены сотрудников своего объекта и проверяй выбранную дату.',
         ),
-        _GuideStep(
-          tabIndex: 3,
-          tabCount: 4,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль и уведомления',
-          text:
-              'Здесь находятся настройки, данные пользователя и служебные разделы.',
+        _step(
+          3,
+          4,
+          Icons.person_outline_rounded,
+          'Профиль и уведомления',
+          'Здесь находятся настройки, данные пользователя и служебные разделы.',
         ),
       ];
     }
 
     if (profile.isHr) {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 5,
-          icon: Icons.home_outlined,
-          title: 'Сводка HR',
-          text:
-              'Стартовая страница показывает текущую загрузку и ближайшие действия.',
+      return <_GuideStep>[
+        _step(
+          0,
+          5,
+          Icons.home_outlined,
+          'Сводка HR',
+          'Стартовая страница показывает текущую загрузку и ближайшие действия.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 5,
-          icon: Icons.view_kanban_outlined,
-          title: 'Кандидаты',
-          text:
-              'Веди кандидатов по этапам, сохраняй историю общения и ответственных.',
+        _step(
+          1,
+          5,
+          Icons.view_kanban_outlined,
+          'Кандидаты',
+          'Веди кандидатов по этапам, сохраняй историю общения и ответственных.',
         ),
-        _GuideStep(
-          tabIndex: 2,
-          tabCount: 5,
-          icon: Icons.assignment_ind_outlined,
-          title: 'Оформление',
-          text:
-              'Проверяй данные, согласия и комплект кадровых документов кандидата.',
+        _step(
+          2,
+          5,
+          Icons.assignment_ind_outlined,
+          'Оформление',
+          'Проверяй данные, согласия и комплект кадровых документов кандидата.',
         ),
-        _GuideStep(
-          tabIndex: 3,
-          tabCount: 5,
-          icon: Icons.flight_takeoff_outlined,
-          title: 'Выход на объект',
-          text:
-              'Контролируй мобилизацию, поездку, прибытие и фактический выход сотрудника.',
+        _step(
+          3,
+          5,
+          Icons.flight_takeoff_outlined,
+          'Выход на объект',
+          'Контролируй мобилизацию, поездку, прибытие и фактический выход сотрудника.',
         ),
-        _GuideStep(
-          tabIndex: 4,
-          tabCount: 5,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль',
-          text: 'Здесь находятся настройки и личные данные специалиста.',
+        _step(
+          4,
+          5,
+          Icons.person_outline_rounded,
+          'Профиль',
+          'Здесь находятся настройки и личные данные специалиста.',
         ),
       ];
     }
 
     if (profile.isAccountant) {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 5,
-          icon: Icons.home_outlined,
-          title: 'Сводка бухгалтера',
-          text:
-              'На главной видны денежные показатели и операции, требующие проверки.',
+      return <_GuideStep>[
+        _step(
+          0,
+          5,
+          Icons.home_outlined,
+          'Сводка бухгалтера',
+          'На главной видны денежные показатели и операции, требующие проверки.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 5,
-          icon: Icons.payments_outlined,
-          title: 'Выплаты',
-          text:
-              'Добавляй выплаты, выбирай расчётный период и прикладывай чеки.',
+        _step(
+          1,
+          5,
+          Icons.payments_outlined,
+          'Выплаты',
+          'Добавляй выплаты, выбирай расчётный период и прикладывай чеки.',
         ),
-        _GuideStep(
-          tabIndex: 2,
-          tabCount: 5,
-          icon: Icons.summarize_outlined,
-          title: 'Отчёты',
-          text:
-              'Формируй отчёты по периоду, фактическим датам выплат и сотрудникам.',
+        _step(
+          2,
+          5,
+          Icons.summarize_outlined,
+          'Отчёты',
+          'Формируй отчёты по периоду, фактическим датам выплат и сотрудникам.',
         ),
-        _GuideStep(
-          tabIndex: 3,
-          tabCount: 5,
-          icon: Icons.fact_check_outlined,
-          title: 'Контроль',
-          text:
-              'Проверяй расхождения табеля, выплат, остатков и подтверждающих файлов.',
+        _step(
+          3,
+          5,
+          Icons.fact_check_outlined,
+          'Контроль',
+          'Проверяй расхождения табеля, выплат, остатков и подтверждающих файлов.',
         ),
-        _GuideStep(
-          tabIndex: 4,
-          tabCount: 5,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль',
-          text: 'Личные настройки и данные текущего пользователя.',
+        _step(
+          4,
+          5,
+          Icons.person_outline_rounded,
+          'Профиль',
+          'Личные настройки и данные текущего пользователя.',
         ),
       ];
     }
 
     if (profile.isLawyer) {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 4,
-          icon: Icons.home_outlined,
-          title: 'Юридическая сводка',
-          text:
-              'Здесь собраны ближайшие сроки, риски и документы, требующие внимания.',
+      return <_GuideStep>[
+        _step(
+          0,
+          4,
+          Icons.home_outlined,
+          'Юридическая сводка',
+          'Здесь собраны ближайшие сроки, риски и документы, требующие внимания.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 4,
-          icon: Icons.description_outlined,
-          title: 'Документы',
-          text:
-              'Работай с юридическими документами, версиями, контрагентами и сроками.',
+        _step(
+          1,
+          4,
+          Icons.description_outlined,
+          'Документы',
+          'Работай с юридическими документами, версиями, контрагентами и сроками.',
         ),
-        _GuideStep(
-          tabIndex: 2,
-          tabCount: 4,
-          icon: Icons.gavel_outlined,
-          title: 'Юридические вопросы',
-          text:
-              'Веди дела, решения, ответственных и историю изменения статусов.',
+        _step(
+          2,
+          4,
+          Icons.gavel_outlined,
+          'Юридические вопросы',
+          'Веди дела, решения, ответственных и историю изменения статусов.',
         ),
-        _GuideStep(
-          tabIndex: 3,
-          tabCount: 4,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль',
-          text: 'Настройки и личные данные юридического специалиста.',
+        _step(
+          3,
+          4,
+          Icons.person_outline_rounded,
+          'Профиль',
+          'Настройки и личные данные юридического специалиста.',
         ),
       ];
     }
 
     if (profile.isDeveloper) {
-      return const <_GuideStep>[
-        _GuideStep(
-          tabIndex: 0,
-          tabCount: 2,
-          icon: Icons.dashboard_customize_outlined,
-          title: 'Конструктор компании',
-          text:
-              'Здесь находятся ограничения объектов, матрица прав, ИИ-диспетчер и системные настройки.',
+      return <_GuideStep>[
+        _step(
+          0,
+          2,
+          Icons.dashboard_customize_outlined,
+          'Конструктор компании',
+          'Здесь находятся ограничения объектов, матрица прав, ИИ-диспетчер и системные настройки.',
         ),
-        _GuideStep(
-          tabIndex: 1,
-          tabCount: 2,
-          icon: Icons.person_outline_rounded,
-          title: 'Профиль и просмотр ролей',
-          text:
-              'Используй профиль для личных настроек и безопасного просмотра других платформ.',
+        _step(
+          1,
+          2,
+          Icons.person_outline_rounded,
+          'Профиль и просмотр ролей',
+          'Используй профиль для личных настроек и безопасного просмотра других платформ.',
         ),
       ];
     }
 
-    return const <_GuideStep>[
-      _GuideStep(
-        tabIndex: 0,
-        tabCount: 5,
-        icon: Icons.home_outlined,
-        title: 'Главная',
-        text: 'Выбирай объект и открывай основные показатели компании.',
+    return <_GuideStep>[
+      _step(
+        0,
+        5,
+        Icons.home_outlined,
+        'Главная',
+        'Выбирай объект и открывай основные показатели компании.',
       ),
-      _GuideStep(
-        tabIndex: 1,
-        tabCount: 5,
-        icon: Icons.groups_outlined,
-        title: 'Сотрудники',
-        text:
-            'Карточки сотрудников связывают назначения, табель, задачи, выплаты и документы.',
+      _step(
+        1,
+        5,
+        Icons.groups_outlined,
+        'Сотрудники',
+        'Карточки сотрудников связывают назначения, табель, задачи, выплаты и документы.',
       ),
-      _GuideStep(
-        tabIndex: 2,
-        tabCount: 5,
-        icon: Icons.analytics_outlined,
-        title: 'Отчёты и табель',
-        text:
-            'Контролируй смены, начисления, проблемы и общую аналитику объектов.',
+      _step(
+        2,
+        5,
+        Icons.analytics_outlined,
+        'Отчёты и табель',
+        'Контролируй смены, начисления, проблемы и общую аналитику объектов.',
       ),
-      _GuideStep(
-        tabIndex: 3,
-        tabCount: 5,
-        icon: Icons.assignment_outlined,
-        title: 'Задачи',
-        text:
-            'Планируй работы, назначай исполнителей и следи за выполнением.',
+      _step(
+        3,
+        5,
+        Icons.assignment_outlined,
+        'Задачи',
+        'Планируй работы, назначай исполнителей и следи за выполнением.',
       ),
-      _GuideStep(
-        tabIndex: 4,
-        tabCount: 5,
-        icon: Icons.person_outline_rounded,
-        title: 'Профиль и настройки',
-        text:
-            'Здесь находятся личные настройки, компания и просмотр платформ ролей.',
+      _step(
+        4,
+        5,
+        Icons.person_outline_rounded,
+        'Профиль и настройки',
+        'Здесь находятся личные настройки, компания и просмотр платформ ролей.',
       ),
     ];
   }
 }
 
 class _GuideOverlay extends StatefulWidget {
-  final BuildContext rootContext;
   final AppUserProfile profile;
   final List<_GuideStep> steps;
   final VoidCallback onFinish;
 
   const _GuideOverlay({
-    required this.rootContext,
     required this.profile,
     required this.steps,
     required this.onFinish,
@@ -345,7 +334,6 @@ class _GuideOverlay extends StatefulWidget {
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _GuideOverlay(
-        rootContext: context,
         profile: profile,
         steps: steps,
         onFinish: () {
@@ -419,9 +407,9 @@ class _GuideOverlayState extends State<_GuideOverlay>
   }
 
   void scheduleRetry() {
-    if (retryScheduled || retries >= 15) return;
+    if (retryScheduled || retries >= 20) return;
     retryScheduled = true;
-    Future<void>.delayed(const Duration(milliseconds: 90), () {
+    Future<void>.delayed(const Duration(milliseconds: 100), () {
       if (!mounted) return;
       setState(() {
         retryScheduled = false;
@@ -431,15 +419,15 @@ class _GuideOverlayState extends State<_GuideOverlay>
   }
 
   Rect? findTarget(Size screenSize) {
-    if (!widget.rootContext.mounted || widget.rootContext is! Element) {
+    final root = WidgetsBinding.instance.rootElement;
+    if (root == null) {
+      scheduleRetry();
       return null;
     }
 
-    final root = widget.rootContext as Element;
     final navigationRect = widget.profile.role == 'employee'
         ? _findEmployeeNavigationRect(root, screenSize)
         : _findProfessionalNavigationRect(root, screenSize);
-
     if (navigationRect == null) {
       scheduleRetry();
       return null;
@@ -452,8 +440,8 @@ class _GuideOverlayState extends State<_GuideOverlay>
       itemWidth,
       navigationRect.height,
     ).deflate(3);
-
     final inflated = itemRect.inflate(4);
+
     return Rect.fromLTRB(
       math.max(8, inflated.left),
       math.max(8, inflated.top),
@@ -463,7 +451,7 @@ class _GuideOverlayState extends State<_GuideOverlay>
   }
 
   Rect? _findProfessionalNavigationRect(Element root, Size screenSize) {
-    return _findVisibleRect(
+    return _findBottommostVisibleRect(
       root,
       screenSize,
       matches: (widget) => widget.key == professionalPanelKey,
@@ -471,22 +459,21 @@ class _GuideOverlayState extends State<_GuideOverlay>
   }
 
   Rect? _findEmployeeNavigationRect(Element root, Size screenSize) {
-    return _findVisibleRect(
+    return _findBottommostVisibleRect(
       root,
       screenSize,
       matches: (widget) => widget is NavigationBar,
     );
   }
 
-  Rect? _findVisibleRect(
+  Rect? _findBottommostVisibleRect(
     Element root,
     Size screenSize, {
     required bool Function(Widget widget) matches,
   }) {
-    Rect? result;
+    final candidates = <Rect>[];
 
     void visit(Element element, bool hidden) {
-      if (result != null) return;
       final current = element.widget;
       var nextHidden = hidden;
       if (current is Offstage && current.offstage) nextHidden = true;
@@ -499,9 +486,9 @@ class _GuideOverlayState extends State<_GuideOverlay>
             renderObject.hasSize) {
           final rect =
               renderObject.localToGlobal(Offset.zero) & renderObject.size;
-          if (_visible(rect, screenSize)) {
-            result = rect;
-            return;
+          final nearBottom = rect.bottom >= screenSize.height * 0.65;
+          if (nearBottom && _visible(rect, screenSize)) {
+            candidates.add(rect);
           }
         }
       }
@@ -510,7 +497,9 @@ class _GuideOverlayState extends State<_GuideOverlay>
     }
 
     visit(root, false);
-    return result;
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) => b.bottom.compareTo(a.bottom));
+    return candidates.first;
   }
 
   bool _visible(Rect rect, Size screenSize) {
@@ -527,7 +516,7 @@ class _GuideOverlayState extends State<_GuideOverlay>
     final theme = Theme.of(context);
     final screen = MediaQuery.sizeOf(context);
     final target = findTarget(screen);
-    final targetReady = target != null || retries >= 15;
+    final targetReady = target != null || retries >= 20;
     final bubbleWidth = math.min(430.0, screen.width - 32);
     final bubbleLeft = target == null
         ? (screen.width - bubbleWidth) / 2
@@ -536,7 +525,7 @@ class _GuideOverlayState extends State<_GuideOverlay>
             .toDouble();
     final bubbleBottom = target == null
         ? math.max(120.0, screen.height * 0.18)
-        : math.max(110.0, screen.height - target.top + 28);
+        : math.max(110.0, screen.height - target.top + 24);
 
     return Material(
       type: MaterialType.transparency,
@@ -646,8 +635,8 @@ class _GuideBubble extends StatelessWidget {
         ),
       ),
       child: Container(
-        key: ValueKey<String>('guide-bubble-$stepIndex'),
-        padding: const EdgeInsets.all(18),
+        key: ValueKey<int>(stepIndex),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: scheme.surface,
           borderRadius: BorderRadius.circular(24),
@@ -655,14 +644,14 @@ class _GuideBubble extends StatelessWidget {
           boxShadow: const <BoxShadow>[
             BoxShadow(
               color: Colors.black38,
-              blurRadius: 32,
-              offset: Offset(0, 16),
+              blurRadius: 26,
+              offset: Offset(0, 12),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,20 +674,23 @@ class _GuideBubble extends StatelessWidget {
                         'Обучение · ${profile.roleTitle}',
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         step.title,
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],
                   ),
                 ),
-                TextButton(onPressed: onSkip, child: const Text('Пропустить')),
+                TextButton(
+                  onPressed: onSkip,
+                  child: const Text('Пропустить'),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -713,8 +705,8 @@ class _GuideBubble extends StatelessWidget {
               const SizedBox(height: 9),
               Text(
                 targetReady
-                    ? 'Элемент сейчас недоступен, можно продолжить обучение.'
-                    : 'Подготавливаем нужную кнопку…',
+                    ? 'Элемент не найден. Можно перейти дальше.'
+                    : 'Подготавливаем нужный элемент…',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -734,8 +726,9 @@ class _GuideBubble extends StatelessWidget {
                         width: active ? 22 : 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color:
-                              active ? scheme.primary : scheme.outlineVariant,
+                          color: active
+                              ? scheme.primary
+                              : scheme.outlineVariant,
                           borderRadius: BorderRadius.circular(99),
                         ),
                       );
@@ -797,13 +790,14 @@ class _SpotlightPainter extends CustomPainter {
       ..addRRect(hole);
     canvas.drawPath(mask, Paint()..color = barrierColor);
 
-    final glowPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4 + 2 * pulse
-      ..color = accentColor.withValues(alpha: 0.78 - 0.18 * pulse)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
-    canvas.drawRRect(hole, glowPaint);
-
+    canvas.drawRRect(
+      hole,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4 + 2 * pulse
+        ..color = accentColor.withValues(alpha: 0.78 - 0.18 * pulse)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
     canvas.drawRRect(
       hole,
       Paint()

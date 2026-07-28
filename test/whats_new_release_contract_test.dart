@@ -25,7 +25,8 @@ void main() {
     expect(gate, contains('Enter отправляет сообщение в ИИ-чат'));
     expect(gate, contains('Shift+Enter добавляет новую строку'));
     expect(gate, contains("label: const Text('Понятно')"));
-    expect(guide, contains("version = '2026-07-28-v3-exact-targets'"));
+    expect(guide, contains("version = '2026-07-28-v4-root-target'"));
+    expect(guide, contains('WidgetsBinding.instance.rootElement'));
     expect(guide, contains('OverlayEntry('));
     expect(guide, contains("'Обучение · \${profile.roleTitle}'"));
     expect(
