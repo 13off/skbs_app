@@ -3,20 +3,29 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('audit hardcoded light and dark colors in UI files', () {
+  test('audit hardcoded theme-sensitive colors in UI files', () {
     final roots = <Directory>[
       Directory('lib/screens'),
       Directory('lib/features'),
       Directory('lib/widgets'),
     ];
     final suspicious = <String>[];
-    final patterns = <RegExp>[
+    final namedPatterns = <RegExp>[
       RegExp(r'Colors\.white\b'),
       RegExp(r'Colors\.black\b'),
       RegExp(r'Colors\.grey(?:\.|\b)'),
       RegExp(r'Colors\.blueGrey(?:\.|\b)'),
-      RegExp(r'Color\(0x[Ff][Ff][EeFf][EeFf][EeFf][EeFf][EeFf][EeFf]\)'),
     ];
+    final literalPattern = RegExp(r'Color\(0x([0-9A-Fa-f]{8})\)');
+
+    bool isVeryLightLiteral(String argbHex) {
+      final value = int.parse(argbHex, radix: 16);
+      final red = (value >> 16) & 0xff;
+      final green = (value >> 8) & 0xff;
+      final blue = value & 0xff;
+      final brightness = (299 * red + 587 * green + 114 * blue) / 1000;
+      return brightness >= 205;
+    }
 
     for (final root in roots) {
       if (!root.existsSync()) continue;
@@ -31,7 +40,13 @@ void main() {
         final lines = file.readAsLinesSync();
         for (var index = 0; index < lines.length; index++) {
           final line = lines[index];
-          if (patterns.any((pattern) => pattern.hasMatch(line))) {
+          final hasNamedColor = namedPatterns.any(
+            (pattern) => pattern.hasMatch(line),
+          );
+          final hasLightLiteral = literalPattern
+              .allMatches(line)
+              .any((match) => isVeryLightLiteral(match.group(1)!));
+          if (hasNamedColor || hasLightLiteral) {
             suspicious.add('${file.path}:${index + 1}: ${line.trim()}');
           }
         }
