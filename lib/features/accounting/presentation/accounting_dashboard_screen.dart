@@ -108,7 +108,7 @@ class _AccountingDashboardScreenState
                     ),
                     Text(
                       accountingMonth(data.month),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: accountingMuted,
                         fontWeight: FontWeight.w700,
                       ),
@@ -176,7 +176,7 @@ class _AccountingDashboardScreenState
           ...data.largestBalances.map(
             (row) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: accountingSoft,
                 child: Icon(Icons.person_outline, color: accountingText),
               ),
@@ -211,7 +211,7 @@ class _AccountingDashboardScreenState
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Проверьте подтверждающие файлы',
             style: TextStyle(color: accountingMuted, fontWeight: FontWeight.w600),
           ),
