@@ -63,7 +63,8 @@ void main() {
 
     expect(addEmployee, contains('AppAdaptivePalette.surfaceElevated'));
     expect(addEmployee, contains('EmployeeRepository.addEmployee'));
-    expect(editEmployee, contains('AppAdaptivePalette.surfaceElevated'));
+    expect(editEmployee, contains('scheme.surfaceContainerHighest'));
+    expect(editEmployee, contains('scheme.outlineVariant'));
     expect(editEmployee, contains('EmployeeRepository.updateEmployee'));
     expect(monthly, contains('AppAdaptivePalette.textPrimary'));
     expect(monthly, contains('AttendanceRepository.fetchMonthlyTimesheet'));
