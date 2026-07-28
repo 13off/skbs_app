@@ -1,0 +1,44 @@
+name: Cleanup theme imports
+
+on:
+  push:
+    branches:
+      - agent/system-theme-audit
+    paths:
+      - .github/workflows/cleanup-theme-imports.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/system-theme-audit
+          fetch-depth: 0
+      - name: Remove duplicate adaptive palette imports
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          package = "import 'package:skbs_app/app/app_adaptive_palette.dart';\n"
+          for path in Path('lib').rglob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              if package not in text:
+                  continue
+              other = [line for line in text.splitlines() if 'app_adaptive_palette.dart' in line and 'package:skbs_app/' not in line]
+              if other:
+                  path.write_text(text.replace(package, '', 1), encoding='utf-8')
+                  print(path)
+          PY
+          rm .github/workflows/cleanup-theme-imports.yml
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Убрать дубли импортов адаптивной палитры"
+          git push origin HEAD:agent/system-theme-audit
