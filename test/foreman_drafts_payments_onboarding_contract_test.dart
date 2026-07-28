@@ -30,7 +30,7 @@ void main() {
     expect(screen, contains('payment.paymentDate'));
   });
 
-  test('first real login shows an exact animated role-specific tour once', () {
+  test('first real login targets the root navigation tree exactly once', () {
     final guide = File(
       'lib/features/onboarding/presentation/first_run_guide.dart',
     ).readAsStringSync();
@@ -42,16 +42,18 @@ void main() {
     expect(guide, contains('_SpotlightPainter'));
     expect(guide, contains('AnimationController('));
     expect(guide, contains('Icons.keyboard_arrow_down_rounded'));
+    expect(guide, contains('WidgetsBinding.instance.rootElement'));
     expect(
       guide,
       contains("ValueKey<String>('professional-bottom-navigation-panel')"),
     );
     expect(guide, contains('widget is NavigationBar'));
-    expect(guide, contains('tabIndex: 0'));
-    expect(guide, contains('tabCount: 5'));
+    expect(guide, contains('tabIndex: tabIndex'));
+    expect(guide, contains('tabCount: tabCount'));
     expect(guide, contains('profile.id'));
     expect(guide, contains('profile.role'));
     expect(guide, contains('profile.isRolePreview'));
+    expect(guide, isNot(contains('rootContext')));
     expect(guide, isNot(contains('current is Text')));
     expect(guide, isNot(contains('showDialog<void>')));
     expect(gate, contains('FirstRunGuide.showIfNeeded'));
