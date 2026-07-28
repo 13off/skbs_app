@@ -18,13 +18,17 @@ void main() {
     ];
     final literalPattern = RegExp(r'Color\(0x([0-9A-Fa-f]{8})\)');
 
-    bool isVeryLightLiteral(String argbHex) {
+    double brightness(String argbHex) {
       final value = int.parse(argbHex, radix: 16);
       final red = (value >> 16) & 0xff;
       final green = (value >> 8) & 0xff;
       final blue = value & 0xff;
-      final brightness = (299 * red + 587 * green + 114 * blue) / 1000;
-      return brightness >= 205;
+      return (299 * red + 587 * green + 114 * blue) / 1000;
+    }
+
+    bool isThemeSensitiveLiteral(String argbHex) {
+      final value = brightness(argbHex);
+      return value <= 155 || value >= 205;
     }
 
     for (final root in roots) {
@@ -43,10 +47,10 @@ void main() {
           final hasNamedColor = namedPatterns.any(
             (pattern) => pattern.hasMatch(line),
           );
-          final hasLightLiteral = literalPattern
+          final hasThemeSensitiveLiteral = literalPattern
               .allMatches(line)
-              .any((match) => isVeryLightLiteral(match.group(1)!));
-          if (hasNamedColor || hasLightLiteral) {
+              .any((match) => isThemeSensitiveLiteral(match.group(1)!));
+          if (hasNamedColor || hasThemeSensitiveLiteral) {
             suspicious.add('${file.path}:${index + 1}: ${line.trim()}');
           }
         }
