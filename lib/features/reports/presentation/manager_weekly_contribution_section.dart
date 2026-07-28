@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_weekly_contribution_repository.dart';
 
@@ -78,90 +80,150 @@ class _WeeklyContributionCard extends StatelessWidget {
     return '${format.format(report.weekStart)} — ${format.format(report.weekEnd)}';
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: PremiumWorkCard(
+        radius: 24,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(Icons.groups_2_outlined),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Вклад команды за неделю',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text('$periodTitle · ${report.participants} участников'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  CupertinoPageRoute<void>(
+                    builder: (_) => _WeeklyContributionDetailsScreen(
+                      report: report,
+                      onOpenEmployee: onOpenEmployee,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Открыть недельную сводку'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeeklyContributionDetailsScreen extends StatelessWidget {
+  final ManagerWeeklyContributionReport report;
+  final ValueChanged<ManagerWeeklyContributionEmployee> onOpenEmployee;
+
+  const _WeeklyContributionDetailsScreen({
+    required this.report,
+    required this.onOpenEmployee,
+  });
+
+  String get periodTitle {
+    final format = DateFormat('dd.MM.yyyy');
+    return '${format.format(report.weekStart)} — ${format.format(report.weekEnd)}';
+  }
+
   String number(double value) => NumberFormat('0.##', 'ru_RU').format(value);
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: PremiumWorkCard(
-        radius: 24,
-        padding: EdgeInsets.zero,
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          tilePadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(15),
+
+    return AppPage(
+      title: 'Вклад команды',
+      subtitle: '$periodTitle · завершённая неделя',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PremiumWorkCard(
+            radius: 24,
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _Metric(label: 'Задач', value: '${report.completedTasks}'),
+                _Metric(label: 'Участников', value: '${report.participants}'),
+                _Metric(label: 'Объектов', value: '${report.objectsCount}'),
+              ],
             ),
-            child: const Icon(Icons.groups_2_outlined),
           ),
-          title: const Text(
-            'Вклад команды за неделю',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          const SizedBox(height: 16),
+          Text(
+            'Участники',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
           ),
-          subtitle: Text(
-            '$periodTitle · обновляется после завершения недели',
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
+          const SizedBox(height: 10),
+          if (report.rows.isEmpty)
+            PremiumWorkCard(
+              radius: 24,
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'За эту завершённую неделю вклад пока не зафиксирован.',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            PremiumWorkCard(
+              radius: 24,
+              padding: EdgeInsets.zero,
+              child: Column(
                 children: [
-                  _Metric(label: 'Задач', value: '${report.completedTasks}'),
-                  _Metric(label: 'Участников', value: '${report.participants}'),
-                  _Metric(label: 'Объектов', value: '${report.objectsCount}'),
+                  for (var index = 0; index < report.rows.length; index++) ...[
+                    _EmployeeContributionTile(
+                      item: report.rows[index],
+                      equivalentTitle: number(
+                        report.rows[index].equivalentTasks,
+                      ),
+                      onTap: () => onOpenEmployee(report.rows[index]),
+                    ),
+                    if (index < report.rows.length - 1)
+                      Divider(height: 1, color: scheme.outlineVariant),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            if (report.rows.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  'За эту завершённую неделю вклад пока не зафиксирован.',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              )
-            else
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: scheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  children: [
-                    for (var index = 0; index < report.rows.length; index++) ...[
-                      _EmployeeContributionTile(
-                        item: report.rows[index],
-                        equivalentTitle: number(
-                          report.rows[index].equivalentTasks,
-                        ),
-                        onTap: () => onOpenEmployee(report.rows[index]),
-                      ),
-                      if (index < report.rows.length - 1)
-                        Divider(height: 1, color: scheme.outlineVariant),
-                    ],
-                  ],
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -223,6 +285,7 @@ class _EmployeeContributionTile extends StatelessWidget {
     ].join(' · ');
 
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: onTap,
       title: Text(
         item.employeeName,
