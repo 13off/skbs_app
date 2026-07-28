@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
@@ -712,12 +713,12 @@ class _DeveloperConstructorScreenState
             const SizedBox(height: 4),
             Text(
               'Получатели: ${recipientsText(rule)}',
-              style: const TextStyle(color: Color(0xFF6B7075)),
+              style: TextStyle(color: AppAdaptivePalette.textMuted),
             ),
             if (rule.objectName.isNotEmpty)
               Text(
                 'Объект: ${rule.objectName}',
-                style: const TextStyle(color: Color(0xFF6B7075)),
+                style: TextStyle(color: AppAdaptivePalette.textMuted),
               ),
             const SizedBox(height: 10),
             Wrap(
@@ -766,8 +767,8 @@ class _DeveloperConstructorScreenState
                   const SizedBox(height: 3),
                   Text(
                     setting.key,
-                    style: const TextStyle(
-                      color: Color(0xFF6B7075),
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
                       fontFamily: 'monospace',
                     ),
                   ),
@@ -778,7 +779,7 @@ class _DeveloperConstructorScreenState
                   const SizedBox(height: 5),
                   Text(
                     '${setting.category} · ${setting.valueType} · ${setting.value}',
-                    style: const TextStyle(color: Color(0xFF6B7075)),
+                    style: TextStyle(color: AppAdaptivePalette.textMuted),
                   ),
                 ],
               ),
@@ -823,8 +824,8 @@ class _DeveloperConstructorScreenState
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFF6B7075),
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
                     height: 1.35,
                   ),
                 ),

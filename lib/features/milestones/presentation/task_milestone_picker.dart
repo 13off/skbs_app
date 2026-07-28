@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 
@@ -260,9 +261,9 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
                     ],
                   )
                 else if (milestones.isEmpty)
-                  const Text(
+                  Text(
                     'На объекте пока нет целей. Создать цель можно на главной.',
-                    style: TextStyle(color: Color(0xFF6B7075)),
+                    style: TextStyle(color: AppAdaptivePalette.textMuted),
                   )
                 else ...[
                   DropdownButtonFormField<String>(
@@ -291,9 +292,9 @@ class _TaskMilestonePickerState extends State<TaskMilestonePicker> {
                   if (selectedMilestone != null) ...[
                     const SizedBox(height: 12),
                     if (selectedMilestone.items.isEmpty)
-                      const Text(
+                      Text(
                         'В этой цели пока нет работ.',
-                        style: TextStyle(color: Color(0xFF6B7075)),
+                        style: TextStyle(color: AppAdaptivePalette.textMuted),
                       )
                     else
                       DropdownButtonFormField<String>(

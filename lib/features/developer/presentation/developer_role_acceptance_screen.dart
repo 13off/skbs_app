@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -64,9 +65,9 @@ class _DeveloperRoleAcceptanceScreenState
 
   Color statusColor(BuildContext context, RoleAcceptanceStatus status) {
     return switch (status) {
-      RoleAcceptanceStatus.passed => const Color(0xFF2E7D52),
+      RoleAcceptanceStatus.passed => AppAdaptivePalette.success,
       RoleAcceptanceStatus.failed => Theme.of(context).colorScheme.error,
-      RoleAcceptanceStatus.blocked => const Color(0xFF9A6816),
+      RoleAcceptanceStatus.blocked => AppAdaptivePalette.warning,
     };
   }
 
@@ -126,11 +127,11 @@ class _DeveloperRoleAcceptanceScreenState
           ),
           if (!result.live) ...[
             const SizedBox(height: 13),
-            const Text(
+            Text(
               'Результат не считается подтверждением: роль из профиля не совпала '
               'с серверной ролью текущей сессии. Выполните повторный вход и проверку.',
               style: TextStyle(
-                color: Color(0xFF8A5A12),
+                color: AppAdaptivePalette.warning,
                 height: 1.4,
                 fontWeight: FontWeight.w800,
               ),

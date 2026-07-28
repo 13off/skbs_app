@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 
@@ -170,7 +171,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           FilledButton(
             style: destructive
                 ? FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF9D3E38),
+                    backgroundColor: AppAdaptivePalette.danger,
                   )
                 : null,
             onPressed: () => Navigator.pop(context, true),
@@ -220,7 +221,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
             ),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF9D3E38),
+                backgroundColor: AppAdaptivePalette.danger,
               ),
               onPressed: matches ? () => Navigator.pop(context, true) : null,
               icon: Icon(Icons.delete_forever_outlined),
@@ -452,7 +453,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           children: [
             Icon(
               Icons.error_outline_rounded,
-              color: Color(0xFF9D3E38),
+              color: AppAdaptivePalette.danger,
               size: 32,
             ),
             SizedBox(height: 10),
@@ -659,7 +660,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
                     Expanded(
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF9D3E38),
+                          backgroundColor: AppAdaptivePalette.danger,
                         ),
                         onPressed: selectedCount == 0 || isBusy
                             ? null

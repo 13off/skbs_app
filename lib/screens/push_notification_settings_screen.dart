@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../services/push_notification_service.dart';
 import '../widgets/app_page.dart';
@@ -92,8 +93,8 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                     children: [
                       Text(
                         snapshot.message,
-                        style: const TextStyle(
-                          color: Color(0xFF5F646A),
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
                           height: 1.4,
                           fontWeight: FontWeight.w700,
                         ),
@@ -126,7 +127,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const PremiumWorkCard(
+                PremiumWorkCard(
                   radius: 26,
                   padding: EdgeInsets.all(20),
                   child: Row(
@@ -138,7 +139,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                         child: Text(
                           'На iPhone AppСтрой должен быть добавлен на экран «Домой» и открыт с иконки. Подписка привязывается к вашему пользователю и активной компании. При выходе устройство отключается.',
                           style: TextStyle(
-                            color: Color(0xFF5F646A),
+                            color: AppAdaptivePalette.textMuted,
                             height: 1.4,
                             fontWeight: FontWeight.w600,
                           ),
@@ -171,8 +172,8 @@ class _StatusRow extends StatelessWidget {
           width: 105,
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF8A8F94),
+            style: TextStyle(
+              color: AppAdaptivePalette.textFaint,
               fontWeight: FontWeight.w700,
             ),
           ),

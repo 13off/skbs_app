@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
@@ -150,8 +151,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isFocused || !notification.isRead
-                                ? const Color(0xFF6F747A)
-                                : const Color(0xFFD7D9DC),
+                                ? AppAdaptivePalette.textMuted
+                                : AppAdaptivePalette.border,
                           ),
                         ),
                         const SizedBox(width: 13),
@@ -170,8 +171,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 const SizedBox(height: 6),
                                 Text(
                                   notification.body,
-                                  style: const TextStyle(
-                                    color: Color(0xFF5F646A),
+                                  style: TextStyle(
+                                    color: AppAdaptivePalette.textMuted,
                                     height: 1.35,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -186,8 +187,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     notification.objectName.trim(),
                                   formatTime(notification.createdAt),
                                 ].join(' • '),
-                                style: const TextStyle(
-                                  color: Color(0xFF8A8F94),
+                                style: TextStyle(
+                                  color: AppAdaptivePalette.textFaint,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                 ),

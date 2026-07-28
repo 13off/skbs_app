@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
@@ -553,7 +554,7 @@ class _TasksScreenState extends State<TasksScreen> {
     required String text,
     bool isError = false,
   }) {
-    final color = isError ? const Color(0xFF9D3E38) : _tasksMuted;
+    final color = isError ? AppAdaptivePalette.danger : _tasksMuted;
 
     return PremiumWorkCard(
       radius: 24,

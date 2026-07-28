@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
@@ -111,9 +112,9 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
   }
 
   Color statusColor(ProjectMilestone milestone) {
-    if (milestone.isCompleted) return const Color(0xFF2E7D52);
-    if (milestone.status == 'postponed') return const Color(0xFF9A403A);
-    return const Color(0xFF6B7075);
+    if (milestone.isCompleted) return AppAdaptivePalette.success;
+    if (milestone.status == 'postponed') return AppAdaptivePalette.danger;
+    return AppAdaptivePalette.textMuted;
   }
 
   Widget milestoneCard(ProjectMilestone milestone) {
@@ -181,8 +182,8 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                         milestone.location.trim().isEmpty
                             ? milestone.objectName
                             : '${milestone.objectName} · ${milestone.location}',
-                        style: const TextStyle(
-                          color: Color(0xFF6B7075),
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -209,7 +210,7 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
                     child: LinearProgressIndicator(
                       value: milestone.progress,
                       minHeight: 10,
-                      backgroundColor: const Color(0xFFE5E7EA),
+                      backgroundColor: AppAdaptivePalette.border,
                     ),
                   ),
                 ),
@@ -227,8 +228,8 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
             Text(
               'Готово ${milestone.doneItems} из ${milestone.items.length} пунктов · '
               'задачи ${milestone.doneTaskCount} из ${milestone.linkedTaskCount}',
-              style: const TextStyle(
-                color: Color(0xFF6B7075),
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),

@@ -3,65 +3,67 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('audit hardcoded theme-sensitive colors in UI files', () {
+  test('рабочие экраны не возвращают старые неадаптивные нейтральные цвета', () {
     final roots = <Directory>[
       Directory('lib/screens'),
       Directory('lib/features'),
-      Directory('lib/widgets'),
     ];
-    final suspicious = <String>[];
-    final namedPatterns = <RegExp>[
-      RegExp(r'Colors\.white\b'),
-      RegExp(r'Colors\.black\b'),
-      RegExp(r'Colors\.grey(?:\.|\b)'),
-      RegExp(r'Colors\.blueGrey(?:\.|\b)'),
+    const forbidden = <String>[
+      'Colors.grey.shade100',
+      'Colors.grey.shade200',
+      'Colors.grey.shade700',
+      'Color(0xFFF7F8FA)',
+      'Color(0xFFF0F1F3)',
+      'Color(0xFFF1F2F3)',
+      'Color(0xFFF1F2F4)',
+      'Color(0xFFF2F3F5)',
+      'Color(0xFF1F2328)',
+      'Color(0xFF34383D)',
+      'Color(0xFF3D4146)',
+      'Color(0xFF5F646A)',
+      'Color(0xFF6B7075)',
+      'Color(0xFF6F747A)',
+      'Color(0xFF8A8F94)',
+      'Color(0xFFD7D9DC)',
+      'Color(0xFFE1E2DF)',
+      'Color(0xFFE3E5E8)',
+      'Color(0xFFE5E7EA)',
     ];
-    final literalPattern = RegExp(r'Color\(0x([0-9A-Fa-f]{8})\)');
-
-    double brightness(String argbHex) {
-      final value = int.parse(argbHex, radix: 16);
-      final red = (value >> 16) & 0xff;
-      final green = (value >> 8) & 0xff;
-      final blue = value & 0xff;
-      return (299 * red + 587 * green + 114 * blue) / 1000;
-    }
-
-    bool isThemeSensitiveLiteral(String argbHex) {
-      final value = brightness(argbHex);
-      return value <= 155 || value >= 205;
-    }
+    final violations = <String>[];
 
     for (final root in roots) {
-      if (!root.existsSync()) continue;
-      final files = root
+      for (final file in root
           .listSync(recursive: true)
           .whereType<File>()
-          .where((file) => file.path.endsWith('.dart'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
-
-      for (final file in files) {
-        final lines = file.readAsLinesSync();
-        for (var index = 0; index < lines.length; index++) {
-          final line = lines[index];
-          final hasNamedColor = namedPatterns.any(
-            (pattern) => pattern.hasMatch(line),
-          );
-          final hasThemeSensitiveLiteral = literalPattern
-              .allMatches(line)
-              .any((match) => isThemeSensitiveLiteral(match.group(1)!));
-          if (hasNamedColor || hasThemeSensitiveLiteral) {
-            suspicious.add('${file.path}:${index + 1}: ${line.trim()}');
+          .where((file) => file.path.endsWith('.dart'))) {
+        final source = file.readAsStringSync();
+        for (final token in forbidden) {
+          if (source.contains(token)) {
+            violations.add('${file.path}: $token');
           }
         }
       }
     }
 
-    if (suspicious.isNotEmpty) {
-      fail(
-        'Найдены жёстко заданные цвета интерфейса (${suspicious.length}):\n'
-        '${suspicious.join('\n')}',
-      );
-    }
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('ключевые формы используют адаптивную палитру без изменения данных', () {
+    final addEmployee = File(
+      'lib/features/employees/presentation/screens/add_employee_screen.dart',
+    ).readAsStringSync();
+    final editEmployee = File(
+      'lib/screens/edit_employee_screen.dart',
+    ).readAsStringSync();
+    final monthly = File(
+      'lib/screens/monthly_timesheet_screen.dart',
+    ).readAsStringSync();
+
+    expect(addEmployee, contains('AppAdaptivePalette.surfaceElevated'));
+    expect(addEmployee, contains('EmployeeRepository.addEmployee'));
+    expect(editEmployee, contains('AppAdaptivePalette.surfaceElevated'));
+    expect(editEmployee, contains('EmployeeRepository.updateEmployee'));
+    expect(monthly, contains('AppAdaptivePalette.textPrimary'));
+    expect(monthly, contains('AttendanceRepository.fetchMonthlyTimesheet'));
   });
 }

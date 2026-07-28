@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../models/app_user_profile.dart';
@@ -910,7 +911,7 @@ class _DocumentBadge extends StatelessWidget {
           foreground: _success,
           background: AppAdaptivePalette.isDark
               ? _success.withValues(alpha: 0.16)
-              : const Color(0xFFE8F5ED),
+              : AppAdaptivePalette.success.withValues(alpha: 0.12),
         );
       case _DocumentState.partial:
         return _Badge(
@@ -919,7 +920,7 @@ class _DocumentBadge extends StatelessWidget {
           foreground: _warning,
           background: AppAdaptivePalette.isDark
               ? _warning.withValues(alpha: 0.16)
-              : const Color(0xFFFFF4DC),
+              : AppAdaptivePalette.warning.withValues(alpha: 0.12),
         );
       case _DocumentState.missing:
         return _Badge(
@@ -946,10 +947,10 @@ class _EmploymentBadge extends StatelessWidget {
       background: active
           ? (AppAdaptivePalette.isDark
                 ? _success.withValues(alpha: 0.16)
-                : const Color(0xFFE8F5ED))
+                : AppAdaptivePalette.success.withValues(alpha: 0.12))
           : (AppAdaptivePalette.isDark
                 ? _danger.withValues(alpha: 0.16)
-                : const Color(0xFFF7E8E7)),
+                : AppAdaptivePalette.danger.withValues(alpha: 0.12)),
     );
   }
 }

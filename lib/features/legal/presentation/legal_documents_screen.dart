@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../data/user_repository.dart';
@@ -204,7 +205,7 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0F1F3),
+                                color: AppAdaptivePalette.surfaceSoft,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: const Icon(Icons.description_outlined),
@@ -225,7 +226,7 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                       document.expiryTitle,
                                       if (document.documentNumber.isNotEmpty) '№ ${document.documentNumber}',
                                     ].join(' • '),
-                                    style: const TextStyle(color: Color(0xFF5F646A), fontWeight: FontWeight.w700),
+                                    style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700),
                                   ),
                                   if (links.isNotEmpty) ...[
                                     const SizedBox(height: 5),
@@ -233,13 +234,13 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                       links.join(' • '),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: Color(0xFF8A8F94), fontSize: 12),
+                                      style: TextStyle(color: AppAdaptivePalette.textFaint, fontSize: 12),
                                     ),
                                   ],
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A8F94)),
+                            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
                           ],
                         ),
                       ),

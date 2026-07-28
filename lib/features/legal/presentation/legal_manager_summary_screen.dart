@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -54,7 +55,7 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F1F3),
+                  color: AppAdaptivePalette.surfaceSoft,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(icon),

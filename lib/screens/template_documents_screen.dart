@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../app/app_theme.dart';
 import '../features/documents/data/document_template_repository.dart';
@@ -93,9 +94,9 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
   }
 
   Color statusColor(DocumentTemplateRecord template) {
-    if (template.status == 'active') return const Color(0xFF28704E);
+    if (template.status == 'active') return AppAdaptivePalette.success;
     if (template.status == 'archived') return AppColors.textMuted;
-    return const Color(0xFF8A6120);
+    return AppAdaptivePalette.warning;
   }
 
   Future<void> download(DocumentTemplateVersion version) async {
@@ -401,10 +402,10 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
               ),
             )
           else
-            const Text(
+            Text(
               'Утверждённый исходный файл отсутствует',
               style: TextStyle(
-                color: Color(0xFF874540),
+                color: AppAdaptivePalette.danger,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -512,7 +513,7 @@ class _TemplateDocumentsScreenState extends State<TemplateDocumentsScreen> {
                     padding: const EdgeInsets.all(18),
                     child: Text(
                       'Не удалось загрузить каталог: $errorText',
-                      style: const TextStyle(color: Color(0xFF874540)),
+                      style: TextStyle(color: AppAdaptivePalette.danger),
                     ),
                   )
                 else if (visible.isEmpty)

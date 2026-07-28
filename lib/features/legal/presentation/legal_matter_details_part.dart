@@ -31,7 +31,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 125, child: Text(label, style: const TextStyle(color: Color(0xFF6B7075), fontWeight: FontWeight.w700))),
+          SizedBox(width: 125, child: Text(label, style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700))),
           Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))),
         ],
       ),

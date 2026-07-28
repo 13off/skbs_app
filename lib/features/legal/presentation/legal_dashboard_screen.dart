@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
@@ -99,10 +100,10 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F1F3),
+                color: AppAdaptivePalette.surfaceSoft,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: const Color(0xFF3D4146)),
+              child: Icon(icon, color: AppAdaptivePalette.textPrimary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -124,8 +125,8 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFF6B7075),
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -134,7 +135,7 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A8F94)),
+            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
           ],
         ),
       ),
@@ -156,12 +157,12 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
           ),
           const SizedBox(height: 12),
           if (documents.isEmpty && matters.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
               child: Center(
                 child: Text(
                   'Изменений пока нет',
-                  style: TextStyle(color: Color(0xFF6B7075)),
+                  style: TextStyle(color: AppAdaptivePalette.textMuted),
                 ),
               ),
             ),

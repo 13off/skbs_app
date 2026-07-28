@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -422,8 +423,8 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: gate.realDocumentsEnabled
-                  ? const Color(0xFFE7F4EC)
-                  : const Color(0xFFFFF3DE),
+                  ? AppAdaptivePalette.success.withValues(alpha: 0.12)
+                  : AppAdaptivePalette.warning.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(

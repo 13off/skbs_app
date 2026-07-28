@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 
@@ -134,7 +135,7 @@ class _RecruitmentDashboardScreenState
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F2F4),
+                color: AppAdaptivePalette.surfaceSoft,
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(Icons.person_search_rounded, color: _text),
