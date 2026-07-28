@@ -2,18 +2,20 @@ part of '../period_timesheet_screen.dart';
 
 extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
   Widget buildFiredToggleCard() {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: includeFiredEmployees
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Colors.grey.shade100,
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: includeFiredEmployees
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.35)
-              : Colors.grey.shade200,
+              ? scheme.primary.withValues(alpha: 0.35)
+              : scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -40,13 +42,15 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
 
   Widget buildSummaryCard(List<MonthlyTimesheetRow> visibleRows) {
     final summary = PeriodTimesheetReport.summarize(visibleRows);
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,6 +91,8 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
   }
 
   DataRow buildDataRow(MonthlyTimesheetRow row) {
+    final scheme = Theme.of(context).colorScheme;
+
     return DataRow(
       cells: <DataCell>[
         DataCell(
@@ -97,6 +103,7 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
                 Expanded(
                   child: Text(
                     row.employee.name,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
@@ -109,12 +116,14 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: scheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: scheme.outlineVariant),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Уволен',
                       style: TextStyle(
+                        color: scheme.onSurfaceVariant,
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
                       ),
@@ -133,8 +142,26 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
             ),
           ),
         ),
-        DataCell(SizedBox(width: 130, child: Text(row.employee.position))),
-        DataCell(SizedBox(width: 140, child: Text(row.employee.objectName))),
+        DataCell(
+          SizedBox(
+            width: 170,
+            child: Text(
+              row.employee.position,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        DataCell(
+          SizedBox(
+            width: 150,
+            child: Text(
+              row.employee.objectName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
         DataCell(Text(formatMoney(row.employee.dailyRate))),
         ...days.map((day) {
           final shift = row.shiftForDay(day);
@@ -143,7 +170,7 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
               formatShift(shift),
               style: TextStyle(
                 fontWeight: shift > 0 ? FontWeight.w800 : FontWeight.w400,
-                color: shift > 0 ? Colors.black : Colors.grey,
+                color: shift > 0 ? scheme.onSurface : scheme.onSurfaceVariant,
               ),
             ),
           );
@@ -171,7 +198,7 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
             formatMoney(row.balance),
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              color: row.balance > 0 ? Colors.red : Colors.green,
+              color: row.balance > 0 ? scheme.error : scheme.primary,
             ),
           ),
         ),
@@ -183,7 +210,10 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
     if (isLoading) return const Center(child: CircularProgressIndicator());
     if (errorText != null) {
       return Center(
-        child: Text(errorText!, style: const TextStyle(color: Colors.red)),
+        child: Text(
+          errorText!,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       );
     }
     if (visibleRows.isEmpty) {
@@ -197,6 +227,7 @@ extension _PeriodTimesheetSections on _PeriodTimesheetScreenState {
         scrollDirection: Axis.horizontal,
         child: SingleChildScrollView(
           child: DataTable(
+            columnSpacing: 24,
             columns: buildColumns(),
             rows: visibleRows.map(buildDataRow).toList(),
           ),
