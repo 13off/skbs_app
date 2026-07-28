@@ -32,6 +32,7 @@ void main() {
     final violations = <String>[];
 
     // Проверяем весь рабочий интерфейс, а не только экраны из присланных снимков.
+    // Декоративные тени, фотооверлеи и белые иконки на цветных кнопках не запрещаем.
     for (final root in roots) {
       for (final file in root
           .listSync(recursive: true)
