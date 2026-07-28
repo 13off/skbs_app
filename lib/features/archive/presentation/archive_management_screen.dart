@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/employee_repository.dart';

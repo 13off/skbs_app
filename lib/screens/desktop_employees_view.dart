@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../models/app_user_profile.dart';
