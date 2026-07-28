@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../models/app_user_profile.dart';
+import '../../role_preview/role_preview_controller.dart';
 
 class FirstRunGuide {
   FirstRunGuide._();
@@ -21,6 +22,11 @@ class FirstRunGuide {
     required SharedPreferences? preferences,
   }) async {
     if (profile.isRolePreview) return false;
+    if (profile.canPreviewRoles &&
+        !RolePreviewController.state.value.isAdminMode) {
+      return false;
+    }
+
     final key = preferenceKey(profile);
     if (preferences?.getBool(key) == true) return false;
     if (!context.mounted) return false;
@@ -29,8 +35,7 @@ class FirstRunGuide {
     if (!context.mounted) return false;
 
     final steps = _stepsFor(profile);
-    if (steps.isEmpty) return false;
-    final shown = await _FirstRunGuideOverlay.show(
+    final shown = await _GuideOverlay.show(
       context: context,
       profile: profile,
       steps: steps,
@@ -113,7 +118,7 @@ class FirstRunGuide {
           icon: Icons.person_outline_rounded,
           title: 'Профиль и уведомления',
           text:
-              'Здесь находятся настройки, данные пользователя и вход в служебные разделы.',
+              'Здесь находятся настройки, данные пользователя и служебные разделы.',
         ),
       ];
     }
@@ -242,7 +247,7 @@ class FirstRunGuide {
           icon: Icons.person_outline_rounded,
           title: 'Профиль и просмотр ролей',
           text:
-              'Используй профиль для личных настроек и безопасного просмотра платформ других ролей.',
+              'Используй профиль для личных настроек и безопасного просмотра других платформ.',
         ),
       ];
     }
@@ -274,26 +279,26 @@ class FirstRunGuide {
         icon: Icons.assignment_outlined,
         title: 'Задачи',
         text:
-            'Планируй работы, назначай исполнителей и следи за фактическим выполнением.',
+            'Планируй работы, назначай исполнителей и следи за выполнением.',
       ),
       _GuideStep(
         targets: ['Профиль'],
         icon: Icons.person_outline_rounded,
         title: 'Профиль и настройки',
         text:
-            'Здесь находятся личные настройки, управление компанией и просмотр платформ ролей.',
+            'Здесь находятся личные настройки, компания и просмотр платформ ролей.',
       ),
     ];
   }
 }
 
-class _FirstRunGuideOverlay extends StatefulWidget {
+class _GuideOverlay extends StatefulWidget {
   final BuildContext rootContext;
   final AppUserProfile profile;
   final List<_GuideStep> steps;
   final VoidCallback onFinish;
 
-  const _FirstRunGuideOverlay({
+  const _GuideOverlay({
     required this.rootContext,
     required this.profile,
     required this.steps,
@@ -306,12 +311,12 @@ class _FirstRunGuideOverlay extends StatefulWidget {
     required List<_GuideStep> steps,
   }) async {
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlay == null) return false;
+    if (overlay == null || steps.isEmpty) return false;
 
     final completer = Completer<void>();
     late OverlayEntry entry;
     entry = OverlayEntry(
-      builder: (_) => _FirstRunGuideOverlay(
+      builder: (_) => _GuideOverlay(
         rootContext: context,
         profile: profile,
         steps: steps,
@@ -327,15 +332,14 @@ class _FirstRunGuideOverlay extends StatefulWidget {
   }
 
   @override
-  State<_FirstRunGuideOverlay> createState() =>
-      _FirstRunGuideOverlayState();
+  State<_GuideOverlay> createState() => _GuideOverlayState();
 }
 
-class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
+class _GuideOverlayState extends State<_GuideOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController pulseController;
   int stepIndex = 0;
-  int targetRetries = 0;
+  int retries = 0;
   bool retryScheduled = false;
   bool animationConfigured = false;
 
@@ -369,99 +373,75 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
     super.dispose();
   }
 
-  void finish() => widget.onFinish();
-
-  void previous() {
-    if (stepIndex == 0) return;
-    setState(() {
-      stepIndex--;
-      targetRetries = 0;
-      retryScheduled = false;
-    });
-  }
-
-  void next() {
-    if (stepIndex >= widget.steps.length - 1) {
-      finish();
+  void changeStep(int delta) {
+    final next = stepIndex + delta;
+    if (next >= widget.steps.length) {
+      widget.onFinish();
       return;
     }
+    if (next < 0) return;
     setState(() {
-      stepIndex++;
-      targetRetries = 0;
+      stepIndex = next;
+      retries = 0;
       retryScheduled = false;
     });
   }
 
-  void scheduleTargetRetry() {
-    if (retryScheduled || targetRetries >= 15) return;
+  void scheduleRetry() {
+    if (retryScheduled || retries >= 15) return;
     retryScheduled = true;
     Future<void>.delayed(const Duration(milliseconds: 90), () {
       if (!mounted) return;
       setState(() {
         retryScheduled = false;
-        targetRetries++;
+        retries++;
       });
     });
   }
 
-  Rect? findTargetRect(Size screenSize) {
+  Rect? findTarget(Size screenSize) {
     if (!widget.rootContext.mounted) return null;
-    final rootElement = widget.rootContext as Element;
-    final candidates = <_TargetCandidate>[];
+    final candidates = <Rect>[];
+    final root = widget.rootContext as Element;
 
     void visit(Element element, bool hidden) {
-      final currentWidget = element.widget;
+      final current = element.widget;
       var nextHidden = hidden;
-      if (currentWidget is Offstage && currentWidget.offstage) {
-        nextHidden = true;
-      }
-      if (currentWidget is Visibility && !currentWidget.visible) {
-        nextHidden = true;
-      }
+      if (current is Offstage && current.offstage) nextHidden = true;
+      if (current is Visibility && !current.visible) nextHidden = true;
 
-      if (!nextHidden && currentWidget is Text) {
-        final value = currentWidget.data?.trim() ?? '';
-        if (step.targets.contains(value)) {
+      if (!nextHidden && current is Text) {
+        final label = current.data?.trim() ?? '';
+        if (step.targets.contains(label)) {
           final renderObject = element.findRenderObject();
           if (renderObject is RenderBox &&
               renderObject.attached &&
               renderObject.hasSize) {
-            final origin = renderObject.localToGlobal(Offset.zero);
-            final textRect = origin & renderObject.size;
-            if (_isVisibleRect(textRect, screenSize)) {
+            final textRect =
+                renderObject.localToGlobal(Offset.zero) & renderObject.size;
+            if (_visible(textRect, screenSize)) {
               candidates.add(
-                _TargetCandidate(
-                  label: value,
-                  rect: _findInteractiveAncestorRect(
-                    element,
-                    textRect,
-                    screenSize,
-                  ),
-                ),
+                _interactiveRect(element, textRect, screenSize),
               );
             }
           }
         }
       }
-
       element.visitChildren((child) => visit(child, nextHidden));
     }
 
-    visit(rootElement, false);
+    visit(root, false);
     if (candidates.isEmpty) {
-      scheduleTargetRetry();
+      scheduleRetry();
       return null;
     }
 
-    candidates.sort((first, second) {
-      final vertical = second.rect.center.dy.compareTo(first.rect.center.dy);
+    candidates.sort((a, b) {
+      final vertical = b.center.dy.compareTo(a.center.dy);
       if (vertical != 0) return vertical;
-      return second.rect.size.longestSide.compareTo(
-        first.rect.size.longestSide,
-      );
+      return b.longestSide.compareTo(a.longestSide);
     });
-
-    final rect = candidates.first.rect.inflate(5);
+    final rect = candidates.first.inflate(5);
     return Rect.fromLTRB(
       math.max(8, rect.left),
       math.max(8, rect.top),
@@ -470,11 +450,7 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
     );
   }
 
-  Rect _findInteractiveAncestorRect(
-    Element element,
-    Rect textRect,
-    Size screenSize,
-  ) {
+  Rect _interactiveRect(Element element, Rect textRect, Size screenSize) {
     var best = textRect;
     element.visitAncestorElements((ancestor) {
       final renderObject = ancestor.findRenderObject();
@@ -483,20 +459,17 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
           !renderObject.hasSize) {
         return true;
       }
-
-      final origin = renderObject.localToGlobal(Offset.zero);
-      final rect = origin & renderObject.size;
+      final rect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
       final maxWidth = math.min(420.0, screenSize.width * 0.55);
-      final looksLikeNavigationButton =
-          rect.height >= 40 &&
+      final candidate = rect.height >= 40 &&
           rect.height <= 100 &&
           rect.width >= textRect.width &&
           rect.width <= maxWidth &&
           rect.bottom >= screenSize.height * 0.62 &&
-          _isVisibleRect(rect, screenSize);
-      if (looksLikeNavigationButton && rect.size.area > best.size.area) {
-        best = rect;
-      }
+          _visible(rect, screenSize);
+      final rectArea = rect.width * rect.height;
+      final bestArea = best.width * best.height;
+      if (candidate && rectArea > bestArea) best = rect;
       return true;
     });
 
@@ -511,7 +484,7 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
     return best;
   }
 
-  bool _isVisibleRect(Rect rect, Size screenSize) {
+  bool _visible(Rect rect, Size screenSize) {
     return rect.width > 0 &&
         rect.height > 0 &&
         rect.right > 0 &&
@@ -523,18 +496,18 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenSize = MediaQuery.sizeOf(context);
-    final target = findTargetRect(screenSize);
-    final bubbleWidth = math.min(430.0, screenSize.width - 32);
+    final screen = MediaQuery.sizeOf(context);
+    final target = findTarget(screen);
+    final targetReady = target != null || retries >= 15;
+    final bubbleWidth = math.min(430.0, screen.width - 32);
     final bubbleLeft = target == null
-        ? (screenSize.width - bubbleWidth) / 2
-        : (target.center.dx - bubbleWidth / 2).clamp(
-            16.0,
-            screenSize.width - bubbleWidth - 16,
-          );
+        ? (screen.width - bubbleWidth) / 2
+        : (target.center.dx - bubbleWidth / 2)
+            .clamp(16.0, screen.width - bubbleWidth - 16)
+            .toDouble();
     final bubbleBottom = target == null
-        ? math.max(120.0, screenSize.height * 0.18)
-        : math.max(110.0, screenSize.height - target.top + 32);
+        ? math.max(120.0, screen.height * 0.18)
+        : math.max(110.0, screen.height - target.top + 32);
 
     return Material(
       type: MaterialType.transparency,
@@ -576,7 +549,7 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeOutCubic,
-                left: bubbleLeft.toDouble(),
+                left: bubbleLeft,
                 bottom: bubbleBottom,
                 width: bubbleWidth,
                 child: SafeArea(
@@ -588,9 +561,12 @@ class _FirstRunGuideOverlayState extends State<_FirstRunGuideOverlay>
                     stepIndex: stepIndex,
                     stepCount: widget.steps.length,
                     targetFound: target != null,
-                    onSkip: finish,
-                    onPrevious: stepIndex == 0 ? null : previous,
-                    onNext: next,
+                    targetReady: targetReady,
+                    onSkip: widget.onFinish,
+                    onPrevious: stepIndex == 0
+                        ? null
+                        : () => changeStep(-1),
+                    onNext: () => changeStep(1),
                   ),
                 ),
               ),
@@ -608,6 +584,7 @@ class _GuideBubble extends StatelessWidget {
   final int stepIndex;
   final int stepCount;
   final bool targetFound;
+  final bool targetReady;
   final VoidCallback onSkip;
   final VoidCallback? onPrevious;
   final VoidCallback onNext;
@@ -619,6 +596,7 @@ class _GuideBubble extends StatelessWidget {
     required this.stepIndex,
     required this.stepCount,
     required this.targetFound,
+    required this.targetReady,
     required this.onSkip,
     required this.onPrevious,
     required this.onNext,
@@ -706,7 +684,9 @@ class _GuideBubble extends StatelessWidget {
             if (!targetFound) ...[
               const SizedBox(height: 9),
               Text(
-                'Подготавливаем нужный элемент…',
+                targetReady
+                    ? 'Элемент недоступен в текущей компоновке — можно продолжить.'
+                    : 'Подготавливаем нужный элемент…',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -743,7 +723,7 @@ class _GuideBubble extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
                 FilledButton.icon(
-                  onPressed: targetFound ? onNext : null,
+                  onPressed: targetReady ? onNext : null,
                   icon: Icon(
                     isLast ? Icons.check_rounded : Icons.arrow_forward_rounded,
                   ),
@@ -774,14 +754,13 @@ class _SpotlightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final full = Offset.zero & size;
-    final targetRect = target;
-    if (targetRect == null) {
+    if (target == null) {
       canvas.drawRect(full, Paint()..color = barrierColor);
       return;
     }
 
     final hole = RRect.fromRectAndRadius(
-      targetRect.inflate(3 + 3 * pulse),
+      target!.inflate(3 + 3 * pulse),
       const Radius.circular(24),
     );
     final mask = Path()
@@ -790,13 +769,14 @@ class _SpotlightPainter extends CustomPainter {
       ..addRRect(hole);
     canvas.drawPath(mask, Paint()..color = barrierColor);
 
-    final glowPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4 + 2 * pulse
-      ..color = accentColor.withValues(alpha: 0.78 - 0.18 * pulse)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
-    canvas.drawRRect(hole, glowPaint);
-
+    canvas.drawRRect(
+      hole,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4 + 2 * pulse
+        ..color = accentColor.withValues(alpha: 0.78 - 0.18 * pulse)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
     canvas.drawRRect(
       hole,
       Paint()
@@ -827,11 +807,4 @@ class _GuideStep {
     required this.title,
     required this.text,
   });
-}
-
-class _TargetCandidate {
-  final String label;
-  final Rect rect;
-
-  const _TargetCandidate({required this.label, required this.rect});
 }
