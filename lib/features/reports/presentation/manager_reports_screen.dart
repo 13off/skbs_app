@@ -9,6 +9,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../tasks/presentation/employee_contribution_screen.dart';
 import '../data/manager_reports_repository.dart';
 import '../data/manager_weekly_contribution_repository.dart';
+import 'manager_daily_ai_review.dart';
 import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
 import 'manager_weekly_contribution_section.dart';
@@ -170,6 +171,12 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
           onOnlyProblemsChanged: (value) {
             setState(() => onlyProblems = value);
           },
+        ),
+        const SizedBox(height: 12),
+        ManagerDailyAiReviewCard(
+          profile: widget.profile,
+          center: center,
+          onOpen: openScreen,
         ),
         const SizedBox(height: 12),
         ManagerWeeklyContributionSection(

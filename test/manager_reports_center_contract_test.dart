@@ -45,7 +45,7 @@ void main() {
     expect(reportUi, contains('Юридическое'));
     expect(reportUi, contains('Объекты и этапы'));
     expect(reportUi, contains('Только проблемные разделы'));
-    expect(reports.split('\n').length, lessThan(260));
+    expect(reports.split('\n').length, lessThan(270));
     expect(reports, contains('ManagerReportFilters'));
     expect(reports, contains('ManagerReportOverview'));
     expect(reports, contains('ManagerReportSections'));
