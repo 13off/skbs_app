@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
@@ -172,8 +173,8 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Color(0xFF6B7075),
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
@@ -347,9 +348,9 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Кому отправляется сводка выбранного объекта.',
-            style: TextStyle(color: Color(0xFF6B7075)),
+            style: TextStyle(color: AppAdaptivePalette.textMuted),
           ),
           const SizedBox(height: 8),
           ...DispatcherSummaryRepository.roleTitles.entries.map((entry) {
@@ -580,7 +581,7 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
                   style: TextStyle(
                     color: run.status == 'failed'
                         ? Colors.red
-                        : const Color(0xFF6B7075),
+                        : AppAdaptivePalette.textMuted,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -588,7 +589,7 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
             ),
             if (dateText.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(dateText, style: const TextStyle(color: Color(0xFF6B7075))),
+              Text(dateText, style: TextStyle(color: AppAdaptivePalette.textMuted)),
             ],
             if (run.body.isNotEmpty) ...[
               const SizedBox(height: 8),

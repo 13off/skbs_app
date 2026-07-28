@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
@@ -477,8 +478,8 @@ class _DeveloperPanelScreenState extends State<DeveloperPanelScreen> {
                 const SizedBox(height: 12),
                 Text(
                   errorText!,
-                  style: const TextStyle(
-                    color: Color(0xFF874540),
+                  style: TextStyle(
+                    color: AppAdaptivePalette.danger,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

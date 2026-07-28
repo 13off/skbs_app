@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 
-const accountingText = Color(0xFF1F2328);
-const accountingMuted = Color(0xFF6B7075);
-const accountingSoft = Color(0xFFF0F1F3);
+Color get accountingText => AppAdaptivePalette.textPrimary;
+Color get accountingMuted => AppAdaptivePalette.textMuted;
+Color get accountingSoft => AppAdaptivePalette.surfaceSoft;
 
 String accountingMoney(num value) {
   final text = value.round().toString();
@@ -72,7 +73,7 @@ class AccountingMetricCard extends StatelessWidget {
                 color: accountingSoft,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: const Color(0xFF34383D)),
+              child: Icon(icon, color: accountingText),
             ),
             const SizedBox(width: 13),
             Expanded(
@@ -81,7 +82,7 @@ class AccountingMetricCard extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: accountingText,
                       fontSize: 23,
                       fontWeight: FontWeight.w900,
@@ -89,7 +90,7 @@ class AccountingMetricCard extends StatelessWidget {
                   ),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: accountingText,
                       fontWeight: FontWeight.w900,
                     ),
@@ -97,7 +98,7 @@ class AccountingMetricCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: accountingMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -106,7 +107,10 @@ class AccountingMetricCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A8F94)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppAdaptivePalette.textFaint,
+            ),
           ],
         ),
       ),
@@ -128,14 +132,20 @@ class AccountingMoneyBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final background = prominent
+        ? scheme.inverseSurface
+        : AppAdaptivePalette.surfaceElevated;
+    final foreground = prominent ? scheme.onInverseSurface : accountingText;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: prominent ? const Color(0xFF202328) : Colors.white,
+        color: background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: prominent ? const Color(0xFF202328) : const Color(0xFFE1E2DF),
+          color: prominent ? background : AppAdaptivePalette.border,
         ),
       ),
       child: Column(
@@ -144,7 +154,9 @@ class AccountingMoneyBlock extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: prominent ? Colors.white70 : accountingMuted,
+              color: prominent
+                  ? foreground.withValues(alpha: 0.72)
+                  : accountingMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -153,7 +165,7 @@ class AccountingMoneyBlock extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: prominent ? Colors.white : accountingText,
+              color: foreground,
               fontSize: prominent ? 20 : 17,
               fontWeight: FontWeight.w900,
             ),

@@ -227,7 +227,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
           Expanded(
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Отчётный период',
                   style: TextStyle(
                     color: accountingMuted,
@@ -294,7 +294,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: accountingMuted,
                         height: 1.3,
                         fontWeight: FontWeight.w600,
@@ -310,7 +310,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else
-                const Icon(Icons.chevron_right_rounded, color: accountingMuted),
+                Icon(Icons.chevron_right_rounded, color: accountingMuted),
             ],
           ),
         ),
@@ -334,7 +334,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
           const SizedBox(height: 4),
           Text(
             '${rows.length} операций · ${accountingMoney(total)} · без чека: $withoutReceipt',
-            style: const TextStyle(
+            style: TextStyle(
               color: accountingMuted,
               fontWeight: FontWeight.w600,
             ),

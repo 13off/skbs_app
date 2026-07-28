@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../data/employee_repository.dart';
@@ -138,9 +139,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppAdaptivePalette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,9 +172,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: AppAdaptivePalette.surfaceElevated,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppAdaptivePalette.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,10 +202,10 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
               else if (snapshot.hasError)
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Не удалось загрузить объекты',
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: AppAdaptivePalette.danger),
                       ),
                     ),
                     TextButton.icon(
@@ -215,9 +216,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   ],
                 )
               else if (objects.isEmpty)
-                const Text(
+                Text(
                   'Сначала создайте объект на главной странице',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: AppAdaptivePalette.danger),
                 )
               else
                 DropdownButtonFormField<String>(
@@ -378,7 +379,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             ),
             if (errorText != null) ...[
               const SizedBox(height: 14),
-              Text(errorText!, style: const TextStyle(color: Colors.red)),
+              Text(errorText!, style: TextStyle(color: AppAdaptivePalette.danger)),
             ],
             const SizedBox(height: 20),
             SizedBox(

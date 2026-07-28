@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
@@ -199,7 +200,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                               decoration: BoxDecoration(
                                 color: matter.isHighRisk
                                     ? const Color(0xFFF4E9E7)
-                                    : const Color(0xFFF0F1F3),
+                                    : AppAdaptivePalette.surfaceSoft,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: Icon(
@@ -223,8 +224,8 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                   const SizedBox(height: 5),
                                   Text(
                                     meta.join(' • '),
-                                    style: const TextStyle(
-                                      color: Color(0xFF5F646A),
+                                    style: TextStyle(
+                                      color: AppAdaptivePalette.textMuted,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -242,9 +243,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.chevron_right_rounded,
-                              color: Color(0xFF8A8F94),
+                              color: AppAdaptivePalette.textFaint,
                             ),
                           ],
                         ),

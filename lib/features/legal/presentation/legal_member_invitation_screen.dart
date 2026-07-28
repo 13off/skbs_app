@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:flutter/services.dart';
 
 import '../../../features/company/data/company_repository.dart';
@@ -62,7 +63,7 @@ class _LegalMemberInvitationScreenState
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F2F3),
+                  color: AppAdaptivePalette.surfaceSoft,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: SelectableText(result.inviteUrl),

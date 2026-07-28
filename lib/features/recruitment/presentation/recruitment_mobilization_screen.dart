@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -100,8 +101,8 @@ class _RecruitmentMobilizationScreenState
                             height: 48,
                             decoration: BoxDecoration(
                               color: entry.mobilization.isCompleted
-                                  ? const Color(0xFFE7F4EC)
-                                  : const Color(0xFFFFF3DE),
+                                  ? AppAdaptivePalette.success.withValues(alpha: 0.12)
+                                  : AppAdaptivePalette.warning.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(

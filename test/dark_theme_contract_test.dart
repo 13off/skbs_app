@@ -116,8 +116,12 @@ void main() {
       isNot(contains('theme.colorScheme.primary.withValues(alpha: 0.09)')),
     );
 
-    expect(desktop, contains("import '../../../app/theme_controller.dart';"));
-    expect(desktop, contains('AppThemeController.instance.isDark'));
+    expect(
+      desktop,
+      contains("import 'package:skbs_app/app/app_adaptive_palette.dart';"),
+    );
+    expect(desktop, contains('AppAdaptivePalette.textPrimary'));
+    expect(desktop, contains('AppAdaptivePalette.surfaceSoft'));
     expect(desktop, contains('Theme.of(context).colorScheme.onSurface'));
   });
 

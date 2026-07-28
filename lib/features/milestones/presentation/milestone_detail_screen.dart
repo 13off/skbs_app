@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
@@ -60,10 +61,10 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
   }
 
   Color itemColor(MilestoneChecklistItem item) {
-    if (item.isBlocked) return const Color(0xFF9A403A);
-    if (item.isEffectivelyDone) return const Color(0xFF2E7D52);
-    if (item.completionFraction > 0) return const Color(0xFF9A6816);
-    return const Color(0xFF6B7075);
+    if (item.isBlocked) return AppAdaptivePalette.danger;
+    if (item.isEffectivelyDone) return AppAdaptivePalette.success;
+    if (item.completionFraction > 0) return AppAdaptivePalette.warning;
+    return AppAdaptivePalette.textMuted;
   }
 
   Future<void> setItemState(MilestoneChecklistItem item, String state) async {
@@ -350,8 +351,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                       milestone.location.trim().isEmpty
                           ? milestone.objectName
                           : '${milestone.objectName} · ${milestone.location}',
-                      style: const TextStyle(
-                        color: Color(0xFF6B7075),
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -384,7 +385,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                   child: LinearProgressIndicator(
                     value: milestone.progress,
                     minHeight: 14,
-                    backgroundColor: const Color(0xFFE5E7EA),
+                    backgroundColor: AppAdaptivePalette.border,
                   ),
                 ),
               ),
@@ -403,8 +404,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
             'Дата: ${date(milestone.targetDate)} · '
             'пункты ${milestone.doneItems}/${milestone.items.length} · '
             'задачи ${milestone.doneTaskCount}/${milestone.linkedTaskCount}',
-            style: const TextStyle(
-              color: Color(0xFF6B7075),
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -515,8 +516,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                       ? Icons.task_alt_rounded
                       : Icons.assignment_outlined,
                   color: task.isDone
-                      ? const Color(0xFF2E7D52)
-                      : const Color(0xFF6B7075),
+                      ? AppAdaptivePalette.success
+                      : AppAdaptivePalette.textMuted,
                 ),
                 title: Text(
                   task.work,
@@ -530,8 +531,8 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                 trailing: _StatusPill(
                   label: task.status,
                   color: task.isDone
-                      ? const Color(0xFF2E7D52)
-                      : const Color(0xFF6B7075),
+                      ? AppAdaptivePalette.success
+                      : AppAdaptivePalette.textMuted,
                 ),
                 onTap: () => openTask(milestone, task),
               ),
@@ -643,26 +644,24 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
 
 class _StatusPill extends StatelessWidget {
   final String label;
-  final Color color;
+  final Color? color;
 
-  const _StatusPill({
-    required this.label,
-    this.color = const Color(0xFF6B7075),
-  });
+  const _StatusPill({required this.label, this.color});
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? AppAdaptivePalette.textMuted;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
+        color: effectiveColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
+          color: effectiveColor,
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),

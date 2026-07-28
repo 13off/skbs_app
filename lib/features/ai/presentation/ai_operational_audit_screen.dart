@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../screens/payments_screen.dart';
 import '../../../screens/period_timesheet_screen.dart';
@@ -53,7 +54,7 @@ class AiOperationalAuditScreen extends StatelessWidget {
   Color severityColor(BuildContext context, String severity) {
     return severity == 'critical'
         ? Theme.of(context).colorScheme.error
-        : const Color(0xFF8A6418);
+        : AppAdaptivePalette.warning;
   }
 
   Future<void> openTimesheet(BuildContext context) async {

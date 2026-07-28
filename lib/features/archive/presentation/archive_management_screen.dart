@@ -122,7 +122,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
             FilledButton(
               style: destructive
                   ? FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF9D3E38),
+                      backgroundColor: AppAdaptivePalette.danger,
                     )
                   : null,
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -153,7 +153,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
             return AlertDialog(
               icon: Icon(
                 Icons.warning_amber_rounded,
-                color: Color(0xFF9D3E38),
+                color: AppAdaptivePalette.danger,
                 size: 38,
               ),
               title: Text(title, textAlign: TextAlign.center),
@@ -194,7 +194,7 @@ class _ArchiveManagementScreenState extends State<ArchiveManagementScreen> {
                 ),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF9D3E38),
+                    backgroundColor: AppAdaptivePalette.danger,
                   ),
                   onPressed: phraseMatches
                       ? () => Navigator.pop(dialogContext, true)

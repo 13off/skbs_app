@@ -405,7 +405,7 @@ class _DesktopLegalMattersScreenState
                   color: specialistMuted,
                 ),
                 matter.needsManager
-                    ? const SpecialistStatusPill(
+                    ? SpecialistStatusPill(
                         label: 'Требуется решение',
                         color: specialistWarning,
                       )

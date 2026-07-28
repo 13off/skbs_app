@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../features/documents/data/document_template_repository.dart';
@@ -320,10 +321,10 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
     final (icon, color) = switch (item.status) {
       _ReadinessStatus.ok => (
         Icons.check_circle_outline,
-        const Color(0xFF2E7D52),
+        AppAdaptivePalette.success,
       ),
       _ReadinessStatus.failed => (Icons.error_outline, scheme.error),
-      _ReadinessStatus.blocked => (Icons.lock_outline, const Color(0xFF9A6816)),
+      _ReadinessStatus.blocked => (Icons.lock_outline, AppAdaptivePalette.warning),
       _ReadinessStatus.external => (Icons.cloud_sync_outlined, scheme.primary),
     };
 

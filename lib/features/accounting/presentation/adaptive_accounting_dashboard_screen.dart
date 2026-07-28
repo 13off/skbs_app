@@ -283,7 +283,7 @@ class _DesktopAccountingDashboardScreenState
                   color: specialistWarning.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.receipt_long_outlined,
                   color: specialistWarning,
                 ),

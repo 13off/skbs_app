@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:intl/intl.dart';
 
 import '../data/act_context_repository.dart';
@@ -102,7 +103,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
 
     return Card(
       elevation: 0,
-      color: const Color(0xFFF7F8FA),
+      color: AppAdaptivePalette.surfaceElevated,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -169,7 +170,7 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
             'В акт попадают выполненные задачи. Для связанных задач '
             'добавляется дневной вклад, готовность цели и пункта чек-листа.',
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: AppAdaptivePalette.textMuted,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -193,8 +194,8 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
             const SizedBox(height: 16),
             Text(
               errorText!,
-              style: const TextStyle(
-                color: Colors.red,
+              style: TextStyle(
+                color: AppAdaptivePalette.danger,
                 fontWeight: FontWeight.w700,
               ),
             ),

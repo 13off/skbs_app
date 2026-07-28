@@ -1,26 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_ui_tokens.dart';
-import '../../../app/theme_controller.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
 const double specialistDesktopBreakpoint = AppUi.specialistDesktopBreakpoint;
-Color get specialistText => AppThemeController.instance.isDark
-    ? const Color(0xFFF1F3F5)
-    : const Color(0xFF1F2328);
-Color get specialistMuted => AppThemeController.instance.isDark
-    ? const Color(0xFFA9AFB7)
-    : const Color(0xFF6B7075);
-Color get specialistLine => AppThemeController.instance.isDark
-    ? const Color(0xFF343941)
-    : const Color(0xFFE3E5E8);
-Color get specialistSoft => AppThemeController.instance.isDark
-    ? const Color(0xFF22262C)
-    : const Color(0xFFF1F2F4);
-const Color specialistSuccess = Color(0xFF2E7D52);
-const Color specialistWarning = Color(0xFF9A6816);
-const Color specialistDanger = Color(0xFF9A403A);
+Color get specialistText => AppAdaptivePalette.textPrimary;
+Color get specialistMuted => AppAdaptivePalette.textMuted;
+Color get specialistLine => AppAdaptivePalette.border;
+Color get specialistSoft => AppAdaptivePalette.surfaceSoft;
+Color get specialistSuccess => AppAdaptivePalette.success;
+Color get specialistWarning => AppAdaptivePalette.warning;
+Color get specialistDanger => AppAdaptivePalette.danger;
 
 class SpecialistDesktopPage extends StatelessWidget {
   final String storageKey;

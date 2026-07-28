@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
@@ -158,7 +159,7 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
@@ -214,7 +215,9 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
               formatShift(shift),
               style: TextStyle(
                 fontWeight: shift > 0 ? FontWeight.w800 : FontWeight.w400,
-                color: shift > 0 ? Colors.black : Colors.grey,
+                color: shift > 0
+                    ? AppAdaptivePalette.textPrimary
+                    : AppAdaptivePalette.textMuted,
               ),
             ),
           );
@@ -242,7 +245,9 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
             formatMoney(row.balance),
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              color: row.balance > 0 ? Colors.red : Colors.green,
+              color: row.balance > 0
+                  ? AppAdaptivePalette.danger
+                  : AppAdaptivePalette.success,
             ),
           ),
         ),
@@ -254,7 +259,7 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        headingRowColor: WidgetStatePropertyAll(Colors.grey.shade200),
+        headingRowColor: WidgetStatePropertyAll(AppAdaptivePalette.border),
         columns: buildColumns(),
         rows: rows.map(buildDataRow).toList(),
       ),
@@ -298,7 +303,7 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 errorText!,
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: AppAdaptivePalette.danger),
               ),
             ),
 

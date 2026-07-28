@@ -61,8 +61,8 @@ class ForemanAttendanceControl extends StatelessWidget {
               child: Center(child: Text('На объекте нет активных сотрудников')),
             )
           else if (absent.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Column(
                   children: [
@@ -99,7 +99,7 @@ class ForemanAttendanceControl extends StatelessWidget {
                       ? 'Должность не указана'
                       : employee.position,
                 ),
-                trailing: const SpecialistStatusPill(
+                trailing: SpecialistStatusPill(
                   label: '0 смен',
                   color: specialistWarning,
                 ),

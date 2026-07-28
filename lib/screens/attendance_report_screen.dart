@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:intl/intl.dart';
 
 import '../data/app_state.dart';
@@ -135,7 +136,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppAdaptivePalette.surfaceElevated,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
@@ -217,7 +218,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 errorText!,
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: AppAdaptivePalette.danger),
               ),
             ),
 

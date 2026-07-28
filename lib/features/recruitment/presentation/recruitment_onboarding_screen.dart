@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -108,8 +109,8 @@ class _RecruitmentOnboardingScreenState
                             height: 48,
                             decoration: BoxDecoration(
                               color: candidate.isLinkedToEmployee
-                                  ? const Color(0xFFE7F4EC)
-                                  : const Color(0xFFFFF3DE),
+                                  ? AppAdaptivePalette.success.withValues(alpha: 0.12)
+                                  : AppAdaptivePalette.warning.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(
@@ -135,9 +136,9 @@ class _RecruitmentOnboardingScreenState
                                       ),
                                     ),
                                     if (candidate.isTestRecord)
-                                      const _SmallBadge(
+                                      _SmallBadge(
                                         label: 'ТЕСТ',
-                                        color: Color(0xFF8A5A12),
+                                        color: AppAdaptivePalette.warning,
                                       ),
                                   ],
                                 ),
@@ -452,9 +453,9 @@ class _CandidateOnboardingDetailScreenState
                 ),
               ),
               if (candidate.isTestRecord)
-                const _SmallBadge(
+                _SmallBadge(
                   label: 'ТЕСТОВАЯ ЗАПИСЬ',
-                  color: Color(0xFF8A5A12),
+                  color: AppAdaptivePalette.warning,
                 ),
             ],
           ),
@@ -562,8 +563,8 @@ class _CandidateOnboardingDetailScreenState
             const SizedBox(height: 12),
             Text(
               'Блокер: не заполнено обязательных полей — $missing',
-              style: const TextStyle(
-                color: Color(0xFF8A5A12),
+              style: TextStyle(
+                color: AppAdaptivePalette.warning,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -633,8 +634,8 @@ class _CandidateOnboardingDetailScreenState
               const SizedBox(height: 10),
               Text(
                 'Перед подписью заполнить: $missingText',
-                style: const TextStyle(
-                  color: Color(0xFF8A5A12),
+                style: TextStyle(
+                  color: AppAdaptivePalette.warning,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -783,7 +784,7 @@ class _InlineStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = ok ? const Color(0xFF2E7D52) : const Color(0xFF8A5A12);
+    final color = ok ? AppAdaptivePalette.success : AppAdaptivePalette.warning;
     return Row(
       children: [
         Icon(
@@ -811,7 +812,7 @@ class _ProgressBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = complete ? const Color(0xFF2E7D52) : const Color(0xFF8A5A12);
+    final color = complete ? AppAdaptivePalette.success : AppAdaptivePalette.warning;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(

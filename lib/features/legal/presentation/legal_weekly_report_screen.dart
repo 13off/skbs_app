@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
@@ -87,7 +88,7 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F3F5),
+        color: AppAdaptivePalette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(

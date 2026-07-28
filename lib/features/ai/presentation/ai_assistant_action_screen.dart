@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../data/task_repository.dart';
@@ -322,13 +323,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFF874540)),
+          Icon(Icons.error_outline, color: AppAdaptivePalette.danger),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: Color(0xFF874540),
+              style: TextStyle(
+                color: AppAdaptivePalette.danger,
                 height: 1.4,
                 fontWeight: FontWeight.w700,
               ),
@@ -638,7 +639,7 @@ class _ResultSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warning ? const Color(0xFF874540) : AppColors.textPrimary;
+    final color = warning ? AppAdaptivePalette.danger : AppColors.textPrimary;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(

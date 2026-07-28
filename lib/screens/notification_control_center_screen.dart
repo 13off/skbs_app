@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../data/notification_repository.dart';
 import '../widgets/app_page.dart';
@@ -132,8 +133,8 @@ class _NotificationControlCenterScreenState
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Color(0xFF6B7075),
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
@@ -222,9 +223,9 @@ class _NotificationControlCenterScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'От уведомлений каких ролей руководитель будет получать события.',
-            style: TextStyle(color: Color(0xFF6B7075), height: 1.35),
+            style: TextStyle(color: AppAdaptivePalette.textMuted, height: 1.35),
           ),
           const SizedBox(height: 8),
           ...NotificationRepository.allNotificationRoles.map((role) {
@@ -277,9 +278,9 @@ class _NotificationControlCenterScreenState
               ),
             ],
           ),
-          const Text(
+          Text(
             'Какие внутренние события показывать в колокольчике и отправлять через push.',
-            style: TextStyle(color: Color(0xFF6B7075), height: 1.35),
+            style: TextStyle(color: AppAdaptivePalette.textMuted, height: 1.35),
           ),
           const SizedBox(height: 8),
           ...NotificationRepository.allNotificationEventGroups.map((group) {
@@ -338,8 +339,8 @@ class _NotificationControlCenterScreenState
                 Expanded(
                   child: Text(
                     'Получатель: $roleTitle',
-                    style: const TextStyle(
-                      color: Color(0xFF6B7075),
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -383,12 +384,12 @@ class _NotificationControlCenterScreenState
             ),
           ],
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(4, 4, 4, 12),
           child: Text(
             'Сейчас все напоминания выключены. Руководитель сам включает нужные и задаёт время по Москве.',
             style: TextStyle(
-              color: Color(0xFF6B7075),
+              color: AppAdaptivePalette.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),

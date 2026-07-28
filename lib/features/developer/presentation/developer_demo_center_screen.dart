@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
@@ -80,13 +81,13 @@ class _DeveloperDemoCenterScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3DE),
+        color: AppAdaptivePalette.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE5C27D)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.science_outlined, color: Color(0xFF8A5A12)),
+          Icon(Icons.science_outlined, color: AppAdaptivePalette.warning),
           SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -271,7 +272,7 @@ class _DeveloperDemoCenterScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFE7F4EC),
+              color: AppAdaptivePalette.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text(

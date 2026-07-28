@@ -460,7 +460,7 @@ class _DesktopCompanyMemberDialogState
                 Text(
                   errorText!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: specialistDanger,
                     fontWeight: FontWeight.w700,
                   ),
