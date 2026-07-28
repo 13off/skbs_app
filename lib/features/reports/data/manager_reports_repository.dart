@@ -6,6 +6,7 @@ import '../../../data/app_data_sync.dart';
 import '../../../data/object_repository.dart';
 import 'manager_report_models.dart';
 
+export 'manager_report_dispatcher_alias.dart';
 export 'manager_report_models.dart';
 
 class ManagerReportsRepository {
