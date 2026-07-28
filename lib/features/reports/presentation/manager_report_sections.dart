@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -5,6 +6,7 @@ import '../../../screens/adaptive_employees_screen.dart';
 import '../../../screens/adaptive_timesheet_screen.dart';
 import '../../../screens/period_timesheet_screen.dart';
 import '../../../screens/tasks_screen.dart';
+import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../accounting/presentation/adaptive_accounting_reports_screen.dart';
 import '../../dispatcher/presentation/dispatcher_summary_details_screen.dart';
@@ -52,7 +54,7 @@ class ManagerReportSections extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Рабочие данные собраны в одном месте. Разделы раскрываются отдельно.',
+          'Выберите раздел. Длинные списки открываются на отдельной странице.',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
@@ -275,7 +277,7 @@ class _ReportSection extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final List<Widget> metrics;
+  final List<_ReportMetric> metrics;
   final int problemCount;
   final List<ManagerReportDetailItem> details;
   final VoidCallback? onOpen;
@@ -297,85 +299,246 @@ class _ReportSection extends StatelessWidget {
     this.secondaryLabel,
   });
 
+  void openSummary(BuildContext context) {
+    Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => _ManagerReportSectionScreen(
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          metrics: metrics,
+          problemCount: problemCount,
+          details: details,
+          onOpen: onOpen,
+          openLabel: openLabel,
+          onSecondary: onSecondary,
+          secondaryLabel: secondaryLabel,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (onlyProblems && problemCount == 0) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: PremiumWorkCard(
         radius: 24,
-        padding: EdgeInsets.zero,
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(icon),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-          ),
-          subtitle: Text(subtitle),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (problemCount > 0)
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(999),
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  child: Text(
-                    '$problemCount',
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  child: Icon(icon),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(subtitle),
+                    ],
                   ),
                 ),
-              const Icon(Icons.keyboard_arrow_down_rounded),
-            ],
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(spacing: 8, runSpacing: 8, children: metrics),
-            ),
-            if (details.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _ReportDetailItems(items: details),
-            ],
-            if (onOpen != null || onSecondary != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (onOpen != null)
-                    FilledButton.tonalIcon(
-                      onPressed: onOpen,
-                      icon: const Icon(Icons.open_in_new_rounded),
-                      label: Text(openLabel),
-                    ),
-                  if (onSecondary != null && secondaryLabel != null)
-                    OutlinedButton.icon(
-                      onPressed: onSecondary,
-                      icon: const Icon(Icons.summarize_outlined),
-                      label: Text(secondaryLabel!),
-                    ),
+                if (problemCount > 0) ...[
+                  const SizedBox(width: 8),
+                  _ProblemBadge(count: problemCount),
                 ],
-              ),
-            ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onOpen != null)
+                  FilledButton.tonalIcon(
+                    onPressed: onOpen,
+                    icon: const Icon(Icons.open_in_new_rounded),
+                    label: Text(openLabel),
+                  ),
+                if (onSecondary != null && secondaryLabel != null)
+                  OutlinedButton.icon(
+                    onPressed: onSecondary,
+                    icon: const Icon(Icons.summarize_outlined),
+                    label: Text(secondaryLabel!),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: () => openSummary(context),
+                  icon: const Icon(Icons.analytics_outlined),
+                  label: const Text('Открыть сводку'),
+                ),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ManagerReportSectionScreen extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<_ReportMetric> metrics;
+  final int problemCount;
+  final List<ManagerReportDetailItem> details;
+  final VoidCallback? onOpen;
+  final String openLabel;
+  final VoidCallback? onSecondary;
+  final String? secondaryLabel;
+
+  const _ManagerReportSectionScreen({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.metrics,
+    required this.problemCount,
+    required this.details,
+    required this.onOpen,
+    required this.openLabel,
+    required this.onSecondary,
+    required this.secondaryLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return AppPage(
+      title: title,
+      subtitle: subtitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PremiumWorkCard(
+            radius: 24,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(icon),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        problemCount > 0
+                            ? 'Требует внимания: $problemCount'
+                            : 'Актуальная сводка',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (onOpen != null || onSecondary != null) ...[
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (onOpen != null)
+                        FilledButton.icon(
+                          onPressed: onOpen,
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: Text(openLabel),
+                        ),
+                      if (onSecondary != null && secondaryLabel != null)
+                        OutlinedButton.icon(
+                          onPressed: onSecondary,
+                          icon: const Icon(Icons.summarize_outlined),
+                          label: Text(secondaryLabel!),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Ключевые показатели',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: metrics),
+          const SizedBox(height: 18),
+          Text(
+            'Подробности',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 10),
+          PremiumWorkCard(
+            radius: 24,
+            padding: const EdgeInsets.all(16),
+            child: details.isEmpty
+                ? Text(
+                    'По выбранному разделу дополнительных записей нет.',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : _ReportDetailItems(items: details),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProblemBadge extends StatelessWidget {
+  final int count;
+
+  const _ProblemBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -438,8 +601,7 @@ class _DispatcherReports extends StatelessWidget {
     required this.onOpen,
   });
 
-  @override
-  Widget build(BuildContext context) {
+  List<ManagerDispatcherRun> filteredRuns() {
     final runs = center.dispatcherRuns.take(12).toList();
     if (onlyProblems) {
       runs.removeWhere((run) {
@@ -455,6 +617,14 @@ class _DispatcherReports extends StatelessWidget {
         return run.status == 'sent' && critical == 0;
       });
     }
+    return runs;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final runs = filteredRuns();
+    final latest = runs.isEmpty ? null : runs.first;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -470,84 +640,134 @@ class _DispatcherReports extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: scheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: const Icon(Icons.auto_awesome_outlined),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Оперативные сводки',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: 3),
-                      Text('История отчётов ИИ-диспетчера по объектам'),
+                      const SizedBox(height: 3),
+                      Text(
+                        latest == null
+                            ? 'Сводок по выбранному фильтру пока нет'
+                            : '${runs.length} сводок · последняя ${latest.summaryDate == null ? 'без даты' : managerReportDateText(latest.summaryDate!)}',
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            if (runs.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Сводок по выбранному фильтру пока нет.'),
-              )
-            else
-              for (final run in runs)
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(bottom: 12),
-                  title: Text(
-                    run.title.trim().isEmpty
-                        ? 'Сводка · ${run.objectName}'
-                        : run.title,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  subtitle: Text(
-                    '${run.summaryDate == null ? 'Без даты' : managerReportDateText(run.summaryDate!)} '
-                    '· ${managerReportRunStatus(run.status)}',
-                  ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        run.body.trim().isEmpty
-                            ? run.errorText.trim().isEmpty
-                                ? 'Отчёт ещё не сформирован.'
-                                : run.errorText
-                            : run.body,
-                        style: const TextStyle(
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+            const SizedBox(height: 14),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  CupertinoPageRoute<void>(
+                    builder: (_) => _DispatcherReportsScreen(
+                      runs: runs,
+                      onOpen: onOpen,
                     ),
-                    if (run.id.isNotEmpty && run.status == 'sent') ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: FilledButton.tonalIcon(
-                          onPressed: () => onOpen(
-                            DispatcherSummaryDetailsScreen(runId: run.id),
-                          ),
-                          icon: const Icon(Icons.analytics_outlined),
-                          label: const Text('Разобрать по пунктам'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Открыть оперативные сводки'),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DispatcherReportsScreen extends StatelessWidget {
+  final List<ManagerDispatcherRun> runs;
+  final void Function(Widget screen) onOpen;
+
+  const _DispatcherReportsScreen({required this.runs, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPage(
+      title: 'Оперативные сводки',
+      subtitle: 'История отчётов ИИ-диспетчера по объектам',
+      child: runs.isEmpty
+          ? const PremiumWorkCard(
+              radius: 24,
+              padding: EdgeInsets.all(18),
+              child: Text('Сводок по выбранному фильтру пока нет.'),
+            )
+          : PremiumWorkCard(
+              radius: 24,
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var index = 0; index < runs.length; index++) ...[
+                    _DispatcherRunTile(run: runs[index], onOpen: onOpen),
+                    if (index != runs.length - 1) const Divider(height: 1),
+                  ],
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _DispatcherRunTile extends StatelessWidget {
+  final ManagerDispatcherRun run;
+  final void Function(Widget screen) onOpen;
+
+  const _DispatcherRunTile({required this.run, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      title: Text(
+        run.title.trim().isEmpty ? 'Сводка · ${run.objectName}' : run.title,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
+      subtitle: Text(
+        '${run.summaryDate == null ? 'Без даты' : managerReportDateText(run.summaryDate!)} '
+        '· ${managerReportRunStatus(run.status)}',
+      ),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            run.body.trim().isEmpty
+                ? run.errorText.trim().isEmpty
+                    ? 'Отчёт ещё не сформирован.'
+                    : run.errorText
+                : run.body,
+            style: const TextStyle(height: 1.4, fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (run.id.isNotEmpty && run.status == 'sent') ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.tonalIcon(
+              onPressed: () => onOpen(
+                DispatcherSummaryDetailsScreen(runId: run.id),
+              ),
+              icon: const Icon(Icons.analytics_outlined),
+              label: const Text('Разобрать по пунктам'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
