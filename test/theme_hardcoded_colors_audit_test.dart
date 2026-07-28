@@ -31,6 +31,7 @@ void main() {
     ];
     final violations = <String>[];
 
+    // Проверяем весь рабочий интерфейс, а не только экраны из присланных снимков.
     for (final root in roots) {
       for (final file in root
           .listSync(recursive: true)
