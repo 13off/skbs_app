@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Точка штатной Web/PWA-публикации компактного центра отчётов.
 void main() {
   test('длинные списки отчётов не разворачиваются на общем экране', () {
     final sections = File(
