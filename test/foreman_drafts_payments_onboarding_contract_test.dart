@@ -30,7 +30,7 @@ void main() {
     expect(screen, contains('payment.paymentDate'));
   });
 
-  test('first real login targets the root navigation tree exactly once', () {
+  test('first real login measures navigation in overlay coordinates', () {
     final guide = File(
       'lib/features/onboarding/presentation/first_run_guide.dart',
     ).readAsStringSync();
@@ -43,6 +43,9 @@ void main() {
     expect(guide, contains('AnimationController('));
     expect(guide, contains('Icons.keyboard_arrow_down_rounded'));
     expect(guide, contains('WidgetsBinding.instance.rootElement'));
+    expect(guide, contains("GlobalKey(debugLabel: 'first-run-guide-overlay')"));
+    expect(guide, contains('coordinateBox.globalToLocal(globalTopLeft)'));
+    expect(guide, contains('coordinateBox.globalToLocal(globalBottomRight)'));
     expect(
       guide,
       contains("ValueKey<String>('professional-bottom-navigation-panel')"),
