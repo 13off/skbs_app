@@ -30,7 +30,7 @@ void main() {
     expect(screen, contains('payment.paymentDate'));
   });
 
-  test('first real login shows a role-specific guide once', () {
+  test('first real login shows an animated role-specific tour once', () {
     final guide = File(
       'lib/features/onboarding/presentation/first_run_guide.dart',
     ).readAsStringSync();
@@ -38,10 +38,19 @@ void main() {
       'lib/features/whats_new/presentation/whats_new_gate.dart',
     ).readAsStringSync();
 
-    expect(guide, contains('Как работать в AppСтрой'));
+    expect(guide, contains('OverlayEntry('));
+    expect(guide, contains('_SpotlightPainter'));
+    expect(guide, contains('AnimationController('));
+    expect(guide, contains('Icons.keyboard_arrow_down_rounded'));
+    expect(guide, contains("targets: ['Смена', 'Главная']"));
+    expect(guide, contains("targets: ['Кандидаты']"));
+    expect(guide, contains("targets: ['Выплаты']"));
+    expect(guide, contains("targets: ['Документы']"));
+    expect(guide, contains("targets: ['Конструктор']"));
     expect(guide, contains('profile.id'));
     expect(guide, contains('profile.role'));
     expect(guide, contains('profile.isRolePreview'));
+    expect(guide, isNot(contains('showDialog<void>')));
     expect(gate, contains('FirstRunGuide.showIfNeeded'));
   });
 }
