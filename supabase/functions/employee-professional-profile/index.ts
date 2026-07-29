@@ -149,7 +149,7 @@ async function readVerifiedProfile(
       adminClient
         .from("employees")
         .select(
-          "id, fio, position, object_name, is_active, archived_at, updated_at",
+          "id, fio, position, object_name, daily_rate, is_active, archived_at, updated_at",
         )
         .eq("company_id", identity.companyId)
         .eq("person_id", identity.personId)
@@ -181,6 +181,10 @@ async function readVerifiedProfile(
     full_name: cleanText(activeEmployee.fio, 180) || "Сотрудник",
     profession: cleanText(activeEmployee.position, 120),
     current_object: cleanText(activeEmployee.object_name, 160),
+    current_daily_rate: Math.max(
+      0,
+      Math.trunc(finiteNumber(activeEmployee.daily_rate)),
+    ),
     object_names: cleanList(rawObjects, 50, 160),
     total_shifts: finiteNumber(summary.total_shifts),
     total_hours: finiteNumber(summary.total_hours),
