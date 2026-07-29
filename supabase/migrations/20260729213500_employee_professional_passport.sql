@@ -50,7 +50,6 @@ as $$
     from public.employees e
     where e.company_id = p_company_id
       and e.person_id = p_person_id
-      and e.archived_at is null
   ),
   attendance_summary as (
     select
