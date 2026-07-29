@@ -32,8 +32,10 @@ void main() {
     final navigation = source(
       'lib/widgets/professional_bottom_navigation.dart',
     );
-    final handlerStart = navigation.indexOf('void handleSelected(int index)');
+    final handlerStart = navigation.indexOf('handleSelected(int index)');
     final handlerEnd = navigation.indexOf('\n  Widget buildIcon', handlerStart);
+    expect(handlerStart, greaterThanOrEqualTo(0));
+    expect(handlerEnd, greaterThan(handlerStart));
     final handler = navigation.substring(handlerStart, handlerEnd);
     expect(handler, contains('widget.onSelected(index)'));
     expect(handler, isNot(contains('writeTabIndex')));
