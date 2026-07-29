@@ -40,6 +40,15 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     );
   }
 
+  Future<void> openTimesheetDownload() async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => EmployeeTimesheetDownloadScreen(employee: employee),
+      ),
+    );
+  }
+
   Future<void> openDocuments() async {
     await Navigator.push<void>(
       context,
