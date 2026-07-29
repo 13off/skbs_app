@@ -37,6 +37,53 @@ function normalizePhone(value: unknown) {
   return "";
 }
 
+function bytesToBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function randomToken() {
+  return bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function encryptionKey(serviceRoleKey: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`appstroy-max-login:${serviceRoleKey}`),
+  );
+  return crypto.subtle.importKey(
+    "raw",
+    digest,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"],
+  );
+}
+
+async function encryptValue(value: string, serviceRoleKey: string) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    await encryptionKey(serviceRoleKey),
+    new TextEncoder().encode(value),
+  );
+  return `${bytesToBase64Url(iv)}.${bytesToBase64Url(new Uint8Array(encrypted))}`;
+}
+
 async function readSecret(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
@@ -113,9 +160,6 @@ async function sendMaxMessage({
   maxUserId: string;
   body: string;
 }) {
-  // MAX требует новый API-домен, но часть серверных окружений пока не
-  // доверяет его российской цепочке сертификатов. Старый домен оставлен
-  // временным резервом, чтобы действующий бот не терял доставку кодов.
   const hosts = [
     "https://platform-api2.max.ru",
     "https://platform-api.max.ru",
@@ -188,29 +232,87 @@ Deno.serve(async (request: Request) => {
     }
 
     const maxLink = await validateMaxLink(adminClient, phone);
-    const appUrl =
-      Deno.env.get("APP_PUBLIC_URL")?.trim() ||
-      "https://13off.github.io/appstroy-web/";
-    const messageBody = JSON.stringify({
-      text: `Код входа в AppСтрой: **${otp}**\n\nКод действует ограниченное время. Никому его не сообщайте.`,
-      format: "markdown",
-      attachments: [
-        {
-          type: "inline_keyboard",
-          payload: {
-            buttons: [
-              [
-                {
-                  type: "link",
-                  text: "Открыть AppСтрой",
-                  url: appUrl,
-                },
+    const nowIso = new Date().toISOString();
+    const { data: attempts, error: attemptError } = await adminClient
+      .from("employee_max_login_attempts")
+      .select("id, company_id, person_id, user_id, expires_at")
+      .eq("phone_e164", phone)
+      .eq("company_id", maxLink.company_id)
+      .eq("person_id", maxLink.person_id)
+      .eq("user_id", maxLink.user_id)
+      .eq("state", "pending")
+      .gt("expires_at", nowIso)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (attemptError) throw attemptError;
+
+    const attempt = attempts?.[0];
+    let messageBody: string;
+    if (attempt) {
+      const confirmToken = randomToken();
+      const { error: updateError } = await adminClient
+        .from("employee_max_login_attempts")
+        .update({
+          confirm_token_hash: await sha256(confirmToken),
+          otp_ciphertext: await encryptValue(otp, serviceRoleKey),
+          max_user_id: String(maxLink.max_user_id),
+          state: "code_ready",
+          updated_at: nowIso,
+        })
+        .eq("id", attempt.id)
+        .eq("state", "pending");
+      if (updateError) throw updateError;
+
+      const confirmUrl = new URL(
+        "/functions/v1/employee-max-login",
+        supabaseUrl,
+      );
+      confirmUrl.searchParams.set("confirm", confirmToken);
+      messageBody = JSON.stringify({
+        text: "Запрошен вход в AppСтрой. Нажмите кнопку ниже, чтобы подтвердить вход в свой кабинет.\n\nЕсли это были не вы — ничего не нажимайте.",
+        attachments: [
+          {
+            type: "inline_keyboard",
+            payload: {
+              buttons: [
+                [
+                  {
+                    type: "link",
+                    text: "Подтвердить вход",
+                    url: confirmUrl.toString(),
+                  },
+                ],
               ],
-            ],
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    } else {
+      const appUrl =
+        Deno.env.get("APP_PUBLIC_URL")?.trim() ||
+        "https://13off.github.io/appstroy-web/";
+      messageBody = JSON.stringify({
+        text: `Код входа в AppСтрой: **${otp}**\n\nКод действует ограниченное время. Никому его не сообщайте.`,
+        format: "markdown",
+        attachments: [
+          {
+            type: "inline_keyboard",
+            payload: {
+              buttons: [
+                [
+                  {
+                    type: "link",
+                    text: "Открыть AppСтрой",
+                    url: appUrl,
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      });
+    }
+
     const maxResponse = await sendMaxMessage({
       maxBotToken,
       maxUserId: String(maxLink.max_user_id),
@@ -221,7 +323,7 @@ Deno.serve(async (request: Request) => {
       console.error("MAX rejected employee auth message", {
         httpStatus: maxResponse.status,
       });
-      return hookError("MAX не смог доставить код входа", 502);
+      return hookError("MAX не смог доставить подтверждение входа", 502);
     }
 
     return new Response("{}", {
@@ -240,6 +342,6 @@ Deno.serve(async (request: Request) => {
         : "delivery_failed",
     });
     const status = message.includes("MAX не подключён") ? 403 : 500;
-    return hookError(message || "Не удалось отправить код через MAX", status);
+    return hookError(message || "Не удалось подтвердить вход через MAX", status);
   }
 });
