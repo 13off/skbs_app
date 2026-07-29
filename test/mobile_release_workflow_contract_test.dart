@@ -14,10 +14,11 @@ void main() {
     expect(workflow, contains("'build-android-apk.yml'"));
     expect(workflow, contains("'build-ios-ipa.yml'"));
     expect(workflow, contains("ref: 'main'"));
-    expect(marker, contains('version: 1.3.1+5'));
-    expect(marker, contains('previous mobile release: 1.3.0+4'));
-    expect(marker, contains('AI chat dark theme contrast'));
-    expect(marker, contains('Enter send'));
-    expect(marker, contains('Shift+Enter newline'));
+    expect(marker, contains('version: 1.3.2+6'));
+    expect(marker, contains('previous mobile release: 1.3.1+5'));
+    expect(marker, contains('role-specific platforms'));
+    expect(marker, contains('unified employee cabinet'));
+    expect(marker, contains('adaptive dark theme'));
+    expect(marker, contains('Android APK and unsigned iOS IPA'));
   });
 }

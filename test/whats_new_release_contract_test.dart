@@ -13,7 +13,7 @@ void main() {
     final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(pubspec, contains('version: 1.3.1+5'));
+    expect(pubspec, contains('version: 1.3.2+6'));
     expect(
       gate,
       contains(
