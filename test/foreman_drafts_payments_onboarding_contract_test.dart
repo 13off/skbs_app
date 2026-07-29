@@ -30,7 +30,7 @@ void main() {
     expect(screen, contains('payment.paymentDate'));
   });
 
-  test('first real login measures navigation in overlay coordinates', () {
+  test('onboarding implementation is preserved but temporarily disconnected', () {
     final guide = File(
       'lib/features/onboarding/presentation/first_run_guide.dart',
     ).readAsStringSync();
@@ -59,6 +59,7 @@ void main() {
     expect(guide, isNot(contains('rootContext')));
     expect(guide, isNot(contains('current is Text')));
     expect(guide, isNot(contains('showDialog<void>')));
-    expect(gate, contains('FirstRunGuide.showIfNeeded'));
+    expect(gate, isNot(contains('FirstRunGuide.showIfNeeded')));
+    expect(gate, isNot(contains("first_run_guide.dart")));
   });
 }
