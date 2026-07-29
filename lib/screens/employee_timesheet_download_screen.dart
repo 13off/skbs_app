@@ -1,4 +1,4 @@
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:universal_html/html.dart' as html;
@@ -382,7 +382,7 @@ class _EmployeeTimesheetDownloadScreenState
 
   Widget buildMonthsPicker() {
     final selected = sortedMonths;
-    return _section(
+    return section(
       children: [
         const Text(
           'Выберите месяцы',
@@ -505,7 +505,7 @@ class _EmployeeTimesheetDownloadScreenState
 
   Widget buildDateRangePicker() {
     final days = selectedRange.duration.inDays + 1;
-    return _section(
+    return section(
       children: [
         const Text(
           'Точный период по датам',
@@ -566,7 +566,7 @@ class _EmployeeTimesheetDownloadScreenState
     );
   }
 
-  Widget _section({required List<Widget> children}) {
+  Widget section({required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
