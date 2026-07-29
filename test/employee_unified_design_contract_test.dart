@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('кабинет сотрудника использует общую дизайн-систему AppСтрой', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
+    final wrapper = File(
+      'lib/features/employee/presentation/employee_platform_with_passport.dart',
+    ).readAsStringSync();
     final employee = File(
       'lib/features/employee/presentation/employee_unified_main_screen.dart',
     ).readAsStringSync();
@@ -12,9 +15,16 @@ void main() {
     expect(
       main,
       contains(
-        "import '../features/employee/presentation/employee_unified_main_screen.dart';",
+        "import '../features/employee/presentation/employee_platform_with_passport.dart';",
       ),
     );
+    expect(main, contains('EmployeePlatformWithPassport(profile: profile)'));
+    expect(
+      wrapper,
+      contains("import 'employee_unified_main_screen.dart' as legacy;"),
+    );
+    expect(wrapper, contains('legacy.EmployeeMainScreen(profile: widget.profile)'));
+    expect(wrapper, contains("label: 'Паспорт'"));
     expect(
       main,
       isNot(

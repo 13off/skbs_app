@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
 import '../navigation/navigation_session.dart';
+import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
@@ -108,7 +109,17 @@ class _ProfessionalBottomNavigationState
     });
   }
 
-  void handleSelected(int index) {
+  Future<void> handleSelected(int index) async {
+    final override = PlatformTabOverrideScope.resolve(
+      context,
+      storageKey: platformKey,
+      index: index,
+    );
+    final handler = override?.onSelected;
+    if (handler != null) {
+      final handled = await handler(context);
+      if (!mounted || handled) return;
+    }
     widget.onSelected(index);
   }
 
@@ -229,7 +240,18 @@ class _ProfessionalBottomNavigationState
                   height: panelHeight - (isDesktop ? 14 : 12),
                   child: Row(
                     children: List<Widget>.generate(widget.items.length, (index) {
-                      final item = widget.items[index];
+                      final baseItem = widget.items[index];
+                      final override = PlatformTabOverrideScope.resolve(
+                        context,
+                        storageKey: platformKey,
+                        index: index,
+                      );
+                      final item = ProfessionalBottomNavigationItem(
+                        label: override?.label ?? baseItem.label,
+                        icon: override?.icon ?? baseItem.icon,
+                        selectedIcon:
+                            override?.selectedIcon ?? baseItem.selectedIcon,
+                      );
                       final selected = index == widget.selectedIndex;
 
                       return Expanded(
@@ -238,7 +260,7 @@ class _ProfessionalBottomNavigationState
                             horizontal: isDesktop ? 3 : 2,
                           ),
                           child: PremiumPressable(
-                            onTap: () => handleSelected(index),
+                            onTap: () => unawaited(handleSelected(index)),
                             pressedScale: 0.965,
                             hoverScale: isDesktop ? 1.012 : 1,
                             borderRadius: BorderRadius.circular(22),

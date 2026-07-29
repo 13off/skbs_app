@@ -9,7 +9,7 @@ import '../data/object_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/company_chat/presentation/company_chat_shell.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
-import '../features/employee/presentation/employee_unified_main_screen.dart';
+import '../features/employee/presentation/employee_platform_with_passport.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/profile/data/personal_profile_controller.dart';
@@ -128,7 +128,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget platformFor(AppUserProfile profile) {
     if (profile.role == 'employee') {
-      return EmployeeMainScreen(profile: profile);
+      return EmployeePlatformWithPassport(profile: profile);
     }
     if (profile.isDeveloper) {
       return DeveloperMainScreen(profile: profile);
