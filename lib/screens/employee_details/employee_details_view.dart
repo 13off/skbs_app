@@ -17,6 +17,12 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
           if (isAdmin) ...[
             buildEmployeeAccessTile(),
             const SizedBox(height: 8),
+            buildActionTile(
+              icon: Icons.badge_outlined,
+              title: 'Паспорт специалиста',
+              subtitle: 'Реальный опыт, смены, задачи, объекты и навыки',
+              onTap: openProfessionalPassport,
+            ),
           ],
           buildActionTile(
             icon: Icons.donut_large_rounded,
