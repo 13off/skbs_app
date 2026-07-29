@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
-import 'employee_sms_login_screen.dart';
+import 'employee_max_login_screen.dart';
 import 'premium_login_screen_v2.dart' as management;
 
 class LoginScreen extends StatelessWidget {
@@ -19,7 +19,7 @@ class LoginScreen extends StatelessWidget {
   Future<void> openEmployeeLogin(BuildContext context) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (routeContext) => EmployeeSmsLoginScreen(
+        builder: (routeContext) => EmployeeMaxLoginScreen(
           onSignedIn: () => finishSignIn(routeContext),
         ),
       ),
@@ -85,7 +85,7 @@ class LoginScreen extends StatelessWidget {
                       _LoginChoice(
                         icon: Icons.engineering_rounded,
                         title: 'Я сотрудник',
-                        subtitle: 'Войти по номеру и бесплатному коду из MAX',
+                        subtitle: 'Подтвердить вход одной кнопкой в MAX',
                         onTap: () => openEmployeeLogin(context),
                         primary: true,
                       ),
