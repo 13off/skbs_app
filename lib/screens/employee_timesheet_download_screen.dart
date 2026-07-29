@@ -53,9 +53,22 @@ class _EmployeeTimesheetDownloadScreenState
     return a.year == b.year && a.month == b.month;
   }
 
+  String monthKey(DateTime value) => '${value.year}-${value.month}';
+
   List<DateTime> get sortedMonths {
     final result = selectedMonths.map(cleanMonth).toSet().toList();
     result.sort((a, b) => a.compareTo(b));
+    return result;
+  }
+
+  List<DateTime> monthsInRange(DateTime start, DateTime end) {
+    final result = <DateTime>[];
+    var month = DateTime(start.year, start.month, 1);
+    final lastMonth = DateTime(end.year, end.month, 1);
+    while (!month.isAfter(lastMonth)) {
+      result.add(month);
+      month = DateTime(month.year, month.month + 1, 1);
+    }
     return result;
   }
 
@@ -147,28 +160,28 @@ class _EmployeeTimesheetDownloadScreenState
     if (isExporting) return;
     if (mode == _EmployeeTimesheetDownloadMode.months &&
         selectedMonths.isEmpty) {
-      _showMessage('Выберите хотя бы один месяц');
+      showMessage('Выберите хотя бы один месяц');
       return;
     }
 
     setState(() => isExporting = true);
     try {
       if (mode == _EmployeeTimesheetDownloadMode.months) {
-        await _downloadSelectedMonths();
+        await downloadSelectedMonths();
       } else {
-        await _downloadDateRange();
+        await downloadDateRange();
       }
       if (!mounted) return;
-      _showMessage('Excel-файл создан');
+      showMessage('Excel-файл создан');
     } catch (error) {
       if (!mounted) return;
-      _showMessage('Ошибка создания Excel: $error');
+      showMessage('Ошибка создания Excel: $error');
     } finally {
       if (mounted) setState(() => isExporting = false);
     }
   }
 
-  Future<void> _downloadSelectedMonths() async {
+  Future<void> downloadSelectedMonths() async {
     final months = sortedMonths;
     final rows = await Future.wait(
       months.map(
@@ -187,42 +200,47 @@ class _EmployeeTimesheetDownloadScreenState
     );
   }
 
-  Future<void> _downloadDateRange() async {
-    final rows = await AttendanceRepository.fetchPeriodTimesheet(
-      startDate: selectedRange.start,
-      endDate: selectedRange.end,
-      includeFired: true,
-      forceRefresh: true,
+  Future<void> downloadDateRange() async {
+    final months = monthsInRange(selectedRange.start, selectedRange.end);
+    final rows = await Future.wait(
+      months.map(
+        (month) => AttendanceRepository.fetchMonthlyTimesheetForEmployee(
+          employee: widget.employee,
+          year: month.year,
+          month: month.month,
+        ),
+      ),
     );
+    final rowsByMonth = <String, MonthlyTimesheetRow>{
+      for (var index = 0; index < months.length; index++)
+        monthKey(months[index]): rows[index],
+    };
 
-    final employeeId = widget.employee.id?.trim();
-    PeriodTimesheetRow? employeeRow;
-    for (final row in rows) {
-      final rowId = row.employee.id?.trim();
-      if (employeeId != null && employeeId.isNotEmpty && rowId == employeeId) {
-        employeeRow = row;
-        break;
-      }
+    final shiftsByDate = <String, double>{};
+    var date = selectedRange.start;
+    while (!date.isAfter(selectedRange.end)) {
+      final monthRow = rowsByMonth[monthKey(date)];
+      shiftsByDate[AttendanceRepository.dateKey(date)] =
+          monthRow?.shiftForDay(date.day) ?? 0.0;
+      date = date.add(const Duration(days: 1));
     }
 
-    employeeRow ??= PeriodTimesheetRow(
-      employee: widget.employee,
-      shiftsByDate: const <String, double>{},
+    await downloadExactPeriodWorkbook(
+      PeriodTimesheetRow(
+        employee: widget.employee,
+        shiftsByDate: shiftsByDate,
+      ),
     );
-
-    await _downloadExactPeriodWorkbook(employeeRow);
   }
 
-  Future<void> _downloadExactPeriodWorkbook(PeriodTimesheetRow row) async {
+  Future<void> downloadExactPeriodWorkbook(PeriodTimesheetRow row) async {
     final workbook = Excel.createExcel();
     final sheet = workbook['Табель'];
     if (workbook.sheets.containsKey('Sheet1')) {
       workbook.delete('Sheet1');
     }
 
-    sheet.appendRow(<CellValue?>[
-      TextCellValue('Табель сотрудника'),
-    ]);
+    sheet.appendRow(<CellValue?>[TextCellValue('Табель сотрудника')]);
     sheet.appendRow(<CellValue?>[
       TextCellValue('Сотрудник'),
       TextCellValue(widget.employee.name),
@@ -253,8 +271,7 @@ class _EmployeeTimesheetDownloadScreenState
 
     var date = selectedRange.start;
     while (!date.isAfter(selectedRange.end)) {
-      final key = AttendanceRepository.dateKey(date);
-      final shifts = row.shiftForDate(key);
+      final shifts = row.shiftForDate(AttendanceRepository.dateKey(date));
       final accrued = shifts * widget.employee.dailyRate;
       sheet.appendRow(<CellValue?>[
         TextCellValue(formatDate(date)),
@@ -282,10 +299,12 @@ class _EmployeeTimesheetDownloadScreenState
       throw Exception('Не удалось собрать Excel-файл');
     }
 
-    final period = '${formatDate(selectedRange.start)}-${formatDate(selectedRange.end)}';
-    final fileName = TimesheetExcelExporter.safeFileName(
-      'Табель_${widget.employee.name}_$period.xlsx',
+    final period =
+        '${formatDate(selectedRange.start)}-${formatDate(selectedRange.end)}';
+    final baseName = TimesheetExcelExporter.safeFileName(
+      'Табель_${widget.employee.name}_$period',
     );
+    final fileName = '$baseName.xlsx';
     final blob = html.Blob(
       <dynamic>[bytes],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -300,11 +319,11 @@ class _EmployeeTimesheetDownloadScreenState
     html.Url.revokeObjectUrl(url);
   }
 
-  void _showMessage(String text) {
+  void showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  Widget _buildEmployeeCard() {
+  Widget buildEmployeeCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -337,161 +356,217 @@ class _EmployeeTimesheetDownloadScreenState
     );
   }
 
-  Widget _buildModeSelector() {
-    return SegmentedButton<_EmployeeTimesheetDownloadMode>(
-      segments: const <ButtonSegment<_EmployeeTimesheetDownloadMode>>[
-        ButtonSegment<_EmployeeTimesheetDownloadMode>(
-          value: _EmployeeTimesheetDownloadMode.months,
-          icon: Icon(Icons.calendar_view_month_outlined),
-          label: Text('По месяцам'),
+  Widget buildModeSelector() {
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<_EmployeeTimesheetDownloadMode>(
+        segments: const <ButtonSegment<_EmployeeTimesheetDownloadMode>>[
+          ButtonSegment<_EmployeeTimesheetDownloadMode>(
+            value: _EmployeeTimesheetDownloadMode.months,
+            icon: Icon(Icons.calendar_view_month_outlined),
+            label: Text('По месяцам'),
+          ),
+          ButtonSegment<_EmployeeTimesheetDownloadMode>(
+            value: _EmployeeTimesheetDownloadMode.dates,
+            icon: Icon(Icons.date_range_outlined),
+            label: Text('По датам'),
+          ),
+        ],
+        selected: <_EmployeeTimesheetDownloadMode>{mode},
+        onSelectionChanged: isExporting
+            ? null
+            : (values) => setState(() => mode = values.first),
+      ),
+    );
+  }
+
+  Widget buildMonthsPicker() {
+    final selected = sortedMonths;
+    return _section(
+      children: [
+        const Text(
+          'Выберите месяцы',
+          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
         ),
-        ButtonSegment<_EmployeeTimesheetDownloadMode>(
-          value: _EmployeeTimesheetDownloadMode.dates,
-          icon: Icon(Icons.date_range_outlined),
-          label: Text('По датам'),
+        const SizedBox(height: 6),
+        Text(
+          'Можно выбрать месяцы из разных лет. Каждый месяц будет отдельным листом.',
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            IconButton(
+              onPressed: isExporting
+                  ? null
+                  : () => setState(() => visibleYear--),
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  visibleYear.toString(),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: isExporting
+                  ? null
+                  : () => setState(() => visibleYear++),
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 12,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.25,
+          ),
+          itemBuilder: (context, index) {
+            final month = DateTime(visibleYear, index + 1, 1);
+            final isSelected = selectedMonths.any(
+              (item) => isSameMonth(item, month),
+            );
+            return InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: isExporting ? null : () => toggleMonth(month),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppAdaptivePalette.accentStrong
+                      : AppAdaptivePalette.surfaceSoft,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppAdaptivePalette.accent
+                        : AppAdaptivePalette.border,
+                  ),
+                ),
+                child: Text(
+                  monthName(index + 1),
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppAdaptivePalette.onAccent
+                        : AppAdaptivePalette.textPrimary,
+                    fontWeight: isSelected
+                        ? FontWeight.w900
+                        : FontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: isExporting ? null : selectVisibleYear,
+              icon: const Icon(Icons.done_all),
+              label: const Text('Выбрать год'),
+            ),
+            OutlinedButton.icon(
+              onPressed: isExporting ? null : clearVisibleYear,
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Очистить год'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          selected.isEmpty
+              ? 'Месяцы не выбраны'
+              : 'Выбрано: ${selected.map((item) => '${monthName(item.month)} ${item.year}').join(', ')}',
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
-      selected: <_EmployeeTimesheetDownloadMode>{mode},
-      onSelectionChanged: isExporting
-          ? null
-          : (values) => setState(() => mode = values.first),
     );
   }
 
-  Widget _buildMonthsPicker() {
-    final selected = sortedMonths;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppAdaptivePalette.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppAdaptivePalette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Выберите месяцы',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Можно выбрать месяцы из разных лет. Каждый месяц будет отдельным листом.',
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              IconButton(
-                onPressed: isExporting
-                    ? null
-                    : () => setState(() => visibleYear--),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    visibleYear.toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: isExporting
-                    ? null
-                    : () => setState(() => visibleYear++),
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 12,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.25,
-            ),
-            itemBuilder: (context, index) {
-              final month = DateTime(visibleYear, index + 1, 1);
-              final isSelected = selectedMonths.any(
-                (item) => isSameMonth(item, month),
-              );
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: isExporting ? null : () => toggleMonth(month),
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppAdaptivePalette.accentStrong
-                        : AppAdaptivePalette.surfaceSoft,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppAdaptivePalette.accent
-                          : AppAdaptivePalette.border,
-                    ),
-                  ),
-                  child: Text(
-                    monthName(index + 1),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isSelected
-                          ? AppAdaptivePalette.onAccent
-                          : AppAdaptivePalette.textPrimary,
-                      fontWeight: isSelected
-                          ? FontWeight.w900
-                          : FontWeight.w600,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: isExporting ? null : selectVisibleYear,
-                icon: const Icon(Icons.done_all),
-                label: const Text('Выбрать год'),
-              ),
-              OutlinedButton.icon(
-                onPressed: isExporting ? null : clearVisibleYear,
-                icon: const Icon(Icons.clear_all),
-                label: const Text('Очистить год'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            selected.isEmpty
-                ? 'Месяцы не выбраны'
-                : 'Выбрано: ${selected.map((item) => '${monthName(item.month)} ${item.year}').join(', ')}',
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateRangePicker() {
+  Widget buildDateRangePicker() {
     final days = selectedRange.duration.inDays + 1;
+    return _section(
+      children: [
+        const Text(
+          'Точный период по датам',
+          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'В файл попадут только даты внутри интервала, включая первый и последний день.',
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: isExporting ? null : pickDateRange,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppAdaptivePalette.surfaceSoft,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppAdaptivePalette.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.date_range_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${formatDate(selectedRange.start)} — ${formatDate(selectedRange.end)}',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$days ${daysWord(days)}',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _section({required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -501,68 +576,12 @@ class _EmployeeTimesheetDownloadScreenState
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Точный период по датам',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'В файл попадут только даты внутри интервала, включая первый и последний день.',
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: isExporting ? null : pickDateRange,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppAdaptivePalette.surfaceSoft,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppAdaptivePalette.border),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.date_range_outlined),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${formatDate(selectedRange.start)} — ${formatDate(selectedRange.end)}',
-                          style: TextStyle(
-                            color: AppAdaptivePalette.textPrimary,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '$days ${_daysWord(days)}',
-                          style: TextStyle(
-                            color: AppAdaptivePalette.textMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
-              ),
-            ),
-          ),
-        ],
+        children: children,
       ),
     );
   }
 
-  String _daysWord(int value) {
+  String daysWord(int value) {
     final mod100 = value % 100;
     final mod10 = value % 10;
     if (mod100 >= 11 && mod100 <= 14) return 'дней';
@@ -571,7 +590,7 @@ class _EmployeeTimesheetDownloadScreenState
     return 'дней';
   }
 
-  Widget _buildDownloadButton() {
+  Widget buildDownloadButton() {
     final disabled = isExporting ||
         (mode == _EmployeeTimesheetDownloadMode.months &&
             selectedMonths.isEmpty);
@@ -601,16 +620,16 @@ class _EmployeeTimesheetDownloadScreenState
       body: AdaptiveDetailBody(
         desktopMaxWidth: 940,
         children: [
-          _buildEmployeeCard(),
+          buildEmployeeCard(),
           const SizedBox(height: 16),
-          _buildModeSelector(),
+          buildModeSelector(),
           const SizedBox(height: 16),
           if (mode == _EmployeeTimesheetDownloadMode.months)
-            _buildMonthsPicker()
+            buildMonthsPicker()
           else
-            _buildDateRangePicker(),
+            buildDateRangePicker(),
           const SizedBox(height: 16),
-          _buildDownloadButton(),
+          buildDownloadButton(),
         ],
       ),
     );
