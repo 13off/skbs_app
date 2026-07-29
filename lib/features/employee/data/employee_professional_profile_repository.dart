@@ -177,6 +177,19 @@ class EmployeeProfessionalProfileRepository {
     return _invoke(<String, dynamic>{'action': 'fetch'});
   }
 
+  static Future<EmployeeProfessionalPassportData> fetchForEmployee({
+    required String employeeId,
+  }) async {
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanEmployeeId.isEmpty) {
+      throw Exception('У сотрудника нет рабочей карточки');
+    }
+    return _invoke(<String, dynamic>{
+      'action': 'fetch_employee',
+      'employee_id': cleanEmployeeId,
+    });
+  }
+
   static Future<EmployeeProfessionalPassportData> save(
     EmployeeProfessionalProfile professional,
   ) async {
