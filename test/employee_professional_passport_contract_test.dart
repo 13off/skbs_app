@@ -15,6 +15,7 @@ void main() {
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
   const overridePath = 'lib/navigation/platform_tab_override_scope.dart';
   const navigationPath = 'lib/widgets/professional_bottom_navigation.dart';
+  const appMainPath = 'lib/main.dart';
 
   test('профессиональный паспорт хранится в закрытом контуре', () {
     final migration = File(migrationPath).readAsStringSync();
@@ -135,6 +136,25 @@ void main() {
     expect(screen, contains('Подтверждено AppСтрой'));
     expect(screen, contains('Открыт к предложениям'));
     expect(screen, contains('Готов к вахте'));
+  });
+
+  test('русская дата паспорта инициализируется до runApp', () {
+    final appMain = File(appMainPath).readAsStringSync();
+    final bindingIndex = appMain.indexOf(
+      'WidgetsFlutterBinding.ensureInitialized()',
+    );
+    final localeIndex = appMain.indexOf(
+      "await initializeDateFormatting('ru_RU')",
+    );
+    final runAppIndex = appMain.indexOf('runApp(');
+
+    expect(
+      appMain,
+      contains("import 'package:intl/date_symbol_data_local.dart';"),
+    );
+    expect(bindingIndex, greaterThanOrEqualTo(0));
+    expect(localeIndex, greaterThan(bindingIndex));
+    expect(runAppIndex, greaterThan(localeIndex));
   });
 
   test('копируемое резюме не содержит личный телефон и расчёты', () {
