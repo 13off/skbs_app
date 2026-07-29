@@ -131,17 +131,20 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
             statusText =
                 'В MAX нажми «Запустить» и отправь свой контакт. Номер должен совпадать с карточкой сотрудника.';
           });
+          break;
         case 'waiting_max':
           setState(() {
             statusText =
                 'Открой чат «СКБС Работа» в MAX. Кнопка подтверждения придёт автоматически.';
           });
+          break;
         case 'waiting_confirmation':
           setState(() {
             needsInitialLink = false;
             statusText =
                 'В MAX нажми «Подтвердить вход». Код вводить не требуется.';
           });
+          break;
         case 'signed_in':
           pollTimer?.cancel();
           setState(() {
@@ -150,6 +153,7 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
           });
           HapticFeedback.mediumImpact();
           await widget.onSignedIn?.call();
+          break;
         case 'expired':
           pollTimer?.cancel();
           setState(() {
@@ -159,6 +163,7 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
                 ? result.error
                 : 'Время подтверждения истекло. Начни вход заново';
           });
+          break;
         default:
           break;
       }
@@ -175,10 +180,22 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
     if (value == null || value.isEmpty) return;
     final uri = Uri.tryParse(value);
     if (uri == null) return;
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) {
+        setState(() {
+          errorText =
+              'Не удалось открыть MAX автоматически. Открой приложение MAX вручную';
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
-        errorText = 'Не удалось открыть MAX автоматически. Открой приложение MAX вручную';
+        errorText =
+            'Не удалось открыть MAX автоматически. Открой приложение MAX вручную';
       });
     }
   }
