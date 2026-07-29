@@ -22,6 +22,17 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     ).showSnackBar(const SnackBar(content: Text('Сотрудник обновлён')));
   }
 
+  Future<void> openProfessionalPassport() async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => EmployeeProfessionalPassportViewerScreen(
+          employee: employee,
+        ),
+      ),
+    );
+  }
+
   Future<void> openContribution() async {
     await Navigator.push<void>(
       context,

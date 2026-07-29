@@ -174,24 +174,44 @@ class EmployeeProfessionalProfileRepository {
   static final SupabaseClient _client = Supabase.instance.client;
 
   static Future<EmployeeProfessionalPassportData> fetch() async {
-    return _invoke(<String, dynamic>{'action': 'fetch'});
+    return _invoke(
+      'employee-professional-profile',
+      <String, dynamic>{'action': 'fetch'},
+    );
+  }
+
+  static Future<EmployeeProfessionalPassportData> fetchForEmployee({
+    required String employeeId,
+  }) async {
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanEmployeeId.isEmpty) {
+      throw Exception('У сотрудника нет рабочей карточки');
+    }
+    return _invoke(
+      'employee-professional-profile-view',
+      <String, dynamic>{'employee_id': cleanEmployeeId},
+    );
   }
 
   static Future<EmployeeProfessionalPassportData> save(
     EmployeeProfessionalProfile professional,
   ) async {
-    return _invoke(<String, dynamic>{
-      'action': 'update',
-      'professional': professional.toJson(),
-    });
+    return _invoke(
+      'employee-professional-profile',
+      <String, dynamic>{
+        'action': 'update',
+        'professional': professional.toJson(),
+      },
+    );
   }
 
   static Future<EmployeeProfessionalPassportData> _invoke(
+    String functionName,
     Map<String, dynamic> body,
   ) async {
     try {
       final response = await _client.functions.invoke(
-        'employee-professional-profile',
+        functionName,
         body: body,
       );
       final raw = response.data;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
+import 'employee_passport_directory_screen.dart';
 import 'employee_professional_passport_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
@@ -29,9 +30,9 @@ class _EmployeePlatformWithPassportState
     try {
       await Navigator.of(context, rootNavigator: true).push<void>(
         CupertinoPageRoute<void>(
-          builder: (_) => EmployeeProfessionalPassportScreen(
-            profile: widget.profile,
-          ),
+          builder: (_) => widget.profile.isRolePreview
+              ? const EmployeePassportDirectoryScreen()
+              : EmployeeProfessionalPassportScreen(profile: widget.profile),
         ),
       );
     } finally {
