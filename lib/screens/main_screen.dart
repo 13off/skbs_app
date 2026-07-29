@@ -9,7 +9,7 @@ import '../data/object_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
 import '../features/company_chat/presentation/company_chat_shell.dart';
 import '../features/developer/presentation/developer_main_screen.dart';
-import '../features/employee/presentation/employee_main_screen.dart';
+import '../features/employee/presentation/employee_unified_main_screen.dart';
 import '../features/foreman/presentation/foreman_main_screen.dart';
 import '../features/legal/presentation/legal_main_screen.dart';
 import '../features/profile/data/personal_profile_controller.dart';
@@ -261,17 +261,10 @@ class _RolePreviewFrame extends StatelessWidget {
                       ),
                     ),
                   ),
-                  TextButton(
+                  TextButton.icon(
                     onPressed: RolePreviewController.showAdmin,
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppAdaptivePalette.accent,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: const Text(
-                      'К руководителю',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                    icon: const Icon(Icons.admin_panel_settings_outlined),
+                    label: const Text('К руководителю'),
                   ),
                 ],
               ),
