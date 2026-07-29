@@ -63,6 +63,7 @@ Deno.serve(async (request: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     if (!supabaseUrl || !serviceRoleKey) {
       return json({ error: "Мост MAX не настроен" }, 500);
@@ -102,6 +103,7 @@ Deno.serve(async (request: Request) => {
     }
 
     let claimedTokenHash = "";
+    let loginAttemptId = "";
     let accountLink: {
       company_id: string;
       person_id: string;
@@ -117,7 +119,9 @@ Deno.serve(async (request: Request) => {
       claimedTokenHash = await sha256(connectToken);
       const { data: pendingToken, error: tokenError } = await adminClient
         .from("employee_max_link_tokens")
-        .select("company_id, person_id, user_id, phone_e164, expires_at, used_at")
+        .select(
+          "company_id, person_id, user_id, phone_e164, expires_at, used_at, login_attempt_id",
+        )
         .eq("token_hash", claimedTokenHash)
         .maybeSingle();
       if (tokenError) throw tokenError;
@@ -134,6 +138,7 @@ Deno.serve(async (request: Request) => {
           409,
         );
       }
+      loginAttemptId = String(pendingToken.login_attempt_id ?? "").trim();
       accountLink = {
         company_id: String(pendingToken.company_id),
         person_id: String(pendingToken.person_id),
@@ -229,10 +234,56 @@ Deno.serve(async (request: Request) => {
       if (useTokenError) throw useTokenError;
     }
 
+    let loginStarted = false;
+    if (loginAttemptId && anonKey) {
+      const { data: attempt, error: attemptError } = await adminClient
+        .from("employee_max_login_attempts")
+        .select("id, expires_at, state")
+        .eq("id", loginAttemptId)
+        .eq("company_id", accountLink.company_id)
+        .eq("person_id", accountLink.person_id)
+        .eq("user_id", accountLink.user_id)
+        .eq("phone_e164", accountLink.phone_e164)
+        .maybeSingle();
+      if (attemptError) throw attemptError;
+      if (
+        attempt &&
+        attempt.state === "linking" &&
+        new Date(attempt.expires_at).getTime() > Date.now()
+      ) {
+        const { data: claimedAttempt, error: claimError } = await adminClient
+          .from("employee_max_login_attempts")
+          .update({
+            state: "pending",
+            max_user_id: maxUserId,
+            updated_at: now,
+          })
+          .eq("id", loginAttemptId)
+          .eq("state", "linking")
+          .select("id")
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (claimedAttempt) {
+          const authClient = createClient(supabaseUrl, anonKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          const { error: otpError } = await authClient.auth.signInWithOtp({
+            phone: accountLink.phone_e164,
+            options: { shouldCreateUser: false },
+          });
+          if (otpError) throw otpError;
+          loginStarted = true;
+        }
+      }
+    }
+
     return json({
       ok: true,
       linked: true,
-      message: "MAX подключён. Теперь коды входа AppСтрой будут приходить сюда.",
+      login_started: loginStarted,
+      message: loginStarted
+        ? "MAX подключён. Сейчас придёт кнопка подтверждения входа в AppСтрой."
+        : "MAX подключён. Теперь вход в AppСтрой можно подтверждать одной кнопкой.",
       app_url:
         Deno.env.get("APP_PUBLIC_URL")?.trim() ||
         "https://13off.github.io/appstroy-web/",
