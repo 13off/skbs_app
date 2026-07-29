@@ -70,6 +70,7 @@ class EmployeeProfessionalVerified {
   final String fullName;
   final String profession;
   final String currentObject;
+  final int currentDailyRate;
   final List<String> objectNames;
   final double totalShifts;
   final double totalHours;
@@ -81,6 +82,7 @@ class EmployeeProfessionalVerified {
     required this.fullName,
     required this.profession,
     required this.currentObject,
+    required this.currentDailyRate,
     required this.objectNames,
     required this.totalShifts,
     required this.totalHours,
@@ -94,6 +96,7 @@ class EmployeeProfessionalVerified {
       fullName: _text(json['full_name']),
       profession: _text(json['profession']),
       currentObject: _text(json['current_object']),
+      currentDailyRate: _integer(json['current_daily_rate']),
       objectNames: _textList(json['object_names']),
       totalShifts: _number(json['total_shifts']),
       totalHours: _number(json['total_hours']),
@@ -153,6 +156,7 @@ class EmployeeProfessionalPassportData {
             : profile.fullName.trim(),
         profession: profession,
         currentObject: objectName,
+        currentDailyRate: 6000,
         objectNames: objectName.isEmpty
             ? const <String>['Демонстрационный объект']
             : <String>[objectName],
