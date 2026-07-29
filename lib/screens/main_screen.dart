@@ -17,7 +17,7 @@ import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
-import '../features/whats_new/presentation/whats_new_gate.dart';
+import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
 
