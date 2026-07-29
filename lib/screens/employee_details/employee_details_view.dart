@@ -30,6 +30,12 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             subtitle: 'Смены, начислено, выплаты и Excel',
             onTap: openTimesheet,
           ),
+          buildActionTile(
+            icon: Icons.download_for_offline_outlined,
+            title: 'Скачать табель',
+            subtitle: 'Несколько месяцев или точный период по датам',
+            onTap: openTimesheetDownload,
+          ),
           if (isAdmin)
             buildActionTile(
               icon: Icons.lock_person_outlined,

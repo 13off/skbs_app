@@ -15,6 +15,7 @@ import 'edit_employee_screen.dart';
 import 'employee_comments_screen.dart';
 import 'employee_documents_screen.dart';
 import 'employee_private_data_screen.dart';
+import 'employee_timesheet_download_screen.dart';
 import 'employee_timesheet_screen.dart';
 import 'payment_history_screen.dart';
 
