@@ -260,13 +260,11 @@ class EmployeeWorkActionRepository {
   }
 
   static Future<EmployeeShiftState> fetchShiftState({
-    String taskId = '',
     String employeeId = '',
   }) async {
     final data = await _invoke(
       'shift_state',
       body: <String, dynamic>{
-        if (taskId.trim().isNotEmpty) 'task_id': taskId.trim(),
         if (employeeId.trim().isNotEmpty) 'employee_id': employeeId.trim(),
       },
     );
@@ -274,7 +272,6 @@ class EmployeeWorkActionRepository {
   }
 
   static Future<EmployeeWorkShift> startShift({
-    required String taskId,
     required EmployeeLocationPoint point,
     required String permissionScope,
     required String trackingMode,
@@ -282,9 +279,9 @@ class EmployeeWorkActionRepository {
     final data = await _invoke(
       'start_shift',
       body: <String, dynamic>{
-        'task_id': taskId.trim(),
         'permission_scope': permissionScope,
         'tracking_mode': trackingMode,
+        'work_date': _dateKey(DateTime.now()),
         ...point.toJson(),
       },
     );
@@ -349,7 +346,6 @@ class EmployeeWorkActionRepository {
     return EmployeeObjectGeofence.fromJson(geofence);
   }
 
-  @Deprecated('Работа начинается через startShift с проверкой геопозиции')
   static Future<void> startTask(String taskId) async {
     final cleanTaskId = taskId.trim();
     if (cleanTaskId.isEmpty) throw Exception('Задача не определена');
