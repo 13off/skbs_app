@@ -13,7 +13,8 @@ void main() {
 
     expect(wrapper, contains('EmployeeWorkHomeScreen'));
     expect(wrapper, contains('EmployeeWorkTasksScreen'));
-    expect(wrapper, contains('profile.isRolePreview ? null'));
+    expect(wrapper, contains('rootHeaderTrailingBuilder: profile.isRolePreview'));
+    expect(wrapper, contains('? null'));
     expect(team, contains('EmployeeWorkActionRepository.resolveSelection()'));
     expect(team, isNot(contains('_resolvePreviewSeed')));
     expect(team, isNot(contains('EmployeeRepository.fetchEmployees')));
