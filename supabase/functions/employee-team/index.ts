@@ -30,13 +30,6 @@ type SeedEmployee = {
   objectName: string;
 };
 
-const visibilityScopes = new Set([
-  "private",
-  "object",
-  "company",
-  "employers",
-]);
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -50,41 +43,6 @@ function json(body: unknown, status = 200) {
 
 function cleanText(value: unknown, maxLength: number) {
   return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
-}
-
-function cleanParagraph(value: unknown, maxLength: number) {
-  return String(value ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, maxLength);
-}
-
-function cleanList(value: unknown, maxItems: number, maxItemLength: number) {
-  if (!Array.isArray(value)) return [];
-  const result: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of value) {
-    const item = cleanText(raw, maxItemLength);
-    const key = item.toLocaleLowerCase("ru");
-    if (!item || seen.has(key)) continue;
-    seen.add(key);
-    result.push(item);
-    if (result.length >= maxItems) break;
-  }
-  return result;
-}
-
-function finiteNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function visibilityScope(value: unknown) {
-  const clean = cleanText(value, 20);
-  return visibilityScopes.has(clean) ? clean : "object";
 }
 
 async function readBody(request: Request) {
@@ -202,52 +160,6 @@ async function seedForManager(
   };
 }
 
-async function currentVisibility(
-  // deno-lint-ignore no-explicit-any
-  adminClient: any,
-  viewer: Viewer,
-  seed: SeedEmployee,
-) {
-  const { data, error } = await adminClient
-    .from("employee_professional_profiles")
-    .select("visibility_scope")
-    .eq("company_id", viewer.companyId)
-    .eq("person_id", seed.personId)
-    .maybeSingle();
-  if (error) throw error;
-  return visibilityScope(data?.visibility_scope);
-}
-
-async function updateVisibility(
-  // deno-lint-ignore no-explicit-any
-  adminClient: any,
-  viewer: Viewer,
-  seed: SeedEmployee,
-  value: unknown,
-) {
-  if (viewer.role !== "employee") {
-    throw new HttpError("Видимость меняет только сам сотрудник", 403);
-  }
-  const clean = cleanText(value, 20);
-  if (!visibilityScopes.has(clean)) {
-    throw new HttpError("Некорректный режим видимости", 400);
-  }
-  const { error } = await adminClient
-    .from("employee_professional_profiles")
-    .upsert(
-      {
-        company_id: viewer.companyId,
-        person_id: seed.personId,
-        user_id: viewer.userId,
-        visibility_scope: clean,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "company_id,person_id" },
-    );
-  if (error) throw error;
-  return clean;
-}
-
 async function teamMembers(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
@@ -260,7 +172,7 @@ async function teamMembers(
 
   let query = adminClient
     .from("employees")
-    .select("id, person_id, fio, position, object_id, object_name, is_active, archived_at, updated_at")
+    .select("id, person_id, fio, position, phone, object_id, object_name, is_active, archived_at, updated_at")
     .eq("company_id", viewer.companyId)
     .eq("is_active", true)
     .is("archived_at", null);
@@ -284,60 +196,83 @@ async function teamMembers(
   const personIds = people.map(([personId]) => personId);
   if (personIds.length === 0) return [];
 
-  const { data: profiles, error: profilesError } = await adminClient
-    .from("employee_professional_profiles")
-    .select("person_id, grade, experience_years, skills, about, ready_for_rotation, visibility_scope")
+  const { data: links, error: linksError } = await adminClient
+    .from("employee_account_links")
+    .select("person_id, user_id, phone_e164")
     .eq("company_id", viewer.companyId)
+    .eq("is_active", true)
     .in("person_id", personIds);
-  if (profilesError) throw profilesError;
-  const profileMap = new Map<string, Record<string, unknown>>();
-  for (const raw of profiles ?? []) {
+  if (linksError) throw linksError;
+
+  const linkMap = new Map<string, Record<string, unknown>>();
+  for (const raw of links ?? []) {
     const row = raw as Record<string, unknown>;
-    profileMap.set(cleanText(row.person_id, 80), row);
+    const personId = cleanText(row.person_id, 80);
+    if (personId && !linkMap.has(personId)) linkMap.set(personId, row);
   }
 
-  const summaries = await Promise.all(
-    personIds.map(async (personId) => {
-      const result = await adminClient.rpc("employee_professional_summary", {
-        p_company_id: viewer.companyId,
-        p_person_id: personId,
-      });
-      if (result.error) throw result.error;
-      const summary = result.data && typeof result.data === "object"
-        ? result.data as Record<string, unknown>
-        : {};
-      return [personId, summary] as const;
-    }),
+  const userIds = Array.from(
+    new Set(
+      Array.from(linkMap.values())
+        .map((row) => cleanText(row.user_id, 80))
+        .filter((value) => value.length > 0),
+    ),
   );
-  const summaryMap = new Map(summaries);
-  const managerView = viewer.role === "admin" || viewer.role === "developer";
+  const profileMap = new Map<string, Record<string, unknown>>();
+  if (userIds.length > 0) {
+    const { data: profiles, error: profilesError } = await adminClient
+      .from("user_profiles")
+      .select("id, phone, avatar_path, is_active")
+      .in("id", userIds)
+      .eq("is_active", true);
+    if (profilesError) throw profilesError;
+    for (const raw of profiles ?? []) {
+      const row = raw as Record<string, unknown>;
+      profileMap.set(cleanText(row.id, 80), row);
+    }
+  }
+
+  const avatarPaths = Array.from(
+    new Set(
+      Array.from(profileMap.values())
+        .map((row) => cleanText(row.avatar_path, 500))
+        .filter((value) => value.length > 0 && !value.startsWith("http")),
+    ),
+  );
+  const avatarUrlMap = new Map<string, string>();
+  if (avatarPaths.length > 0) {
+    const { data: signed, error: signedError } = await adminClient.storage
+      .from("profile-avatars")
+      .createSignedUrls(avatarPaths, 60 * 60);
+    if (!signedError) {
+      for (const row of signed ?? []) {
+        const path = cleanText(row.path, 500);
+        const signedUrl = cleanText(row.signedUrl, 2000);
+        if (path && signedUrl) avatarUrlMap.set(path, signedUrl);
+      }
+    }
+  }
 
   return people
     .map(([personId, employee]) => {
-      const profile = profileMap.get(personId) ?? {};
-      const summary = summaryMap.get(personId) ?? {};
-      const scope = visibilityScope(profile.visibility_scope);
-      const extendedVisible = managerView || scope !== "private";
+      const link = linkMap.get(personId);
+      const userId = cleanText(link?.user_id, 80);
+      const profile = profileMap.get(userId);
+      const avatarPath = cleanText(profile?.avatar_path, 500);
+      const avatarUrl = avatarPath.startsWith("http")
+        ? avatarPath
+        : avatarUrlMap.get(avatarPath) ?? "";
+      const phone = cleanText(employee.phone, 60) ||
+        cleanText(link?.phone_e164, 60) ||
+        cleanText(profile?.phone, 60);
+
       return {
         employee_id: cleanText(employee.id, 80),
         full_name: cleanText(employee.fio, 180) || "Сотрудник",
         profession: cleanText(employee.position, 120),
-        object_name: cleanText(employee.object_name, 160),
-        total_shifts: finiteNumber(summary.total_shifts),
-        completed_tasks: Math.max(
-          0,
-          Math.trunc(finiteNumber(summary.completed_tasks)),
-        ),
-        first_work_date: cleanText(summary.first_work_date, 20),
-        extended_visible: extendedVisible,
-        grade: extendedVisible ? cleanText(profile.grade, 40) : "",
-        experience_years: extendedVisible
-          ? finiteNumber(profile.experience_years)
-          : 0,
-        skills: extendedVisible ? cleanList(profile.skills, 20, 50) : [],
-        about: extendedVisible ? cleanParagraph(profile.about, 800) : "",
-        ready_for_rotation: extendedVisible &&
-          profile.ready_for_rotation === true,
+        phone,
+        avatar_url: avatarUrl,
+        profile_verified: Boolean(link && profile),
       };
     })
     .sort((a, b) => a.full_name.localeCompare(b.full_name, "ru"));
@@ -377,37 +312,20 @@ Deno.serve(async (request: Request) => {
     const viewer = await readViewer(adminClient, user.id);
     const input = await readBody(request);
     const action = cleanText(input.action, 30) || "list";
-    const selectedEmployeeId = cleanText(input.employee_id, 80);
-    const seed = viewer.role === "employee"
-      ? await seedForEmployee(adminClient, viewer)
-      : await seedForManager(adminClient, viewer, selectedEmployeeId);
-
-    if (action === "update_visibility") {
-      const next = await updateVisibility(
-        adminClient,
-        viewer,
-        seed,
-        input.visibility_scope,
-      );
-      return json({ ok: true, visibility_scope: next });
-    }
     if (action !== "list") {
       throw new HttpError("Неизвестное действие", 400);
     }
 
-    const [members, ownVisibility] = await Promise.all([
-      teamMembers(adminClient, viewer, seed),
-      viewer.role === "employee"
-        ? currentVisibility(adminClient, viewer, seed)
-        : Promise.resolve("private"),
-    ]);
+    const selectedEmployeeId = cleanText(input.employee_id, 80);
+    const seed = viewer.role === "employee"
+      ? await seedForEmployee(adminClient, viewer)
+      : await seedForManager(adminClient, viewer, selectedEmployeeId);
+    const members = await teamMembers(adminClient, viewer, seed);
 
     return json({
       ok: true,
       current_object: seed.objectName,
       members,
-      can_manage_visibility: viewer.role === "employee",
-      visibility_scope: ownVisibility,
     });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 500;
