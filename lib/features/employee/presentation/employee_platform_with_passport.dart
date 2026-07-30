@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
-import '../../../navigation/platform_tab_override_scope.dart';
-import '../../../screens/profile_screen.dart';
-import 'employee_team_tab_screen.dart';
-import 'employee_unified_main_screen.dart' as legacy;
+import '../../../widgets/premium_ui.dart';
+import '../../shell/presentation/persistent_tab_shell.dart';
 import 'employee_work_cabinet_screen.dart';
 
 class EmployeePlatformWithPassport extends StatefulWidget {
@@ -22,47 +20,49 @@ class EmployeePlatformWithPassport extends StatefulWidget {
 
 class _EmployeePlatformWithPassportState
     extends State<EmployeePlatformWithPassport> {
-  Future<void> _openProfile(BuildContext context) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => ProfileScreen(profile: widget.profile),
-      ),
-    );
+  late final PersistentTabController controller;
+
+  static const items = <ProfessionalBottomNavigationItem>[
+    ProfessionalBottomNavigationItem(
+      label: 'Задачи',
+      icon: Icons.assignment_outlined,
+      selectedIcon: Icons.assignment_rounded,
+    ),
+    ProfessionalBottomNavigationItem(
+      label: 'История задач',
+      icon: Icons.history_outlined,
+      selectedIcon: Icons.history_rounded,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    controller = PersistentTabController(pageCount: items.length);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final profile = widget.profile;
-    final contentProfile = profile.isRolePreview
-        ? profile.copyWith(actualRole: 'employee')
-        : profile;
-
-    // EmployeeTeamScreen остаётся экраном карточки коллеги, а сама команда
-    // встроена в пятую вкладку через EmployeeTeamTabScreen.
-    return PlatformTabOverrideScope(
-      storageKey: 'employee',
-      rootHeaderTrailingBuilder: profile.isRolePreview
-          ? null
-          : (context) => IconButton.filledTonal(
-                tooltip: 'Мой профиль',
-                onPressed: () => _openProfile(context),
-                icon: const Icon(Icons.person_outline_rounded),
-              ),
-      overrides: <int, PlatformTabOverride>{
-        0: PlatformTabOverride(
-          builder: (_) => EmployeeWorkHomeScreen(profile: contentProfile),
-        ),
-        1: PlatformTabOverride(
-          builder: (_) => EmployeeWorkTasksScreen(profile: contentProfile),
-        ),
-        4: PlatformTabOverride(
-          label: 'Команда',
-          icon: Icons.groups_outlined,
-          selectedIcon: Icons.groups_rounded,
-          builder: (_) => EmployeeTeamTabScreen(profile: profile),
-        ),
+    final contentProfile = widget.profile.isRolePreview
+        ? widget.profile.copyWith(actualRole: 'employee')
+        : widget.profile;
+    return PersistentTabShell(
+      controller: controller,
+      items: items,
+      returnToFirstTabOnBack: true,
+      navigationStorageKey: 'employee-work-simple',
+      tabBuilder: (context, index) {
+        if (index == 0) {
+          return EmployeeWorkTasksScreen(profile: contentProfile);
+        }
+        return EmployeeWorkTaskHistoryScreen(profile: contentProfile);
       },
-      child: legacy.EmployeeMainScreen(profile: contentProfile),
     );
   }
 }
