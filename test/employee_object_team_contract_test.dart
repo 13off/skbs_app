@@ -3,33 +3,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const migrationPath =
-      'supabase/migrations/20260730093000_employee_object_team_visibility.sql';
   const functionPath = 'supabase/functions/employee-team/index.ts';
   const repositoryPath =
       'lib/features/employee/data/employee_team_repository.dart';
-  const hubPath =
-      'lib/features/employee/presentation/employee_community_hub_screen.dart';
   const screenPath =
       'lib/features/employee/presentation/employee_team_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
-
-  test('расширенный профиль имеет явную настройку видимости', () {
-    final migration = File(migrationPath).readAsStringSync();
-
-    expect(migration, contains('visibility_scope'));
-    expect(migration, contains("default 'object'"));
-    for (final scope in <String>[
-      "'private'",
-      "'object'",
-      "'company'",
-      "'employers'",
-    ]) {
-      expect(migration, contains(scope));
-    }
-    expect(migration, contains('employee_professional_profiles_visibility_idx'));
-  });
 
   test('сервер сам определяет сотрудника, компанию и текущий объект', () {
     final function = File(functionPath).readAsStringSync();
@@ -50,17 +30,19 @@ void main() {
   test('руководитель может проверить только сотрудника своей компании', () {
     final function = File(functionPath).readAsStringSync();
 
-    expect(function, contains('viewer.role === "admin"'));
-    expect(function, contains('viewer.role === "developer"'));
+    expect(function, contains('viewer.role === "employee"'));
     expect(
       function,
       contains('const selectedEmployeeId = cleanText(input.employee_id'),
     );
-    expect(function, contains('seedForManager(adminClient, viewer, selectedEmployeeId)'));
+    expect(
+      function,
+      contains('seedForManager(adminClient, viewer, selectedEmployeeId)'),
+    );
     expect(function, contains('.eq("company_id", viewer.companyId)'));
   });
 
-  test('команда не отдаёт личные и расчётные данные', () {
+  test('команда отдаёт только простой профиль и контакт коллеги', () {
     final function = File(functionPath).readAsStringSync();
     final responseStart = function.indexOf('return people');
     final responseEnd = function.indexOf('Deno.serve', responseStart);
@@ -70,23 +52,35 @@ void main() {
 
     expect(responseBlock, contains('full_name'));
     expect(responseBlock, contains('profession'));
-    expect(responseBlock, contains('total_shifts'));
-    expect(responseBlock, contains('completed_tasks'));
-    expect(responseBlock, isNot(contains('phone')));
+    expect(responseBlock, contains('phone'));
+    expect(responseBlock, contains('avatar_url'));
+    expect(responseBlock, contains('profile_verified'));
     expect(responseBlock, isNot(contains('daily_rate')));
     expect(responseBlock, isNot(contains('payment')));
     expect(responseBlock, isNot(contains('comment')));
     expect(responseBlock, isNot(contains('documents')));
+    expect(responseBlock, isNot(contains('total_shifts')));
+    expect(responseBlock, isNot(contains('completed_tasks')));
+    expect(responseBlock, isNot(contains('skills')));
+    expect(responseBlock, isNot(contains('about')));
   });
 
-  test('private скрывает расширенную профессиональную часть', () {
+  test('подтверждение означает активную связь аккаунта с карточкой', () {
     final function = File(functionPath).readAsStringSync();
 
-    expect(function, contains('const extendedVisible = managerView || scope !== "private"'));
-    expect(function, contains('grade: extendedVisible ?'));
-    expect(function, contains('skills: extendedVisible ?'));
-    expect(function, contains('about: extendedVisible ?'));
-    expect(function, contains('Видимость меняет только сам сотрудник'));
+    expect(function, contains('.from("employee_account_links")'));
+    expect(function, contains('.select("person_id, user_id, phone_e164")'));
+    expect(function, contains('.from("user_profiles")'));
+    expect(function, contains('.select("id, phone, avatar_path, is_active")'));
+    expect(function, contains('profile_verified: Boolean(link && profile)'));
+  });
+
+  test('аватар закрытого хранилища передаётся временной ссылкой', () {
+    final function = File(functionPath).readAsStringSync();
+
+    expect(function, contains('.from("profile-avatars")'));
+    expect(function, contains('.createSignedUrls(avatarPaths, 60 * 60)'));
+    expect(function, contains('avatarUrlMap'));
   });
 
   test('клиент работает только через JWT edge function', () {
@@ -94,28 +88,29 @@ void main() {
 
     expect(repository, contains("'employee-team'"));
     expect(repository, contains("'action': 'list'"));
-    expect(repository, contains("'action': 'update_visibility'"));
+    expect(repository, contains('profileVerified'));
+    expect(repository, contains('avatarUrl'));
+    expect(repository, isNot(contains('updateVisibility')));
     expect(repository, isNot(contains(".from('employees')")));
-    expect(repository, isNot(contains(".from('employee_professional_profiles')")));
+    expect(repository, isNot(contains(".from('user_profiles')")));
   });
 
-  test('платформа открывает рабочую команду и сохраняет паспорт', () {
+  test('нижняя вкладка сразу открывает простую команду', () {
     final wrapper = File(wrapperPath).readAsStringSync();
-    final hub = File(hubPath).readAsStringSync();
     final screen = File(screenPath).readAsStringSync();
 
     expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeCommunityHubScreen'));
-    expect(hub, contains('Команда объекта'));
-    expect(hub, contains('Мой паспорт специалиста'));
-    expect(hub, contains('EmployeeProfessionalPassportScreen'));
-    expect(hub, contains('EmployeePassportDirectoryScreen'));
-    expect(hub, contains('EmployeeTeamSeedDirectoryScreen'));
-    expect(screen, contains('EmployeeRepository.fetchEmployees'));
-    expect(screen, contains('EmployeeTeamRepository.fetch'));
-    expect(screen, contains('Кто видит мой профиль'));
-    expect(screen, contains('Расширенный профиль скрыт'));
-    expect(screen, contains('Скопировать безопасный профиль'));
+    expect(wrapper, contains('EmployeeTeamScreen'));
+    expect(wrapper, contains('EmployeeTeamSeedDirectoryScreen'));
+    expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
+    expect(screen, contains('Профиль сотрудника'));
+    expect(screen, contains('Телефон'));
+    expect(screen, contains('Профиль подтверждён'));
+    expect(screen, contains('Профиль не подтверждён'));
+    expect(screen, contains('Здесь показываются только активные сотрудники этого же объекта.'));
+    expect(screen, isNot(contains('Кто видит мой профиль')));
+    expect(screen, isNot(contains('Скопировать безопасный профиль')));
+    expect(screen, isNot(contains('Навыки')));
   });
 
   test('интерфейс команды не пишет рабочие данные напрямую', () {
