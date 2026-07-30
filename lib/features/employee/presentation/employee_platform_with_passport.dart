@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
-import 'employee_community_hub_screen.dart';
+import 'employee_team_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
 class EmployeePlatformWithPassport extends StatefulWidget {
@@ -21,19 +21,21 @@ class EmployeePlatformWithPassport extends StatefulWidget {
 
 class _EmployeePlatformWithPassportState
     extends State<EmployeePlatformWithPassport> {
-  bool openingCommunity = false;
+  bool openingTeam = false;
 
-  Future<bool> openCommunity(BuildContext context) async {
-    if (openingCommunity) return true;
-    setState(() => openingCommunity = true);
+  Future<bool> openTeam(BuildContext context) async {
+    if (openingTeam) return true;
+    setState(() => openingTeam = true);
     try {
       await Navigator.of(context, rootNavigator: true).push<void>(
         CupertinoPageRoute<void>(
-          builder: (_) => EmployeeCommunityHubScreen(profile: widget.profile),
+          builder: (_) => widget.profile.isRolePreview
+              ? const EmployeeTeamSeedDirectoryScreen()
+              : const EmployeeTeamScreen(),
         ),
       );
     } finally {
-      if (mounted) setState(() => openingCommunity = false);
+      if (mounted) setState(() => openingTeam = false);
     }
     return true;
   }
@@ -47,7 +49,7 @@ class _EmployeePlatformWithPassportState
           label: 'Команда',
           icon: Icons.groups_outlined,
           selectedIcon: Icons.groups_rounded,
-          onSelected: openCommunity,
+          onSelected: openTeam,
         ),
       },
       child: legacy.EmployeeMainScreen(profile: widget.profile),
