@@ -1,44 +1,17 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
-import 'employee_team_screen.dart';
+import 'employee_team_tab_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
-class EmployeePlatformWithPassport extends StatefulWidget {
+class EmployeePlatformWithPassport extends StatelessWidget {
   final AppUserProfile profile;
 
   const EmployeePlatformWithPassport({
     super.key,
     required this.profile,
   });
-
-  @override
-  State<EmployeePlatformWithPassport> createState() =>
-      _EmployeePlatformWithPassportState();
-}
-
-class _EmployeePlatformWithPassportState
-    extends State<EmployeePlatformWithPassport> {
-  bool openingTeam = false;
-
-  Future<bool> openTeam(BuildContext context) async {
-    if (openingTeam) return true;
-    setState(() => openingTeam = true);
-    try {
-      await Navigator.of(context, rootNavigator: true).push<void>(
-        CupertinoPageRoute<void>(
-          builder: (_) => widget.profile.isRolePreview
-              ? const EmployeeTeamSeedDirectoryScreen()
-              : const EmployeeTeamScreen(),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => openingTeam = false);
-    }
-    return true;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +22,10 @@ class _EmployeePlatformWithPassportState
           label: 'Команда',
           icon: Icons.groups_outlined,
           selectedIcon: Icons.groups_rounded,
-          onSelected: openTeam,
+          builder: (_) => EmployeeTeamTabScreen(profile: profile),
         ),
       },
-      child: legacy.EmployeeMainScreen(profile: widget.profile),
+      child: legacy.EmployeeMainScreen(profile: profile),
     );
   }
 }
