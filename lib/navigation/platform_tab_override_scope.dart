@@ -11,12 +11,14 @@ class PlatformTabOverride {
   final IconData? icon;
   final IconData? selectedIcon;
   final PlatformTabOverrideHandler? onSelected;
+  final WidgetBuilder? builder;
 
   const PlatformTabOverride({
     this.label,
     this.icon,
     this.selectedIcon,
     this.onSelected,
+    this.builder,
   });
 }
 

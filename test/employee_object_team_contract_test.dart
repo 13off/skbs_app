@@ -9,8 +9,12 @@ void main() {
       'lib/features/employee/data/employee_team_repository.dart';
   const screenPath =
       'lib/features/employee/presentation/employee_team_screen.dart';
+  const tabPath =
+      'lib/features/employee/presentation/employee_team_tab_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
+  const shellPath =
+      'lib/features/shell/presentation/persistent_tab_shell.dart';
 
   test('сервер сам определяет сотрудника, компанию и текущий объект', () {
     final function = File(functionPath).readAsStringSync();
@@ -96,31 +100,50 @@ void main() {
     expect(repository, isNot(contains(".from('user_profiles')")));
   });
 
-  test('нижняя вкладка сразу открывает простую команду', () {
+  test('нижняя вкладка сразу показывает команду без отдельной страницы', () {
     final wrapper = File(wrapperPath).readAsStringSync();
-    final screen = File(screenPath).readAsStringSync();
+    final shell = File(shellPath).readAsStringSync();
+    final tab = File(tabPath).readAsStringSync();
 
     expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeTeamScreen'));
-    expect(wrapper, contains('EmployeeTeamSeedDirectoryScreen'));
-    expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
-    expect(screen, contains('Профиль сотрудника'));
-    expect(screen, contains('Телефон'));
-    expect(screen, contains('Профиль подтверждён'));
-    expect(screen, contains('Профиль не подтверждён'));
-    expect(screen, contains('Здесь показываются только активные сотрудники этого же объекта.'));
-    expect(screen, isNot(contains('Кто видит мой профиль')));
-    expect(screen, isNot(contains('Скопировать безопасный профиль')));
-    expect(screen, isNot(contains('Навыки')));
+    expect(wrapper, contains('EmployeeTeamTabScreen(profile: profile)'));
+    expect(wrapper, contains('builder: (_)'));
+    expect(wrapper, isNot(contains('CupertinoPageRoute')));
+    expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
+    expect(shell, contains('override?.builder?.call(context)'));
+    expect(tab, contains('widget.profile.isRolePreview'));
+    expect(tab, contains('EmployeeRepository.fetchEmployees'));
+    expect(tab, contains('includeFired: false'));
+    expect(tab, contains('EmployeeTeamRepository.fetch(employeeId: employeeId)'));
+    expect(tab, contains('EmployeeTeamMemberScreen'));
+    expect(tab, contains("title: 'Команда'"));
+  });
+
+  test('панель сразу показывает контактный профиль коллеги', () {
+    final tab = File(tabPath).readAsStringSync();
+    final details = File(screenPath).readAsStringSync();
+
+    expect(tab, contains('Телефон не указан'));
+    expect(tab, contains('Профиль подтверждён'));
+    expect(tab, contains('Профиль не подтверждён'));
+    expect(
+      tab,
+      contains('Здесь показываются только активные сотрудники этого же объекта.'),
+    );
+    expect(tab, isNot(contains('Кто видит мой профиль')));
+    expect(tab, isNot(contains('Скопировать безопасный профиль')));
+    expect(tab, isNot(contains('Навыки')));
+    expect(details, contains("title: 'Профиль сотрудника'"));
+    expect(details, contains("label: const Text('Скопировать номер')"));
   });
 
   test('интерфейс команды не пишет рабочие данные напрямую', () {
-    final screen = File(screenPath).readAsStringSync();
+    final tab = File(tabPath).readAsStringSync();
 
-    expect(screen, isNot(contains("functions.invoke('")));
-    expect(screen, isNot(contains(".from('")));
-    expect(screen, isNot(contains('.insert(')));
-    expect(screen, isNot(contains('.upsert(')));
-    expect(screen, isNot(contains('.update(')));
+    expect(tab, isNot(contains("functions.invoke('")));
+    expect(tab, isNot(contains(".from('")));
+    expect(tab, isNot(contains('.insert(')));
+    expect(tab, isNot(contains('.upsert(')));
+    expect(tab, isNot(contains('.update(')));
   });
 }

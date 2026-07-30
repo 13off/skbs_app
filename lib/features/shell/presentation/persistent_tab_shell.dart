@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../app/theme_controller.dart';
+import '../../../navigation/platform_tab_override_scope.dart';
 import '../../../widgets/premium_ui.dart';
 
 class PersistentTabController extends ChangeNotifier {
@@ -136,7 +137,16 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
               // Rebuild only their page content when the theme changes, while
               // preserving the selected tab, route stack and screen state.
               Theme.of(context);
-              return widget.tabBuilder(context, index);
+              final storageKey = widget.navigationStorageKey;
+              final override = storageKey == null
+                  ? null
+                  : PlatformTabOverrideScope.resolve(
+                      context,
+                      storageKey: storageKey,
+                      index: index,
+                    );
+              return override?.builder?.call(context) ??
+                  widget.tabBuilder(context, index);
             },
           ),
         ),

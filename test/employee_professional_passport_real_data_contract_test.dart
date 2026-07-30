@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
+  const teamTabPath =
+      'lib/features/employee/presentation/employee_team_tab_screen.dart';
   const directoryPath =
       'lib/features/employee/presentation/employee_passport_directory_screen.dart';
   const viewerPath =
@@ -19,12 +21,17 @@ void main() {
 
   test('упрощённая команда не возвращает демонстрационный паспорт', () {
     final wrapper = File(wrapperPath).readAsStringSync();
+    final teamTab = File(teamTabPath).readAsStringSync();
     final directory = File(directoryPath).readAsStringSync();
 
-    expect(wrapper, contains('EmployeeTeamScreen'));
-    expect(wrapper, contains('EmployeeTeamSeedDirectoryScreen'));
+    expect(wrapper, contains('EmployeeTeamTabScreen'));
+    expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
     expect(wrapper, isNot(contains('EmployeeProfessionalPassportData.preview')));
+    expect(teamTab, contains('EmployeeRepository.fetchEmployees'));
+    expect(teamTab, contains('includeFired: false'));
+    expect(teamTab, contains('_resolvePreviewSeed'));
+    expect(teamTab, contains('EmployeeTeamRepository.fetch(employeeId: employeeId)'));
 
     expect(directory, contains('EmployeeRepository.fetchEmployees'));
     expect(directory, contains('includeFired: true'));
