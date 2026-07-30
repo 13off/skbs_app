@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
-import 'employee_work_cabinet_screen.dart';
+import 'employee_simple_work_screen.dart';
 
 class EmployeePlatformWithPassport extends StatefulWidget {
   final AppUserProfile profile;
