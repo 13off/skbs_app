@@ -33,6 +33,16 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant EmployeeTeamTabScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.id != widget.profile.id ||
+        oldWidget.profile.isRolePreview != widget.profile.isRolePreview ||
+        oldWidget.profile.objectName != widget.profile.objectName) {
+      teamFuture = _load();
+    }
+  }
+
+  @override
   void dispose() {
     searchController.dispose();
     super.dispose();
@@ -70,7 +80,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
       return employee.isActive &&
           (employee.id ?? '').trim().isNotEmpty &&
           employee.objectName.trim().isNotEmpty;
-    }).toList(growable: false)
+    }).toList()
       ..sort((left, right) => left.name.compareTo(right.name));
     if (candidates.isEmpty) return null;
 
