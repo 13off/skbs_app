@@ -36,16 +36,18 @@ void main() {
     expect(navigation, contains('NavigationSession.writeTabIndex'));
   });
 
-  test('loading uses branded construction motion instead of a generic spinner', () {
+  test('общая загрузка использует прежний спокойный индикатор', () {
     final loading = File(
       'lib/widgets/premium_surfaces_v3.dart',
     ).readAsStringSync();
 
-    expect(loading, contains('class AppConstructionLoader'));
-    expect(loading, contains('class _ConstructionLoaderPainter'));
-    expect(loading, contains('controller.repeat()'));
-    expect(loading, contains('Собираем рабочее пространство'));
-    expect(loading, contains('RepaintBoundary('));
-    expect(loading, isNot(contains('CircularProgressIndicator(')));
+    expect(loading, contains('Подготавливаем рабочее пространство'));
+    expect(loading, contains('PremiumBrandMark(size: 98'));
+    expect(loading, contains('PremiumDots('));
+    expect(loading, contains('width: 300'));
+    expect(loading, isNot(contains('AppConstructionLoader')));
+    expect(loading, isNot(contains('_ConstructionLoaderPainter')));
+    expect(loading, isNot(contains('controller.repeat()')));
+    expect(loading, isNot(contains('CustomPaint(')));
   });
 }
