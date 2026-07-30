@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Фиксирует простой контактный формат команды без профессионального каталога.
 void main() {
   const functionPath = 'supabase/functions/employee-team/index.ts';
   const repositoryPath =
@@ -90,7 +91,7 @@ void main() {
     expect(repository, contains("'action': 'list'"));
     expect(repository, contains('profileVerified'));
     expect(repository, contains('avatarUrl'));
-    expect(repository, isNot(contains('updateVisibility')));
+    expect(repository, isNot(contains('updateVisibility'));
     expect(repository, isNot(contains(".from('employees')")));
     expect(repository, isNot(contains(".from('user_profiles')")));
   });
