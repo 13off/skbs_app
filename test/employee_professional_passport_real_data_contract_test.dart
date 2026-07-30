@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
-  const hubPath =
-      'lib/features/employee/presentation/employee_community_hub_screen.dart';
   const directoryPath =
       'lib/features/employee/presentation/employee_passport_directory_screen.dart';
   const viewerPath =
@@ -19,15 +17,13 @@ void main() {
   const navigationPath =
       'lib/screens/employee_details/employee_details_navigation.dart';
 
-  test('режим руководителя выбирает реального сотрудника вместо демо-паспорта', () {
+  test('упрощённая команда не возвращает демонстрационный паспорт', () {
     final wrapper = File(wrapperPath).readAsStringSync();
-    final hub = File(hubPath).readAsStringSync();
     final directory = File(directoryPath).readAsStringSync();
 
-    expect(wrapper, contains('EmployeeCommunityHubScreen'));
-    expect(hub, contains('profile.isRolePreview'));
-    expect(hub, contains('EmployeePassportDirectoryScreen'));
-    expect(hub, contains('EmployeeProfessionalPassportScreen'));
+    expect(wrapper, contains('EmployeeTeamScreen'));
+    expect(wrapper, contains('EmployeeTeamSeedDirectoryScreen'));
+    expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
     expect(wrapper, isNot(contains('EmployeeProfessionalPassportData.preview')));
 
     expect(directory, contains('EmployeeRepository.fetchEmployees'));

@@ -25,7 +25,8 @@ void main() {
     );
     expect(wrapper, contains('legacy.EmployeeMainScreen(profile: widget.profile)'));
     expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeCommunityHubScreen'));
+    expect(wrapper, contains('EmployeeTeamScreen'));
+    expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
     expect(
       main,
       isNot(
@@ -68,9 +69,9 @@ void main() {
     expect(employee, contains('changeMonth(1)'));
 
     expect(employee, isNot(contains("functions.invoke('")));
-    expect(employee, isNot(contains(".insert('")));
-    expect(employee, isNot(contains(".update('")));
-    expect(employee, isNot(contains(".delete('")));
+    expect(employee, isNot(contains('.insert(')));
+    expect(employee, isNot(contains('.update(')));
+    expect(employee, isNot(contains('.delete(')));
   });
 
   test('обучение сотрудника сохраняет точную цель нижнего меню', () {
