@@ -15,6 +15,8 @@ void main() {
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
   const overridePath = 'lib/navigation/platform_tab_override_scope.dart';
   const navigationPath = 'lib/widgets/professional_bottom_navigation.dart';
+  const shellPath =
+      'lib/features/shell/presentation/persistent_tab_shell.dart';
   const appMainPath = 'lib/main.dart';
 
   test('профессиональный паспорт хранится в закрытом контуре', () {
@@ -93,11 +95,12 @@ void main() {
     expect(repository, isNot(contains(".from('employee_professional_profiles')")));
   });
 
-  test('паспорт сохранён, а команда открывается отдельным простым экраном', () {
+  test('паспорт сохранён, а команда встроена в обычную вкладку', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
     final override = File(overridePath).readAsStringSync();
     final navigation = File(navigationPath).readAsStringSync();
+    final shell = File(shellPath).readAsStringSync();
 
     expect(
       main,
@@ -108,13 +111,16 @@ void main() {
     expect(main, contains('EmployeePlatformWithPassport(profile: profile)'));
     expect(wrapper, contains("storageKey: 'employee'"));
     expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeTeamScreen'));
+    expect(wrapper, contains('EmployeeTeamTabScreen'));
+    expect(wrapper, contains('builder: (_)'));
+    expect(wrapper, isNot(contains('CupertinoPageRoute')));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
     expect(wrapper, contains('legacy.EmployeeMainScreen'));
-    expect(override, contains('class PlatformTabOverrideScope'));
+    expect(override, contains('final WidgetBuilder? builder'));
     expect(navigation, contains('PlatformTabOverrideScope.resolve('));
     expect(navigation, contains('override?.label ?? baseItem.label'));
     expect(navigation, contains('unawaited(handleSelected(index))'));
+    expect(shell, contains('override?.builder?.call(context)'));
   });
 
   test('экран показывает фундамент будущего сообщества', () {
