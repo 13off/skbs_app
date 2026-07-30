@@ -23,7 +23,8 @@ void main() {
       wrapper,
       contains("import 'employee_unified_main_screen.dart' as legacy;"),
     );
-    expect(wrapper, contains('legacy.EmployeeMainScreen(profile: widget.profile)'));
+    expect(wrapper, contains("actualRole: 'employee'"));
+    expect(wrapper, contains('legacy.EmployeeMainScreen(profile: contentProfile)'));
     expect(wrapper, contains("label: 'Команда'"));
     expect(wrapper, contains('EmployeeTeamScreen'));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
