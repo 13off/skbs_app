@@ -63,7 +63,7 @@ void main() {
     expect(table, contains("label: hasReport ? 'Есть отчёт' : 'Нет отчёта'"));
   });
 
-  test('foreman platform opens tasks and keeps mobile fallback', () {
+  test('foreman platform opens tasks and keeps adaptive timesheet', () {
     final platform = source(
       'lib/features/foreman/presentation/foreman_main_screen.dart',
     );
@@ -76,6 +76,7 @@ void main() {
     expect(platform, contains('AdaptiveTimesheetScreen'));
     expect(platform, contains('ProfessionalBottomNavigation'));
     expect(timesheet, contains('DesktopTimesheetScreen'));
-    expect(timesheet, contains('return TimesheetScreen('));
+    expect(timesheet, contains('TimesheetScreen('));
+    expect(timesheet, contains('TimesheetDownloadSheet.show'));
   });
 }
