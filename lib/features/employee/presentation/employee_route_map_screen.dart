@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../models/employee.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
-import '../data/employee_work_action_repository.dart';
+import '../data/employee_shift_action_repository.dart';
 
 class EmployeeRouteMapScreen extends StatefulWidget {
   final Employee employee;
   final bool canEditGeofence;
+  final DateTime? initialDate;
 
   const EmployeeRouteMapScreen({
     super.key,
     required this.employee,
-    required this.canEditGeofence,
+    this.canEditGeofence = false,
+    this.initialDate,
   });
 
   @override
@@ -26,13 +27,12 @@ class EmployeeRouteMapScreen extends StatefulWidget {
 class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
   late DateTime selectedDate;
   late Future<EmployeeRouteDay> future;
-  bool isSavingGeofence = false;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    selectedDate = DateTime(now.year, now.month, now.day);
+    final source = widget.initialDate ?? DateTime.now();
+    selectedDate = DateTime(source.year, source.month, source.day);
     future = load();
   }
 
@@ -43,7 +43,7 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
         Exception('Карточка сотрудника не сохранена'),
       );
     }
-    return EmployeeWorkActionRepository.fetchEmployeeRoute(
+    return EmployeeShiftActionRepository.fetchEmployeeRoute(
       employeeId: employeeId,
       date: selectedDate,
     );
@@ -72,114 +72,17 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
     });
   }
 
-  Future<void> setGeofence(EmployeeRouteDay route) async {
-    final objectId = widget.employee.objectId?.trim() ?? '';
-    if (objectId.isEmpty || isSavingGeofence) {
-      _message('У сотрудника не определён объект');
-      return;
-    }
-    final currentRadius = route.geofences.isEmpty
-        ? 250.0
-        : route.geofences.first.radiusM;
-    final controller = TextEditingController(
-      text: currentRadius.round().toString(),
-    );
-    final radius = await showDialog<double>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Контрольная точка объекта'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Встаньте на объекте. Текущее местоположение станет центром, '
-              'в пределах которого сотрудник сможет начать смену.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Допустимый радиус, метров',
-                hintText: '250',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = double.tryParse(controller.text.trim());
-              if (value == null || value < 30 || value > 5000) return;
-              Navigator.pop(dialogContext, value);
-            },
-            child: const Text('Сохранить здесь'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (radius == null) return;
-
-    setState(() => isSavingGeofence = true);
-    try {
-      final point = await currentLocation();
-      await EmployeeWorkActionRepository.setObjectGeofence(
-        objectId: objectId,
-        point: point,
-        radiusM: radius,
-      );
-      await refresh();
-      if (mounted) _message('Контрольная точка объекта сохранена');
-    } catch (error) {
-      if (mounted) _message(_error(error));
-    } finally {
-      if (mounted) setState(() => isSavingGeofence = false);
-    }
-  }
-
-  Future<EmployeeLocationPoint> currentLocation() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) throw Exception('Включите геолокацию на устройстве');
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      throw Exception('Разрешите AppСтрой доступ к геопозиции');
-    }
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        timeLimit: Duration(seconds: 25),
-      ),
-    );
-    return EmployeeLocationPoint(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      accuracyM: position.accuracy,
-      altitudeM: position.altitude,
-      speedMps: position.speed,
-      headingDeg: position.heading,
-      isMock: position.isMocked,
-      recordedAt: position.timestamp,
-    );
-  }
-
-  void _message(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void changeDay(int delta) {
+    setState(() {
+      selectedDate = selectedDate.add(Duration(days: delta));
+      future = load();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Маршруты смен',
+      title: 'Маршрут сотрудника',
       subtitle: '${widget.employee.name} · ${widget.employee.objectName}',
       onRefresh: refresh,
       child: FutureBuilder<EmployeeRouteDay>(
@@ -206,6 +109,7 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
                 child: Row(
                   children: [
                     IconButton(
+                      tooltip: 'Предыдущий день',
                       onPressed: () => changeDay(-1),
                       icon: const Icon(Icons.chevron_left_rounded),
                     ),
@@ -217,6 +121,7 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Следующий день',
                       onPressed: () => changeDay(1),
                       icon: const Icon(Icons.chevron_right_rounded),
                     ),
@@ -224,23 +129,6 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              if (widget.canEditGeofence) ...[
-                FilledButton.tonalIcon(
-                  onPressed: isSavingGeofence ? null : () => setGeofence(route),
-                  icon: isSavingGeofence
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.edit_location_alt_outlined),
-                  label: Text(
-                    route.geofences.isEmpty
-                        ? 'Настроить точку объекта'
-                        : 'Обновить точку объекта',
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
               _RouteSummary(route: route),
               const SizedBox(height: 14),
               _RouteMap(route: route),
@@ -249,13 +137,6 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
         },
       ),
     );
-  }
-
-  void changeDay(int delta) {
-    setState(() {
-      selectedDate = selectedDate.add(Duration(days: delta));
-      future = load();
-    });
   }
 }
 
@@ -266,39 +147,45 @@ class _RouteSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shift = route.shifts.isEmpty ? null : route.shifts.first;
+    if (route.shifts.isEmpty) {
+      return const PremiumWorkCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Рабочий день не найден',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            SizedBox(height: 8),
+            Text('За выбранную дату сотрудник не начинал рабочий день.'),
+          ],
+        ),
+      );
+    }
+
+    final first = route.shifts.first;
+    final last = route.shifts.last;
     return PremiumWorkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            shift == null ? 'Смена не найдена' : 'Смена за ${_date(route.workDate)}',
+            'Рабочий день за ${_date(route.workDate)}',
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
-          if (shift == null)
-            const Text('За выбранную дату сотрудник не начинал смену.')
-          else ...[
-            _SummaryRow('Начало', _dateTime(shift.startedAt)),
-            _SummaryRow(
-              'Завершение',
-              shift.endedAt == null ? 'Смена ещё идёт' : _dateTime(shift.endedAt),
-            ),
-            _SummaryRow('Записано точек', '${route.points.length}'),
-            _SummaryRow(
-              'Режим',
-              shift.trackingMode == 'native_background'
-                  ? 'Фоновая запись приложения'
-                  : 'Только открытая PWA',
-            ),
-          ],
-          if (route.geofences.isEmpty) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'Контрольная точка объекта не настроена.',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ],
+          _SummaryRow('Начало', _dateTime(first.startedAt)),
+          _SummaryRow(
+            'Завершение',
+            last.endedAt == null ? 'Рабочий день ещё идёт' : _dateTime(last.endedAt),
+          ),
+          _SummaryRow('Получено точек', '${route.points.length}'),
+          _SummaryRow(
+            'Источник',
+            route.shifts.any((shift) => shift.trackingMode == 'native_background')
+                ? 'Установленное приложение'
+                : 'Открытая браузерная версия',
+          ),
         ],
       ),
     );
@@ -312,25 +199,52 @@ class _RouteMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routePoints = route.points
+    final validPoints = route.points
+        .where(
+          (point) =>
+              point.latitude >= -90 &&
+              point.latitude <= 90 &&
+              point.longitude >= -180 &&
+              point.longitude <= 180 &&
+              !point.isMock,
+        )
+        .toList(growable: false);
+    final cameraPoints = validPoints
         .map((point) => LatLng(point.latitude, point.longitude))
         .toList(growable: false);
-    final geofencePoints = route.geofences
-        .map((geofence) => LatLng(geofence.latitude, geofence.longitude))
-        .toList(growable: false);
-    final cameraPoints = <LatLng>[...routePoints, ...geofencePoints];
+
     if (cameraPoints.isEmpty) {
       return const PremiumWorkCard(
         child: SizedBox(
-          height: 300,
-          child: Center(
-            child: Text('На карте пока нечего показывать.'),
-          ),
+          height: 360,
+          child: Center(child: Text('За выбранную дату координаты не получены.')),
         ),
       );
     }
-    final start = routePoints.isEmpty ? null : routePoints.first;
-    final finish = routePoints.length < 2 ? null : routePoints.last;
+
+    final pointsByShift = <String, List<LatLng>>{};
+    for (final point in validPoints) {
+      final key = point.shiftId.isEmpty ? '__day__' : point.shiftId;
+      pointsByShift
+          .putIfAbsent(key, () => <LatLng>[])
+          .add(LatLng(point.latitude, point.longitude));
+    }
+
+    final startPoints = validPoints
+        .where((point) => point.source == 'start')
+        .toList(growable: false);
+    final finishPoints = validPoints
+        .where((point) => point.source == 'finish')
+        .toList(growable: false);
+    final start = startPoints.isNotEmpty
+        ? LatLng(startPoints.first.latitude, startPoints.first.longitude)
+        : cameraPoints.first;
+    final finish = finishPoints.isNotEmpty
+        ? LatLng(finishPoints.last.latitude, finishPoints.last.longitude)
+        : cameraPoints.length > 1
+            ? cameraPoints.last
+            : null;
+
     return PremiumWorkCard(
       padding: EdgeInsets.zero,
       child: ClipRRect(
@@ -358,44 +272,29 @@ class _RouteMap extends StatelessWidget {
                     userAgentPackageName: 'ru.appstroy.app',
                     maxZoom: 19,
                   ),
-                  if (route.geofences.isNotEmpty)
-                    CircleLayer(
-                      circles: route.geofences.map((geofence) {
-                        return CircleMarker(
-                          point: LatLng(
-                            geofence.latitude,
-                            geofence.longitude,
+                  PolylineLayer(
+                    polylines: pointsByShift.values
+                        .where((points) => points.length > 1)
+                        .map(
+                          (points) => Polyline(
+                            points: points,
+                            strokeWidth: 5,
+                            color: AppAdaptivePalette.accent,
                           ),
-                          radius: geofence.radiusM,
-                          useRadiusInMeter: true,
-                          color: AppAdaptivePalette.accent.withValues(alpha: 0.12),
-                          borderColor: AppAdaptivePalette.accent,
-                          borderStrokeWidth: 2,
-                        );
-                      }).toList(growable: false),
-                    ),
-                  if (routePoints.length > 1)
-                    PolylineLayer(
-                      polylines: [
-                        Polyline(
-                          points: routePoints,
-                          strokeWidth: 5,
-                          color: AppAdaptivePalette.accent,
-                        ),
-                      ],
-                    ),
+                        )
+                        .toList(growable: false),
+                  ),
                   MarkerLayer(
                     markers: [
-                      if (start != null)
-                        Marker(
-                          point: start,
-                          width: 44,
-                          height: 44,
-                          child: const _MapMarker(
-                            icon: Icons.play_arrow_rounded,
-                            tooltip: 'Начало смены',
-                          ),
+                      Marker(
+                        point: start,
+                        width: 44,
+                        height: 44,
+                        child: const _MapMarker(
+                          icon: Icons.play_arrow_rounded,
+                          tooltip: 'Начало рабочего дня',
                         ),
+                      ),
                       if (finish != null)
                         Marker(
                           point: finish,
@@ -403,7 +302,7 @@ class _RouteMap extends StatelessWidget {
                           height: 44,
                           child: const _MapMarker(
                             icon: Icons.stop_rounded,
-                            tooltip: 'Конец смены',
+                            tooltip: 'Завершение рабочего дня',
                           ),
                         ),
                     ],
@@ -415,7 +314,10 @@ class _RouteMap extends StatelessWidget {
                 bottom: 8,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.86),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surface
+                        .withValues(alpha: 0.86),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Padding(
@@ -495,5 +397,5 @@ String _dateTime(DateTime? value) {
 
 String _error(Object? value) {
   final text = value?.toString().replaceFirst('Exception: ', '').trim() ?? '';
-  return text.isEmpty ? 'Не удалось выполнить действие' : text;
+  return text.isEmpty ? 'Неизвестная ошибка' : text;
 }
