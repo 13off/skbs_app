@@ -52,8 +52,11 @@ void main() {
 
     expect(function, contains('viewer.role === "admin"'));
     expect(function, contains('viewer.role === "developer"'));
-    expect(function, contains('const employeeId = cleanText(input.employee_id'));
-    expect(function, contains('.eq("id", employeeId)'));
+    expect(
+      function,
+      contains('const selectedEmployeeId = cleanText(input.employee_id'),
+    );
+    expect(function, contains('seedForManager(adminClient, viewer, selectedEmployeeId)'));
     expect(function, contains('.eq("company_id", viewer.companyId)'));
   });
 
