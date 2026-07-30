@@ -28,10 +28,10 @@ void main() {
     expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
     expect(wrapper, isNot(contains('EmployeeProfessionalPassportData.preview')));
-    expect(teamTab, contains('EmployeeRepository.fetchEmployees'));
-    expect(teamTab, contains('includeFired: false'));
-    expect(teamTab, contains('_resolvePreviewSeed'));
-    expect(teamTab, contains('EmployeeTeamRepository.fetch(employeeId: employeeId)'));
+    expect(teamTab, contains('EmployeeWorkActionRepository.resolveSelection()'));
+    expect(teamTab, contains('EmployeeTeamRepository.fetch(employeeId: selection.employeeId)'));
+    expect(teamTab, isNot(contains('_resolvePreviewSeed')));
+    expect(teamTab, isNot(contains('EmployeeRepository.fetchEmployees')));
 
     expect(directory, contains('EmployeeRepository.fetchEmployees'));
     expect(directory, contains('includeFired: true'));
@@ -50,10 +50,7 @@ void main() {
     expect(details, contains("title: 'Паспорт специалиста'"));
     expect(details, contains('onTap: openProfessionalPassport'));
     expect(navigation, contains('openProfessionalPassport'));
-    expect(
-      navigation,
-      contains('EmployeeProfessionalPassportViewerScreen'),
-    );
+    expect(navigation, contains('EmployeeProfessionalPassportViewerScreen'));
     expect(navigation, contains('employee: employee'));
   });
 
@@ -69,7 +66,6 @@ void main() {
     expect(viewer, isNot(contains('Repository.save')));
     expect(viewer, isNot(contains('profile.phone')));
     expect(viewer, isNot(contains('Демонстрационный')));
-
     expect(repository, contains("'employee-professional-profile-view'"));
     expect(repository, contains("'employee_id': cleanEmployeeId"));
   });

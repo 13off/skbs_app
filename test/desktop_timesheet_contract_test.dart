@@ -17,12 +17,12 @@ void main() {
 
     expect(adaptive, contains('desktopBreakpoint = 1050'));
     expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
-    expect(adaptive, contains('return TimesheetScreen('));
-    expect(adaptive, contains('return DesktopTimesheetScreen('));
+    expect(adaptive, contains('TimesheetScreen('));
+    expect(adaptive, contains('DesktopTimesheetScreen('));
+    expect(adaptive, contains('TimesheetDownloadSheet.show'));
 
     expect(mobile, contains('class TimesheetScreen extends StatefulWidget'));
     expect(mobile, contains('child: buildEmployeeRow(employee)'));
-    expect(mobile, contains("label: const Text('Отчет')"));
 
     expect(desktop, contains('class DesktopTimesheetScreen'));
     expect(desktop, contains('BoxConstraints(maxWidth: 1320)'));
@@ -44,8 +44,10 @@ void main() {
     );
   });
 
-  test('desktop timesheet preserves input save realtime and report actions', () {
+  test('desktop timesheet preserves input save realtime and direct download', () {
     final desktop = source('lib/screens/desktop_timesheet_screen.dart');
+    final adaptive = source('lib/screens/adaptive_timesheet_screen.dart');
+    final download = source('lib/screens/timesheet_download_sheet.dart');
 
     expect(desktop, contains('AppDataSync.changes.listen'));
     expect(desktop, contains('AttendanceRepository.fetchShiftValuesForDate'));
@@ -53,7 +55,6 @@ void main() {
     expect(desktop, contains('originalShiftValuesByEmployeeId'));
     expect(desktop, contains('hasPendingRemoteAttendance'));
     expect(desktop, contains('hasUnsavedChanges'));
-
     expect(desktop, contains("'Всем 1'"));
     expect(desktop, contains("'Всем 0'"));
     expect(desktop, contains("'Все сотрудники'"));
@@ -62,10 +63,12 @@ void main() {
     expect(desktop, contains('showShiftPicker(employee)'));
     expect(desktop, contains('setVisibleShifts(visible, 1)'));
     expect(desktop, contains('setVisibleShifts(visible, 0)'));
-
-    expect(desktop, contains("label: const Text('Отчёт')"));
-    expect(desktop, contains('PeriodTimesheetScreen('));
     expect(desktop, contains("'Сохранить изменения'"));
     expect(desktop, contains("'Сохранить табель'"));
+
+    expect(adaptive, contains("label: const Text('Скачать табель')"));
+    expect(download, contains("label: Text('Месяцы')"));
+    expect(download, contains("label: Text('Даты')"));
+    expect(download, contains('downloadMonthlyTimesheets'));
   });
 }

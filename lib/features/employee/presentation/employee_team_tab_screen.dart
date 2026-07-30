@@ -1,12 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../data/employee_repository.dart';
 import '../../../models/app_user_profile.dart';
-import '../../../models/employee.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_team_repository.dart';
+import '../data/employee_work_action_repository.dart';
 import 'employee_team_screen.dart';
 
 class EmployeeTeamTabScreen extends StatefulWidget {
@@ -23,7 +22,7 @@ class EmployeeTeamTabScreen extends StatefulWidget {
 
 class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
   late Future<EmployeeTeamData> teamFuture;
-  final searchController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
   String query = '';
 
   @override
@@ -37,7 +36,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.id != widget.profile.id ||
         oldWidget.profile.isRolePreview != widget.profile.isRolePreview ||
-        oldWidget.profile.objectName != widget.profile.objectName) {
+        oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
       teamFuture = _load();
     }
   }
@@ -49,42 +48,12 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
   }
 
   Future<EmployeeTeamData> _load() async {
-    String? employeeId;
-    if (widget.profile.isRolePreview) {
-      final employees = await EmployeeRepository.fetchEmployees(
-        includeFired: false,
-        forceRefresh: true,
-      );
-      final seed = _resolvePreviewSeed(employees, widget.profile.objectName);
-      if (seed == null) {
-        throw Exception('Нет активного сотрудника с назначенным объектом');
-      }
-      employeeId = seed.id;
+    if (!widget.profile.isRolePreview) {
+      return EmployeeTeamRepository.fetch();
     }
-    return EmployeeTeamRepository.fetch(employeeId: employeeId);
-  }
 
-  Employee? _resolvePreviewSeed(
-    List<Employee> employees,
-    String preferredObjectName,
-  ) {
-    final candidates = employees.where((employee) {
-      return employee.isActive &&
-          (employee.id ?? '').trim().isNotEmpty &&
-          employee.objectName.trim().isNotEmpty;
-    }).toList()
-      ..sort((left, right) => left.name.compareTo(right.name));
-    if (candidates.isEmpty) return null;
-
-    final preferred = preferredObjectName.trim().toLowerCase();
-    if (preferred.isNotEmpty) {
-      for (final employee in candidates) {
-        if (employee.objectName.trim().toLowerCase() == preferred) {
-          return employee;
-        }
-      }
-    }
-    return candidates.first;
+    final selection = await EmployeeWorkActionRepository.resolveSelection();
+    return EmployeeTeamRepository.fetch(employeeId: selection.employeeId);
   }
 
   Future<void> _refresh() async {
@@ -199,47 +168,44 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
                       : 'Попробуйте изменить запрос.',
                 )
               else
-                ...members.map(
-                  (member) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: PremiumWorkCard(
-                      padding: EdgeInsets.zero,
-                      child: ListTile(
-                        contentPadding:
-                            const EdgeInsets.fromLTRB(14, 9, 10, 9),
-                        onTap: () => _openMember(member, objectName),
-                        leading: _EmployeeAvatar(member: member, size: 50),
-                        title: Text(
-                          member.fullName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (member.profession.isNotEmpty)
-                                Text(member.profession),
-                              const SizedBox(height: 4),
-                              Text(
-                                member.phone.isEmpty
-                                    ? 'Телефон не указан'
-                                    : member.phone,
-                              ),
-                              const SizedBox(height: 6),
-                              _VerificationBadge(
-                                verified: member.profileVerified,
-                              ),
-                            ],
-                          ),
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
+                for (var index = 0; index < members.length; index++) ...[
+                  PremiumWorkCard(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
+                      onTap: () => _openMember(members[index], objectName),
+                      leading: _EmployeeAvatar(member: members[index], size: 50),
+                      title: Text(
+                        members[index].fullName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (members[index].profession.isNotEmpty)
+                              Text(members[index].profession),
+                            const SizedBox(height: 4),
+                            Text(
+                              members[index].phone.isEmpty
+                                  ? 'Телефон не указан'
+                                  : members[index].phone,
+                            ),
+                            const SizedBox(height: 6),
+                            _VerificationBadge(
+                              verified: members[index].profileVerified,
+                            ),
+                          ],
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
                     ),
                   ),
-                ),
+                  if (index != members.length - 1) const SizedBox(height: 10),
+                ],
             ],
           ),
         );
@@ -258,7 +224,10 @@ class _EmployeeAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = member.avatarUrl.trim();
     if (url.isEmpty) {
-      return _InitialsAvatar(name: member.fullName, size: size);
+      return CircleAvatar(
+        radius: size / 2,
+        child: Text(_initials(member.fullName)),
+      );
     }
     return ClipOval(
       child: Image.network(
@@ -266,43 +235,9 @@ class _EmployeeAvatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) =>
-            _InitialsAvatar(name: member.fullName, size: size),
-      ),
-    );
-  }
-}
-
-class _InitialsAvatar extends StatelessWidget {
-  final String name;
-  final double size;
-
-  const _InitialsAvatar({required this.name, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    final initials = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .take(2)
-        .map((word) => word.substring(0, 1).toUpperCase())
-        .join();
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: scheme.primaryContainer,
-      ),
-      child: Text(
-        initials.isEmpty ? 'С' : initials,
-        style: TextStyle(
-          color: scheme.onPrimaryContainer,
-          fontWeight: FontWeight.w900,
-          fontSize: size * 0.33,
+        errorBuilder: (_, _, _) => CircleAvatar(
+          radius: size / 2,
+          child: Text(_initials(member.fullName)),
         ),
       ),
     );
@@ -316,8 +251,9 @@ class _VerificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = verified ? scheme.primary : scheme.onSurfaceVariant;
+    final color = verified
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -327,14 +263,12 @@ class _VerificationBadge extends StatelessWidget {
           color: color,
         ),
         const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            verified ? 'Профиль подтверждён' : 'Профиль не подтверждён',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
+        Text(
+          verified ? 'Профиль подтверждён' : 'Профиль не подтверждён',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
         ),
       ],
     );
@@ -354,26 +288,25 @@ class _TeamMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       child: Column(
         children: [
-          Icon(icon, size: 48, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 12),
+          Icon(icon, size: 52),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.4,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
         ],
@@ -382,20 +315,27 @@ class _TeamMessageCard extends StatelessWidget {
   }
 }
 
-String _peopleWord(int value) {
-  final mod100 = value % 100;
-  final mod10 = value % 10;
-  if (mod100 >= 11 && mod100 <= 14) return 'коллег';
-  if (mod10 == 1) return 'коллега';
-  if (mod10 >= 2 && mod10 <= 4) return 'коллеги';
-  return 'коллег';
+String _errorText(Object? error) {
+  final text = error?.toString().replaceFirst('Exception: ', '').trim() ?? '';
+  return text.isEmpty ? 'Попробуйте обновить страницу.' : text;
 }
 
-String _errorText(Object? error) {
-  return error
-          ?.toString()
-          .replaceFirst('Exception: ', '')
-          .replaceFirst('FunctionsHttpError: ', '')
-          .trim() ??
-      'Не удалось загрузить команду объекта';
+String _initials(String fullName) {
+  final parts = fullName
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .take(2);
+  final result = parts.map((part) => part.substring(0, 1).toUpperCase()).join();
+  return result.isEmpty ? 'С' : result;
+}
+
+String _peopleWord(int value) {
+  final lastTwo = value % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return 'коллег';
+  return switch (value % 10) {
+    1 => 'коллега',
+    2 || 3 || 4 => 'коллеги',
+    _ => 'коллег',
+  };
 }
