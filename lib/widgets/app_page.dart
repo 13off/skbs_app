@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_adaptive_palette.dart';
 import '../app/app_ui_tokens.dart';
 import '../app/theme_controller.dart';
+import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
 
 class AppPage extends StatelessWidget {
@@ -37,13 +38,18 @@ class AppPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navigator = Navigator.maybeOf(context);
+    final canPop = navigator?.canPop() ?? false;
+    final scopedTrailing = canPop
+        ? null
+        : PlatformTabOverrideScope.resolveRootHeaderTrailing(context)?.call(
+            context,
+          );
     final effectiveTrailing =
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
-        : headerTrailing;
-    final navigator = Navigator.maybeOf(context);
-    final effectiveShowBackButton =
-        showBackButton || (navigator?.canPop() ?? false);
+        : headerTrailing ?? scopedTrailing;
+    final effectiveShowBackButton = showBackButton || canPop;
     final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
     final horizontalPadding = isDesktop
         ? AppUi.pageDesktopHorizontalPadding
@@ -134,13 +140,18 @@ class AppLazyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navigator = Navigator.maybeOf(context);
+    final canPop = navigator?.canPop() ?? false;
+    final scopedTrailing = canPop
+        ? null
+        : PlatformTabOverrideScope.resolveRootHeaderTrailing(context)?.call(
+            context,
+          );
     final effectiveTrailing =
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
-        : headerTrailing;
-    final navigator = Navigator.maybeOf(context);
-    final effectiveShowBackButton =
-        showBackButton || (navigator?.canPop() ?? false);
+        : headerTrailing ?? scopedTrailing;
+    final effectiveShowBackButton = showBackButton || canPop;
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
     final horizontalPadding = isDesktop
