@@ -10,7 +10,7 @@ class AppPage extends StatelessWidget {
   static const double desktopBreakpoint = AppUi.desktopBreakpoint;
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget child;
   final Widget? headerTrailing;
   final bool showBackButton;
@@ -24,7 +24,7 @@ class AppPage extends StatelessWidget {
   const AppPage({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.child,
     this.headerTrailing,
     this.showBackButton = false,
@@ -80,7 +80,7 @@ class AppPage extends StatelessWidget {
               children: [
                 AppPageHeader(
                   title: title,
-                  subtitle: subtitle,
+                  subtitle: subtitle ?? '',
                   trailing: effectiveTrailing,
                   showBackButton: effectiveShowBackButton,
                   onBack: onBack,
@@ -198,21 +198,16 @@ class AppLazyPage extends StatelessWidget {
             ),
           );
         }
-        if (index == 1) {
-          return const SizedBox(height: AppUi.pageHeaderGap);
+        if (index == 1) return const SizedBox(height: AppUi.pageHeaderGap);
+        final localIndex = index - 2;
+        if (localIndex < leading.length) {
+          return constrain(leading[localIndex]);
         }
-
-        final bodyIndex = index - 2;
-        if (bodyIndex < leading.length) {
-          return constrain(leading[bodyIndex]);
+        final lazyIndex = localIndex - leading.length;
+        if (lazyIndex < itemCount) {
+          return constrain(itemBuilder(context, lazyIndex));
         }
-
-        final listIndex = bodyIndex - leading.length;
-        if (listIndex < itemCount) {
-          return constrain(itemBuilder(context, listIndex));
-        }
-
-        return constrain(trailing[listIndex - itemCount]);
+        return constrain(trailing[lazyIndex - itemCount]);
       },
     );
 
@@ -239,161 +234,50 @@ class AppPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final action = trailing;
-    final cleanSubtitle = subtitle.trim();
-    final isDesktop = MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
-
-    return LiquidGlassSurface(
-      blur: true,
-      blurSigma: isDesktop ? 14 : 11,
-      radius: isDesktop ? 28 : 24,
-      padding: EdgeInsets.fromLTRB(
-        isDesktop ? 18 : 14,
-        isDesktop ? 12 : 10,
-        isDesktop ? 12 : 10,
-        isDesktop ? 12 : 10,
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: AppUi.pageHeaderMinHeight),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (showBackButton) ...[
-              SizedBox.square(
-                dimension: AppUi.pageHeaderActionSize,
-                child: BackButton(
-                  onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+    return AppLiquidPanel(
+      radius: AppUi.pageHeaderRadius,
+      blurSigma: 8,
+      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+      child: Row(
+        children: [
+          if (showBackButton) ...[
+            IconButton(
+              tooltip: 'Назад',
+              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppUi.gap8),
-            ],
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                if (subtitle.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    title,
+                    subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 20,
-                      height: 1.12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.25,
-                    ),
-                  ),
-                  const SizedBox(height: AppUi.gap4),
-                  SizedBox(
-                    height: 18,
-                    child: Text(
-                      cleanSubtitle.isEmpty ? ' ' : cleanSubtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 12.5,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppAdaptivePalette.textMuted,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            if (action != null) ...[
-              const SizedBox(width: AppUi.gap12),
-              Flexible(
-                fit: FlexFit.loose,
-                child: IconButtonTheme(
-                  data: IconButtonThemeData(
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size.square(AppUi.pageHeaderActionSize),
-                      maximumSize: const Size.square(AppUi.pageHeaderActionSize),
-                      padding: const EdgeInsets.all(10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppUi.controlRadius),
-                      ),
-                    ),
-                  ),
-                  child: action,
-                ),
-              ),
-            ],
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 10),
+            trailing!,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class AppSurfaceBackdrop extends StatelessWidget {
-  final Widget child;
-
-  const AppSurfaceBackdrop({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: dark
-            ? AppAdaptivePalette.darkBackground
-            : AppAdaptivePalette.background,
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: -140,
-            right: -100,
-            child: IgnorePointer(
-              child: Container(
-                width: 330,
-                height: 330,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: dark
-                        ? [
-                            AppAdaptivePalette.telegramBlue.withValues(
-                              alpha: 0.12,
-                            ),
-                            Colors.transparent,
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.68),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -190,
-            left: -130,
-            child: IgnorePointer(
-              child: Container(
-                width: 380,
-                height: 380,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppAdaptivePalette.telegramBlue.withValues(
-                        alpha: dark ? 0.08 : 0.045,
-                      ),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          child,
         ],
       ),
     );
