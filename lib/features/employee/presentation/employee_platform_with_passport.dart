@@ -40,6 +40,9 @@ class _EmployeePlatformWithPassportState
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
+    final contentProfile = profile.isRolePreview
+        ? profile.copyWith(actualRole: 'employee')
+        : profile;
     // The established shell, timesheet and documents stay intact. Only the
     // employee-facing workspaces below replace their previous read-only views.
     // EmployeeTeamScreen remains represented by EmployeeTeamTabScreen.
@@ -58,10 +61,10 @@ class _EmployeePlatformWithPassportState
       ),
       overrides: <int, PlatformTabOverride>{
         0: PlatformTabOverride(
-          builder: (_) => EmployeeDashboardScreen(profile: profile),
+          builder: (_) => EmployeeDashboardScreen(profile: contentProfile),
         ),
         1: PlatformTabOverride(
-          builder: (_) => EmployeeActionableTasksScreen(profile: profile),
+          builder: (_) => EmployeeActionableTasksScreen(profile: contentProfile),
         ),
         4: PlatformTabOverride(
           label: 'Команда',
@@ -70,7 +73,7 @@ class _EmployeePlatformWithPassportState
           builder: (_) => EmployeeTeamTabScreen(profile: profile),
         ),
       },
-      child: legacy.EmployeeMainScreen(profile: widget.profile),
+      child: legacy.EmployeeMainScreen(profile: contentProfile),
     );
   }
 }
