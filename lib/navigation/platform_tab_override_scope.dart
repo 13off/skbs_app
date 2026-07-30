@@ -25,11 +25,13 @@ class PlatformTabOverride {
 class PlatformTabOverrideScope extends InheritedWidget {
   final String storageKey;
   final Map<int, PlatformTabOverride> overrides;
+  final WidgetBuilder? rootHeaderTrailingBuilder;
 
   const PlatformTabOverrideScope({
     super.key,
     required this.storageKey,
     required this.overrides,
+    this.rootHeaderTrailingBuilder,
     required super.child,
   });
 
@@ -44,8 +46,16 @@ class PlatformTabOverrideScope extends InheritedWidget {
     return scope.overrides[index];
   }
 
+  static WidgetBuilder? resolveRootHeaderTrailing(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<PlatformTabOverrideScope>()
+        ?.rootHeaderTrailingBuilder;
+  }
+
   @override
   bool updateShouldNotify(covariant PlatformTabOverrideScope oldWidget) {
-    return storageKey != oldWidget.storageKey || overrides != oldWidget.overrides;
+    return storageKey != oldWidget.storageKey ||
+        overrides != oldWidget.overrides ||
+        rootHeaderTrailingBuilder != oldWidget.rootHeaderTrailingBuilder;
   }
 }
