@@ -10,7 +10,7 @@ class AppPage extends StatelessWidget {
   static const double desktopBreakpoint = AppUi.desktopBreakpoint;
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget child;
   final Widget? headerTrailing;
   final bool showBackButton;
@@ -24,7 +24,7 @@ class AppPage extends StatelessWidget {
   const AppPage({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.child,
     this.headerTrailing,
     this.showBackButton = false,
@@ -80,7 +80,7 @@ class AppPage extends StatelessWidget {
               children: [
                 AppPageHeader(
                   title: title,
-                  subtitle: subtitle,
+                  subtitle: subtitle ?? '',
                   trailing: effectiveTrailing,
                   showBackButton: effectiveShowBackButton,
                   onBack: onBack,
