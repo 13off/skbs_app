@@ -9,51 +9,16 @@ import '../../../widgets/premium_ui.dart';
 import '../data/employee_cabinet_repository.dart';
 import '../data/employee_work_action_repository.dart';
 
-class EmployeeWorkHomeScreen extends StatefulWidget {
+class EmployeeWorkHomeScreen extends StatelessWidget {
   final AppUserProfile profile;
 
-  const EmployeeWorkHomeScreen({
-    super.key,
-    required this.profile,
-  });
-
-  @override
-  State<EmployeeWorkHomeScreen> createState() => _EmployeeWorkHomeScreenState();
-}
-
-class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
-  late Future<EmployeeCabinetData> future;
-
-  @override
-  void initState() {
-    super.initState();
-    future = EmployeeCabinetRepository.fetch();
-  }
-
-  Future<void> refresh() async {
-    final next = EmployeeCabinetRepository.fetch();
-    setState(() => future = next);
-    await next;
-  }
-
-  Future<void> openTask(EmployeeCabinetTask task) async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeWorkTaskDetailsScreen(
-          task: task,
-          onChanged: refresh,
-        ),
-      ),
-    );
-  }
+  const EmployeeWorkHomeScreen({super.key, required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    return _EmployeeCabinetView(
-      future: future,
-      onRefresh: refresh,
+    return _CabinetLoader(
       title: 'Главная',
-      builder: (data) {
+      builder: (data, refresh) {
         final task = data.currentTask;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,7 +31,7 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const _IconTile(icon: Icons.construction_rounded),
+                      const _IconBox(Icons.construction_rounded),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -77,40 +42,24 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
-                      if (task != null) _StatusBadge(text: task.status),
+                      if (task != null) _StatusBadge(task.status),
                     ],
                   ),
                   const SizedBox(height: 16),
                   if (task == null)
-                    Text(
+                    const Text(
                       'Новая задача появится здесь после назначения мастером.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.45,
-                            fontWeight: FontWeight.w600,
-                          ),
                     )
                   else ...[
                     Text(
                       task.work.trim().isEmpty ? 'Рабочая задача' : task.work,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      <String>[
-                        if (task.axes.trim().isNotEmpty) task.axes.trim(),
-                        if (task.objectName.trim().isNotEmpty)
-                          task.objectName.trim(),
-                        if (task.date != null) _formatDate(task.date!),
-                      ].join(' · '),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
+                    const SizedBox(height: 7),
+                    Text(_taskMeta(task)),
                     const SizedBox(height: 18),
                     PremiumActionButton(
                       label: task.status == 'Запланировано'
@@ -119,7 +68,7 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
                       icon: task.status == 'Запланировано'
                           ? Icons.play_arrow_rounded
                           : Icons.arrow_forward_rounded,
-                      onPressed: () => openTask(task),
+                      onPressed: () => _openTask(context, task, refresh),
                     ),
                   ],
                 ],
@@ -131,7 +80,7 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.calendar_month_rounded,
-                    value: _formatDecimal(data.summary.shifts),
+                    value: _decimal(data.summary.shifts),
                     label: 'смен в месяце',
                   ),
                 ),
@@ -150,26 +99,20 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Этот месяц',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
-                  const SizedBox(height: 12),
-                  _ValueLine(
-                    title: 'Предварительно начислено',
-                    value: _formatMoney(data.summary.estimatedAccrued),
+                  const SizedBox(height: 10),
+                  _ValueRow(
+                    'Предварительно начислено',
+                    _money(data.summary.estimatedAccrued),
                   ),
-                  _ValueLine(
-                    title: 'Выплаты и авансы',
-                    value: _formatMoney(data.summary.paidCurrentMonth),
+                  _ValueRow(
+                    'Выплаты и авансы',
+                    _money(data.summary.paidCurrentMonth),
                   ),
-                  _ValueLine(
-                    title: 'Задач в работе',
-                    value: '${data.summary.plannedTasks}',
-                  ),
+                  _ValueRow('Задач в работе', '${data.summary.plannedTasks}'),
                 ],
               ),
             ),
@@ -183,49 +126,20 @@ class _EmployeeWorkHomeScreenState extends State<EmployeeWorkHomeScreen> {
 class EmployeeWorkTasksScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeWorkTasksScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeWorkTasksScreen({super.key, required this.profile});
 
   @override
   State<EmployeeWorkTasksScreen> createState() => _EmployeeWorkTasksScreenState();
 }
 
 class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
-  late Future<EmployeeCabinetData> future;
   bool showCompleted = false;
 
   @override
-  void initState() {
-    super.initState();
-    future = EmployeeCabinetRepository.fetch();
-  }
-
-  Future<void> refresh() async {
-    final next = EmployeeCabinetRepository.fetch();
-    setState(() => future = next);
-    await next;
-  }
-
-  Future<void> openTask(EmployeeCabinetTask task) async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeWorkTaskDetailsScreen(
-          task: task,
-          onChanged: refresh,
-        ),
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return _EmployeeCabinetView(
-      future: future,
-      onRefresh: refresh,
+    return _CabinetLoader(
       title: 'Задачи',
-      builder: (data) {
+      builder: (data, refresh) {
         final tasks = data.tasks
             .where((task) => task.isCompleted == showCompleted)
             .toList(growable: false);
@@ -234,25 +148,17 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
           children: [
             SegmentedButton<bool>(
               segments: const [
-                ButtonSegment<bool>(
-                  value: false,
-                  icon: Icon(Icons.pending_actions_rounded),
-                  label: Text('В работе'),
-                ),
-                ButtonSegment<bool>(
-                  value: true,
-                  icon: Icon(Icons.task_alt_rounded),
-                  label: Text('Выполнено'),
-                ),
+                ButtonSegment<bool>(value: false, label: Text('В работе')),
+                ButtonSegment<bool>(value: true, label: Text('Выполнено')),
               ],
               selected: <bool>{showCompleted},
-              onSelectionChanged: (selection) {
-                setState(() => showCompleted = selection.first);
+              onSelectionChanged: (value) {
+                setState(() => showCompleted = value.first);
               },
             ),
             const SizedBox(height: 14),
             if (tasks.isEmpty)
-              _EmptyCard(
+              _MessageCard(
                 title: showCompleted
                     ? 'Выполненных задач пока нет'
                     : 'Задач в работе пока нет',
@@ -266,8 +172,8 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
                   padding: EdgeInsets.zero,
                   child: ListTile(
                     contentPadding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                    onTap: () => openTask(tasks[index]),
-                    leading: const _IconTile(icon: Icons.assignment_outlined),
+                    onTap: () => _openTask(context, tasks[index], refresh),
+                    leading: const _IconBox(Icons.assignment_outlined),
                     title: Text(
                       tasks[index].work.trim().isEmpty
                           ? 'Рабочая задача'
@@ -275,17 +181,8 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        <String>[
-                          if (tasks[index].axes.trim().isNotEmpty)
-                            tasks[index].axes.trim(),
-                          if (tasks[index].objectName.trim().isNotEmpty)
-                            tasks[index].objectName.trim(),
-                          if (tasks[index].date != null)
-                            _formatDate(tasks[index].date!),
-                        ].join(' · '),
-                      ),
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(_taskMeta(tasks[index])),
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                   ),
@@ -326,32 +223,26 @@ class _EmployeeWorkTaskDetailsScreenState
     task = widget.task;
   }
 
-  Future<void> reloadTask() async {
+  Future<void> reload() async {
     final data = await EmployeeCabinetRepository.fetch();
     for (final item in data.tasks) {
-      if (item.id == task.id) {
-        if (mounted) setState(() => task = item);
-        return;
+      if (item.id == task.id && mounted) {
+        setState(() => task = item);
+        break;
       }
     }
   }
 
-  Future<void> startTask() async {
+  Future<void> start() async {
     if (isStarting || task.isCompleted) return;
     setState(() => isStarting = true);
     try {
       await EmployeeWorkActionRepository.startTask(task.id);
-      await reloadTask();
+      await reload();
       await widget.onChanged?.call();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Работа по задаче начата')),
-      );
+      if (mounted) _message('Работа по задаче начата');
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_errorText(error))),
-      );
+      if (mounted) _message(_error(error));
     } finally {
       if (mounted) setState(() => isStarting = false);
     }
@@ -368,20 +259,18 @@ class _EmployeeWorkTaskDetailsScreenState
         stage: stage,
         photos: photos,
       );
-      await reloadTask();
+      await reload();
       await widget.onChanged?.call();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Добавлено фотографий: ${photos.length}')),
-      );
+      if (mounted) _message('Добавлено фотографий: ${photos.length}');
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_errorText(error))),
-      );
+      if (mounted) _message(_error(error));
     } finally {
       if (mounted) setState(() => uploadingStage = null);
     }
+  }
+
+  void _message(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override
@@ -389,10 +278,7 @@ class _EmployeeWorkTaskDetailsScreenState
     final canStart = !task.isCompleted && task.status != 'В работе';
     return AppPage(
       title: 'Задача',
-      subtitle: <String>[
-        if (task.objectName.trim().isNotEmpty) task.objectName.trim(),
-        if (task.date != null) _formatDate(task.date!),
-      ].join(' · '),
+      subtitle: _taskMeta(task),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -403,7 +289,7 @@ class _EmployeeWorkTaskDetailsScreenState
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _IconTile(icon: Icons.assignment_rounded),
+                    const _IconBox(Icons.assignment_rounded),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -414,43 +300,42 @@ class _EmployeeWorkTaskDetailsScreenState
                             ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    _StatusBadge(text: task.status),
+                    _StatusBadge(task.status),
                   ],
                 ),
-                const SizedBox(height: 14),
-                if (task.axes.trim().isNotEmpty)
-                  _DetailLine(icon: Icons.grid_4x4_rounded, text: task.axes),
-                if (task.photoRequirementsEnforced)
-                  const _DetailLine(
-                    icon: Icons.photo_camera_outlined,
-                    text: 'Для задачи предусмотрены фотографии «До» и «После»',
-                  ),
+                if (task.axes.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('Оси: ${task.axes.trim()}'),
+                ],
+                if (task.photoRequirementsEnforced) ...[
+                  const SizedBox(height: 8),
+                  const Text('Для задачи предусмотрены фото «До» и «После».'),
+                ],
                 if (canStart) ...[
                   const SizedBox(height: 16),
                   PremiumActionButton(
                     label: 'Начать работу',
                     icon: Icons.play_arrow_rounded,
                     isLoading: isStarting,
-                    onPressed: isStarting ? null : startTask,
+                    onPressed: isStarting ? null : start,
                   ),
                 ],
               ],
             ),
           ),
           const SizedBox(height: 14),
-          _PhotoSection(
+          _PhotoCard(
             title: 'Фото до',
             photos: task.beforePhotos,
-            isUploading: uploadingStage == 'before',
+            loading: uploadingStage == 'before',
             enabled: !task.isCompleted && uploadingStage == null,
             onAdd: () => addPhotos('before'),
           ),
           const SizedBox(height: 14),
-          _PhotoSection(
+          _PhotoCard(
             title: 'Фото после',
             photos: task.afterPhotos,
-            isUploading: uploadingStage == 'after',
+            loading: uploadingStage == 'after',
             enabled: !task.isCompleted && uploadingStage == null,
             onAdd: () => addPhotos('after'),
           ),
@@ -460,18 +345,33 @@ class _EmployeeWorkTaskDetailsScreenState
   }
 }
 
-class _EmployeeCabinetView extends StatelessWidget {
-  final Future<EmployeeCabinetData> future;
-  final Future<void> Function() onRefresh;
+class _CabinetLoader extends StatefulWidget {
   final String title;
-  final Widget Function(EmployeeCabinetData data) builder;
+  final Widget Function(
+    EmployeeCabinetData data,
+    Future<void> Function() refresh,
+  ) builder;
 
-  const _EmployeeCabinetView({
-    required this.future,
-    required this.onRefresh,
-    required this.title,
-    required this.builder,
-  });
+  const _CabinetLoader({required this.title, required this.builder});
+
+  @override
+  State<_CabinetLoader> createState() => _CabinetLoaderState();
+}
+
+class _CabinetLoaderState extends State<_CabinetLoader> {
+  late Future<EmployeeCabinetData> future;
+
+  @override
+  void initState() {
+    super.initState();
+    future = EmployeeCabinetRepository.fetch();
+  }
+
+  Future<void> refresh() async {
+    final next = EmployeeCabinetRepository.fetch();
+    setState(() => future = next);
+    await next;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -481,7 +381,8 @@ class _EmployeeCabinetView extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
           return AppPage(
-            title: title,
+            title: widget.title,
+            subtitle: 'Загружаем данные',
             child: const SizedBox(
               height: 260,
               child: Center(child: CircularProgressIndicator.adaptive()),
@@ -490,23 +391,23 @@ class _EmployeeCabinetView extends StatelessWidget {
         }
         if (snapshot.hasError || snapshot.data == null) {
           return AppPage(
-            title: title,
+            title: widget.title,
             subtitle: 'Не удалось загрузить данные',
-            onRefresh: onRefresh,
-            child: _EmptyCard(
+            onRefresh: refresh,
+            child: _MessageCard(
               title: 'Ошибка загрузки',
-              text: _errorText(snapshot.error),
+              text: _error(snapshot.error),
             ),
           );
         }
         final data = snapshot.data!;
         return AppPage(
-          title: title,
+          title: widget.title,
           subtitle: data.currentObject.trim().isEmpty
               ? 'Личный кабинет сотрудника'
               : 'Объект: ${data.currentObject.trim()}',
-          onRefresh: onRefresh,
-          child: builder(data),
+          onRefresh: refresh,
+          child: widget.builder(data, refresh),
         );
       },
     );
@@ -550,10 +451,6 @@ class _EmployeeCard extends StatelessWidget {
                     if (data.profession.trim().isNotEmpty) data.profession.trim(),
                     if (data.phone.trim().isNotEmpty) data.phone.trim(),
                   ].join(' · '),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
                 ),
               ],
             ),
@@ -564,17 +461,17 @@ class _EmployeeCard extends StatelessWidget {
   }
 }
 
-class _PhotoSection extends StatelessWidget {
+class _PhotoCard extends StatelessWidget {
   final String title;
   final List<EmployeeCabinetTaskPhoto> photos;
-  final bool isUploading;
+  final bool loading;
   final bool enabled;
   final VoidCallback onAdd;
 
-  const _PhotoSection({
+  const _PhotoCard({
     required this.title,
     required this.photos,
-    required this.isUploading,
+    required this.loading,
     required this.enabled,
     required this.onAdd,
   });
@@ -590,33 +487,24 @@ class _PhotoSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   '$title · ${photos.length}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                 ),
               ),
               FilledButton.tonalIcon(
                 onPressed: enabled ? onAdd : null,
-                icon: isUploading
+                icon: loading
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add_a_photo_outlined),
-                label: Text(isUploading ? 'Загрузка' : 'Добавить'),
+                label: Text(loading ? 'Загрузка' : 'Добавить'),
               ),
             ],
           ),
           const SizedBox(height: 14),
           if (photos.isEmpty)
-            Text(
-              'Фотографий пока нет',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-            )
+            const Text('Фотографий пока нет')
           else
             LayoutBuilder(
               builder: (context, constraints) {
@@ -627,11 +515,11 @@ class _PhotoSection extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: photos.map((photo) {
-                    return SizedBox(
-                      width: width,
-                      height: width,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        width: width,
+                        height: width,
                         child: photo.signedUrl.trim().isEmpty
                             ? const ColoredBox(
                                 color: Colors.black12,
@@ -657,34 +545,87 @@ class _PhotoSection extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String text;
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
 
-  const _StatusBadge({required this.text});
+  const _StatCard({required this.icon, required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final completed = text == 'Выполнено';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: completed
-            ? AppAdaptivePalette.success.withValues(alpha: 0.13)
-            : AppAdaptivePalette.accentSoft,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text.trim().isEmpty ? 'Запланировано' : text,
-        style: const TextStyle(fontWeight: FontWeight.w900),
+    return PremiumWorkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          Text(label),
+        ],
       ),
     );
   }
 }
 
-class _IconTile extends StatelessWidget {
+class _ValueRow extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _ValueRow(this.title, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Expanded(child: Text(title)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessageCard extends StatelessWidget {
+  final String title;
+  final String text;
+
+  const _MessageCard({required this.title, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumWorkCard(
+      child: Column(
+        children: [
+          const _IconBox(Icons.assignment_outlined),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 7),
+          Text(text, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconBox extends StatelessWidget {
   final IconData icon;
 
-  const _IconTile({required this.icon});
+  const _IconBox(this.icon);
 
   @override
   Widget build(BuildContext context) {
@@ -700,145 +641,68 @@ class _IconTile extends StatelessWidget {
   }
 }
 
-class _DetailLine extends StatelessWidget {
-  final IconData icon;
+class _StatusBadge extends StatelessWidget {
   final String text;
 
-  const _DetailLine({required this.icon, required this.text});
+  const _StatusBadge(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(width: 9),
-          Expanded(child: Text(text)),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.accentSoft,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text.trim().isEmpty ? 'Запланировано' : text,
+        style: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-
-  const _StatCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          Text(label),
-        ],
+Future<void> _openTask(
+  BuildContext context,
+  EmployeeCabinetTask task,
+  Future<void> Function() refresh,
+) async {
+  await Navigator.of(context).push<void>(
+    CupertinoPageRoute<void>(
+      builder: (_) => EmployeeWorkTaskDetailsScreen(
+        task: task,
+        onChanged: refresh,
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _ValueLine extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _ValueLine({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Expanded(child: Text(title)),
-          const SizedBox(width: 12),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
-  }
+String _taskMeta(EmployeeCabinetTask task) {
+  return <String>[
+    if (task.axes.trim().isNotEmpty) task.axes.trim(),
+    if (task.objectName.trim().isNotEmpty) task.objectName.trim(),
+    if (task.date != null) _date(task.date!),
+  ].join(' · ');
 }
 
-class _EmptyCard extends StatelessWidget {
-  final String title;
-  final String text;
-
-  const _EmptyCard({required this.title, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      child: Column(
-        children: [
-          const _IconTile(icon: Icons.assignment_outlined),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _errorText(Object? error) {
-  return error
-          ?.toString()
-          .replaceFirst('Exception: ', '')
-          .trim()
-          .isNotEmpty ==
-      true
-      ? error.toString().replaceFirst('Exception: ', '').trim()
-      : 'Не удалось выполнить действие';
+String _date(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  return '$day.$month.${value.year}';
 }
 
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty);
-  final value = parts.take(2).map((part) => part.substring(0, 1).toUpperCase()).join();
-  return value.isEmpty ? 'С' : value;
+  final result = parts.take(2).map((part) => part[0].toUpperCase()).join();
+  return result.isEmpty ? 'С' : result;
 }
 
-String _formatDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$day.$month.${date.year}';
-}
-
-String _formatDecimal(double value) {
+String _decimal(double value) {
   if (value == value.roundToDouble()) return value.round().toString();
   return value.toStringAsFixed(1).replaceAll('.', ',');
 }
 
-String _formatMoney(double value) {
+String _money(double value) {
   final rounded = value.round();
   final raw = rounded.abs().toString();
   final buffer = StringBuffer();
@@ -847,4 +711,9 @@ String _formatMoney(double value) {
     buffer.write(raw[index]);
   }
   return '${rounded < 0 ? '−' : ''}${buffer.toString()} ₽';
+}
+
+String _error(Object? value) {
+  final text = value?.toString().replaceFirst('Exception: ', '').trim() ?? '';
+  return text.isEmpty ? 'Не удалось выполнить действие' : text;
 }
