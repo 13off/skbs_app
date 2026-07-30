@@ -6,7 +6,7 @@ import '../data/attendance_repository.dart';
 import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../widgets/adaptive_detail_body.dart';
-import 'employee_timesheet_download_screen.dart';
+import 'employee_timesheet_download_sheet.dart';
 
 class EmployeeTimesheetScreen extends StatefulWidget {
   final Employee employee;
@@ -86,10 +86,10 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     try {
       final loadedRow =
           await AttendanceRepository.fetchMonthlyTimesheetForEmployee(
-            employee: widget.employee,
-            year: selectedMonth.year,
-            month: selectedMonth.month,
-          );
+        employee: widget.employee,
+        year: selectedMonth.year,
+        month: selectedMonth.month,
+      );
       if (!mounted || currentToken != loadToken) return;
       setState(() {
         row = loadedRow;
@@ -184,11 +184,11 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                       itemCount: 12,
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 2.4,
-                          ),
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 2.4,
+                      ),
                       itemBuilder: (context, index) {
                         final month = index + 1;
                         final isSelected = selectedMonth.year == visibleYear &&
@@ -243,44 +243,12 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
   Future<void> downloadExcel() async {
     if (isExporting) return;
     setState(() => isExporting = true);
-
     try {
-      final size = MediaQuery.sizeOf(context);
-      if (size.width < 720) {
-        await showModalBottomSheet<void>(
-          context: context,
-          useSafeArea: true,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => FractionallySizedBox(
-            heightFactor: 0.96,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
-              ),
-              child: EmployeeTimesheetDownloadScreen(
-                employee: widget.employee,
-              ),
-            ),
-          ),
-        );
-      } else {
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: true,
-          builder: (_) => Dialog(
-            insetPadding: const EdgeInsets.all(24),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              width: 940,
-              height: size.height * 0.9,
-              child: EmployeeTimesheetDownloadScreen(
-                employee: widget.employee,
-              ),
-            ),
-          ),
-        );
-      }
+      await EmployeeTimesheetDownloadSheet.show(
+        context,
+        employee: widget.employee,
+        initialDate: selectedMonth,
+      );
     } finally {
       if (mounted) setState(() => isExporting = false);
     }
@@ -369,8 +337,8 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
         final columns = constraints.maxWidth >= 1050
             ? 3
             : constraints.maxWidth >= 720
-            ? 2
-            : 1;
+                ? 2
+                : 1;
         const gap = 10.0;
         final width =
             (constraints.maxWidth - (gap * (columns - 1))) / columns;
