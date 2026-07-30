@@ -75,6 +75,35 @@ class EmployeeCabinetAttendance {
   }
 }
 
+class EmployeeCabinetTaskPhoto {
+  final String id;
+  final String originalName;
+  final String photoStage;
+  final String signedUrl;
+  final DateTime? createdAt;
+
+  const EmployeeCabinetTaskPhoto({
+    required this.id,
+    required this.originalName,
+    required this.photoStage,
+    required this.signedUrl,
+    required this.createdAt,
+  });
+
+  bool get isBefore => photoStage == 'before';
+  bool get isAfter => photoStage == 'after';
+
+  factory EmployeeCabinetTaskPhoto.fromJson(Map<String, dynamic> json) {
+    return EmployeeCabinetTaskPhoto(
+      id: _text(json['id']),
+      originalName: _text(json['original_name']),
+      photoStage: _text(json['photo_stage']),
+      signedUrl: _text(json['signed_url']),
+      createdAt: DateTime.tryParse(_text(json['created_at']))?.toLocal(),
+    );
+  }
+}
+
 class EmployeeCabinetTask {
   final String id;
   final DateTime? date;
@@ -84,6 +113,7 @@ class EmployeeCabinetTask {
   final String status;
   final String notDoneComment;
   final bool photoRequirementsEnforced;
+  final List<EmployeeCabinetTaskPhoto> photos;
 
   const EmployeeCabinetTask({
     required this.id,
@@ -94,9 +124,16 @@ class EmployeeCabinetTask {
     required this.status,
     required this.notDoneComment,
     required this.photoRequirementsEnforced,
+    this.photos = const <EmployeeCabinetTaskPhoto>[],
   });
 
   bool get isCompleted => status == 'Выполнено';
+
+  List<EmployeeCabinetTaskPhoto> get beforePhotos =>
+      photos.where((photo) => photo.isBefore).toList(growable: false);
+
+  List<EmployeeCabinetTaskPhoto> get afterPhotos =>
+      photos.where((photo) => photo.isAfter).toList(growable: false);
 
   factory EmployeeCabinetTask.fromJson(Map<String, dynamic> json) {
     return EmployeeCabinetTask(
@@ -109,6 +146,14 @@ class EmployeeCabinetTask {
       notDoneComment: _text(json['not_done_comment']),
       photoRequirementsEnforced:
           json['photo_requirements_enforced'] as bool? ?? true,
+      photos: _list(json['photos'])
+          .whereType<Map>()
+          .map(
+            (row) => EmployeeCabinetTaskPhoto.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }
@@ -215,17 +260,21 @@ class EmployeeCabinetData {
 
   List<EmployeeCabinetAttendance> attendanceForDay(int day) {
     return attendance
-        .where((record) =>
-            record.date?.year == year &&
-            record.date?.month == month &&
-            record.date?.day == day)
+        .where(
+          (record) =>
+              record.date?.year == year &&
+              record.date?.month == month &&
+              record.date?.day == day,
+        )
         .toList(growable: false);
   }
 
   List<EmployeeCabinetPayment> get paymentsForMonth {
     return payments
-        .where((payment) =>
-            payment.periodYear == year && payment.periodMonth == month)
+        .where(
+          (payment) =>
+              payment.periodYear == year && payment.periodMonth == month,
+        )
         .toList(growable: false);
   }
 
@@ -248,27 +297,35 @@ class EmployeeCabinetData {
       summary: EmployeeCabinetSummary.fromJson(_map(json['summary'])),
       attendance: _list(json['attendance'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetAttendance.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetAttendance.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
       tasks: _list(json['tasks'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetTask.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetTask.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
       payments: _list(json['payments'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetPayment.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetPayment.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
       documents: _list(json['documents'])
           .whereType<Map>()
-          .map((row) => EmployeeCabinetDocument.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeCabinetDocument.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
           .toList(growable: false),
     );
   }
