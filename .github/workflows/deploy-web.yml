@@ -220,7 +220,22 @@ jobs:
 
             printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
             printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
-            rm -f downloads/web-build.log
+
+            if [ "${BUILD_STATUS}" = "failure" ]; then
+              {
+                echo "AppStroy web build failure diagnostics"
+                echo "source=${{ github.sha }}"
+                for log in ../flutter-test.log ../flutter-analyze.log ../flutter-web-build.log; do
+                  if [ -f "${log}" ]; then
+                    echo
+                    echo "===== $(basename "${log}") ====="
+                    tail -n 180 "${log}"
+                  fi
+                done
+              } > downloads/web-build.log
+            else
+              rm -f downloads/web-build.log
+            fi
 
             git add -A downloads
             if git diff --cached --quiet; then
