@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
-import '../../employee/presentation/employee_main_screen.dart';
+import '../../employee/presentation/employee_platform_with_passport.dart';
 import 'premium_auth_gate_v2.dart' as management;
 
 class AuthGate extends StatelessWidget {
@@ -49,7 +49,7 @@ class AuthGate extends StatelessWidget {
               );
             }
 
-            return EmployeeMainScreen(profile: profile);
+            return EmployeePlatformWithPassport(profile: profile);
           },
         );
       },
