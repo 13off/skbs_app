@@ -119,6 +119,15 @@ void main() {
     expect(tab, contains("title: 'Команда'"));
   });
 
+  test('загрузка команды остаётся внутри вкладки', () {
+    final tab = File(tabPath).readAsStringSync();
+
+    expect(tab, contains('CircularProgressIndicator.adaptive()'));
+    expect(tab, contains("subtitle: 'Коллеги текущего объекта'"));
+    expect(tab, isNot(contains('PremiumLoadingScreen(')));
+    expect(tab, isNot(contains('Загружаем команду объекта')));
+  });
+
   test('панель сразу показывает контактный профиль коллеги', () {
     final tab = File(tabPath).readAsStringSync();
     final details = File(screenPath).readAsStringSync();
