@@ -11,13 +11,16 @@ void main() {
     final reports = File(
       'lib/features/reports/presentation/manager_reports_screen.dart',
     ).readAsStringSync();
+    final routes = File(
+      'lib/features/reports/presentation/employee_routes_report_screen.dart',
+    ).readAsStringSync();
     final reportHeader = File(
       'lib/features/reports/presentation/manager_report_header_widgets.dart',
     ).readAsStringSync();
     final reportSections = File(
       'lib/features/reports/presentation/manager_report_sections.dart',
     ).readAsStringSync();
-    final reportUi = '$reports\n$reportHeader\n$reportSections';
+    final reportUi = '$reports\n$routes\n$reportHeader\n$reportSections';
     final repository = File(
       'lib/features/reports/data/manager_reports_repository.dart',
     ).readAsStringSync();
@@ -45,10 +48,13 @@ void main() {
     expect(reportUi, contains('Юридическое'));
     expect(reportUi, contains('Объекты и этапы'));
     expect(reportUi, contains('Только проблемные разделы'));
-    expect(reports.split('\n').length, lessThan(270));
+    expect(reports.split('\n').length, lessThan(360));
     expect(reports, contains('ManagerReportFilters'));
     expect(reports, contains('ManagerReportOverview'));
     expect(reports, contains('ManagerReportSections'));
+    expect(reports, contains('EmployeeRoutesReportScreen'));
+    expect(routes, contains("title: 'Маршруты сотрудников'"));
+    expect(routes, contains("label: 'Показать маршрут'"));
     expect(reportSections, contains('final metrics = center.metrics'));
     expect(reportSections, contains('metrics.attendance'));
     expect(reportSections, contains('metrics.payments'));
