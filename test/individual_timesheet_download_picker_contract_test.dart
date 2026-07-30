@@ -21,7 +21,7 @@ void main() {
 
     expect(picker, contains("label: Text('По месяцам')"));
     expect(picker, contains("label: Text('По датам')"));
-    expect(picker, contains("const Text('Выберите месяцы')"));
-    expect(picker, contains("const Text('Точный период по датам')"));
+    expect(picker, contains("'Выберите месяцы'"));
+    expect(picker, contains("'Точный период по датам'"));
   });
 }
