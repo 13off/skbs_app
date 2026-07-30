@@ -42,54 +42,11 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     );
   }
 
-  Future<void> openRouteMap() async {
-    var routeEmployee = employee;
-    final employeeId = employee.id?.trim() ?? '';
-
-    if (employeeId.isNotEmpty) {
-      try {
-        final employees = await EmployeeRepository.fetchEmployees(
-          includeFired: true,
-          forceRefresh: true,
-        );
-        for (final item in employees) {
-          if (item.id?.trim() == employeeId) {
-            routeEmployee = item;
-            break;
-          }
-        }
-      } catch (_) {
-        // Если обновление карточки временно недоступно, экран всё равно
-        // откроется с исходными данными и покажет серверную ошибку.
-      }
-    }
-
-    if (!mounted) return;
-    await Navigator.push<void>(
-      context,
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeRouteMapScreen(
-          employee: routeEmployee,
-          canEditGeofence: widget.profile.isAdmin || widget.profile.isDeveloper,
-        ),
-      ),
-    );
-  }
-
   Future<void> openTimesheet() async {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
         builder: (_) => EmployeeTimesheetScreen(employee: employee),
-      ),
-    );
-  }
-
-  Future<void> openTimesheetDownload() async {
-    await Navigator.push<void>(
-      context,
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeTimesheetDownloadScreen(employee: employee),
       ),
     );
   }
