@@ -43,11 +43,33 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   }
 
   Future<void> openRouteMap() async {
+    var routeEmployee = employee;
+    final employeeId = employee.id?.trim() ?? '';
+
+    if (employeeId.isNotEmpty) {
+      try {
+        final employees = await EmployeeRepository.fetchEmployees(
+          includeFired: true,
+          forceRefresh: true,
+        );
+        for (final item in employees) {
+          if (item.id?.trim() == employeeId) {
+            routeEmployee = item;
+            break;
+          }
+        }
+      } catch (_) {
+        // Если обновление карточки временно недоступно, экран всё равно
+        // откроется с исходными данными и покажет серверную ошибку.
+      }
+    }
+
+    if (!mounted) return;
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
         builder: (_) => EmployeeRouteMapScreen(
-          employee: employee,
+          employee: routeEmployee,
           canEditGeofence: widget.profile.isAdmin || widget.profile.isDeveloper,
         ),
       ),
