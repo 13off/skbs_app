@@ -19,29 +19,31 @@ void main() {
     expect(shell, isNot(contains('ProfileScreen')));
   });
 
-  test('начало смены требует геолокацию и включает маршрут', () {
-    final service = File(
-      'lib/features/employee/data/employee_shift_tracking_service.dart',
+  test('начало работы требует геолокацию и пишет реальный путь', () {
+    final runtime = File(
+      'lib/features/employee/data/employee_shift_runtime.dart',
     ).readAsStringSync();
     final screen = File(
-      'lib/features/employee/presentation/employee_work_cabinet_screen.dart',
+      'lib/features/employee/presentation/employee_simple_work_screen.dart',
     ).readAsStringSync();
     final edge = File(
-      'supabase/functions/employee-work-actions/index.ts',
+      'supabase/functions/employee-shift-actions/index.ts',
     ).readAsStringSync();
 
-    expect(service, contains('LocationPermission.always'));
-    expect(service, contains('foregroundNotificationConfig'));
-    expect(service, contains('appendRoutePoints'));
-    expect(service, contains('finishShift'));
-    expect(screen, contains("label: 'Начать смену'"));
+    expect(runtime, contains('LocationPermission.always'));
+    expect(runtime, contains('foregroundNotificationConfig'));
+    expect(runtime, contains('appendRoutePoints'));
+    expect(runtime, contains('finishShift'));
+    expect(screen, contains("label: 'Начать работу'"));
     expect(screen, contains("'Завершить рабочий день'"));
     expect(screen, contains('EmployeeWorkTaskHistoryScreen'));
     expect(edge, contains('action === "start_shift"'));
     expect(edge, contains('action === "append_route_points"'));
     expect(edge, contains('action === "finish_shift"'));
-    expect(edge, contains('haversineMeters'));
-    expect(edge, contains('object_geofences'));
+    expect(edge, contains('latitude: point.latitude'));
+    expect(edge, contains('longitude: point.longitude'));
+    expect(edge, isNot(contains('haversineMeters')));
+    expect(edge, isNot(contains('object_geofences')));
   });
 
   test('платформы объявляют фоновые разрешения', () {
@@ -66,14 +68,13 @@ void main() {
       'lib/features/employee/presentation/employee_route_map_screen.dart',
     ).readAsStringSync();
 
-    expect(migration, contains('public.object_geofences'));
     expect(migration, contains('public.employee_work_shifts'));
     expect(migration, contains('public.employee_work_shift_points'));
     expect(migration, contains('enable row level security'));
     expect(migration, contains('revoke all'));
     expect(routeScreen, contains('FlutterMap('));
     expect(routeScreen, contains('PolylineLayer('));
-    expect(routeScreen, contains('CircleLayer('));
+    expect(routeScreen, isNot(contains('CircleLayer(')));
     expect(routeScreen, contains('© OpenStreetMap contributors'));
   });
 }

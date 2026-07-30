@@ -13,6 +13,7 @@ void main() {
     final workScreen = File(
       'lib/features/employee/presentation/employee_simple_work_screen.dart',
     ).readAsStringSync();
+    final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
     expect(authGate, contains('EmployeePlatformWithPassport(profile: profile)'));
     expect(authGate, isNot(contains('EmployeeMainScreen(profile: profile)')));
@@ -22,22 +23,24 @@ void main() {
     expect(platform, isNot(contains("label: 'Табель'")));
     expect(platform, isNot(contains("label: 'Выплаты'")));
     expect(platform, isNot(contains("label: 'Паспорт'")));
-    expect(workScreen, contains("label: 'Начать смену'"));
+    expect(workScreen, contains("label: 'Начать работу'"));
     expect(workScreen, contains("label: 'Начать выполнение'"));
+    expect(workScreen, contains("'Работа идёт'"));
+    expect(main, contains('if (profile.isEmployee) return content;'));
   });
 
-  test('начало смены не запускает задачу автоматически', () {
+  test('начало рабочего дня не запускает задачу автоматически', () {
     final repository = File(
-      'lib/features/employee/data/employee_work_action_repository.dart',
+      'lib/features/employee/data/employee_shift_action_repository.dart',
     ).readAsStringSync();
     final edge = File(
-      'supabase/functions/employee-work-actions/index.ts',
+      'supabase/functions/employee-shift-actions/index.ts',
     ).readAsStringSync();
 
-    expect(repository, contains('static Future<void> startTask(String taskId)'));
+    expect(repository, contains('static Future<void> startTask({'));
     expect(edge, contains('task_id: null'));
     expect(edge, contains('if (action === "start_task")'));
-    expect(edge, contains('Сначала начните рабочую смену'));
+    expect(edge, contains('Сначала начните рабочий день'));
     expect(edge, contains('Сначала нажмите «Начать выполнение»'));
   });
 }

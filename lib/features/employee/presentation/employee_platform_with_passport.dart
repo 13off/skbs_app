@@ -21,6 +21,7 @@ class EmployeePlatformWithPassport extends StatefulWidget {
 class _EmployeePlatformWithPassportState
     extends State<EmployeePlatformWithPassport> {
   late final PersistentTabController controller;
+  late final ValueNotifier<String> selectedEmployeeId;
 
   static const items = <ProfessionalBottomNavigationItem>[
     ProfessionalBottomNavigationItem(
@@ -39,11 +40,13 @@ class _EmployeePlatformWithPassportState
   void initState() {
     super.initState();
     controller = PersistentTabController(pageCount: items.length);
+    selectedEmployeeId = ValueNotifier<String>('');
   }
 
   @override
   void dispose() {
     controller.dispose();
+    selectedEmployeeId.dispose();
     super.dispose();
   }
 
@@ -59,9 +62,15 @@ class _EmployeePlatformWithPassportState
       navigationStorageKey: 'employee-work-simple',
       tabBuilder: (context, index) {
         if (index == 0) {
-          return EmployeeWorkTasksScreen(profile: contentProfile);
+          return EmployeeWorkTasksScreen(
+            profile: contentProfile,
+            selectedEmployeeId: selectedEmployeeId,
+          );
         }
-        return EmployeeWorkTaskHistoryScreen(profile: contentProfile);
+        return EmployeeWorkTaskHistoryScreen(
+          profile: contentProfile,
+          selectedEmployeeId: selectedEmployeeId,
+        );
       },
     );
   }

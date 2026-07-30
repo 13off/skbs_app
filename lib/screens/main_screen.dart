@@ -39,9 +39,6 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     PersonalProfileController.configure(widget.profile);
-    // Репозитории используют статические кеши. Новый MainScreen может быть
-    // создан после выхода, смены пользователя или компании без вызова
-    // didUpdateWidget у прежнего экземпляра, поэтому очищаем их до прогрева.
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
@@ -97,9 +94,6 @@ class _MainScreenState extends State<MainScreen> {
     final profile = PersonalProfileController.merge(widget.profile);
     final objectName = initialObjectNameFor(profile);
     try {
-      // Справочники имеют объединение одинаковых активных запросов. Задачи и
-      // табель загружаются рабочими экранами: параллельный прогрев раньше
-      // создавал повторные запросы в момент запуска приложения.
       await Future.wait<dynamic>([
         EmployeeRepository.fetchEmployees(
           objectName: objectName,
@@ -170,6 +164,7 @@ class _MainScreenState extends State<MainScreen> {
             final content = !profile.isRolePreview
                 ? platform
                 : _RolePreviewFrame(profile: profile, child: platform);
+            if (profile.isEmployee) return content;
             return CompanyChatShell(
               key: ValueKey<String>(
                 'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
@@ -185,10 +180,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Часть рабочих экранов использует AppAdaptivePalette, которая читает
-    // текущий режим из контроллера, а не через Theme.of(context). Явная
-    // зависимость корневого экрана от Theme заставляет всё рабочее дерево
-    // перестроиться при переключении темы без перезапуска и без сброса state.
     Theme.of(context);
 
     return FutureBuilder<void>(

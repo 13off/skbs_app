@@ -9,6 +9,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../tasks/presentation/employee_contribution_screen.dart';
 import '../data/manager_reports_repository.dart';
 import '../data/manager_weekly_contribution_repository.dart';
+import 'employee_routes_report_screen.dart';
 import 'manager_daily_ai_review.dart';
 import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
@@ -140,6 +141,14 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     );
   }
 
+  void openRoutes() {
+    openScreen(
+      EmployeeRoutesReportScreen(
+        selectedObjectName: widget.selectedObjectName,
+      ),
+    );
+  }
+
   void openContribution(ManagerWeeklyContributionEmployee item) {
     openScreen(
       EmployeeContributionScreen(
@@ -159,6 +168,24 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        PremiumWorkCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            leading: const Icon(Icons.route_outlined, size: 30),
+            title: const Text(
+              'Маршруты сотрудников',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: const Padding(
+              padding: EdgeInsets.only(top: 5),
+              child: Text('Выберите сотрудника и дату, чтобы посмотреть путь.'),
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: openRoutes,
+          ),
+        ),
+        const SizedBox(height: 12),
         ManagerReportFilters(
           center: center,
           selectedObjectId: selectedObjectId,
