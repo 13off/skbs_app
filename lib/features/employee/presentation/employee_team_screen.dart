@@ -464,7 +464,7 @@ class _EmployeeAvatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             _InitialsAvatar(name: member.fullName, size: size),
       ),
     );
@@ -574,7 +574,7 @@ class _SearchCard extends StatelessWidget {
           hintText: hint,
           suffixIcon: ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
-            builder: (_, value, __) => value.text.isEmpty
+            builder: (_, value, _) => value.text.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
                     tooltip: 'Очистить',
