@@ -22,7 +22,7 @@ class EmployeeTeamTabScreen extends StatefulWidget {
 }
 
 class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
-  late Future<_EmployeeTeamTabData> teamFuture;
+  late Future<EmployeeTeamData> teamFuture;
   final searchController = TextEditingController();
   String query = '';
 
@@ -48,10 +48,8 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
     super.dispose();
   }
 
-  Future<_EmployeeTeamTabData> _load() async {
+  Future<EmployeeTeamData> _load() async {
     String? employeeId;
-    var seedEmployeeName = '';
-
     if (widget.profile.isRolePreview) {
       final employees = await EmployeeRepository.fetchEmployees(
         includeFired: false,
@@ -62,14 +60,8 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
         throw Exception('Нет активного сотрудника с назначенным объектом');
       }
       employeeId = seed.id;
-      seedEmployeeName = seed.name.trim();
     }
-
-    final team = await EmployeeTeamRepository.fetch(employeeId: employeeId);
-    return _EmployeeTeamTabData(
-      team: team,
-      seedEmployeeName: seedEmployeeName,
-    );
+    return EmployeeTeamRepository.fetch(employeeId: employeeId);
   }
 
   Employee? _resolvePreviewSeed(
@@ -117,7 +109,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_EmployeeTeamTabData>(
+    return FutureBuilder<EmployeeTeamData>(
       future: teamFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
@@ -127,9 +119,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
             subtitle: 'Коллеги текущего объекта',
             child: SizedBox(
               height: 260,
-              child: Center(
-                child: CircularProgressIndicator.adaptive(),
-              ),
+              child: Center(child: CircularProgressIndicator.adaptive()),
             ),
           );
         }
@@ -146,8 +136,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
           );
         }
 
-        final payload = snapshot.data!;
-        final data = payload.team;
+        final data = snapshot.data!;
         final cleanQuery = query.trim().toLowerCase();
         final members = data.members.where((member) {
           if (cleanQuery.isEmpty) return true;
@@ -159,8 +148,6 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
         }).toList(growable: false);
         final objectName = data.currentObject.trim();
         final subtitle = <String>[
-          if (payload.seedEmployeeName.isNotEmpty)
-            'Предпросмотр: ${payload.seedEmployeeName}',
           objectName.isEmpty ? 'Объект не указан' : objectName,
           '${data.members.length} ${_peopleWord(data.members.length)}',
         ].join(' · ');
@@ -261,16 +248,6 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
   }
 }
 
-class _EmployeeTeamTabData {
-  final EmployeeTeamData team;
-  final String seedEmployeeName;
-
-  const _EmployeeTeamTabData({
-    required this.team,
-    required this.seedEmployeeName,
-  });
-}
-
 class _EmployeeAvatar extends StatelessWidget {
   final EmployeeTeamMember member;
   final double size;
@@ -304,8 +281,9 @@ class _InitialsAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final words = name.trim().split(RegExp(r'\s+'));
-    final initials = words
+    final initials = name
+        .trim()
+        .split(RegExp(r'\s+'))
         .where((word) => word.isNotEmpty)
         .take(2)
         .map((word) => word.substring(0, 1).toUpperCase())
