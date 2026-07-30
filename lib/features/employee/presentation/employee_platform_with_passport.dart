@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
-import 'employee_passport_directory_screen.dart';
-import 'employee_professional_passport_screen.dart';
+import 'employee_community_hub_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
 class EmployeePlatformWithPassport extends StatefulWidget {
@@ -22,21 +21,19 @@ class EmployeePlatformWithPassport extends StatefulWidget {
 
 class _EmployeePlatformWithPassportState
     extends State<EmployeePlatformWithPassport> {
-  bool openingPassport = false;
+  bool openingCommunity = false;
 
-  Future<bool> openPassport(BuildContext context) async {
-    if (openingPassport) return true;
-    setState(() => openingPassport = true);
+  Future<bool> openCommunity(BuildContext context) async {
+    if (openingCommunity) return true;
+    setState(() => openingCommunity = true);
     try {
       await Navigator.of(context, rootNavigator: true).push<void>(
         CupertinoPageRoute<void>(
-          builder: (_) => widget.profile.isRolePreview
-              ? const EmployeePassportDirectoryScreen()
-              : EmployeeProfessionalPassportScreen(profile: widget.profile),
+          builder: (_) => EmployeeCommunityHubScreen(profile: widget.profile),
         ),
       );
     } finally {
-      if (mounted) setState(() => openingPassport = false);
+      if (mounted) setState(() => openingCommunity = false);
     }
     return true;
   }
@@ -47,10 +44,10 @@ class _EmployeePlatformWithPassportState
       storageKey: 'employee',
       overrides: <int, PlatformTabOverride>{
         4: PlatformTabOverride(
-          label: 'Паспорт',
-          icon: Icons.badge_outlined,
-          selectedIcon: Icons.badge_rounded,
-          onSelected: openPassport,
+          label: 'Команда',
+          icon: Icons.groups_outlined,
+          selectedIcon: Icons.groups_rounded,
+          onSelected: openCommunity,
         ),
       },
       child: legacy.EmployeeMainScreen(profile: widget.profile),
