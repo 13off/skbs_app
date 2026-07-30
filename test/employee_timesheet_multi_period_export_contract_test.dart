@@ -34,8 +34,8 @@ void main() {
     expect(timesheetScreen, contains('employee: widget.employee'));
 
     expect(downloadSheet, contains('SegmentedButton<'));
-    expect(downloadSheet, contains("label: Text('По месяцам')"));
-    expect(downloadSheet, contains("label: Text('По датам')"));
+    expect(downloadSheet, contains("label: Text('Месяцы')"));
+    expect(downloadSheet, contains("label: Text('Даты')"));
     expect(downloadSheet, contains('Set<DateTime> selectedMonths'));
     expect(downloadSheet, contains('showDateRangePicker('));
     expect(
