@@ -15,7 +15,12 @@ void main() {
     final screen = File(screenPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
 
-    expect(screen, contains("label: task == null ? 'Нет активной задачи' : 'Открыть задачу'"));
+    expect(
+      screen,
+      contains(
+        "label: task == null ? 'Нет активной задачи' : 'Открыть задачу'",
+      ),
+    );
     expect(screen, contains('onPressed: task == null'));
     expect(screen, contains('EmployeeTaskDetailsScreen(task: task)'));
     expect(wrapper, contains('0: PlatformTabOverride('));
@@ -39,7 +44,10 @@ void main() {
     final function = File(functionPath).readAsStringSync();
 
     expect(repository, contains('class EmployeeCabinetTaskPhoto'));
-    expect(repository, contains('final List<EmployeeCabinetTaskPhoto> photos;'));
+    expect(
+      repository,
+      contains('final List<EmployeeCabinetTaskPhoto> photos;'),
+    );
     expect(function, contains('.from("task_assignees")'));
     expect(function, contains('.in("employee_id", employeeIds)'));
     expect(function, contains('.from("task_photos")'));
@@ -51,7 +59,10 @@ void main() {
   test('панель сотрудника не использует общий редактор прораба', () {
     final screen = File(screenPath).readAsStringSync();
 
-    expect(screen, isNot(contains('TaskDetailsScreen(')));
+    expect(
+      screen,
+      isNot(contains("import '../../../screens/task_details_screen.dart'")),
+    );
     expect(screen, isNot(contains('TaskRepository.updateTask')));
     expect(screen, isNot(contains('saveTaskAssignees')));
     expect(screen, isNot(contains(".from('tasks')")));
