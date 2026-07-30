@@ -15,8 +15,8 @@ void main() {
     expect(repository, contains("'start_shift'"));
     expect(repository, contains("'finish_shift'"));
     expect(edge, contains('coordinateFrom(input)'));
-    expect(edge, contains('source: "start"'));
-    expect(edge, contains('source: "finish"'));
-    expect(edge, contains('ended_at: coordinate.recordedAt'));
+    expect(edge, contains('point,\n        "start"'));
+    expect(edge, contains('point,\n        "finish"'));
+    expect(edge, contains('ended_at: point.recordedAt'));
   });
 }
