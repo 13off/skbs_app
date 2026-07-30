@@ -91,7 +91,7 @@ void main() {
     expect(repository, contains("'action': 'list'"));
     expect(repository, contains('profileVerified'));
     expect(repository, contains('avatarUrl'));
-    expect(repository, isNot(contains('updateVisibility'));
+    expect(repository, isNot(contains('updateVisibility')));
     expect(repository, isNot(contains(".from('employees')")));
     expect(repository, isNot(contains(".from('user_profiles')")));
   });
