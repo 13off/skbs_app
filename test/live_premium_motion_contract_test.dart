@@ -36,18 +36,18 @@ void main() {
     expect(navigation, contains('NavigationSession.writeTabIndex'));
   });
 
-  test('общая загрузка использует прежний спокойный индикатор', () {
+  test('общая загрузка показывает только вращающийся круг', () {
     final loading = File(
       'lib/widgets/premium_surfaces_v3.dart',
     ).readAsStringSync();
 
-    expect(loading, contains('Подготавливаем рабочее пространство'));
-    expect(loading, contains('PremiumBrandMark(size: 98'));
-    expect(loading, contains('PremiumDots('));
-    expect(loading, contains('width: 300'));
+    expect(loading, contains('CircularProgressIndicator('));
+    expect(loading, contains('strokeWidth: 2.6'));
+    expect(loading, contains('liveRegion: true'));
+    expect(loading, isNot(contains('PremiumBrandMark')));
+    expect(loading, isNot(contains("Text('AppСтрой'")));
+    expect(loading, isNot(contains('PremiumDots(')));
     expect(loading, isNot(contains('AppConstructionLoader')));
-    expect(loading, isNot(contains('_ConstructionLoaderPainter')));
-    expect(loading, isNot(contains('controller.repeat()')));
-    expect(loading, isNot(contains('CustomPaint(')));
+    expect(loading, isNot(contains('LiquidGlassSurface')));
   });
 }
