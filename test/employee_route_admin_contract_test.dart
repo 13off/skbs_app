@@ -14,6 +14,10 @@ void main() {
 
     expect(root, contains("employee_route_map_screen.dart"));
     expect(navigation, contains('Future<void> openRouteMap() async'));
+    expect(navigation, contains('EmployeeRepository.fetchEmployees('));
+    expect(navigation, contains('includeFired: true'));
+    expect(navigation, contains('forceRefresh: true'));
+    expect(navigation, contains('employee: routeEmployee'));
     expect(navigation, contains('EmployeeRouteMapScreen('));
     expect(view, contains("title: 'Маршруты смен'"));
     expect(view, contains('onTap: openRouteMap'));
