@@ -3,10 +3,10 @@ import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../data/attendance_repository.dart';
-import '../data/timesheet_excel_exporter.dart';
 import '../models/employee.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../widgets/adaptive_detail_body.dart';
+import 'employee_timesheet_download_screen.dart';
 
 class EmployeeTimesheetScreen extends StatefulWidget {
   final Employee employee;
@@ -25,28 +25,23 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
   bool isLoading = false;
   bool isExporting = false;
   String? errorText;
-  int _loadToken = 0;
+  int loadToken = 0;
 
   @override
   void initState() {
     super.initState();
-
     final now = DateTime.now();
     selectedMonth = DateTime(now.year, now.month, 1);
-
     loadReport();
   }
 
-  int get daysInMonth {
-    return DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
-  }
+  int get daysInMonth =>
+      DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
 
-  List<int> get days {
-    return List.generate(daysInMonth, (index) => index + 1);
-  }
+  List<int> get days => List<int>.generate(daysInMonth, (index) => index + 1);
 
   String monthName(int month) {
-    const monthNames = [
+    const monthNames = <String>[
       'Январь',
       'Февраль',
       'Март',
@@ -60,40 +55,29 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
       'Ноябрь',
       'Декабрь',
     ];
-
     return monthNames[month - 1];
   }
 
-  String get monthTitle {
-    return '${monthName(selectedMonth.month)} ${selectedMonth.year}';
-  }
+  String get monthTitle =>
+      '${monthName(selectedMonth.month)} ${selectedMonth.year}';
 
-  String formatDate(DateTime date) {
-    return DateFormat('dd.MM.yyyy').format(date);
-  }
+  String formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
 
   String formatShift(double value) {
-    if (value % 1 == 0) {
-      return value.toInt().toString();
-    }
-
+    if (value % 1 == 0) return value.toInt().toString();
     return value.toStringAsFixed(1).replaceAll('.', ',');
   }
 
   String formatMoney(num value) {
-    final text = value.round().toString();
-
-    final formatted = text.replaceAllMapped(
+    final text = value.round().toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
       (_) => ' ',
     );
-
-    return '$formatted ₽';
+    return '$text ₽';
   }
 
   Future<void> loadReport() async {
-    final currentToken = ++_loadToken;
-
+    final currentToken = ++loadToken;
     setState(() {
       isLoading = true;
       errorText = null;
@@ -106,33 +90,29 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
             year: selectedMonth.year,
             month: selectedMonth.month,
           );
-
-      if (!mounted || currentToken != _loadToken) return;
-
+      if (!mounted || currentToken != loadToken) return;
       setState(() {
         row = loadedRow;
         isLoading = false;
       });
-    } catch (e) {
-      if (!mounted || currentToken != _loadToken) return;
-
+    } catch (error) {
+      if (!mounted || currentToken != loadToken) return;
       setState(() {
-        errorText = 'Ошибка загрузки табеля: $e';
+        errorText = 'Ошибка загрузки табеля: $error';
         isLoading = false;
       });
     }
   }
 
   Future<void> pickMonth() async {
-    int tempYear = selectedMonth.year;
-
+    var visibleYear = selectedMonth.year;
     final pickedMonth = await showModalBottomSheet<DateTime>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (context, setSheetState) {
             return SafeArea(
               child: Container(
                 margin: const EdgeInsets.all(12),
@@ -166,9 +146,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close),
                         ),
                       ],
@@ -177,17 +155,14 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () {
-                            setModalState(() {
-                              tempYear--;
-                            });
-                          },
+                          onPressed: () =>
+                              setSheetState(() => visibleYear--),
                           icon: const Icon(Icons.chevron_left),
                         ),
                         Expanded(
                           child: Center(
                             child: Text(
-                              tempYear.toString(),
+                              visibleYear.toString(),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
@@ -196,11 +171,8 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {
-                            setModalState(() {
-                              tempYear++;
-                            });
-                          },
+                          onPressed: () =>
+                              setSheetState(() => visibleYear++),
                           icon: const Icon(Icons.chevron_right),
                         ),
                       ],
@@ -219,19 +191,14 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                           ),
                       itemBuilder: (context, index) {
                         final month = index + 1;
-
-                        final isSelected =
-                            selectedMonth.year == tempYear &&
+                        final isSelected = selectedMonth.year == visibleYear &&
                             selectedMonth.month == month;
-
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            Navigator.pop(
-                              context,
-                              DateTime(tempYear, month, 1),
-                            );
-                          },
+                          onTap: () => Navigator.pop(
+                            sheetContext,
+                            DateTime(visibleYear, month, 1),
+                          ),
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
@@ -264,61 +231,63 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
       },
     );
 
-    if (pickedMonth == null) return;
-
-    if (pickedMonth.year == selectedMonth.year &&
-        pickedMonth.month == selectedMonth.month) {
+    if (pickedMonth == null ||
+        (pickedMonth.year == selectedMonth.year &&
+            pickedMonth.month == selectedMonth.month)) {
       return;
     }
-
-    setState(() {
-      selectedMonth = pickedMonth;
-    });
-
+    setState(() => selectedMonth = pickedMonth);
     await loadReport();
   }
 
   Future<void> downloadExcel() async {
-    final currentRow = row;
-
-    if (currentRow == null) return;
-
-    setState(() {
-      isExporting = true;
-    });
+    if (isExporting) return;
+    setState(() => isExporting = true);
 
     try {
-      await TimesheetExcelExporter.downloadMonthlyTimesheets(
-        months: [selectedMonth],
-        rowsByMonth: [
-          [currentRow],
-        ],
-        fileNamePrefix: 'Табель_${widget.employee.name}',
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Excel-файл создан')));
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка создания Excel: $e')));
-    } finally {
-      if (mounted) {
-        setState(() {
-          isExporting = false;
-        });
+      final size = MediaQuery.sizeOf(context);
+      if (size.width < 720) {
+        await showModalBottomSheet<void>(
+          context: context,
+          useSafeArea: true,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => FractionallySizedBox(
+            heightFactor: 0.96,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              child: EmployeeTimesheetDownloadScreen(
+                employee: widget.employee,
+              ),
+            ),
+          ),
+        );
+      } else {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: true,
+          builder: (_) => Dialog(
+            insetPadding: const EdgeInsets.all(24),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: 940,
+              height: size.height * 0.9,
+              child: EmployeeTimesheetDownloadScreen(
+                employee: widget.employee,
+              ),
+            ),
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => isExporting = false);
     }
   }
 
   Widget buildSummary() {
     final currentRow = row;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -377,18 +346,15 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
 
   Widget buildDaysList() {
     final currentRow = row;
-
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     if (errorText != null) {
       return Text(
         errorText!,
         style: TextStyle(color: AppAdaptivePalette.danger),
       );
     }
-
     if (currentRow == null) {
       return Center(
         child: Text(
@@ -406,7 +372,8 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
             ? 2
             : 1;
         const gap = 10.0;
-        final width = (constraints.maxWidth - (gap * (columns - 1))) / columns;
+        final width =
+            (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
         return Wrap(
           spacing: gap,
@@ -415,7 +382,6 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
             final shift = currentRow.shiftForDay(day);
             final date = DateTime(selectedMonth.year, selectedMonth.month, day);
             final worked = shift > 0;
-
             return SizedBox(
               width: width,
               child: Container(
@@ -467,7 +433,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                 ),
               ),
             );
-          }).toList(),
+          }).toList(growable: false),
         );
       },
     );
