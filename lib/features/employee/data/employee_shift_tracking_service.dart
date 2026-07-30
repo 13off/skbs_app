@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geolocator_android/geolocator_android.dart';
-import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'employee_work_action_repository.dart';
@@ -45,6 +43,7 @@ class EmployeeShiftTrackingSnapshot {
         permissionScope = 'unknown',
         webForegroundOnly = kIsWeb;
 
+  EmployeeWorkShift? get activeShift => shift;
   bool get isActive => shift?.isActive == true;
   bool get isBusy => status == EmployeeShiftTrackingStatus.starting ||
       status == EmployeeShiftTrackingStatus.finishing ||
@@ -99,9 +98,9 @@ class EmployeeShiftTrackingService {
       ValueNotifier<EmployeeShiftTrackingSnapshot>(
     const EmployeeShiftTrackingSnapshot.idle(),
   );
-
   final List<EmployeeLocationPoint> _pendingPoints =
       <EmployeeLocationPoint>[];
+
   StreamSubscription<Position>? _positionSubscription;
   Timer? _flushTimer;
   bool _isFlushing = false;
@@ -219,10 +218,14 @@ class EmployeeShiftTrackingService {
       await _stopPositionStream();
       await _clearPersistedShift();
       _pendingPoints.clear();
-      state.value = const EmployeeShiftTrackingSnapshot.idle().copyWith(
+      state.value = EmployeeShiftTrackingSnapshot(
         status: EmployeeShiftTrackingStatus.idle,
+        shift: null,
         lastPoint: point,
+        pendingPointCount: 0,
         message: 'Рабочий день завершён.',
+        permissionScope: 'unknown',
+        webForegroundOnly: kIsWeb,
       );
       return shift;
     } catch (error) {
@@ -240,14 +243,12 @@ class EmployeeShiftTrackingService {
   }
 
   Future<LocationPermission> _ensurePermissionForShift() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
+    if (!await Geolocator.isLocationServiceEnabled()) {
       throw const EmployeeLocationPermissionException(
         'На телефоне выключена геолокация. Включите её и повторите.',
         openSettingsRequired: true,
       );
     }
-
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -302,11 +303,11 @@ class EmployeeShiftTrackingService {
       );
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return const AndroidSettings(
+      return AndroidSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 20,
-        intervalDuration: Duration(seconds: 30),
-        foregroundNotificationConfig: ForegroundNotificationConfig(
+        intervalDuration: const Duration(seconds: 30),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'AppСтрой: смена идёт',
           notificationText: 'Маршрут записывается до завершения рабочего дня',
           notificationChannelName: 'Контроль рабочей смены',
@@ -317,7 +318,7 @@ class EmployeeShiftTrackingService {
     }
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      return const AppleSettings(
+      return AppleSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         activityType: ActivityType.fitness,
         distanceFilter: 20,
@@ -365,9 +366,7 @@ class EmployeeShiftTrackingService {
           ? 'Маршрут записывается, пока эта вкладка открыта.'
           : 'Маршрут записывается в фоне.',
     );
-    if (_pendingPoints.length >= 5) {
-      unawaited(_flushPending());
-    }
+    if (_pendingPoints.length >= 5) unawaited(_flushPending());
   }
 
   EmployeeLocationPoint _pointFromPosition(Position position) {
