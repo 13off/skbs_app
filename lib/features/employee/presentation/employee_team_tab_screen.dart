@@ -122,8 +122,15 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return const PremiumLoadingScreen(
-            message: 'Загружаем команду объекта',
+          return const AppPage(
+            title: 'Команда',
+            subtitle: 'Коллеги текущего объекта',
+            child: SizedBox(
+              height: 260,
+              child: Center(
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            ),
           );
         }
         if (snapshot.hasError || snapshot.data == null) {
