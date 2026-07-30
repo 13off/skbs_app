@@ -92,7 +92,6 @@ class EmployeeShiftTrackingService {
       EmployeeShiftTrackingService._();
 
   static const _activeShiftPreference = 'employee_active_shift_id';
-  static const _activeTaskPreference = 'employee_active_shift_task_id';
 
   final ValueNotifier<EmployeeShiftTrackingSnapshot> state =
       ValueNotifier<EmployeeShiftTrackingSnapshot>(
@@ -145,7 +144,7 @@ class EmployeeShiftTrackingService {
     }
   }
 
-  Future<EmployeeWorkShift> startShift(String taskId) async {
+  Future<EmployeeWorkShift> startShift() async {
     if (state.value.isBusy) {
       throw const EmployeeLocationPermissionException(
         'Дождитесь завершения текущего действия.',
@@ -170,12 +169,11 @@ class EmployeeShiftTrackingService {
       );
       final point = _pointFromPosition(position);
       final shift = await EmployeeWorkActionRepository.startShift(
-        taskId: taskId,
         point: point,
         permissionScope: _permissionScope(permission),
         trackingMode: kIsWeb ? 'web_foreground' : 'native_background',
       );
-      await _persistShift(shift.id, taskId);
+      await _persistShift(shift.id);
       state.value = state.value.copyWith(
         status: EmployeeShiftTrackingStatus.tracking,
         shift: shift,
@@ -408,16 +406,14 @@ class EmployeeShiftTrackingService {
     _positionSubscription = null;
   }
 
-  Future<void> _persistShift(String shiftId, String taskId) async {
+  Future<void> _persistShift(String shiftId) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_activeShiftPreference, shiftId);
-    await preferences.setString(_activeTaskPreference, taskId);
   }
 
   Future<void> _clearPersistedShift() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_activeShiftPreference);
-    await preferences.remove(_activeTaskPreference);
   }
 
   String _errorText(Object error) {
