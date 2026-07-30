@@ -5,47 +5,47 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const workScreenPath =
       'lib/features/employee/presentation/employee_work_cabinet_screen.dart';
-  const teamPath =
-      'lib/features/employee/presentation/employee_team_tab_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
   const repositoryPath =
       'lib/features/employee/data/employee_cabinet_repository.dart';
   const functionPath = 'supabase/functions/employee-cabinet/index.ts';
 
-  test('главная показывает сотрудника и рабочую кнопку задачи', () {
+  test('панель показывает активные задачи и начало смены', () {
     final screen = File(workScreenPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
 
-    expect(screen, contains('class _EmployeeCard'));
-    expect(screen, contains("'На сегодня задач нет'"));
-    expect(screen, contains("? 'Начать работу'"));
-    expect(screen, contains("'Открыть задачу'"));
+    expect(screen, contains('class _ShiftStatusCard'));
+    expect(screen, contains("'Активных задач пока нет'"));
+    expect(screen, contains("label: 'Начать смену'"));
+    expect(screen, contains('EmployeeWorkTaskDetailsScreen'));
     expect(screen, isNot(contains("label: 'Нет активной задачи'")));
-    expect(wrapper, contains('0: PlatformTabOverride('));
-    expect(wrapper, contains('EmployeeWorkHomeScreen'));
+    expect(wrapper, contains('EmployeeWorkTasksScreen'));
   });
 
   test('режим руководителя использует единый серверный выбор без подписи', () {
-    final team = File(teamPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
+    final workActions = File(
+      'lib/features/employee/data/employee_work_action_repository.dart',
+    ).readAsStringSync();
 
-    expect(team, contains('EmployeeWorkActionRepository.resolveSelection()'));
-    expect(team, isNot(contains('EmployeeRepository.fetchEmployees(')));
-    expect(team, isNot(contains('Предпросмотр:')));
-    expect(wrapper, contains('EmployeeWorkHomeScreen'));
+    expect(workActions, contains('resolveSelection()'));
+    expect(workActions, contains("'resolve_selection'"));
+    expect(wrapper, isNot(contains('Предпросмотр:')));
+    expect(wrapper, contains('EmployeeWorkTasksScreen'));
   });
 
-  test('список задач разделён по статусу и карточки открываются', () {
+  test('задачи и история разделены на две вкладки', () {
     final screen = File(workScreenPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
 
-    expect(screen, contains('SegmentedButton<bool>'));
-    expect(screen, contains("label: Text('В работе')"));
-    expect(screen, contains("label: Text('Выполнено')"));
+    expect(wrapper, contains("label: 'Задачи'"));
+    expect(wrapper, contains("label: 'История задач'"));
+    expect(wrapper, contains('EmployeeWorkTaskHistoryScreen'));
+    expect(screen, contains('showDatePicker('));
+    expect(screen, contains('ExpansionTile('));
     expect(screen, contains('onTap: () => _openTask'));
-    expect(wrapper, contains('1: PlatformTabOverride('));
-    expect(wrapper, contains('EmployeeWorkTasksScreen'));
+    expect(screen, isNot(contains('SegmentedButton<bool>')));
   });
 
   test('сотрудник получает фотографии только назначенных ему задач', () {
