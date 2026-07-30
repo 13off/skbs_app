@@ -25,12 +25,6 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             ),
           ],
           buildActionTile(
-            icon: Icons.route_outlined,
-            title: 'Маршруты смен',
-            subtitle: 'Начало, завершение и путь сотрудника за выбранную дату',
-            onTap: openRouteMap,
-          ),
-          buildActionTile(
             icon: Icons.donut_large_rounded,
             title: 'Личный вклад',
             subtitle: 'Доля в завершённых задачах, сводка и история',
@@ -41,12 +35,6 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             title: 'Индивидуальный табель',
             subtitle: 'Смены, начислено, выплаты и Excel',
             onTap: openTimesheet,
-          ),
-          buildActionTile(
-            icon: Icons.download_for_offline_outlined,
-            title: 'Скачать табель',
-            subtitle: 'Несколько месяцев или точный период по датам',
-            onTap: openTimesheetDownload,
           ),
           if (isAdmin)
             buildActionTile(
