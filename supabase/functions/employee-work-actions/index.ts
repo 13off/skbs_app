@@ -8,36 +8,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-class HttpError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
-
-type Viewer = {
-  userId: string;
-  role: string;
-  companyId: string;
-};
-
+type DbRow = Record<string, unknown>;
+type Viewer = { userId: string; role: string; companyId: string };
 type EmployeeRow = {
   id: string;
   person_id?: string | null;
   object_id?: string | null;
   object_name?: string | null;
 };
-
-type TaskRow = {
-  id: string;
-  status?: string | null;
-  object_id?: string | null;
-  object_name?: string | null;
-  task_date?: string | null;
-};
-
 type Coordinate = {
   latitude: number;
   longitude: number;
@@ -48,6 +26,15 @@ type Coordinate = {
   isMock: boolean;
   recordedAt: string;
 };
+
+class HttpError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -64,6 +51,18 @@ function cleanText(value: unknown, maxLength = 500) {
   return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function asRecord(value: unknown): DbRow | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as DbRow;
+}
+
+function asRecords(value: unknown): DbRow[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => asRecord(item))
+    .filter((item): item is DbRow => item !== null);
+}
+
 function numberValue(value: unknown, name: string) {
   const result = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(result)) {
@@ -78,7 +77,7 @@ function nullableNumber(value: unknown) {
   return Number.isFinite(result) ? result : null;
 }
 
-function coordinateFrom(input: Record<string, unknown>): Coordinate {
+function coordinateFrom(input: DbRow): Coordinate {
   const latitude = numberValue(input.latitude, "Широта");
   const longitude = numberValue(input.longitude, "Долгота");
   const accuracyM = numberValue(input.accuracy_m, "Точность");
@@ -91,15 +90,15 @@ function coordinateFrom(input: Record<string, unknown>): Coordinate {
       422,
     );
   }
-  const recordedAtRaw = cleanText(input.recorded_at, 80);
-  const recordedAt = recordedAtRaw ? new Date(recordedAtRaw) : new Date();
-  if (Number.isNaN(recordedAt.getTime())) {
+  const rawTime = cleanText(input.recorded_at, 80);
+  const time = rawTime ? new Date(rawTime) : new Date();
+  if (Number.isNaN(time.getTime())) {
     throw new HttpError("Некорректное время геопозиции", 400);
   }
   const now = Date.now();
   if (
-    recordedAt.getTime() > now + 5 * 60 * 1000 ||
-    recordedAt.getTime() < now - 48 * 60 * 60 * 1000
+    time.getTime() > now + 5 * 60 * 1000 ||
+    time.getTime() < now - 48 * 60 * 60 * 1000
   ) {
     throw new HttpError("Геопозиция слишком старая или имеет неверное время", 400);
   }
@@ -111,7 +110,7 @@ function coordinateFrom(input: Record<string, unknown>): Coordinate {
     speedMps: nullableNumber(input.speed_mps),
     headingDeg: nullableNumber(input.heading_deg),
     isMock: input.is_mock === true,
-    recordedAt: recordedAt.toISOString(),
+    recordedAt: time.toISOString(),
   };
 }
 
@@ -121,24 +120,21 @@ function haversineMeters(
   latitudeB: number,
   longitudeB: number,
 ) {
-  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const radians = (value: number) => (value * Math.PI) / 180;
   const earthRadius = 6_371_000;
-  const deltaLat = toRadians(latitudeB - latitudeA);
-  const deltaLon = toRadians(longitudeB - longitudeA);
+  const deltaLat = radians(latitudeB - latitudeA);
+  const deltaLon = radians(longitudeB - longitudeA);
   const a =
     Math.sin(deltaLat / 2) ** 2 +
-    Math.cos(toRadians(latitudeA)) *
-      Math.cos(toRadians(latitudeB)) *
+    Math.cos(radians(latitudeA)) *
+      Math.cos(radians(latitudeB)) *
       Math.sin(deltaLon / 2) ** 2;
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function readBody(request: Request) {
+async function readBody(request: Request): Promise<DbRow> {
   try {
-    const raw = await request.json();
-    return raw && typeof raw === "object"
-      ? (raw as Record<string, unknown>)
-      : {};
+    return asRecord(await request.json()) ?? {};
   } catch {
     return {};
   }
@@ -156,92 +152,90 @@ async function readViewer(
     .eq("is_active", true)
     .maybeSingle();
   if (error) throw error;
-  if (!data?.active_company_id) {
+  const profile = asRecord(data);
+  const companyId = cleanText(profile?.active_company_id, 80);
+  if (!companyId) {
     throw new HttpError("Компания пользователя не определена", 403);
   }
-  const role = cleanText(data.role, 40);
+  const role = cleanText(profile?.role, 40);
   if (!["employee", "admin", "developer", "foreman"].includes(role)) {
     throw new HttpError("Рабочие действия сотрудника недоступны", 403);
   }
-  return {
-    userId,
-    role,
-    companyId: String(data.active_company_id),
-  };
+  return { userId, role, companyId };
 }
 
-async function activeEmployeesForUser(
+async function employeeCandidates(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
 ): Promise<EmployeeRow[]> {
-  const { data: link, error: linkError } = await adminClient
-    .from("employee_account_links")
-    .select("person_id")
-    .eq("company_id", viewer.companyId)
-    .eq("user_id", viewer.userId)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (linkError) throw linkError;
-  if (!link?.person_id) {
-    throw new HttpError("Связь с рабочей карточкой не найдена", 403);
+  if (viewer.role === "employee") {
+    const { data: linkData, error: linkError } = await adminClient
+      .from("employee_account_links")
+      .select("person_id")
+      .eq("company_id", viewer.companyId)
+      .eq("user_id", viewer.userId)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (linkError) throw linkError;
+    const personId = cleanText(asRecord(linkData)?.person_id, 80);
+    if (!personId) {
+      throw new HttpError("Связь с рабочей карточкой не найдена", 403);
+    }
+    const { data, error } = await adminClient
+      .from("employees")
+      .select("id, person_id, object_id, object_name, updated_at")
+      .eq("company_id", viewer.companyId)
+      .eq("person_id", personId)
+      .eq("is_active", true)
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return asRecords(data).map((row) => ({
+      id: cleanText(row.id, 80),
+      person_id: cleanText(row.person_id, 80) || null,
+      object_id: cleanText(row.object_id, 80) || null,
+      object_name: cleanText(row.object_name, 180) || null,
+    }));
   }
 
   const { data, error } = await adminClient
     .from("employees")
-    .select("id, person_id, object_id, object_name, is_active, archived_at, updated_at")
-    .eq("company_id", viewer.companyId)
-    .eq("person_id", String(link.person_id))
-    .eq("is_active", true)
-    .is("archived_at", null)
-    .order("updated_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as EmployeeRow[];
-}
-
-async function managerCandidates(
-  // deno-lint-ignore no-explicit-any
-  adminClient: any,
-  viewer: Viewer,
-): Promise<EmployeeRow[]> {
-  const { data, error } = await adminClient
-    .from("employees")
-    .select("id, person_id, object_id, object_name, is_active, archived_at, updated_at")
+    .select("id, person_id, object_id, object_name, updated_at")
     .eq("company_id", viewer.companyId)
     .eq("is_active", true)
     .is("archived_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as EmployeeRow[];
+  return asRecords(data).map((row) => ({
+    id: cleanText(row.id, 80),
+    person_id: cleanText(row.person_id, 80) || null,
+    object_id: cleanText(row.object_id, 80) || null,
+    object_name: cleanText(row.object_name, 180) || null,
+  }));
 }
 
 async function resolveEmployee(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
-  input: Record<string, unknown>,
+  input: DbRow,
 ): Promise<EmployeeRow> {
-  const taskId = cleanText(input.task_id, 80);
-  const requestedEmployeeId = cleanText(input.employee_id, 80);
-  const candidates =
-    viewer.role === "employee"
-      ? await activeEmployeesForUser(adminClient, viewer)
-      : await managerCandidates(adminClient, viewer);
+  const candidates = await employeeCandidates(adminClient, viewer);
   if (candidates.length === 0) {
     throw new HttpError("Активный сотрудник для просмотра не найден", 404);
   }
-
-  if (requestedEmployeeId) {
-    const selected = candidates.find(
-      (row) => String(row.id) === requestedEmployeeId,
-    );
+  const requestedId = cleanText(input.employee_id, 80);
+  if (requestedId) {
+    const selected = candidates.find((row) => row.id === requestedId);
     if (!selected) throw new HttpError("Выбранный сотрудник недоступен", 404);
     return selected;
   }
 
+  const taskId = cleanText(input.task_id, 80);
+  const candidateIds = candidates.map((row) => row.id);
   if (taskId) {
-    const candidateIds = candidates.map((row) => String(row.id));
-    const { data: assignment, error: assignmentError } = await adminClient
+    const { data, error } = await adminClient
       .from("task_assignees")
       .select("employee_id")
       .eq("company_id", viewer.companyId)
@@ -249,41 +243,35 @@ async function resolveEmployee(
       .in("employee_id", candidateIds)
       .limit(1)
       .maybeSingle();
-    if (assignmentError) throw assignmentError;
-    const employeeId = cleanText(assignment?.employee_id, 80);
-    const selected = candidates.find(
-      (row) => String(row.id) === employeeId,
-    );
-    if (selected) return selected;
+    if (error) throw error;
+    const assignedId = cleanText(asRecord(data)?.employee_id, 80);
+    const assigned = candidates.find((row) => row.id === assignedId);
+    if (assigned) return assigned;
   }
 
-  const candidateIds = candidates.map((row) => String(row.id));
-  const { data: recentAssignments, error: recentError } = await adminClient
+  const { data, error } = await adminClient
     .from("task_assignees")
     .select("employee_id, created_at")
     .eq("company_id", viewer.companyId)
     .in("employee_id", candidateIds)
     .order("created_at", { ascending: false })
-    .limit(100);
-  if (recentError) throw recentError;
-  const recentEmployeeId = cleanText(recentAssignments?.[0]?.employee_id, 80);
-  return (
-    candidates.find((row) => String(row.id) === recentEmployeeId) ??
-    candidates[0]
-  );
+    .limit(1);
+  if (error) throw error;
+  const recentId = cleanText(asRecords(data)[0]?.employee_id, 80);
+  return candidates.find((row) => row.id === recentId) ?? candidates[0];
 }
 
-async function assertAssignedTask(
+async function assignedTask(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
   employee: EmployeeRow,
   taskId: string,
-): Promise<TaskRow> {
-  const { data: task, error: taskError } = await adminClient
+): Promise<DbRow> {
+  const { data: taskData, error: taskError } = await adminClient
     .from("tasks")
     .select(
-      "id, company_id, status, is_draft, deleted_at, object_id, object_name, task_date",
+      "id, status, object_id, object_name, task_date, is_draft, deleted_at",
     )
     .eq("id", taskId)
     .eq("company_id", viewer.companyId)
@@ -291,9 +279,10 @@ async function assertAssignedTask(
     .is("deleted_at", null)
     .maybeSingle();
   if (taskError) throw taskError;
+  const task = asRecord(taskData);
   if (!task) throw new HttpError("Задача не найдена", 404);
 
-  const { data: assignment, error: assignmentError } = await adminClient
+  const { data: assignmentData, error: assignmentError } = await adminClient
     .from("task_assignees")
     .select("task_id")
     .eq("company_id", viewer.companyId)
@@ -301,13 +290,13 @@ async function assertAssignedTask(
     .eq("employee_id", employee.id)
     .maybeSingle();
   if (assignmentError) throw assignmentError;
-  if (!assignment) {
+  if (!asRecord(assignmentData)) {
     throw new HttpError("Задача не назначена этому сотруднику", 403);
   }
-  return task as TaskRow;
+  return task;
 }
 
-async function readGeofence(
+async function getGeofence(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
@@ -320,10 +309,10 @@ async function readGeofence(
     .eq("object_id", objectId)
     .maybeSingle();
   if (error) throw error;
-  return data as Record<string, unknown> | null;
+  return asRecord(data);
 }
 
-async function activeShift(
+async function getActiveShift(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
@@ -342,16 +331,16 @@ async function activeShift(
     .eq("status", "active")
     .maybeSingle();
   if (error) throw error;
-  return data as Record<string, unknown> | null;
+  return asRecord(data);
 }
 
-async function insertPoint(
+async function savePoint(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
   viewer: Viewer,
   shiftId: string,
   employeeId: string,
-  coordinate: Coordinate,
+  point: Coordinate,
   source: "device" | "start" | "finish",
 ) {
   const { error } = await adminClient
@@ -360,14 +349,14 @@ async function insertPoint(
       company_id: viewer.companyId,
       shift_id: shiftId,
       employee_id: employeeId,
-      recorded_at: coordinate.recordedAt,
-      latitude: coordinate.latitude,
-      longitude: coordinate.longitude,
-      accuracy_m: coordinate.accuracyM,
-      altitude_m: coordinate.altitudeM,
-      speed_mps: coordinate.speedMps,
-      heading_deg: coordinate.headingDeg,
-      is_mock: coordinate.isMock,
+      recorded_at: point.recordedAt,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      accuracy_m: point.accuracyM,
+      altitude_m: point.altitudeM,
+      speed_mps: point.speedMps,
+      heading_deg: point.headingDeg,
+      is_mock: point.isMock,
       source,
     });
   if (error) throw error;
@@ -433,10 +422,10 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action === "shift_state") {
-      const shift = await activeShift(adminClient, viewer, employee.id);
+      const shift = await getActiveShift(adminClient, viewer, employee.id);
       const objectId = cleanText(shift?.object_id ?? employee.object_id, 80);
       const geofence = objectId
-        ? await readGeofence(adminClient, viewer, objectId)
+        ? await getGeofence(adminClient, viewer, objectId)
         : null;
       return json({
         ok: true,
@@ -455,33 +444,30 @@ Deno.serve(async (request: Request) => {
       }
       const objectId = cleanText(input.object_id, 80);
       if (!objectId) throw new HttpError("Объект не определён", 400);
-      const coordinate = coordinateFrom(input);
-      const radiusM = Math.round(
-        numberValue(input.radius_m ?? 250, "Радиус"),
-      );
+      const point = coordinateFrom(input);
+      const radiusM = Math.round(numberValue(input.radius_m ?? 250, "Радиус"));
       if (radiusM < 30 || radiusM > 5000) {
         throw new HttpError(
           "Радиус объекта должен быть от 30 до 5000 метров",
           400,
         );
       }
-      const { data: objectRow, error: objectError } = await adminClient
+      const { data: objectData, error: objectError } = await adminClient
         .from("objects")
         .select("id")
         .eq("id", objectId)
         .eq("company_id", viewer.companyId)
         .maybeSingle();
       if (objectError) throw objectError;
-      if (!objectRow) throw new HttpError("Объект не найден", 404);
-
-      const { data: geofence, error } = await adminClient
+      if (!asRecord(objectData)) throw new HttpError("Объект не найден", 404);
+      const { data, error } = await adminClient
         .from("object_geofences")
         .upsert(
           {
             company_id: viewer.companyId,
             object_id: objectId,
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
+            latitude: point.latitude,
+            longitude: point.longitude,
             radius_m: radiusM,
             created_by: viewer.userId,
             updated_at: new Date().toISOString(),
@@ -491,18 +477,18 @@ Deno.serve(async (request: Request) => {
         .select("object_id, latitude, longitude, radius_m, updated_at")
         .single();
       if (error) throw error;
-      return json({ ok: true, geofence });
+      return json({ ok: true, geofence: asRecord(data) });
     }
 
     if (action === "route_for_employee") {
       if (!["admin", "developer", "foreman"].includes(viewer.role)) {
         throw new HttpError("Маршрут доступен только руководителю", 403);
       }
-      const dateText = cleanText(input.work_date, 20);
-      const workDate = /^\d{4}-\d{2}-\d{2}$/.test(dateText)
-        ? dateText
+      const requestedDate = cleanText(input.work_date, 20);
+      const workDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+        ? requestedDate
         : new Date().toISOString().slice(0, 10);
-      const { data: shifts, error: shiftError } = await adminClient
+      const { data: shiftData, error: shiftError } = await adminClient
         .from("employee_work_shifts")
         .select(
           "id, employee_id, task_id, object_id, work_date, status, started_at, ended_at, " +
@@ -515,12 +501,17 @@ Deno.serve(async (request: Request) => {
         .eq("work_date", workDate)
         .order("started_at", { ascending: true });
       if (shiftError) throw shiftError;
-      const shiftIds = (shifts ?? []).map(
-        (row: Record<string, unknown>) => String(row.id),
-      );
-      let points: Record<string, unknown>[] = [];
+      const shifts = asRecords(shiftData);
+      const shiftIds = shifts.map((row) => cleanText(row.id, 80));
+      const objectIds = [
+        ...new Set(
+          shifts.map((row) => cleanText(row.object_id, 80)).filter(Boolean),
+        ),
+      ];
+      let points: DbRow[] = [];
+      let geofences: DbRow[] = [];
       if (shiftIds.length > 0) {
-        const { data: pointRows, error: pointError } = await adminClient
+        const { data, error } = await adminClient
           .from("employee_work_shift_points")
           .select(
             "id, shift_id, recorded_at, latitude, longitude, accuracy_m, altitude_m, " +
@@ -530,33 +521,23 @@ Deno.serve(async (request: Request) => {
           .in("shift_id", shiftIds)
           .order("recorded_at", { ascending: true })
           .order("id", { ascending: true });
-        if (pointError) throw pointError;
-        points = (pointRows ?? []) as Record<string, unknown>[];
+        if (error) throw error;
+        points = asRecords(data);
       }
-      const objectIds = [
-        ...new Set(
-          (shifts ?? [])
-            .map((row: Record<string, unknown>) =>
-              cleanText(row.object_id, 80),
-            )
-            .filter(Boolean),
-        ),
-      ];
-      let geofences: Record<string, unknown>[] = [];
       if (objectIds.length > 0) {
-        const { data: geofenceRows, error: geofenceError } = await adminClient
+        const { data, error } = await adminClient
           .from("object_geofences")
           .select("object_id, latitude, longitude, radius_m")
           .eq("company_id", viewer.companyId)
           .in("object_id", objectIds);
-        if (geofenceError) throw geofenceError;
-        geofences = (geofenceRows ?? []) as Record<string, unknown>[];
+        if (error) throw error;
+        geofences = asRecords(data);
       }
       return json({
         ok: true,
         employee_id: employee.id,
         work_date: workDate,
-        shifts: shifts ?? [],
+        shifts,
         points,
         geofences,
       });
@@ -568,29 +549,26 @@ Deno.serve(async (request: Request) => {
       if (!taskId) {
         throw new HttpError("Сначала выберите рабочую задачу", 400);
       }
-      const task = await assertAssignedTask(
+      const task = await assignedTask(
         adminClient,
         viewer,
         employee,
         taskId,
       );
       if (cleanText(task.status, 80) === "Выполнено") {
-        throw new HttpError(
-          "Выполненную задачу нельзя начать заново",
-          409,
-        );
+        throw new HttpError("Выполненную задачу нельзя начать заново", 409);
       }
-      const objectId = cleanText(task.object_id || employee.object_id, 80);
+      const objectId = cleanText(task.object_id ?? employee.object_id, 80);
       if (!objectId) throw new HttpError("У задачи не определён объект", 400);
-      const geofence = await readGeofence(adminClient, viewer, objectId);
+      const geofence = await getGeofence(adminClient, viewer, objectId);
       if (!geofence) {
         throw new HttpError(
           "Для объекта не настроена точка начала смены. Обратитесь к руководителю.",
           409,
         );
       }
-      const coordinate = coordinateFrom(input);
-      if (coordinate.isMock) {
+      const point = coordinateFrom(input);
+      if (point.isMock) {
         throw new HttpError(
           "Обнаружена подмена геопозиции. Смена не начата.",
           403,
@@ -611,14 +589,13 @@ Deno.serve(async (request: Request) => {
         throw new HttpError("Неизвестный режим записи маршрута", 400);
       }
       const distanceM = haversineMeters(
-        coordinate.latitude,
-        coordinate.longitude,
-        Number(geofence.latitude),
-        Number(geofence.longitude),
+        point.latitude,
+        point.longitude,
+        numberValue(geofence.latitude, "Широта объекта"),
+        numberValue(geofence.longitude, "Долгота объекта"),
       );
-      const radiusM = Number(geofence.radius_m);
-      const toleranceM = Math.min(coordinate.accuracyM, 100);
-      if (distanceM > radiusM + toleranceM) {
+      const radiusM = numberValue(geofence.radius_m, "Радиус объекта");
+      if (distanceM > radiusM + Math.min(point.accuracyM, 100)) {
         throw new HttpError(
           `Вы находитесь вне объекта: примерно ${Math.round(
             distanceM,
@@ -626,15 +603,11 @@ Deno.serve(async (request: Request) => {
           422,
         );
       }
-      const existing = await activeShift(adminClient, viewer, employee.id);
+      const existing = await getActiveShift(adminClient, viewer, employee.id);
       if (existing) {
-        return json({
-          ok: true,
-          active_shift: existing,
-          already_active: true,
-        });
+        return json({ ok: true, active_shift: existing, already_active: true });
       }
-      const { data: shift, error: insertError } = await adminClient
+      const { data: shiftData, error: insertError } = await adminClient
         .from("employee_work_shifts")
         .insert({
           company_id: viewer.companyId,
@@ -643,37 +616,37 @@ Deno.serve(async (request: Request) => {
           object_id: objectId,
           work_date: new Date().toISOString().slice(0, 10),
           status: "active",
-          started_at: coordinate.recordedAt,
-          start_latitude: coordinate.latitude,
-          start_longitude: coordinate.longitude,
-          start_accuracy_m: coordinate.accuracyM,
+          started_at: point.recordedAt,
+          start_latitude: point.latitude,
+          start_longitude: point.longitude,
+          start_accuracy_m: point.accuracyM,
           start_distance_m: distanceM,
           permission_scope: permissionScope || "unknown",
           tracking_mode: trackingMode,
           route_point_count: 1,
-          last_point_at: coordinate.recordedAt,
+          last_point_at: point.recordedAt,
           started_by: viewer.userId,
         })
         .select(
           "id, employee_id, task_id, object_id, work_date, status, started_at, " +
-            "permission_scope, tracking_mode, route_point_count, last_point_at",
+            "start_latitude, start_longitude, permission_scope, tracking_mode, " +
+            "route_point_count, last_point_at",
         )
         .single();
       if (insertError) throw insertError;
-      await insertPoint(
+      const shift = asRecord(shiftData);
+      if (!shift) throw new HttpError("Смена не была создана", 500);
+      await savePoint(
         adminClient,
         viewer,
-        String(shift.id),
+        cleanText(shift.id, 80),
         employee.id,
-        coordinate,
+        point,
         "start",
       );
       const { error: taskUpdateError } = await adminClient
         .from("tasks")
-        .update({
-          status: "В работе",
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: "В работе", updated_at: new Date().toISOString() })
         .eq("id", taskId)
         .eq("company_id", viewer.companyId);
       if (taskUpdateError) throw taskUpdateError;
@@ -681,20 +654,21 @@ Deno.serve(async (request: Request) => {
     }
 
     if (action === "append_route_points") {
-      const shift = await activeShift(adminClient, viewer, employee.id);
+      const shift = await getActiveShift(adminClient, viewer, employee.id);
       if (!shift) throw new HttpError("Активная смена не найдена", 409);
       const rawPoints = Array.isArray(input.points)
         ? input.points.slice(0, 100)
         : [];
-      if (rawPoints.length === 0) return json({ ok: true, inserted: 0 });
       const points = rawPoints
-        .filter((row) => row && typeof row === "object")
-        .map((row) => coordinateFrom(row as Record<string, unknown>))
+        .map((value) => asRecord(value))
+        .filter((value): value is DbRow => value !== null)
+        .map(coordinateFrom)
         .filter((point) => !point.isMock);
       if (points.length === 0) return json({ ok: true, inserted: 0 });
+      const shiftId = cleanText(shift.id, 80);
       const rows = points.map((point) => ({
         company_id: viewer.companyId,
-        shift_id: String(shift.id),
+        shift_id: shiftId,
         employee_id: employee.id,
         recorded_at: point.recordedAt,
         latitude: point.latitude,
@@ -703,7 +677,7 @@ Deno.serve(async (request: Request) => {
         altitude_m: point.altitudeM,
         speed_mps: point.speedMps,
         heading_deg: point.headingDeg,
-        is_mock: point.isMock,
+        is_mock: false,
         source: "device",
       }));
       const { error: pointError } = await adminClient
@@ -711,66 +685,75 @@ Deno.serve(async (request: Request) => {
         .insert(rows);
       if (pointError) throw pointError;
       const lastPoint = points[points.length - 1];
-      const { error: shiftUpdateError } = await adminClient
+      const { error: shiftError } = await adminClient
         .from("employee_work_shifts")
         .update({
-          route_point_count:
-            Number(shift.route_point_count ?? 0) + points.length,
+          route_point_count: numberValue(
+            shift.route_point_count ?? 0,
+            "Количество точек",
+          ) + points.length,
           last_point_at: lastPoint.recordedAt,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", String(shift.id))
+        .eq("id", shiftId)
         .eq("company_id", viewer.companyId)
         .eq("status", "active");
-      if (shiftUpdateError) throw shiftUpdateError;
+      if (shiftError) throw shiftError;
       return json({ ok: true, inserted: points.length });
     }
 
     if (action === "finish_shift") {
-      const shift = await activeShift(adminClient, viewer, employee.id);
+      const shift = await getActiveShift(adminClient, viewer, employee.id);
       if (!shift) throw new HttpError("Активная смена не найдена", 409);
-      const coordinate = coordinateFrom(input);
-      if (coordinate.isMock) {
+      const point = coordinateFrom(input);
+      if (point.isMock) {
         throw new HttpError(
           "Обнаружена подмена геопозиции. Завершение смены отклонено.",
           403,
         );
       }
-      await insertPoint(
+      const shiftId = cleanText(shift.id, 80);
+      await savePoint(
         adminClient,
         viewer,
-        String(shift.id),
+        shiftId,
         employee.id,
-        coordinate,
+        point,
         "finish",
       );
-      const { data: completedShift, error: finishError } = await adminClient
+      const { data, error } = await adminClient
         .from("employee_work_shifts")
         .update({
           status: "completed",
-          ended_at: coordinate.recordedAt,
-          end_latitude: coordinate.latitude,
-          end_longitude: coordinate.longitude,
-          end_accuracy_m: coordinate.accuracyM,
-          route_point_count: Number(shift.route_point_count ?? 0) + 1,
-          last_point_at: coordinate.recordedAt,
+          ended_at: point.recordedAt,
+          end_latitude: point.latitude,
+          end_longitude: point.longitude,
+          end_accuracy_m: point.accuracyM,
+          route_point_count: numberValue(
+            shift.route_point_count ?? 0,
+            "Количество точек",
+          ) + 1,
+          last_point_at: point.recordedAt,
           ended_by: viewer.userId,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", String(shift.id))
+        .eq("id", shiftId)
         .eq("company_id", viewer.companyId)
         .eq("status", "active")
         .select(
           "id, employee_id, task_id, object_id, work_date, status, started_at, ended_at, " +
+            "start_latitude, start_longitude, end_latitude, end_longitude, " +
             "permission_scope, tracking_mode, route_point_count, last_point_at",
         )
         .single();
-      if (finishError) throw finishError;
+      if (error) throw error;
+      const completedShift = asRecord(data);
+      if (!completedShift) throw new HttpError("Смена не была завершена", 500);
       return json({ ok: true, completed_shift: completedShift });
     }
 
     if (!taskId) throw new HttpError("Задача не определена", 400);
-    const task = await assertAssignedTask(
+    const task = await assignedTask(
       adminClient,
       viewer,
       employee,
@@ -796,38 +779,30 @@ Deno.serve(async (request: Request) => {
         throw new HttpError("Неизвестный тип фотографии", 400);
       }
       const contentType = cleanText(input.content_type, 80).toLowerCase();
-      const allowedTypes = new Set([
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-      ]);
-      if (!allowedTypes.has(contentType)) {
+      const extensions: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+      };
+      const extension = extensions[contentType];
+      if (!extension) {
         throw new HttpError("Можно загрузить только JPG, PNG или WEBP", 400);
       }
-      const base64 = cleanText(input.base64, 8_000_000);
-      const bytes = decodePhoto(base64);
+      const bytes = decodePhoto(cleanText(input.base64, 8_000_000));
       if (bytes.length === 0 || bytes.length > 5 * 1024 * 1024) {
         throw new HttpError(
           "Размер фотографии должен быть не более 5 МБ",
           400,
         );
       }
-      const extensionByType: Record<string, string> = {
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-      };
-      const extension = extensionByType[contentType];
       const storagePath = `${taskId}/${stage}/${Date.now()}_${crypto.randomUUID()}.${extension}`;
       const originalName =
         cleanText(input.original_name, 240) || `photo.${extension}`;
-
       const { error: uploadError } = await adminClient.storage
         .from("task-photos")
         .upload(storagePath, bytes, { contentType, upsert: false });
       if (uploadError) throw uploadError;
-
-      const { data: photo, error: insertError } = await adminClient
+      const { data, error } = await adminClient
         .from("task_photos")
         .insert({
           task_id: taskId,
@@ -838,11 +813,11 @@ Deno.serve(async (request: Request) => {
         })
         .select("id, task_id, photo_stage, original_name, created_at")
         .single();
-      if (insertError) {
+      if (error) {
         await adminClient.storage.from("task-photos").remove([storagePath]);
-        throw insertError;
+        throw error;
       }
-      return json({ ok: true, photo });
+      return json({ ok: true, photo: asRecord(data) });
     }
 
     throw new HttpError("Неизвестное действие", 400);
