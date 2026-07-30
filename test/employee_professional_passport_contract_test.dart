@@ -93,7 +93,7 @@ void main() {
     expect(repository, isNot(contains(".from('employee_professional_profiles')")));
   });
 
-  test('паспорт является полноценной частью платформы сотрудника', () {
+  test('паспорт и команда являются частью платформы сотрудника', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
     final override = File(overridePath).readAsStringSync();
@@ -107,8 +107,8 @@ void main() {
     );
     expect(main, contains('EmployeePlatformWithPassport(profile: profile)'));
     expect(wrapper, contains("storageKey: 'employee'"));
-    expect(wrapper, contains("label: 'Паспорт'"));
-    expect(wrapper, contains('EmployeeProfessionalPassportScreen'));
+    expect(wrapper, contains("label: 'Команда'"));
+    expect(wrapper, contains('EmployeeCommunityHubScreen'));
     expect(wrapper, contains('legacy.EmployeeMainScreen'));
     expect(override, contains('class PlatformTabOverrideScope'));
     expect(navigation, contains('PlatformTabOverrideScope.resolve('));
