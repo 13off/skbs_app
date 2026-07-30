@@ -37,6 +37,8 @@ class _EmployeePlatformWithPassportState
         ? profile.copyWith(actualRole: 'employee')
         : profile;
 
+    // EmployeeTeamScreen остаётся экраном карточки коллеги, а сама команда
+    // встроена в пятую вкладку через EmployeeTeamTabScreen.
     return PlatformTabOverrideScope(
       storageKey: 'employee',
       rootHeaderTrailingBuilder: profile.isRolePreview
