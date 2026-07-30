@@ -145,8 +145,13 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
                       storageKey: storageKey,
                       index: index,
                     );
-              return override?.builder?.call(context) ??
-                  widget.tabBuilder(context, index);
+              // Equivalent to override?.builder?.call(context), but explicit so
+              // the established direct tabBuilder fallback remains intact.
+              final overrideBuilder = override?.builder;
+              if (overrideBuilder != null) {
+                return overrideBuilder(context);
+              }
+              return widget.tabBuilder(context, index);
             },
           ),
         ),
