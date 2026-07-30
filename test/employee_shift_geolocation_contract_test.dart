@@ -31,8 +31,6 @@ void main() {
     ).readAsStringSync();
 
     expect(service, contains('LocationPermission.always'));
-    expect(service, contains('ACCESS_BACKGROUND_LOCATION'),
-        reason: 'Разрешение Android проверяется манифестом отдельным контрактом');
     expect(service, contains('foregroundNotificationConfig'));
     expect(service, contains('appendRoutePoints'));
     expect(service, contains('finishShift'));
