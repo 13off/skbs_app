@@ -5,6 +5,7 @@ import '../../../navigation/platform_tab_override_scope.dart';
 import '../../../screens/profile_screen.dart';
 import '../../role_preview/role_preview_controller.dart';
 import 'employee_actionable_tasks.dart';
+import 'employee_dashboard_screen.dart';
 import 'employee_team_tab_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
@@ -57,7 +58,7 @@ class _EmployeePlatformWithPassportState
       ),
       overrides: <int, PlatformTabOverride>{
         0: PlatformTabOverride(
-          builder: (_) => EmployeeActionableHomeScreen(profile: profile),
+          builder: (_) => EmployeeDashboardScreen(profile: profile),
         ),
         1: PlatformTabOverride(
           builder: (_) => EmployeeActionableTasksScreen(profile: profile),

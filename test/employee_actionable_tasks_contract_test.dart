@@ -3,32 +3,44 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const screenPath =
+  const dashboardPath =
+      'lib/features/employee/presentation/employee_dashboard_screen.dart';
+  const tasksPath =
       'lib/features/employee/presentation/employee_actionable_tasks.dart';
+  const teamPath =
+      'lib/features/employee/presentation/employee_team_tab_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
   const repositoryPath =
       'lib/features/employee/data/employee_cabinet_repository.dart';
   const functionPath = 'supabase/functions/employee-cabinet/index.ts';
 
-  test('главная открывает назначенную задачу вместо мёртвой кнопки', () {
-    final screen = File(screenPath).readAsStringSync();
+  test('главная показывает сотрудника и не оставляет мёртвую кнопку', () {
+    final dashboard = File(dashboardPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
 
-    expect(
-      screen,
-      contains(
-        "label: task == null ? 'Нет активной задачи' : 'Открыть задачу'",
-      ),
-    );
-    expect(screen, contains('onPressed: task == null'));
-    expect(screen, contains('EmployeeTaskDetailsScreen(task: task)'));
+    expect(dashboard, contains('class _EmployeeIdentityCard'));
+    expect(dashboard, contains("? 'Сотрудник' : employee.name.trim()"));
+    expect(dashboard, contains("'На сегодня задач нет'"));
+    expect(dashboard, contains("label: 'Открыть задачу'"));
+    expect(dashboard, isNot(contains("label: 'Нет активной задачи'")));
     expect(wrapper, contains('0: PlatformTabOverride('));
-    expect(wrapper, contains('EmployeeActionableHomeScreen'));
+    expect(wrapper, contains('EmployeeDashboardScreen'));
+  });
+
+  test('режим руководителя подставляет активного сотрудника без подписи предпросмотра', () {
+    final dashboard = File(dashboardPath).readAsStringSync();
+    final team = File(teamPath).readAsStringSync();
+
+    expect(dashboard, contains('EmployeeRepository.fetchEmployees('));
+    expect(dashboard, contains('includeFired: false'));
+    expect(dashboard, contains('employee.positionTitle.trim()'));
+    expect(team, isNot(contains('Предпросмотр:')));
+    expect(team, isNot(contains('seedEmployeeName')));
   });
 
   test('список задач разделён по статусу и карточки открываются', () {
-    final screen = File(screenPath).readAsStringSync();
+    final screen = File(tasksPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
 
     expect(screen, contains('SegmentedButton<bool>'));
@@ -57,7 +69,7 @@ void main() {
   });
 
   test('панель сотрудника не использует общий редактор прораба', () {
-    final screen = File(screenPath).readAsStringSync();
+    final screen = File(tasksPath).readAsStringSync();
 
     expect(
       screen,
