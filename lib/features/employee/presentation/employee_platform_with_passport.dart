@@ -4,6 +4,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
 import '../../../screens/profile_screen.dart';
 import '../../role_preview/role_preview_controller.dart';
+import 'employee_actionable_tasks.dart';
 import 'employee_team_tab_screen.dart';
 import 'employee_unified_main_screen.dart' as legacy;
 
@@ -37,8 +38,10 @@ class _EmployeePlatformWithPassportState
 
   @override
   Widget build(BuildContext context) {
-    // EmployeeTeamScreen remains represented by the embedded
-    // EmployeeTeamTabScreen(profile: profile) workspace below.
+    final profile = widget.profile;
+    // The established shell, timesheet and documents stay intact. Only the
+    // employee-facing workspaces below replace their previous read-only views.
+    // EmployeeTeamScreen remains represented by EmployeeTeamTabScreen.
     return PlatformTabOverrideScope(
       storageKey: 'employee',
       rootHeaderTrailingBuilder: (context) => IconButton.filledTonal(
@@ -53,11 +56,17 @@ class _EmployeePlatformWithPassportState
         ),
       ),
       overrides: <int, PlatformTabOverride>{
+        0: PlatformTabOverride(
+          builder: (_) => EmployeeActionableHomeScreen(profile: profile),
+        ),
+        1: PlatformTabOverride(
+          builder: (_) => EmployeeActionableTasksScreen(profile: profile),
+        ),
         4: PlatformTabOverride(
           label: 'Команда',
           icon: Icons.groups_outlined,
           selectedIcon: Icons.groups_rounded,
-          builder: (_) => EmployeeTeamTabScreen(profile: widget.profile),
+          builder: (_) => EmployeeTeamTabScreen(profile: profile),
         ),
       },
       child: legacy.EmployeeMainScreen(profile: widget.profile),

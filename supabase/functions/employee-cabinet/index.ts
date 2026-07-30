@@ -29,6 +29,10 @@ function integerValue(value: unknown) {
   return Number.isFinite(result) ? result : 0;
 }
 
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
 function isoDate(year: number, monthIndex: number, day: number) {
   return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
 }
@@ -206,7 +210,61 @@ Deno.serve(async (request: Request) => {
         .order("task_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      tasks = data ?? [];
+      tasks = (data ?? []) as Record<string, unknown>[];
+
+      const visibleTaskIds = tasks.map((row) => cleanText(row.id)).filter(Boolean);
+      if (visibleTaskIds.length > 0) {
+        const { data: photoRows, error: photoError } = await adminClient
+          .from("task_photos")
+          .select(
+            "id, task_id, storage_path, original_name, photo_stage, created_at",
+          )
+          .in("task_id", visibleTaskIds)
+          .order("created_at", { ascending: false });
+        if (photoError) throw photoError;
+
+        const storagePaths = Array.from(
+          new Set(
+            (photoRows ?? [])
+              .map((row) => cleanText(row.storage_path))
+              .filter(Boolean),
+          ),
+        );
+        const signedUrlByPath = new Map<string, string>();
+        if (storagePaths.length > 0) {
+          const { data: signedRows, error: signedError } = await adminClient.storage
+            .from("task-photos")
+            .createSignedUrls(storagePaths, 60 * 10);
+          if (!signedError) {
+            for (const row of signedRows ?? []) {
+              const path = cleanText(row.path);
+              const signedUrl = cleanText(row.signedUrl);
+              if (path && signedUrl) signedUrlByPath.set(path, signedUrl);
+            }
+          }
+        }
+
+        const photosByTask = new Map<string, Record<string, unknown>[]>();
+        for (const row of photoRows ?? []) {
+          const taskId = cleanText(row.task_id);
+          const storagePath = cleanText(row.storage_path);
+          if (!taskId) continue;
+          const list = photosByTask.get(taskId) ?? [];
+          list.push({
+            id: row.id,
+            original_name: row.original_name,
+            photo_stage: row.photo_stage,
+            created_at: row.created_at,
+            signed_url: signedUrlByPath.get(storagePath) ?? "",
+          });
+          photosByTask.set(taskId, list);
+        }
+
+        tasks = tasks.map((row) => ({
+          ...row,
+          photos: photosByTask.get(cleanText(row.id)) ?? [],
+        }));
+      }
     }
 
     const attendance = (attendanceResult.data ?? []).map((row) => {
