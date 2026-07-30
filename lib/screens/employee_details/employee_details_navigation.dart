@@ -42,6 +42,18 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     );
   }
 
+  Future<void> openRouteMap() async {
+    await Navigator.push<void>(
+      context,
+      CupertinoPageRoute<void>(
+        builder: (_) => EmployeeRouteMapScreen(
+          employee: employee,
+          canEditGeofence: widget.profile.isAdmin || widget.profile.isDeveloper,
+        ),
+      ),
+    );
+  }
+
   Future<void> openTimesheet() async {
     await Navigator.push<void>(
       context,

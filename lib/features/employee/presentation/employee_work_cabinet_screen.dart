@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -7,6 +8,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_cabinet_repository.dart';
+import '../data/employee_shift_tracking_service.dart';
 import '../data/employee_work_action_repository.dart';
 
 class EmployeeWorkHomeScreen extends StatelessWidget {
@@ -16,110 +18,7 @@ class EmployeeWorkHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _CabinetLoader(
-      title: 'Главная',
-      builder: (data, refresh) {
-        final task = data.currentTask;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _EmployeeCard(data: data),
-            const SizedBox(height: 14),
-            PremiumWorkCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const _IconBox(Icons.construction_rounded),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          task == null ? 'На сегодня задач нет' : 'Текущая задача',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      if (task != null) _StatusBadge(task.status),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (task == null)
-                    const Text(
-                      'Новая задача появится здесь после назначения мастером.',
-                    )
-                  else ...[
-                    Text(
-                      task.work.trim().isEmpty ? 'Рабочая задача' : task.work,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(_taskMeta(task)),
-                    const SizedBox(height: 18),
-                    PremiumActionButton(
-                      label: task.status == 'Запланировано'
-                          ? 'Начать работу'
-                          : 'Открыть задачу',
-                      icon: task.status == 'Запланировано'
-                          ? Icons.play_arrow_rounded
-                          : Icons.arrow_forward_rounded,
-                      onPressed: () => _openTask(context, task, refresh),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.calendar_month_rounded,
-                    value: _decimal(data.summary.shifts),
-                    label: 'смен в месяце',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.verified_rounded,
-                    value: '${data.summary.completedTasks}',
-                    label: 'задач выполнено',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            PremiumWorkCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Этот месяц',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 10),
-                  _ValueRow(
-                    'Предварительно начислено',
-                    _money(data.summary.estimatedAccrued),
-                  ),
-                  _ValueRow(
-                    'Выплаты и авансы',
-                    _money(data.summary.paidCurrentMonth),
-                  ),
-                  _ValueRow('Задач в работе', '${data.summary.plannedTasks}'),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
+    return EmployeeWorkTasksScreen(profile: profile);
   }
 }
 
@@ -129,11 +28,18 @@ class EmployeeWorkTasksScreen extends StatefulWidget {
   const EmployeeWorkTasksScreen({super.key, required this.profile});
 
   @override
-  State<EmployeeWorkTasksScreen> createState() => _EmployeeWorkTasksScreenState();
+  State<EmployeeWorkTasksScreen> createState() =>
+      _EmployeeWorkTasksScreenState();
 }
 
 class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
-  bool showCompleted = false;
+  final tracking = EmployeeShiftTrackingService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    tracking.restoreActiveShift();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,37 +47,24 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
       title: 'Задачи',
       builder: (data, refresh) {
         final tasks = data.tasks
-            .where((task) => task.isCompleted == showCompleted)
+            .where((task) => !task.isCompleted)
             .toList(growable: false);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment<bool>(value: false, label: Text('В работе')),
-                ButtonSegment<bool>(value: true, label: Text('Выполнено')),
-              ],
-              selected: <bool>{showCompleted},
-              onSelectionChanged: (value) {
-                setState(() => showCompleted = value.first);
-              },
-            ),
+            _ShiftStatusCard(tracking: tracking),
             const SizedBox(height: 14),
             if (tasks.isEmpty)
-              _MessageCard(
-                title: showCompleted
-                    ? 'Выполненных задач пока нет'
-                    : 'Задач в работе пока нет',
-                text: showCompleted
-                    ? 'Завершённые задачи появятся здесь.'
-                    : 'Назначенные мастером задачи появятся автоматически.',
+              const _MessageCard(
+                title: 'Активных задач пока нет',
+                text: 'Назначенная мастером задача появится здесь автоматически.',
               )
             else
               for (var index = 0; index < tasks.length; index++) ...[
                 PremiumWorkCard(
                   padding: EdgeInsets.zero,
                   child: ListTile(
-                    contentPadding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                    contentPadding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                     onTap: () => _openTask(context, tasks[index], refresh),
                     leading: const _IconBox(Icons.assignment_outlined),
                     title: Text(
@@ -181,11 +74,113 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 5),
+                      padding: const EdgeInsets.only(top: 6),
                       child: Text(_taskMeta(tasks[index])),
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                   ),
+                ),
+                if (index != tasks.length - 1) const SizedBox(height: 12),
+              ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class EmployeeWorkTaskHistoryScreen extends StatefulWidget {
+  final AppUserProfile profile;
+
+  const EmployeeWorkTaskHistoryScreen({super.key, required this.profile});
+
+  @override
+  State<EmployeeWorkTaskHistoryScreen> createState() =>
+      _EmployeeWorkTaskHistoryScreenState();
+}
+
+class _EmployeeWorkTaskHistoryScreenState
+    extends State<EmployeeWorkTaskHistoryScreen> {
+  late DateTime selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    selectedDate = DateTime(now.year, now.month, now.day);
+  }
+
+  Future<void> pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now().add(const Duration(days: 366)),
+      helpText: 'История задач за дату',
+      cancelText: 'Отмена',
+      confirmText: 'Выбрать',
+    );
+    if (picked == null) return;
+    setState(() => selectedDate = DateTime(picked.year, picked.month, picked.day));
+  }
+
+  void changeDay(int delta) {
+    setState(() => selectedDate = selectedDate.add(Duration(days: delta)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _CabinetLoader(
+      key: ValueKey('${selectedDate.year}-${selectedDate.month}'),
+      title: 'История задач',
+      year: selectedDate.year,
+      month: selectedDate.month,
+      builder: (data, refresh) {
+        final tasks = data.tasks.where((task) {
+          final date = task.date;
+          return date != null &&
+              date.year == selectedDate.year &&
+              date.month == selectedDate.month &&
+              date.day == selectedDate.day;
+        }).toList(growable: false);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PremiumWorkCard(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Предыдущий день',
+                    onPressed: () => changeDay(-1),
+                    icon: const Icon(Icons.chevron_left_rounded),
+                  ),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: pickDate,
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(_longDate(selectedDate)),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Следующий день',
+                    onPressed: () => changeDay(1),
+                    icon: const Icon(Icons.chevron_right_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (tasks.isEmpty)
+              _MessageCard(
+                title: 'За ${_date(selectedDate)} задач нет',
+                text: 'Выберите другую дату в календаре.',
+              )
+            else
+              for (var index = 0; index < tasks.length; index++) ...[
+                _HistoryTaskCard(
+                  task: tasks[index],
+                  onOpen: () => _openTask(context, tasks[index], refresh),
                 ),
                 if (index != tasks.length - 1) const SizedBox(height: 12),
               ],
@@ -213,18 +208,24 @@ class EmployeeWorkTaskDetailsScreen extends StatefulWidget {
 
 class _EmployeeWorkTaskDetailsScreenState
     extends State<EmployeeWorkTaskDetailsScreen> {
+  final tracking = EmployeeShiftTrackingService.instance;
   late EmployeeCabinetTask task;
   bool isStarting = false;
+  bool isFinishing = false;
   String? uploadingStage;
 
   @override
   void initState() {
     super.initState();
     task = widget.task;
+    tracking.restoreActiveShift();
   }
 
   Future<void> reload() async {
-    final data = await EmployeeCabinetRepository.fetch();
+    final data = await EmployeeCabinetRepository.fetch(
+      year: task.date?.year,
+      month: task.date?.month,
+    );
     for (final item in data.tasks) {
       if (item.id == task.id && mounted) {
         setState(() => task = item);
@@ -233,14 +234,20 @@ class _EmployeeWorkTaskDetailsScreenState
     }
   }
 
-  Future<void> start() async {
+  Future<void> startShift() async {
     if (isStarting || task.isCompleted) return;
     setState(() => isStarting = true);
     try {
-      await EmployeeWorkActionRepository.startTask(task.id);
+      await tracking.startShift(task.id);
       await reload();
       await widget.onChanged?.call();
-      if (mounted) _message('Работа по задаче начата');
+      if (mounted) _message('Смена начата. Маршрут записывается.');
+    } on EmployeeLocationPermissionException catch (error) {
+      if (!mounted) return;
+      _message(error.message);
+      if (error.openSettingsRequired && !kIsWeb) {
+        await _showOpenSettingsDialog(error.message);
+      }
     } catch (error) {
       if (mounted) _message(_error(error));
     } finally {
@@ -248,8 +255,67 @@ class _EmployeeWorkTaskDetailsScreenState
     }
   }
 
+  Future<void> finishShift() async {
+    if (isFinishing || !tracking.state.value.isActive) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Завершить рабочий день?'),
+        content: const Text(
+          'Будет сохранена конечная геопозиция, после чего запись маршрута остановится.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Завершить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => isFinishing = true);
+    try {
+      await tracking.finishShift();
+      await widget.onChanged?.call();
+      if (mounted) _message('Рабочий день завершён');
+    } catch (error) {
+      if (mounted) _message(_error(error));
+    } finally {
+      if (mounted) setState(() => isFinishing = false);
+    }
+  }
+
+  Future<void> _showOpenSettingsDialog(String message) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Нужен доступ «Всегда»'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Позже'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await tracking.openLocationSettings();
+            },
+            child: const Text('Открыть настройки'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> addPhotos(String stage) async {
-    if (uploadingStage != null || task.isCompleted) return;
+    final snapshot = tracking.state.value;
+    final belongsToTask = snapshot.activeShift?.taskId == task.id;
+    if (uploadingStage != null || task.isCompleted || !belongsToTask) return;
     try {
       final photos = await TaskRepository.pickPhotoFiles();
       if (photos.isEmpty || !mounted) return;
@@ -275,71 +341,113 @@ class _EmployeeWorkTaskDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final canStart = !task.isCompleted && task.status != 'В работе';
     return AppPage(
       title: 'Задача',
       subtitle: _taskMeta(task),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PremiumWorkCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      child: ValueListenableBuilder<EmployeeShiftTrackingSnapshot>(
+        valueListenable: tracking.state,
+        builder: (context, snapshot, _) {
+          final activeShift = snapshot.activeShift;
+          final shiftForThisTask = activeShift?.taskId == task.id;
+          final canStart = !task.isCompleted && activeShift == null;
+          final canAddPhotos =
+              !task.isCompleted && shiftForThisTask && uploadingStage == null;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PremiumWorkCard(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _IconBox(Icons.assignment_rounded),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        task.work.trim().isEmpty ? 'Рабочая задача' : task.work,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _IconBox(Icons.assignment_rounded),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            task.work.trim().isEmpty
+                                ? 'Рабочая задача'
+                                : task.work,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        _StatusBadge(task.status),
+                      ],
                     ),
-                    _StatusBadge(task.status),
+                    if (task.axes.trim().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Оси: ${task.axes.trim()}'),
+                    ],
+                    if (task.photoRequirementsEnforced) ...[
+                      const SizedBox(height: 8),
+                      const Text('Для задачи предусмотрены фото «До» и «После».'),
+                    ],
+                    const SizedBox(height: 18),
+                    if (canStart)
+                      PremiumActionButton(
+                        label: 'Начать смену',
+                        icon: Icons.play_arrow_rounded,
+                        isLoading: isStarting,
+                        onPressed: isStarting ? null : startShift,
+                      )
+                    else if (shiftForThisTask)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ActiveShiftInline(snapshot: snapshot),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: isFinishing ? null : finishShift,
+                            icon: isFinishing
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.stop_circle_outlined),
+                            label: Text(
+                              isFinishing
+                                  ? 'Завершаем…'
+                                  : 'Завершить рабочий день',
+                            ),
+                          ),
+                        ],
+                      )
+                    else if (activeShift != null)
+                      const Text(
+                        'Сейчас активна другая задача. Сначала завершите текущую смену.',
+                      ),
                   ],
                 ),
-                if (task.axes.trim().isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text('Оси: ${task.axes.trim()}'),
-                ],
-                if (task.photoRequirementsEnforced) ...[
-                  const SizedBox(height: 8),
-                  const Text('Для задачи предусмотрены фото «До» и «После».'),
-                ],
-                if (canStart) ...[
-                  const SizedBox(height: 16),
-                  PremiumActionButton(
-                    label: 'Начать работу',
-                    icon: Icons.play_arrow_rounded,
-                    isLoading: isStarting,
-                    onPressed: isStarting ? null : start,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _PhotoCard(
-            title: 'Фото до',
-            photos: task.beforePhotos,
-            loading: uploadingStage == 'before',
-            enabled: !task.isCompleted && uploadingStage == null,
-            onAdd: () => addPhotos('before'),
-          ),
-          const SizedBox(height: 14),
-          _PhotoCard(
-            title: 'Фото после',
-            photos: task.afterPhotos,
-            loading: uploadingStage == 'after',
-            enabled: !task.isCompleted && uploadingStage == null,
-            onAdd: () => addPhotos('after'),
-          ),
-        ],
+              ),
+              const SizedBox(height: 14),
+              _PhotoCard(
+                title: 'Фото до',
+                photos: task.beforePhotos,
+                loading: uploadingStage == 'before',
+                enabled: canAddPhotos,
+                disabledText: shiftForThisTask
+                    ? 'Добавьте фото участка перед началом работ.'
+                    : 'Фото можно добавлять после начала смены.',
+                onAdd: () => addPhotos('before'),
+              ),
+              const SizedBox(height: 14),
+              _PhotoCard(
+                title: 'Фото после',
+                photos: task.afterPhotos,
+                loading: uploadingStage == 'after',
+                enabled: canAddPhotos,
+                disabledText: shiftForThisTask
+                    ? 'Добавьте фото результата работ.'
+                    : 'Фото можно добавлять после начала смены.',
+                onAdd: () => addPhotos('after'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -347,12 +455,20 @@ class _EmployeeWorkTaskDetailsScreenState
 
 class _CabinetLoader extends StatefulWidget {
   final String title;
+  final int? year;
+  final int? month;
   final Widget Function(
     EmployeeCabinetData data,
     Future<void> Function() refresh,
   ) builder;
 
-  const _CabinetLoader({required this.title, required this.builder});
+  const _CabinetLoader({
+    super.key,
+    required this.title,
+    required this.builder,
+    this.year,
+    this.month,
+  });
 
   @override
   State<_CabinetLoader> createState() => _CabinetLoaderState();
@@ -364,11 +480,26 @@ class _CabinetLoaderState extends State<_CabinetLoader> {
   @override
   void initState() {
     super.initState();
-    future = EmployeeCabinetRepository.fetch();
+    future = load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CabinetLoader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.year != widget.year || oldWidget.month != widget.month) {
+      future = load();
+    }
+  }
+
+  Future<EmployeeCabinetData> load() {
+    return EmployeeCabinetRepository.fetch(
+      year: widget.year,
+      month: widget.month,
+    );
   }
 
   Future<void> refresh() async {
-    final next = EmployeeCabinetRepository.fetch();
+    final next = load();
     setState(() => future = next);
     await next;
   }
@@ -414,45 +545,174 @@ class _CabinetLoaderState extends State<_CabinetLoader> {
   }
 }
 
-class _EmployeeCard extends StatelessWidget {
-  final EmployeeCabinetData data;
+class _ShiftStatusCard extends StatelessWidget {
+  final EmployeeShiftTrackingService tracking;
 
-  const _EmployeeCard({required this.data});
+  const _ShiftStatusCard({required this.tracking});
 
   @override
   Widget build(BuildContext context) {
-    final name = data.fullName.trim().isEmpty ? 'Сотрудник' : data.fullName.trim();
-    return PremiumWorkCard(
+    return ValueListenableBuilder<EmployeeShiftTrackingSnapshot>(
+      valueListenable: tracking.state,
+      builder: (context, snapshot, _) {
+        final active = snapshot.isActive;
+        return PremiumWorkCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _IconBox(
+                active ? Icons.location_on_rounded : Icons.location_off_outlined,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      active ? 'Смена идёт' : 'Смена не начата',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      active
+                          ? (snapshot.message.isEmpty
+                              ? 'Маршрут записывается.'
+                              : snapshot.message)
+                          : 'Откройте назначенную задачу и нажмите «Начать смену».',
+                    ),
+                    if (active && snapshot.shift?.startedAt != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Начало: ${_time(snapshot.shift!.startedAt!)} · '
+                        'точек: ${snapshot.shift!.routePointCount + snapshot.pendingPointCount}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                    if (active && snapshot.webForegroundOnly) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'PWA не может гарантировать запись после сворачивания. '
+                        'Для полного маршрута используйте установленное приложение.',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ActiveShiftInline extends StatelessWidget {
+  final EmployeeShiftTrackingSnapshot snapshot;
+
+  const _ActiveShiftInline({required this.snapshot});
+
+  @override
+  Widget build(BuildContext context) {
+    final startedAt = snapshot.shift?.startedAt;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppAdaptivePalette.success.withValues(alpha: 0.35),
+        ),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: AppAdaptivePalette.accentSoft,
+          Icon(Icons.gps_fixed_rounded, color: AppAdaptivePalette.success),
+          const SizedBox(width: 10),
+          Expanded(
             child: Text(
-              _initials(name),
-              style: const TextStyle(fontWeight: FontWeight.w900),
+              startedAt == null
+                  ? 'Смена активна. Маршрут записывается.'
+                  : 'Смена начата в ${_time(startedAt)}. Маршрут записывается.',
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  <String>[
-                    if (data.profession.trim().isNotEmpty) data.profession.trim(),
-                    if (data.phone.trim().isNotEmpty) data.phone.trim(),
-                  ].join(' · '),
-                ),
-              ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryTaskCard extends StatelessWidget {
+  final EmployeeCabinetTask task;
+  final VoidCallback onOpen;
+
+  const _HistoryTaskCard({required this.task, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumWorkCard(
+      padding: EdgeInsets.zero,
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        leading: const _IconBox(Icons.history_rounded),
+        title: Text(
+          task.work.trim().isEmpty ? 'Рабочая задача' : task.work,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Text(_taskMeta(task)),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          const Divider(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Статус'),
+              const Spacer(),
+              _StatusBadge(task.status),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text('Фото до'),
+              const Spacer(),
+              Text('${task.beforePhotos.length}'),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              const Text('Фото после'),
+              const Spacer(),
+              Text('${task.afterPhotos.length}'),
+            ],
+          ),
+          if (task.notDoneComment.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Комментарий: ${task.notDoneComment.trim()}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onOpen,
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Открыть карточку задачи'),
             ),
           ),
         ],
@@ -466,6 +726,7 @@ class _PhotoCard extends StatelessWidget {
   final List<EmployeeCabinetTaskPhoto> photos;
   final bool loading;
   final bool enabled;
+  final String disabledText;
   final VoidCallback onAdd;
 
   const _PhotoCard({
@@ -473,6 +734,7 @@ class _PhotoCard extends StatelessWidget {
     required this.photos,
     required this.loading,
     required this.enabled,
+    required this.disabledText,
     required this.onAdd,
   });
 
@@ -487,7 +749,10 @@ class _PhotoCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   '$title · ${photos.length}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               FilledButton.tonalIcon(
@@ -502,6 +767,8 @@ class _PhotoCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Text(enabled ? 'Фотографии прикрепляются к этой задаче.' : disabledText),
           const SizedBox(height: 14),
           if (photos.isEmpty)
             const Text('Фотографий пока нет')
@@ -545,55 +812,6 @@ class _PhotoCard extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-
-  const _StatCard({required this.icon, required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class _ValueRow extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _ValueRow(this.title, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Expanded(child: Text(title)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
-  }
-}
-
 class _MessageCard extends StatelessWidget {
   final String title;
   final String text;
@@ -609,6 +827,7 @@ class _MessageCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             title,
+            textAlign: TextAlign.center,
             style: Theme.of(context)
                 .textTheme
                 .titleLarge
@@ -691,26 +910,28 @@ String _date(DateTime value) {
   return '$day.$month.${value.year}';
 }
 
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty);
-  final result = parts.take(2).map((part) => part[0].toUpperCase()).join();
-  return result.isEmpty ? 'С' : result;
+String _longDate(DateTime value) {
+  const months = <String>[
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ];
+  return '${value.day} ${months[value.month - 1]} ${value.year}';
 }
 
-String _decimal(double value) {
-  if (value == value.roundToDouble()) return value.round().toString();
-  return value.toStringAsFixed(1).replaceAll('.', ',');
-}
-
-String _money(double value) {
-  final rounded = value.round();
-  final raw = rounded.abs().toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < raw.length; index++) {
-    if (index > 0 && (raw.length - index) % 3 == 0) buffer.write(' ');
-    buffer.write(raw[index]);
-  }
-  return '${rounded < 0 ? '−' : ''}${buffer.toString()} ₽';
+String _time(DateTime value) {
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
 
 String _error(Object? value) {

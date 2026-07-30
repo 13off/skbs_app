@@ -8,8 +8,8 @@ void main() {
     final wrapper = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
-    final employee = File(
-      'lib/features/employee/presentation/employee_unified_main_screen.dart',
+    final work = File(
+      'lib/features/employee/presentation/employee_work_cabinet_screen.dart',
     ).readAsStringSync();
 
     expect(
@@ -19,15 +19,17 @@ void main() {
       ),
     );
     expect(main, contains('EmployeePlatformWithPassport(profile: profile)'));
-    expect(
-      wrapper,
-      contains("import 'employee_unified_main_screen.dart' as legacy;"),
-    );
-    expect(wrapper, contains("actualRole: 'employee'"));
-    expect(wrapper, contains('legacy.EmployeeMainScreen(profile: contentProfile)'));
-    expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeTeamScreen'));
-    expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
+    expect(wrapper, contains('PersistentTabShell('));
+    expect(wrapper, contains("navigationStorageKey: 'employee-work-simple'"));
+    expect(wrapper, contains('ProfessionalBottomNavigationItem('));
+    expect(wrapper, contains("label: 'Задачи'"));
+    expect(wrapper, contains("label: 'История задач'"));
+    expect(wrapper, isNot(contains("label: 'Табель'")));
+    expect(wrapper, isNot(contains("label: 'Документы'")));
+    expect(wrapper, isNot(contains("label: 'Команда'")));
+    expect(work, contains('AppPage('));
+    expect(work, contains('PremiumWorkCard('));
+    expect(work, contains('PremiumActionButton('));
     expect(
       main,
       isNot(
@@ -36,26 +38,9 @@ void main() {
         ),
       ),
     );
-
-    expect(employee, contains('PersistentTabShell('));
-    expect(employee, contains("navigationStorageKey: 'employee'"));
-    expect(employee, contains('ProfessionalBottomNavigationItem('));
-    expect(employee, contains('AppPage('));
-    expect(employee, contains('PremiumWorkCard('));
-    expect(employee, contains('PremiumActionButton('));
-
-    for (final label in <String>[
-      "label: 'Главная'",
-      "label: 'Задачи'",
-      "label: 'Табель'",
-      "label: 'Документы'",
-      "label: 'Профиль'",
-    ]) {
-      expect(employee, contains(label));
-    }
   });
 
-  test('унификация не меняет данные и рабочие процессы сотрудника', () {
+  test('старый кабинет остаётся изолирован и не пишет данные напрямую', () {
     final employee = File(
       'lib/features/employee/presentation/employee_unified_main_screen.dart',
     ).readAsStringSync();
@@ -68,14 +53,13 @@ void main() {
     expect(employee, contains('RolePreviewController.showAdmin()'));
     expect(employee, contains('changeMonth(-1)'));
     expect(employee, contains('changeMonth(1)'));
-
     expect(employee, isNot(contains("functions.invoke('")));
     expect(employee, isNot(contains('.insert(')));
     expect(employee, isNot(contains('.update(')));
     expect(employee, isNot(contains('.delete(')));
   });
 
-  test('обучение сотрудника сохраняет точную цель нижнего меню', () {
+  test('обучение старого кабинета сохраняет точную цель нижнего меню', () {
     final employee = File(
       'lib/features/employee/presentation/employee_unified_main_screen.dart',
     ).readAsStringSync();

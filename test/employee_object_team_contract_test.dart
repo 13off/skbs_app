@@ -12,8 +12,6 @@ void main() {
       'lib/features/employee/presentation/employee_team_tab_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
-  const shellPath =
-      'lib/features/shell/presentation/persistent_tab_shell.dart';
 
   test('сервер сам определяет сотрудника, компанию и текущий объект', () {
     final function = File(functionPath).readAsStringSync();
@@ -79,20 +77,17 @@ void main() {
     expect(repository, isNot(contains(".from('employees')")));
   });
 
-  test('нижняя вкладка сразу показывает команду выбранного сотрудника', () {
+  test('команда временно убрана из нижней панели сотрудника', () {
     final wrapper = File(wrapperPath).readAsStringSync();
-    final shell = File(shellPath).readAsStringSync();
     final tab = File(tabPath).readAsStringSync();
 
-    expect(wrapper, contains("label: 'Команда'"));
-    expect(wrapper, contains('EmployeeTeamTabScreen(profile: profile)'));
-    expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
-    expect(shell, contains('override?.builder?.call(context)'));
-    expect(tab, contains('widget.profile.isRolePreview'));
+    expect(wrapper, contains("label: 'Задачи'"));
+    expect(wrapper, contains("label: 'История задач'"));
+    expect(wrapper, isNot(contains("label: 'Команда'")));
+    expect(wrapper, isNot(contains('EmployeeTeamTabScreen')));
     expect(tab, contains('EmployeeWorkActionRepository.resolveSelection()'));
     expect(tab, contains('EmployeeTeamRepository.fetch(employeeId: selection.employeeId)'));
     expect(tab, isNot(contains('EmployeeRepository.fetchEmployees')));
-    expect(tab, contains('EmployeeTeamMemberScreen'));
   });
 
   test('загрузка команды остаётся внутри вкладки', () {
