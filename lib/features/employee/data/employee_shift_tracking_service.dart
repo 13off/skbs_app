@@ -144,7 +144,7 @@ class EmployeeShiftTrackingService {
     }
   }
 
-  Future<EmployeeWorkShift> startShift() async {
+  Future<EmployeeWorkShift> startShift([String? ignoredTaskId]) async {
     if (state.value.isBusy) {
       throw const EmployeeLocationPermissionException(
         'Дождитесь завершения текущего действия.',
