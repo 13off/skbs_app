@@ -19,15 +19,17 @@ void main() {
   const navigationPath =
       'lib/screens/employee_details/employee_details_navigation.dart';
 
-  test('упрощённая команда не возвращает демонстрационный паспорт', () {
+  test('паспорт и команда убраны из упрощённой панели сотрудника', () {
     final wrapper = File(wrapperPath).readAsStringSync();
     final teamTab = File(teamTabPath).readAsStringSync();
     final directory = File(directoryPath).readAsStringSync();
 
-    expect(wrapper, contains('EmployeeTeamTabScreen'));
+    expect(wrapper, contains("label: 'Задачи'"));
+    expect(wrapper, contains("label: 'История задач'"));
+    expect(wrapper, isNot(contains('EmployeeTeamTabScreen')));
+    expect(wrapper, isNot(contains('EmployeeProfessionalPassport')));
     expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
-    expect(wrapper, isNot(contains('EmployeeProfessionalPassportData.preview')));
     expect(teamTab, contains('EmployeeWorkActionRepository.resolveSelection()'));
     expect(teamTab, contains('EmployeeTeamRepository.fetch(employeeId: selection.employeeId)'));
     expect(teamTab, isNot(contains('_resolvePreviewSeed')));
@@ -39,8 +41,6 @@ void main() {
     expect(directory, contains('employee.personId'));
     expect(directory, contains('EmployeeProfessionalPassportViewerScreen'));
     expect(directory, isNot(contains('Демонстрационный объект')));
-    expect(directory, isNot(contains('86')));
-    expect(directory, isNot(contains('34')));
   });
 
   test('карточка сотрудника открывает его настоящий паспорт', () {
