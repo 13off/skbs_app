@@ -9,10 +9,10 @@ void main() {
     ).readAsStringSync();
 
     expect(edge, contains('.eq("company_id", viewer.companyId)'));
-    expect(edge, contains('assertAssignedTask'));
+    expect(edge, contains('assignedTask'));
     expect(edge, contains('task_assignees'));
     expect(edge, contains('permissionScope !== "always"'));
-    expect(edge, contains('coordinate.isMock'));
+    expect(edge, contains('point.isMock'));
     expect(edge, contains('start_distance_m'));
   });
 }
