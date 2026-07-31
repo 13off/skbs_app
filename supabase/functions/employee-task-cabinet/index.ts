@@ -123,56 +123,22 @@ Deno.serve(async (request: Request) => {
       employee = record(data);
     } else {
       const requestedEmployeeId = text(input.employee_id, 80);
-      if (requestedEmployeeId) {
-        const { data, error } = await admin
-          .from("employees")
-          .select("id, person_id, object_id, object_name, fio, position, phone, updated_at")
-          .eq("company_id", companyId)
-          .eq("id", requestedEmployeeId)
-          .eq("is_active", true)
-          .is("archived_at", null)
-          .maybeSingle();
-        if (error) throw error;
-        employee = record(data);
-      } else {
-        const { data: assignmentData, error: assignmentError } = await admin
-          .from("task_assignees")
-          .select("employee_id, created_at")
-          .eq("company_id", companyId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (assignmentError) throw assignmentError;
-        const recentEmployeeId = text(record(assignmentData)?.employee_id, 80);
-
-        let query = admin
-          .from("employees")
-          .select("id, person_id, object_id, object_name, fio, position, phone, updated_at")
-          .eq("company_id", companyId)
-          .eq("is_active", true)
-          .is("archived_at", null);
-        if (recentEmployeeId) query = query.eq("id", recentEmployeeId);
-        const { data, error } = await query
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (error) throw error;
-        employee = record(data);
-
-        if (!employee) {
-          const { data: fallback, error: fallbackError } = await admin
-            .from("employees")
-            .select("id, person_id, object_id, object_name, fio, position, phone, updated_at")
-            .eq("company_id", companyId)
-            .eq("is_active", true)
-            .is("archived_at", null)
-            .order("fio", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (fallbackError) throw fallbackError;
-          employee = record(fallback);
-        }
+      if (!requestedEmployeeId) {
+        throw new HttpError(
+          "Выберите сотрудника для режима просмотра",
+          400,
+        );
       }
+      const { data, error } = await admin
+        .from("employees")
+        .select("id, person_id, object_id, object_name, fio, position, phone, updated_at")
+        .eq("company_id", companyId)
+        .eq("id", requestedEmployeeId)
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .maybeSingle();
+      if (error) throw error;
+      employee = record(data);
     }
 
     if (!employee) throw new HttpError("Активный сотрудник не найден", 404);
