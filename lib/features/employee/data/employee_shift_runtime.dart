@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'employee_route_local_store.dart';
 import 'employee_shift_action_repository.dart';
 
 enum EmployeeWorkDayStatus {
@@ -86,17 +87,30 @@ class EmployeeShiftRuntime {
 
   static const _employeePreference = 'employee_work_day_employee_id';
   static const _shiftPreference = 'employee_work_day_shift_id';
+  static const _maximumBatchSize = 100;
+  static const _gapThreshold = Duration(minutes: 3);
+  static const _healthCheckInterval = Duration(minutes: 1);
 
   final ValueNotifier<EmployeeWorkDaySnapshot> state =
       ValueNotifier<EmployeeWorkDaySnapshot>(
     const EmployeeWorkDaySnapshot.idle(),
   );
 
+  final EmployeeRouteLocalStore _localStore = EmployeeRouteLocalStore();
   final List<EmployeeLocationPoint> _pending = <EmployeeLocationPoint>[];
+  final List<EmployeeTrackingGapDraft> _pendingGaps =
+      <EmployeeTrackingGapDraft>[];
+
   StreamSubscription<Position>? _positionSubscription;
   Timer? _flushTimer;
+  Timer? _healthTimer;
+  EmployeeTrackingGapDraft? _openGap;
+  DateTime? _lastCapturedAt;
   bool _binding = false;
   bool _flushing = false;
+  bool _flushingGaps = false;
+  bool _savingLocal = false;
+  bool _localDirty = false;
   String _boundEmployeeId = '';
 
   String get employeeId => _boundEmployeeId;
@@ -116,14 +130,15 @@ class EmployeeShiftRuntime {
   Future<void> bind(String employeeId) async {
     final cleanEmployeeId = employeeId.trim();
     if (cleanEmployeeId.isEmpty || _binding) return;
-    if (_boundEmployeeId == cleanEmployeeId && state.value.employeeId == cleanEmployeeId) {
+    if (_boundEmployeeId == cleanEmployeeId &&
+        state.value.employeeId == cleanEmployeeId) {
       return;
     }
 
     _binding = true;
     try {
       await _stopPositionStream();
-      _pending.clear();
+      _resetMemory();
       _boundEmployeeId = cleanEmployeeId;
       state.value = EmployeeWorkDaySnapshot(
         status: EmployeeWorkDayStatus.idle,
@@ -140,18 +155,58 @@ class EmployeeShiftRuntime {
       if (_boundEmployeeId != cleanEmployeeId) return;
       final shift = server.activeShift;
       if (shift == null) {
-        await _clearPersisted();
+        await _clearPersisted(cleanEmployeeId);
         return;
       }
 
+      final local = await _localStore.load(
+        employeeId: cleanEmployeeId,
+        shiftId: shift.id,
+      );
+      _pending.addAll(local.pendingPoints);
+      _pendingGaps.addAll(local.pendingGaps);
+      _openGap = local.openGap;
+      _lastCapturedAt =
+          local.lastCapturedAt ?? shift.lastPointAt ?? shift.startedAt;
+
+      final latestPoint = _pending.isEmpty ? null : _pending.last;
       state.value = state.value.copyWith(
         status: EmployeeWorkDayStatus.active,
         shift: shift,
+        lastPoint: latestPoint,
+        pendingPoints: _pending.length,
         errorMessage: '',
       );
       await _persist(cleanEmployeeId, shift.id);
+
+      final lastCapturedAt = _lastCapturedAt;
+      if (lastCapturedAt != null &&
+          DateTime.now().difference(lastCapturedAt) >= _gapThreshold) {
+        _beginGap(
+          reason: 'application_interrupted',
+          details:
+              'Приложение или системная фоновая служба не передавали координаты.',
+          startedAt: lastCapturedAt,
+        );
+      }
+
       final permission = await _permissionWithoutPrompt();
-      if (_canTrack(permission)) await _startPositionStream();
+      if (_canTrack(permission) &&
+          await Geolocator.isLocationServiceEnabled()) {
+        await _startPositionStream();
+      } else {
+        _beginGap(
+          reason: permission == LocationPermission.always
+              ? 'location_service_disabled'
+              : 'permission_missing',
+          details: permission == LocationPermission.always
+              ? 'На телефоне отключена геолокация.'
+              : 'У приложения нет постоянного доступа к геопозиции.',
+        );
+        _startTimers();
+      }
+      unawaited(_flushGapEvents());
+      unawaited(_flushPending());
     } catch (error) {
       if (_boundEmployeeId != cleanEmployeeId) return;
       state.value = state.value.copyWith(
@@ -180,7 +235,8 @@ class EmployeeShiftRuntime {
     );
     try {
       final permission = await _ensurePermission();
-      state.value = state.value.copyWith(status: EmployeeWorkDayStatus.starting);
+      state.value =
+          state.value.copyWith(status: EmployeeWorkDayStatus.starting);
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
@@ -197,6 +253,9 @@ class EmployeeShiftRuntime {
       if (_boundEmployeeId != cleanEmployeeId) {
         throw Exception('Выбранный сотрудник изменился');
       }
+
+      _resetMemory();
+      _lastCapturedAt = point.recordedAt;
       state.value = state.value.copyWith(
         status: EmployeeWorkDayStatus.active,
         shift: shift,
@@ -205,6 +264,7 @@ class EmployeeShiftRuntime {
         errorMessage: '',
       );
       await _persist(cleanEmployeeId, shift.id);
+      await _saveLocal();
       await _startPositionStream();
       return shift;
     } catch (error) {
@@ -218,7 +278,8 @@ class EmployeeShiftRuntime {
 
   Future<EmployeeWorkShift> finish() async {
     final cleanEmployeeId = _boundEmployeeId;
-    if (cleanEmployeeId.isEmpty || !state.value.isActive) {
+    final shift = state.value.shift;
+    if (cleanEmployeeId.isEmpty || shift?.isActive != true) {
       throw Exception('Рабочий день не начат');
     }
     if (state.value.isBusy) {
@@ -230,7 +291,14 @@ class EmployeeShiftRuntime {
       errorMessage: '',
     );
     try {
-      await _flushPending();
+      final flushed = await _flushAllPending();
+      if (!flushed) {
+        throw Exception(
+          'Не удалось отправить сохранённые точки маршрута. '
+          'Проверьте интернет и повторите завершение рабочего дня.',
+        );
+      }
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
@@ -238,13 +306,22 @@ class EmployeeShiftRuntime {
         ),
       );
       final point = _point(position);
-      final shift = await EmployeeShiftActionRepository.finishShift(
+      _completeOpenGap(point.recordedAt);
+      final gapsFlushed = await _flushGapEvents();
+      if (!gapsFlushed) {
+        throw Exception(
+          'Не удалось сохранить сведения о разрывах геолокации. '
+          'Проверьте интернет и повторите.',
+        );
+      }
+
+      final completed = await EmployeeShiftActionRepository.finishShift(
         employeeId: cleanEmployeeId,
         point: point,
       );
       await _stopPositionStream();
-      _pending.clear();
-      await _clearPersisted();
+      _resetMemory();
+      await _clearPersisted(cleanEmployeeId);
       state.value = EmployeeWorkDaySnapshot(
         status: EmployeeWorkDayStatus.idle,
         employeeId: cleanEmployeeId,
@@ -253,7 +330,7 @@ class EmployeeShiftRuntime {
         pendingPoints: 0,
         errorMessage: '',
       );
-      return shift;
+      return completed;
     } catch (error) {
       state.value = state.value.copyWith(
         status: EmployeeWorkDayStatus.error,
@@ -266,6 +343,19 @@ class EmployeeShiftRuntime {
   Future<void> openSettings() async {
     if (kIsWeb) return;
     await Geolocator.openAppSettings();
+  }
+
+  Future<void> openLocationSettings() async {
+    if (kIsWeb) return;
+    await Geolocator.openLocationSettings();
+  }
+
+  Future<LocationPermission> currentPermission() {
+    return _permissionWithoutPrompt();
+  }
+
+  Future<bool> isLocationServiceEnabled() {
+    return Geolocator.isLocationServiceEnabled();
   }
 
   Future<LocationPermission> _ensurePermission() async {
@@ -330,7 +420,7 @@ class EmployeeShiftRuntime {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 20,
+        distanceFilter: 0,
         intervalDuration: const Duration(seconds: 30),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'AppСтрой: рабочий день идёт',
@@ -363,33 +453,112 @@ class EmployeeShiftRuntime {
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: _streamSettings(),
     ).listen(
-      _handlePosition,
+      (position) => unawaited(_handlePosition(position)),
       onError: (Object error, StackTrace stackTrace) {
-        state.value = state.value.copyWith(
-          status: EmployeeWorkDayStatus.error,
-          errorMessage: _error(error),
-        );
+        unawaited(_handleStreamError(error));
       },
     );
+    _startTimers();
+  }
+
+  void _startTimers() {
     _flushTimer?.cancel();
     _flushTimer = Timer.periodic(
       const Duration(seconds: 45),
-      (_) => unawaited(_flushPending()),
+      (_) {
+        unawaited(_flushPending());
+        unawaited(_flushGapEvents());
+      },
+    );
+    _healthTimer?.cancel();
+    _healthTimer = Timer.periodic(
+      _healthCheckInterval,
+      (_) => unawaited(_checkTrackingHealth()),
     );
   }
 
-  void _handlePosition(Position position) {
+  Future<void> _handlePosition(Position position) async {
     if (!state.value.isActive || _boundEmployeeId.isEmpty) return;
     final point = _point(position);
     if (point.accuracyM > 250 || point.isMock) return;
+
+    _completeOpenGap(point.recordedAt);
     _pending.add(point);
+    _lastCapturedAt = point.recordedAt;
     state.value = state.value.copyWith(
       status: EmployeeWorkDayStatus.active,
       lastPoint: point,
       pendingPoints: _pending.length,
       errorMessage: '',
     );
+    unawaited(_saveLocal());
+    unawaited(_flushGapEvents());
     if (_pending.length >= 5) unawaited(_flushPending());
+  }
+
+  Future<void> _handleStreamError(Object error) async {
+    _beginGap(
+      reason: 'stream_error',
+      details: _error(error),
+    );
+    state.value = state.value.copyWith(
+      status: EmployeeWorkDayStatus.error,
+      errorMessage:
+          'Геолокация временно недоступна. Приложение повторит подключение.',
+    );
+    await _positionSubscription?.cancel();
+    _positionSubscription = null;
+    unawaited(_saveLocal());
+  }
+
+  Future<void> _checkTrackingHealth() async {
+    if (!state.value.isActive || _boundEmployeeId.isEmpty) return;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _beginGap(
+          reason: 'location_service_disabled',
+          details: 'На телефоне отключена геолокация.',
+        );
+        state.value = state.value.copyWith(
+          status: EmployeeWorkDayStatus.error,
+          errorMessage: 'На телефоне отключена геолокация.',
+        );
+        return;
+      }
+
+      final permission = await _permissionWithoutPrompt();
+      if (!_canTrack(permission)) {
+        _beginGap(
+          reason: 'permission_missing',
+          details: 'У приложения нет постоянного доступа к геопозиции.',
+        );
+        state.value = state.value.copyWith(
+          status: EmployeeWorkDayStatus.error,
+          errorMessage: 'Разрешите доступ к геопозиции всегда.',
+        );
+        return;
+      }
+
+      final lastCapturedAt = _lastCapturedAt;
+      if (lastCapturedAt != null &&
+          DateTime.now().difference(lastCapturedAt) >= _gapThreshold) {
+        _beginGap(
+          reason: 'tracking_interruption',
+          details:
+              'Android не передавал координаты. Возможна остановка приложения '
+              'или ограничение фоновой работы.',
+          startedAt: lastCapturedAt,
+        );
+        await _positionSubscription?.cancel();
+        _positionSubscription = null;
+      }
+      if (_positionSubscription == null) {
+        await _startPositionStream();
+      }
+    } catch (error) {
+      _beginGap(reason: 'health_check_error', details: _error(error));
+    }
   }
 
   EmployeeLocationPoint _point(Position position) {
@@ -405,34 +574,128 @@ class EmployeeShiftRuntime {
     );
   }
 
-  Future<void> _flushPending() async {
+  void _beginGap({
+    required String reason,
+    required String details,
+    DateTime? startedAt,
+  }) {
+    final shiftId = state.value.shift?.id.trim() ?? '';
+    if (shiftId.isEmpty || _openGap != null) return;
+    final candidate = startedAt ?? _lastCapturedAt ?? DateTime.now();
+    _openGap = EmployeeTrackingGapDraft(
+      shiftId: shiftId,
+      startedAt: candidate,
+      reason: reason,
+      details: details,
+    );
+    unawaited(_saveLocal());
+  }
+
+  void _completeOpenGap(DateTime endedAt) {
+    final gap = _openGap;
+    if (gap == null) return;
+    _openGap = null;
+    if (endedAt.isAfter(gap.startedAt) &&
+        endedAt.difference(gap.startedAt) >= const Duration(minutes: 2)) {
+      _pendingGaps.add(gap.complete(endedAt));
+    }
+    unawaited(_saveLocal());
+  }
+
+  Future<bool> _flushGapEvents() async {
+    if (_flushingGaps) {
+      for (var attempt = 0; attempt < 100 && _flushingGaps; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      return _pendingGaps.isEmpty;
+    }
+    if (_pendingGaps.isEmpty || _boundEmployeeId.isEmpty) {
+      return _pendingGaps.isEmpty;
+    }
+    _flushingGaps = true;
+    try {
+      while (_pendingGaps.isNotEmpty) {
+        final gap = _pendingGaps.first;
+        final endedAt = gap.endedAt;
+        if (endedAt == null) {
+          _pendingGaps.removeAt(0);
+          continue;
+        }
+        try {
+          await EmployeeShiftActionRepository.recordTrackingGap(
+            employeeId: _boundEmployeeId,
+            shiftId: gap.shiftId,
+            startedAt: gap.startedAt,
+            endedAt: endedAt,
+            reason: gap.reason,
+            details: gap.details,
+          );
+          _pendingGaps.removeAt(0);
+          await _saveLocal();
+        } catch (_) {
+          return false;
+        }
+      }
+      return true;
+    } finally {
+      _flushingGaps = false;
+    }
+  }
+
+  Future<bool> _flushPending() async {
     final employeeId = _boundEmployeeId;
     if (_flushing ||
         employeeId.isEmpty ||
         _pending.isEmpty ||
         !state.value.isActive) {
-      return;
+      return _pending.isEmpty;
     }
+
     _flushing = true;
-    final batch = List<EmployeeLocationPoint>.from(_pending);
-    _pending.clear();
+    final take = _pending.length > _maximumBatchSize
+        ? _maximumBatchSize
+        : _pending.length;
+    final batch = List<EmployeeLocationPoint>.from(_pending.take(take));
     try {
       await EmployeeShiftActionRepository.appendRoutePoints(
         employeeId: employeeId,
         points: batch,
       );
+      if (_boundEmployeeId == employeeId && _pending.length >= take) {
+        _pending.removeRange(0, take);
+      }
       state.value = state.value.copyWith(pendingPoints: _pending.length);
+      await _saveLocal();
+      return true;
     } catch (_) {
-      if (_boundEmployeeId == employeeId) _pending.insertAll(0, batch);
+      // Пакет остаётся и в памяти, и в локальном хранилище до подтверждения
+      // сервера. Даже аварийное закрытие во время отправки не удалит точки.
       state.value = state.value.copyWith(pendingPoints: _pending.length);
+      await _saveLocal();
+      return false;
     } finally {
       _flushing = false;
     }
   }
 
+  Future<bool> _flushAllPending() async {
+    var safety = 0;
+    while (_pending.isNotEmpty && safety < 500) {
+      safety += 1;
+      if (_flushing) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        continue;
+      }
+      if (!await _flushPending()) return false;
+    }
+    return _pending.isEmpty;
+  }
+
   Future<void> _stopPositionStream() async {
     _flushTimer?.cancel();
     _flushTimer = null;
+    _healthTimer?.cancel();
+    _healthTimer = null;
     await _positionSubscription?.cancel();
     _positionSubscription = null;
   }
@@ -443,10 +706,47 @@ class EmployeeShiftRuntime {
     await preferences.setString(_shiftPreference, shiftId);
   }
 
-  Future<void> _clearPersisted() async {
+  Future<void> _clearPersisted(String employeeId) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_employeePreference);
     await preferences.remove(_shiftPreference);
+    await _localStore.clear(employeeId);
+  }
+
+  Future<void> _saveLocal() async {
+    _localDirty = true;
+    if (_savingLocal) return;
+    _savingLocal = true;
+    try {
+      while (_localDirty) {
+        _localDirty = false;
+        final employeeId = _boundEmployeeId;
+        final shiftId = state.value.shift?.id.trim() ?? '';
+        if (employeeId.isEmpty || shiftId.isEmpty) continue;
+        final points = List<EmployeeLocationPoint>.from(_pending);
+        final gaps = List<EmployeeTrackingGapDraft>.from(_pendingGaps);
+        final openGap = _openGap;
+        final lastCapturedAt = _lastCapturedAt;
+        await _localStore.save(
+          employeeId: employeeId,
+          shiftId: shiftId,
+          pendingPoints: points,
+          pendingGaps: gaps,
+          openGap: openGap,
+          lastCapturedAt: lastCapturedAt,
+        );
+      }
+    } finally {
+      _savingLocal = false;
+    }
+  }
+
+  void _resetMemory() {
+    _pending.clear();
+    _pendingGaps.clear();
+    _openGap = null;
+    _lastCapturedAt = null;
+    _localDirty = false;
   }
 
   String _error(Object error) {
