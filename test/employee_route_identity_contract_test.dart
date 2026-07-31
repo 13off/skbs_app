@@ -17,7 +17,8 @@ void main() {
       'supabase/functions/employee-shift-actions/index.ts',
     ).readAsStringSync();
 
-    expect(cabinet, contains("'employee_id': employeeId.trim()"));
+    expect(cabinet, contains("'employee_id': requestedEmployeeId"));
+    expect(cabinet, contains('result.profile.employeeId != requestedEmployeeId'));
     expect(actions, contains("'employee_id': cleanEmployeeId"));
     expect(actions, contains("'employee-shift-actions'"));
     expect(runtime, contains('EmployeeShiftActionRepository.startShift('));
