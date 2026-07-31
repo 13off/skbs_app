@@ -9,6 +9,7 @@ import '../../role_preview/role_preview_controller.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/employee_task_cabinet_repository.dart';
 import 'employee_home_screen.dart';
+import 'employee_identity_profile_screen.dart';
 import 'employee_tasks_screen.dart';
 
 // История задач больше не является нижней вкладкой. Она открывается кнопкой
@@ -129,7 +130,8 @@ class _EmployeePlatformWithPassportState
 
   @override
   Widget build(BuildContext context) {
-    final contentProfile = widget.profile.isRolePreview
+    final rolePreview = widget.profile.isRolePreview;
+    final contentProfile = rolePreview
         ? widget.profile.copyWith(actualRole: 'employee')
         : widget.profile;
 
@@ -148,17 +150,13 @@ class _EmployeePlatformWithPassportState
               profile: contentProfile,
               selectedEmployeeId: selectedEmployeeId,
             ),
-          _ => ValueListenableBuilder<String>(
-              valueListenable: selectedEmployeeName,
-              builder: (context, employeeName, _) {
-                return ProfileScreen(
+          _ => rolePreview
+              ? EmployeeIdentityProfileScreen(
                   profile: contentProfile,
-                  displayFullNameOverride: employeeName,
                   selectedEmployeeId: selectedEmployeeId,
-                  lockIdentityEditing: employeeName.trim().isNotEmpty,
-                );
-              },
-            ),
+                  selectedEmployeeName: selectedEmployeeName,
+                )
+              : ProfileScreen(profile: contentProfile),
         };
       },
     );
