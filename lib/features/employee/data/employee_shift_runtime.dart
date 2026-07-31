@@ -656,18 +656,20 @@ class EmployeeShiftRuntime {
         ? _maximumBatchSize
         : _pending.length;
     final batch = List<EmployeeLocationPoint>.from(_pending.take(take));
-    _pending.removeRange(0, take);
-    await _saveLocal();
     try {
       await EmployeeShiftActionRepository.appendRoutePoints(
         employeeId: employeeId,
         points: batch,
       );
+      if (_boundEmployeeId == employeeId && _pending.length >= take) {
+        _pending.removeRange(0, take);
+      }
       state.value = state.value.copyWith(pendingPoints: _pending.length);
       await _saveLocal();
       return true;
     } catch (_) {
-      if (_boundEmployeeId == employeeId) _pending.insertAll(0, batch);
+      // Пакет остаётся и в памяти, и в локальном хранилище до подтверждения
+      // сервера. Даже аварийное закрытие во время отправки не удалит точки.
       state.value = state.value.copyWith(pendingPoints: _pending.length);
       await _saveLocal();
       return false;
