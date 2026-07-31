@@ -9,6 +9,8 @@ void main() {
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
   const homePath =
       'lib/features/employee/presentation/employee_home_screen.dart';
+  const workButtonPath =
+      'lib/features/employee/presentation/premium_round_work_button.dart';
   const tasksPath =
       'lib/features/employee/presentation/employee_tasks_screen.dart';
   const profilePath = 'lib/screens/profile_screen.dart';
@@ -20,11 +22,13 @@ void main() {
     final legacy = File(legacyWorkScreenPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
     final home = File(homePath).readAsStringSync();
+    final workButton = File(workButtonPath).readAsStringSync();
     final tasks = File(tasksPath).readAsStringSync();
 
     expect(wrapper, contains('EmployeeHomeScreen'));
     expect(wrapper, contains('EmployeeTasksScreen'));
-    expect(home, contains("'Начать работу'"));
+    expect(home, contains('PremiumRoundWorkButton('));
+    expect(workButton, contains("'Начать работу'"));
     expect(home, contains('runtime.start(employeeId)'));
     expect(tasks, contains("'Активных задач пока нет'"));
     expect(tasks, contains('EmployeeWorkTaskDetailsScreen'));
