@@ -19,7 +19,7 @@ void main() {
     expect(wrapper, contains('EmployeeHomeScreen'));
     expect(wrapper, contains('EmployeeTasksScreen'));
     expect(wrapper, contains('ProfileScreen(profile: contentProfile)'));
-    expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:'));
+    expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
   test('на главной есть большая объёмная кнопка начала работы', () {
