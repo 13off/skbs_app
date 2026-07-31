@@ -105,7 +105,7 @@ void main() {
         .height;
 
     expect(bodyHeight, greaterThanOrEqualTo(750));
-    expect(panelHeight, 72);
+    expect(panelHeight, 76);
     for (final item in items) {
       expect(find.text(item.label), findsOneWidget);
     }
