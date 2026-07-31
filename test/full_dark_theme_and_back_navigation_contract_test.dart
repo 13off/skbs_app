@@ -9,7 +9,8 @@ void main() {
     expect(source, contains('final bool showBackButton;'));
     expect(source, contains('final VoidCallback? onBack;'));
     expect(source, contains('if (showBackButton)'));
-    expect(source, contains('BackButton('));
+    expect(source, contains('IconButton.filledTonal('));
+    expect(source, contains('Icons.arrow_back_rounded'));
     expect(source, contains('Navigator.of(context).maybePop()'));
   });
 
