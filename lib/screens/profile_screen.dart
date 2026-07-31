@@ -689,6 +689,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AppPage(
       title: 'Профиль',
       subtitle: 'Личные и рабочие данные',
+      suppressAutomaticBackButton: true,
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Настройки',
         onPressed: () => open(SettingsScreen(profile: settingsProfile())),
@@ -738,9 +739,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Объект',
             value: profile.objectName,
           ),
-          const SizedBox(height: 8),
-          sectionTitle('Приложение'),
-          if (profile.isEmployee)
+          if (profile.isEmployee) ...[
+            const SizedBox(height: 8),
+            sectionTitle('Приложение'),
             actionTile(
               icon: Icons.history_rounded,
               title: 'История задач',
@@ -752,13 +753,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-          actionTile(
-            icon: Icons.settings_outlined,
-            title: 'Настройки',
-            subtitle:
-                'Интерфейс, масштаб, уведомления и параметры профессии',
-            onTap: () => open(SettingsScreen(profile: settingsProfile())),
-          ),
+          ],
           const SizedBox(height: 8),
           signOutButton(),
         ],
