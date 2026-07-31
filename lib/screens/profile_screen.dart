@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
 import '../features/company/data/company_repository.dart';
+import '../features/employee/presentation/employee_simple_work_screen.dart';
 import '../features/profile/data/personal_profile_controller.dart';
 import '../features/profile/data/profile_repository.dart';
 import '../features/role_preview/role_preview_controller.dart';
@@ -41,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late PersonalProfileData personalData;
   Future<String?>? avatarUrlFuture;
   bool savingPhoto = false;
+  late final ValueNotifier<String> employeeHistoryId;
 
   String get fullName {
     final value = personalData.fullName.trim();
@@ -53,6 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    employeeHistoryId = ValueNotifier<String>('');
     PersonalProfileController.configure(profile);
     personalData = PersonalProfileController.state.value;
     PersonalProfileController.state.addListener(_handlePersonalChanged);
@@ -76,6 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     PersonalProfileController.state.removeListener(_handlePersonalChanged);
+    employeeHistoryId.dispose();
     super.dispose();
   }
 
@@ -736,6 +740,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 8),
           sectionTitle('Приложение'),
+          if (profile.isEmployee)
+            actionTile(
+              icon: Icons.history_rounded,
+              title: 'История задач',
+              subtitle: 'Задачи и результаты работы по выбранным датам',
+              onTap: () => open(
+                EmployeeWorkTaskHistoryScreen(
+                  profile: profile,
+                  selectedEmployeeId: employeeHistoryId,
+                ),
+              ),
+            ),
           actionTile(
             icon: Icons.settings_outlined,
             title: 'Настройки',

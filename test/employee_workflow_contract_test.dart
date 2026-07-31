@@ -7,12 +7,15 @@ void main() {
     final wrapper = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
+    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
     final workActions = File(
       'lib/features/employee/data/employee_work_action_repository.dart',
     ).readAsStringSync();
 
-    expect(wrapper, contains('EmployeeWorkTasksScreen'));
-    expect(wrapper, contains('EmployeeWorkTaskHistoryScreen'));
+    expect(wrapper, contains('EmployeeHomeScreen'));
+    expect(wrapper, contains('EmployeeTasksScreen'));
+    expect(wrapper, contains('ProfileScreen(profile: contentProfile)'));
+    expect(profile, contains('EmployeeWorkTaskHistoryScreen'));
     expect(wrapper, contains("actualRole: 'employee'"));
     expect(wrapper, isNot(contains('Предпросмотр:')));
     expect(workActions, contains('resolveSelection()'));

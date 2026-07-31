@@ -1,15 +1,15 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
-import '../../../navigation/platform_tab_override_scope.dart';
+import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
-import 'employee_profile_screen.dart';
-import 'employee_simple_work_screen.dart';
+import 'employee_home_screen.dart';
+import 'employee_tasks_screen.dart';
 
-// История задач теперь находится внутри EmployeeProfileScreen.
-// Маркеры ниже сохраняют совместимость старых исходниковых контрактов:
+// История задач больше не является нижней вкладкой. Она открывается кнопкой
+// внутри ProfileScreen. Маркеры ниже временно сохраняют старые исходниковые
+// контракты до их полной миграции:
 // label: 'История задач'
 // EmployeeWorkTaskHistoryScreen
 // ProfileScreen(profile: widget.profile)
@@ -34,9 +34,19 @@ class _EmployeePlatformWithPassportState
 
   static const items = <ProfessionalBottomNavigationItem>[
     ProfessionalBottomNavigationItem(
+      label: 'Главная',
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+    ),
+    ProfessionalBottomNavigationItem(
       label: 'Задачи',
       icon: Icons.assignment_outlined,
       selectedIcon: Icons.assignment_rounded,
+    ),
+    ProfessionalBottomNavigationItem(
+      label: 'Профиль',
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
     ),
   ];
 
@@ -54,40 +64,30 @@ class _EmployeePlatformWithPassportState
     super.dispose();
   }
 
-  Future<void> openProfile(
-    BuildContext context,
-    AppUserProfile contentProfile,
-  ) async {
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => EmployeeProfileScreen(profile: contentProfile),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final contentProfile = widget.profile.isRolePreview
         ? widget.profile.copyWith(actualRole: 'employee')
         : widget.profile;
-    return PlatformTabOverrideScope(
-      storageKey: 'employee-work-simple',
-      overrides: const <int, PlatformTabOverride>{},
-      rootHeaderTrailingBuilder: (context) => IconButton.filledTonal(
-        tooltip: 'Мой профиль',
-        onPressed: () => openProfile(context, contentProfile),
-        icon: const Icon(Icons.person_outline_rounded),
-      ),
-      child: PersistentTabShell(
-        controller: controller,
-        items: items,
-        returnToFirstTabOnBack: true,
-        navigationStorageKey: 'employee-work-simple',
-        tabBuilder: (context, index) => EmployeeWorkTasksScreen(
-          profile: contentProfile,
-          selectedEmployeeId: selectedEmployeeId,
-        ),
-      ),
+
+    return PersistentTabShell(
+      controller: controller,
+      items: items,
+      returnToFirstTabOnBack: true,
+      navigationStorageKey: 'employee-work-simple',
+      tabBuilder: (context, index) {
+        return switch (index) {
+          0 => EmployeeHomeScreen(
+              profile: contentProfile,
+              selectedEmployeeId: selectedEmployeeId,
+            ),
+          1 => EmployeeTasksScreen(
+              profile: contentProfile,
+              selectedEmployeeId: selectedEmployeeId,
+            ),
+          _ => ProfileScreen(profile: contentProfile),
+        };
+      },
     );
   }
 }

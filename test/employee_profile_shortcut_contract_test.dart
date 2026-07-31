@@ -5,49 +5,49 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
-  const profilePath =
-      'lib/features/employee/presentation/employee_profile_screen.dart';
-  const scopePath = 'lib/navigation/platform_tab_override_scope.dart';
-  const pagePath = 'lib/widgets/app_page.dart';
+  const homePath =
+      'lib/features/employee/presentation/employee_home_screen.dart';
+  const profilePath = 'lib/screens/profile_screen.dart';
+  const mainPath = 'lib/screens/main_screen.dart';
 
-  test('личный профиль доступен из шапки корневых страниц сотрудника', () {
+  test('сотрудник получает главную задачи и профиль в нижней панели', () {
     final wrapper = File(wrapperPath).readAsStringSync();
-    final profile = File(profilePath).readAsStringSync();
-    final scope = File(scopePath).readAsStringSync();
-    final page = File(pagePath).readAsStringSync();
 
+    expect(wrapper, contains("label: 'Главная'"));
     expect(wrapper, contains("label: 'Задачи'"));
-    expect(wrapper, contains('rootHeaderTrailingBuilder:'));
-    expect(wrapper, contains("tooltip: 'Мой профиль'"));
-    expect(wrapper, contains('EmployeeProfileScreen(profile: contentProfile)'));
-    expect(profile, contains("label: 'Профиль'"));
-    expect(profile, contains("label: 'История задач'"));
-    expect(profile, contains('ProfileScreen(profile: widget.profile)'));
+    expect(wrapper, contains("label: 'Профиль'"));
+    expect(wrapper, contains('EmployeeHomeScreen'));
+    expect(wrapper, contains('EmployeeTasksScreen'));
+    expect(wrapper, contains('ProfileScreen(profile: contentProfile)'));
+    expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
+  });
+
+  test('на главной есть большая круглая кнопка начала работы', () {
+    final home = File(homePath).readAsStringSync();
+
+    expect(home, contains("title: 'Главная'"));
+    expect(home, contains("'Начать работу'"));
+    expect(home, contains('shape: const CircleBorder()'));
+    expect(home, contains('dimension: 228'));
+    expect(home, contains('runtime.start(employeeId)'));
+    expect(home, contains('runtime.finish()'));
+  });
+
+  test('история задач находится в профиле над настройками', () {
+    final profile = File(profilePath).readAsStringSync();
+    final historyIndex = profile.indexOf("title: 'История задач'");
+    final settingsIndex = profile.indexOf("title: 'Настройки'");
+
+    expect(profile, contains('if (profile.isEmployee)'));
     expect(profile, contains('EmployeeWorkTaskHistoryScreen'));
-    expect(scope, contains('final WidgetBuilder? rootHeaderTrailingBuilder;'));
-    expect(scope, contains('resolveRootHeaderTrailing'));
-    expect(page, contains('PlatformTabOverrideScope.resolveRootHeaderTrailing'));
-    expect(page, contains('headerTrailing ?? scopedTrailing'));
+    expect(historyIndex, greaterThanOrEqualTo(0));
+    expect(settingsIndex, greaterThan(historyIndex));
   });
 
-  test('вложенные страницы не дублируют кнопку профиля', () {
-    final page = File(pagePath).readAsStringSync();
+  test('предпросмотр сохраняет возврат к руководителю', () {
+    final main = File(mainPath).readAsStringSync();
 
-    expect(page, contains('final canPop = navigator?.canPop() ?? false;'));
-    expect(page, contains('final scopedTrailing = canPop'));
-    expect(
-      page,
-      contains('final effectiveShowBackButton = showBackButton || canPop;'),
-    );
-  });
-
-  test('предпросмотр сотрудника не скрывает профиль', () {
-    final wrapper = File(wrapperPath).readAsStringSync();
-
-    expect(wrapper, contains('widget.profile.isRolePreview'));
-    expect(wrapper, contains("widget.profile.copyWith(actualRole: 'employee')"));
-    expect(wrapper, contains('openProfile(context, contentProfile)'));
-    expect(wrapper, isNot(contains('RolePreviewController.showAdmin')));
-    expect(wrapper, isNot(contains("'Вернуться к руководителю'")));
+    expect(main, contains("label: const Text('К руководителю')"));
+    expect(main, contains('RolePreviewController.showAdmin'));
   });
 }
