@@ -24,7 +24,10 @@ void main() {
     ).readAsStringSync();
     final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
-    expect(mainSource, contains('darkTheme: AppDarkTheme.theme'));
+    expect(
+      mainSource,
+      contains('darkTheme: AppTypography.apply(AppDarkTheme.theme)'),
+    );
     expect(mainSource, contains('themeMode: themeController.themeMode'));
     expect(mainSource, contains('AppThemeController.instance.initialize()'));
 

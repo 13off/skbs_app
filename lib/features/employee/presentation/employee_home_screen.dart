@@ -9,6 +9,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_shift_runtime.dart';
 import '../data/employee_task_cabinet_repository.dart';
+import 'premium_round_work_button.dart';
 
 class EmployeeHomeScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -215,7 +216,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                 child: Column(
                   children: [
                     Center(
-                      child: _RoundWorkButton(
+                      child: PremiumRoundWorkButton(
                         active: active,
                         loading: starting,
                         startedAt: startedAt,
@@ -263,181 +264,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       },
     );
   }
-}
-
-class _RoundWorkButton extends StatelessWidget {
-  final bool active;
-  final bool loading;
-  final DateTime? startedAt;
-  final VoidCallback? onPressed;
-
-  const _RoundWorkButton({
-    required this.active,
-    required this.loading,
-    required this.startedAt,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final dark = theme.brightness == Brightness.dark;
-    final width = MediaQuery.sizeOf(context).width;
-    final dimension = width < 390 ? 244.0 : 272.0;
-    final foreground = active ? scheme.onSurface : Colors.white;
-
-    return Semantics(
-      button: !active,
-      label: active ? 'Рабочий день идёт' : 'Начать работу',
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 320),
-        width: dimension,
-        height: dimension,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: active
-                ? (dark
-                    ? const [Color(0xFF38434D), Color(0xFF171E25)]
-                    : const [Color(0xFFFFFFFF), Color(0xFFDDE4EB)])
-                : const [Color(0xFF43A9F4), Color(0xFF075A9F)],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: dark ? 0.16 : 0.72),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: active
-                  ? Colors.black.withValues(alpha: dark ? 0.38 : 0.16)
-                  : scheme.primary.withValues(alpha: dark ? 0.52 : 0.38),
-              blurRadius: active ? 38 : 54,
-              spreadRadius: active ? -12 : -8,
-              offset: const Offset(0, 24),
-            ),
-            BoxShadow(
-              color: Colors.white.withValues(alpha: active ? 0.10 : 0.28),
-              blurRadius: 16,
-              spreadRadius: -8,
-              offset: const Offset(-8, -10),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onPressed,
-            customBorder: const CircleBorder(),
-            child: Ink(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  center: const Alignment(-0.35, -0.45),
-                  radius: 1.15,
-                  colors: active
-                      ? (dark
-                          ? const [Color(0xFF303B45), Color(0xFF131A20)]
-                          : const [Color(0xFFF8FAFC), Color(0xFFD4DDE5)])
-                      : const [Color(0xFF359DE9), Color(0xFF07528F)],
-                ),
-                border: Border.all(
-                  color: Colors.white.withValues(
-                    alpha: active ? (dark ? 0.10 : 0.78) : 0.22,
-                  ),
-                  width: 1.2,
-                ),
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned(
-                    left: 42,
-                    right: 42,
-                    top: 22,
-                    child: Container(
-                      height: 2,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withValues(alpha: 0.48),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(30),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (loading)
-                          const SizedBox.square(
-                            dimension: 48,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 4,
-                              color: Colors.white,
-                            ),
-                          )
-                        else
-                          Icon(
-                            active
-                                ? Icons.work_history_rounded
-                                : Icons.play_arrow_rounded,
-                            size: active ? 58 : 72,
-                            color: foreground,
-                          ),
-                        const SizedBox(height: 14),
-                        Text(
-                          loading
-                              ? 'Запускаем…'
-                              : active
-                                  ? 'Работа идёт'
-                                  : 'Начать работу',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: foreground,
-                            fontSize: width < 390 ? 22 : 24,
-                            height: 1.05,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.55,
-                          ),
-                        ),
-                        if (active && startedAt != null) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            'с ${formatTime(startedAt!)}',
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String formatTime(DateTime value) {
-  final hour = value.hour.toString().padLeft(2, '0');
-  final minute = value.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
 }
 
 String employeeLocationErrorMessage(Object? value) {

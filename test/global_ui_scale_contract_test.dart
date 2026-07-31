@@ -16,8 +16,10 @@ void main() {
     expect(main, contains('builder: (context, child) => AppScaleViewport('));
     expect(main, contains('scale: themeController.uiScale'));
     expect(controller, contains("_scalePreferenceKey = 'app_ui_scale'"));
-    expect(controller, contains('defaultUiScale = 0.90'));
+    expect(controller, contains('defaultUiScale = 1.00'));
     expect(controller, contains('preferences.setDouble(_scalePreferenceKey'));
+    expect(viewport, contains('_designCalibration = 0.80'));
+    expect(viewport, contains('selectedScale * _designCalibration'));
     expect(viewport, contains('Transform.scale('));
     expect(viewport, contains('MediaQuery('));
     expect(viewport, contains('OverflowBox('));

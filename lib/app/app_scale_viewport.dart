@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Масштабирует весь Flutter-интерфейс, а не только текст.
 ///
-/// Обратный логический размер позволяет при масштабе меньше 100% показать
-/// больше рабочего пространства, сохранив корректные hit-test, диалоги и
-/// системные отступы внутри приложения.
+/// Значение 100% соответствует новому базовому размеру интерфейса. Визуально
+/// это тот же размер, который до перекалибровки показывался на 80%.
+/// Остальные значения остаются относительными: 80% действительно уменьшает
+/// интерфейс ещё на 20%, а 120% увеличивает новую базу на 20%.
 class AppScaleViewport extends StatelessWidget {
   final double scale;
   final Widget child;
@@ -14,6 +15,8 @@ class AppScaleViewport extends StatelessWidget {
     required this.scale,
     required this.child,
   });
+
+  static const double _designCalibration = 0.80;
 
   EdgeInsets _scaledInsets(EdgeInsets value, double effectiveScale) {
     return EdgeInsets.fromLTRB(
@@ -27,9 +30,8 @@ class AppScaleViewport extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final effectiveScale = scale.clamp(0.80, 1.20).toDouble();
-
-    if ((effectiveScale - 1).abs() < 0.001) return child;
+    final selectedScale = scale.clamp(0.80, 1.20).toDouble();
+    final effectiveScale = selectedScale * _designCalibration;
 
     return ClipRect(
       child: OverflowBox(

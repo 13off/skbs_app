@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app_dark_theme.dart';
 import 'app/app_scale_viewport.dart';
 import 'app/app_theme.dart';
+import 'app/app_typography.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'app/theme_controller.dart';
@@ -158,8 +159,10 @@ class _SkbsAppState extends State<SkbsApp> {
           navigatorKey: appNavigatorKey,
           navigatorObservers: [AppWebHistoryObserver()],
           scrollBehavior: const PremiumScrollBehavior(),
-          theme: PremiumDepthTheme.apply(AppTheme.light),
-          darkTheme: AppDarkTheme.theme,
+          theme: AppTypography.apply(
+            PremiumDepthTheme.apply(AppTheme.light),
+          ),
+          darkTheme: AppTypography.apply(AppDarkTheme.theme),
           themeMode: themeController.themeMode,
           themeAnimationDuration: const Duration(milliseconds: 220),
           themeAnimationCurve: Curves.easeOutCubic,

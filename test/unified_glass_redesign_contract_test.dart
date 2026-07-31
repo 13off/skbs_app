@@ -26,11 +26,16 @@ void main() {
     final home = File(
       'lib/features/employee/presentation/employee_home_screen.dart',
     ).readAsStringSync();
+    final button = File(
+      'lib/features/employee/presentation/premium_round_work_button.dart',
+    ).readAsStringSync();
 
     expect(home, contains('await runtime.start(employeeId)'));
     expect(home, contains('await runtime.finish()'));
-    expect(home, contains("label: active ? 'Рабочий день идёт' : 'Начать работу'"));
-    expect(home, contains('dimension = width < 390 ? 244.0 : 272.0'));
+    expect(home, contains('PremiumRoundWorkButton('));
+    expect(button, contains("label: widget.active ? 'Рабочий день идёт' : 'Начать работу'"));
+    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
+    expect(button, contains('pulseController.repeat(reverse: true)'));
     expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
   });
 
@@ -48,6 +53,7 @@ void main() {
     expect(profile, contains('width: 104'));
     expect(profile, contains("'История задач'"));
     expect(profile, contains('Icons.settings_rounded, size: 27'));
+    expect(profile, contains('textWidthBasis: TextWidthBasis.parent'));
     expect(profile, isNot(contains('Сотрудник · просмотр руководителя')));
     expect(reports, contains('Widget routesButton()'));
     expect(reports, isNot(contains('Единый центр аналитики руководителя')));

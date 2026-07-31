@@ -160,68 +160,87 @@ class _EmployeeIdentityProfileScreenState
           radius: 32,
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 104,
-                height: 104,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF4AABF2), Color(0xFF135A94)],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.34),
-                      blurRadius: 34,
-                      spreadRadius: -10,
-                      offset: const Offset(0, 18),
+              Center(
+                child: Container(
+                  width: 104,
+                  height: 104,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4AABF2), Color(0xFF135A94)],
                     ),
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      blurRadius: 12,
-                      spreadRadius: -6,
-                      offset: const Offset(-5, -6),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      width: 1.5,
                     ),
-                  ],
-                ),
-                child: Text(
-                  initials(identity.fullName),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.8,
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.34),
+                        blurRadius: 34,
+                        spreadRadius: -10,
+                        offset: const Offset(0, 18),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        blurRadius: 12,
+                        spreadRadius: -6,
+                        offset: const Offset(-5, -6),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    initials(identity.fullName),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.8,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 22),
-              Text(
-                identity.fullName,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 24,
-                  height: 1.08,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.65,
+              Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      identity.fullName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      textWidthBasis: TextWidthBasis.parent,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 24,
+                        height: 1.08,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.55,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               if (identity.profession.trim().isNotEmpty) ...[
                 const SizedBox(height: 9),
-                Text(
-                  identity.profession.trim(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    identity.profession.trim(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

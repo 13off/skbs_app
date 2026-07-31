@@ -31,6 +31,9 @@ void main() {
     final home = File(
       'lib/features/employee/presentation/employee_home_screen.dart',
     ).readAsStringSync();
+    final workButton = File(
+      'lib/features/employee/presentation/premium_round_work_button.dart',
+    ).readAsStringSync();
     final screen = File(
       'lib/features/employee/presentation/employee_simple_work_screen.dart',
     ).readAsStringSync();
@@ -42,7 +45,8 @@ void main() {
     expect(runtime, contains('foregroundNotificationConfig'));
     expect(runtime, contains('appendRoutePoints'));
     expect(runtime, contains('finishShift'));
-    expect(home, contains("'Начать работу'"));
+    expect(home, contains('PremiumRoundWorkButton('));
+    expect(workButton, contains("'Начать работу'"));
     expect(home, contains("'Завершить рабочий день'"));
     expect(screen, contains('EmployeeWorkTaskHistoryScreen'));
     expect(edge, contains('action === "start_shift"'));
