@@ -432,7 +432,7 @@ class EmployeeShiftRuntime {
 
     try {
       return await Geolocator.getCurrentPosition(
-        locationSettings: const WebSettings(
+        locationSettings: WebSettings(
           accuracy: LocationAccuracy.high,
           maximumAge: Duration(seconds: 30),
           timeLimit: Duration(seconds: 45),
@@ -440,7 +440,7 @@ class EmployeeShiftRuntime {
       );
     } on TimeoutException {
       return Geolocator.getCurrentPosition(
-        locationSettings: const WebSettings(
+        locationSettings: WebSettings(
           accuracy: LocationAccuracy.medium,
           maximumAge: Duration(minutes: 1),
           timeLimit: Duration(seconds: 30),
@@ -451,7 +451,7 @@ class EmployeeShiftRuntime {
 
   LocationSettings _streamSettings() {
     if (kIsWeb) {
-      return const WebSettings(
+      return WebSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 20,
         maximumAge: Duration(seconds: 30),
