@@ -25,7 +25,7 @@ void main() {
     expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
-  test('одна объёмная кнопка запускает и завершает рабочий день', () {
+  test('одна премиальная кнопка запускает и завершает рабочий день', () {
     final home = File(homePath).readAsStringSync();
     final button = File(workButtonPath).readAsStringSync();
 
@@ -40,16 +40,19 @@ void main() {
       button,
       contains("return widget.active ? 'Завершить работу' : 'Начать работу';"),
     );
-    expect(button, contains('dimension = width < 390 ? 232.0 : 256.0'));
+    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
     expect(button, contains('idlePulseController.repeat(reverse: true)'));
     expect(button, contains('shazamWaveController.repeat('));
     expect(button, contains('class _ShazamWaveRing'));
-    expect(button, contains('staggeredWave(waveValue, 0.22)'));
-    expect(button, contains('staggeredWave(waveValue, 0.44)'));
-    expect(button, contains('Positioned.fill('));
-    expect(button, contains('AnimatedSlide('));
+    expect(button, contains('staggeredWave(waveValue, 0.16)'));
+    expect(button, contains('staggeredWave(waveValue, 0.32)'));
+    expect(button, contains('staggeredWave(waveValue, 0.48)'));
+    expect(button, contains('math.sin(waveValue * math.pi * 14)'));
+    expect(button, contains('SweepGradient('));
     expect(button, contains('Icons.stop_rounded'));
-    expect(button, contains('play_arrow_rounded'));
+    expect(button, contains('Icons.construction_rounded'));
+    expect(button, isNot(contains('play_arrow_rounded')));
+    expect(button, isNot(contains('CircularProgressIndicator')));
     expect(button, contains('AnimatedSwitcher('));
     expect(button, contains('key: ValueKey<String>(actionLabel)'));
   });
