@@ -521,7 +521,7 @@ class _EmployeeWorkTaskDetailsScreenState
                     const SizedBox(height: 18),
                     if (!workDayActive && !task.isCompleted)
                       const Text(
-                        'Сначала начните рабочий день на странице задач.',
+                        'Сначала начните рабочий день на главной.',
                         style: TextStyle(fontWeight: FontWeight.w800),
                       )
                     else if (canStartTask)
