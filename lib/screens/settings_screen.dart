@@ -337,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           const SizedBox(height: 8),
           sectionTitle('Приложение и рабочее пространство'),
-          if (PwaInstallService.isSupported)
+          if (PwaInstallService.isSupported && !profile.isEmployee)
             actionTile(
               icon: Icons.install_desktop_rounded,
               title: 'Установить AppСтрой',
