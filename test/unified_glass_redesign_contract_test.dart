@@ -37,10 +37,16 @@ void main() {
     expect(home, contains('await runtime.finish()'));
     expect(home, contains('PremiumRoundWorkButton('));
     expect(home, isNot(contains('FilledButton.tonalIcon(')));
-    expect(button, contains("widget.active ? 'Завершить работу' : 'Начать работу'"));
+    expect(
+      button,
+      contains("widget.active ? 'Завершить работу' : 'Начать работу'"),
+    );
     expect(button, contains('dimension = width < 390 ? 232.0 : 256.0'));
     expect(button, contains('idlePulseController.repeat(reverse: true)'));
-    expect(button, contains('edgePulseController.forward(from: 0)'));
+    expect(button, contains('shazamWaveController.repeat('));
+    expect(button, contains('class _ShazamWaveRing'));
+    expect(button, contains('AnimatedSlide('));
+    expect(button, contains('Positioned.fill('));
     expect(button, contains('AnimatedSwitcher('));
     expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
   });
