@@ -29,22 +29,22 @@ extension _TimesheetView on _TimesheetScreenState {
                 Expanded(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
+                      constraints: const BoxConstraints(maxWidth: 860),
                       child: Builder(
                         builder: (context) {
                           final leading = <Widget>[
                             buildPageHeader(),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 18),
                             buildDatePanel(),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             buildWorkedSummaryPanel(
                               visibleEmployees: visibleEmployees,
                             ),
-                            const SizedBox(height: 14),
-                            buildSearch(),
-                            const SizedBox(height: 14),
-                            buildQuickActions(visibleEmployees),
                             const SizedBox(height: 16),
+                            buildSearch(),
+                            const SizedBox(height: 16),
+                            buildQuickActions(visibleEmployees),
+                            const SizedBox(height: 18),
                             if (isAttendanceLoading || isSaving)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 10),
@@ -81,7 +81,7 @@ extension _TimesheetView on _TimesheetScreenState {
                             // Flutter 3.44 deprecates this field before exposing its replacement.
                             // ignore: deprecated_member_use
                             cacheExtent: 700,
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];
@@ -99,17 +99,13 @@ extension _TimesheetView on _TimesheetScreenState {
                 ),
                 SafeArea(
                   top: false,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-                    decoration: BoxDecoration(
-                      color: AppAdaptivePalette.surface,
-                      border: Border(
-                        top: BorderSide(color: AppAdaptivePalette.border),
-                      ),
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
+                  minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: PremiumWorkCard(
+                        radius: 24,
+                        padding: const EdgeInsets.all(10),
                         child: PremiumActionButton(
                           label: hasUnsavedChanges
                               ? 'Сохранить изменения'
