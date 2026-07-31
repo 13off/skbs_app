@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../role_preview/role_preview_controller.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
+import '../data/employee_task_cabinet_repository.dart';
 import 'employee_home_screen.dart';
 import 'employee_tasks_screen.dart';
 
@@ -17,11 +21,13 @@ import 'employee_tasks_screen.dart';
 class EmployeePlatformWithPassport extends StatefulWidget {
   final AppUserProfile profile;
   final String initialEmployeeId;
+  final String initialEmployeeName;
 
   const EmployeePlatformWithPassport({
     super.key,
     required this.profile,
     this.initialEmployeeId = '',
+    this.initialEmployeeName = '',
   });
 
   @override
@@ -33,6 +39,8 @@ class _EmployeePlatformWithPassportState
     extends State<EmployeePlatformWithPassport> {
   late final PersistentTabController controller;
   late final ValueNotifier<String> selectedEmployeeId;
+  late final ValueNotifier<String> selectedEmployeeName;
+  int identityRequestToken = 0;
 
   static const items = <ProfessionalBottomNavigationItem>[
     ProfessionalBottomNavigationItem(
@@ -59,22 +67,63 @@ class _EmployeePlatformWithPassportState
     selectedEmployeeId = ValueNotifier<String>(
       widget.initialEmployeeId.trim(),
     );
+    selectedEmployeeName = ValueNotifier<String>(
+      widget.initialEmployeeName.trim(),
+    );
+    unawaited(refreshIdentity());
   }
 
   @override
   void didUpdateWidget(covariant EmployeePlatformWithPassport oldWidget) {
     super.didUpdateWidget(oldWidget);
     final nextEmployeeId = widget.initialEmployeeId.trim();
-    if (nextEmployeeId.isNotEmpty &&
-        nextEmployeeId != selectedEmployeeId.value) {
-      selectedEmployeeId.value = nextEmployeeId;
+    final nextEmployeeName = widget.initialEmployeeName.trim();
+    final identityChanged = nextEmployeeId.isNotEmpty &&
+        nextEmployeeId != selectedEmployeeId.value;
+    if (identityChanged) selectedEmployeeId.value = nextEmployeeId;
+    if (nextEmployeeName.isNotEmpty &&
+        nextEmployeeName != selectedEmployeeName.value) {
+      selectedEmployeeName.value = nextEmployeeName;
+    }
+    if (identityChanged) unawaited(refreshIdentity());
+  }
+
+  Future<void> refreshIdentity() async {
+    final token = ++identityRequestToken;
+    try {
+      final data = await EmployeeTaskCabinetRepository.fetch(
+        employeeId: selectedEmployeeId.value,
+      );
+      if (!mounted || token != identityRequestToken) return;
+      final employeeId = data.profile.employeeId.trim();
+      final employeeName = data.profile.fullName.trim();
+      if (employeeId.isNotEmpty && employeeId != selectedEmployeeId.value) {
+        selectedEmployeeId.value = employeeId;
+      }
+      if (employeeName.isNotEmpty && employeeName != selectedEmployeeName.value) {
+        selectedEmployeeName.value = employeeName;
+      }
+
+      final preview = RolePreviewController.state.value;
+      if (preview.isEmployeeMode && preview.employeeId == employeeId) {
+        if (preview.employeeName != employeeName) {
+          RolePreviewController.showEmployee(
+            employeeId: employeeId,
+            employeeName: employeeName,
+          );
+        }
+      }
+    } catch (_) {
+      // Рабочие экраны покажут точную ошибку загрузки сами.
     }
   }
 
   @override
   void dispose() {
+    identityRequestToken++;
     controller.dispose();
     selectedEmployeeId.dispose();
+    selectedEmployeeName.dispose();
     super.dispose();
   }
 
@@ -99,7 +148,17 @@ class _EmployeePlatformWithPassportState
               profile: contentProfile,
               selectedEmployeeId: selectedEmployeeId,
             ),
-          _ => ProfileScreen(profile: contentProfile),
+          _ => ValueListenableBuilder<String>(
+              valueListenable: selectedEmployeeName,
+              builder: (context, employeeName, _) {
+                return ProfileScreen(
+                  profile: contentProfile,
+                  displayFullNameOverride: employeeName,
+                  selectedEmployeeId: selectedEmployeeId,
+                  lockIdentityEditing: employeeName.trim().isNotEmpty,
+                );
+              },
+            ),
         };
       },
     );
