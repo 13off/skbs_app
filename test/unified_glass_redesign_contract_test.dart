@@ -18,11 +18,14 @@ void main() {
     expect(page, contains('if (cleanSubtitle.isNotEmpty)'));
     expect(page, contains('alignment: Alignment.centerRight'));
     expect(premium, contains('pressedScale: 0.965'));
-    expect(navigation, contains("key: const ValueKey('professional-bottom-navigation')"));
+    expect(
+      navigation,
+      contains("key: const ValueKey('professional-bottom-navigation')"),
+    );
     expect(navigation, contains('blurSigma: isDesktop ? 20 : 16'));
   });
 
-  test('главная сотрудника остаётся функциональной без поясняющего мусора', () {
+  test('главная сотрудника остаётся функциональной с одной рабочей кнопкой', () {
     final home = File(
       'lib/features/employee/presentation/employee_home_screen.dart',
     ).readAsStringSync();
@@ -33,9 +36,12 @@ void main() {
     expect(home, contains('await runtime.start(employeeId)'));
     expect(home, contains('await runtime.finish()'));
     expect(home, contains('PremiumRoundWorkButton('));
-    expect(button, contains("label: widget.active ? 'Рабочий день идёт' : 'Начать работу'"));
-    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
-    expect(button, contains('pulseController.repeat(reverse: true)'));
+    expect(home, isNot(contains('FilledButton.tonalIcon(')));
+    expect(button, contains("widget.active ? 'Завершить работу' : 'Начать работу'"));
+    expect(button, contains('dimension = width < 390 ? 232.0 : 256.0'));
+    expect(button, contains('idlePulseController.repeat(reverse: true)'));
+    expect(button, contains('edgePulseController.forward(from: 0)'));
+    expect(button, contains('AnimatedSwitcher('));
     expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
   });
 
