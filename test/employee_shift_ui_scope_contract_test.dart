@@ -7,6 +7,9 @@ void main() {
     final shell = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
+    final home = File(
+      'lib/features/employee/presentation/employee_home_screen.dart',
+    ).readAsStringSync();
     final work = File(
       'lib/features/employee/presentation/employee_simple_work_screen.dart',
     ).readAsStringSync();
@@ -16,7 +19,6 @@ void main() {
       "label: 'Табель'",
       "label: 'Выплаты'",
       "label: 'Документы'",
-      "label: 'Профиль'",
       "label: 'Команда'",
       'EmployeeTeamTabScreen',
       'EmployeeProfessionalPassport',
@@ -28,12 +30,15 @@ void main() {
       'Icons.gps_fixed',
       'Настроить точку объекта',
     ]) {
-      expect('$shell\n$work', isNot(contains(forbidden)), reason: forbidden);
+      expect('$shell\n$home\n$work', isNot(contains(forbidden)), reason: forbidden);
     }
 
-    expect(work, contains("label: 'Начать работу'"));
-    expect(work, contains("'Работа идёт'"));
-    expect(work, contains("'Завершить рабочий день'"));
+    expect(shell, contains("label: 'Главная'"));
+    expect(shell, contains("label: 'Задачи'"));
+    expect(shell, contains("label: 'Профиль'"));
+    expect(home, contains("'Начать работу'"));
+    expect(home, contains("'Работа идёт'"));
+    expect(home, contains("'Завершить рабочий день'"));
     expect(work, contains("label: 'Начать выполнение'"));
     expect(main, contains('if (profile.isEmployee) return content;'));
   });
