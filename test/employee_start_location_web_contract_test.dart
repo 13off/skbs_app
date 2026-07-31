@@ -25,11 +25,12 @@ void main() {
     expect(home, contains('TimeoutException'));
   });
 
-  test('для iPhone показана понятная инструкция по разрешению', () {
+  test('ошибка геопозиции не содержит обучающей инструкции', () {
     final home = File(homePath).readAsStringSync();
 
-    expect(home, contains('На iPhone разрешите геопозицию'));
-    expect(home, contains('Конфиденциальность и безопасность'));
-    expect(home, contains('Службы геолокации'));
+    expect(home, contains('content: Text(text)'));
+    expect(home, isNot(contains('На iPhone разрешите геопозицию')));
+    expect(home, isNot(contains('Конфиденциальность и безопасность')));
+    expect(home, isNot(contains('Службы геолокации')));
   });
 }
