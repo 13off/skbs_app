@@ -3,24 +3,32 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const workScreenPath =
+  const legacyWorkScreenPath =
       'lib/features/employee/presentation/employee_work_cabinet_screen.dart';
   const wrapperPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
+  const homePath =
+      'lib/features/employee/presentation/employee_home_screen.dart';
+  const tasksPath =
+      'lib/features/employee/presentation/employee_tasks_screen.dart';
+  const profilePath = 'lib/screens/profile_screen.dart';
   const repositoryPath =
       'lib/features/employee/data/employee_cabinet_repository.dart';
   const functionPath = 'supabase/functions/employee-cabinet/index.ts';
 
-  test('панель показывает активные задачи и начало смены', () {
-    final screen = File(workScreenPath).readAsStringSync();
+  test('панель показывает главную начало работы и активные задачи', () {
+    final legacy = File(legacyWorkScreenPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
+    final home = File(homePath).readAsStringSync();
+    final tasks = File(tasksPath).readAsStringSync();
 
-    expect(screen, contains('class _ShiftStatusCard'));
-    expect(screen, contains("'Активных задач пока нет'"));
-    expect(screen, contains("label: 'Начать смену'"));
-    expect(screen, contains('EmployeeWorkTaskDetailsScreen'));
-    expect(screen, isNot(contains("label: 'Нет активной задачи'")));
-    expect(wrapper, contains('EmployeeWorkTasksScreen'));
+    expect(wrapper, contains('EmployeeHomeScreen'));
+    expect(wrapper, contains('EmployeeTasksScreen'));
+    expect(home, contains("'Начать работу'"));
+    expect(home, contains('runtime.start(employeeId)'));
+    expect(tasks, contains("'Активных задач пока нет'"));
+    expect(tasks, contains('EmployeeWorkTaskDetailsScreen'));
+    expect(legacy, isNot(contains("label: 'Нет активной задачи'")));
   });
 
   test('режим руководителя использует единый серверный выбор без подписи', () {
@@ -32,20 +40,22 @@ void main() {
     expect(workActions, contains('resolveSelection()'));
     expect(workActions, contains("'resolve_selection'"));
     expect(wrapper, isNot(contains('Предпросмотр:')));
-    expect(wrapper, contains('EmployeeWorkTasksScreen'));
+    expect(wrapper, contains("actualRole: 'employee'"));
+    expect(wrapper, contains('EmployeeHomeScreen'));
+    expect(wrapper, contains('EmployeeTasksScreen'));
   });
 
-  test('задачи и история разделены на две вкладки', () {
-    final screen = File(workScreenPath).readAsStringSync();
+  test('история задач открывается из профиля отдельно от задач', () {
+    final tasks = File(tasksPath).readAsStringSync();
     final wrapper = File(wrapperPath).readAsStringSync();
+    final profile = File(profilePath).readAsStringSync();
 
     expect(wrapper, contains("label: 'Задачи'"));
-    expect(wrapper, contains("label: 'История задач'"));
-    expect(wrapper, contains('EmployeeWorkTaskHistoryScreen'));
-    expect(screen, contains('showDatePicker('));
-    expect(screen, contains('ExpansionTile('));
-    expect(screen, contains('onTap: () => _openTask'));
-    expect(screen, isNot(contains('SegmentedButton<bool>')));
+    expect(wrapper, contains("label: 'Профиль'"));
+    expect(profile, contains("title: 'История задач'"));
+    expect(profile, contains('EmployeeWorkTaskHistoryScreen'));
+    expect(tasks, contains('EmployeeWorkTaskDetailsScreen'));
+    expect(tasks, isNot(contains('showDatePicker(')));
   });
 
   test('сотрудник получает фотографии только назначенных ему задач', () {
@@ -62,11 +72,11 @@ void main() {
   });
 
   test('панель сотрудника не использует общий редактор прораба', () {
-    final screen = File(workScreenPath).readAsStringSync();
+    final tasks = File(tasksPath).readAsStringSync();
 
-    expect(screen, isNot(contains("import '../../../screens/task_details_screen.dart'")));
-    expect(screen, isNot(contains('TaskRepository.updateTask')));
-    expect(screen, isNot(contains('saveTaskAssignees')));
-    expect(screen, isNot(contains(".from('tasks')")));
+    expect(tasks, isNot(contains("import '../../../screens/task_details_screen.dart'")));
+    expect(tasks, isNot(contains('TaskRepository.updateTask')));
+    expect(tasks, isNot(contains('saveTaskAssignees')));
+    expect(tasks, isNot(contains(".from('tasks')")));
   });
 }
