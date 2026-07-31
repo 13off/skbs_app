@@ -8,16 +8,16 @@ void main() {
   const scopePath = 'lib/navigation/platform_tab_override_scope.dart';
   const pagePath = 'lib/widgets/app_page.dart';
 
-  test('личный профиль временно убран из упрощённой панели сотрудника', () {
+  test('личный профиль доступен из шапки корневых страниц сотрудника', () {
     final wrapper = File(wrapperPath).readAsStringSync();
     final scope = File(scopePath).readAsStringSync();
     final page = File(pagePath).readAsStringSync();
 
     expect(wrapper, contains("label: 'Задачи'"));
     expect(wrapper, contains("label: 'История задач'"));
-    expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
-    expect(wrapper, isNot(contains("'Мой профиль'")));
-    expect(wrapper, isNot(contains('ProfileScreen(')));
+    expect(wrapper, contains('rootHeaderTrailingBuilder:'));
+    expect(wrapper, contains("'Мой профиль'"));
+    expect(wrapper, contains('ProfileScreen(profile: widget.profile)'));
     expect(scope, contains('final WidgetBuilder? rootHeaderTrailingBuilder;'));
     expect(scope, contains('resolveRootHeaderTrailing'));
     expect(page, contains('PlatformTabOverrideScope.resolveRootHeaderTrailing'));
@@ -29,14 +29,17 @@ void main() {
 
     expect(page, contains('final canPop = navigator?.canPop() ?? false;'));
     expect(page, contains('final scopedTrailing = canPop'));
-    expect(page, contains('final effectiveShowBackButton = showBackButton || canPop;'));
+    expect(
+      page,
+      contains('final effectiveShowBackButton = showBackButton || canPop;'),
+    );
   });
 
-  test('в упрощённой панели нет технического значка предпросмотра', () {
+  test('предпросмотр сотрудника возвращает руководителя без выхода', () {
     final wrapper = File(wrapperPath).readAsStringSync();
 
-    expect(wrapper, isNot(contains('Icons.admin_panel_settings_outlined')));
-    expect(wrapper, isNot(contains("'Вернуться к руководителю'")));
-    expect(wrapper, isNot(contains('RolePreviewController.showAdmin')));
+    expect(wrapper, contains('Icons.admin_panel_settings_outlined'));
+    expect(wrapper, contains("'Вернуться к руководителю'"));
+    expect(wrapper, contains('RolePreviewController.showAdmin'));
   });
 }
