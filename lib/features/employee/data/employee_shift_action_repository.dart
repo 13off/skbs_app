@@ -57,6 +57,46 @@ class EmployeeLocationPoint {
       };
 }
 
+class EmployeeTrackingGap {
+  final String id;
+  final String shiftId;
+  final String employeeId;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final String reason;
+  final String details;
+  final bool inferred;
+
+  const EmployeeTrackingGap({
+    required this.id,
+    required this.shiftId,
+    required this.employeeId,
+    required this.startedAt,
+    required this.endedAt,
+    required this.reason,
+    required this.details,
+    this.inferred = false,
+  });
+
+  Duration get duration => endedAt.difference(startedAt);
+
+  factory EmployeeTrackingGap.fromJson(Map<String, dynamic> json) {
+    final start = DateTime.tryParse(_text(json['started_at']))?.toLocal() ??
+        DateTime.now();
+    final end =
+        DateTime.tryParse(_text(json['ended_at']))?.toLocal() ?? start;
+    return EmployeeTrackingGap(
+      id: _text(json['id']),
+      shiftId: _text(json['shift_id']),
+      employeeId: _text(json['employee_id']),
+      startedAt: start,
+      endedAt: end.isBefore(start) ? start : end,
+      reason: _text(json['reason']),
+      details: _text(json['details']),
+    );
+  }
+}
+
 class EmployeeWorkShift {
   final String id;
   final String employeeId;
@@ -139,19 +179,49 @@ class EmployeeShiftState {
 }
 
 class EmployeeRouteDay {
+  static const Duration inferredGapThreshold = Duration(minutes: 4);
+
   final String employeeId;
   final DateTime workDate;
   final List<EmployeeWorkShift> shifts;
   final List<EmployeeLocationPoint> points;
+  final List<EmployeeTrackingGap> gaps;
 
   const EmployeeRouteDay({
     required this.employeeId,
     required this.workDate,
     required this.shifts,
     required this.points,
+    this.gaps = const <EmployeeTrackingGap>[],
   });
 
   bool get isEmpty => shifts.isEmpty && points.isEmpty;
+
+  List<EmployeeTrackingGap> get allGaps {
+    final result = List<EmployeeTrackingGap>.from(gaps);
+    for (final inferredGap in _inferGaps()) {
+      final overlapsRecorded = result.any(
+        (recorded) =>
+            recorded.startedAt.isBefore(inferredGap.endedAt) &&
+            inferredGap.startedAt.isBefore(recorded.endedAt),
+      );
+      if (!overlapsRecorded) result.add(inferredGap);
+    }
+    result.sort((left, right) => left.startedAt.compareTo(right.startedAt));
+    return result;
+  }
+
+  EmployeeRouteDay copyWith({
+    List<EmployeeTrackingGap>? gaps,
+  }) {
+    return EmployeeRouteDay(
+      employeeId: employeeId,
+      workDate: workDate,
+      shifts: shifts,
+      points: points,
+      gaps: gaps ?? this.gaps,
+    );
+  }
 
   factory EmployeeRouteDay.fromJson(Map<String, dynamic> json) {
     return EmployeeRouteDay(
@@ -173,6 +243,69 @@ class EmployeeRouteDay {
             ),
           )
           .toList(growable: false),
+    );
+  }
+
+  List<EmployeeTrackingGap> _inferGaps() {
+    final result = <EmployeeTrackingGap>[];
+    final now = DateTime.now();
+    final isToday = workDate.year == now.year &&
+        workDate.month == now.month &&
+        workDate.day == now.day;
+
+    for (final shift in shifts) {
+      final startedAt = shift.startedAt;
+      if (startedAt == null) continue;
+      final finishedAt = shift.endedAt ?? (shift.isActive && isToday ? now : null);
+      if (finishedAt == null || !finishedAt.isAfter(startedAt)) continue;
+
+      final shiftPoints = points.where((point) {
+        if (point.shiftId.isNotEmpty) return point.shiftId == shift.id;
+        return !point.recordedAt.isBefore(startedAt) &&
+            !point.recordedAt.isAfter(finishedAt);
+      }).toList()
+        ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
+
+      var previous = startedAt;
+      for (final point in shiftPoints) {
+        _appendInferredGap(
+          result,
+          shift: shift,
+          start: previous,
+          end: point.recordedAt,
+        );
+        if (point.recordedAt.isAfter(previous)) previous = point.recordedAt;
+      }
+      _appendInferredGap(
+        result,
+        shift: shift,
+        start: previous,
+        end: finishedAt,
+      );
+    }
+    return result;
+  }
+
+  void _appendInferredGap(
+    List<EmployeeTrackingGap> target, {
+    required EmployeeWorkShift shift,
+    required DateTime start,
+    required DateTime end,
+  }) {
+    if (end.difference(start) < inferredGapThreshold) return;
+    target.add(
+      EmployeeTrackingGap(
+        id: 'inferred-${shift.id}-${start.millisecondsSinceEpoch}',
+        shiftId: shift.id,
+        employeeId: employeeId,
+        startedAt: start,
+        endedAt: end,
+        reason: 'no_coordinates',
+        details:
+            'Координаты не поступали. Возможные причины: приложение было закрыто, '
+            'геолокация отключена или Android ограничил фоновую работу.',
+        inferred: true,
+      ),
     );
   }
 }
@@ -251,6 +384,28 @@ class EmployeeShiftActionRepository {
     );
   }
 
+  static Future<void> recordTrackingGap({
+    required String employeeId,
+    required String shiftId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    String details = '',
+  }) async {
+    if (!endedAt.isAfter(startedAt)) return;
+    await _client.rpc(
+      'record_employee_tracking_gap',
+      params: <String, dynamic>{
+        'p_employee_id': employeeId,
+        'p_shift_id': shiftId,
+        'p_started_at': startedAt.toUtc().toIso8601String(),
+        'p_ended_at': endedAt.toUtc().toIso8601String(),
+        'p_reason': reason,
+        'p_details': details,
+      },
+    );
+  }
+
   static Future<EmployeeWorkShift> finishShift({
     required String employeeId,
     required EmployeeLocationPoint point,
@@ -274,7 +429,39 @@ class EmployeeShiftActionRepository {
       employeeId: employeeId,
       body: <String, dynamic>{'work_date': _dateKey(date)},
     );
-    return EmployeeRouteDay.fromJson(data);
+    final route = EmployeeRouteDay.fromJson(data);
+    try {
+      final gaps = await fetchTrackingGaps(
+        employeeId: employeeId,
+        date: date,
+      );
+      return route.copyWith(gaps: gaps);
+    } catch (_) {
+      // Старая база без миграции продолжит показывать вычисленные разрывы.
+      return route;
+    }
+  }
+
+  static Future<List<EmployeeTrackingGap>> fetchTrackingGaps({
+    required String employeeId,
+    required DateTime date,
+  }) async {
+    final raw = await _client.rpc(
+      'fetch_employee_tracking_gaps',
+      params: <String, dynamic>{
+        'p_employee_id': employeeId,
+        'p_work_date': _dateKey(date),
+      },
+    );
+    if (raw is! List) return const <EmployeeTrackingGap>[];
+    return raw
+        .whereType<Map>()
+        .map(
+          (row) => EmployeeTrackingGap.fromJson(
+            Map<String, dynamic>.from(row),
+          ),
+        )
+        .toList(growable: false);
   }
 
   static Future<void> startTask({
