@@ -58,24 +58,34 @@ class AccountingMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return PremiumPressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(23),
+      pressedScale: 0.975,
+      hoverScale: 1.012,
+      borderRadius: BorderRadius.circular(28),
       child: PremiumWorkCard(
-        radius: 23,
-        padding: const EdgeInsets.all(16),
+        radius: 28,
+        padding: const EdgeInsets.all(18),
         child: Row(
           children: [
             Container(
-              width: 47,
-              height: 47,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: accountingSoft,
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    scheme.primary.withValues(alpha: 0.20),
+                    scheme.primary.withValues(alpha: 0.07),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(19),
               ),
-              child: Icon(icon, color: accountingText),
+              child: Icon(icon, color: scheme.primary, size: 27),
             ),
-            const SizedBox(width: 13),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,31 +94,29 @@ class AccountingMetricCard extends StatelessWidget {
                     value,
                     style: TextStyle(
                       color: accountingText,
-                      fontSize: 23,
+                      fontSize: 25,
+                      height: 1,
                       fontWeight: FontWeight.w900,
+                      letterSpacing: -0.45,
                     ),
                   ),
+                  const SizedBox(height: 7),
                   Text(
                     title,
-                    style: TextStyle(
-                      color: accountingText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: accountingMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
             ),
             Icon(
-              Icons.chevron_right_rounded,
+              Icons.arrow_forward_ios_rounded,
+              size: 17,
               color: AppAdaptivePalette.textFaint,
             ),
           ],
@@ -140,13 +148,21 @@ class AccountingMoneyBlock extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: prominent ? background : AppAdaptivePalette.border,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: prominent ? 0.18 : 0.06),
+            blurRadius: 20,
+            spreadRadius: -12,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,16 +174,17 @@ class AccountingMoneyBlock extends StatelessWidget {
                   ? foreground.withValues(alpha: 0.72)
                   : accountingMuted,
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 5),
           Text(
             value,
             style: TextStyle(
               color: foreground,
-              fontSize: prominent ? 20 : 17,
+              fontSize: prominent ? 22 : 18,
               fontWeight: FontWeight.w900,
+              letterSpacing: -0.35,
             ),
           ),
         ],
