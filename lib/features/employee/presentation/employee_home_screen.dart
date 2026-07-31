@@ -201,7 +201,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           title: 'Главная',
           subtitle: data.profile.currentObject.trim().isEmpty
               ? null
-              : 'Объект: ${data.profile.currentObject.trim()}',
+              : data.profile.currentObject.trim(),
           onRefresh: refresh,
           child: ValueListenableBuilder<EmployeeWorkDaySnapshot>(
             valueListenable: runtime.state,
@@ -211,7 +211,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               final startedAt = active ? state.shift?.startedAt : null;
 
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 34),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   children: [
                     Center(
@@ -224,33 +224,32 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                             : () => startDay(data.profile.employeeId),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      active
-                          ? 'Рабочий день начат.'
-                          : 'Нажмите кнопку перед началом рабочего дня.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
                     if (active) ...[
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: 320,
-                        child: OutlinedButton.icon(
-                          onPressed: finishing ? null : finishDay,
-                          icon: finishing
-                              ? const SizedBox.square(
-                                  dimension: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.stop_circle_outlined),
-                          label: Text(
-                            finishing
-                                ? 'Завершаем…'
-                                : 'Завершить рабочий день',
+                      const SizedBox(height: 30),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: FilledButton.tonalIcon(
+                            onPressed: finishing ? null : finishDay,
+                            icon: finishing
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.stop_circle_outlined),
+                            label: Text(
+                              finishing
+                                  ? 'Завершаем…'
+                                  : 'Завершить рабочий день',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -281,61 +280,150 @@ class _RoundWorkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    final width = MediaQuery.sizeOf(context).width;
+    final dimension = width < 390 ? 244.0 : 272.0;
+    final foreground = active ? scheme.onSurface : Colors.white;
+
     return Semantics(
       button: !active,
       label: active ? 'Рабочий день идёт' : 'Начать работу',
-      child: Material(
-        color: active ? scheme.surfaceContainerHighest : scheme.primary,
-        shape: const CircleBorder(),
-        elevation: active ? 2 : 8,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const CircleBorder(),
-          child: SizedBox.square(
-            dimension: 228,
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (loading)
-                    CircularProgressIndicator(
-                      color: scheme.onPrimary,
-                    )
-                  else
-                    Icon(
-                      active
-                          ? Icons.work_history_rounded
-                          : Icons.play_arrow_rounded,
-                      size: 62,
-                      color: active ? scheme.onSurface : scheme.onPrimary,
-                    ),
-                  const SizedBox(height: 12),
-                  Text(
-                    loading
-                        ? 'Запускаем…'
-                        : active
-                            ? 'Работа идёт'
-                            : 'Начать работу',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: active ? scheme.onSurface : scheme.onPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 320),
+        width: dimension,
+        height: dimension,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: active
+                ? (dark
+                    ? const [Color(0xFF38434D), Color(0xFF171E25)]
+                    : const [Color(0xFFFFFFFF), Color(0xFFDDE4EB)])
+                : const [Color(0xFF43A9F4), Color(0xFF075A9F)],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: dark ? 0.16 : 0.72),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: active
+                  ? Colors.black.withValues(alpha: dark ? 0.38 : 0.16)
+                  : scheme.primary.withValues(alpha: dark ? 0.52 : 0.38),
+              blurRadius: active ? 38 : 54,
+              spreadRadius: active ? -12 : -8,
+              offset: const Offset(0, 24),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: active ? 0.10 : 0.28),
+              blurRadius: 16,
+              spreadRadius: -8,
+              offset: const Offset(-8, -10),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: Ink(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.35, -0.45),
+                  radius: 1.15,
+                  colors: active
+                      ? (dark
+                          ? const [Color(0xFF303B45), Color(0xFF131A20)]
+                          : const [Color(0xFFF8FAFC), Color(0xFFD4DDE5)])
+                      : const [Color(0xFF359DE9), Color(0xFF07528F)],
+                ),
+                border: Border.all(
+                  color: Colors.white.withValues(
+                    alpha: active ? (dark ? 0.10 : 0.78) : 0.22,
                   ),
-                  if (active && startedAt != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'с ${formatTime(startedAt!)}',
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
+                  width: 1.2,
+                ),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned(
+                    left: 42,
+                    right: 42,
+                    top: 22,
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.white.withValues(alpha: 0.48),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (loading)
+                          const SizedBox.square(
+                            dimension: 48,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 4,
+                              color: Colors.white,
+                            ),
+                          )
+                        else
+                          Icon(
+                            active
+                                ? Icons.work_history_rounded
+                                : Icons.play_arrow_rounded,
+                            size: active ? 58 : 72,
+                            color: foreground,
+                          ),
+                        const SizedBox(height: 14),
+                        Text(
+                          loading
+                              ? 'Запускаем…'
+                              : active
+                                  ? 'Работа идёт'
+                                  : 'Начать работу',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: width < 390 ? 22 : 24,
+                            height: 1.05,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.55,
+                          ),
+                        ),
+                        if (active && startedAt != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            'с ${formatTime(startedAt!)}',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
