@@ -9,24 +9,25 @@ abstract final class AppUi {
   static const double desktopBreakpoint = 1050;
   static const double specialistDesktopBreakpoint = 820;
 
-  static const double pageMobileHorizontalPadding = 14;
-  static const double pageDesktopHorizontalPadding = 24;
-  static const double pageMobileTopPadding = 12;
-  static const double pageDesktopTopPadding = 20;
-  static const double pageBottomPadding = 120;
-  static const double pageContentWidth = 1180;
+  static const double pageMobileHorizontalPadding = 16;
+  static const double pageDesktopHorizontalPadding = 30;
+  static const double pageMobileTopPadding = 14;
+  static const double pageDesktopTopPadding = 24;
+  static const double pageBottomPadding = 132;
+  static const double pageContentWidth = 1220;
   static const double specialistContentWidth = 1460;
 
-  static const double pageHeaderMinHeight = 54;
-  static const double pageHeaderActionSize = 44;
-  static const double pageHeaderGap = 16;
+  static const double pageHeaderMinHeight = 68;
+  static const double pageHeaderActionSize = 54;
+  static const double pageHeaderGap = 22;
 
-  static const double controlHeight = 48;
-  static const double compactControlHeight = 42;
-  static const double controlRadius = 16;
-  static const double cardRadius = 22;
-  static const double modalRadius = 26;
-  static const double cardPadding = 18;
+  static const double controlHeight = 56;
+  static const double compactControlHeight = 48;
+  static const double controlRadius = 19;
+  static const double cardRadius = 28;
+  static const double modalRadius = 32;
+  static const double cardPadding = 22;
+  static const double desktopActionMaxWidth = 420;
 
   static const double gap4 = 4;
   static const double gap8 = 8;
@@ -38,7 +39,7 @@ abstract final class AppUi {
 
   static const EdgeInsets cardInsets = EdgeInsets.all(cardPadding);
   static const EdgeInsets controlInsets = EdgeInsets.symmetric(
-    horizontal: 16,
-    vertical: 14,
+    horizontal: 18,
+    vertical: 15,
   );
 }
