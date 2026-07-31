@@ -36,7 +36,8 @@ void main() {
     expect(button, contains("'Начать работу'"));
     expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
     expect(button, contains('pulseController.repeat(reverse: true)'));
-    expect(button, contains('Transform.scale('));
+    expect(button, contains('AnimatedScale('));
+    expect(button, contains('onTapDown:'));
     expect(button, contains('RadialGradient('));
     expect(button, isNot(contains('top: 22')));
   });
