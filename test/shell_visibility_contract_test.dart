@@ -17,8 +17,8 @@ void main() {
     expect(source, contains('return ProfessionalBottomNavigation('));
 
     expect(navigation, contains("key: const ValueKey('professional-bottom-navigation')"));
-    expect(navigation, contains('height: totalHeight'));
-    expect(navigation, contains('final totalHeight ='));
+    expect(navigation, contains('panelHeight + topSpacing + bottomSpacing + bottomInset'));
+    expect(navigation, contains('LiquidGlassSurface('));
     expect(navigation, isNot(contains('child: Align(')));
   });
 }

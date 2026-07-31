@@ -22,13 +22,14 @@ void main() {
     expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
-  test('на главной есть большая круглая кнопка начала работы', () {
+  test('на главной есть большая объёмная кнопка начала работы', () {
     final home = File(homePath).readAsStringSync();
 
     expect(home, contains("title: 'Главная'"));
     expect(home, contains("'Начать работу'"));
     expect(home, contains('shape: const CircleBorder()'));
-    expect(home, contains('dimension: 228'));
+    expect(home, contains('dimension = width < 390 ? 244.0 : 272.0'));
+    expect(home, contains('RadialGradient('));
     expect(home, contains('runtime.start(employeeId)'));
     expect(home, contains('runtime.finish()'));
   });

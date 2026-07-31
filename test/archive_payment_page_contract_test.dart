@@ -36,10 +36,11 @@ void main() {
     expect(payment, contains('selectedEmployeeId = null'));
   });
 
-  test('all work pages use the same plain header as home', () {
+  test('all work pages use the same premium header as home', () {
     final appPage = source('lib/widgets/app_page.dart');
     expect(appPage, contains('class AppPageHeader'));
-    expect(appPage, contains('fontSize: 20'));
+    expect(appPage, contains('fontSize: isDesktop ? 25 : 23'));
+    expect(appPage, contains('LiquidGlassSurface('));
     expect(appPage, isNot(contains('APPСТРОЙ • РАБОЧИЙ РАЗДЕЛ')));
     expect(appPage, isNot(contains('PremiumBrandMark(')));
 
@@ -59,7 +60,7 @@ void main() {
       expect(
         entry.value,
         anyOf(contains('AppPageHeader('), contains('return AppPage(')),
-        reason: '${entry.key} должен использовать единую простую шапку',
+        reason: '${entry.key} должен использовать единую шапку',
       );
     }
   });

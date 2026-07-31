@@ -164,28 +164,60 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     );
   }
 
+  Widget routesButton() {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: openRoutes,
+        child: PremiumWorkCard(
+          radius: 28,
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(19),
+                ),
+                child: Icon(
+                  Icons.route_rounded,
+                  color: scheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Text(
+                  'Маршруты сотрудников',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: scheme.onSurfaceVariant,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget reportContent(ManagerReportsCenter center) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PremiumWorkCard(
-          padding: EdgeInsets.zero,
-          child: ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            leading: const Icon(Icons.route_outlined, size: 30),
-            title: const Text(
-              'Маршруты сотрудников',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: const Padding(
-              padding: EdgeInsets.only(top: 5),
-              child: Text('Выберите сотрудника и дату, чтобы посмотреть путь.'),
-            ),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: openRoutes,
-          ),
-        ),
-        const SizedBox(height: 12),
+        routesButton(),
+        const SizedBox(height: 16),
         ManagerReportFilters(
           center: center,
           selectedObjectId: selectedObjectId,
@@ -199,19 +231,19 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
             setState(() => onlyProblems = value);
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         ManagerDailyAiReviewCard(
           profile: widget.profile,
           center: center,
           onOpen: openScreen,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         ManagerWeeklyContributionSection(
           future: weeklyContributionFuture,
           onOpenEmployee: openContribution,
         ),
         ManagerReportOverview(center: center),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         ManagerReportSections(
           profile: widget.profile,
           center: center,
@@ -224,7 +256,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
 
   Widget loading() {
     return const PremiumWorkCard(
-      radius: 24,
+      radius: 28,
       child: Padding(
         padding: EdgeInsets.all(36),
         child: Center(child: CircularProgressIndicator()),
@@ -234,8 +266,8 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
 
   Widget loadError(Object? error) {
     return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
+      radius: 28,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -243,8 +275,6 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
             'Не удалось загрузить отчёты',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 8),
-          Text('$error'),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: reload,
@@ -260,12 +290,11 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Отчёты',
-      subtitle: 'Единый центр аналитики руководителя',
       headerTrailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           NotificationBell(selectedObjectName: widget.selectedObjectName),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           IconButton.filledTonal(
             tooltip: 'Обновить',
             onPressed: reload,

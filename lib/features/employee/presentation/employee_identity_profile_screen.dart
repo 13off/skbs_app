@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -84,49 +84,60 @@ class _EmployeeIdentityProfileScreenState
     required String value,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: PremiumWorkCard(
-        radius: 22,
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(icon, color: scheme.onSurfaceVariant, size: 21),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    value.trim().isEmpty ? 'Не указано' : value.trim(),
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.20),
+                  scheme.primary.withValues(alpha: 0.08),
                 ],
               ),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: scheme.primary.withValues(alpha: 0.18),
+              ),
             ),
-          ],
-        ),
+            child: Icon(icon, color: scheme.primary, size: 23),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value.trim().isEmpty ? 'Не указано' : value.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 16,
+                    height: 1.15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -141,122 +152,176 @@ class _EmployeeIdentityProfileScreenState
       objectName: identity.currentObject,
     );
 
+    // ФИО берётся из выбранной рабочей карточки.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         PremiumWorkCard(
-          radius: 28,
-          child: Row(
+          radius: 32,
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+          child: Column(
             children: [
               Container(
-                width: 72,
-                height: 72,
+                width: 104,
+                height: 104,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF73777C), Color(0xFF34373B)],
+                    colors: [Color(0xFF4AABF2), Color(0xFF135A94)],
                   ),
-                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.34),
+                      blurRadius: 34,
+                      spreadRadius: -10,
+                      offset: const Offset(0, 18),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      blurRadius: 12,
+                      spreadRadius: -6,
+                      offset: const Offset(-5, -6),
+                    ),
+                  ],
                 ),
                 child: Text(
                   initials(identity.fullName),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
                   ),
                 ),
               ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      identity.fullName,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Сотрудник · просмотр руководителя',
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      'ФИО берётся из выбранной рабочей карточки.',
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 22),
+              Text(
+                identity.fullName,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 24,
+                  height: 1.08,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.65,
                 ),
               ),
+              if (identity.profession.trim().isNotEmpty) ...[
+                const SizedBox(height: 9),
+                Text(
+                  identity.profession.trim(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        infoTile(
-          icon: Icons.badge_outlined,
-          title: 'ФИО',
-          value: identity.fullName,
-        ),
-        infoTile(
-          icon: Icons.phone_outlined,
-          title: 'Номер телефона',
-          value: identity.phone,
-        ),
-        infoTile(
-          icon: Icons.work_outline_rounded,
-          title: 'Профессия',
-          value: identity.profession,
-        ),
-        infoTile(
-          icon: Icons.location_on_outlined,
-          title: 'Объект',
-          value: identity.currentObject,
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: () => open(
-            EmployeeWorkTaskHistoryScreen(
-              profile: settingsProfile,
-              selectedEmployeeId: widget.selectedEmployeeId,
-            ),
-          ),
-          child: PremiumWorkCard(
-            radius: 22,
-            padding: const EdgeInsets.all(14),
-            child: Row(
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final twoColumns = constraints.maxWidth >= 720;
+            final tileWidth = twoColumns
+                ? (constraints.maxWidth - 14) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: 14,
+              runSpacing: 14,
               children: [
-                const Icon(Icons.history_rounded),
-                const SizedBox(width: 13),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'История задач',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      SizedBox(height: 4),
-                      Text('Задачи и результаты работы по выбранным датам'),
-                    ],
+                SizedBox(
+                  width: tileWidth,
+                  child: infoTile(
+                    icon: Icons.badge_outlined,
+                    title: 'ФИО',
+                    value: identity.fullName,
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+                SizedBox(
+                  width: tileWidth,
+                  child: infoTile(
+                    icon: Icons.phone_outlined,
+                    title: 'Телефон',
+                    value: identity.phone,
+                  ),
+                ),
+                SizedBox(
+                  width: tileWidth,
+                  child: infoTile(
+                    icon: Icons.work_outline_rounded,
+                    title: 'Профессия',
+                    value: identity.profession,
+                  ),
+                ),
+                SizedBox(
+                  width: tileWidth,
+                  child: infoTile(
+                    icon: Icons.location_on_outlined,
+                    title: 'Объект',
+                    value: identity.currentObject,
+                  ),
+                ),
               ],
+            );
+          },
+        ),
+        const SizedBox(height: 18),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => open(
+              EmployeeWorkTaskHistoryScreen(
+                profile: settingsProfile,
+                selectedEmployeeId: widget.selectedEmployeeId,
+              ),
+            ),
+            child: PremiumWorkCard(
+              radius: 28,
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(
+                      Icons.history_rounded,
+                      color: scheme.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'История задач',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.25,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: scheme.onSurfaceVariant,
+                    size: 18,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -272,9 +337,7 @@ class _EmployeeIdentityProfileScreenState
         final fallbackName = widget.selectedEmployeeName.value.trim();
         return AppPage(
           title: 'Профиль',
-          subtitle: fallbackName.isEmpty
-              ? 'Личные и рабочие данные'
-              : fallbackName,
+          subtitle: fallbackName.isEmpty ? null : fallbackName,
           suppressAutomaticBackButton: true,
           headerTrailing: IconButton.filledTonal(
             tooltip: 'Настройки',
@@ -293,7 +356,7 @@ class _EmployeeIdentityProfileScreenState
                       ),
                     );
                   },
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_rounded, size: 27),
           ),
           onRefresh: refresh,
           child: snapshot.connectionState == ConnectionState.waiting &&

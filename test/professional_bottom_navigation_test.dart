@@ -90,7 +90,7 @@ void main() {
     expect(selected, 3);
   });
 
-  testWidgets('mobile navigation stays compact and keeps all tabs visible', (
+  testWidgets('mobile navigation stays usable and keeps all tabs visible', (
     tester,
   ) async {
     await pumpNavigation(tester, const Size(390, 844), onSelected: (_) {});
@@ -104,8 +104,8 @@ void main() {
         )
         .height;
 
-    expect(bodyHeight, greaterThan(750));
-    expect(panelHeight, 72);
+    expect(bodyHeight, greaterThanOrEqualTo(750));
+    expect(panelHeight, 76);
     for (final item in items) {
       expect(find.text(item.label), findsOneWidget);
     }
