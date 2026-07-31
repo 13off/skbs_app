@@ -6,6 +6,7 @@ import '../data/payment_receipt_repository.dart';
 import '../data/payment_repository.dart';
 import '../models/employee.dart';
 import '../widgets/adaptive_detail_body.dart';
+import 'add_payment_screen.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   final Employee employee;
@@ -121,6 +122,55 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     if (employeeId == null || employeeId.isEmpty) return <String>[];
 
     return <String>[employeeId];
+  }
+
+  DateTime get suggestedSettlementMonth {
+    if (payments.isNotEmpty) {
+      final latest = payments.reduce(
+        (current, candidate) => candidate.paymentDate.isAfter(
+          current.paymentDate,
+        )
+            ? candidate
+            : current,
+      );
+      return DateTime(latest.periodYear, latest.periodMonth, 1);
+    }
+
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  String? get addPaymentEmployeeId {
+    final primaryId = widget.employee.id?.trim() ?? '';
+    if (primaryId.isNotEmpty) return primaryId;
+    final ids = historyEmployeeIds;
+    return ids.isEmpty ? null : ids.first;
+  }
+
+  Future<void> openAddPayment() async {
+    final employeeId = addPaymentEmployeeId;
+    if (employeeId == null || employeeId.isEmpty) {
+      setState(() {
+        errorText = 'Не удалось добавить выплату: нет ID сотрудника';
+      });
+      return;
+    }
+
+    final period = suggestedSettlementMonth;
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => AddPaymentScreen(
+          periodYear: period.year,
+          periodMonth: period.month,
+          periodTitle: '${monthName(period.month)} ${period.year}',
+          initialEmployeeId: employeeId,
+          initialObjectName: widget.employee.objectName,
+        ),
+      ),
+    );
+
+    if (!mounted || result != true) return;
+    await loadHistory(forceRefresh: true);
   }
 
   Future<void> loadHistory({bool forceRefresh = false}) async {
@@ -346,6 +396,15 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: isLoading ? null : openAddPayment,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Добавить выплату'),
+            ),
           ),
         ],
       ),
