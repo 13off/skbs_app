@@ -33,7 +33,7 @@ void main() {
     expect(profile, contains('value: identity.fullName'));
     expect(profile, contains('selectedEmployeeId: widget.selectedEmployeeId'));
     expect(main, contains('initialEmployeeName: previewEmployeeName'));
-    expect(main, contains("' · ${employeeName.trim()}'"));
+    expect(main, contains(r"' · ${employeeName.trim()}'"));
   });
 
   test('точка маршрута не может принадлежать другому сотруднику', () {
