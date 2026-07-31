@@ -34,7 +34,7 @@ void main() {
     expect(controller, contains("value ? 'dark' : 'light'"));
     expect(controller, contains('ThemeMode.dark'));
     expect(controller, contains('Future<void> toggle()'));
-    expect(controller, isNot(contains('if (!featureEnabled)')));
+    expect(controller, isNot(contains('if (!featureEnabled)'));
 
     expect(settings, contains("'Тёмная тема'"));
     expect(settings, contains('Icons.dark_mode_outlined'));
@@ -105,7 +105,7 @@ void main() {
     expect(appPage, contains('AppAdaptivePalette.darkBackground'));
     expect(appPage, contains('AppAdaptivePalette.background'));
     expect(appPage, contains('LiquidGlassSurface('));
-    expect(surfaces, contains('const Color(0xFF2278BF)'));
+    expect(surfaces, contains('const [Color(0xFF3295E6), Color(0xFF1461A2)]'));
     expect(
       surfaces,
       isNot(contains("const [Color(0xFF15181C), Color(0xFF090B0E)]")),
