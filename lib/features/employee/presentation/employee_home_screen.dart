@@ -193,7 +193,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                     const SizedBox(height: 24),
                     Text(
                       active
-                          ? 'Рабочий день начат. Геолокация записывается в фоне.'
+                          ? 'Рабочий день начат.'
                           : 'Нажмите кнопку перед началом рабочего дня.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
