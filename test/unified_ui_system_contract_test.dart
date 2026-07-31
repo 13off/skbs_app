@@ -14,14 +14,15 @@ void main() {
     );
 
     expect(tokens, contains('class AppUi'));
-    expect(tokens, contains('pageHeaderMinHeight'));
-    expect(tokens, contains('controlHeight = 48'));
-    expect(tokens, contains('cardRadius = 22'));
+    expect(tokens, contains('pageHeaderMinHeight = 68'));
+    expect(tokens, contains('controlHeight = 56'));
+    expect(tokens, contains('cardRadius = 28'));
 
     expect(page, contains('AppUi.pageHeaderMinHeight'));
-    expect(page, contains("cleanSubtitle.isEmpty ? ' ' : cleanSubtitle"));
+    expect(page, contains('if (cleanSubtitle.isNotEmpty)'));
     expect(page, contains('AppSurfaceBackdrop'));
     expect(page, contains('AppUi.pageContentWidth'));
+    expect(page, contains('LiquidGlassSurface('));
 
     expect(premium, contains('this.radius = AppUi.cardRadius'));
     expect(premium, contains('height: AppUi.controlHeight'));
