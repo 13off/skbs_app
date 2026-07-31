@@ -11,7 +11,7 @@ void main() {
 
     expect(home, isNot(contains('await runtime.preparePermission();')));
     expect(home, contains('await runtime.start(employeeId)'));
-    expect(home, contains('openWebLocationDialog'));
+    expect(home, contains('startWebWithoutLocation(employeeId)'));
   });
 
   test('сырая ошибка браузера не показывается как object Object', () {
@@ -25,10 +25,10 @@ void main() {
     expect(home, contains('TimeoutException'));
   });
 
-  test('ошибка геопозиции не содержит обучающей инструкции', () {
+  test('ошибка геопозиции не содержит обучающей инструкции и не блокирует смену', () {
     final home = File(homePath).readAsStringSync();
 
-    expect(home, contains('content: Text(text)'));
+    expect(home, contains('EmployeeShiftWebFallbackRepository'));
     expect(home, isNot(contains('На iPhone разрешите геопозицию')));
     expect(home, isNot(contains('Конфиденциальность и безопасность')));
     expect(home, isNot(contains('Службы геолокации')));

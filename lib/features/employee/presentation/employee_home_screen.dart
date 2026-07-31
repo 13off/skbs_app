@@ -8,6 +8,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_shift_runtime.dart';
+import '../data/employee_shift_web_fallback_repository.dart';
 import '../data/employee_task_cabinet_repository.dart';
 
 class EmployeeHomeScreen extends StatefulWidget {
@@ -63,7 +64,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     } on EmployeeLocationPermissionException catch (error) {
       if (!mounted) return;
       if (kIsWeb) {
-        await openWebLocationDialog(error.message);
+        await startWebWithoutLocation(employeeId);
       } else {
         message(error.message);
         if (error.openSettingsRequired) {
@@ -72,11 +73,10 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       }
     } catch (error) {
       if (!mounted) return;
-      final text = employeeLocationErrorMessage(error);
       if (kIsWeb && isEmployeeLocationError(error)) {
-        await openWebLocationDialog(text);
+        await startWebWithoutLocation(employeeId);
       } else {
-        message(text);
+        message(employeeLocationErrorMessage(error));
       }
     } finally {
       if (mounted) setState(() => starting = false);
@@ -111,9 +111,38 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       await runtime.finish();
       if (mounted) message('Рабочий день завершён');
     } catch (error) {
-      if (mounted) message(employeeLocationErrorMessage(error));
+      if (!mounted) return;
+      if (kIsWeb && isEmployeeLocationError(error)) {
+        await finishWebWithoutLocation(widget.selectedEmployeeId.value);
+      } else {
+        message(employeeLocationErrorMessage(error));
+      }
     } finally {
       if (mounted) setState(() => finishing = false);
+    }
+  }
+
+  Future<void> startWebWithoutLocation(String employeeId) async {
+    try {
+      await EmployeeShiftWebFallbackRepository.startWithoutLocation(
+        employeeId: employeeId,
+      );
+      await runtime.reload(employeeId);
+      if (mounted) message('Рабочий день начат');
+    } catch (error) {
+      if (mounted) message(cleanError(error));
+    }
+  }
+
+  Future<void> finishWebWithoutLocation(String employeeId) async {
+    try {
+      await EmployeeShiftWebFallbackRepository.finishWithoutLocation(
+        employeeId: employeeId,
+      );
+      await runtime.reload(employeeId);
+      if (mounted) message('Рабочий день завершён');
+    } catch (error) {
+      if (mounted) message(cleanError(error));
     }
   }
 
@@ -134,22 +163,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               await runtime.openSettings();
             },
             child: const Text('Открыть настройки'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> openWebLocationDialog(String text) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Не удалось получить геопозицию'),
-        content: Text(text),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Понятно'),
           ),
         ],
       ),
