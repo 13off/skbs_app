@@ -125,16 +125,6 @@ class _DesktopLegalDashboardScreenState
           onPressed: refresh,
           icon: const Icon(Icons.refresh_rounded),
         ),
-        OutlinedButton.icon(
-          onPressed: widget.onOpenDocuments,
-          icon: const Icon(Icons.description_outlined),
-          label: const Text('Документы'),
-        ),
-        OutlinedButton.icon(
-          onPressed: widget.onOpenMatters,
-          icon: const Icon(Icons.gavel_outlined),
-          label: const Text('Вопросы'),
-        ),
         FilledButton.icon(
           onPressed: openWeeklyReport,
           icon: const Icon(Icons.summarize_outlined),
@@ -153,47 +143,34 @@ class _DesktopLegalDashboardScreenState
       });
 
     return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(18),
+      radius: 28,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Документы внимания',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onOpenDocuments,
-                child: const Text('Все документы'),
-              ),
-            ],
-          ),
-          Text(
-            'Подписание, сроки, исправления и согласования',
+          const Text(
+            'Документы внимания',
             style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w600,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: Center(child: Text('Критичных документов сейчас нет')),
+              padding: EdgeInsets.symmetric(vertical: 30),
+              child: Center(child: Text('Критичных документов нет')),
             ),
           ...attention.take(7).map(
             (document) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: documentAccent(document).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+                  color: documentAccent(document).withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   Icons.description_outlined,
@@ -231,47 +208,34 @@ class _DesktopLegalDashboardScreenState
       });
 
     return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(18),
+      radius: 28,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Риски и решения',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onOpenMatters,
-                child: const Text('Все вопросы'),
-              ),
-            ],
-          ),
-          Text(
-            'Высокие риски, просрочки и вопросы руководителю',
+          const Text(
+            'Риски и решения',
             style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w600,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: Center(child: Text('Срочных юридических вопросов нет')),
+              padding: EdgeInsets.symmetric(vertical: 30),
+              child: Center(child: Text('Срочных вопросов нет')),
             ),
           ...attention.take(7).map(
             (matter) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: matterAccent(matter).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+                  color: matterAccent(matter).withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   matter.isHighRisk
@@ -338,7 +302,7 @@ class _DesktopLegalDashboardScreenState
                     onTap: widget.onOpenDocuments,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.event_busy_outlined,
@@ -348,7 +312,7 @@ class _DesktopLegalDashboardScreenState
                     onTap: widget.onOpenDocuments,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.warning_amber_rounded,
@@ -358,7 +322,7 @@ class _DesktopLegalDashboardScreenState
                     onTap: widget.onOpenMatters,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.approval_outlined,
@@ -370,12 +334,12 @@ class _DesktopLegalDashboardScreenState
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: documentPanel(data.documents)),
-                const SizedBox(width: 18),
+                const SizedBox(width: 20),
                 Expanded(child: matterPanel(data.matters)),
               ],
             ),
@@ -385,8 +349,6 @@ class _DesktopLegalDashboardScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-dashboard',
           title: 'Юридический контроль',
-          subtitle:
-              'Документы, сроки, риски и решения в одном рабочем пространстве',
           trailing: actionBar(),
           onRefresh: refresh,
           children: content,
