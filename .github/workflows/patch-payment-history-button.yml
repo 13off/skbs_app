@@ -1,0 +1,126 @@
+name: Patch payment history add button
+
+on:
+  push:
+    branches:
+      - payment-history-add-button
+    paths:
+      - .github/workflows/patch-payment-history-button.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: payment-history-add-button
+          fetch-depth: 0
+
+      - name: Add payment action to employee history
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/screens/payment_history_screen.dart')
+          text = path.read_text(encoding='utf-8')
+
+          material_import = "import 'package:flutter/material.dart';\n"
+          cupertino_import = (
+              "import 'package:flutter/cupertino.dart' show CupertinoPageRoute;\n"
+              "import 'package:flutter/material.dart';\n"
+          )
+          if text.count(material_import) != 1:
+              raise SystemExit('Unexpected material import count')
+          text = text.replace(material_import, cupertino_import, 1)
+
+          adaptive_import = "import '../widgets/adaptive_detail_body.dart';\n"
+          add_payment_import = adaptive_import + "import 'add_payment_screen.dart';\n"
+          if text.count(adaptive_import) != 1:
+              raise SystemExit('Adaptive body import marker not found')
+          text = text.replace(adaptive_import, add_payment_import, 1)
+
+          delete_marker = "\n  Future<void> confirmDeletePayment(PaymentRecord payment) async {"
+          if text.count(delete_marker) != 1:
+              raise SystemExit('Delete method marker not found')
+          open_add_payment = r'''
+
+  Future<void> openAddPayment() async {
+    final employeeIds = historyEmployeeIds;
+    final initialEmployeeId = employeeIds.isEmpty
+        ? widget.employee.id?.trim()
+        : employeeIds.first;
+    final now = DateTime.now();
+
+    final result = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute<bool>(
+        builder: (_) => AddPaymentScreen(
+          periodYear: now.year,
+          periodMonth: now.month,
+          periodTitle: '${monthName(now.month)} ${now.year}',
+          initialEmployeeId: initialEmployeeId,
+          initialObjectName: widget.employee.objectName,
+        ),
+      ),
+    );
+
+    if (!mounted || result != true) return;
+    await loadHistory(forceRefresh: true);
+  }
+'''
+          text = text.replace(delete_marker, open_add_payment + delete_marker, 1)
+
+          total_marker = "                'Всего по истории: ${formatMoney(totalAmount)}',"
+          total_index = text.find(total_marker)
+          if total_index < 0:
+              raise SystemExit('Total history marker not found')
+          children_end = "        ],\n      ),"
+          insert_at = text.find(children_end, total_index)
+          if insert_at < 0:
+              raise SystemExit('Employee header end not found')
+          button = r'''          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: isLoading ? null : openAddPayment,
+              icon: const Icon(Icons.add_card_rounded),
+              label: const Text('Добавить выплату'),
+            ),
+          ),
+'''
+          text = text[:insert_at] + button + text[insert_at:]
+          path.write_text(text, encoding='utf-8')
+
+          test_path = Path('test/payment_history_add_payment_contract_test.dart')
+          test_path.write_text(r'''import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('история сотрудника открывает существующую форму новой выплаты', () {
+    final screen = File(
+      'lib/screens/payment_history_screen.dart',
+    ).readAsStringSync();
+
+    expect(screen, contains("import 'add_payment_screen.dart';"));
+    expect(screen, contains('Future<void> openAddPayment() async'));
+    expect(screen, contains('CupertinoPageRoute<bool>('));
+    expect(screen, contains('initialEmployeeId: initialEmployeeId'));
+    expect(screen, contains('initialObjectName: widget.employee.objectName'));
+    expect(screen, contains("label: const Text('Добавить выплату')"));
+    expect(screen, contains('await loadHistory(forceRefresh: true)'));
+  });
+}
+''', encoding='utf-8')
+
+          Path('.github/workflows/patch-payment-history-button.yml').unlink()
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Добавить выплату из истории сотрудника"
+          git push origin HEAD:payment-history-add-button
