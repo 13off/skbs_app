@@ -12,7 +12,7 @@ class AppThemeController extends ChangeNotifier {
   static const bool scaleFeatureEnabled = true;
   static const String _preferenceKey = 'app_theme_mode';
   static const String _scalePreferenceKey = 'app_ui_scale';
-  static const double defaultUiScale = 0.90;
+  static const double defaultUiScale = 1.00;
   static const List<double> uiScaleOptions = <double>[
     0.80,
     0.90,
