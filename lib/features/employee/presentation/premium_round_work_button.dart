@@ -105,8 +105,10 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
           final glowAlpha = widget.active ? 0.28 : 0.34 + (pulse * 0.16);
           final glowBlur = widget.active ? 38.0 : 42 + (pulse * 18);
 
-          return Transform.scale(
+          return AnimatedScale(
             scale: scale,
+            duration: Duration(milliseconds: pressed ? 75 : 240),
+            curve: pressed ? Curves.easeOutCubic : Curves.easeOutBack,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTapDown: canPress ? (_) => setPressed(true) : null,
@@ -240,7 +242,7 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
                                   color: foreground,
                                   fontSize: width < 390 ? 22 : 24,
                                   height: 1.05,
-                                  fontWeight: FontWeight.w850,
+                                  fontWeight: FontWeight.w800,
                                   letterSpacing: -0.45,
                                 ),
                               ),
