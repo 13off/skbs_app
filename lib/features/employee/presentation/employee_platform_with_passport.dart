@@ -16,10 +16,12 @@ import 'employee_tasks_screen.dart';
 
 class EmployeePlatformWithPassport extends StatefulWidget {
   final AppUserProfile profile;
+  final String initialEmployeeId;
 
   const EmployeePlatformWithPassport({
     super.key,
     required this.profile,
+    this.initialEmployeeId = '',
   });
 
   @override
@@ -54,7 +56,19 @@ class _EmployeePlatformWithPassportState
   void initState() {
     super.initState();
     controller = PersistentTabController(pageCount: items.length);
-    selectedEmployeeId = ValueNotifier<String>('');
+    selectedEmployeeId = ValueNotifier<String>(
+      widget.initialEmployeeId.trim(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant EmployeePlatformWithPassport oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextEmployeeId = widget.initialEmployeeId.trim();
+    if (nextEmployeeId.isNotEmpty &&
+        nextEmployeeId != selectedEmployeeId.value) {
+      selectedEmployeeId.value = nextEmployeeId;
+    }
   }
 
   @override

@@ -7,8 +7,15 @@ import '../../navigation/navigation_session.dart';
 class RolePreviewState {
   final String role;
   final String objectName;
+  final String employeeId;
+  final String employeeName;
 
-  const RolePreviewState({this.role = 'admin', this.objectName = ''});
+  const RolePreviewState({
+    this.role = 'admin',
+    this.objectName = '',
+    this.employeeId = '',
+    this.employeeName = '',
+  });
 
   bool get isAdminMode => role == 'admin';
   bool get isDeveloperMode => role == 'developer';
@@ -50,6 +57,8 @@ class RolePreviewController {
 
     final savedRole = NavigationSession.readPreviewRole()?.trim();
     final savedObjectName = NavigationSession.readPreviewObjectName();
+    final savedEmployeeId = NavigationSession.readPreviewEmployeeId();
+    final savedEmployeeName = NavigationSession.readPreviewEmployeeName();
 
     if (savedRole == 'developer') {
       state.value = const RolePreviewState(role: 'developer');
@@ -62,8 +71,12 @@ class RolePreviewController {
       );
       return;
     }
-    if (savedRole == 'employee') {
-      state.value = const RolePreviewState(role: 'employee');
+    if (savedRole == 'employee' && savedEmployeeId.isNotEmpty) {
+      state.value = RolePreviewState(
+        role: 'employee',
+        employeeId: savedEmployeeId,
+        employeeName: savedEmployeeName,
+      );
       return;
     }
     if (savedRole == 'lawyer') {
@@ -88,6 +101,8 @@ class RolePreviewController {
       NavigationSession.writePreview(
         role: nextState.role,
         objectName: nextState.objectName,
+        employeeId: nextState.employeeId,
+        employeeName: nextState.employeeName,
       ),
     );
   }
@@ -106,8 +121,19 @@ class RolePreviewController {
     setState(RolePreviewState(role: 'foreman', objectName: cleanObjectName));
   }
 
-  static void showEmployee() {
-    setState(const RolePreviewState(role: 'employee'));
+  static void showEmployee({
+    required String employeeId,
+    required String employeeName,
+  }) {
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanEmployeeId.isEmpty) return;
+    setState(
+      RolePreviewState(
+        role: 'employee',
+        employeeId: cleanEmployeeId,
+        employeeName: employeeName.trim(),
+      ),
+    );
   }
 
   static void showLawyer() {

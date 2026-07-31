@@ -120,9 +120,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget platformFor(AppUserProfile profile) {
+  Widget platformFor(
+    AppUserProfile profile, {
+    String previewEmployeeId = '',
+  }) {
     if (profile.role == 'employee') {
-      return EmployeePlatformWithPassport(profile: profile);
+      return EmployeePlatformWithPassport(
+        profile: profile,
+        initialEmployeeId: previewEmployeeId,
+      );
     }
     if (profile.isDeveloper) {
       return DeveloperMainScreen(profile: profile);
@@ -156,9 +162,12 @@ class _MainScreenState extends State<MainScreen> {
             final profile = effectiveProfile(liveBaseProfile, preview);
             final platform = KeyedSubtree(
               key: ValueKey<String>(
-                'platform:${profile.role}:${profile.objectName}:${profile.activeCompanyId}',
+                'platform:${profile.role}:${profile.objectName}:${preview.employeeId}:${profile.activeCompanyId}',
               ),
-              child: platformFor(profile),
+              child: platformFor(
+                profile,
+                previewEmployeeId: preview.employeeId,
+              ),
             );
 
             final content = !profile.isRolePreview

@@ -18,7 +18,8 @@ void main() {
         "import '../features/employee/presentation/employee_platform_with_passport.dart';",
       ),
     );
-    expect(main, contains('EmployeePlatformWithPassport(profile: profile)'));
+    expect(main, contains('EmployeePlatformWithPassport('));
+    expect(main, contains('initialEmployeeId: previewEmployeeId'));
     expect(wrapper, contains('PersistentTabShell('));
     expect(wrapper, contains("navigationStorageKey: 'employee-work-simple'"));
     expect(wrapper, contains('ProfessionalBottomNavigationItem('));
