@@ -110,8 +110,8 @@ class EmployeeWorkShift {
   final String trackingMode;
   final int routePointCount;
   final DateTime? lastPointAt;
-  final double? startLatitude;
-  final double? startLongitude;
+  final double startLatitude;
+  final double startLongitude;
   final double? endLatitude;
   final double? endLongitude;
 
@@ -150,8 +150,8 @@ class EmployeeWorkShift {
       trackingMode: _text(json['tracking_mode']),
       routePointCount: _integer(json['route_point_count']),
       lastPointAt: DateTime.tryParse(_text(json['last_point_at']))?.toLocal(),
-      startLatitude: _nullableNumber(json['start_latitude']),
-      startLongitude: _nullableNumber(json['start_longitude']),
+      startLatitude: _number(json['start_latitude']),
+      startLongitude: _number(json['start_longitude']),
       endLatitude: _nullableNumber(json['end_latitude']),
       endLongitude: _nullableNumber(json['end_longitude']),
     );
