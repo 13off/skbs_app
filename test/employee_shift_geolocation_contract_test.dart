@@ -24,7 +24,7 @@ void main() {
     expect(shell, isNot(contains('EmployeeTeamTabScreen')));
   });
 
-  test('начало работы требует геолокацию и пишет реальный путь', () {
+  test('единая кнопка запускает GPS-смену и завершает реальный путь', () {
     final runtime = File(
       'lib/features/employee/data/employee_shift_runtime.dart',
     ).readAsStringSync();
@@ -46,8 +46,10 @@ void main() {
     expect(runtime, contains('appendRoutePoints'));
     expect(runtime, contains('finishShift'));
     expect(home, contains('PremiumRoundWorkButton('));
+    expect(home, contains('await runtime.finish()'));
+    expect(home, contains('active\n                            ? finishDay'));
     expect(workButton, contains("'Начать работу'"));
-    expect(home, contains("'Завершить рабочий день'"));
+    expect(workButton, contains("'Завершить работу'"));
     expect(screen, contains('EmployeeWorkTaskHistoryScreen'));
     expect(edge, contains('action === "start_shift"'));
     expect(edge, contains('action === "append_route_points"'));
