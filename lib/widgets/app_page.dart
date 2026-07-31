@@ -14,6 +14,7 @@ class AppPage extends StatelessWidget {
   final Widget child;
   final Widget? headerTrailing;
   final bool showBackButton;
+  final bool suppressAutomaticBackButton;
   final VoidCallback? onBack;
   final Future<void> Function()? onRefresh;
   final ScrollController? controller;
@@ -28,6 +29,7 @@ class AppPage extends StatelessWidget {
     required this.child,
     this.headerTrailing,
     this.showBackButton = false,
+    this.suppressAutomaticBackButton = false,
     this.onBack,
     this.onRefresh,
     this.controller,
@@ -49,7 +51,8 @@ class AppPage extends StatelessWidget {
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
         : headerTrailing ?? scopedTrailing;
-    final effectiveShowBackButton = showBackButton || canPop;
+    final effectiveShowBackButton =
+        !suppressAutomaticBackButton && (showBackButton || canPop);
     final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
     final horizontalPadding = isDesktop
         ? AppUi.pageDesktopHorizontalPadding

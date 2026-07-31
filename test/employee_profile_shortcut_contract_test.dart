@@ -33,15 +33,15 @@ void main() {
     expect(home, contains('runtime.finish()'));
   });
 
-  test('история задач находится в профиле над настройками', () {
+  test('история задач находится в профиле, настройки открывает шестерёнка', () {
     final profile = File(profilePath).readAsStringSync();
-    final historyIndex = profile.indexOf("title: 'История задач'");
-    final settingsIndex = profile.indexOf("title: 'Настройки'");
 
     expect(profile, contains('if (profile.isEmployee)'));
     expect(profile, contains('EmployeeWorkTaskHistoryScreen'));
-    expect(historyIndex, greaterThanOrEqualTo(0));
-    expect(settingsIndex, greaterThan(historyIndex));
+    expect(profile, contains("title: 'История задач'"));
+    expect(profile, contains("tooltip: 'Настройки'"));
+    expect(profile, isNot(contains("title: 'Настройки'")));
+    expect(profile, contains('suppressAutomaticBackButton: true'));
   });
 
   test('предпросмотр сохраняет возврат к руководителю', () {

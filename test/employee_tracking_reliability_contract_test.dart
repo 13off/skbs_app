@@ -62,7 +62,8 @@ void main() {
     expect(platform, contains("label: 'Профиль'"));
     expect(platform, contains('ProfileScreen(profile: contentProfile)'));
     expect(profile, contains("title: 'История задач'"));
-    expect(profile, contains("title: 'Настройки'"));
+    expect(profile, contains("tooltip: 'Настройки'"));
+    expect(profile, isNot(contains("title: 'Настройки'")));
     expect(settings, contains('if (profile.isEmployee)'));
     expect(settings, contains("'Геолокация рабочего дня'"));
     expect(employeeSettings, contains('Локально ожидают отправки'));
