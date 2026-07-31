@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -42,7 +45,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       widget.selectedEmployeeId.value = employeeId;
     }
     await runtime.bind(employeeId);
-    await runtime.preparePermission();
     return data;
   }
 
@@ -60,12 +62,22 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       if (mounted) message('Рабочий день начат');
     } on EmployeeLocationPermissionException catch (error) {
       if (!mounted) return;
-      message(error.message);
-      if (error.openSettingsRequired && !kIsWeb) {
-        await openSettingsDialog(error.message);
+      if (kIsWeb) {
+        await openWebLocationDialog(error.message);
+      } else {
+        message(error.message);
+        if (error.openSettingsRequired) {
+          await openSettingsDialog(error.message);
+        }
       }
     } catch (error) {
-      if (mounted) message(cleanError(error));
+      if (!mounted) return;
+      final text = employeeLocationErrorMessage(error);
+      if (kIsWeb && isEmployeeLocationError(error)) {
+        await openWebLocationDialog(text);
+      } else {
+        message(text);
+      }
     } finally {
       if (mounted) setState(() => starting = false);
     }
@@ -99,7 +111,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       await runtime.finish();
       if (mounted) message('Рабочий день завершён');
     } catch (error) {
-      if (mounted) message(cleanError(error));
+      if (mounted) message(employeeLocationErrorMessage(error));
     } finally {
       if (mounted) setState(() => finishing = false);
     }
@@ -122,6 +134,28 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               await runtime.openSettings();
             },
             child: const Text('Открыть настройки'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> openWebLocationDialog(String text) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Не удалось получить геопозицию'),
+        content: Text(
+          '$text\n\n'
+          'На iPhone разрешите геопозицию для AppСтрой или Safari: '
+          '«Настройки» → «Конфиденциальность и безопасность» → '
+          '«Службы геолокации». Затем вернитесь и нажмите '
+          '«Начать работу» ещё раз.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Понятно'),
           ),
         ],
       ),
@@ -318,7 +352,55 @@ String formatTime(DateTime value) {
   return '$hour:$minute';
 }
 
+String employeeLocationErrorMessage(Object? value) {
+  if (value is EmployeeLocationPermissionException) return value.message;
+  if (value is TimeoutException) {
+    return 'Не удалось определить геопозицию за отведённое время. '
+        'Включите точную геопозицию и повторите.';
+  }
+  if (value is PermissionDeniedException) {
+    return 'Доступ к геопозиции запрещён. Разрешите его и повторите.';
+  }
+  if (value is LocationServiceDisabledException) {
+    return 'На телефоне отключены службы геолокации. Включите их и повторите.';
+  }
+  if (value is PositionUpdateException) {
+    final text = cleanError(value);
+    if (text != 'Не удалось выполнить действие') return text;
+  }
+
+  final text = cleanError(value);
+  if (text == 'Не удалось выполнить действие') {
+    return 'Не удалось получить геопозицию. Проверьте разрешение '
+        'и повторите запуск рабочего дня.';
+  }
+  return text;
+}
+
+bool isEmployeeLocationError(Object? value) {
+  if (value is EmployeeLocationPermissionException ||
+      value is TimeoutException ||
+      value is PermissionDeniedException ||
+      value is LocationServiceDisabledException ||
+      value is PositionUpdateException) {
+    return true;
+  }
+  return _isOpaqueErrorText(_rawErrorText(value));
+}
+
 String cleanError(Object? value) {
-  final text = value?.toString().replaceFirst('Exception: ', '').trim() ?? '';
-  return text.isEmpty ? 'Не удалось выполнить действие' : text;
+  final text = _rawErrorText(value);
+  return text.isEmpty || _isOpaqueErrorText(text)
+      ? 'Не удалось выполнить действие'
+      : text;
+}
+
+String _rawErrorText(Object? value) {
+  return value?.toString().replaceFirst('Exception: ', '').trim() ?? '';
+}
+
+bool _isOpaqueErrorText(String text) {
+  final normalized = text.toLowerCase();
+  return normalized == '[object object]' ||
+      normalized.startsWith('instance of ');
 }
