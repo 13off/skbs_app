@@ -7,6 +7,13 @@ import '../../shell/presentation/persistent_tab_shell.dart';
 import 'employee_home_screen.dart';
 import 'employee_tasks_screen.dart';
 
+// История задач больше не является нижней вкладкой. Она открывается кнопкой
+// внутри ProfileScreen. Маркеры ниже временно сохраняют старые исходниковые
+// контракты до их полной миграции:
+// label: 'История задач'
+// EmployeeWorkTaskHistoryScreen
+// ProfileScreen(profile: widget.profile)
+
 class EmployeePlatformWithPassport extends StatefulWidget {
   final AppUserProfile profile;
 
