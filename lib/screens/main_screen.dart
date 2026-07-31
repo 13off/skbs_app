@@ -123,11 +123,13 @@ class _MainScreenState extends State<MainScreen> {
   Widget platformFor(
     AppUserProfile profile, {
     String previewEmployeeId = '',
+    String previewEmployeeName = '',
   }) {
     if (profile.role == 'employee') {
       return EmployeePlatformWithPassport(
         profile: profile,
         initialEmployeeId: previewEmployeeId,
+        initialEmployeeName: previewEmployeeName,
       );
     }
     if (profile.isDeveloper) {
@@ -167,12 +169,17 @@ class _MainScreenState extends State<MainScreen> {
               child: platformFor(
                 profile,
                 previewEmployeeId: preview.employeeId,
+                previewEmployeeName: preview.employeeName,
               ),
             );
 
             final content = !profile.isRolePreview
                 ? platform
-                : _RolePreviewFrame(profile: profile, child: platform);
+                : _RolePreviewFrame(
+                    profile: profile,
+                    employeeName: preview.employeeName,
+                    child: platform,
+                  );
             if (profile.isEmployee) return content;
             return CompanyChatShell(
               key: ValueKey<String>(
@@ -217,14 +224,22 @@ class _MainScreenState extends State<MainScreen> {
 
 class _RolePreviewFrame extends StatelessWidget {
   final AppUserProfile profile;
+  final String employeeName;
   final Widget child;
 
-  const _RolePreviewFrame({required this.profile, required this.child});
+  const _RolePreviewFrame({
+    required this.profile,
+    required this.employeeName,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
     final objectText = profile.isForeman && profile.objectName.trim().isNotEmpty
         ? ' · ${profile.objectName.trim()}'
+        : '';
+    final employeeText = profile.isEmployee && employeeName.trim().isNotEmpty
+        ? ' · ${employeeName.trim()}'
         : '';
 
     return Material(
@@ -252,7 +267,7 @@ class _RolePreviewFrame extends StatelessWidget {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'Режим: ${profile.roleTitle}$objectText',
+                      'Режим: ${profile.roleTitle}$objectText$employeeText',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
