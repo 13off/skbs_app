@@ -3,17 +3,21 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('панель сотрудника содержит задачи, историю и доступ к профилю', () {
+  test('панель сотрудника содержит главную задачи профиль и историю', () {
     final shell = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
+    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
 
+    expect(shell, contains("label: 'Главная'"));
     expect(shell, contains("label: 'Задачи'"));
-    expect(shell, contains("label: 'История задач'"));
+    expect(shell, contains("label: 'Профиль'"));
     expect(shell, contains('PersistentTabController(pageCount: items.length)'));
-    expect(shell, contains('EmployeeWorkTaskHistoryScreen'));
-    expect(shell, contains('ProfileScreen(profile: widget.profile)'));
-    expect(shell, contains("'Мой профиль'"));
+    expect(shell, contains('EmployeeHomeScreen'));
+    expect(shell, contains('EmployeeTasksScreen'));
+    expect(shell, contains('ProfileScreen(profile: contentProfile)'));
+    expect(profile, contains('EmployeeWorkTaskHistoryScreen'));
+    expect(profile, contains("title: 'История задач'"));
     expect(shell, isNot(contains("label: 'Табель'")));
     expect(shell, isNot(contains("label: 'Документы'")));
     expect(shell, isNot(contains("label: 'Команда'")));
@@ -23,6 +27,9 @@ void main() {
   test('начало работы требует геолокацию и пишет реальный путь', () {
     final runtime = File(
       'lib/features/employee/data/employee_shift_runtime.dart',
+    ).readAsStringSync();
+    final home = File(
+      'lib/features/employee/presentation/employee_home_screen.dart',
     ).readAsStringSync();
     final screen = File(
       'lib/features/employee/presentation/employee_simple_work_screen.dart',
@@ -35,8 +42,8 @@ void main() {
     expect(runtime, contains('foregroundNotificationConfig'));
     expect(runtime, contains('appendRoutePoints'));
     expect(runtime, contains('finishShift'));
-    expect(screen, contains("label: 'Начать работу'"));
-    expect(screen, contains("'Завершить рабочий день'"));
+    expect(home, contains("'Начать работу'"));
+    expect(home, contains("'Завершить рабочий день'"));
     expect(screen, contains('EmployeeWorkTaskHistoryScreen'));
     expect(edge, contains('action === "start_shift"'));
     expect(edge, contains('action === "append_route_points"'));
