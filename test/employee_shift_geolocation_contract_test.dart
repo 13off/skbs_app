@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('панель сотрудника содержит только задачи и историю', () {
+  test('панель сотрудника содержит задачи, историю и доступ к профилю', () {
     final shell = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
@@ -12,11 +12,12 @@ void main() {
     expect(shell, contains("label: 'История задач'"));
     expect(shell, contains('PersistentTabController(pageCount: items.length)'));
     expect(shell, contains('EmployeeWorkTaskHistoryScreen'));
+    expect(shell, contains('ProfileScreen(profile: widget.profile)'));
+    expect(shell, contains("'Мой профиль'"));
     expect(shell, isNot(contains("label: 'Табель'")));
     expect(shell, isNot(contains("label: 'Документы'")));
     expect(shell, isNot(contains("label: 'Команда'")));
     expect(shell, isNot(contains('EmployeeTeamTabScreen')));
-    expect(shell, isNot(contains('ProfileScreen')));
   });
 
   test('начало работы требует геолокацию и пишет реальный путь', () {
