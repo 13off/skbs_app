@@ -53,13 +53,16 @@ void main() {
     final platform = File(
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
+    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
     final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
     final employeeSettings = File(
       'lib/features/employee/presentation/employee_location_settings_screen.dart',
     ).readAsStringSync();
 
-    expect(platform, contains('rootHeaderTrailingBuilder'));
-    expect(platform, contains('ProfileScreen(profile: widget.profile)'));
+    expect(platform, contains("label: 'Профиль'"));
+    expect(platform, contains('ProfileScreen(profile: contentProfile)'));
+    expect(profile, contains("title: 'История задач'"));
+    expect(profile, contains("title: 'Настройки'"));
     expect(settings, contains('if (profile.isEmployee)'));
     expect(settings, contains("'Геолокация рабочего дня'"));
     expect(employeeSettings, contains('Локально ожидают отправки'));
