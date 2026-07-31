@@ -38,9 +38,14 @@ void main() {
         "'Выплат проведено'",
         "'Выплат без чека'",
         "label: 'Добавить выплату'",
-        "label: 'Открыть отчёты'",
+        'AddPaymentScreen(',
       ],
     );
+    final dashboard = source(
+      'lib/features/accounting/presentation/accounting_dashboard_screen.dart',
+    );
+    expect(dashboard, isNot(contains("label: 'Открыть отчёты'")));
+
     containsAll(
       'lib/features/accounting/presentation/accounting_reports_screen.dart',
       const [
