@@ -21,12 +21,13 @@ void main() {
     expect(pressable, contains('disableAnimations'));
   });
 
-  test('bottom navigation uses spring selection without rebuilding routes', () {
+  test('bottom navigation animates selection without rebuilding routes', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
 
-    expect(navigation, contains('TweenAnimationBuilder<double>'));
+    expect(navigation, contains('AnimatedContainer('));
+    expect(navigation, contains('AnimatedSwitcher('));
     expect(navigation, contains('Curves.easeOutBack'));
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
     expect(
