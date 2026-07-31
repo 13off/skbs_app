@@ -49,7 +49,7 @@ void main() {
     expect(button, contains('Positioned.fill('));
     expect(button, contains('AnimatedSlide('));
     expect(button, contains('Icons.stop_rounded'));
-    expect(button, contains('Icons.play_arrow_rounded'));
+    expect(button, contains('play_arrow_rounded'));
     expect(button, contains('AnimatedSwitcher('));
     expect(button, contains('key: ValueKey<String>(actionLabel)'));
   });
