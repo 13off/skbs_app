@@ -10,6 +10,9 @@ void main() {
     final home = File(
       'lib/features/employee/presentation/employee_home_screen.dart',
     ).readAsStringSync();
+    final workButton = File(
+      'lib/features/employee/presentation/premium_round_work_button.dart',
+    ).readAsStringSync();
     final work = File(
       'lib/features/employee/presentation/employee_simple_work_screen.dart',
     ).readAsStringSync();
@@ -30,14 +33,19 @@ void main() {
       'Icons.gps_fixed',
       'Настроить точку объекта',
     ]) {
-      expect('$shell\n$home\n$work', isNot(contains(forbidden)), reason: forbidden);
+      expect(
+        '$shell\n$home\n$workButton\n$work',
+        isNot(contains(forbidden)),
+        reason: forbidden,
+      );
     }
 
     expect(shell, contains("label: 'Главная'"));
     expect(shell, contains("label: 'Задачи'"));
     expect(shell, contains("label: 'Профиль'"));
-    expect(home, contains("'Начать работу'"));
-    expect(home, contains("'Работа идёт'"));
+    expect(home, contains('PremiumRoundWorkButton('));
+    expect(workButton, contains("'Начать работу'"));
+    expect(workButton, contains("'Работа идёт'"));
     expect(home, contains("'Завершить рабочий день'"));
     expect(work, contains("label: 'Начать выполнение'"));
     expect(main, contains('if (profile.isEmployee) return content;'));
