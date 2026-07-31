@@ -55,7 +55,6 @@ class _ProfessionalBottomNavigationState
   @override
   void didUpdateWidget(covariant ProfessionalBottomNavigation oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     final nextPlatformKey = resolvePlatformKey(widget.items, widget.storageKey);
     if (nextPlatformKey != platformKey) {
       platformKey = nextPlatformKey;
@@ -63,7 +62,6 @@ class _ProfessionalBottomNavigationState
       scheduleRestore();
       return;
     }
-
     if (restored && oldWidget.selectedIndex != widget.selectedIndex) {
       unawaited(
         NavigationSession.writeTabIndex(platformKey, widget.selectedIndex),
@@ -91,10 +89,8 @@ class _ProfessionalBottomNavigationState
   void scheduleRestore() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || restored) return;
-
       final savedIndex = NavigationSession.readTabIndex(platformKey);
       restored = true;
-
       if (savedIndex == null ||
           savedIndex < 0 ||
           savedIndex >= widget.items.length) {
@@ -103,10 +99,7 @@ class _ProfessionalBottomNavigationState
         );
         return;
       }
-
-      if (savedIndex != widget.selectedIndex) {
-        widget.onSelected(savedIndex);
-      }
+      if (savedIndex != widget.selectedIndex) widget.onSelected(savedIndex);
     });
   }
 
@@ -178,7 +171,6 @@ class _ProfessionalBottomNavigationState
                             override?.selectedIcon ?? baseItem.selectedIcon,
                       );
                       final selected = index == widget.selectedIndex;
-
                       return Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -346,7 +338,7 @@ class _NavigationLabel extends StatelessWidget {
       style:
           theme.textTheme.labelSmall?.copyWith(
             color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w900 : FontWeight.w650,
+            fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
             fontSize: fontSize,
             letterSpacing: -0.2,
           ) ??
