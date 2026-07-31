@@ -11,7 +11,6 @@ on:
       - assets/**
       - web/**
       - tool/web_smoke.py
-      - tool/apply_strict_web_location_patch.py
       - supabase/functions/**
       - supabase/migrations/**
       - pubspec.yaml
@@ -28,34 +27,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  apply-strict-web-location:
-    if: github.event_name == 'pull_request' && github.head_ref == 'fix-strict-web-geolocation-v2'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout source branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-          show-progress: false
-
-      - name: Apply strict web location patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f tool/apply_strict_web_location_patch.py ]; then
-            echo "Patch already applied."
-            exit 0
-          fi
-          python3 tool/apply_strict_web_location_patch.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Вернуть обязательную геолокацию и исправить Safari PWA"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
-
   flutter-check:
     runs-on: ubuntu-latest
     steps:
