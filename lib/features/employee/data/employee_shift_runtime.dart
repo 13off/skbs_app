@@ -116,6 +116,7 @@ class EmployeeShiftRuntime {
   String get employeeId => _boundEmployeeId;
 
   Future<void> preparePermission() async {
+    if (kIsWeb) return;
     try {
       if (!await Geolocator.isLocationServiceEnabled()) return;
       final permission = await Geolocator.checkPermission();
@@ -190,20 +191,24 @@ class EmployeeShiftRuntime {
         );
       }
 
-      final permission = await _permissionWithoutPrompt();
-      if (_canTrack(permission) &&
-          await Geolocator.isLocationServiceEnabled()) {
+      if (kIsWeb) {
         await _startPositionStream();
       } else {
-        _beginGap(
-          reason: permission == LocationPermission.always
-              ? 'location_service_disabled'
-              : 'permission_missing',
-          details: permission == LocationPermission.always
-              ? 'На телефоне отключена геолокация.'
-              : 'У приложения нет постоянного доступа к геопозиции.',
-        );
-        _startTimers();
+        final permission = await _permissionWithoutPrompt();
+        if (_canTrack(permission) &&
+            await Geolocator.isLocationServiceEnabled()) {
+          await _startPositionStream();
+        } else {
+          _beginGap(
+            reason: permission == LocationPermission.always
+                ? 'location_service_disabled'
+                : 'permission_missing',
+            details: permission == LocationPermission.always
+                ? 'На телефоне отключена геолокация.'
+                : 'У приложения нет постоянного доступа к геопозиции.',
+          );
+          _startTimers();
+        }
       }
       unawaited(_flushGapEvents());
       unawaited(_flushPending());
@@ -247,12 +252,7 @@ class EmployeeShiftRuntime {
       final permission = await _ensurePermission();
       state.value =
           state.value.copyWith(status: EmployeeWorkDayStatus.starting);
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          timeLimit: Duration(seconds: 25),
-        ),
-      );
+      final position = await _requiredPosition();
       final point = _point(position);
       final shift = await EmployeeShiftActionRepository.startShift(
         employeeId: cleanEmployeeId,
@@ -309,12 +309,7 @@ class EmployeeShiftRuntime {
         );
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          timeLimit: Duration(seconds: 25),
-        ),
-      );
+      final position = await _requiredPosition();
       final point = _point(position);
       _completeOpenGap(point.recordedAt);
       final gapsFlushed = await _flushGapEvents();
@@ -369,6 +364,11 @@ class EmployeeShiftRuntime {
   }
 
   Future<LocationPermission> _ensurePermission() async {
+    // Safari/PWA может не поддерживать Permissions API и возвращать denied,
+    // хотя navigator.geolocation способен показать системный запрос.
+    // На web доступ подтверждается только успешно полученной координатой.
+    if (kIsWeb) return LocationPermission.whileInUse;
+
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const EmployeeLocationPermissionException(
         'Включите геолокацию на телефоне и повторите.',
@@ -420,11 +420,42 @@ class EmployeeShiftRuntime {
     return 'unknown';
   }
 
+  Future<Position> _requiredPosition() async {
+    if (!kIsWeb) {
+      return Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          timeLimit: Duration(seconds: 25),
+        ),
+      );
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: WebSettings(
+          accuracy: LocationAccuracy.high,
+          maximumAge: Duration(seconds: 30),
+          timeLimit: Duration(seconds: 45),
+        ),
+      );
+    } on TimeoutException {
+      return Geolocator.getCurrentPosition(
+        locationSettings: WebSettings(
+          accuracy: LocationAccuracy.medium,
+          maximumAge: Duration(minutes: 1),
+          timeLimit: Duration(seconds: 30),
+        ),
+      );
+    }
+  }
+
   LocationSettings _streamSettings() {
     if (kIsWeb) {
-      return const LocationSettings(
+      return WebSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 20,
+        maximumAge: Duration(seconds: 30),
+        timeLimit: Duration(seconds: 60),
       );
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -524,6 +555,22 @@ class EmployeeShiftRuntime {
   Future<void> _checkTrackingHealth() async {
     if (!state.value.isActive || _boundEmployeeId.isEmpty) return;
     try {
+      if (kIsWeb) {
+        final lastCapturedAt = _lastCapturedAt;
+        if (lastCapturedAt != null &&
+            DateTime.now().difference(lastCapturedAt) >= _gapThreshold) {
+          _beginGap(
+            reason: 'tracking_interruption',
+            details: 'Web-приложение перестало передавать координаты.',
+            startedAt: lastCapturedAt,
+          );
+          await _positionSubscription?.cancel();
+          _positionSubscription = null;
+        }
+        if (_positionSubscription == null) await _startPositionStream();
+        return;
+      }
+
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         _beginGap(

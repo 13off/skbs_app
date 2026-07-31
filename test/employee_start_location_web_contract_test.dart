@@ -5,32 +5,46 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const homePath =
       'lib/features/employee/presentation/employee_home_screen.dart';
+  const runtimePath =
+      'lib/features/employee/data/employee_shift_runtime.dart';
+  const fallbackPath =
+      'lib/features/employee/data/employee_shift_web_fallback_repository.dart';
+  const rollbackMigrationPath =
+      'supabase/migrations/20260731153500_restore_required_shift_start_location.sql';
 
-  test('геолокация запрашивается только после нажатия начала работы', () {
+  test('рабочий день на web начинается только через runtime с координатой', () {
     final home = File(homePath).readAsStringSync();
-
-    expect(home, isNot(contains('await runtime.preparePermission();')));
     expect(home, contains('await runtime.start(employeeId)'));
-    expect(home, contains('startWebWithoutLocation(employeeId)'));
+    expect(home, contains('openWebLocationDialog'));
+    expect(home, isNot(contains('startWebWithoutLocation')));
+    expect(home, isNot(contains('EmployeeShiftWebFallbackRepository')));
+    expect(File(fallbackPath).existsSync(), isFalse);
+  });
+
+  test('Safari получает координату напрямую без ненадёжного Permissions API', () {
+    final runtime = File(runtimePath).readAsStringSync();
+    expect(runtime, contains('if (kIsWeb) return LocationPermission.whileInUse'));
+    expect(runtime, contains('WebSettings('));
+    expect(runtime, contains('maximumAge: Duration(seconds: 30)'));
+    expect(runtime, contains('on TimeoutException'));
+    expect(runtime, contains('final position = await _requiredPosition()'));
+  });
+
+  test('без стартовой координаты серверная смена снова запрещена', () {
+    final migration = File(rollbackMigrationPath).readAsStringSync();
+    expect(migration, contains('start_latitude set not null'));
+    expect(migration, contains('start_longitude set not null'));
+    expect(migration, contains('start_accuracy_m set not null'));
+    expect(migration, contains('drop function if exists public.start_employee_shift_without_location'));
   });
 
   test('сырая ошибка браузера не показывается как object Object', () {
     final home = File(homePath).readAsStringSync();
-
     expect(home, contains("normalized == '[object object]'"));
     expect(home, contains("normalized.startsWith('instance of ')"));
-    expect(home, contains('Не удалось получить геопозицию'));
     expect(home, contains('PermissionDeniedException'));
     expect(home, contains('LocationServiceDisabledException'));
     expect(home, contains('TimeoutException'));
-  });
-
-  test('ошибка геопозиции не содержит обучающей инструкции и не блокирует смену', () {
-    final home = File(homePath).readAsStringSync();
-
-    expect(home, contains('EmployeeShiftWebFallbackRepository'));
     expect(home, isNot(contains('На iPhone разрешите геопозицию')));
-    expect(home, isNot(contains('Конфиденциальность и безопасность')));
-    expect(home, isNot(contains('Службы геолокации')));
   });
 }
