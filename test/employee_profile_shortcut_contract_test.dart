@@ -25,7 +25,7 @@ void main() {
     expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
-  test('на главной есть большая объёмная кнопка начала работы', () {
+  test('одна мультяшная кнопка запускает и завершает рабочий день', () {
     final home = File(homePath).readAsStringSync();
     final button = File(workButtonPath).readAsStringSync();
 
@@ -33,13 +33,19 @@ void main() {
     expect(home, contains('PremiumRoundWorkButton('));
     expect(home, contains('runtime.start(employeeId)'));
     expect(home, contains('runtime.finish()'));
-    expect(button, contains("'Начать работу'"));
-    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
-    expect(button, contains('pulseController.repeat(reverse: true)'));
-    expect(button, contains('AnimatedScale('));
-    expect(button, contains('onTapDown:'));
-    expect(button, contains('RadialGradient('));
-    expect(button, isNot(contains('top: 22')));
+    expect(home, contains('active\n                            ? finishDay'));
+    expect(home, isNot(contains('FilledButton.tonalIcon(')));
+
+    expect(button, contains("return widget.active ? 'Завершить работу' : 'Начать работу';"));
+    expect(button, contains('dimension = width < 390 ? 232.0 : 256.0'));
+    expect(button, contains('idlePulseController.repeat(reverse: true)'));
+    expect(button, contains('edgePulseController.forward(from: 0)'));
+    expect(button, contains('delayedEdgePulse'));
+    expect(button, contains('Icons.stop_rounded'));
+    expect(button, contains('Icons.play_arrow_rounded'));
+    expect(button, contains('AnimatedSwitcher('));
+    expect(button, contains('key: ValueKey<String>(actionLabel)'));
+    expect(button, isNot(contains("? 'Работа идёт'\n                                          : 'Начать работу'")));
   });
 
   test('история задач находится в профиле, настройки открывает шестерёнка', () {

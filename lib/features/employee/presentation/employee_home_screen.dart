@@ -210,52 +210,21 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               final active = state.employeeId == data.profile.employeeId &&
                   state.isActive;
               final startedAt = active ? state.shift?.startedAt : null;
+              final loading = starting || finishing;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Center(
-                      child: PremiumRoundWorkButton(
-                        active: active,
-                        loading: starting,
-                        startedAt: startedAt,
-                        onPressed: active || starting
-                            ? null
+                child: Center(
+                  child: PremiumRoundWorkButton(
+                    active: active,
+                    loading: loading,
+                    startedAt: startedAt,
+                    onPressed: loading
+                        ? null
+                        : active
+                            ? finishDay
                             : () => startDay(data.profile.employeeId),
-                      ),
-                    ),
-                    if (active) ...[
-                      const SizedBox(height: 30),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 360),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: FilledButton.tonalIcon(
-                            onPressed: finishing ? null : finishDay,
-                            icon: finishing
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.stop_circle_outlined),
-                            label: Text(
-                              finishing
-                                  ? 'Завершаем…'
-                                  : 'Завершить рабочий день',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               );
             },
