@@ -149,11 +149,12 @@ class EmployeeTaskCabinetRepository {
     String employeeId = '',
   }) async {
     try {
+      final requestedEmployeeId = employeeId.trim();
       final response = await _client.functions.invoke(
         'employee-task-cabinet',
         body: <String, dynamic>{
-          if (employeeId.trim().isNotEmpty)
-            'employee_id': employeeId.trim(),
+          if (requestedEmployeeId.isNotEmpty)
+            'employee_id': requestedEmployeeId,
         },
       );
       final raw = response.data;
@@ -166,6 +167,12 @@ class EmployeeTaskCabinetRepository {
       final result = EmployeeTaskCabinetData.fromJson(data);
       if (result.profile.employeeId.isEmpty) {
         throw Exception('Не удалось определить сотрудника');
+      }
+      if (requestedEmployeeId.isNotEmpty &&
+          result.profile.employeeId != requestedEmployeeId) {
+        throw Exception(
+          'Выбранный сотрудник и открытая рабочая карточка не совпадают',
+        );
       }
       return result;
     } on FunctionException catch (error) {
