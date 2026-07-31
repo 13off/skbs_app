@@ -145,13 +145,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Не удалось получить геопозицию'),
-        content: Text(
-          '$text\n\n'
-          'На iPhone разрешите геопозицию для AppСтрой или Safari: '
-          '«Настройки» → «Конфиденциальность и безопасность» → '
-          '«Службы геолокации». Затем вернитесь и нажмите '
-          '«Начать работу» ещё раз.',
-        ),
+        content: Text(text),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
