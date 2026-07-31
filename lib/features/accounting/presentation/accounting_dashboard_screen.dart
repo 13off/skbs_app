@@ -80,37 +80,54 @@ class _AccountingDashboardScreenState
   }
 
   Widget summary(AccountingDashboardData data) {
+    final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
-      radius: 28,
-      padding: const EdgeInsets.all(18),
+      radius: 30,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: accountingSoft,
-                  borderRadius: BorderRadius.circular(17),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      scheme.primary.withValues(alpha: 0.22),
+                      scheme.primary.withValues(alpha: 0.07),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(19),
                 ),
-                child: const Icon(Icons.account_balance_wallet_outlined),
+                child: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: scheme.primary,
+                  size: 27,
+                ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Финансовая сводка',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      ),
                     ),
+                    const SizedBox(height: 5),
                     Text(
                       accountingMonth(data.month),
                       style: TextStyle(
                         color: accountingMuted,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
@@ -118,7 +135,7 @@ class _AccountingDashboardScreenState
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -149,25 +166,20 @@ class _AccountingDashboardScreenState
 
   Widget balances(AccountingDashboardData data) {
     return PremiumWorkCard(
-      radius: 26,
+      radius: 28,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Крупные остатки',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onOpenPayments,
-                child: const Text('Все выплаты'),
-              ),
-            ],
+          const Text(
+            'Крупные остатки',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.25,
+            ),
           ),
+          const SizedBox(height: 10),
           if (data.largestBalances.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
@@ -201,21 +213,20 @@ class _AccountingDashboardScreenState
 
   Widget receipts(AccountingDashboardData data) {
     return PremiumWorkCard(
-      radius: 26,
+      radius: 28,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Выплаты без чека',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.25,
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Проверьте подтверждающие файлы',
-            style: TextStyle(color: accountingMuted, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           if (data.missingReceipts.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
@@ -231,7 +242,9 @@ class _AccountingDashboardScreenState
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: Text('${accountingDate(item.paymentDate)} · ${item.objectName}'),
+              subtitle: Text(
+                '${accountingDate(item.paymentDate)} · ${item.objectName}',
+              ),
               trailing: Text(
                 accountingMoney(item.amount),
                 style: const TextStyle(fontWeight: FontWeight.w900),
@@ -248,7 +261,6 @@ class _AccountingDashboardScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Сегодня',
-      subtitle: 'Начисления, выплаты, остатки и подтверждающие документы',
       headerTrailing: const NotificationBell(selectedObjectName: null),
       child: FutureBuilder<AccountingDashboardData>(
         future: future,
@@ -270,12 +282,17 @@ class _AccountingDashboardScreenState
                   children: [
                     const Icon(Icons.cloud_off_rounded, size: 42),
                     const SizedBox(height: 12),
-                    Text(
-                      'Не удалось загрузить сводку: ${snapshot.error}',
+                    const Text(
+                      'Не удалось загрузить сводку',
                       textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 14),
-                    FilledButton(onPressed: refresh, child: const Text('Повторить')),
+                    FilledButton.icon(
+                      onPressed: refresh,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Повторить'),
+                    ),
                   ],
                 ),
               ),
@@ -286,7 +303,7 @@ class _AccountingDashboardScreenState
           return Column(
             children: [
               summary(data),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               AccountingMetricCard(
                 icon: Icons.groups_outlined,
                 title: 'Сотрудников с остатком',
@@ -294,7 +311,7 @@ class _AccountingDashboardScreenState
                 subtitle: 'Всего в расчёте: ${data.employeeCount}',
                 onTap: widget.onOpenPayments,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               AccountingMetricCard(
                 icon: Icons.payments_outlined,
                 title: 'Выплат проведено',
@@ -302,7 +319,7 @@ class _AccountingDashboardScreenState
                 subtitle: accountingMonth(data.month),
                 onTap: widget.onOpenPayments,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               AccountingMetricCard(
                 icon: Icons.receipt_long_outlined,
                 title: 'Выплат без чека',
@@ -310,21 +327,15 @@ class _AccountingDashboardScreenState
                 subtitle: 'Требуют подтверждающего файла',
                 onTap: widget.onOpenPayments,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               PremiumActionButton(
                 label: 'Добавить выплату',
                 icon: Icons.add_card_rounded,
                 onPressed: addPayment,
               ),
-              const SizedBox(height: 10),
-              PremiumActionButton(
-                label: 'Открыть отчёты',
-                icon: Icons.summarize_outlined,
-                onPressed: widget.onOpenReports,
-              ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               balances(data),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               receipts(data),
             ],
           );
