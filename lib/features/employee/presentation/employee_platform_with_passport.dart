@@ -1,7 +1,11 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
+import '../../../navigation/platform_tab_override_scope.dart';
+import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../role_preview/role_preview_controller.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'employee_simple_work_screen.dart';
 
@@ -50,28 +54,55 @@ class _EmployeePlatformWithPassportState
     super.dispose();
   }
 
+  Future<void> openProfile(BuildContext context) async {
+    if (widget.profile.isRolePreview) {
+      RolePreviewController.showAdmin();
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => ProfileScreen(profile: widget.profile),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final contentProfile = widget.profile.isRolePreview
         ? widget.profile.copyWith(actualRole: 'employee')
         : widget.profile;
-    return PersistentTabShell(
-      controller: controller,
-      items: items,
-      returnToFirstTabOnBack: true,
-      navigationStorageKey: 'employee-work-simple',
-      tabBuilder: (context, index) {
-        if (index == 0) {
-          return EmployeeWorkTasksScreen(
+    return PlatformTabOverrideScope(
+      storageKey: 'employee-work-simple',
+      overrides: const <int, PlatformTabOverride>{},
+      rootHeaderTrailingBuilder: (context) => IconButton.filledTonal(
+        tooltip: widget.profile.isRolePreview
+            ? 'Вернуться к руководителю'
+            : 'Мой профиль',
+        onPressed: () => openProfile(context),
+        icon: Icon(
+          widget.profile.isRolePreview
+              ? Icons.admin_panel_settings_outlined
+              : Icons.person_outline_rounded,
+        ),
+      ),
+      child: PersistentTabShell(
+        controller: controller,
+        items: items,
+        returnToFirstTabOnBack: true,
+        navigationStorageKey: 'employee-work-simple',
+        tabBuilder: (context, index) {
+          if (index == 0) {
+            return EmployeeWorkTasksScreen(
+              profile: contentProfile,
+              selectedEmployeeId: selectedEmployeeId,
+            );
+          }
+          return EmployeeWorkTaskHistoryScreen(
             profile: contentProfile,
             selectedEmployeeId: selectedEmployeeId,
           );
-        }
-        return EmployeeWorkTaskHistoryScreen(
-          profile: contentProfile,
-          selectedEmployeeId: selectedEmployeeId,
-        );
-      },
+        },
+      ),
     );
   }
 }
