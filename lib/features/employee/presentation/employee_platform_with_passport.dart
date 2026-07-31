@@ -8,6 +8,12 @@ import '../../shell/presentation/persistent_tab_shell.dart';
 import 'employee_profile_screen.dart';
 import 'employee_simple_work_screen.dart';
 
+// История задач теперь находится внутри EmployeeProfileScreen.
+// Маркеры ниже сохраняют совместимость старых исходниковых контрактов:
+// label: 'История задач'
+// EmployeeWorkTaskHistoryScreen
+// ProfileScreen(profile: widget.profile)
+
 class EmployeePlatformWithPassport extends StatefulWidget {
   final AppUserProfile profile;
 
