@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_adaptive_palette.dart';
+import '../../data/employee_repository.dart';
 import '../../data/object_repository.dart';
+import '../../models/employee.dart';
 import '../../widgets/app_page.dart';
 import '../../widgets/premium_ui_v2.dart';
 import 'role_preview_controller.dart';
@@ -19,24 +21,160 @@ class RolePreviewScreen extends StatefulWidget {
 
 class _RolePreviewScreenState extends State<RolePreviewScreen> {
   late final Future<List<String>> objectNamesFuture;
+  late final Future<List<Employee>> employeesFuture;
 
   @override
   void initState() {
     super.initState();
     objectNamesFuture = ObjectRepository.fetchObjectNames();
+    employeesFuture = EmployeeRepository.fetchEmployees();
   }
 
   void selectAdmin() => RolePreviewController.showAdmin();
 
   void selectDeveloper() => RolePreviewController.showDeveloper();
 
-  void selectEmployee() => RolePreviewController.showEmployee();
-
   void selectLawyer() => RolePreviewController.showLawyer();
 
   void selectAccountant() => RolePreviewController.showAccountant();
 
   void selectHr() => RolePreviewController.showHr();
+
+  Future<void> selectEmployee(List<Employee> employees) async {
+    final available = employees
+        .where((employee) => employee.id?.trim().isNotEmpty == true)
+        .toList(growable: false);
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Сначала добавьте сотрудника.')),
+      );
+      return;
+    }
+
+    final currentEmployeeId = RolePreviewController.state.value.employeeId;
+    final selected = await showModalBottomSheet<Employee>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Выберите сотрудника',
+                style: TextStyle(
+                  color: _roleText,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Рабочий день, задачи и маршрут будут открыты именно для выбранной карточки.',
+                style: TextStyle(
+                  color: _roleMuted,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: available.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final employee = available[index];
+                    final employeeId = employee.id!.trim();
+                    final selectedNow = employeeId == currentEmployeeId;
+                    final details = <String>[
+                      if (employee.positionTitle.trim().isNotEmpty)
+                        employee.positionTitle.trim(),
+                      if (employee.objectName.trim().isNotEmpty)
+                        employee.objectName.trim(),
+                    ].join(' · ');
+                    return PremiumPressable(
+                      onTap: () => Navigator.pop(context, employee),
+                      borderRadius: BorderRadius.circular(18),
+                      child: PremiumWorkCard(
+                        radius: 18,
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: _roleSoft,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.badge_outlined,
+                                color: _roleText,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    employee.name,
+                                    style: TextStyle(
+                                      color: _roleText,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  if (details.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      details,
+                                      style: TextStyle(
+                                        color: _roleMuted,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              selectedNow
+                                  ? Icons.check_circle_rounded
+                                  : Icons.chevron_right_rounded,
+                              color: selectedNow ? _roleText : _roleMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+    RolePreviewController.showEmployee(
+      employeeId: selected.id!,
+      employeeName: selected.name,
+    );
+  }
 
   Future<void> selectForeman(List<String> objectNames) async {
     if (objectNames.isEmpty) {
@@ -258,95 +396,109 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
               'Реальная роль администратора не меняется. Меняется только интерфейс, который вы видите.',
           child: FutureBuilder<List<String>>(
             future: objectNamesFuture,
-            builder: (context, snapshot) {
-              final objectNames = snapshot.data ?? const <String>[];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  roleCard(
-                    icon: Icons.admin_panel_settings_rounded,
-                    title: 'Руководитель',
-                    subtitle: 'Обычная платформа администратора компании.',
-                    selected: preview.isAdminMode,
-                    onTap: selectAdmin,
-                  ),
-                  roleCard(
-                    icon: Icons.developer_mode_rounded,
-                    title: 'Разработчик',
-                    subtitle:
-                        'Системные настройки, ИИ-диспетчер, ограничения и контроль платформы.',
-                    selected: preview.isDeveloperMode,
-                    onTap: selectDeveloper,
-                    badge: 'СИСТЕМА',
-                  ),
-                  roleCard(
-                    icon: Icons.engineering_rounded,
-                    title: 'Прораб',
-                    subtitle:
-                        preview.isForemanMode && preview.objectName.isNotEmpty
-                        ? 'Сейчас выбран объект: ${preview.objectName}'
-                        : 'Показать рабочую платформу прораба выбранного объекта.',
-                    selected: preview.isForemanMode,
-                    onTap: snapshot.connectionState == ConnectionState.waiting
-                        ? null
-                        : () => selectForeman(objectNames),
-                  ),
-                  roleCard(
-                    icon: Icons.construction_rounded,
-                    title: 'Сотрудник',
-                    subtitle:
-                        'Открыть личный кабинет сотрудника: задачи, деньги, документы и профиль.',
-                    selected: preview.isEmployeeMode,
-                    onTap: selectEmployee,
-                    badge: 'ЛИЧНЫЙ КАБИНЕТ',
-                  ),
-                  roleCard(
-                    icon: Icons.gavel_rounded,
-                    title: 'Юрист',
-                    subtitle:
-                        'Документы, юридические вопросы, риски и недельные отчёты.',
-                    selected: preview.isLawyerMode,
-                    onTap: selectLawyer,
-                  ),
-                  roleCard(
-                    icon: Icons.account_balance_wallet_rounded,
-                    title: 'Бухгалтер',
-                    subtitle:
-                        'Начисления, выплаты, остатки, чеки и финансовые отчёты.',
-                    selected: preview.isAccountantMode,
-                    onTap: selectAccountant,
-                  ),
-                  roleCard(
-                    icon: Icons.person_search_rounded,
-                    title: 'HR-менеджер',
-                    subtitle:
-                        'Заявки кандидатов, документы, выезды и оформление.',
-                    selected: preview.isHrMode,
-                    onTap: selectHr,
-                  ),
-                  const SizedBox(height: 8),
-                  PremiumWorkCard(
-                    radius: 22,
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline_rounded, color: _roleMuted),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Все действия выполняются от имени вашего администратора. Роль в компании, приглашения и права доступа в базе не изменяются.',
-                            style: TextStyle(
-                              color: _roleMuted,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
+            builder: (context, objectSnapshot) {
+              final objectNames =
+                  objectSnapshot.data ?? const <String>[];
+              return FutureBuilder<List<Employee>>(
+                future: employeesFuture,
+                builder: (context, employeeSnapshot) {
+                  final employees =
+                      employeeSnapshot.data ?? const <Employee>[];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      roleCard(
+                        icon: Icons.admin_panel_settings_rounded,
+                        title: 'Руководитель',
+                        subtitle: 'Обычная платформа администратора компании.',
+                        selected: preview.isAdminMode,
+                        onTap: selectAdmin,
+                      ),
+                      roleCard(
+                        icon: Icons.developer_mode_rounded,
+                        title: 'Разработчик',
+                        subtitle:
+                            'Системные настройки, ИИ-диспетчер, ограничения и контроль платформы.',
+                        selected: preview.isDeveloperMode,
+                        onTap: selectDeveloper,
+                        badge: 'СИСТЕМА',
+                      ),
+                      roleCard(
+                        icon: Icons.engineering_rounded,
+                        title: 'Прораб',
+                        subtitle:
+                            preview.isForemanMode && preview.objectName.isNotEmpty
+                                ? 'Сейчас выбран объект: ${preview.objectName}'
+                                : 'Показать рабочую платформу прораба выбранного объекта.',
+                        selected: preview.isForemanMode,
+                        onTap: objectSnapshot.connectionState ==
+                                ConnectionState.waiting
+                            ? null
+                            : () => selectForeman(objectNames),
+                      ),
+                      roleCard(
+                        icon: Icons.construction_rounded,
+                        title: 'Сотрудник',
+                        subtitle: preview.isEmployeeMode &&
+                                preview.employeeName.isNotEmpty
+                            ? 'Сейчас выбран: ${preview.employeeName}'
+                            : 'Выбрать сотрудника и открыть его рабочую платформу.',
+                        selected: preview.isEmployeeMode,
+                        onTap: employeeSnapshot.connectionState ==
+                                ConnectionState.waiting
+                            ? null
+                            : () => selectEmployee(employees),
+                        badge: 'ЛИЧНЫЙ КАБИНЕТ',
+                      ),
+                      roleCard(
+                        icon: Icons.gavel_rounded,
+                        title: 'Юрист',
+                        subtitle:
+                            'Документы, юридические вопросы, риски и недельные отчёты.',
+                        selected: preview.isLawyerMode,
+                        onTap: selectLawyer,
+                      ),
+                      roleCard(
+                        icon: Icons.account_balance_wallet_rounded,
+                        title: 'Бухгалтер',
+                        subtitle:
+                            'Начисления, выплаты, остатки, чеки и финансовые отчёты.',
+                        selected: preview.isAccountantMode,
+                        onTap: selectAccountant,
+                      ),
+                      roleCard(
+                        icon: Icons.person_search_rounded,
+                        title: 'HR-менеджер',
+                        subtitle:
+                            'Заявки кандидатов, документы, выезды и оформление.',
+                        selected: preview.isHrMode,
+                        onTap: selectHr,
+                      ),
+                      const SizedBox(height: 8),
+                      PremiumWorkCard(
+                        radius: 22,
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: _roleMuted),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Все действия выполняются от имени вашего администратора. Роль в компании, приглашения и права доступа в базе не изменяются.',
+                                style: TextStyle(
+                                  color: _roleMuted,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
