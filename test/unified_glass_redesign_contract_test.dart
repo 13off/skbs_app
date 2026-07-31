@@ -41,12 +41,17 @@ void main() {
       button,
       contains("widget.active ? 'Завершить работу' : 'Начать работу'"),
     );
-    expect(button, contains('dimension = width < 390 ? 232.0 : 256.0'));
+    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
     expect(button, contains('idlePulseController.repeat(reverse: true)'));
     expect(button, contains('shazamWaveController.repeat('));
     expect(button, contains('class _ShazamWaveRing'));
+    expect(button, contains('class _PremiumButtonBody'));
+    expect(button, contains('class _WorkEmblem'));
+    expect(button, contains('Icons.construction_rounded'));
+    expect(button, isNot(contains('CircularProgressIndicator')));
+    expect(button, isNot(contains('play_arrow_rounded')));
     expect(button, contains('AnimatedSlide('));
-    expect(button, contains('Positioned.fill('));
+    expect(button, contains('SweepGradient('));
     expect(button, contains('AnimatedSwitcher('));
     expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
   });
