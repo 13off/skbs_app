@@ -154,7 +154,6 @@ class AppLazyPage extends StatelessWidget {
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
         : headerTrailing ?? scopedTrailing;
-    final effectiveShowBackButton = showBackButton || canPop;
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
     final horizontalPadding = isDesktop
@@ -166,14 +165,12 @@ class AppLazyPage extends StatelessWidget {
     final fixedLeadingCount = 2 + leading.length;
     final totalCount = fixedLeadingCount + itemCount + trailing.length;
 
-    Widget constrain(Widget child) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxContentWidth),
-          child: child,
-        ),
-      );
-    }
+    Widget constrain(Widget value) => Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            child: value,
+          ),
+        );
 
     final list = ListView.builder(
       // Flutter 3.44 deprecates this field before exposing its replacement.
@@ -196,7 +193,7 @@ class AppLazyPage extends StatelessWidget {
               title: title,
               subtitle: subtitle,
               trailing: effectiveTrailing,
-              showBackButton: effectiveShowBackButton,
+              showBackButton: showBackButton || canPop,
               onBack: onBack,
             ),
           );
@@ -204,17 +201,12 @@ class AppLazyPage extends StatelessWidget {
         if (index == 1) {
           return const SizedBox(height: AppUi.pageHeaderGap);
         }
-
         final bodyIndex = index - 2;
-        if (bodyIndex < leading.length) {
-          return constrain(leading[bodyIndex]);
-        }
-
+        if (bodyIndex < leading.length) return constrain(leading[bodyIndex]);
         final listIndex = bodyIndex - leading.length;
         if (listIndex < itemCount) {
           return constrain(itemBuilder(context, listIndex));
         }
-
         return constrain(trailing[listIndex - itemCount]);
       },
     );
@@ -242,7 +234,6 @@ class AppPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final action = trailing;
     final cleanSubtitle = subtitle.trim();
     final isDesktop = MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
 
@@ -259,7 +250,6 @@ class AppPageHeader extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: AppUi.pageHeaderMinHeight),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (showBackButton) ...[
               SizedBox.square(
@@ -299,14 +289,14 @@ class AppPageHeader extends StatelessWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: isDesktop ? 13.5 : 13,
                         height: 1.2,
-                        fontWeight: FontWeight.w650,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            if (action != null) ...[
+            if (trailing != null) ...[
               const SizedBox(width: AppUi.gap16),
               Align(
                 alignment: Alignment.centerRight,
@@ -320,7 +310,7 @@ class AppPageHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                  child: action,
+                  child: trailing!,
                 ),
               ),
             ],
@@ -339,7 +329,6 @@ class AppSurfaceBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: dark
@@ -372,14 +361,12 @@ class AppSurfaceBackdrop extends StatelessWidget {
                   gradient: RadialGradient(
                     colors: dark
                         ? [
-                            AppAdaptivePalette.telegramBlue.withValues(
-                              alpha: 0.18,
-                            ),
+                            AppAdaptivePalette.telegramBlue.withValues(alpha: 0.18),
                             Colors.transparent,
                           ]
                         : [
                             Colors.white.withValues(alpha: 0.84),
-                            Colors.white.withValues(alpha: 0),
+                            Colors.transparent,
                           ],
                   ),
                 ),
