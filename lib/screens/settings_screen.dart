@@ -10,6 +10,7 @@ import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/developer/presentation/developer_system_screen.dart';
 import '../features/developer/presentation/role_permission_matrix_screen.dart';
 import '../features/dispatcher/presentation/dispatcher_settings_screen.dart';
+import '../features/employee/presentation/employee_location_settings_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/recruitment/presentation/recruitment_crm_settings_screen.dart';
 import '../features/role_preview/role_preview_screen.dart';
@@ -229,6 +230,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: 'Юридическая сводка',
           subtitle: 'Риски, согласования и решения руководителя',
           onTap: () => open(LegalManagerSummaryScreen(profile: profile)),
+        ),
+      ];
+    }
+    if (profile.isEmployee) {
+      return [
+        actionTile(
+          icon: Icons.location_on_outlined,
+          title: 'Геолокация рабочего дня',
+          subtitle: 'Проверка разрешений и фоновой записи маршрута',
+          onTap: () => open(const EmployeeLocationSettingsScreen()),
+        ),
+        roleInfo(
+          icon: Icons.badge_outlined,
+          text:
+              'Правила задач и обязательных фотографий задаются компанией. Сотруднику доступны только личные настройки интерфейса, уведомлений и геолокации рабочего дня.',
         ),
       ];
     }
