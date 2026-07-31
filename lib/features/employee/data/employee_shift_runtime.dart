@@ -218,6 +218,16 @@ class EmployeeShiftRuntime {
     }
   }
 
+  Future<void> reload(String employeeId) async {
+    final cleanEmployeeId = employeeId.trim();
+    if (cleanEmployeeId.isEmpty) return;
+    await _stopPositionStream();
+    _resetMemory();
+    _boundEmployeeId = '';
+    state.value = const EmployeeWorkDaySnapshot.idle();
+    await bind(cleanEmployeeId);
+  }
+
   Future<EmployeeWorkShift> start(String employeeId) async {
     final cleanEmployeeId = employeeId.trim();
     if (cleanEmployeeId.isEmpty) throw Exception('Сотрудник не определён');
