@@ -70,11 +70,11 @@ class PremiumWorkCard extends StatelessWidget {
       blur: false,
       tint: tint ??
           (dark
-              ? theme.colorScheme.surface.withValues(alpha: 0.84)
-              : Colors.white.withValues(alpha: 0.62)),
+              ? theme.colorScheme.surface.withValues(alpha: 0.80)
+              : Colors.white.withValues(alpha: 0.66)),
       borderColor: dark
-          ? Colors.white.withValues(alpha: 0.085)
-          : Colors.white.withValues(alpha: 0.86),
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.white.withValues(alpha: 0.92),
       child: child,
     );
   }
@@ -106,70 +106,111 @@ class PremiumActionButton extends StatelessWidget {
     return legacy.PremiumPressable(
       onTap: isLoading ? null : onPressed,
       borderRadius: BorderRadius.circular(AppUi.controlRadius),
-      pressedScale: 0.982,
+      pressedScale: 0.965,
+      hoverScale: 1.012,
       child: AnimatedContainer(
         duration: AppMotion.regular,
         height: AppUi.controlHeight,
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: dark
-              ? (enabled
-                    ? const Color(0xFF2278BF)
-                    : const Color(0xFF1C2733))
-              : null,
-          gradient: dark
-              ? null
-              : const LinearGradient(
+          gradient: enabled
+              ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF2A2D31), Color(0xFF17191C)],
+                  colors: dark
+                      ? const [Color(0xFF3295E6), Color(0xFF1461A2)]
+                      : const [Color(0xFF30343A), Color(0xFF121519)],
+                )
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? const [Color(0xFF26313C), Color(0xFF18212A)]
+                      : const [Color(0xFFD7DCE2), Color(0xFFC6CCD3)],
                 ),
           borderRadius: BorderRadius.circular(AppUi.controlRadius),
           border: Border.all(
-            color: dark
-                ? (enabled
-                      ? theme.colorScheme.primary.withValues(alpha: 0.42)
-                      : theme.colorScheme.outlineVariant)
-                : Colors.white.withValues(alpha: 0.10),
+            color: enabled
+                ? Colors.white.withValues(alpha: dark ? 0.20 : 0.13)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.62),
+            width: 1.15,
           ),
           boxShadow: [
             BoxShadow(
-              color: dark
-                  ? theme.colorScheme.primary.withValues(alpha: enabled ? 0.16 : 0)
-                  : const Color(0xFF15171A).withValues(alpha: 0.24),
-              blurRadius: dark ? 18 : 24,
-              spreadRadius: dark ? -10 : 0,
-              offset: Offset(0, dark ? 8 : 12),
+              color: enabled
+                  ? (dark
+                      ? theme.colorScheme.primary.withValues(alpha: 0.34)
+                      : const Color(0xFF101216).withValues(alpha: 0.30))
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: enabled ? 28 : 12,
+              spreadRadius: enabled ? -8 : -9,
+              offset: Offset(0, enabled ? 14 : 6),
+            ),
+            BoxShadow(
+              color: Colors.white.withValues(alpha: enabled ? 0.16 : 0.06),
+              blurRadius: 8,
+              spreadRadius: -5,
+              offset: const Offset(-2, -3),
             ),
           ],
         ),
-        child: AnimatedSwitcher(
-          duration: AppMotion.regular,
-          switchInCurve: AppMotion.enterCurve,
-          switchOutCurve: AppMotion.exitCurve,
-          child: isLoading
-              ? Center(
-                  key: const ValueKey('loading'),
-                  child: legacy.PremiumDots(color: foreground),
-                )
-              : Row(
-                  key: const ValueKey('label'),
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 20, color: foreground),
-                    const SizedBox(width: 10),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: foreground,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
-                      ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppUi.controlRadius),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  height: 1.2,
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.white.withValues(alpha: enabled ? 0.48 : 0.12),
+                        Colors.transparent,
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: AnimatedSwitcher(
+                  duration: AppMotion.regular,
+                  switchInCurve: AppMotion.enterCurve,
+                  switchOutCurve: AppMotion.exitCurve,
+                  child: isLoading
+                      ? Center(
+                          key: const ValueKey('loading'),
+                          child: legacy.PremiumDots(color: foreground),
+                        )
+                      : Row(
+                          key: const ValueKey('label'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(icon, size: 22, color: foreground),
+                            const SizedBox(width: 11),
+                            Flexible(
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: foreground,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -206,15 +247,6 @@ class PremiumLoadingScreen extends StatelessWidget {
                       color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w300,
                       letterSpacing: -1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 24),
