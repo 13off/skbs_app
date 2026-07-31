@@ -14,10 +14,7 @@ void main() {
     expect(employee, contains('phone: phone.trim(),'));
     expect(adaptiveDirectory, contains('employee.positionTitle'));
     expect(adaptiveDirectory, contains('phone: employee.phone'));
-    expect(
-      adaptiveDirectory,
-      contains('.map(prepareForDesktopDirectory)'),
-    );
+    expect(adaptiveDirectory, contains('.map(prepareForDesktopDirectory)'));
   });
 
   test('shared AppPage expands on desktop and restores nested back navigation', () {
@@ -31,7 +28,7 @@ void main() {
     expect(source, contains('this.maxContentWidth = AppUi.pageContentWidth'));
     expect(source, contains('BoxConstraints(maxWidth: maxContentWidth)'));
     expect(tokens, contains('static const double desktopBreakpoint = 1050;'));
-    expect(tokens, contains('static const double pageContentWidth = 1180;'));
+    expect(tokens, contains('static const double pageContentWidth = 1220;'));
     expect(source, contains('Navigator.maybeOf(context)'));
     expect(source, contains('navigator?.canPop() ?? false'));
     expect(source, contains('showBackButton: effectiveShowBackButton'));
