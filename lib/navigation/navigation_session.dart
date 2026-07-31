@@ -40,9 +40,19 @@ class NavigationSession {
     return _prefs?.getString(_key('preview.object'))?.trim() ?? '';
   }
 
+  static String readPreviewEmployeeId() {
+    return _prefs?.getString(_key('preview.employee_id'))?.trim() ?? '';
+  }
+
+  static String readPreviewEmployeeName() {
+    return _prefs?.getString(_key('preview.employee_name'))?.trim() ?? '';
+  }
+
   static Future<void> writePreview({
     required String role,
     String objectName = '',
+    String employeeId = '',
+    String employeeName = '',
   }) async {
     final preferences = _prefs;
     if (preferences == null) return;
@@ -56,6 +66,24 @@ class NavigationSession {
         objectName.trim(),
       );
     }
+
+    if (employeeId.trim().isEmpty) {
+      await preferences.remove(_key('preview.employee_id'));
+      await preferences.remove(_key('preview.employee_name'));
+    } else {
+      await preferences.setString(
+        _key('preview.employee_id'),
+        employeeId.trim(),
+      );
+      if (employeeName.trim().isEmpty) {
+        await preferences.remove(_key('preview.employee_name'));
+      } else {
+        await preferences.setString(
+          _key('preview.employee_name'),
+          employeeName.trim(),
+        );
+      }
+    }
   }
 
   static Future<void> clearPreview() async {
@@ -64,5 +92,7 @@ class NavigationSession {
 
     await preferences.remove(_key('preview.role'));
     await preferences.remove(_key('preview.object'));
+    await preferences.remove(_key('preview.employee_id'));
+    await preferences.remove(_key('preview.employee_name'));
   }
 }
