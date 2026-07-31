@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
-import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../role_preview/role_preview_controller.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
+import 'employee_profile_screen.dart';
 import 'employee_simple_work_screen.dart';
 
 class EmployeePlatformWithPassport extends StatefulWidget {
@@ -33,11 +33,6 @@ class _EmployeePlatformWithPassportState
       icon: Icons.assignment_outlined,
       selectedIcon: Icons.assignment_rounded,
     ),
-    ProfessionalBottomNavigationItem(
-      label: 'История задач',
-      icon: Icons.history_outlined,
-      selectedIcon: Icons.history_rounded,
-    ),
   ];
 
   @override
@@ -61,7 +56,7 @@ class _EmployeePlatformWithPassportState
     }
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
-        builder: (_) => ProfileScreen(profile: widget.profile),
+        builder: (_) => EmployeeProfileScreen(profile: widget.profile),
       ),
     );
   }
@@ -90,18 +85,10 @@ class _EmployeePlatformWithPassportState
         items: items,
         returnToFirstTabOnBack: true,
         navigationStorageKey: 'employee-work-simple',
-        tabBuilder: (context, index) {
-          if (index == 0) {
-            return EmployeeWorkTasksScreen(
-              profile: contentProfile,
-              selectedEmployeeId: selectedEmployeeId,
-            );
-          }
-          return EmployeeWorkTaskHistoryScreen(
-            profile: contentProfile,
-            selectedEmployeeId: selectedEmployeeId,
-          );
-        },
+        tabBuilder: (context, index) => EmployeeWorkTasksScreen(
+          profile: contentProfile,
+          selectedEmployeeId: selectedEmployeeId,
+        ),
       ),
     );
   }
