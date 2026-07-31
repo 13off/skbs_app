@@ -39,7 +39,6 @@ class AdaptiveAccountingDashboardScreen extends StatelessWidget {
         }
         return _DesktopAccountingDashboardScreen(
           onOpenPayments: onOpenPayments,
-          onOpenReports: onOpenReports,
         );
       },
     );
@@ -48,12 +47,8 @@ class AdaptiveAccountingDashboardScreen extends StatelessWidget {
 
 class _DesktopAccountingDashboardScreen extends StatefulWidget {
   final VoidCallback onOpenPayments;
-  final VoidCallback onOpenReports;
 
-  const _DesktopAccountingDashboardScreen({
-    required this.onOpenPayments,
-    required this.onOpenReports,
-  });
+  const _DesktopAccountingDashboardScreen({required this.onOpenPayments});
 
   @override
   State<_DesktopAccountingDashboardScreen> createState() =>
@@ -135,20 +130,26 @@ class _DesktopAccountingDashboardScreenState
       spacing: 10,
       runSpacing: 10,
       alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         const NotificationBell(selectedObjectName: null),
+        IconButton.filledTonal(
+          tooltip: 'Обновить',
+          onPressed: refresh,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
         IconButton.filledTonal(
           tooltip: 'Предыдущий месяц',
           onPressed: () => changeMonth(-1),
           icon: const Icon(Icons.chevron_left_rounded),
         ),
         Container(
-          constraints: const BoxConstraints(minWidth: 150),
+          constraints: const BoxConstraints(minWidth: 160),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
             color: specialistSoft,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: specialistLine),
           ),
           child: Text(
@@ -161,11 +162,6 @@ class _DesktopAccountingDashboardScreenState
           onPressed: () => changeMonth(1),
           icon: const Icon(Icons.chevron_right_rounded),
         ),
-        OutlinedButton.icon(
-          onPressed: widget.onOpenReports,
-          icon: const Icon(Icons.summarize_outlined),
-          label: const Text('Отчёты'),
-        ),
         FilledButton.icon(
           onPressed: addPayment,
           icon: const Icon(Icons.add_rounded),
@@ -177,36 +173,23 @@ class _DesktopAccountingDashboardScreenState
 
   Widget balances(AccountingDashboardData data) {
     return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(18),
+      radius: 28,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Крупные остатки',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onOpenPayments,
-                child: const Text('Все сотрудники'),
-              ),
-            ],
-          ),
-          Text(
-            'Сотрудники с наибольшей суммой к выплате',
+          const Text(
+            'Крупные остатки',
             style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w600,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (data.largestBalances.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
+              padding: EdgeInsets.symmetric(vertical: 30),
               child: Center(child: Text('Остатков к выплате нет')),
             ),
           ...data.largestBalances.map(
@@ -241,47 +224,34 @@ class _DesktopAccountingDashboardScreenState
 
   Widget receipts(AccountingDashboardData data) {
     return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(18),
+      radius: 28,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Выплаты без чека',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onOpenPayments,
-                child: const Text('Открыть выплаты'),
-              ),
-            ],
-          ),
-          Text(
-            'Операции без подтверждающего файла',
+          const Text(
+            'Выплаты без чека',
             style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w600,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (data.missingReceipts.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
+              padding: EdgeInsets.symmetric(vertical: 30),
               child: Center(child: Text('Все выплаты подтверждены')),
             ),
           ...data.missingReceipts.map(
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: specialistWarning.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+                  color: specialistWarning.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   Icons.receipt_long_outlined,
@@ -348,7 +318,7 @@ class _DesktopAccountingDashboardScreenState
                     value: accountingMoney(data.totalAccrued),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.payments_outlined,
@@ -358,7 +328,7 @@ class _DesktopAccountingDashboardScreenState
                     onTap: widget.onOpenPayments,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.account_balance_wallet_outlined,
@@ -370,13 +340,12 @@ class _DesktopAccountingDashboardScreenState
                     onTap: widget.onOpenPayments,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: SpecialistMetricCard(
                     icon: Icons.receipt_long_outlined,
                     label: 'Без чека',
                     value: '${data.missingReceiptCount}',
-                    hint: '${data.paymentCount} операций за месяц',
                     accent: data.missingReceiptCount > 0
                         ? specialistDanger
                         : specialistSuccess,
@@ -385,12 +354,12 @@ class _DesktopAccountingDashboardScreenState
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: balances(data)),
-                const SizedBox(width: 18),
+                const SizedBox(width: 20),
                 Expanded(child: receipts(data)),
               ],
             ),
@@ -400,8 +369,6 @@ class _DesktopAccountingDashboardScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-accounting-dashboard',
           title: 'Финансовый контроль',
-          subtitle:
-              'Начисления, выплаты, остатки и подтверждающие документы',
           trailing: actions(),
           onRefresh: refresh,
           children: children,

@@ -23,10 +23,12 @@ void main() {
     expect(platform, isNot(contains("label: 'Контроль'")));
     expect(platform, isNot(contains("label: 'Диспетчер'")));
     expect(platform, isNot(contains("label: 'Ограничения'")));
-    expect(system, contains('Конфигурация текущей компании'));
+    expect(system, contains('Конструктор компании'));
+    expect(system, contains('Widget actionGrid('));
     expect(system, contains('DispatcherSettingsScreen'));
     expect(system, contains('DeveloperPanelScreen'));
     expect(system, contains('DeveloperConstructorScreen'));
+    expect(system, isNot(contains('required String subtitle')));
     expect(profile, isNot(contains("title: 'Панель разработчика'")));
     expect(profile, isNot(contains("'Для разработчика'")));
   });

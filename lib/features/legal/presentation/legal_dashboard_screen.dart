@@ -11,8 +11,8 @@ import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
-import 'legal_documents_screen.dart';
 import 'adaptive_legal_matters_screen.dart';
+import 'legal_documents_screen.dart';
 import 'legal_weekly_report_screen.dart';
 
 class LegalDashboardScreen extends StatefulWidget {
@@ -86,26 +86,40 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
     required int value,
     required IconData icon,
     required VoidCallback onTap,
-    String subtitle = '',
+    Color? accent,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    final effective = accent ?? scheme.primary;
     return PremiumPressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      pressedScale: 0.975,
+      hoverScale: 1.012,
+      borderRadius: BorderRadius.circular(28),
       child: PremiumWorkCard(
-        radius: 24,
-        padding: const EdgeInsets.all(17),
+        radius: 28,
+        padding: const EdgeInsets.all(18),
         child: Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: AppAdaptivePalette.surfaceSoft,
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    effective.withValues(alpha: 0.22),
+                    effective.withValues(alpha: 0.07),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(19),
+                border: Border.all(
+                  color: effective.withValues(alpha: 0.18),
+                ),
               ),
-              child: Icon(icon, color: AppAdaptivePalette.textPrimary),
+              child: Icon(icon, color: effective, size: 27),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,28 +128,30 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                     value.toString(),
                     style: const TextStyle(
                       fontSize: 25,
+                      height: 1,
                       fontWeight: FontWeight.w900,
+                      letterSpacing: -0.45,
                     ),
                   ),
+                  const SizedBox(height: 7),
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: AppAdaptivePalette.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 17,
+              color: AppAdaptivePalette.textFaint,
+            ),
           ],
         ),
       ),
@@ -146,19 +162,23 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
     final documents = data.documents.take(3).toList();
     final matters = data.matters.take(3).toList();
     return PremiumWorkCard(
-      radius: 26,
+      radius: 28,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Последние изменения',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.25,
+            ),
           ),
           const SizedBox(height: 12),
           if (documents.isEmpty && matters.isEmpty)
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 18),
+              padding: const EdgeInsets.symmetric(vertical: 18),
               child: Center(
                 child: Text(
                   'Изменений пока нет',
@@ -203,7 +223,6 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Сегодня',
-      subtitle: 'Документы, сроки, юридические вопросы и решения руководителя',
       headerTrailing: const NotificationBell(selectedObjectName: null),
       child: FutureBuilder<LegalDashboardData>(
         future: future,
@@ -225,14 +244,16 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                   children: [
                     const Icon(Icons.cloud_off_rounded, size: 42),
                     const SizedBox(height: 12),
-                    Text(
-                      'Не удалось загрузить юридическую сводку: ${snapshot.error}',
+                    const Text(
+                      'Не удалось загрузить юридическую сводку',
                       textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 14),
-                    FilledButton(
+                    FilledButton.icon(
                       onPressed: refresh,
-                      child: const Text('Повторить'),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Повторить'),
                     ),
                   ],
                 ),
@@ -241,49 +262,49 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
           }
 
           final data = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: Column(
-              children: [
-                metricCard(
-                  title: 'Ожидают подписи',
-                  value: data.awaitingSignature.length,
-                  icon: Icons.draw_outlined,
-                  onTap: () => openDocuments(
-                    status: LegalDocumentStatus.awaitingSignature,
-                  ),
+          return Column(
+            children: [
+              metricCard(
+                title: 'Ожидают подписи',
+                value: data.awaitingSignature.length,
+                icon: Icons.draw_outlined,
+                onTap: () => openDocuments(
+                  status: LegalDocumentStatus.awaitingSignature,
                 ),
-                const SizedBox(height: 10),
-                metricCard(
-                  title: 'Истекают или просрочены',
-                  value: data.expiring.length,
-                  icon: Icons.event_busy_outlined,
-                  onTap: () => openDocuments(attentionOnly: true),
-                ),
-                const SizedBox(height: 10),
-                metricCard(
-                  title: 'Высокие риски',
-                  value: data.highRisks.length,
-                  icon: Icons.warning_amber_rounded,
-                  onTap: () => openMatters(highRiskOnly: true),
-                ),
-                const SizedBox(height: 10),
-                metricCard(
-                  title: 'Требуется решение руководителя',
-                  value: data.managerDecisions.length,
-                  icon: Icons.approval_outlined,
-                  onTap: () => openMatters(managerOnly: true),
-                ),
-                const SizedBox(height: 14),
-                PremiumActionButton(
-                  label: 'Недельный отчёт',
-                  icon: Icons.summarize_outlined,
-                  onPressed: openWeeklyReport,
-                ),
-                const SizedBox(height: 14),
-                activityCard(data),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              metricCard(
+                title: 'Истекают или просрочены',
+                value: data.expiring.length,
+                icon: Icons.event_busy_outlined,
+                accent: AppAdaptivePalette.warning,
+                onTap: () => openDocuments(attentionOnly: true),
+              ),
+              const SizedBox(height: 12),
+              metricCard(
+                title: 'Высокие риски',
+                value: data.highRisks.length,
+                icon: Icons.warning_amber_rounded,
+                accent: AppAdaptivePalette.danger,
+                onTap: () => openMatters(highRiskOnly: true),
+              ),
+              const SizedBox(height: 12),
+              metricCard(
+                title: 'Решение руководителя',
+                value: data.managerDecisions.length,
+                icon: Icons.approval_outlined,
+                accent: AppAdaptivePalette.warning,
+                onTap: () => openMatters(managerOnly: true),
+              ),
+              const SizedBox(height: 16),
+              PremiumActionButton(
+                label: 'Недельный отчёт',
+                icon: Icons.summarize_outlined,
+                onPressed: openWeeklyReport,
+              ),
+              const SizedBox(height: 16),
+              activityCard(data),
+            ],
           );
         },
       ),

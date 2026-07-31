@@ -28,7 +28,7 @@ class SpecialistDesktopPage extends StatelessWidget {
     super.key,
     required this.storageKey,
     required this.title,
-    required this.subtitle,
+    this.subtitle = '',
     required this.children,
     this.trailing,
     this.onRefresh,
@@ -41,7 +41,6 @@ class SpecialistDesktopPage extends StatelessWidget {
     return AppPage(
       scrollKey: PageStorageKey<String>(storageKey),
       title: title,
-      subtitle: subtitle,
       headerTrailing: trailing,
       showBackButton: showBackButton,
       onBack: onBack,
@@ -76,22 +75,32 @@ class SpecialistMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final effectiveAccent = accent ?? scheme.onSurfaceVariant;
+    final effectiveAccent = accent ?? scheme.primary;
     final content = PremiumWorkCard(
       radius: AppUi.cardRadius,
-      padding: AppUi.cardInsets,
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: effectiveAccent.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppUi.controlRadius),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  effectiveAccent.withValues(alpha: 0.22),
+                  effectiveAccent.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(19),
+              border: Border.all(
+                color: effectiveAccent.withValues(alpha: 0.18),
+              ),
             ),
-            child: Icon(icon, color: accent ?? scheme.onSurface),
+            child: Icon(icon, color: effectiveAccent, size: 27),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,35 +111,32 @@ class SpecialistMetricCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 23,
+                    fontSize: 25,
+                    height: 1,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: -0.55,
                   ),
                 ),
+                const SizedBox(height: 7),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: scheme.onSurface,
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                if (hint != null && hint!.trim().isNotEmpty)
-                  Text(
-                    hint!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
               ],
             ),
           ),
           if (onTap != null)
-            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 17,
+              color: scheme.onSurfaceVariant,
+            ),
         ],
       ),
     );
@@ -139,6 +145,8 @@ class SpecialistMetricCard extends StatelessWidget {
     return PremiumPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppUi.cardRadius),
+      pressedScale: 0.975,
+      hoverScale: 1.012,
       child: content,
     );
   }
@@ -160,18 +168,18 @@ class SpecialistStatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final effective = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: effective.withValues(alpha: 0.10),
+        color: effective.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: effective.withValues(alpha: 0.22)),
+        border: Border.all(color: effective.withValues(alpha: 0.24)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: effective),
-            const SizedBox(width: 5),
+            Icon(icon, size: 15, color: effective),
+            const SizedBox(width: 6),
           ],
           Text(
             label,
@@ -180,7 +188,7 @@ class SpecialistStatusPill extends StatelessWidget {
             style: TextStyle(
               color: effective,
               fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -212,37 +220,39 @@ class SpecialistMessageCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return PremiumWorkCard(
       radius: AppUi.modalRadius,
-      padding: const EdgeInsets.all(30),
+      padding: const EdgeInsets.all(32),
       child: Column(
         children: [
           if (loading)
             const CircularProgressIndicator()
           else
-            Icon(icon, size: 42, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 12),
+            Icon(icon, size: 48, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 18,
+              fontSize: 19,
               fontWeight: FontWeight.w900,
             ),
           ),
           if (description != null && description!.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               description!,
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
-                height: 1.35,
+                height: 1.3,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             FilledButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],

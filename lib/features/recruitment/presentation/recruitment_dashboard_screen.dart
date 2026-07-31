@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
-
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
@@ -74,43 +73,89 @@ class _RecruitmentDashboardScreenState
     required int value,
     Color color = AppAdaptivePalette.telegramBlue,
   }) {
-    return SizedBox(
-      width: 190,
-      child: PremiumWorkCard(
-        radius: 22,
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(15),
+    return PremiumWorkCard(
+      radius: 28,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: 0.22),
+                  color.withValues(alpha: 0.07),
+                ],
               ),
-              child: Icon(icon, color: color),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withValues(alpha: 0.18)),
             ),
-            SizedBox(height: 14),
-            Text(
-              '$value',
-              style: TextStyle(
-                color: _text,
-                fontSize: 28,
-                height: 1,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    color: _text,
+                    fontSize: 25,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.45,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget metrics(RecruitmentDashboardData data) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 780 ? 4 : 2;
+        final spacing = 12.0;
+        final width =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: data.stages
+              .map(
+                (stage) => SizedBox(
+                  width: width,
+                  child: metric(
+                    icon: stage.isFinal
+                        ? Icons.flag_outlined
+                        : Icons.view_column_outlined,
+                    label: stage.title,
+                    value: data.count(stage.id),
+                    color: _stageColor(stage.colorHex),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+        );
+      },
     );
   }
 
@@ -120,26 +165,25 @@ class _RecruitmentDashboardScreenState
   ) {
     final stage = data.stageFor(application);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppAdaptivePalette.surfaceElevated,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppAdaptivePalette.border),
-        ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PremiumWorkCard(
+        radius: 24,
+        padding: const EdgeInsets.all(15),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: AppAdaptivePalette.surfaceSoft,
-                borderRadius: BorderRadius.circular(15),
+                color: AppAdaptivePalette.telegramBlue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(Icons.person_search_rounded, color: _text),
+              child: const Icon(
+                Icons.person_search_rounded,
+                color: AppAdaptivePalette.telegramBlue,
+              ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 13),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,9 +192,13 @@ class _RecruitmentDashboardScreenState
                     application.fullName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      color: _text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 5),
                   Text(
                     <String>[
                       if (application.vacancy.isNotEmpty) application.vacancy,
@@ -161,14 +209,14 @@ class _RecruitmentDashboardScreenState
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: _muted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -177,16 +225,16 @@ class _RecruitmentDashboardScreenState
                   style: TextStyle(
                     color: _text,
                     fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   formatDate(application.createdAt),
                   style: TextStyle(
                     color: _muted,
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -201,30 +249,29 @@ class _RecruitmentDashboardScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Сегодня',
-      subtitle: '',
-      headerTrailing: IconButton(
+      headerTrailing: IconButton.filledTonal(
         tooltip: 'Обновить',
         onPressed: refresh,
-        icon: Icon(Icons.refresh_rounded),
+        icon: const Icon(Icons.refresh_rounded),
       ),
       child: FutureBuilder<RecruitmentDashboardData>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return Padding(
+            return const Padding(
               padding: EdgeInsets.symmetric(vertical: 100),
               child: Center(child: CircularProgressIndicator()),
             );
           }
           if (snapshot.hasError) {
             return PremiumWorkCard(
-              radius: 24,
-              padding: const EdgeInsets.all(24),
+              radius: 28,
+              padding: const EdgeInsets.all(28),
               child: Column(
                 children: [
-                  Icon(Icons.error_outline_rounded, size: 42),
-                  SizedBox(height: 10),
+                  const Icon(Icons.error_outline_rounded, size: 46),
+                  const SizedBox(height: 12),
                   Text(
                     'Не удалось загрузить HR-сводку',
                     style: TextStyle(
@@ -233,16 +280,11 @@ class _RecruitmentDashboardScreenState
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: _muted),
-                  ),
-                  SizedBox(height: 14),
-                  FilledButton(
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
                     onPressed: refresh,
-                    child: const Text('Повторить'),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Повторить'),
                   ),
                 ],
               ),
@@ -261,72 +303,38 @@ class _RecruitmentDashboardScreenState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: data.stages
-                    .map(
-                      (stage) => metric(
-                        icon: stage.isFinal
-                            ? Icons.flag_outlined
-                            : Icons.view_column_outlined,
-                        label: stage.title,
-                        value: data.count(stage.id),
-                        color: _stageColor(stage.colorHex),
-                      ),
-                    )
-                    .toList(),
-              ),
-              SizedBox(height: 18),
-              FilledButton.icon(
+              metrics(data),
+              const SizedBox(height: 18),
+              PremiumActionButton(
+                label: 'Все заявки · ${data.total}',
+                icon: Icons.view_kanban_rounded,
                 onPressed: widget.onOpenApplications,
-                icon: Icon(Icons.view_kanban_outlined),
-                label: Text('Все заявки · ${data.total}'),
               ),
-              SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Последние заявки',
-                      style: TextStyle(
-                        color: _text,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: widget.onOpenApplications,
-                    child: const Text('Открыть все'),
-                  ),
-                ],
+              const SizedBox(height: 24),
+              Text(
+                'Последние заявки',
+                style: TextStyle(
+                  color: _text,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 12),
               if (latest.isEmpty)
                 PremiumWorkCard(
-                  radius: 24,
-                  padding: const EdgeInsets.all(24),
+                  radius: 28,
+                  padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
-                      Icon(Icons.inbox_outlined, size: 40, color: _muted),
-                      SizedBox(height: 10),
+                      Icon(Icons.inbox_outlined, size: 44, color: _muted),
+                      const SizedBox(height: 12),
                       Text(
                         'Заявок пока нет',
                         style: TextStyle(
                           color: _text,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        'На первом этапе кандидатов можно добавлять вручную. Затем подключим Telegram-бота.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _muted,
-                          height: 1.35,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

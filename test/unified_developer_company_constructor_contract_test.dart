@@ -21,10 +21,12 @@ void main() {
     expect(main, isNot(contains("label: 'Диспетчер'")));
 
     expect(system, contains("title: 'Конструктор'"));
-    expect(system, contains('Конструктор текущей компании'));
-    expect(system, contains('Компания'));
-    expect(system, contains('Объект'));
-    expect(system, contains('Роль'));
+    expect(system, contains('Конструктор компании'));
+    expect(system, contains('Widget actionGrid('));
+    expect(system, contains("sectionTitle(context, 'Логика приложения')"));
+    expect(system, contains("sectionTitle(context, 'Компания и документы')"));
+    expect(system, contains("sectionTitle(context, 'Контроль')"));
+    expect(system, isNot(contains('required String subtitle')));
   });
 
   test('constructor reuses every existing real configuration screen', () {
@@ -79,6 +81,6 @@ void main() {
     expect(manager, isNot(contains('DeveloperPanelScreen')));
     expect(manager, isNot(contains('RolePermissionMatrixScreen')));
     expect(manager, isNot(contains("label: 'Конструктор'")));
-    expect(manager, isNot(contains('Конструктор текущей компании')));
+    expect(manager, isNot(contains('Конструктор компании')));
   });
 }
