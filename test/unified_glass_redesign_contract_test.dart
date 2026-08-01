@@ -47,6 +47,9 @@ void main() {
     expect(button, contains('class _ShazamWaveRing'));
     expect(button, contains('class _PremiumButtonBody'));
     expect(button, contains('class _WorkEmblem'));
+    expect(button, contains('class _MatteTexturePainter'));
+    expect(button, contains('HapticFeedback.heavyImpact()'));
+    expect(button, contains('staggeredWave(waveValue, 0.64)'));
     expect(button, contains('Icons.construction_rounded'));
     expect(button, isNot(contains('CircularProgressIndicator')));
     expect(button, isNot(contains('play_arrow_rounded')));

@@ -25,7 +25,7 @@ void main() {
     expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
-  test('одна премиальная кнопка запускает и завершает рабочий день', () {
+  test('одна матовая премиальная кнопка запускает и завершает рабочий день', () {
     final home = File(homePath).readAsStringSync();
     final button = File(workButtonPath).readAsStringSync();
 
@@ -47,7 +47,10 @@ void main() {
     expect(button, contains('staggeredWave(waveValue, 0.16)'));
     expect(button, contains('staggeredWave(waveValue, 0.32)'));
     expect(button, contains('staggeredWave(waveValue, 0.48)'));
+    expect(button, contains('staggeredWave(waveValue, 0.64)'));
     expect(button, contains('math.sin(waveValue * math.pi * 14)'));
+    expect(button, contains('class _MatteTexturePainter'));
+    expect(button, contains('HapticFeedback.heavyImpact()'));
     expect(button, contains('SweepGradient('));
     expect(button, contains('Icons.stop_rounded'));
     expect(button, contains('Icons.construction_rounded'));
