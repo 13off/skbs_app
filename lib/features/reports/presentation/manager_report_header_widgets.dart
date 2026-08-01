@@ -30,96 +30,94 @@ class ManagerReportFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final objectName = center.selectedObject?.name ?? 'Все объекты';
+    final objectField = DropdownButtonFormField<String>(
+      key: ValueKey<String?>(selectedObjectId),
+      initialValue: selectedObjectId,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Объект',
+        prefixIcon: Icon(Icons.apartment_outlined),
+      ),
+      items: [
+        const DropdownMenuItem<String>(
+          value: '',
+          child: Text('Все объекты'),
+        ),
+        ...center.objects.map(
+          (object) => DropdownMenuItem<String>(
+            value: object.id,
+            child: Text(object.name, overflow: TextOverflow.ellipsis),
+          ),
+        ),
+      ],
+      onChanged: onObjectChanged,
+    );
+
+    final dateField = Row(
+      children: [
+        IconButton.filledTonal(
+          tooltip: 'Предыдущий день',
+          onPressed: onPreviousDay,
+          icon: const Icon(Icons.chevron_left_rounded),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onChooseDate,
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: Text(managerReportDateText(reportDate)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: 'Следующий день',
+          onPressed: onNextDay,
+          icon: const Icon(Icons.chevron_right_rounded),
+        ),
+      ],
+    );
+
+    final problemsSwitch = Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Только проблемные разделы',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+        Switch.adaptive(
+          value: onlyProblems,
+          onChanged: onOnlyProblemsChanged,
+        ),
+      ],
+    );
+
     return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 720;
-              final objectField = DropdownButtonFormField<String>(
-                key: ValueKey<String?>(selectedObjectId),
-                initialValue: selectedObjectId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Объект отчёта',
-                  prefixIcon: Icon(Icons.apartment_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: '',
-                    child: Text('Все объекты'),
-                  ),
-                  ...center.objects.map(
-                    (object) => DropdownMenuItem<String>(
-                      value: object.id,
-                      child: Text(
-                        object.name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ],
-                onChanged: onObjectChanged,
-              );
-              final dateField = Row(
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: 'Предыдущий день',
-                    onPressed: onPreviousDay,
-                    icon: const Icon(Icons.chevron_left_rounded),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onChooseDate,
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      label: Text(managerReportDateText(reportDate)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    tooltip: 'Следующий день',
-                    onPressed: onNextDay,
-                    icon: const Icon(Icons.chevron_right_rounded),
-                  ),
-                ],
-              );
-              if (wide) {
-                return Row(
-                  children: [
-                    Expanded(flex: 3, child: objectField),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 2, child: dateField),
-                  ],
-                );
-              }
-              return Column(
-                children: [
-                  objectField,
-                  const SizedBox(height: 12),
-                  dateField,
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: onlyProblems,
-            onChanged: onOnlyProblemsChanged,
-            title: const Text(
-              'Только проблемные разделы',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              'Сейчас: $objectName · ${managerReportDateText(reportDate)}',
-            ),
-          ),
-        ],
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 760) {
+            return Row(
+              children: [
+                Expanded(flex: 4, child: objectField),
+                const SizedBox(width: 12),
+                Expanded(flex: 3, child: dateField),
+                const SizedBox(width: 16),
+                SizedBox(width: 230, child: problemsSwitch),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              objectField,
+              const SizedBox(height: 10),
+              dateField,
+              const SizedBox(height: 4),
+              problemsSwitch,
+            ],
+          );
+        },
       ),
     );
   }
@@ -132,79 +130,84 @@ class ManagerReportOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final critical = center.criticalCount;
-    final objectName = center.selectedObject?.name ?? 'Все объекты';
+    final lines = ManagerReportAnalysis.lines(center).take(2).toList();
+
     return PremiumWorkCard(
-      radius: 28,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(17),
-                ),
-                child: Icon(
-                  critical > 0
-                      ? Icons.warning_amber_rounded
-                      : Icons.verified_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(
+              critical > 0
+                  ? Icons.warning_amber_rounded
+                  : Icons.verified_outlined,
+              color: critical > 0 ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      critical > 0
-                          ? 'Требует внимания: $critical'
-                          : 'Отклонений не найдено',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                    Expanded(
+                      child: Text(
+                        critical > 0
+                            ? 'Требует внимания'
+                            : 'Отклонений не найдено',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    if (critical > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$critical',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                  ],
+                ),
+                if (lines.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  for (var index = 0; index < lines.length; index++) ...[
                     Text(
-                      '$objectName · ${managerReportDateText(center.reportDate)}',
+                      lines[index],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: scheme.onSurfaceVariant,
+                        height: 1.3,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (index != lines.length - 1) const SizedBox(height: 3),
                   ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          for (final line in ManagerReportAnalysis.lines(center)) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 7),
-                  child: Icon(Icons.circle, size: 6),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    line,
-                    style: const TextStyle(
-                      height: 1.35,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ],
       ),
     );
