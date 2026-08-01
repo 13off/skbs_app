@@ -13,6 +13,7 @@ import 'employee_routes_report_screen.dart';
 import 'manager_daily_ai_review.dart';
 import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
+import 'manager_report_tile.dart';
 import 'manager_weekly_contribution_section.dart';
 
 class ManagerReportsScreen extends StatefulWidget {
@@ -149,6 +150,16 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     );
   }
 
+  void openDailyReview(ManagerReportsCenter center) {
+    openScreen(
+      ManagerDailyAiReviewScreen(
+        profile: widget.profile,
+        center: center,
+        onOpen: openScreen,
+      ),
+    );
+  }
+
   void openContribution(ManagerWeeklyContributionEmployee item) {
     openScreen(
       EmployeeContributionScreen(
@@ -164,51 +175,44 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     );
   }
 
-  Widget routesButton() {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(28),
-        onTap: openRoutes,
-        child: PremiumWorkCard(
-          radius: 28,
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(19),
-                ),
-                child: Icon(
-                  Icons.route_rounded,
-                  color: scheme.primary,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Text(
-                  'Маршруты сотрудников',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: scheme.onSurfaceVariant,
-                size: 18,
-              ),
-            ],
-          ),
-        ),
+  Widget sectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
       ),
+    );
+  }
+
+  Widget quickReports(ManagerReportsCenter center) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        sectionTitle(context, 'Быстрые отчёты'),
+        ManagerReportTile(
+          icon: Icons.route_rounded,
+          title: 'Маршруты сотрудников',
+          meta: 'Передвижения и рабочие маршруты',
+          onTap: openRoutes,
+        ),
+        ManagerReportTile(
+          icon: Icons.auto_awesome_outlined,
+          title: 'ИИ-разбор рабочего дня',
+          meta: center.criticalCount > 0
+              ? 'Требует внимания: ${center.criticalCount}'
+              : 'Критичных отклонений нет',
+          trailingLabel:
+              center.criticalCount > 0 ? '${center.criticalCount}' : null,
+          onTap: () => openDailyReview(center),
+        ),
+        ManagerWeeklyContributionSection(
+          future: weeklyContributionFuture,
+          onOpenEmployee: openContribution,
+        ),
+      ],
     );
   }
 
@@ -216,8 +220,6 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        routesButton(),
-        const SizedBox(height: 16),
         ManagerReportFilters(
           center: center,
           selectedObjectId: selectedObjectId,
@@ -231,19 +233,11 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
             setState(() => onlyProblems = value);
           },
         ),
-        const SizedBox(height: 16),
-        ManagerDailyAiReviewCard(
-          profile: widget.profile,
-          center: center,
-          onOpen: openScreen,
-        ),
-        const SizedBox(height: 16),
-        ManagerWeeklyContributionSection(
-          future: weeklyContributionFuture,
-          onOpenEmployee: openContribution,
-        ),
+        const SizedBox(height: 12),
         ManagerReportOverview(center: center),
         const SizedBox(height: 20),
+        quickReports(center),
+        const SizedBox(height: 10),
         ManagerReportSections(
           profile: widget.profile,
           center: center,
