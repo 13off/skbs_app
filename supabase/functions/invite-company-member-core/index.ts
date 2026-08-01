@@ -105,6 +105,7 @@ Deno.serve(async (request: Request) => {
       "lawyer",
       "accountant",
       "hr",
+      "procurement",
     ]);
 
     if (!companyId || !email || !email.includes("@")) {

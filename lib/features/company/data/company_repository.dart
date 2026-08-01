@@ -41,6 +41,8 @@ class CompanySummary {
         return 'Бухгалтер';
       case 'hr':
         return 'HR-менеджер';
+      case 'procurement':
+        return 'Снабженец';
       default:
         return role;
     }
@@ -93,6 +95,8 @@ class CompanyMember {
         return 'Бухгалтер';
       case 'hr':
         return 'HR-менеджер';
+      case 'procurement':
+        return 'Снабженец';
       default:
         return role;
     }

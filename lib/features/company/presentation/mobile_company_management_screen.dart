@@ -358,6 +358,7 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
       'lawyer',
       'accountant',
       'hr',
+      'procurement',
     };
     final currentRole = widget.member?.role;
     role = currentRole != null && allowedRoles.contains(currentRole)
@@ -640,6 +641,10 @@ class _CompanyMemberEditorScreenState extends State<CompanyMemberEditorScreen> {
                 DropdownMenuItem(value: 'lawyer', child: Text('Юрист')),
                 DropdownMenuItem(value: 'accountant', child: Text('Бухгалтер')),
                 DropdownMenuItem(value: 'hr', child: Text('HR-менеджер')),
+                DropdownMenuItem(
+                  value: 'procurement',
+                  child: Text('Снабженец'),
+                ),
               ],
               onChanged: isSaving
                   ? null
