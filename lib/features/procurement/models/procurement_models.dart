@@ -129,6 +129,7 @@ class ProcurementRequest {
 
   bool get isClosed => status == 'delivered' || status == 'canceled';
   bool get isDelivery => status == 'ordered' || status == 'in_delivery';
+
   bool get isOverdue {
     final deadline = expectedDeliveryAt ?? neededBy;
     return !isClosed && deadline != null && deadline.isBefore(DateTime.now());
@@ -179,7 +180,11 @@ class ProcurementRequest {
     final items = rawItems is List
         ? rawItems
               .whereType<Map>()
-              .map((item) => ProcurementRequestItem.fromMap(Map<String, dynamic>.from(item)))
+              .map(
+                (item) => ProcurementRequestItem.fromMap(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
               .toList()
         : <ProcurementRequestItem>[];
     items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -211,13 +216,34 @@ class ProcurementDashboardData {
   final List<ProcurementRequest> requests;
   final List<ProcurementSupplier> suppliers;
 
-  const ProcurementDashboardData({required this.requests, required this.suppliers});
+  const ProcurementDashboardData({
+    required this.requests,
+    required this.suppliers,
+  });
 
-  int get requiresAttention => requests.where((item) => item.status == 'submitted' || item.isOverdue).length;
-  int get inPurchase => requests.where((item) => const {'approved', 'purchasing', 'ordered'}.contains(item.status)).length;
-  int get inDelivery => requests.where((item) => item.status == 'in_delivery').length;
-  int get delivered => requests.where((item) => item.status == 'delivered').length;
-  double get openAmount => requests.where((item) => !item.isClosed).fold(0, (sum, item) => sum + item.totalAmount);
+  int get requiresAttention => requests
+      .where((item) => item.status == 'submitted' || item.isOverdue)
+      .length;
+
+  int get inPurchase => requests
+      .where(
+        (item) => const <String>{
+          'approved',
+          'purchasing',
+          'ordered',
+        }.contains(item.status),
+      )
+      .length;
+
+  int get inDelivery =>
+      requests.where((item) => item.status == 'in_delivery').length;
+
+  int get delivered =>
+      requests.where((item) => item.status == 'delivered').length;
+
+  double get openAmount => requests
+      .where((item) => !item.isClosed)
+      .fold<double>(0, (sum, item) => sum + item.totalAmount);
 }
 
 double _number(dynamic value) {
