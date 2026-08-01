@@ -21,7 +21,11 @@ void main() {
     expect(reports, contains('EmployeeContributionScreen('));
     expect(section, contains("'Вклад команды за неделю'"));
     expect(section, contains('class _WeeklyContributionDetailsScreen'));
-    expect(section, contains("label: const Text('Открыть недельную сводку')"));
+    expect(section, contains('ManagerReportTile('));
+    expect(
+      section,
+      isNot(contains("label: const Text('Открыть недельную сводку')")),
+    );
     expect(managerShell, contains('static const int pageCount = 5;'));
     expect(managerShell, isNot(contains("label: 'Вклад команды'")));
   });
