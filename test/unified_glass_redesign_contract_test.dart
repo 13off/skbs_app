@@ -70,6 +70,9 @@ void main() {
     final reports = File(
       'lib/features/reports/presentation/manager_reports_screen.dart',
     ).readAsStringSync();
+    final reportTile = File(
+      'lib/features/reports/presentation/manager_report_tile.dart',
+    ).readAsStringSync();
     final timesheet = File(
       'lib/screens/timesheet/timesheet_view.dart',
     ).readAsStringSync();
@@ -79,7 +82,9 @@ void main() {
     expect(profile, contains('Icons.settings_rounded, size: 27'));
     expect(profile, contains('textWidthBasis: TextWidthBasis.parent'));
     expect(profile, isNot(contains('Сотрудник · просмотр руководителя')));
-    expect(reports, contains('Widget routesButton()'));
+    expect(reports, contains('ManagerReportTile('));
+    expect(reportTile, contains('PremiumWorkCard('));
+    expect(reportTile, contains('borderRadius: BorderRadius.circular(24)'));
     expect(reports, isNot(contains('Единый центр аналитики руководителя')));
     expect(timesheet, contains('BoxConstraints(maxWidth: 460)'));
     expect(timesheet, contains('PremiumWorkCard('));
