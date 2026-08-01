@@ -42,14 +42,18 @@ void main() {
       contains("widget.active ? 'Завершить работу' : 'Начать работу'"),
     );
     expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
+    expect(button, contains('Duration(milliseconds: 4200)'));
+    expect(button, contains('Duration(milliseconds: 2400)'));
     expect(button, contains('idlePulseController.repeat(reverse: true)'));
     expect(button, contains('shazamWaveController.repeat('));
     expect(button, contains('class _ShazamWaveRing'));
     expect(button, contains('class _PremiumButtonBody'));
     expect(button, contains('class _WorkEmblem'));
     expect(button, contains('class _MatteTexturePainter'));
-    expect(button, contains('HapticFeedback.heavyImpact()'));
-    expect(button, contains('staggeredWave(waveValue, 0.64)'));
+    expect(button, contains('HapticFeedback.mediumImpact()'));
+    expect(button, contains('staggeredWave(waveValue, 0.56)'));
+    expect(button, contains('Curves.easeInOutSine'));
+    expect(button, contains('ui.ImageFilter.blur'));
     expect(button, contains('Icons.construction_rounded'));
     expect(button, isNot(contains('CircularProgressIndicator')));
     expect(button, isNot(contains('play_arrow_rounded')));
