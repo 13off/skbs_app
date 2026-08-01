@@ -17,7 +17,7 @@ void main() {
 
   test('company roles can be linked to one employee identity safely', () {
     final migration = File(
-      'supabase/migrations/20260801102000_sync_role_profiles_with_people.sql',
+      'supabase/migrations/20260801102026_sync_role_profiles_with_people.sql',
     ).readAsStringSync();
 
     expect(migration, contains('add column if not exists person_id uuid'));
@@ -30,7 +30,7 @@ void main() {
 
   test('employee edits synchronize linked role profiles in both directions', () {
     final migration = File(
-      'supabase/migrations/20260801102000_sync_role_profiles_with_people.sql',
+      'supabase/migrations/20260801102026_sync_role_profiles_with_people.sql',
     ).readAsStringSync();
 
     expect(migration, contains('private.sync_person_to_user_profiles'));
