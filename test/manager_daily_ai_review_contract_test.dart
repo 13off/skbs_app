@@ -12,7 +12,10 @@ void main() {
     ).readAsStringSync();
 
     expect(screen, contains("import 'manager_daily_ai_review.dart';"));
-    expect(screen, contains('ManagerDailyAiReviewCard('));
+    expect(screen, contains("title: 'ИИ-разбор рабочего дня'"));
+    expect(screen, contains('void openDailyReview(ManagerReportsCenter center)'));
+    expect(screen, contains('ManagerDailyAiReviewScreen('));
+    expect(screen, isNot(contains('ManagerDailyAiReviewCard(')));
     expect(review, contains("'ИИ-разбор рабочего дня'"));
     expect(review, contains("'Что выполнено'"));
     expect(review, contains("'Какие проблемы возникли'"));

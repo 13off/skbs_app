@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_weekly_contribution_repository.dart';
+import 'manager_report_tile.dart';
 
 class ManagerWeeklyContributionSection extends StatelessWidget {
   final Future<ManagerWeeklyContributionReport> future;
@@ -22,31 +23,18 @@ class ManagerWeeklyContributionSection extends StatelessWidget {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.only(bottom: 12),
-            child: PremiumWorkCard(
-              radius: 24,
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
+          return const ManagerReportTile(
+            icon: Icons.groups_2_outlined,
+            title: 'Вклад команды за неделю',
+            meta: 'Загрузка недельной сводки',
+            loading: true,
           );
         }
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PremiumWorkCard(
-              radius: 24,
-              child: ListTile(
-                leading: const Icon(Icons.groups_outlined),
-                title: const Text(
-                  'Вклад команды за неделю',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-                subtitle: const Text('Не удалось загрузить недельную сводку'),
-              ),
-            ),
+          return const ManagerReportTile(
+            icon: Icons.groups_2_outlined,
+            title: 'Вклад команды за неделю',
+            meta: 'Не удалось загрузить сводку',
           );
         }
         return _WeeklyContributionCard(
@@ -82,64 +70,21 @@ class _WeeklyContributionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: PremiumWorkCard(
-        radius: 24,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.groups_2_outlined),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Вклад команды за неделю',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text('$periodTitle · ${report.participants} участников'),
-                    ],
-                  ),
-                ),
-              ],
+    return ManagerReportTile(
+      icon: Icons.groups_2_outlined,
+      title: 'Вклад команды за неделю',
+      meta: '$periodTitle · ${report.participants} участников',
+      trailingLabel: report.completedTasks > 0 ? '${report.completedTasks}' : null,
+      onTap: () {
+        Navigator.of(context).push<void>(
+          CupertinoPageRoute<void>(
+            builder: (_) => _WeeklyContributionDetailsScreen(
+              report: report,
+              onOpenEmployee: onOpenEmployee,
             ),
-            const SizedBox(height: 14),
-            FilledButton.tonalIcon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => _WeeklyContributionDetailsScreen(
-                      report: report,
-                      onOpenEmployee: onOpenEmployee,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.open_in_new_rounded),
-              label: const Text('Открыть недельную сводку'),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
