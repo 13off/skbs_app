@@ -1,4 +1,5 @@
 import '../features/developer/data/developer_policy_repository.dart';
+import '../features/employee/data/employee_task_cabinet_repository.dart';
 import '../features/reports/data/manager_reports_repository.dart';
 import 'app_data_sync.dart';
 import 'attendance_repository.dart';
@@ -93,6 +94,7 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.employees)) {
       EmployeeRepository.clearCache();
+      EmployeeTaskCabinetRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.financeSummary)) {
       FinanceSummaryRepository.clearCache();
@@ -105,6 +107,7 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.tasks)) {
       TaskRepository.clearTaskListCache();
+      EmployeeTaskCabinetRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.developerPolicies)) {
       DeveloperPolicyRepository.clearCache();
