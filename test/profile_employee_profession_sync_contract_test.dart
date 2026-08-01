@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final migration = File(
-    'supabase/migrations/20260801103500_sync_role_professions_with_employees.sql',
+    'supabase/migrations/20260801103936_sync_role_professions_with_employees.sql',
   ).readAsStringSync();
 
   test('linked employee position is copied to role profiles', () {
