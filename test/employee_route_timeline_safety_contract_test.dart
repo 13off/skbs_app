@@ -22,6 +22,9 @@ void main() {
     final repository = File(
       'lib/features/employee/data/employee_route_analysis_repository.dart',
     ).readAsStringSync();
+    final migration = File(
+      'supabase/migrations/20260801143043_employee_route_geofences.sql',
+    ).readAsStringSync();
 
     expect(route, contains("'Нажмите на маршрут — увидите время'"));
     expect(route, contains('_dateTime(point.recordedAt)'));
@@ -30,6 +33,8 @@ void main() {
     expect(route, contains("'Основной рабочий интервал"));
     expect(route, contains('_outsideEpisodes'));
     expect(repository, contains("'get_employee_route_geofences'"));
+    expect(migration, contains('public.get_employee_route_geofences'));
+    expect(migration, contains('security definer'));
   });
 
   test('проверка GPS не создаёт смену, а ночной старт требует выбора', () {
@@ -48,7 +53,7 @@ void main() {
 
   test('ошибочный старт отменяется только быстро и без рабочего маршрута', () {
     final migration = File(
-      'supabase/migrations/20260801140500_route_timeline_and_shift_safety.sql',
+      'supabase/migrations/20260801143019_cancel_recent_employee_shift.sql',
     ).readAsStringSync();
     final repository = File(
       'lib/features/employee/data/employee_route_analysis_repository.dart',
