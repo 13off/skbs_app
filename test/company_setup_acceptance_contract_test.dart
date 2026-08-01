@@ -87,7 +87,7 @@ void main() {
         contains('Нарушение: сервер вернул строк с другого объекта'),
       );
       expect(repository, isNot(contains("query = query.eq('object_name'")));
-      expect(matrix['schema_version'], 3);
+      expect(matrix['schema_version'], 4);
       expect(
         (matrix['principles']
             as Map)['foreman_scope_is_verified_without_client_filter'],
