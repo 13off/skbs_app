@@ -16,10 +16,12 @@ class ProcurementDeliveriesScreen extends StatefulWidget {
   const ProcurementDeliveriesScreen({super.key, required this.profile});
 
   @override
-  State<ProcurementDeliveriesScreen> createState() => _ProcurementDeliveriesScreenState();
+  State<ProcurementDeliveriesScreen> createState() =>
+      _ProcurementDeliveriesScreenState();
 }
 
-class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScreen> {
+class _ProcurementDeliveriesScreenState
+    extends State<ProcurementDeliveriesScreen> {
   late Future<List<ProcurementRequest>> future;
   StreamSubscription<AppDataChange>? subscription;
 
@@ -43,7 +45,13 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
       companyId: widget.profile.activeCompanyId,
     );
     return rows
-        .where((item) => const {'ordered', 'in_delivery', 'delivered'}.contains(item.status))
+        .where(
+          (item) => const <String>{
+            'ordered',
+            'in_delivery',
+            'delivered',
+          }.contains(item.status),
+        )
         .toList();
   }
 
@@ -57,12 +65,17 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
     final next = request.nextStatus;
     if (next == null) return;
     try {
-      await ProcurementRepository.setStatus(requestId: request.id, status: next);
+      await ProcurementRepository.setStatus(
+        requestId: request.id,
+        status: next,
+      );
       if (mounted) await refresh();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
       );
     }
   }
@@ -103,9 +116,23 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(request.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text(
+                        request.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 3),
-                      Text('${request.objectName} · ${request.statusTitle}', style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700)),
+                      Text(
+                        '${request.objectName} · ${request.statusTitle}',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -114,17 +141,36 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.event_outlined, size: 18, color: request.isOverdue ? AppAdaptivePalette.danger : AppAdaptivePalette.textMuted),
+                Icon(
+                  Icons.event_outlined,
+                  size: 18,
+                  color: request.isOverdue
+                      ? AppAdaptivePalette.danger
+                      : AppAdaptivePalette.textMuted,
+                ),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     dateText(deadline),
-                    style: TextStyle(color: request.isOverdue ? AppAdaptivePalette.danger : AppAdaptivePalette.textMuted, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: request.isOverdue
+                          ? AppAdaptivePalette.danger
+                          : AppAdaptivePalette.textMuted,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 if (request.supplierName.isNotEmpty)
                   Flexible(
-                    child: Text(request.supplierName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      request.supplierName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -145,8 +191,7 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget loadingPage() {
     return AppPage(
       title: 'Доставки',
       headerTrailing: IconButton(
@@ -154,31 +199,95 @@ class _ProcurementDeliveriesScreenState extends State<ProcurementDeliveriesScree
         onPressed: refresh,
         icon: const Icon(Icons.refresh_rounded),
       ),
-      child: FutureBuilder<List<ProcurementRequest>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: PremiumActionButton(onPressed: refresh, icon: Icons.refresh_rounded, label: 'Повторить'));
-          }
-          final rows = snapshot.data ?? const <ProcurementRequest>[];
-          if (rows.isEmpty) {
-            return Center(
-              child: Text('Нет доставок', style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700)),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 36),
-              itemCount: rows.length,
-              itemBuilder: (_, index) => card(rows[index]),
-            ),
-          );
-        },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 72),
+        child: Center(child: CircularProgressIndicator()),
       ),
+    );
+  }
+
+  Widget errorPage(Object? error) {
+    return AppPage(
+      title: 'Доставки',
+      headerTrailing: IconButton(
+        tooltip: 'Обновить',
+        onPressed: refresh,
+        icon: const Icon(Icons.refresh_rounded),
+      ),
+      child: PremiumWorkCard(
+        radius: 20,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Text(
+              'Не удалось загрузить доставки',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString().replaceFirst('Exception: ', '') ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            PremiumActionButton(
+              onPressed: refresh,
+              icon: Icons.refresh_rounded,
+              label: 'Повторить',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ProcurementRequest>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return loadingPage();
+        }
+        if (snapshot.hasError) return errorPage(snapshot.error);
+
+        final rows = snapshot.data ?? const <ProcurementRequest>[];
+        return AppLazyPage(
+          title: 'Доставки',
+          subtitle: '',
+          headerTrailing: IconButton(
+            tooltip: 'Обновить',
+            onPressed: refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          itemCount: rows.length,
+          itemBuilder: (_, index) => card(rows[index]),
+          trailing: rows.isEmpty
+              ? <Widget>[
+                  PremiumWorkCard(
+                    radius: 20,
+                    padding: const EdgeInsets.all(18),
+                    child: Text(
+                      'Нет доставок',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.textMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ]
+              : const <Widget>[],
+        );
+      },
     );
   }
 }
