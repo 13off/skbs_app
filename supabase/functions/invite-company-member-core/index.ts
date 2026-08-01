@@ -65,7 +65,7 @@ async function findUserByEmail(
     });
     if (error) throw error;
     const match = data.users.find(
-      (candidate) => cleanEmail(candidate.email) === email,
+      (candidate: User) => cleanEmail(candidate.email) === email,
     );
     if (match) return match;
     if (data.users.length < 1000) return null;
