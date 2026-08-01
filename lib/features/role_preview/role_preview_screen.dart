@@ -287,11 +287,11 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
   Widget roleCard({
     required IconData icon,
     required String title,
-    required String subtitle,
     required bool selected,
     required VoidCallback? onTap,
     String? badge,
   }) {
+    final cleanBadge = badge?.trim();
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: PremiumPressable(
@@ -319,53 +319,45 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _roleText,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (cleanBadge != null && cleanBadge.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _roleSoft,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             child: Text(
-                              title,
+                              cleanBadge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: _roleText,
-                                fontSize: 16,
+                                color: _roleMuted,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
-                          if (badge != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _roleSoft,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                badge,
-                                style: TextStyle(
-                                  color: _roleMuted,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: _roleMuted,
-                          height: 1.3,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -410,15 +402,12 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                       roleCard(
                         icon: Icons.admin_panel_settings_rounded,
                         title: 'Руководитель',
-                        subtitle: 'Обычная платформа администратора компании.',
                         selected: preview.isAdminMode,
                         onTap: selectAdmin,
                       ),
                       roleCard(
                         icon: Icons.developer_mode_rounded,
                         title: 'Разработчик',
-                        subtitle:
-                            'Системные настройки, ИИ-диспетчер, ограничения и контроль платформы.',
                         selected: preview.isDeveloperMode,
                         onTap: selectDeveloper,
                         badge: 'СИСТЕМА',
@@ -426,51 +415,43 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                       roleCard(
                         icon: Icons.engineering_rounded,
                         title: 'Прораб',
-                        subtitle:
-                            preview.isForemanMode && preview.objectName.isNotEmpty
-                                ? 'Сейчас выбран объект: ${preview.objectName}'
-                                : 'Показать рабочую платформу прораба выбранного объекта.',
                         selected: preview.isForemanMode,
                         onTap: objectSnapshot.connectionState ==
                                 ConnectionState.waiting
                             ? null
                             : () => selectForeman(objectNames),
+                        badge: preview.isForemanMode && preview.objectName.isNotEmpty
+                            ? preview.objectName
+                            : null,
                       ),
                       roleCard(
                         icon: Icons.construction_rounded,
                         title: 'Сотрудник',
-                        subtitle: preview.isEmployeeMode &&
-                                preview.employeeName.isNotEmpty
-                            ? 'Сейчас выбран: ${preview.employeeName}'
-                            : 'Выбрать сотрудника и открыть его рабочую платформу.',
                         selected: preview.isEmployeeMode,
                         onTap: employeeSnapshot.connectionState ==
                                 ConnectionState.waiting
                             ? null
                             : () => selectEmployee(employees),
-                        badge: 'ЛИЧНЫЙ КАБИНЕТ',
+                        badge: preview.isEmployeeMode &&
+                                preview.employeeName.isNotEmpty
+                            ? preview.employeeName
+                            : null,
                       ),
                       roleCard(
                         icon: Icons.gavel_rounded,
                         title: 'Юрист',
-                        subtitle:
-                            'Документы, юридические вопросы, риски и недельные отчёты.',
                         selected: preview.isLawyerMode,
                         onTap: selectLawyer,
                       ),
                       roleCard(
                         icon: Icons.account_balance_wallet_rounded,
                         title: 'Бухгалтер',
-                        subtitle:
-                            'Начисления, выплаты, остатки, чеки и финансовые отчёты.',
                         selected: preview.isAccountantMode,
                         onTap: selectAccountant,
                       ),
                       roleCard(
                         icon: Icons.person_search_rounded,
                         title: 'HR-менеджер',
-                        subtitle:
-                            'Заявки кандидатов, документы, выезды и оформление.',
                         selected: preview.isHrMode,
                         onTap: selectHr,
                       ),
