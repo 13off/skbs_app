@@ -465,7 +465,7 @@ Deno.serve(async (request: Request) => {
 
     if (request.method === "GET") {
       return url.searchParams.get("action") === "pull_outbound"
-        ? await pullOutbound(url.searchParams.get("recover_stale") === "1")
+        ? await pullOutbound(url.searchParams.get("recover_stale") !== "0")
         : await catalog();
     }
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
