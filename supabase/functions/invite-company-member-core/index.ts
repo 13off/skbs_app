@@ -43,8 +43,19 @@ function invitationActionUrl(
   return url.toString();
 }
 
+type UserAdminClient = {
+  auth: {
+    admin: {
+      listUsers: (options: {
+        page: number;
+        perPage: number;
+      }) => Promise<any>;
+    };
+  };
+};
+
 async function findUserByEmail(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: UserAdminClient,
   email: string,
 ): Promise<User | null> {
   for (let page = 1; page <= 20; page += 1) {
