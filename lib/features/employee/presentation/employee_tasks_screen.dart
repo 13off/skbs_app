@@ -32,9 +32,10 @@ class _EmployeeTasksScreenState extends State<EmployeeTasksScreen> {
     future = load();
   }
 
-  Future<EmployeeTaskCabinetData> load() async {
+  Future<EmployeeTaskCabinetData> load({bool forceRefresh = false}) async {
     final data = await EmployeeTaskCabinetRepository.fetch(
       employeeId: widget.selectedEmployeeId.value,
+      forceRefresh: forceRefresh,
     );
     final employeeId = data.profile.employeeId;
     if (widget.selectedEmployeeId.value != employeeId) {
@@ -45,7 +46,7 @@ class _EmployeeTasksScreenState extends State<EmployeeTasksScreen> {
   }
 
   Future<void> refresh() async {
-    final next = load();
+    final next = load(forceRefresh: true);
     setState(() => future = next);
     await next;
   }

@@ -144,12 +144,62 @@ class EmployeeTaskCabinetRepository {
   EmployeeTaskCabinetRepository._();
 
   static final SupabaseClient _client = Supabase.instance.client;
+  static const Duration _cacheTtl = Duration(seconds: 15);
+  static const String _currentEmployeeKey = '__current_employee__';
+
+  static final Map<String, _EmployeeTaskCabinetCacheEntry> _cache =
+      <String, _EmployeeTaskCabinetCacheEntry>{};
+  static final Map<String, Future<EmployeeTaskCabinetData>> _requests =
+      <String, Future<EmployeeTaskCabinetData>>{};
+  static int _cacheGeneration = 0;
+
+  static void clearCache() {
+    _cacheGeneration += 1;
+    _cache.clear();
+    _requests.clear();
+  }
 
   static Future<EmployeeTaskCabinetData> fetch({
     String employeeId = '',
+    bool forceRefresh = false,
   }) async {
+    final requestedEmployeeId = employeeId.trim();
+    final key = _cacheKey(requestedEmployeeId);
+    final running = _requests[key];
+    if (running != null) return running;
+
+    final cached = _cache[key];
+    if (!forceRefresh && cached != null && cached.isFresh(_cacheTtl)) {
+      return cached.data;
+    }
+
+    final generation = _cacheGeneration;
+    final request = _fetchFromServer(requestedEmployeeId).then((result) {
+      if (generation != _cacheGeneration) return result;
+
+      final entry = _EmployeeTaskCabinetCacheEntry(
+        data: result,
+        createdAt: DateTime.now(),
+      );
+      _cache[key] = entry;
+      _cache[_cacheKey(result.profile.employeeId)] = entry;
+      return result;
+    });
+    _requests[key] = request;
+
     try {
-      final requestedEmployeeId = employeeId.trim();
+      return await request;
+    } finally {
+      if (identical(_requests[key], request)) {
+        _requests.remove(key);
+      }
+    }
+  }
+
+  static Future<EmployeeTaskCabinetData> _fetchFromServer(
+    String requestedEmployeeId,
+  ) async {
+    try {
       final response = await _client.functions.invoke(
         'employee-task-cabinet',
         body: <String, dynamic>{
@@ -181,6 +231,25 @@ class EmployeeTaskCabinetRepository {
       final text = error.toString().replaceFirst('Exception: ', '').trim();
       throw Exception(text.isEmpty ? 'Не удалось загрузить задачи' : text);
     }
+  }
+
+  static String _cacheKey(String employeeId) {
+    final cleanEmployeeId = employeeId.trim();
+    return cleanEmployeeId.isEmpty ? _currentEmployeeKey : cleanEmployeeId;
+  }
+}
+
+class _EmployeeTaskCabinetCacheEntry {
+  final EmployeeTaskCabinetData data;
+  final DateTime createdAt;
+
+  const _EmployeeTaskCabinetCacheEntry({
+    required this.data,
+    required this.createdAt,
+  });
+
+  bool isFresh(Duration ttl) {
+    return DateTime.now().difference(createdAt) < ttl;
   }
 }
 
