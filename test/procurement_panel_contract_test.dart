@@ -101,4 +101,28 @@ void main() {
     expect(desktop, contains("child: Text('Снабженец')"));
     expect(companyRepository, contains("case 'procurement':"));
   });
+
+  test('procurement lists never nest a scrollable or flex list inside AppPage', () {
+    final dashboard = File(
+      'lib/features/procurement/presentation/procurement_dashboard_screen.dart',
+    ).readAsStringSync();
+    final requests = File(
+      'lib/features/procurement/presentation/procurement_requests_screen.dart',
+    ).readAsStringSync();
+    final suppliers = File(
+      'lib/features/procurement/presentation/procurement_suppliers_screen.dart',
+    ).readAsStringSync();
+    final deliveries = File(
+      'lib/features/procurement/presentation/procurement_deliveries_screen.dart',
+    ).readAsStringSync();
+
+    expect(dashboard, contains('onRefresh: refresh'));
+    expect(dashboard, isNot(contains('return RefreshIndicator(')));
+    expect(dashboard, isNot(contains('child: ListView(')));
+    for (final source in <String>[requests, suppliers, deliveries]) {
+      expect(source, contains('return AppLazyPage('));
+      expect(source, isNot(contains('return RefreshIndicator(')));
+      expect(source, isNot(contains('child: ListView.builder(')));
+    }
+  });
 }
