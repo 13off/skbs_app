@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
+import '../data/employee_route_analysis_repository.dart';
 import '../data/employee_shift_runtime.dart';
 import '../data/employee_task_cabinet_repository.dart';
 import 'premium_round_work_button.dart';
@@ -30,6 +31,8 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   late Future<EmployeeTaskCabinetData> future;
   bool starting = false;
   bool finishing = false;
+  bool checkingLocation = false;
+  bool cancellingStart = false;
 
   @override
   void initState() {
@@ -57,7 +60,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   }
 
   Future<void> startDay(String employeeId) async {
-    if (starting) return;
+    if (starting || checkingLocation || cancellingStart) return;
+    if (!await confirmUnusualStartTime()) return;
+    if (!mounted) return;
     setState(() => starting = true);
     try {
       await runtime.start(employeeId);
@@ -82,6 +87,140 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       }
     } finally {
       if (mounted) setState(() => starting = false);
+    }
+  }
+
+  Future<bool> confirmUnusualStartTime() async {
+    final now = DateTime.now();
+    final normalTime = now.hour >= 5 && now.hour < 22;
+    if (normalTime) return true;
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Сейчас ${timeText(now)}'),
+        content: const Text(
+          'Начать ночную смену или только проверить, работает ли геолокация?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'check'),
+            child: const Text('Проверить геолокацию'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 'start'),
+            child: const Text('Начать смену'),
+          ),
+        ],
+      ),
+    );
+    if (action == 'check') {
+      await checkCurrentLocation();
+      return false;
+    }
+    return action == 'start';
+  }
+
+  Future<void> checkCurrentLocation() async {
+    if (checkingLocation || starting || finishing || cancellingStart) return;
+    setState(() => checkingLocation = true);
+    try {
+      if (!kIsWeb && !await Geolocator.isLocationServiceEnabled()) {
+        throw const LocationServiceDisabledException();
+      }
+      if (!kIsWeb) {
+        var permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          throw const PermissionDeniedException('Доступ к геопозиции запрещён');
+        }
+      }
+
+      final settings = kIsWeb
+          ? WebSettings(
+              accuracy: LocationAccuracy.high,
+              maximumAge: const Duration(seconds: 30),
+              timeLimit: const Duration(seconds: 45),
+            )
+          : const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              timeLimit: Duration(seconds: 25),
+            );
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: settings,
+      );
+      if (!mounted) return;
+      final recordedAt = position.timestamp.toLocal();
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Геолокация работает'),
+          content: Text(
+            'Время: ${timeText(recordedAt)}\n'
+            'Точность: ${position.accuracy.round()} м',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Готово'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final text = employeeLocationErrorMessage(error);
+      if (kIsWeb && isEmployeeLocationError(error)) {
+        await openWebLocationDialog(text);
+      } else {
+        message(text);
+      }
+    } finally {
+      if (mounted) setState(() => checkingLocation = false);
+    }
+  }
+
+  Future<void> cancelAccidentalStart(String employeeId) async {
+    if (cancellingStart || starting || finishing || checkingLocation) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Отменить ошибочный старт?'),
+        content: const Text(
+          'Смена будет помечена отменённой и не попадёт в рабочий маршрут.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Нет'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Отменить старт'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => cancellingStart = true);
+    try {
+      await EmployeeRouteAnalysisRepository.cancelRecentShift(
+        employeeId: employeeId,
+      );
+      await runtime.reload(employeeId);
+      if (mounted) message('Ошибочный старт отменён');
+    } catch (error) {
+      if (mounted) message(cleanError(error));
+    } finally {
+      if (mounted) setState(() => cancellingStart = false);
     }
   }
 
@@ -211,20 +350,49 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               final active = state.employeeId == data.profile.employeeId &&
                   state.isActive;
               final startedAt = active ? state.shift?.startedAt : null;
-              final loading = starting || finishing;
+              final canCancelStart = active &&
+                  startedAt != null &&
+                  DateTime.now().difference(startedAt) <=
+                      const Duration(minutes: 10);
+              final loading = starting ||
+                  finishing ||
+                  checkingLocation ||
+                  cancellingStart;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
-                  child: PremiumRoundWorkButton(
-                    active: active,
-                    loading: loading,
-                    startedAt: startedAt,
-                    onPressed: loading
-                        ? null
-                        : active
-                            ? finishDay
-                            : () => startDay(data.profile.employeeId),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PremiumRoundWorkButton(
+                        active: active,
+                        loading: loading,
+                        startedAt: startedAt,
+                        onPressed: loading
+                            ? null
+                            : active
+                                ? finishDay
+                                : () => startDay(data.profile.employeeId),
+                      ),
+                      const SizedBox(height: 14),
+                      if (!active)
+                        TextButton.icon(
+                          onPressed: loading ? null : checkCurrentLocation,
+                          icon: const Icon(Icons.my_location_rounded),
+                          label: const Text('Проверить геолокацию'),
+                        ),
+                      if (canCancelStart)
+                        TextButton.icon(
+                          onPressed: loading
+                              ? null
+                              : () => cancelAccidentalStart(
+                                    data.profile.employeeId,
+                                  ),
+                          icon: const Icon(Icons.undo_rounded),
+                          label: const Text('Отменить ошибочный старт'),
+                        ),
+                    ],
                   ),
                 ),
               );
@@ -234,6 +402,12 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       },
     );
   }
+}
+
+String timeText(DateTime value) {
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
 
 String employeeLocationErrorMessage(Object? value) {
