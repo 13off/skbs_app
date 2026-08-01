@@ -18,12 +18,11 @@ void main() {
     expect(bridge, contains('crypto.subtle.digest("SHA-256"'));
     expect(bridge, contains('function constantTimeEqual'));
     expect(bridge, isNot(contains('get_recruitment_secret')));
-    expect(
-      bridge,
-      contains('url.searchParams.get("recover_stale") === "1"'),
-    );
+    expect(bridge, contains('function shouldRecoverStale'));
+    expect(bridge, contains('requested === "1"'));
+    expect(bridge, contains('Math.floor(Date.now() / 5_000) % 12 === 0'));
     expect(appStroy, contains('this.lastOutboundRecoveryAt = 0'));
-    expect(appStroy, contains("recover_stale: recoverStale ? '1' : ''"));
+    expect(appStroy, contains("recover_stale: recoverStale ? '1' : '0'"));
     expect(appStroy, contains('>= 60_000'));
     expect(bot, contains('}, 5_000).unref();'));
   });
