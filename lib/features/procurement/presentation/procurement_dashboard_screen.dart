@@ -23,10 +23,12 @@ class ProcurementDashboardScreen extends StatefulWidget {
   });
 
   @override
-  State<ProcurementDashboardScreen> createState() => _ProcurementDashboardScreenState();
+  State<ProcurementDashboardScreen> createState() =>
+      _ProcurementDashboardScreenState();
 }
 
-class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen> {
+class _ProcurementDashboardScreenState
+    extends State<ProcurementDashboardScreen> {
   late Future<ProcurementDashboardData> future;
   StreamSubscription<AppDataChange>? subscription;
 
@@ -45,7 +47,8 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
     super.dispose();
   }
 
-  Future<ProcurementDashboardData> load() => ProcurementRepository.fetchDashboard(
+  Future<ProcurementDashboardData> load() =>
+      ProcurementRepository.fetchDashboard(
         companyId: widget.profile.activeCompanyId,
       );
 
@@ -75,9 +78,24 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
           children: [
             Icon(icon, color: AppAdaptivePalette.textMuted, size: 20),
             const SizedBox(height: 10),
-            Text(value, style: TextStyle(color: AppAdaptivePalette.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)),
+            Text(
+              value,
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700)),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),
@@ -96,12 +114,18 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: request.isOverdue ? AppAdaptivePalette.danger.withValues(alpha: 0.13) : AppAdaptivePalette.surfaceSoft,
+                color: request.isOverdue
+                    ? AppAdaptivePalette.danger.withValues(alpha: 0.13)
+                    : AppAdaptivePalette.surfaceSoft,
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
-                request.isOverdue ? Icons.warning_amber_rounded : Icons.inventory_2_outlined,
-                color: request.isOverdue ? AppAdaptivePalette.danger : AppAdaptivePalette.textPrimary,
+                request.isOverdue
+                    ? Icons.warning_amber_rounded
+                    : Icons.inventory_2_outlined,
+                color: request.isOverdue
+                    ? AppAdaptivePalette.danger
+                    : AppAdaptivePalette.textPrimary,
               ),
             ),
             const SizedBox(width: 12),
@@ -109,16 +133,72 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(request.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppAdaptivePalette.textPrimary, fontWeight: FontWeight.w900)),
+                  Text(
+                    request.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 3),
-                  Text('${request.objectName} · ${request.statusTitle}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w600)),
+                  Text(
+                    '${request.objectName} · ${request.statusTitle}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Text(money(request.totalAmount), style: TextStyle(color: AppAdaptivePalette.textPrimary, fontWeight: FontWeight.w900)),
+            Text(
+              money(request.totalAmount),
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget loadError(Object? error) {
+    return PremiumWorkCard(
+      radius: 20,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          Text(
+            'Не удалось загрузить снабжение',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppAdaptivePalette.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            error?.toString().replaceFirst('Exception: ', '') ?? '',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          PremiumActionButton(
+            onPressed: refresh,
+            icon: Icons.refresh_rounded,
+            label: 'Повторить',
+          ),
+        ],
       ),
     );
   }
@@ -127,6 +207,7 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Снабжение',
+      onRefresh: refresh,
       headerTrailing: IconButton(
         tooltip: 'Обновить',
         onPressed: refresh,
@@ -135,49 +216,102 @@ class _ProcurementDashboardScreenState extends State<ProcurementDashboardScreen>
       child: FutureBuilder<ProcurementDashboardData>(
         future: future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 72),
+              child: Center(child: CircularProgressIndicator()),
+            );
           }
-          if (snapshot.hasError) {
-            return Center(child: PremiumActionButton(onPressed: refresh, icon: Icons.refresh_rounded, label: 'Повторить'));
-          }
-          final data = snapshot.data!;
+          if (snapshot.hasError) return loadError(snapshot.error);
+
+          final data = snapshot.data ??
+              const ProcurementDashboardData(
+                requests: <ProcurementRequest>[],
+                suppliers: <ProcurementSupplier>[],
+              );
           final latest = data.requests.where((item) => !item.isClosed).take(5);
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 36),
-              children: [
-                Row(children: [
-                  metric(data.requiresAttention.toString(), 'Требуют внимания', Icons.priority_high_rounded),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  metric(
+                    data.requiresAttention.toString(),
+                    'Требуют внимания',
+                    Icons.priority_high_rounded,
+                  ),
                   const SizedBox(width: 10),
-                  metric(data.inPurchase.toString(), 'В закупке', Icons.shopping_cart_checkout_rounded),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [
-                  metric(data.inDelivery.toString(), 'В доставке', Icons.local_shipping_outlined),
+                  metric(
+                    data.inPurchase.toString(),
+                    'В закупке',
+                    Icons.shopping_cart_checkout_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  metric(
+                    data.inDelivery.toString(),
+                    'В доставке',
+                    Icons.local_shipping_outlined,
+                  ),
                   const SizedBox(width: 10),
-                  metric(money(data.openAmount), 'Открытая сумма', Icons.payments_outlined),
-                ]),
-                const SizedBox(height: 18),
-                Row(children: [
-                  Expanded(child: PremiumActionButton(onPressed: widget.onOpenRequests, icon: Icons.assignment_outlined, label: 'Заявки')),
+                  metric(
+                    money(data.openAmount),
+                    'Открытая сумма',
+                    Icons.payments_outlined,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: PremiumActionButton(
+                      onPressed: widget.onOpenRequests,
+                      icon: Icons.assignment_outlined,
+                      label: 'Заявки',
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: OutlinedButton.icon(onPressed: widget.onOpenDeliveries, icon: const Icon(Icons.local_shipping_outlined), label: const Text('Доставки'), style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)))),
-                ]),
-                const SizedBox(height: 24),
-                Text('В работе', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 10),
-                if (latest.isEmpty)
-                  PremiumWorkCard(
-                    radius: 20,
-                    padding: const EdgeInsets.all(18),
-                    child: Text('Нет открытых заявок', style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700)),
-                  )
-                else
-                  ...latest.map(requestTile),
-              ],
-            ),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onOpenDeliveries,
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: const Text('Доставки'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'В работе',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              if (latest.isEmpty)
+                PremiumWorkCard(
+                  radius: 20,
+                  padding: const EdgeInsets.all(18),
+                  child: Text(
+                    'Нет открытых заявок',
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                ...latest.map(requestTile),
+            ],
           );
         },
       ),
