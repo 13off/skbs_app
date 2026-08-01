@@ -16,10 +16,12 @@ class ProcurementSuppliersScreen extends StatefulWidget {
   const ProcurementSuppliersScreen({super.key, required this.profile});
 
   @override
-  State<ProcurementSuppliersScreen> createState() => _ProcurementSuppliersScreenState();
+  State<ProcurementSuppliersScreen> createState() =>
+      _ProcurementSuppliersScreenState();
 }
 
-class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen> {
+class _ProcurementSuppliersScreenState
+    extends State<ProcurementSuppliersScreen> {
   late Future<List<ProcurementSupplier>> future;
   StreamSubscription<AppDataChange>? subscription;
 
@@ -38,7 +40,8 @@ class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen>
     super.dispose();
   }
 
-  Future<List<ProcurementSupplier>> load() => ProcurementRepository.fetchSuppliers(
+  Future<List<ProcurementSupplier>> load() =>
+      ProcurementRepository.fetchSuppliers(
         companyId: widget.profile.activeCompanyId,
       );
 
@@ -68,8 +71,14 @@ class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen>
       builder: (context) => AlertDialog(
         title: Text('Скрыть «${supplier.name}»?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Скрыть')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Скрыть'),
+          ),
         ],
       ),
     );
@@ -111,14 +120,34 @@ class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(supplier.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text(
+                      supplier.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
                     if (contact.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(contact, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w600)),
+                      Text(
+                        contact,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                     if (supplier.inn.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text('ИНН ${supplier.inn}', style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w600)),
+                      Text(
+                        'ИНН ${supplier.inn}',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -140,8 +169,7 @@ class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget loadingPage() {
     return AppPage(
       title: 'Поставщики',
       headerTrailing: IconButton(
@@ -149,29 +177,105 @@ class _ProcurementSuppliersScreenState extends State<ProcurementSuppliersScreen>
         onPressed: edit,
         icon: const Icon(Icons.add_rounded),
       ),
-      child: FutureBuilder<List<ProcurementSupplier>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: PremiumActionButton(onPressed: refresh, icon: Icons.refresh_rounded, label: 'Повторить'));
-          }
-          final rows = snapshot.data ?? const <ProcurementSupplier>[];
-          if (rows.isEmpty) {
-            return Center(child: PremiumActionButton(onPressed: edit, icon: Icons.add_rounded, label: 'Добавить поставщика'));
-          }
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 36),
-              itemCount: rows.length,
-              itemBuilder: (_, index) => card(rows[index]),
-            ),
-          );
-        },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 72),
+        child: Center(child: CircularProgressIndicator()),
       ),
+    );
+  }
+
+  Widget errorPage(Object? error) {
+    return AppPage(
+      title: 'Поставщики',
+      headerTrailing: IconButton(
+        tooltip: 'Добавить поставщика',
+        onPressed: edit,
+        icon: const Icon(Icons.add_rounded),
+      ),
+      child: PremiumWorkCard(
+        radius: 20,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Text(
+              'Не удалось загрузить поставщиков',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              error?.toString().replaceFirst('Exception: ', '') ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            PremiumActionButton(
+              onPressed: refresh,
+              icon: Icons.refresh_rounded,
+              label: 'Повторить',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ProcurementSupplier>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return loadingPage();
+        }
+        if (snapshot.hasError) return errorPage(snapshot.error);
+
+        final rows = snapshot.data ?? const <ProcurementSupplier>[];
+        return AppLazyPage(
+          title: 'Поставщики',
+          subtitle: '',
+          headerTrailing: IconButton(
+            tooltip: 'Добавить поставщика',
+            onPressed: edit,
+            icon: const Icon(Icons.add_rounded),
+          ),
+          itemCount: rows.length,
+          itemBuilder: (_, index) => card(rows[index]),
+          trailing: rows.isEmpty
+              ? <Widget>[
+                  PremiumWorkCard(
+                    radius: 20,
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Поставщиков пока нет',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppAdaptivePalette.textMuted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        PremiumActionButton(
+                          onPressed: edit,
+                          icon: Icons.add_rounded,
+                          label: 'Добавить поставщика',
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+              : const <Widget>[],
+        );
+      },
     );
   }
 }
@@ -255,7 +359,9 @@ class _SupplierEditorState extends State<_SupplierEditor> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+      ),
       padding: EdgeInsets.fromLTRB(18, 18, 18, 24 + bottom),
       decoration: BoxDecoration(
         color: AppAdaptivePalette.surface,
@@ -264,25 +370,68 @@ class _SupplierEditorState extends State<_SupplierEditor> {
       child: ListView(
         shrinkWrap: true,
         children: [
-          Text(widget.supplier == null ? 'Новый поставщик' : 'Поставщик', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+          Text(
+            widget.supplier == null ? 'Новый поставщик' : 'Поставщик',
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
-          TextField(controller: name, enabled: !saving, decoration: const InputDecoration(labelText: 'Название')),
+          TextField(
+            controller: name,
+            enabled: !saving,
+            decoration: const InputDecoration(labelText: 'Название'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: inn, enabled: !saving, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'ИНН')),
+          TextField(
+            controller: inn,
+            enabled: !saving,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'ИНН'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: contact, enabled: !saving, decoration: const InputDecoration(labelText: 'Контактное лицо')),
+          TextField(
+            controller: contact,
+            enabled: !saving,
+            decoration: const InputDecoration(labelText: 'Контактное лицо'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: phone, enabled: !saving, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Телефон')),
+          TextField(
+            controller: phone,
+            enabled: !saving,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Телефон'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: email, enabled: !saving, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
+          TextField(
+            controller: email,
+            enabled: !saving,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email'),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: comment, enabled: !saving, maxLines: 3, decoration: const InputDecoration(labelText: 'Комментарий')),
+          TextField(
+            controller: comment,
+            enabled: !saving,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'Комментарий'),
+          ),
           if (errorText != null) ...[
             const SizedBox(height: 12),
-            Text(errorText!, textAlign: TextAlign.center, style: TextStyle(color: AppAdaptivePalette.danger, fontWeight: FontWeight.w800)),
+            Text(
+              errorText!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppAdaptivePalette.danger,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ],
           const SizedBox(height: 18),
-          PremiumActionButton(onPressed: saving ? null : save, icon: Icons.save_outlined, label: 'Сохранить', isLoading: saving),
+          PremiumActionButton(
+            onPressed: saving ? null : save,
+            icon: Icons.save_outlined,
+            label: 'Сохранить',
+            isLoading: saving,
+          ),
         ],
       ),
     );
