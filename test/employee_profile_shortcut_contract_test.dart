@@ -33,7 +33,9 @@ void main() {
     expect(home, contains('PremiumRoundWorkButton('));
     expect(home, contains('runtime.start(employeeId)'));
     expect(home, contains('runtime.finish()'));
-    expect(home, contains('active\n                            ? finishDay'));
+    expect(home, contains('? finishDay'));
+    expect(home, contains('checkCurrentLocation'));
+    expect(home, contains('cancelAccidentalStart'));
     expect(home, isNot(contains('FilledButton.tonalIcon(')));
 
     expect(
