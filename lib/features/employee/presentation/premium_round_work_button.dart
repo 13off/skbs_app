@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,11 +47,11 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
     super.initState();
     idlePulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2240),
+      duration: const Duration(milliseconds: 4200),
     );
     shazamWaveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1040),
+      duration: const Duration(milliseconds: 2400),
     );
   }
 
@@ -94,14 +95,14 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
     waveStopTimer?.cancel();
     if (!shazamWaveController.isAnimating) {
       shazamWaveController.repeat(
-        period: const Duration(milliseconds: 1040),
+        period: const Duration(milliseconds: 2400),
       );
     }
   }
 
   void scheduleWaveStop() {
     waveStopTimer?.cancel();
-    waveStopTimer = Timer(const Duration(milliseconds: 980), () {
+    waveStopTimer = Timer(const Duration(milliseconds: 2200), () {
       if (!mounted || widget.loading) return;
       stopShazamWaves();
     });
@@ -121,7 +122,7 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
 
   void triggerTap() {
     setPressed(false);
-    unawaited(HapticFeedback.heavyImpact());
+    unawaited(HapticFeedback.mediumImpact());
     if (!animationsDisabled) {
       startShazamWaves();
       scheduleWaveStop();
@@ -157,30 +158,30 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
     final dimension = width < 390 ? 244.0 : 272.0;
     final canvasSize = width < 390 ? 370.0 : 404.0;
     final actionColor = widget.active
-        ? const Color(0xFFE96B58)
-        : const Color(0xFF4AA6D1);
+        ? const Color(0xFFE97967)
+        : const Color(0xFF5CB4DD);
     final palette = widget.active
         ? const _ButtonPalette(
-            shellTop: Color(0xFFE98570),
-            shellMiddle: Color(0xFFC95042),
-            shellBottom: Color(0xFF792B31),
-            faceTop: Color(0xFFDC725E),
-            faceMiddle: Color(0xFFB7463E),
-            faceBottom: Color(0xFF63242B),
-            depth: Color(0xFF2D1217),
-            emblemTop: Color(0xFFFFE5DC),
-            emblemBottom: Color(0xFFF4A994),
+            shellTop: Color(0xB8F29A88),
+            shellMiddle: Color(0xB8C65B4E),
+            shellBottom: Color(0xD17C3137),
+            faceTop: Color(0xA8F6B0A2),
+            faceMiddle: Color(0xA8C96055),
+            faceBottom: Color(0xC46D2C33),
+            depth: Color(0xFF2D1519),
+            emblemTop: Color(0xFFFDE8E2),
+            emblemBottom: Color(0xFFECA99B),
           )
         : const _ButtonPalette(
-            shellTop: Color(0xFF5A9BBC),
-            shellMiddle: Color(0xFF2E7193),
-            shellBottom: Color(0xFF183D57),
-            faceTop: Color(0xFF4A89A8),
-            faceMiddle: Color(0xFF2B6685),
-            faceBottom: Color(0xFF16364D),
-            depth: Color(0xFF0A1924),
-            emblemTop: Color(0xFFEAF7FC),
-            emblemBottom: Color(0xFF9BC9DC),
+            shellTop: Color(0xA890CBE4),
+            shellMiddle: Color(0xB85A94B0),
+            shellBottom: Color(0xD1265870),
+            faceTop: Color(0x998CC7DF),
+            faceMiddle: Color(0xA84F8CA7),
+            faceBottom: Color(0xC323536A),
+            depth: Color(0xFF0B1C25),
+            emblemTop: Color(0xFFF4FBFE),
+            emblemBottom: Color(0xFFB5DDEB),
           );
 
     return Semantics(
@@ -200,43 +201,37 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
               ]),
               builder: (context, _) {
                 final idlePulse = canIdlePulse
-                    ? Curves.easeInOutCubic.transform(
+                    ? Curves.easeInOutSine.transform(
                         idlePulseController.value,
                       )
                     : 0.0;
                 final waveValue = shazamWaveController.value;
                 final waveRunning = shazamWaveController.isAnimating;
                 final energy = waveRunning
-                    ? (math.sin(waveValue * math.pi * 2) + 1) / 2
+                    ? (1 - math.cos(waveValue * math.pi * 2)) / 2
                     : 0.0;
                 final surge = waveRunning
-                    ? math.pow(
-                        math.sin(waveValue * math.pi).abs(),
-                        0.72,
-                      ).toDouble()
+                    ? math.pow(math.sin(waveValue * math.pi), 2).toDouble()
                     : 0.0;
                 final firstWave = staggeredWave(waveValue, 0);
-                final secondWave = staggeredWave(waveValue, 0.16);
-                final thirdWave = staggeredWave(waveValue, 0.32);
-                final fourthWave = staggeredWave(waveValue, 0.48);
-                final fifthWave = staggeredWave(waveValue, 0.64);
+                final secondWave = staggeredWave(waveValue, 0.14);
+                final thirdWave = staggeredWave(waveValue, 0.28);
+                final fourthWave = staggeredWave(waveValue, 0.42);
+                final fifthWave = staggeredWave(waveValue, 0.56);
                 final vibrationStrength = widget.loading
-                    ? 3.8
-                    : (waveRunning ? 1.35 : 0.0);
+                    ? 0.72
+                    : (waveRunning ? 0.20 : 0.0);
                 final vibrationOffset = Offset(
-                  math.sin(waveValue * math.pi * 14) * vibrationStrength,
-                  math.cos(waveValue * math.pi * 19) *
+                  math.sin(waveValue * math.pi * 4) * vibrationStrength,
+                  math.sin(waveValue * math.pi * 3) *
                       vibrationStrength *
-                      0.62,
+                      0.45,
                 );
                 final buttonScale = pressed
-                    ? 0.91
+                    ? 0.955
                     : 1 +
-                        (idlePulse * 0.018) +
-                        (surge * (widget.loading ? 0.058 : 0.030));
-                final bodyTilt = widget.loading
-                    ? math.sin(waveValue * math.pi * 4) * 0.012
-                    : 0.0;
+                        (idlePulse * 0.012) +
+                        (surge * (widget.loading ? 0.024 : 0.010));
 
                 return Stack(
                   alignment: Alignment.center,
@@ -244,32 +239,32 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
                   children: [
                     Transform.scale(
                       scale: 1 +
-                          (idlePulse * 0.074) +
-                          (surge * (waveRunning ? 0.165 : 0)),
+                          (idlePulse * 0.050) +
+                          (surge * (waveRunning ? 0.075 : 0)),
                       child: Container(
-                        width: dimension + 36,
-                        height: dimension + 36,
+                        width: dimension + 38,
+                        height: dimension + 38,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
                               actionColor.withValues(
-                                alpha: 0.15 + (surge * 0.12),
+                                alpha: 0.12 + (surge * 0.07),
                               ),
-                              actionColor.withValues(alpha: 0.025),
+                              actionColor.withValues(alpha: 0.015),
                             ],
                           ),
                           boxShadow: [
                             BoxShadow(
                               color: actionColor.withValues(
-                                alpha: 0.24 +
-                                    (idlePulse * 0.14) +
-                                    (surge * 0.24),
+                                alpha: 0.18 +
+                                    (idlePulse * 0.10) +
+                                    (surge * 0.12),
                               ),
                               blurRadius:
-                                  48 + (idlePulse * 24) + (surge * 36),
+                                  58 + (idlePulse * 24) + (surge * 24),
                               spreadRadius:
-                                  2 + (idlePulse * 7) + (surge * 8),
+                                  1 + (idlePulse * 5) + (surge * 4),
                             ),
                           ],
                         ),
@@ -279,81 +274,76 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
                       progress: firstWave,
                       dimension: dimension,
                       color: actionColor,
-                      opacity: 0.76,
-                      expansion: 0.62,
-                      strokeWidth: 6.4,
-                      fillOpacity: 0.040,
+                      opacity: 0.62,
+                      expansion: 0.58,
+                      strokeWidth: 5.0,
+                      fillOpacity: 0.032,
                     ),
                     _ShazamWaveRing(
                       progress: secondWave,
                       dimension: dimension,
                       color: actionColor,
-                      opacity: 0.62,
-                      expansion: 0.76,
-                      strokeWidth: 5.2,
-                      fillOpacity: 0.032,
+                      opacity: 0.50,
+                      expansion: 0.72,
+                      strokeWidth: 4.2,
+                      fillOpacity: 0.025,
                     ),
                     _ShazamWaveRing(
                       progress: thirdWave,
                       dimension: dimension,
                       color: Colors.white,
-                      opacity: 0.40,
-                      expansion: 0.90,
-                      strokeWidth: 4.0,
-                      fillOpacity: 0.022,
+                      opacity: 0.30,
+                      expansion: 0.86,
+                      strokeWidth: 3.2,
+                      fillOpacity: 0.016,
                     ),
                     _ShazamWaveRing(
                       progress: fourthWave,
                       dimension: dimension,
                       color: actionColor,
-                      opacity: 0.31,
-                      expansion: 1.04,
-                      strokeWidth: 3.0,
-                      fillOpacity: 0.018,
+                      opacity: 0.24,
+                      expansion: 1.00,
+                      strokeWidth: 2.5,
+                      fillOpacity: 0.012,
                     ),
                     _ShazamWaveRing(
                       progress: fifthWave,
                       dimension: dimension,
                       color: actionColor,
-                      opacity: 0.20,
-                      expansion: 1.18,
-                      strokeWidth: 2.2,
-                      fillOpacity: 0.012,
+                      opacity: 0.16,
+                      expansion: 1.14,
+                      strokeWidth: 1.9,
+                      fillOpacity: 0.008,
                     ),
                     Transform.translate(
                       offset: vibrationOffset,
-                      child: Transform.rotate(
-                        angle: bodyTilt,
-                        child: AnimatedScale(
-                          scale: buttonScale,
-                          duration:
-                              Duration(milliseconds: pressed ? 60 : 220),
-                          curve: pressed
-                              ? Curves.easeOutCubic
-                              : Curves.easeOutBack,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTapDown:
-                                canPress ? (_) => setPressed(true) : null,
-                            onTapUp:
-                                canPress ? (_) => setPressed(false) : null,
-                            onTapCancel:
-                                canPress ? () => setPressed(false) : null,
-                            onTap: canPress ? triggerTap : null,
-                            child: _PremiumButtonBody(
-                              dimension: dimension,
-                              active: widget.active,
-                              loading: widget.loading,
-                              pressed: pressed,
-                              dark: dark,
-                              waveRunning: waveRunning,
-                              waveValue: waveValue,
-                              energy: energy,
-                              surge: surge,
-                              idlePulse: idlePulse,
-                              actionColor: actionColor,
-                              palette: palette,
-                            ),
+                      child: AnimatedScale(
+                        scale: buttonScale,
+                        duration:
+                            Duration(milliseconds: pressed ? 140 : 520),
+                        curve: Curves.easeInOutCubic,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapDown:
+                              canPress ? (_) => setPressed(true) : null,
+                          onTapUp:
+                              canPress ? (_) => setPressed(false) : null,
+                          onTapCancel:
+                              canPress ? () => setPressed(false) : null,
+                          onTap: canPress ? triggerTap : null,
+                          child: _PremiumButtonBody(
+                            dimension: dimension,
+                            active: widget.active,
+                            loading: widget.loading,
+                            pressed: pressed,
+                            dark: dark,
+                            waveRunning: waveRunning,
+                            waveValue: waveValue,
+                            energy: energy,
+                            surge: surge,
+                            idlePulse: idlePulse,
+                            actionColor: actionColor,
+                            palette: palette,
                           ),
                         ),
                       ),
@@ -365,9 +355,9 @@ class _PremiumRoundWorkButtonState extends State<PremiumRoundWorkButton>
           ),
           const SizedBox(height: 4),
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeInCubic,
+            duration: const Duration(milliseconds: 420),
+            switchInCurve: Curves.easeInOutCubic,
+            switchOutCurve: Curves.easeInOutCubic,
             child: Text(
               actionLabel,
               key: ValueKey<String>(actionLabel),
@@ -428,7 +418,7 @@ class _PremiumButtonBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final faceOffset = pressed ? 9.0 : -5.0;
+    final faceOffset = pressed ? 4.5 : -2.0;
 
     return SizedBox(
       width: dimension,
@@ -437,7 +427,7 @@ class _PremiumButtonBody extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned.fill(
-            top: 30,
+            top: 28,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -447,33 +437,33 @@ class _PremiumButtonBody extends StatelessWidget {
                   colors: [
                     palette.shellBottom,
                     palette.depth,
-                    Color.lerp(palette.depth, Colors.black, 0.42) ??
+                    Color.lerp(palette.depth, Colors.black, 0.36) ??
                         palette.depth,
                   ],
-                  stops: const [0, 0.62, 1],
+                  stops: const [0, 0.66, 1],
                 ),
                 border: Border.all(
                   color: Colors.black.withValues(
-                    alpha: dark ? 0.56 : 0.34,
+                    alpha: dark ? 0.46 : 0.28,
                   ),
-                  width: 2.2,
+                  width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(
-                      alpha: dark ? 0.62 : 0.39,
+                      alpha: dark ? 0.54 : 0.34,
                     ),
-                    blurRadius: 38,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 32),
+                    blurRadius: 42,
+                    spreadRadius: -3,
+                    offset: const Offset(0, 30),
                   ),
                   BoxShadow(
                     color: actionColor.withValues(
-                      alpha: 0.18 + (surge * 0.16),
+                      alpha: 0.14 + (surge * 0.10),
                     ),
-                    blurRadius: 36 + (surge * 24),
-                    spreadRadius: -6,
-                    offset: const Offset(0, 20),
+                    blurRadius: 44 + (surge * 18),
+                    spreadRadius: -8,
+                    offset: const Offset(0, 18),
                   ),
                 ],
               ),
@@ -481,174 +471,161 @@ class _PremiumButtonBody extends StatelessWidget {
           ),
           AnimatedSlide(
             offset: Offset(0, faceOffset / dimension),
-            duration: Duration(milliseconds: pressed ? 60 : 205),
-            curve: pressed ? Curves.easeOutCubic : Curves.easeOutBack,
+            duration: Duration(milliseconds: pressed ? 140 : 520),
+            curve: Curves.easeInOutCubic,
             child: Container(
               width: dimension,
               height: dimension,
-              padding: const EdgeInsets.all(11),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  begin: const Alignment(-0.68, -0.92),
-                  end: const Alignment(0.72, 0.94),
+                  begin: const Alignment(-0.72, -0.92),
+                  end: const Alignment(0.74, 0.94),
                   colors: [
                     palette.shellTop,
                     palette.shellMiddle,
                     palette.shellBottom,
                   ],
-                  stops: const [0.02, 0.50, 1],
+                  stops: const [0.02, 0.52, 1],
                 ),
                 border: Border.all(
                   color: Colors.white.withValues(
-                    alpha: dark ? 0.16 : 0.23,
+                    alpha: dark ? 0.24 : 0.32,
                   ),
-                  width: 1.8,
+                  width: 1.6,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.20),
-                    blurRadius: 8,
-                    spreadRadius: -4,
-                    offset: const Offset(-4, -5),
+                    color: Colors.white.withValues(
+                      alpha: dark ? 0.08 : 0.14,
+                    ),
+                    blurRadius: 20,
+                    spreadRadius: -10,
+                    offset: const Offset(-7, -9),
                   ),
                   BoxShadow(
                     color: actionColor.withValues(
-                      alpha: 0.30 +
-                          (idlePulse * 0.10) +
-                          (surge * 0.22),
+                      alpha: 0.22 +
+                          (idlePulse * 0.08) +
+                          (surge * 0.12),
                     ),
-                    blurRadius: 40 + (surge * 28),
-                    spreadRadius: -7,
+                    blurRadius: 46 + (surge * 20),
+                    spreadRadius: -9,
                     offset: const Offset(0, 18),
                   ),
                 ],
               ),
-              child: Container(
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: const Alignment(-0.60, -0.84),
-                    end: const Alignment(0.66, 0.88),
-                    colors: [
-                      palette.faceTop,
-                      palette.faceMiddle,
-                      palette.faceBottom,
-                    ],
-                    stops: const [0, 0.56, 1],
-                  ),
-                  border: Border.all(
-                    color: Colors.black.withValues(
-                      alpha: dark ? 0.18 : 0.12,
-                    ),
-                    width: 1.3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.34),
-                      blurRadius: 24,
-                      spreadRadius: -8,
-                      offset: const Offset(0, 16),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      spreadRadius: -7,
-                      offset: const Offset(-6, -7),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CustomPaint(
-                        painter: _MatteTexturePainter(
-                          dark: dark,
-                          active: active,
-                        ),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: const Alignment(-0.62, -0.86),
+                        end: const Alignment(0.68, 0.90),
+                        colors: [
+                          palette.faceTop,
+                          palette.faceMiddle,
+                          palette.faceBottom,
+                        ],
+                        stops: const [0, 0.58, 1],
                       ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            center: const Alignment(-0.36, -0.52),
-                            radius: 1.04,
-                            colors: [
-                              Colors.white.withValues(
-                                alpha: 0.07 + (surge * 0.05),
-                              ),
-                              Colors.transparent,
-                            ],
-                            stops: const [0, 0.74],
-                          ),
+                      border: Border.all(
+                        color: Colors.white.withValues(
+                          alpha: dark ? 0.16 : 0.22,
                         ),
+                        width: 1.2,
                       ),
-                      Transform.rotate(
-                        angle: waveValue * math.pi * 2,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: SweepGradient(
-                              colors: [
-                                Colors.transparent,
-                                Colors.white.withValues(
-                                  alpha: waveRunning
-                                      ? 0.10 + (surge * 0.08)
-                                      : 0.025,
-                                ),
-                                Colors.transparent,
-                                Colors.transparent,
-                              ],
-                              stops: const [0, 0.10, 0.23, 1],
+                    ),
+                    child: ClipOval(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CustomPaint(
+                            painter: _MatteTexturePainter(
+                              dark: dark,
+                              active: active,
                             ),
                           ),
-                        ),
-                      ),
-                      if (waveRunning)
-                        Positioned(
-                          left: -dimension * 0.54 +
-                              (waveValue * dimension * 1.82),
-                          top: -dimension * 0.22,
-                          bottom: -dimension * 0.22,
-                          child: Transform.rotate(
-                            angle: -0.34,
-                            child: Container(
-                              width: dimension * 0.24,
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: const Alignment(-0.40, -0.55),
+                                radius: 1.06,
+                                colors: [
+                                  Colors.white.withValues(
+                                    alpha: 0.12 + (surge * 0.04),
+                                  ),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0, 0.76],
+                              ),
+                            ),
+                          ),
+                          Transform.rotate(
+                            angle: waveValue * math.pi * 2,
+                            child: DecoratedBox(
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
+                                gradient: SweepGradient(
                                   colors: [
                                     Colors.transparent,
                                     Colors.white.withValues(
-                                      alpha: 0.10 + (surge * 0.14),
+                                      alpha: waveRunning
+                                          ? 0.075 + (surge * 0.045)
+                                          : 0.018,
                                     ),
                                     Colors.transparent,
+                                    Colors.transparent,
                                   ],
+                                  stops: const [0, 0.11, 0.28, 1],
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      Center(
-                        child: Transform.rotate(
-                          angle: loading
-                              ? math.sin(waveValue * math.pi * 2) * 0.055
-                              : 0,
-                          child: Transform.scale(
-                            scale:
-                                1 + (surge * (loading ? 0.14 : 0.075)),
-                            child: _WorkEmblem(
-                              dimension: dimension,
-                              active: active,
-                              loading: loading,
-                              energy: energy,
-                              surge: surge,
-                              actionColor: actionColor,
-                              palette: palette,
+                          if (waveRunning)
+                            Positioned(
+                              left: -dimension * 0.60 +
+                                  (waveValue * dimension * 1.90),
+                              top: -dimension * 0.24,
+                              bottom: -dimension * 0.24,
+                              child: Transform.rotate(
+                                angle: -0.30,
+                                child: Container(
+                                  width: dimension * 0.28,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.white.withValues(
+                                          alpha: 0.07 + (surge * 0.06),
+                                        ),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Center(
+                            child: Transform.scale(
+                              scale: 1 +
+                                  (surge * (loading ? 0.060 : 0.025)),
+                              child: _WorkEmblem(
+                                dimension: dimension,
+                                active: active,
+                                energy: energy,
+                                surge: surge,
+                                actionColor: actionColor,
+                                palette: palette,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -663,7 +640,6 @@ class _PremiumButtonBody extends StatelessWidget {
 class _WorkEmblem extends StatelessWidget {
   final double dimension;
   final bool active;
-  final bool loading;
   final double energy;
   final double surge;
   final Color actionColor;
@@ -672,7 +648,6 @@ class _WorkEmblem extends StatelessWidget {
   const _WorkEmblem({
     required this.dimension,
     required this.active,
-    required this.loading,
     required this.energy,
     required this.surge,
     required this.actionColor,
@@ -682,99 +657,100 @@ class _WorkEmblem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = active ? Icons.stop_rounded : Icons.construction_rounded;
-    final iconSize = active ? dimension * 0.25 : dimension * 0.30;
-    final emblemSize = dimension * 0.49;
+    final iconSize = active ? dimension * 0.24 : dimension * 0.29;
+    final emblemSize = dimension * 0.48;
 
-    return Container(
-      width: emblemSize,
-      height: emblemSize,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: const Alignment(-0.62, -0.80),
-          end: const Alignment(0.70, 0.88),
-          colors: [
-            Color.lerp(actionColor, Colors.white, 0.14) ?? actionColor,
-            Color.lerp(actionColor, Colors.black, 0.20) ?? actionColor,
-            Color.lerp(actionColor, Colors.black, 0.48) ?? actionColor,
-          ],
-          stops: const [0, 0.54, 1],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(
-            alpha: 0.14 + (surge * 0.10),
-          ),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.44),
-            blurRadius: 28,
-            spreadRadius: -5,
-            offset: const Offset(0, 17),
-          ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.06),
-            blurRadius: 10,
-            spreadRadius: -6,
-            offset: const Offset(-5, -6),
-          ),
-          BoxShadow(
-            color: actionColor.withValues(
-              alpha: 0.24 + (surge * 0.24),
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: emblemSize,
+          height: emblemSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: const Alignment(-0.66, -0.82),
+              end: const Alignment(0.72, 0.88),
+              colors: [
+                actionColor.withValues(alpha: 0.62),
+                (Color.lerp(actionColor, Colors.black, 0.18) ?? actionColor)
+                    .withValues(alpha: 0.72),
+                (Color.lerp(actionColor, Colors.black, 0.42) ?? actionColor)
+                    .withValues(alpha: 0.86),
+              ],
+              stops: const [0, 0.56, 1],
             ),
-            blurRadius: 28 + (surge * 22),
-            spreadRadius: -4,
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Transform.translate(
-            offset: Offset(0, loading ? 8 : 7),
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: Colors.black.withValues(alpha: 0.52),
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(-1.2, -2.6),
-            child: ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (bounds) => LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  palette.emblemTop,
-                  palette.emblemBottom,
-                  Colors.white.withValues(alpha: 0.66),
-                ],
-                stops: const [0, 0.68, 1],
-              ).createShader(bounds),
-              child: Icon(
-                icon,
-                size: iconSize,
-                color: Colors.white,
+            border: Border.all(
+              color: Colors.white.withValues(
+                alpha: 0.20 + (surge * 0.08),
               ),
+              width: 1.4,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.34),
+                blurRadius: 30,
+                spreadRadius: -7,
+                offset: const Offset(0, 16),
+              ),
+              BoxShadow(
+                color: actionColor.withValues(
+                  alpha: 0.18 + (surge * 0.14),
+                ),
+                blurRadius: 30 + (surge * 16),
+                spreadRadius: -6,
+              ),
+            ],
           ),
-          Positioned(
-            top: emblemSize * 0.16,
-            left: emblemSize * 0.27,
-            right: emblemSize * 0.27,
-            child: Container(
-              height: emblemSize * 0.025,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: Colors.white.withValues(
-                  alpha: 0.12 + (energy * 0.08),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.translate(
+                offset: const Offset(0, 6),
+                child: Icon(
+                  icon,
+                  size: iconSize,
+                  color: Colors.black.withValues(alpha: 0.42),
                 ),
               ),
-            ),
+              Transform.translate(
+                offset: const Offset(-1, -2),
+                child: ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (bounds) => LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      palette.emblemTop,
+                      palette.emblemBottom,
+                      Colors.white.withValues(alpha: 0.74),
+                    ],
+                    stops: const [0, 0.68, 1],
+                  ).createShader(bounds),
+                  child: Icon(
+                    icon,
+                    size: iconSize,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: emblemSize * 0.16,
+                left: emblemSize * 0.28,
+                right: emblemSize * 0.28,
+                child: Container(
+                  height: emblemSize * 0.020,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Colors.white.withValues(
+                      alpha: 0.14 + (energy * 0.05),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -801,9 +777,9 @@ class _ShazamWaveRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final curved = Curves.easeOutCubic.transform(progress);
-    final visibleOpacity =
-        progress <= 0 ? 0.0 : (1 - curved) * opacity;
+    final curved = Curves.easeInOutSine.transform(progress);
+    final fade = math.pow(1 - curved, 1.18).toDouble();
+    final visibleOpacity = progress <= 0 ? 0.0 : fade * opacity;
 
     return IgnorePointer(
       child: Transform.scale(
@@ -820,16 +796,15 @@ class _ShazamWaveRing extends StatelessWidget {
               ),
               border: Border.all(
                 color: color,
-                width:
-                    strokeWidth - (curved * (strokeWidth * 0.66)),
+                width: strokeWidth - (curved * (strokeWidth * 0.72)),
               ),
               boxShadow: [
                 BoxShadow(
                   color: color.withValues(
-                    alpha: visibleOpacity * 0.82,
+                    alpha: visibleOpacity * 0.66,
                   ),
-                  blurRadius: 22 + (curved * 38),
-                  spreadRadius: 2 + (curved * 8),
+                  blurRadius: 28 + (curved * 42),
+                  spreadRadius: 1 + (curved * 6),
                 ),
               ],
             ),
@@ -852,14 +827,14 @@ class _MatteTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final lightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: dark ? 0.030 : 0.038);
+      ..color = Colors.white.withValues(alpha: dark ? 0.018 : 0.024);
     final darkPaint = Paint()
-      ..color = Colors.black.withValues(alpha: active ? 0.030 : 0.026);
+      ..color = Colors.black.withValues(alpha: active ? 0.018 : 0.014);
 
-    for (var index = 0; index < 116; index++) {
+    for (var index = 0; index < 96; index++) {
       final x = ((index * 47) % 113) / 112 * size.width;
       final y = ((index * 71) % 127) / 126 * size.height;
-      final radius = 0.45 + ((index % 5) * 0.11);
+      final radius = 0.35 + ((index % 5) * 0.08);
       canvas.drawCircle(
         Offset(x, y),
         radius,
@@ -872,11 +847,11 @@ class _MatteTexturePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Colors.white.withValues(alpha: 0.035),
+          Colors.white.withValues(alpha: 0.028),
           Colors.transparent,
-          Colors.black.withValues(alpha: 0.025),
+          Colors.black.withValues(alpha: 0.018),
         ],
-        stops: const [0, 0.48, 1],
+        stops: const [0, 0.52, 1],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, hazePaint);
   }
