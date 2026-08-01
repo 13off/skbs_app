@@ -15,6 +15,7 @@ import '../../recruitment/presentation/recruitment_applications_screen.dart';
 import '../../recruitment/presentation/recruitment_dashboard_screen.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_report_formatters.dart';
+import 'manager_report_tile.dart';
 
 class ManagerReportSections extends StatelessWidget {
   final AppUserProfile profile;
@@ -52,15 +53,7 @@ class ManagerReportSections extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Выберите раздел. Длинные списки открываются на отдельной странице.',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _DispatcherReports(
           center: center,
           onlyProblems: onlyProblems,
@@ -70,7 +63,10 @@ class ManagerReportSections extends StatelessWidget {
           onlyProblems: onlyProblems,
           icon: Icons.calendar_month_outlined,
           title: 'Табель и начисления',
-          subtitle: 'Смены, часы, отсутствие отметок и отчёт за период',
+          subtitle: 'Смены, часы и начисления за выбранный день',
+          meta: attendance.missing > 0
+              ? '${attendance.missing} без отметки'
+              : '${attendance.marked} отмечено',
           problemCount: attendance.missing,
           metrics: [
             _ReportMetric(label: 'Активных', value: '${attendance.active}'),
@@ -98,7 +94,8 @@ class ManagerReportSections extends StatelessWidget {
           onlyProblems: onlyProblems,
           icon: Icons.groups_outlined,
           title: 'Сотрудники',
-          subtitle: 'Численность, приём, выбытие и данные по людям',
+          subtitle: 'Численность и изменения состава',
+          meta: '${employees.active} активных',
           problemCount: 0,
           metrics: [
             _ReportMetric(label: 'Активных', value: '${employees.active}'),
@@ -117,7 +114,10 @@ class ManagerReportSections extends StatelessWidget {
           onlyProblems: onlyProblems,
           icon: Icons.assignment_outlined,
           title: 'Задачи и выполнение',
-          subtitle: 'Результат за день, проблемы и незакрытые работы',
+          subtitle: 'Результат и незакрытые работы',
+          meta: tasks.problem + tasks.pending > 0
+              ? '${tasks.problem + tasks.pending} требуют внимания'
+              : '${tasks.done} выполнено',
           problemCount: tasks.problem + tasks.pending,
           metrics: [
             _ReportMetric(label: 'Всего', value: '${tasks.total}'),
@@ -142,7 +142,10 @@ class ManagerReportSections extends StatelessWidget {
           onlyProblems: onlyProblems,
           icon: Icons.payments_outlined,
           title: 'Выплаты и бухгалтерия',
-          subtitle: 'Реестр выплат, суммы, чеки и начисления',
+          subtitle: 'Операции, суммы и подтверждения',
+          meta: payments.monthMissingReceipts > 0
+              ? '${payments.monthMissingReceipts} без чеков'
+              : '${payments.monthCount} операций за месяц',
           problemCount: payments.monthMissingReceipts,
           metrics: [
             _ReportMetric(
@@ -164,13 +167,15 @@ class ManagerReportSections extends StatelessWidget {
           ],
           details: center.detailItems('missing_receipts'),
           onOpen: () => onOpen(const AdaptiveAccountingReportsScreen()),
-          openLabel: 'Открыть бухгалтерские отчёты',
+          openLabel: 'Открыть бухгалтерию',
         ),
         _ReportSection(
           onlyProblems: onlyProblems,
           icon: Icons.person_search_outlined,
           title: 'Подбор и HR',
-          subtitle: 'Кандидаты, новые заявки и входящие сообщения',
+          subtitle: 'Кандидаты и входящие обращения',
+          meta: '${recruitment.newCount} новых · '
+              '${recruitment.incomingMessages} входящих',
           problemCount: 0,
           metrics: [
             _ReportMetric(
@@ -191,13 +196,16 @@ class ManagerReportSections extends StatelessWidget {
               ),
             ),
           ),
-          openLabel: 'Открыть HR-сводку',
+          openLabel: 'Открыть HR',
         ),
         _ReportSection(
           onlyProblems: onlyProblems,
           icon: Icons.gavel_outlined,
           title: 'Юридическое',
-          subtitle: 'Открытые вопросы, риски, просрочки и документы',
+          subtitle: 'Риски, просрочки и документы',
+          meta: legalProblems > 0
+              ? '$legalProblems требуют внимания'
+              : '${legal.open} открытых вопросов',
           problemCount: legalProblems,
           metrics: [
             _ReportMetric(label: 'Открыто', value: '${legal.open}'),
@@ -210,13 +218,16 @@ class ManagerReportSections extends StatelessWidget {
           ],
           details: center.detailItems('legal_attention'),
           onOpen: () => onOpen(const LegalWeeklyReportScreen()),
-          openLabel: 'Открыть отчёт юриста',
+          openLabel: 'Открыть юридическое',
         ),
         _ReportSection(
           onlyProblems: onlyProblems,
           icon: Icons.flag_outlined,
           title: 'Объекты и этапы',
-          subtitle: 'Открытые, просроченные и ближайшие этапы работ',
+          subtitle: 'Сроки и фактический прогресс',
+          meta: milestones.overdue > 0
+              ? '${milestones.overdue} просрочено'
+              : '${milestones.open} открытых этапов',
           problemCount: milestones.overdue,
           metrics: [
             _ReportMetric(label: 'Открыто', value: '${milestones.open}'),
@@ -277,6 +288,7 @@ class _ReportSection extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String meta;
   final List<_ReportMetric> metrics;
   final int problemCount;
   final List<ManagerReportDetailItem> details;
@@ -290,11 +302,12 @@ class _ReportSection extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.meta,
     required this.metrics,
     required this.problemCount,
     this.details = const <ManagerReportDetailItem>[],
     this.onOpen,
-    this.openLabel = 'Открыть подробно',
+    this.openLabel = 'Открыть раздел',
     this.onSecondary,
     this.secondaryLabel,
   });
@@ -321,78 +334,12 @@ class _ReportSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (onlyProblems && problemCount == 0) return const SizedBox.shrink();
-    final scheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: PremiumWorkCard(
-        radius: 24,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(icon),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(subtitle),
-                    ],
-                  ),
-                ),
-                if (problemCount > 0) ...[
-                  const SizedBox(width: 8),
-                  _ProblemBadge(count: problemCount),
-                ],
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (onOpen != null)
-                  FilledButton.tonalIcon(
-                    onPressed: onOpen,
-                    icon: const Icon(Icons.open_in_new_rounded),
-                    label: Text(openLabel),
-                  ),
-                if (onSecondary != null && secondaryLabel != null)
-                  OutlinedButton.icon(
-                    onPressed: onSecondary,
-                    icon: const Icon(Icons.summarize_outlined),
-                    label: Text(secondaryLabel!),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: () => openSummary(context),
-                  icon: const Icon(Icons.analytics_outlined),
-                  label: const Text('Открыть сводку'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return ManagerReportTile(
+      icon: icon,
+      title: title,
+      meta: meta,
+      trailingLabel: problemCount > 0 ? '$problemCount' : null,
+      onTap: () => openSummary(context),
     );
   }
 }
@@ -447,7 +394,7 @@ class _ManagerReportSectionScreen extends StatelessWidget {
                         color: scheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(icon),
+                      child: Icon(icon, color: scheme.primary),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -509,7 +456,7 @@ class _ManagerReportSectionScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: details.isEmpty
                 ? Text(
-                    'По выбранному разделу дополнительных записей нет.',
+                    'Дополнительных записей нет.',
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
@@ -518,27 +465,6 @@ class _ManagerReportSectionScreen extends StatelessWidget {
                 : _ReportDetailItems(items: details),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ProblemBadge extends StatelessWidget {
-  final int count;
-
-  const _ProblemBadge({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$count',
-        style: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -624,68 +550,25 @@ class _DispatcherReports extends StatelessWidget {
   Widget build(BuildContext context) {
     final runs = filteredRuns();
     final latest = runs.isEmpty ? null : runs.first;
-    final scheme = Theme.of(context).colorScheme;
+    final meta = latest == null
+        ? 'Сводок пока нет'
+        : '${runs.length} сводок · '
+            '${latest.summaryDate == null ? 'без даты' : managerReportDateText(latest.summaryDate!)}';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: PremiumWorkCard(
-        radius: 24,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.auto_awesome_outlined),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Оперативные сводки',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        latest == null
-                            ? 'Сводок по выбранному фильтру пока нет'
-                            : '${runs.length} сводок · последняя ${latest.summaryDate == null ? 'без даты' : managerReportDateText(latest.summaryDate!)}',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return ManagerReportTile(
+      icon: Icons.auto_awesome_outlined,
+      title: 'Оперативные сводки',
+      meta: meta,
+      onTap: () {
+        Navigator.of(context).push<void>(
+          CupertinoPageRoute<void>(
+            builder: (_) => _DispatcherReportsScreen(
+              runs: runs,
+              onOpen: onOpen,
             ),
-            const SizedBox(height: 14),
-            FilledButton.tonalIcon(
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => _DispatcherReportsScreen(
-                      runs: runs,
-                      onOpen: onOpen,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.open_in_new_rounded),
-              label: const Text('Открыть оперативные сводки'),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -700,7 +583,6 @@ class _DispatcherReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Оперативные сводки',
-      subtitle: 'История отчётов ИИ-диспетчера по объектам',
       child: runs.isEmpty
           ? const PremiumWorkCard(
               radius: 24,
