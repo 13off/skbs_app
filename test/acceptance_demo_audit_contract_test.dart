@@ -90,7 +90,10 @@ void main() {
     expect(screen, contains('все данные вымышлены'));
     expect(screen, contains('не подключается к Supabase'));
     expect(screen, isNot(contains('supabase_flutter')));
-    expect(screen, isNot(contains('Supabase.instance'));
+    expect(
+      screen,
+      isNot(contains('Supabase.instance')),
+    );
     expect(system, isNot(contains('DeveloperDemoCenterScreen')));
     expect(system, isNot(contains("title: 'Демонстрационный центр'")));
     expect(demo['mode'], 'synthetic_only');
