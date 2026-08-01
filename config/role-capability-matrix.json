@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "principles": {
     "server_is_authoritative": true,
     "active_company_required": true,
@@ -24,18 +24,13 @@
         "tasks.manage",
         "payments.manage",
         "recruitment.manage",
+        "procurement.manage",
         "reports.read",
         "company.manage"
       ],
       "acceptance": {
         "live_probe_table": "objects",
-        "live_probe_tables": [
-          "objects",
-          "employees",
-          "tasks",
-          "attendance",
-          "payments"
-        ],
+        "live_probe_tables": ["objects", "employees", "tasks", "attendance", "payments"],
         "required_permissions": [
           "objects.view",
           "employees.view",
@@ -67,13 +62,7 @@
       ],
       "acceptance": {
         "live_probe_table": "company_task_policies",
-        "live_probe_tables": [
-          "company_task_policies",
-          "objects",
-          "employees",
-          "tasks",
-          "payments"
-        ],
+        "live_probe_tables": ["company_task_policies", "objects", "employees", "tasks", "payments"],
         "required_permissions": [
           "system.settings.manage",
           "system.roles.manage",
@@ -97,20 +86,13 @@
       "capabilities": [
         "attendance.assigned_object",
         "tasks.assigned_object",
-        "employees.assigned_object.read"
+        "employees.assigned_object.read",
+        "procurement.requests.create"
       ],
-      "denied": [
-        "payments.read",
-        "recruitment.private.read",
-        "objects.manage"
-      ],
+      "denied": ["payments.read", "recruitment.private.read", "objects.manage"],
       "acceptance": {
         "live_probe_table": "objects",
-        "live_probe_tables": [
-          "objects",
-          "tasks",
-          "employees"
-        ],
+        "live_probe_tables": ["objects", "tasks", "employees"],
         "required_permissions": [
           "objects.view",
           "employees.view",
@@ -142,22 +124,11 @@
       "platform": "RecruitmentMainScreen",
       "object_scope": "company",
       "can_preview_roles": false,
-      "capabilities": [
-        "recruitment.manage",
-        "candidate_documents.manage",
-        "employees.create"
-      ],
-      "denied": [
-        "payments.manage",
-        "object_policies.manage"
-      ],
+      "capabilities": ["recruitment.manage", "candidate_documents.manage", "employees.create"],
+      "denied": ["payments.manage", "object_policies.manage"],
       "acceptance": {
         "live_probe_table": "recruitment_applications",
-        "live_probe_tables": [
-          "recruitment_applications",
-          "recruitment_documents",
-          "employees"
-        ],
+        "live_probe_tables": ["recruitment_applications", "recruitment_documents", "employees"],
         "required_permissions": [
           "recruitment.applications.view",
           "recruitment.documents.edit",
@@ -179,29 +150,16 @@
     },
     {
       "role": "accountant",
-      "server_aliases": [
-        "accounting"
-      ],
+      "server_aliases": ["accounting"],
       "title": "Бухгалтер",
       "platform": "AccountingMainScreen",
       "object_scope": "company",
       "can_preview_roles": false,
-      "capabilities": [
-        "payments.manage",
-        "payment_receipts.manage",
-        "employees.payment_fields.read"
-      ],
-      "denied": [
-        "candidate_documents.manage",
-        "objects.manage"
-      ],
+      "capabilities": ["payments.manage", "payment_receipts.manage", "employees.payment_fields.read", "procurement.reports.read"],
+      "denied": ["candidate_documents.manage", "objects.manage"],
       "acceptance": {
         "live_probe_table": "payments",
-        "live_probe_tables": [
-          "payments",
-          "attendance",
-          "employees"
-        ],
+        "live_probe_tables": ["payments", "attendance", "employees"],
         "required_permissions": [
           "accounting.attendance.view",
           "accounting.payments.view",
@@ -229,22 +187,11 @@
       "platform": "LegalMainScreen",
       "object_scope": "company",
       "can_preview_roles": false,
-      "capabilities": [
-        "legal.manage",
-        "employees.directory.read",
-        "objects.directory.read"
-      ],
-      "denied": [
-        "candidate_documents.private.read",
-        "payments.private.read"
-      ],
+      "capabilities": ["legal.manage", "employees.directory.read", "objects.directory.read"],
+      "denied": ["candidate_documents.private.read", "payments.private.read"],
       "acceptance": {
         "live_probe_table": "legal_documents",
-        "live_probe_tables": [
-          "legal_documents",
-          "legal_matters",
-          "objects"
-        ],
+        "live_probe_tables": ["legal_documents", "legal_matters", "objects"],
         "required_permissions": [
           "legal.documents.view",
           "legal.documents.edit",
@@ -262,6 +209,55 @@
           "attendance.edit",
           "tasks.edit",
           "recruitment.documents.edit",
+          "system.roles.manage"
+        ]
+      }
+    },
+    {
+      "role": "procurement",
+      "title": "Снабженец",
+      "platform": "ProcurementMainScreen",
+      "object_scope": "company",
+      "can_preview_roles": false,
+      "capabilities": [
+        "procurement.requests.manage",
+        "procurement.suppliers.manage",
+        "procurement.delivery.manage",
+        "procurement.reports.read",
+        "objects.directory.read"
+      ],
+      "denied": [
+        "employees.private.manage",
+        "attendance.manage",
+        "payments.manage",
+        "recruitment.manage",
+        "legal.manage",
+        "system.roles.manage"
+      ],
+      "acceptance": {
+        "live_probe_table": "procurement_requests",
+        "live_probe_tables": [
+          "procurement_requests",
+          "procurement_suppliers",
+          "objects"
+        ],
+        "required_permissions": [
+          "procurement.requests.view",
+          "procurement.requests.create",
+          "procurement.requests.edit",
+          "procurement.suppliers.view",
+          "procurement.suppliers.edit",
+          "procurement.delivery.edit",
+          "procurement.reports.view",
+          "objects.view",
+          "notifications.center.view"
+        ],
+        "forbidden_permissions": [
+          "employees.edit",
+          "attendance.edit",
+          "accounting.payments.edit",
+          "recruitment.documents.edit",
+          "legal.documents.edit",
           "system.roles.manage"
         ]
       }

@@ -17,7 +17,15 @@ void main() {
     expect(roleNames.toSet().length, roleNames.length);
     expect(
       roleNames.toSet(),
-      <String>{'admin', 'developer', 'foreman', 'hr', 'accountant', 'lawyer'},
+      <String>{
+        'admin',
+        'developer',
+        'foreman',
+        'hr',
+        'accountant',
+        'lawyer',
+        'procurement',
+      },
     );
 
     for (final role in roles) {

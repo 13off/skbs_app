@@ -52,6 +52,8 @@ class CompanyInvitation {
         return 'Бухгалтер';
       case 'hr':
         return 'HR-менеджер';
+      case 'procurement':
+        return 'Снабженец';
       default:
         return role;
     }

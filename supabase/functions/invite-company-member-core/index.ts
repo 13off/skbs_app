@@ -43,8 +43,19 @@ function invitationActionUrl(
   return url.toString();
 }
 
+type UserAdminClient = {
+  auth: {
+    admin: {
+      listUsers: (options: {
+        page: number;
+        perPage: number;
+      }) => Promise<any>;
+    };
+  };
+};
+
 async function findUserByEmail(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: UserAdminClient,
   email: string,
 ): Promise<User | null> {
   for (let page = 1; page <= 20; page += 1) {
@@ -54,7 +65,7 @@ async function findUserByEmail(
     });
     if (error) throw error;
     const match = data.users.find(
-      (candidate) => cleanEmail(candidate.email) === email,
+      (candidate: User) => cleanEmail(candidate.email) === email,
     );
     if (match) return match;
     if (data.users.length < 1000) return null;
@@ -105,6 +116,7 @@ Deno.serve(async (request: Request) => {
       "lawyer",
       "accountant",
       "hr",
+      "procurement",
     ]);
 
     if (!companyId || !email || !email.includes("@")) {

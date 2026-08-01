@@ -39,7 +39,7 @@ void main() {
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
 
-    expect(matrix['schema_version'], 3);
+    expect(matrix['schema_version'], 4);
     expect(principles['live_acceptance_requires_real_role_account'], isTrue);
     expect(principles['acceptance_is_read_only'], isTrue);
     for (final role in roles) {

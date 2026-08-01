@@ -40,6 +40,8 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
 
   void selectHr() => RolePreviewController.showHr();
 
+  void selectProcurement() => RolePreviewController.showProcurement();
+
   Future<void> selectEmployee(List<Employee> employees) async {
     final available = employees
         .where((employee) => employee.id?.trim().isNotEmpty == true)
@@ -448,6 +450,12 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         title: 'Бухгалтер',
                         selected: preview.isAccountantMode,
                         onTap: selectAccountant,
+                      ),
+                      roleCard(
+                        icon: Icons.inventory_2_rounded,
+                        title: 'Снабженец',
+                        selected: preview.isProcurementMode,
+                        onTap: selectProcurement,
                       ),
                       roleCard(
                         icon: Icons.person_search_rounded,

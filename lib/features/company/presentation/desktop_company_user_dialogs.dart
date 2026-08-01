@@ -123,6 +123,7 @@ class _DesktopCompanyMemberDialogState
       'lawyer',
       'accountant',
       'hr',
+      'procurement',
     };
     final currentRole = widget.member?.role;
     role = currentRole != null && roles.contains(currentRole)
@@ -301,7 +302,7 @@ class _DesktopCompanyMemberDialogState
               Text(
                 isEditing
                     ? 'Измените роль и назначенный объект.'
-                    : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера и HR.',
+                    : 'Одна форма для администратора, разработчика, прораба, юриста, бухгалтера, снабженца и HR.',
                 style: TextStyle(
                   color: specialistMuted,
                   fontWeight: FontWeight.w600,
@@ -415,6 +416,10 @@ class _DesktopCompanyMemberDialogState
                         DropdownMenuItem(
                           value: 'hr',
                           child: Text('HR-менеджер'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'procurement',
+                          child: Text('Снабженец'),
                         ),
                       ],
                       onChanged: isSaving

@@ -13,6 +13,7 @@ enum AppDataDomain {
   company,
   legal,
   recruitment,
+  procurement,
 }
 
 class AppDataChange {
@@ -121,17 +122,11 @@ class AppDataSync {
   }
 
   static void refreshAll() {
-    // В браузере и установленном PWA сворачивание/возврат часто создаёт
-    // lifecycle resumed, хотя соединение и данные не менялись. Общий refresh
-    // здесь заставлял активный табель полностью перезагружаться.
     if (kIsWeb) return;
-
     _queueFullRefresh(source: 'resume');
   }
 
   static void _refreshAfterReconnect() {
-    // Настоящее повторное подключение realtime должно обновить кэши на всех
-    // платформах, включая Web/PWA.
     _queueFullRefresh(source: 'reconnect');
   }
 
@@ -146,6 +141,7 @@ class AppDataSync {
         AppDataDomain.notifications,
         AppDataDomain.legal,
         AppDataDomain.recruitment,
+        AppDataDomain.procurement,
       },
       context: <String, dynamic>{'source': source},
       isRemote: true,
@@ -191,7 +187,12 @@ class AppDataSync {
           AppDataDomain.tasks,
           AppDataDomain.legal,
           AppDataDomain.recruitment,
+          AppDataDomain.procurement,
         };
+      case 'procurement_requests':
+      case 'procurement_request_items':
+      case 'procurement_suppliers':
+        return const <AppDataDomain>{AppDataDomain.procurement};
       case 'app_notifications':
       case 'dispatcher_summary_runs':
       case 'dispatcher_summary_settings':

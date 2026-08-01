@@ -305,6 +305,37 @@ abstract final class RoleAcceptanceRepository {
             RoleAcceptanceProbe('objects'),
           ],
         ),
+        RoleAcceptanceScenario(
+          role: 'procurement',
+          title: 'Снабженец',
+          platform: 'ProcurementMainScreen',
+          objectScope: 'Вся компания',
+          requiredPermissions: <String>[
+            'procurement.requests.view',
+            'procurement.requests.create',
+            'procurement.requests.edit',
+            'procurement.requests.approve',
+            'procurement.suppliers.view',
+            'procurement.suppliers.edit',
+            'procurement.delivery.edit',
+            'procurement.reports.view',
+            'objects.view',
+            'notifications.center.view',
+          ],
+          forbiddenPermissions: <String>[
+            'employees.edit',
+            'attendance.edit',
+            'accounting.payments.edit',
+            'recruitment.documents.edit',
+            'legal.documents.edit',
+            'system.roles.manage',
+          ],
+          liveProbes: <RoleAcceptanceProbe>[
+            RoleAcceptanceProbe('procurement_requests'),
+            RoleAcceptanceProbe('procurement_suppliers'),
+            RoleAcceptanceProbe('objects'),
+          ],
+        ),
       ];
 
   static String normalizeRole(String value) {
