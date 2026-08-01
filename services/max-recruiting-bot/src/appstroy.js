@@ -165,7 +165,7 @@ export class AppStroyBridge {
     const recoverStale = now - this.lastOutboundRecoveryAt >= 60_000;
     const data = await this.request('GET', null, {
       action: 'pull_outbound',
-      recover_stale: recoverStale ? '1' : '',
+      recover_stale: recoverStale ? '1' : '0',
     });
     if (recoverStale) this.lastOutboundRecoveryAt = now;
     return Array.isArray(data?.messages) ? data.messages : [];
