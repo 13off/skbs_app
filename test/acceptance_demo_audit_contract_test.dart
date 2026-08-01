@@ -90,10 +90,7 @@ void main() {
     expect(screen, contains('все данные вымышлены'));
     expect(screen, contains('не подключается к Supabase'));
     expect(screen, isNot(contains('supabase_flutter')));
-    expect(
-      screen,
-      isNot(contains('Supabase.instance')),
-    );
+    expect(screen, isNot(contains('Supabase.instance')));
     expect(system, isNot(contains('DeveloperDemoCenterScreen')));
     expect(system, isNot(contains("title: 'Демонстрационный центр'")));
     expect(demo['mode'], 'synthetic_only');
@@ -104,27 +101,38 @@ void main() {
   });
 
   test('кадровый путь сохраняет тестовый режим и не придумывает ставку', () {
-    final scenario =
-        jsonDecode(File('config/acceptance-scenarios.json').readAsStringSync())
-            as Map<String, dynamic>;
-    final invite = File(
-      'supabase/functions/invite-company-member-core/index.ts',
+    final onboarding = File(
+      'lib/features/recruitment/presentation/recruitment_onboarding_screen.dart',
+    ).readAsStringSync();
+    final draft = File(
+      'lib/features/ai/presentation/ai_employee_draft_screen.dart',
     ).readAsStringSync();
 
-    expect(scenario['automatic_writes'], isFalse);
-    expect(scenario['uses_production_company'], isFalse);
-    expect(scenario['contains_real_personal_data'], isFalse);
-    expect(invite, isNot(contains("daily_rate: 6000")));
+    expect(onboarding, contains('isTestRecord: candidate.isTestRecord'));
+    expect(onboarding, contains("'daily_rate': 0"));
+    expect(onboarding, contains('Готовность оформления'));
+    expect(onboarding, contains('Следующий шаг:'));
+    expect(onboarding, contains('Блокер: не заполнено обязательных полей'));
+    expect(draft, contains('Ставка и объект требуют ручной проверки'));
+    expect(draft, contains('Введите согласованную ставку'));
+    expect(draft, isNot(contains('rate > 0 ? rate : 6000')));
+    expect(draft, isNot(contains('(rate > 0 ? rate : 6000)')));
   });
 
   test('коммерческая приёмка и сценарий показа задокументированы', () {
-    final acceptance = File('docs/commercial-acceptance.md').readAsStringSync();
-    final demo = File('docs/demo-script.md').readAsStringSync();
+    final demo = File('docs/commercial-demo.md').readAsStringSync();
+    final readiness = File(
+      'docs/acceptance-and-market-readiness.md',
+    ).readAsStringSync();
 
-    expect(acceptance, contains('Критерий готовности'));
-    expect(acceptance, contains('RLS'));
-    expect(demo, contains('5 минут'));
-    expect(demo, contains('не открывать'));
+    expect(demo, contains('Управление объектом'));
+    expect(demo, contains('Кандидат → сотрудник'));
+    expect(demo, contains('Табель и выплаты'));
+    expect(demo, contains('не открывать рабочие паспорта'));
+    expect(readiness, contains('Ролевая готовность'));
+    expect(readiness, contains('Операционная готовность'));
+    expect(readiness, contains('Коммерческая готовность'));
+    expect(readiness, contains('отдельная тестовая учётная запись'));
   });
 
   test('системная платформа связывает только рабочие центры', () {
@@ -132,9 +140,11 @@ void main() {
       'lib/features/developer/presentation/developer_system_screen.dart',
     ).readAsStringSync();
 
-    expect(system, contains('DeveloperReadinessScreen'));
+    expect(system, contains("title: 'Проверка текущей роли'"));
+    expect(system, contains("title: 'Контроль табеля и выплат'"));
+    expect(system, contains("title: 'Напоминания и системные параметры'"));
     expect(system, contains('DeveloperRoleAcceptanceScreen'));
+    expect(system, contains('OperationalAuditLauncherScreen'));
     expect(system, isNot(contains('DeveloperDemoCenterScreen')));
-    expect(system, isNot(contains('DataGovernanceScreen')));
   });
 }
