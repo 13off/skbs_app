@@ -35,13 +35,25 @@ void main() {
       'supabase/migrations/20260801111742_procurement_workflow_operations.sql',
     ).readAsStringSync();
 
-    expect(schema, contains('create table if not exists public.procurement_requests'));
-    expect(schema, contains('create table if not exists public.procurement_suppliers'));
+    expect(
+      schema,
+      contains('create table if not exists public.procurement_requests'),
+    );
+    expect(
+      schema,
+      contains('create table if not exists public.procurement_suppliers'),
+    );
     expect(schema, contains('enable row level security'));
-    expect(schema, contains("current_user_has_permission('procurement.requests.view')"));
+    expect(
+      schema,
+      contains("current_user_has_permission('procurement.requests.view')"),
+    );
     expect(operations, contains('public.save_procurement_request'));
     expect(operations, contains('public.set_procurement_request_status'));
-    expect(operations, contains("v_request.status='in_delivery' and v_next='delivered'"));
+    expect(
+      operations,
+      contains("v_request.status='in_delivery' and v_next='delivered'"),
+    );
   });
 
   test('procurement screens use the shared app data channel', () {
@@ -66,5 +78,27 @@ void main() {
     expect(controller, contains("RolePreviewState(role: 'procurement')"));
     expect(screen, contains("title: 'Снабженец'"));
     expect(screen, contains('RolePreviewController.showProcurement'));
+  });
+
+  test('procurement users can be invited from mobile and desktop', () {
+    final mobile = File(
+      'lib/features/company/presentation/mobile_company_management_screen.dart',
+    ).readAsStringSync();
+    final desktop = File(
+      'lib/features/company/presentation/desktop_company_user_dialogs.dart',
+    ).readAsStringSync();
+    final edge = File(
+      'supabase/functions/invite-company-member-core/index.ts',
+    ).readAsStringSync();
+    final companyRepository = File(
+      'lib/features/company/data/company_repository.dart',
+    ).readAsStringSync();
+
+    for (final source in <String>[mobile, desktop, edge]) {
+      expect(source, contains('procurement'));
+    }
+    expect(mobile, contains("child: Text('Снабженец')"));
+    expect(desktop, contains("child: Text('Снабженец')"));
+    expect(companyRepository, contains("case 'procurement':"));
   });
 }
