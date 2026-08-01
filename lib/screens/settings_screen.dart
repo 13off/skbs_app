@@ -67,15 +67,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget actionTile({
     required IconData icon,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
   }) {
-    return _SettingsActionTile(
-      icon: icon,
-      title: title,
-      subtitle: subtitle,
-      onTap: onTap,
-    );
+    return _SettingsActionTile(icon: icon, title: title, onTap: onTap);
   }
 
   Widget interfaceSettings() {
@@ -96,7 +90,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'Тёмная тема',
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
-                subtitle: const Text('Применяется ко всем разделам и окнам'),
                 value: controller.isDark,
                 onChanged: controller.setDark,
               ),
@@ -172,7 +165,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actionTile(
           icon: Icons.view_kanban_outlined,
           title: 'CRM кандидатов',
-          subtitle: 'Колонки, поля карточки и автоматические действия',
           onTap: () => open(RecruitmentCrmSettingsScreen(profile: profile)),
         ),
       ];
@@ -182,25 +174,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actionTile(
           icon: Icons.monitor_heart_outlined,
           title: 'Состояние системы',
-          subtitle: 'Диагностика готовности и системные инструменты',
           onTap: () => open(DeveloperSystemScreen(profile: profile)),
         ),
         actionTile(
           icon: Icons.rule_outlined,
           title: 'Ограничения модулей',
-          subtitle: 'Правила объектов, задач, фотографий и редактирования',
           onTap: () => open(DeveloperPanelScreen(profile: profile)),
         ),
         actionTile(
           icon: Icons.admin_panel_settings_outlined,
           title: 'Роли и права',
-          subtitle: 'Матрица разрешений профессиональных платформ',
           onTap: () => open(const RolePermissionMatrixScreen()),
         ),
         actionTile(
           icon: Icons.auto_awesome_outlined,
           title: 'ИИ-диспетчер',
-          subtitle: 'Расписание, разделы и доставка автоматических сводок',
           onTap: () => open(const DispatcherSettingsScreen()),
         ),
       ];
@@ -228,7 +216,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actionTile(
           icon: Icons.gavel_rounded,
           title: 'Юридическая сводка',
-          subtitle: 'Риски, согласования и решения руководителя',
           onTap: () => open(LegalManagerSummaryScreen(profile: profile)),
         ),
       ];
@@ -238,7 +225,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actionTile(
           icon: Icons.location_on_outlined,
           title: 'Геолокация рабочего дня',
-          subtitle: 'Проверка разрешений и фоновой записи маршрута',
           onTap: () => open(const EmployeeLocationSettingsScreen()),
         ),
         roleInfo(
@@ -263,7 +249,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       actionTile(
         icon: Icons.manage_accounts_outlined,
         title: 'Компания и пользователи',
-        subtitle: 'Приглашения, роли и доступ пользователей компании',
         onTap: () => open(
           CompanyManagementScreen(companyId: profile.activeCompanyId),
         ),
@@ -271,19 +256,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       actionTile(
         icon: Icons.gavel_rounded,
         title: 'Юридическая сводка',
-        subtitle: 'Риски, согласования и недельный отчёт юриста',
         onTap: () => open(LegalManagerSummaryScreen(profile: profile)),
       ),
       actionTile(
         icon: Icons.inventory_2_outlined,
         title: 'Архив и удаление',
-        subtitle: 'Восстановление и окончательное удаление рабочих данных',
         onTap: () => open(ArchiveManagementScreenV3(profile: profile)),
       ),
       actionTile(
         icon: Icons.folder_copy_outlined,
         title: 'Шаблоны документов',
-        subtitle: 'Исходники, версии и загрузка утверждённых форм',
         onTap: () => open(TemplateDocumentsScreen(profile: profile)),
       ),
     ];
@@ -308,13 +290,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             actionTile(
               icon: Icons.tune_rounded,
               title: 'Правила уведомлений компании',
-              subtitle: 'Роли, типы событий и встроенные напоминания',
               onTap: () => open(const NotificationControlCenterScreen()),
             ),
           actionTile(
             icon: Icons.notifications_active_outlined,
             title: 'Push-уведомления',
-            subtitle: 'Разрешение и регистрация этого устройства',
             onTap: () => open(const PushNotificationSettingsScreen()),
           ),
           const SizedBox(height: 8),
@@ -331,7 +311,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             actionTile(
               icon: Icons.switch_account_rounded,
               title: 'Переключить платформу',
-              subtitle: 'Посмотреть приложение от имени другой профессии',
               onTap: () => open(const RolePreviewScreen()),
             ),
           ],
@@ -341,7 +320,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             actionTile(
               icon: Icons.install_desktop_rounded,
               title: 'Установить AppСтрой',
-              subtitle: 'Добавить на телефон или компьютер как приложение',
               onTap: () => open(const PwaInstallScreen()),
             ),
           FutureBuilder<List<CompanySummary>>(
@@ -352,7 +330,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return actionTile(
                 icon: Icons.swap_horiz_rounded,
                 title: 'Сменить компанию',
-                subtitle: 'Переключиться между рабочими пространствами',
                 onTap: () => open(
                   CompanySwitcherScreen(
                     activeCompanyId: profile.activeCompanyId,
@@ -370,13 +347,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class _SettingsActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   const _SettingsActionTile({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 
@@ -396,27 +371,15 @@ class _SettingsActionTile extends StatelessWidget {
               _SettingsIcon(icon: icon),
               const SizedBox(width: 13),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
