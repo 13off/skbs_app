@@ -458,6 +458,12 @@ async function acknowledgeOutbound(payload: RequestPayload): Promise<Response> {
   return json({ ok: true });
 }
 
+function shouldRecoverStale(url: URL): boolean {
+  const requested = url.searchParams.get("recover_stale");
+  if (requested != null) return requested === "1";
+  return Math.floor(Date.now() / 5_000) % 12 === 0;
+}
+
 Deno.serve(async (request: Request) => {
   try {
     if (!(await authorized(request))) return json({ error: "forbidden" }, 403);
@@ -465,7 +471,7 @@ Deno.serve(async (request: Request) => {
 
     if (request.method === "GET") {
       return url.searchParams.get("action") === "pull_outbound"
-        ? await pullOutbound(url.searchParams.get("recover_stale") !== "0")
+        ? await pullOutbound(shouldRecoverStale(url))
         : await catalog();
     }
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
