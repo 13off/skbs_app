@@ -36,15 +36,21 @@ class ProfileRepository {
 
   static final SupabaseClient _client = Supabase.instance.client;
 
+  static Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return const <String, dynamic>{};
+  }
+
   static Future<PersonalProfileData> fetchPersonalData() async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Пользователь не авторизован');
 
-    final row = await _client
-        .from('user_profiles')
-        .select('full_name, phone, avatar_path')
-        .eq('id', user.id)
-        .single();
+    final response = await _client.rpc('get_current_user_personal_profile');
+    final row = response is List && response.isNotEmpty
+        ? _map(response.first)
+        : _map(response);
+    if (row.isEmpty) throw Exception('Профиль пользователя не найден');
     return PersonalProfileData.fromMap(row);
   }
 
