@@ -47,7 +47,9 @@ void main() {
     expect(runtime, contains('finishShift'));
     expect(home, contains('PremiumRoundWorkButton('));
     expect(home, contains('await runtime.finish()'));
-    expect(home, contains('active\n                            ? finishDay'));
+    expect(home, contains('active\n                                ? finishDay'));
+    expect(home, contains("'Проверить геолокацию'"));
+    expect(home, contains("'Отменить ошибочный старт'"));
     expect(workButton, contains("'Начать работу'"));
     expect(workButton, contains("'Завершить работу'"));
     expect(screen, contains('EmployeeWorkTaskHistoryScreen'));
@@ -74,7 +76,7 @@ void main() {
     expect(ios, contains('<string>location</string>'));
   });
 
-  test('маршруты хранятся отдельно от задач и закрыты RLS', () {
+  test('маршрут показывает геозону время точек и честные разрывы', () {
     final migration = File(
       'supabase/migrations/20260730183000_employee_shift_routes.sql',
     ).readAsStringSync();
@@ -88,7 +90,11 @@ void main() {
     expect(migration, contains('revoke all'));
     expect(routeScreen, contains('FlutterMap('));
     expect(routeScreen, contains('PolylineLayer('));
-    expect(routeScreen, isNot(contains('CircleLayer(')));
+    expect(routeScreen, contains('CircleLayer('));
+    expect(routeScreen, contains('route.allGaps'));
+    expect(routeScreen, contains('showModalBottomSheet<void>'));
+    expect(routeScreen, contains("'Разрывы геолокации'"));
+    expect(routeScreen, contains("'Выходы за пределы объекта'"));
     expect(routeScreen, contains('© OpenStreetMap contributors'));
   });
 }
