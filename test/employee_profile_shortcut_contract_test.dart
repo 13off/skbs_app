@@ -25,7 +25,7 @@ void main() {
     expect(wrapper, isNot(contains('rootHeaderTrailingBuilder:')));
   });
 
-  test('одна матовая премиальная кнопка запускает и завершает рабочий день', () {
+  test('одна стеклянная плавная кнопка запускает и завершает рабочий день', () {
     final home = File(homePath).readAsStringSync();
     final button = File(workButtonPath).readAsStringSync();
 
@@ -41,16 +41,19 @@ void main() {
       contains("return widget.active ? 'Завершить работу' : 'Начать работу';"),
     );
     expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
+    expect(button, contains('Duration(milliseconds: 4200)'));
+    expect(button, contains('Duration(milliseconds: 2400)'));
     expect(button, contains('idlePulseController.repeat(reverse: true)'));
     expect(button, contains('shazamWaveController.repeat('));
     expect(button, contains('class _ShazamWaveRing'));
-    expect(button, contains('staggeredWave(waveValue, 0.16)'));
-    expect(button, contains('staggeredWave(waveValue, 0.32)'));
-    expect(button, contains('staggeredWave(waveValue, 0.48)'));
-    expect(button, contains('staggeredWave(waveValue, 0.64)'));
-    expect(button, contains('math.sin(waveValue * math.pi * 14)'));
+    expect(button, contains('staggeredWave(waveValue, 0.14)'));
+    expect(button, contains('staggeredWave(waveValue, 0.28)'));
+    expect(button, contains('staggeredWave(waveValue, 0.42)'));
+    expect(button, contains('staggeredWave(waveValue, 0.56)'));
+    expect(button, contains('Curves.easeInOutSine'));
+    expect(button, contains('ui.ImageFilter.blur'));
     expect(button, contains('class _MatteTexturePainter'));
-    expect(button, contains('HapticFeedback.heavyImpact()'));
+    expect(button, contains('HapticFeedback.mediumImpact()'));
     expect(button, contains('SweepGradient('));
     expect(button, contains('Icons.stop_rounded'));
     expect(button, contains('Icons.construction_rounded'));
