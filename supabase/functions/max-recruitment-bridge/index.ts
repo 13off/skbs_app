@@ -4,8 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 const COMPANY_ID = "e39c8fd5-e7f3-4beb-a269-76e893975a98";
 const SOURCE = "max";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SECRET_CACHE_TTL_MS = 60_000;
-const STALE_OUTBOUND_SWEEP_INTERVAL_MS = 60_000;
+const EXPECTED_SECRET_SHA256 = "02a21c471455316906e01a00b60d0806b3dfcecefd6086b7e0b67921c9985648";
 
 type JsonMap = Record<string, unknown>;
 type ApplicationInput = {
@@ -52,12 +51,6 @@ function serviceKey(): string {
 const admin = createClient(SUPABASE_URL, serviceKey(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-
-let cachedExpectedSecret = "";
-let expectedSecretExpiresAt = 0;
-let expectedSecretRequest: Promise<string> | null = null;
-let lastStaleOutboundSweepAt = 0;
-let staleOutboundSweepRequest: Promise<void> | null = null;
 
 function clean(value: unknown): string {
   return String(value ?? "").trim();
@@ -114,40 +107,27 @@ function relation(value: unknown): JsonMap {
   return {};
 }
 
-async function expectedSecret(): Promise<string> {
-  const now = Date.now();
-  if (cachedExpectedSecret && now < expectedSecretExpiresAt) {
-    return cachedExpectedSecret;
+async function sha256(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function constantTimeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
   }
-
-  const running = expectedSecretRequest;
-  if (running) return running;
-
-  const request = (async () => {
-    const { data, error } = await admin.rpc("get_recruitment_secret", {
-      p_name: "max_recruitment_bridge_secret",
-    });
-    if (error) throw error;
-    const value = clean(data);
-    if (value.length >= 24) {
-      cachedExpectedSecret = value;
-      expectedSecretExpiresAt = Date.now() + SECRET_CACHE_TTL_MS;
-    }
-    return value;
-  })();
-  expectedSecretRequest = request;
-
-  try {
-    return await request;
-  } finally {
-    if (expectedSecretRequest === request) expectedSecretRequest = null;
-  }
+  return difference === 0;
 }
 
 async function authorized(request: Request): Promise<boolean> {
-  const expected = await expectedSecret();
   const received = clean(request.headers.get("x-appstroy-max-secret"));
-  return expected.length >= 24 && received === expected;
+  if (received.length < 24) return false;
+  return constantTimeEqual(await sha256(received), EXPECTED_SECRET_SHA256);
 }
 
 async function notifyRoles(
@@ -400,38 +380,19 @@ async function ingestMessage(payload: RequestPayload): Promise<Response> {
 }
 
 async function recoverStaleOutboundMessages(): Promise<void> {
-  const now = Date.now();
-  if (now - lastStaleOutboundSweepAt < STALE_OUTBOUND_SWEEP_INTERVAL_MS) return;
-
-  const running = staleOutboundSweepRequest;
-  if (running) {
-    await running;
-    return;
-  }
-
-  const request = (async () => {
-    const stale = new Date(Date.now() - 2 * 60_000).toISOString();
-    const { error } = await admin.from("recruitment_messages")
-      .update({ delivery_status: "failed", delivery_error: "Истёк срок блокировки отправки" })
-      .eq("transport", "max")
-      .eq("direction", "outbound")
-      .eq("delivery_status", "sending")
-      .lt("last_delivery_attempt_at", stale);
-    if (error) throw error;
-    lastStaleOutboundSweepAt = Date.now();
-  })();
-  staleOutboundSweepRequest = request;
-
-  try {
-    await request;
-  } finally {
-    if (staleOutboundSweepRequest === request) staleOutboundSweepRequest = null;
-  }
+  const stale = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { error } = await admin.from("recruitment_messages")
+    .update({ delivery_status: "failed", delivery_error: "Истёк срок блокировки отправки" })
+    .eq("transport", "max")
+    .eq("direction", "outbound")
+    .eq("delivery_status", "sending")
+    .lt("last_delivery_attempt_at", stale);
+  if (error) throw error;
 }
 
-async function pullOutbound(): Promise<Response> {
+async function pullOutbound(recoverStale: boolean): Promise<Response> {
   const now = new Date().toISOString();
-  await recoverStaleOutboundMessages();
+  if (recoverStale) await recoverStaleOutboundMessages();
 
   const { data, error } = await admin.from("recruitment_messages")
     .select("id,application_id,message_text,delivery_attempts,available_at,recruitment_applications!inner(external_user_id,external_chat_id,source,archived_at)")
@@ -497,6 +458,12 @@ async function acknowledgeOutbound(payload: RequestPayload): Promise<Response> {
   return json({ ok: true });
 }
 
+function shouldRecoverStale(url: URL): boolean {
+  const requested = url.searchParams.get("recover_stale");
+  if (requested != null) return requested === "1";
+  return Math.floor(Date.now() / 5_000) % 12 === 0;
+}
+
 Deno.serve(async (request: Request) => {
   try {
     if (!(await authorized(request))) return json({ error: "forbidden" }, 403);
@@ -504,7 +471,7 @@ Deno.serve(async (request: Request) => {
 
     if (request.method === "GET") {
       return url.searchParams.get("action") === "pull_outbound"
-        ? await pullOutbound()
+        ? await pullOutbound(shouldRecoverStale(url))
         : await catalog();
     }
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);

@@ -8,6 +8,7 @@ export class AppStroyBridge {
     this.debug = debug;
     this.catalogCache = null;
     this.catalogExpiresAt = 0;
+    this.lastOutboundRecoveryAt = 0;
   }
 
   async parseResponse(response, context) {
@@ -160,7 +161,13 @@ export class AppStroyBridge {
   }
 
   async pullOutboundMessages() {
-    const data = await this.request('GET', null, { action: 'pull_outbound' });
+    const now = Date.now();
+    const recoverStale = now - this.lastOutboundRecoveryAt >= 60_000;
+    const data = await this.request('GET', null, {
+      action: 'pull_outbound',
+      recover_stale: recoverStale ? '1' : '0',
+    });
+    if (recoverStale) this.lastOutboundRecoveryAt = now;
     return Array.isArray(data?.messages) ? data.messages : [];
   }
 
