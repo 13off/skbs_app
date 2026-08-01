@@ -16,8 +16,9 @@ void main() {
     expect(controller, contains('showDeveloper'));
     expect(controller, contains("savedRole == 'developer'"));
     expect(screen, contains("title: 'Разработчик'"));
-    expect(screen, contains('ИИ-диспетчер'));
+    expect(screen, contains("badge: 'СИСТЕМА'"));
     expect(screen, contains('onTap: selectDeveloper'));
+    expect(screen, isNot(contains('required String subtitle')));
     expect(mainScreen, contains('if (profile.isDeveloper)'));
     expect(
       mainScreen,
