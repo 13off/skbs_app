@@ -1,0 +1,126 @@
+name: Apply document tools hotfix
+
+on:
+  push:
+    branches: [hotfix/document-workflow-mobile-blank]
+    paths:
+      - '.github/workflows/apply-document-tools-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/document-workflow-mobile-blank
+          fetch-depth: 0
+      - name: Patch navigation and mobile layouts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          settings = Path('lib/screens/settings_screen.dart')
+          text = settings.read_text()
+          text = text.replace(
+              "import '../features/documents/presentation/document_workflow_settings_entry.dart';\n",
+              "import '../features/tools/presentation/company_tools_screen.dart';\n",
+          )
+          old = """          const SizedBox(height: 8),
+          DocumentWorkflowSettingsEntry(profile: profile),
+          sectionTitle('Настройки профессии'),
+          """
+          new = """          const SizedBox(height: 8),
+          sectionTitle('Инструменты'),
+          actionTile(
+            icon: Icons.extension_rounded,
+            title: 'Инструменты',
+            onTap: () => open(CompanyToolsScreen(profile: profile)),
+          ),
+          const SizedBox(height: 8),
+          sectionTitle('Настройки профессии'),
+          """
+          if old not in text:
+              raise SystemExit('settings insertion point not found')
+          settings.write_text(text.replace(old, new, 1))
+
+          def unwrap(path: str, refresh: str, subtitle: str):
+              file = Path(path)
+              source = file.read_text()
+              subtitle_line = f"      subtitle: '{subtitle}',\n"
+              if subtitle_line not in source:
+                  raise SystemExit(f'subtitle not found: {path}')
+              source = source.replace(
+                  subtitle_line,
+                  subtitle_line + f'      onRefresh: {refresh},\n',
+                  1,
+              )
+              prefix = f"""          return RefreshIndicator(
+            onRefresh: {refresh},
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: [
+              """
+              start = source.find(prefix)
+              if start < 0:
+                  raise SystemExit(f'nested list prefix not found: {path}')
+              tail = """              ],
+            ),
+          );"""
+              end = source.find(tail, start + len(prefix))
+              if end < 0:
+                  raise SystemExit(f'nested list tail not found: {path}')
+              body = source[start + len(prefix):end]
+              replacement = """          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              """ + body + """              ],
+          );"""
+              file.write_text(source[:start] + replacement + source[end + len(tail):])
+
+          unwrap(
+              'lib/features/documents/presentation/document_workflow_screen.dart',
+              'refresh',
+              'Оформление сотрудника от исходников до архива',
+          )
+          unwrap(
+              'lib/features/documents/presentation/document_generation_screen.dart',
+              '_refresh',
+              'Утверждённые DOCX-версии без изменения оригинала',
+          )
+          unwrap(
+              'lib/features/documents/presentation/document_onboarding_screen.dart',
+              'refresh',
+              '13 обязательных этапов',
+          )
+          unwrap(
+              'lib/features/documents/presentation/document_package_management_screen.dart',
+              'refresh',
+              'Готовые наборы для HR',
+          )
+
+          legacy = Path(
+              'lib/features/documents/presentation/document_workflow_settings_entry.dart'
+          )
+          if legacy.exists():
+              legacy.unlink()
+
+          workflow = Path('.github/workflows/apply-document-tools-hotfix.yml')
+          workflow.unlink()
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format changed Dart files
+        run: dart format lib/screens/settings_screen.dart lib/features/tools/presentation/company_tools_screen.dart lib/features/documents/presentation/document_workflow_screen.dart lib/features/documents/presentation/document_generation_screen.dart lib/features/documents/presentation/document_onboarding_screen.dart lib/features/documents/presentation/document_package_management_screen.dart
+      - name: Commit hotfix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: repair document tools navigation and mobile layout'
+          git push origin HEAD:hotfix/document-workflow-mobile-blank
