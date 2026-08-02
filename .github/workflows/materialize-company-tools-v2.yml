@@ -25,281 +25,248 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
 
-          def required_replace(text, old, new, name):
-              if old not in text:
-                  raise SystemExit(f'Marker missing in {name}: {old[:100]!r}')
-              return text.replace(old, new, 1)
+          def require(value, message):
+              if not value:
+                  raise SystemExit(message)
 
           settings_path = Path('lib/screens/settings_screen.dart')
           settings = settings_path.read_text(encoding='utf-8')
-          settings = required_replace(
-              settings,
+          settings = settings.replace(
               "import '../features/tools/presentation/company_tools_screen.dart';",
               "import '../features/tools/presentation/company_tools_entry.dart';",
-              str(settings_path),
+              1,
           )
-          settings = required_replace(
+          settings, removed = re.subn(
+              r"\s*const SizedBox\(height: 8\),\s*"
+              r"sectionTitle\('Инструменты'\),\s*"
+              r"actionTile\([\s\S]*?CompanyToolsScreen\(profile: profile\)[\s\S]*?\),\s*"
+              r"const SizedBox\(height: 8\),\s*"
+              r"sectionTitle\('Настройки профессии'\),",
+              "\n          sectionTitle('Настройки профессии'),",
               settings,
-              "          const SizedBox(height: 8),\n"
-              "          sectionTitle('Инструменты'),\n"
-              "          actionTile(\n"
-              "            icon: Icons.extension_rounded,\n"
-              "            title: 'Инструменты',\n"
-              "            onTap: () => open(CompanyToolsScreen(profile: profile)),\n"
-              "          ),\n"
-              "          const SizedBox(height: 8),\n"
-              "          sectionTitle('Настройки профессии'),",
-              "          sectionTitle('Настройки профессии'),",
-              str(settings_path),
+              count=1,
           )
-          settings = required_replace(
-              settings,
-              "          sectionTitle('Настройки профессии'),\n"
-              "          ...roleItems,\n"
-              "          if (managementItems.isNotEmpty) ...[",
-              "          sectionTitle('Настройки профессии'),\n"
-              "          ...roleItems,\n"
-              "          const SizedBox(height: 8),\n"
-              "          CompanyToolsSettingsEntry(profile: profile),\n"
-              "          if (managementItems.isNotEmpty) ...[",
-              str(settings_path),
+          require(removed == 1, 'Old settings tools block was not found')
+          marker = "          ...roleItems,\n"
+          require(marker in settings, 'roleItems marker missing')
+          settings = settings.replace(
+              marker,
+              marker
+              + "          const SizedBox(height: 8),\n"
+              + "          CompanyToolsSettingsEntry(profile: profile),\n",
+              1,
           )
           settings_path.write_text(settings, encoding='utf-8')
 
           profile_path = Path('lib/screens/profile_screen.dart')
           profile = profile_path.read_text(encoding='utf-8')
-          profile = required_replace(
-              profile,
-              "import '../features/role_preview/role_preview_controller.dart';",
-              "import '../features/role_preview/role_preview_controller.dart';\n"
-              "import '../features/tools/presentation/company_tools_entry.dart';",
-              str(profile_path),
+          import_marker = "import '../features/role_preview/role_preview_controller.dart';"
+          require(import_marker in profile, 'profile import marker missing')
+          profile = profile.replace(
+              import_marker,
+              import_marker
+              + "\nimport '../features/tools/presentation/company_tools_entry.dart';",
+              1,
           )
-          profile = required_replace(
-              profile,
+          signout_marker = (
               "          const SizedBox(height: 8),\n"
-              "          signOutButton(),",
+              "          signOutButton(),"
+          )
+          require(signout_marker in profile, 'profile signout marker missing')
+          profile = profile.replace(
+              signout_marker,
               "          ConnectedCompanyToolsSection(profile: profile),\n"
               "          const SizedBox(height: 8),\n"
               "          signOutButton(),",
-              str(profile_path),
+              1,
           )
           profile_path.write_text(profile, encoding='utf-8')
 
-          tools_path = Path(
-              'lib/features/tools/presentation/company_tools_screen.dart'
-          )
+          tools_path = Path('lib/features/tools/presentation/company_tools_screen.dart')
           tools = tools_path.read_text(encoding='utf-8')
-          tools = required_replace(
-              tools,
-              "import '../../documents/presentation/document_workflow_screen.dart';",
-              "import '../../documents/presentation/document_workflow_screen.dart';\n"
-              "import '../data/company_tools_controller.dart';",
-              str(tools_path),
+          workflow_import = (
+              "import '../../documents/presentation/document_workflow_screen.dart';"
           )
-          tools = required_replace(
-              tools,
-              "  late Future<_ToolsData> future;\n"
-              "  bool changing = false;",
+          require(workflow_import in tools, 'tool controller import marker missing')
+          tools = tools.replace(
+              workflow_import,
+              workflow_import + "\nimport '../data/company_tools_controller.dart';",
+              1,
+          )
+          state_marker = "  late Future<_ToolsData> future;\n  bool changing = false;"
+          require(state_marker in tools, 'tool state marker missing')
+          tools = tools.replace(
+              state_marker,
               "  late Future<_ToolsData> future;\n"
               "  _CompanyToolsTab selectedTab = _CompanyToolsTab.connected;\n"
               "  bool changing = false;",
-              str(tools_path),
+              1,
           )
-          old_load = (
-              "    final values = await Future.wait<dynamic>(<Future<dynamic>>[\n"
-              "      DocumentWorkflowRepository.fetchAccess(),\n"
-              "      DocumentWorkflowRepository.fetchInstallation(companyId),\n"
-              "    ]);\n"
-              "    return _ToolsData(\n"
-              "      access: values[0] as DocumentWorkflowAccess,\n"
-              "      installation: values[1] as DocumentToolInstallation,\n"
-              "    );"
-          )
-          new_load = (
-              "    final values = await Future.wait<dynamic>(<Future<dynamic>>[\n"
-              "      DocumentWorkflowRepository.fetchAccess(),\n"
-              "      DocumentWorkflowRepository.fetchInstallation(companyId),\n"
-              "    ]);\n"
-              "    final access = values[0] as DocumentWorkflowAccess;\n"
-              "    final installation = values[1] as DocumentToolInstallation;\n"
-              "    if (!installation.isEnabled && access.canManage) {\n"
-              "      selectedTab = _CompanyToolsTab.catalog;\n"
-              "    }\n"
-              "    return _ToolsData(access: access, installation: installation);"
-          )
-          tools = required_replace(tools, old_load, new_load, str(tools_path))
-          old_enable = (
-              "      await DocumentWorkflowRepository.setInstallation(\n"
-              "        companyId: companyId,\n"
-              "        isEnabled: enabled,\n"
-              "        settings: data.installation.settings,\n"
-              "      );\n"
-              "      await _refresh();"
-          )
-          new_enable = (
-              "      await DocumentWorkflowRepository.setInstallation(\n"
-              "        companyId: companyId,\n"
-              "        isEnabled: enabled,\n"
-              "        settings: data.installation.settings,\n"
-              "      );\n"
+
+          load_start = tools.find('  Future<_ToolsData> _load() async {')
+          load_end = tools.find('  Future<void> _refresh() async {', load_start)
+          require(load_start >= 0 and load_end > load_start, 'load method bounds missing')
+          new_load = """  Future<_ToolsData> _load() async {
+            if (companyId.isEmpty) {
+              throw StateError('Сначала выберите активную компанию');
+            }
+            final values = await Future.wait<dynamic>(<Future<dynamic>>[
+              DocumentWorkflowRepository.fetchAccess(),
+              DocumentWorkflowRepository.fetchInstallation(companyId),
+            ]);
+            final access = values[0] as DocumentWorkflowAccess;
+            final installation = values[1] as DocumentToolInstallation;
+            if (!installation.isEnabled && access.canManage) {
+              selectedTab = _CompanyToolsTab.catalog;
+            }
+            return _ToolsData(access: access, installation: installation);
+          }
+
+          """
+          tools = tools[:load_start] + new_load + tools[load_end:]
+
+          refresh_marker = "      await _refresh();\n      _message("
+          require(refresh_marker in tools, 'installation refresh marker missing')
+          tools = tools.replace(
+              refresh_marker,
               "      CompanyToolsController.notifyChanged();\n"
               "      selectedTab = enabled\n"
               "          ? _CompanyToolsTab.connected\n"
               "          : _CompanyToolsTab.catalog;\n"
-              "      await _refresh();"
+              "      await _refresh();\n"
+              "      _message(",
+              1,
           )
-          tools = required_replace(tools, old_enable, new_enable, str(tools_path))
           tools = tools.replace("title: 'Инструменты',", "title: 'Инструменты AppСтрой',", 1)
           tools = tools.replace("'AppСтрой Документы'", "'AppСтрой Трудоустройство'")
           tools = tools.replace(
-              "subtitle: 'Трудоустройство и кадровый документооборот',",
-              "subtitle: 'Оформление и кадровый документооборот',",
+              "'Трудоустройство и кадровый документооборот'",
+              "'Оформление и кадровый документооборот'",
           )
+
+          card_start = tools.find('              _DocumentToolCard(')
+          card_end_marker = "              const SizedBox(height: 14),"
+          card_end = tools.find(card_end_marker, card_start)
+          require(card_start >= 0 and card_end > card_start, 'main tool card bounds missing')
+          replacement = """              if (data.access.canManage)
+                SegmentedButton<_CompanyToolsTab>(
+                  segments: const [
+                    ButtonSegment<_CompanyToolsTab>(
+                      value: _CompanyToolsTab.connected,
+                      icon: Icon(Icons.widgets_outlined),
+                      label: Text('Подключённые'),
+                    ),
+                    ButtonSegment<_CompanyToolsTab>(
+                      value: _CompanyToolsTab.catalog,
+                      icon: Icon(Icons.storefront_outlined),
+                      label: Text('Каталог'),
+                    ),
+                  ],
+                  selected: <_CompanyToolsTab>{selectedTab},
+                  onSelectionChanged: (selection) {
+                    setState(() => selectedTab = selection.first);
+                  },
+                ),
+              if (data.access.canManage) const SizedBox(height: 16),
+              if (!data.access.canManage ||
+                  selectedTab == _CompanyToolsTab.connected)
+                _connectedView(data)
+              else
+                _catalogView(data),
+"""
+          tools = tools[:card_start] + replacement + tools[card_end:]
+
+          message_marker = '  void _message(String value) {'
+          require(message_marker in tools, 'message method marker missing')
+          helpers = """  Widget _connectedView(_ToolsData data) {
+            if (!data.installation.isEnabled) {
+              return PremiumWorkCard(
+                radius: 24,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Подключённых инструментов пока нет',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 7),
+                    const Text(
+                      'После подключения рабочий инструмент появится у разрешённых ролей в профиле.',
+                      style: TextStyle(height: 1.4),
+                    ),
+                    if (data.access.canManage) ...[
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        onPressed: () => setState(
+                          () => selectedTab = _CompanyToolsTab.catalog,
+                        ),
+                        icon: const Icon(Icons.storefront_outlined),
+                        label: const Text('Открыть каталог'),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }
+            return _DocumentToolCard(
+              access: data.access,
+              installation: data.installation,
+              changing: changing,
+              showManagement: false,
+              onOpen: () => _openWorkspace(data),
+              onEnable: () => _setEnabled(data, true),
+              onDisable: () => _setEnabled(data, false),
+            );
+          }
+
+          Widget _catalogView(_ToolsData data) {
+            return _DocumentToolCard(
+              access: data.access,
+              installation: data.installation,
+              changing: changing,
+              showManagement: true,
+              onOpen: () => _openWorkspace(data),
+              onEnable: () => _setEnabled(data, true),
+              onDisable: () => _setEnabled(data, false),
+            );
+          }
+
+          """
+          tools = tools.replace(message_marker, helpers + message_marker, 1)
+
           tools = tools.replace(
-              "'Трудоустройство и кадровый документооборот',",
-              "'Оформление и кадровый документооборот',",
-          )
-
-          old_card = (
-              "              _DocumentToolCard(\n"
-              "                access: data.access,\n"
-              "                installation: data.installation,\n"
-              "                changing: changing,\n"
-              "                onOpen: () => _openWorkspace(data),\n"
-              "                onEnable: () => _setEnabled(data, true),\n"
-              "                onDisable: () => _setEnabled(data, false),\n"
-              "              ),"
-          )
-          new_card = (
-              "              if (data.access.canManage)\n"
-              "                SegmentedButton<_CompanyToolsTab>(\n"
-              "                  segments: const [\n"
-              "                    ButtonSegment<_CompanyToolsTab>(\n"
-              "                      value: _CompanyToolsTab.connected,\n"
-              "                      icon: Icon(Icons.widgets_outlined),\n"
-              "                      label: Text('Подключённые'),\n"
-              "                    ),\n"
-              "                    ButtonSegment<_CompanyToolsTab>(\n"
-              "                      value: _CompanyToolsTab.catalog,\n"
-              "                      icon: Icon(Icons.storefront_outlined),\n"
-              "                      label: Text('Каталог'),\n"
-              "                    ),\n"
-              "                  ],\n"
-              "                  selected: <_CompanyToolsTab>{selectedTab},\n"
-              "                  onSelectionChanged: (selection) {\n"
-              "                    setState(() => selectedTab = selection.first);\n"
-              "                  },\n"
-              "                ),\n"
-              "              if (data.access.canManage) const SizedBox(height: 16),\n"
-              "              if (!data.access.canManage ||\n"
-              "                  selectedTab == _CompanyToolsTab.connected)\n"
-              "                _connectedView(data)\n"
-              "              else\n"
-              "                _catalogView(data),"
-          )
-          tools = required_replace(tools, old_card, new_card, str(tools_path))
-
-          method_marker = "  void _message(String value) {"
-          helper_methods = (
-              "  Widget _connectedView(_ToolsData data) {\n"
-              "    if (!data.installation.isEnabled) {\n"
-              "      return PremiumWorkCard(\n"
-              "        radius: 24,\n"
-              "        child: Column(\n"
-              "          crossAxisAlignment: CrossAxisAlignment.start,\n"
-              "          children: [\n"
-              "            const Text(\n"
-              "              'Подключённых инструментов пока нет',\n"
-              "              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),\n"
-              "            ),\n"
-              "            const SizedBox(height: 7),\n"
-              "            const Text(\n"
-              "              'После подключения рабочий инструмент появится у разрешённых ролей в профиле.',\n"
-              "              style: TextStyle(height: 1.4),\n"
-              "            ),\n"
-              "            if (data.access.canManage) ...[\n"
-              "              const SizedBox(height: 14),\n"
-              "              FilledButton.icon(\n"
-              "                onPressed: () => setState(\n"
-              "                  () => selectedTab = _CompanyToolsTab.catalog,\n"
-              "                ),\n"
-              "                icon: const Icon(Icons.storefront_outlined),\n"
-              "                label: const Text('Открыть каталог'),\n"
-              "              ),\n"
-              "            ],\n"
-              "          ],\n"
-              "        ),\n"
-              "      );\n"
-              "    }\n"
-              "    return _DocumentToolCard(\n"
-              "      access: data.access,\n"
-              "      installation: data.installation,\n"
-              "      changing: changing,\n"
-              "      showManagement: false,\n"
-              "      onOpen: () => _openWorkspace(data),\n"
-              "      onEnable: () => _setEnabled(data, true),\n"
-              "      onDisable: () => _setEnabled(data, false),\n"
-              "    );\n"
-              "  }\n\n"
-              "  Widget _catalogView(_ToolsData data) {\n"
-              "    return _DocumentToolCard(\n"
-              "      access: data.access,\n"
-              "      installation: data.installation,\n"
-              "      changing: changing,\n"
-              "      showManagement: true,\n"
-              "      onOpen: () => _openWorkspace(data),\n"
-              "      onEnable: () => _setEnabled(data, true),\n"
-              "      onDisable: () => _setEnabled(data, false),\n"
-              "    );\n"
-              "  }\n\n"
-              + method_marker
-          )
-          tools = required_replace(
-              tools,
-              method_marker,
-              helper_methods,
-              str(tools_path),
-          )
-          tools = required_replace(
-              tools,
-              "  final bool changing;\n"
-              "  final VoidCallback onOpen;",
+              "  final bool changing;\n  final VoidCallback onOpen;",
               "  final bool changing;\n"
               "  final bool showManagement;\n"
               "  final VoidCallback onOpen;",
-              str(tools_path),
-          )
-          tools = required_replace(
-              tools,
-              "    required this.changing,\n"
-              "    required this.onOpen,",
-              "    required this.changing,\n"
-              "    required this.showManagement,\n"
-              "    required this.onOpen,",
-              str(tools_path),
-          )
-          tools = tools.replace(
-              "            if (access.canManage)\n"
-              "              TextButton(",
-              "            if (showManagement && access.canManage)\n"
-              "              TextButton(",
               1,
           )
           tools = tools.replace(
-              "          ] else if (access.canManage)\n"
-              "            FilledButton.icon(",
+              "    required this.changing,\n    required this.onOpen,",
+              "    required this.changing,\n"
+              "    required this.showManagement,\n"
+              "    required this.onOpen,",
+              1,
+          )
+          tools = tools.replace(
+              "            if (access.canManage)\n              TextButton(",
+              "            if (showManagement && access.canManage)\n              TextButton(",
+              1,
+          )
+          tools = tools.replace(
+              "          ] else if (access.canManage)\n            FilledButton.icon(",
               "          ] else if (showManagement && access.canManage)\n"
               "            FilledButton.icon(",
               1,
           )
-          enum_marker = "class _ToolsData {"
-          tools = required_replace(
-              tools,
-              enum_marker,
-              "enum _CompanyToolsTab { connected, catalog }\n\n" + enum_marker,
-              str(tools_path),
+          data_marker = 'class _ToolsData {'
+          require(data_marker in tools, 'tools data marker missing')
+          tools = tools.replace(
+              data_marker,
+              'enum _CompanyToolsTab { connected, catalog }\n\n' + data_marker,
+              1,
           )
           tools_path.write_text(tools, encoding='utf-8')
 
