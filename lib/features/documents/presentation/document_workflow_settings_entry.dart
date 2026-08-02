@@ -10,10 +10,7 @@ import 'document_workflow_screen.dart';
 class DocumentWorkflowSettingsEntry extends StatefulWidget {
   final AppUserProfile profile;
 
-  const DocumentWorkflowSettingsEntry({
-    super.key,
-    required this.profile,
-  });
+  const DocumentWorkflowSettingsEntry({super.key, required this.profile});
 
   @override
   State<DocumentWorkflowSettingsEntry> createState() =>
