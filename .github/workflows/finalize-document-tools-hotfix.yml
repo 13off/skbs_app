@@ -1,0 +1,99 @@
+name: Finalize document tools hotfix
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/document-workflow-mobile-blank
+          fetch-depth: 0
+      - name: Finalize document tools layout
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          def add_page_refresh(path: str, subtitle: str, callback: str):
+              file = Path(path)
+              source = file.read_text()
+              marker = f"      subtitle: '{subtitle}',\n"
+              replacement = marker + f"      onRefresh: {callback},\n"
+              if replacement not in source:
+                  if marker not in source:
+                      raise SystemExit(f'subtitle marker missing: {path}')
+                  source = source.replace(marker, replacement, 1)
+              file.write_text(source)
+
+          workflow = Path(
+              'lib/features/documents/presentation/document_workflow_screen.dart'
+          )
+          source = workflow.read_text()
+          source = source.replace('  bool changingInstallation = false;\n', '', 1)
+          source = re.sub(
+              r"\n  Future<void> toggleInstallation\(.*?\n  }\n\n  Future<void> seedPackages",
+              "\n  Future<void> seedPackages",
+              source,
+              count=1,
+              flags=re.DOTALL,
+          )
+          source = source.replace("      title: 'Документооборот',", "      title: 'Оформления',", 1)
+          source = re.sub(
+              r"\n\s*_InstallationCard\(\n"
+              r"\s*installation: data\.installation,\n"
+              r"\s*access: data\.access,\n"
+              r"\s*loading: changingInstallation,\n"
+              r"\s*onChanged: \(value\) => toggleInstallation\(data, value\),\n"
+              r"\s*\),",
+              '',
+              source,
+              count=1,
+          )
+          source = re.sub(
+              r"\nclass _InstallationCard extends StatelessWidget \{.*?\n}\n\nclass _Metrics",
+              "\nclass _Metrics",
+              source,
+              count=1,
+              flags=re.DOTALL,
+          )
+          workflow.write_text(source)
+
+          add_page_refresh(
+              'lib/features/documents/presentation/document_workflow_screen.dart',
+              'Оформление сотрудника от исходников до архива',
+              'refresh',
+          )
+          add_page_refresh(
+              'lib/features/documents/presentation/document_generation_screen.dart',
+              'Утверждённые DOCX-версии без изменения оригинала',
+              '_refresh',
+          )
+          add_page_refresh(
+              'lib/features/documents/presentation/document_onboarding_screen.dart',
+              '13 обязательных этапов',
+              'refresh',
+          )
+          add_page_refresh(
+              'lib/features/documents/presentation/document_package_management_screen.dart',
+              'Готовые наборы для HR',
+              'refresh',
+          )
+
+          Path('.github/workflows/finalize-document-tools-hotfix.yml').unlink()
+          PY
+      - name: Commit final hotfix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: finalize company tools navigation'
+          git pull --rebase origin hotfix/document-workflow-mobile-blank
+          git push origin HEAD:hotfix/document-workflow-mobile-blank
