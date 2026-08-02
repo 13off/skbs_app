@@ -1,186 +1,900 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../data/employee_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
+import '../data/document_template_repository.dart';
 import '../data/document_workflow_repository.dart';
 import '../models/document_onboarding.dart';
+import '../models/document_template.dart';
 
 class DocumentOnboardingScreen extends StatefulWidget {
   final AppUserProfile profile;
+  final String? onboardingId;
   final EmployeeOnboardingRecord? onboarding;
 
   const DocumentOnboardingScreen({
     super.key,
     required this.profile,
+    this.onboardingId,
     this.onboarding,
-  });
+  }) : assert(onboardingId != null || onboarding != null);
+
+  String get resolvedOnboardingId => onboardingId ?? onboarding!.id;
 
   @override
-  State<DocumentOnboardingScreen> createState() => _DocumentOnboardingScreenState();
+  State<DocumentOnboardingScreen> createState() =>
+      _DocumentOnboardingScreenState();
 }
 
 class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
-  EmployeeOnboardingRecord? onboarding;
-  Future<_OnboardingData>? future;
+  late Future<_OnboardingData> future;
   bool busy = false;
 
   String get companyId => widget.profile.activeCompanyId;
+  String get onboardingId => widget.resolvedOnboardingId;
 
   @override
   void initState() {
     super.initState();
-    onboarding = widget.onboarding;
-    if (onboarding != null) future = load();
+    future = load();
   }
 
   Future<_OnboardingData> load() async {
-    final current = onboarding;
-    if (current == null) throw StateError('Процесс оформления не создан');
-    final values = await Future.wait<dynamic>([
-      DocumentWorkflowRepository.fetchSteps(current.id),
+    final access = await DocumentWorkflowRepository.fetchAccess();
+    if (!access.canView) throw StateError('Нет доступа к оформлению');
+    final process = await DocumentWorkflowRepository.fetchOnboarding(
+      onboardingId,
+    );
+    final values = await Future.wait<dynamic>(<Future<dynamic>>[
+      DocumentWorkflowRepository.fetchSteps(onboardingId),
       DocumentWorkflowRepository.fetchFiles(
         companyId: companyId,
-        onboardingId: current.id,
-      ),
-      DocumentWorkflowRepository.fetchAudit(
-        companyId: companyId,
-        onboardingId: current.id,
+        onboardingId: onboardingId,
       ),
       DocumentWorkflowRepository.fetchPackages(companyId),
+      DocumentWorkflowRepository.fetchEmployees(companyId),
+      DocumentWorkflowRepository.fetchCandidates(companyId),
+      DocumentWorkflowRepository.fetchObjects(companyId),
+      access.canViewTemplates
+          ? DocumentTemplateRepository.fetchTemplates(companyId: companyId)
+          : Future<List<DocumentTemplateRecord>>.value(
+              const <DocumentTemplateRecord>[],
+            ),
+      process.packageId == null
+          ? Future<List<DocumentPackageTemplateLink>>.value(
+              const <DocumentPackageTemplateLink>[],
+            )
+          : DocumentWorkflowRepository.fetchPackageTemplateLinks(
+              companyId: companyId,
+              packageId: process.packageId,
+            ),
+      access.canViewAudit
+          ? DocumentWorkflowRepository.fetchAudit(
+              companyId: companyId,
+              onboardingId: onboardingId,
+            )
+          : Future<List<DocumentAuditRecord>>.value(
+              const <DocumentAuditRecord>[],
+            ),
     ]);
     return _OnboardingData(
+      access: access,
+      process: process,
       steps: values[0] as List<DocumentOnboardingStepRecord>,
       files: values[1] as List<EmployeeDocumentFileRecord>,
-      audit: values[2] as List<DocumentAuditRecord>,
-      packages: values[3] as List<DocumentPackageRecord>,
+      packages: values[2] as List<DocumentPackageRecord>,
+      employees: values[3] as List<DocumentEmployeeOption>,
+      candidates: values[4] as List<DocumentCandidateOption>,
+      objects: values[5] as List<DocumentObjectOption>,
+      templates: values[6] as List<DocumentTemplateRecord>,
+      packageLinks: values[7] as List<DocumentPackageTemplateLink>,
+      audit: values[8] as List<DocumentAuditRecord>,
     );
   }
 
   Future<void> refresh() async {
-    if (onboarding == null) return;
     setState(() => future = load());
     await future;
   }
 
-  Future<void> create() async {
-    if (busy) return;
+  Future<void> advance(
+    _OnboardingData data,
+    DocumentOnboardingStepRecord step,
+  ) async {
+    if (busy || data.process.isCompleted) return;
     setState(() => busy = true);
     try {
-      final created = await DocumentWorkflowRepository.createOnboarding(
-        companyId: companyId,
-        onboardingType: 'custom',
-        assignedUserId: widget.profile.id,
-      );
-      if (!mounted) return;
-      setState(() {
-        onboarding = created;
-        future = load();
-      });
-    } catch (error) {
-      showError(error);
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  Future<void> advance(DocumentOnboardingStepRecord step) async {
-    final current = onboarding;
-    if (current == null || busy) return;
-    if (!_canAdvance(step)) {
-      showError(StateError(_blockReason(step.stepCode)));
-      return;
-    }
-    setState(() => busy = true);
-    try {
+      final payload = await _payloadForStep(data, step.stepCode);
+      if (payload == null || !mounted) return;
       await DocumentWorkflowRepository.advanceOnboarding(
-        companyId: companyId,
-        onboardingId: current.id,
+        onboardingId: onboardingId,
         currentStep: step.stepCode,
-        payload: step.payload,
+        payload: payload,
       );
-      final refreshed = await DocumentWorkflowRepository.fetchOnboardings(
-        companyId: companyId,
+      await refresh();
+      _message(
+        step.stepCode == DocumentOnboardingSteps.completion
+            ? 'Оформление завершено'
+            : 'Этап завершён',
       );
-      final next = refreshed.where((item) => item.id == current.id).firstOrNull;
-      if (!mounted) return;
-      setState(() {
-        onboarding = next ?? current;
-        future = load();
-      });
     } catch (error) {
-      showError(error);
+      _message(_cleanError(error));
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
-  bool _canAdvance(DocumentOnboardingStepRecord step) {
-    final data = future;
-    if (data == null) return true;
-    return true;
+  Future<Map<String, dynamic>?> _payloadForStep(
+    _OnboardingData data,
+    String stepCode,
+  ) async {
+    switch (stepCode) {
+      case DocumentOnboardingSteps.sourceFiles:
+        return <String, dynamic>{
+          'source_files': data.files
+              .where((file) => file.fileKind == 'source')
+              .map((file) => file.id)
+              .toList(growable: false),
+        };
+      case DocumentOnboardingSteps.sourceCompleteness:
+        final accepted = await _confirm(
+          title: 'Комплектность проверена?',
+          message:
+              'Проверьте паспорт, прописку, СНИЛС, ИНН, полис и фото. '
+              'Компания может дополнить обязательный перечень в настройках.',
+          confirmLabel: 'Комплектность подтверждена',
+        );
+        return accepted
+            ? <String, dynamic>{
+                'confirmed': true,
+                'checked_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      case DocumentOnboardingSteps.recognition:
+        return _editRecognition(data.process.recognizedData);
+      case DocumentOnboardingSteps.hrVerification:
+        final accepted = await _confirmRecognized(data.process.recognizedData);
+        return accepted
+            ? <String, dynamic>{
+                'hr_confirmed': true,
+                'checked_fields': data.process.recognizedData.keys.toList(),
+                'checked_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      case DocumentOnboardingSteps.employeeCard:
+        if (data.process.employeeId == null) {
+          final employeeId = await _selectOrCreateEmployee(data);
+          if (employeeId == null) return null;
+          await DocumentWorkflowRepository.setOnboardingContext(
+            onboardingId: onboardingId,
+            employeeId: employeeId,
+          );
+          return <String, dynamic>{'employee_id': employeeId};
+        }
+        return <String, dynamic>{'employee_id': data.process.employeeId};
+      case DocumentOnboardingSteps.packageAndConditions:
+        final contextDraft = await _editContext(data);
+        if (contextDraft == null) return null;
+        await DocumentWorkflowRepository.setOnboardingContext(
+          onboardingId: onboardingId,
+          packageId: contextDraft.packageId,
+          objectId: contextDraft.objectId,
+          onboardingType: contextDraft.onboardingType,
+          conditions: contextDraft.conditions,
+        );
+        return <String, dynamic>{
+          'confirmed': true,
+          'package_id': contextDraft.packageId,
+          'object_id': contextDraft.objectId,
+          'conditions': contextDraft.conditions,
+        };
+      case DocumentOnboardingSteps.generation:
+        final generated = data.files
+            .where((file) => file.fileKind == 'generated')
+            .toList(growable: false);
+        if (generated.isEmpty) {
+          throw StateError(
+            'Сначала подготовьте документ по утверждённому шаблону и загрузите результат',
+          );
+        }
+        return <String, dynamic>{
+          'generated_file_ids': generated.map((file) => file.id).toList(),
+        };
+      case DocumentOnboardingSteps.printing:
+        final accepted = await _confirm(
+          title: 'Документы переданы на печать?',
+          message:
+              'Этот этап фиксирует передачу сформированного комплекта на печать.',
+          confirmLabel: 'Да, переданы на печать',
+        );
+        return accepted
+            ? <String, dynamic>{
+                'printed': true,
+                'printed_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      case DocumentOnboardingSteps.signing:
+        final accepted = await _confirm(
+          title: 'Подписание состоялось?',
+          message:
+              'Подтвердите факт подписания сотрудником и представителем компании.',
+          confirmLabel: 'Да, документы подписаны',
+        );
+        return accepted
+            ? <String, dynamic>{
+                'signed': true,
+                'signed_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      case DocumentOnboardingSteps.signedDocuments:
+        return <String, dynamic>{
+          'accepted_files': data.files
+              .where((file) => file.fileKind == 'signed' && file.isAccepted)
+              .map((file) => file.id)
+              .toList(),
+        };
+      case DocumentOnboardingSteps.finalScans:
+        return <String, dynamic>{
+          'accepted_files': data.files
+              .where((file) => file.fileKind == 'final_scan' && file.isAccepted)
+              .map((file) => file.id)
+              .toList(),
+        };
+      case DocumentOnboardingSteps.archiveVerification:
+        final accepted = await _confirm(
+          title: 'Архив проверен?',
+          message:
+              'Проверьте версии, читаемость, подписи и обязательный состав. '
+              'Для СКБС в общий Word/PDF входят только паспорт, прописка, '
+              'СНИЛС, ИНН, полис и фото.',
+          confirmLabel: 'Архив проверен',
+        );
+        return accepted
+            ? <String, dynamic>{
+                'archive_confirmed': true,
+                'checked_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      case DocumentOnboardingSteps.completion:
+        final blockers = await DocumentWorkflowRepository.fetchBlockers(
+          onboardingId,
+        );
+        if (blockers.isNotEmpty) {
+          final messages = blockers
+              .map((item) => item['message']?.toString() ?? '')
+              .where((item) => item.isNotEmpty)
+              .join('\n• ');
+          throw StateError('Оформление пока нельзя завершить:\n• $messages');
+        }
+        final accepted = await _confirm(
+          title: 'Завершить оформление?',
+          message:
+              'После завершения процесс и его юридически значимый архив '
+              'останутся в истории. Старые версии не будут удалены.',
+          confirmLabel: 'Завершить оформление',
+        );
+        return accepted
+            ? <String, dynamic>{
+                'completed': true,
+                'confirmed_at': DateTime.now().toUtc().toIso8601String(),
+              }
+            : null;
+      default:
+        return const <String, dynamic>{};
+    }
   }
 
-  String _blockReason(String stepCode) {
-    return switch (stepCode) {
-      DocumentOnboardingSteps.hrVerification => 'Подтвердите распознанные данные вручную',
-      DocumentOnboardingSteps.signedDocuments => 'Загрузите подписанные документы',
-      DocumentOnboardingSteps.finalScans => 'Загрузите финальные сканы',
-      _ => 'Этап ещё не готов к завершению',
+  Future<Map<String, dynamic>?> _editRecognition(
+    Map<String, dynamic> initial,
+  ) async {
+    const fields = <(String, String)>[
+      ('full_name', 'ФИО'),
+      ('birth_date', 'Дата рождения'),
+      ('passport_series', 'Серия паспорта'),
+      ('passport_number', 'Номер паспорта'),
+      ('passport_issued_by', 'Кем выдан паспорт'),
+      ('passport_issue_date', 'Дата выдачи'),
+      ('registration_address', 'Адрес регистрации'),
+      ('snils', 'СНИЛС'),
+      ('inn', 'ИНН'),
+      ('phone', 'Телефон'),
+      ('bank_details', 'Банковские реквизиты'),
+    ];
+    final controllers = <String, TextEditingController>{
+      for (final field in fields)
+        field.$1: TextEditingController(
+          text: initial[field.$1]?.toString() ?? '',
+        ),
     };
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Распознанные данные'),
+        content: SizedBox(
+          width: 660,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'OCR заполняет черновик, но юридически значимые поля всегда '
+                  'проверяются человеком. Сейчас можно исправить каждое поле.',
+                  style: TextStyle(height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                for (final field in fields) ...[
+                  TextField(
+                    controller: controllers[field.$1],
+                    decoration: InputDecoration(labelText: field.$2),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, <String, dynamic>{
+              'mode': initial['mode'] ?? 'manual',
+              'edited_at': DateTime.now().toUtc().toIso8601String(),
+              for (final field in fields)
+                field.$1: controllers[field.$1]!.text.trim(),
+            }),
+            child: const Text('Сохранить данные'),
+          ),
+        ],
+      ),
+    );
+    for (final controller in controllers.values) {
+      controller.dispose();
+    }
+    return result;
   }
 
-  Future<void> upload({
+  Future<bool> _confirmRecognized(Map<String, dynamic> values) async {
+    var confirmed = false;
+    final rows = values.entries
+        .where(
+          (entry) =>
+              entry.key != 'mode' &&
+              entry.key != 'edited_at' &&
+              entry.value.toString().trim().isNotEmpty,
+        )
+        .toList(growable: false);
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Ручная проверка HR'),
+          content: SizedBox(
+            width: 620,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final row in rows)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 7),
+                      child: Text('${row.key}: ${row.value}'),
+                    ),
+                  const Divider(),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: confirmed,
+                    onChanged: (value) {
+                      setDialogState(() => confirmed = value == true);
+                    },
+                    title: const Text(
+                      'Я сверил данные с исходными документами',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: confirmed ? () => Navigator.pop(context, true) : null,
+              child: const Text('Подтвердить'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return result == true;
+  }
+
+  Future<String?> _selectOrCreateEmployee(_OnboardingData data) async {
+    String? selectedId;
+    final candidate = _candidateForProcess(data);
+    final result = await showDialog<_EmployeeChoice>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Карточка сотрудника'),
+          content: SizedBox(
+            width: 580,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Выбрать существующего сотрудника',
+                  ),
+                  items: [
+                    for (final employee in data.employees)
+                      DropdownMenuItem(
+                        value: employee.id,
+                        child: Text(
+                          employee.objectName.isEmpty
+                              ? employee.fullName
+                              : '${employee.fullName} · ${employee.objectName}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => selectedId = value);
+                  },
+                ),
+                if (candidate != null) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Кандидат: ${candidate.fullName}'
+                    '${candidate.phone.isEmpty ? '' : ' · ${candidate.phone}'}',
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            if (candidate != null)
+              OutlinedButton(
+                onPressed: () =>
+                    Navigator.pop(context, const _EmployeeChoice.create()),
+                child: const Text('Создать из кандидата'),
+              ),
+            FilledButton(
+              onPressed: selectedId == null
+                  ? null
+                  : () => Navigator.pop(
+                      context,
+                      _EmployeeChoice.existing(selectedId!),
+                    ),
+              child: const Text('Выбрать'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return null;
+    if (result.employeeId != null) return result.employeeId;
+    if (!result.createFromCandidate || candidate == null) return null;
+
+    final duplicate = _findDuplicate(data.employees, candidate);
+    if (duplicate != null) {
+      final useExisting = await _confirm(
+        title: 'Похожий сотрудник уже существует',
+        message:
+            '${duplicate.fullName} · ${duplicate.phone}. '
+            'Чтобы не создать дубль, будет использована существующая карточка.',
+        confirmLabel: 'Использовать карточку',
+      );
+      return useExisting ? duplicate.id : null;
+    }
+
+    final objectName = _objectName(
+      data.objects,
+      candidate.objectId.isNotEmpty
+          ? candidate.objectId
+          : data.process.objectId ?? '',
+    );
+    final draft = await _employeeDraft(candidate, objectName);
+    if (draft == null) return null;
+    return EmployeeRepository.addEmployee(
+      fio: candidate.fullName,
+      position: draft.position,
+      phone: draft.phone,
+      objectName: draft.objectName,
+      dailyRate: draft.dailyRate,
+      comment: 'Создано из документооборота AppСтрой',
+    );
+  }
+
+  Future<_EmployeeDraft?> _employeeDraft(
+    DocumentCandidateOption candidate,
+    String objectName,
+  ) async {
+    final phone = TextEditingController(text: candidate.phone);
+    final position = TextEditingController(text: candidate.position);
+    final object = TextEditingController(text: objectName);
+    final rate = TextEditingController();
+    final result = await showDialog<_EmployeeDraft>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Создать ${candidate.fullName}'),
+        content: SizedBox(
+          width: 540,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: phone,
+                decoration: const InputDecoration(labelText: 'Телефон'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: position,
+                decoration: const InputDecoration(labelText: 'Должность'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: object,
+                decoration: const InputDecoration(labelText: 'Объект'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: rate,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Ставка за смену, ₽',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final cleanPosition = position.text.trim();
+              final cleanObject = object.text.trim();
+              if (cleanPosition.isEmpty || cleanObject.isEmpty) return;
+              Navigator.pop(
+                context,
+                _EmployeeDraft(
+                  phone: phone.text.trim(),
+                  position: cleanPosition,
+                  objectName: cleanObject,
+                  dailyRate: int.tryParse(rate.text.trim()) ?? 0,
+                ),
+              );
+            },
+            child: const Text('Создать'),
+          ),
+        ],
+      ),
+    );
+    phone.dispose();
+    position.dispose();
+    object.dispose();
+    rate.dispose();
+    return result;
+  }
+
+  Future<_ContextDraft?> _editContext(_OnboardingData data) async {
+    String? packageId = data.process.packageId;
+    String? objectId = data.process.objectId;
+    String onboardingType = data.process.onboardingType;
+    final position = TextEditingController(
+      text: data.process.conditions['position']?.toString() ?? '',
+    );
+    final compensation = TextEditingController(
+      text: data.process.conditions['compensation']?.toString() ?? '',
+    );
+    final startDate = TextEditingController(
+      text: data.process.conditions['start_date']?.toString() ?? '',
+    );
+    final notes = TextEditingController(
+      text: data.process.conditions['notes']?.toString() ?? '',
+    );
+    final result = await showDialog<_ContextDraft>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Пакет и условия'),
+          content: SizedBox(
+            width: 620,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: packageId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Пакет документов',
+                    ),
+                    items: [
+                      for (final item in data.packages)
+                        DropdownMenuItem(
+                          value: item.id,
+                          child: Text(item.title),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        packageId = value;
+                        for (final item in data.packages) {
+                          if (item.id == value) {
+                            onboardingType = item.onboardingType;
+                            break;
+                          }
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: objectId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Объект'),
+                    items: [
+                      for (final item in data.objects)
+                        DropdownMenuItem(
+                          value: item.id,
+                          child: Text(item.name),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() => objectId = value);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: position,
+                    decoration: const InputDecoration(labelText: 'Должность'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: compensation,
+                    decoration: InputDecoration(
+                      labelText: onboardingType == 'gph'
+                          ? 'Вознаграждение по договору'
+                          : 'Оплата',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: startDate,
+                    decoration: const InputDecoration(labelText: 'Дата начала'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: notes,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Комментарий'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: packageId == null
+                  ? null
+                  : () => Navigator.pop(
+                      context,
+                      _ContextDraft(
+                        packageId: packageId!,
+                        objectId: objectId,
+                        onboardingType: onboardingType,
+                        conditions: <String, dynamic>{
+                          'position': position.text.trim(),
+                          'compensation': compensation.text.trim(),
+                          'start_date': startDate.text.trim(),
+                          'notes': notes.text.trim(),
+                          'payment_term': onboardingType == 'gph'
+                              ? 'Вознаграждение по договору'
+                              : 'Оплата по условиям оформления',
+                        },
+                      ),
+                    ),
+              child: const Text('Сохранить условия'),
+            ),
+          ],
+        ),
+      ),
+    );
+    position.dispose();
+    compensation.dispose();
+    startDate.dispose();
+    notes.dispose();
+    return result;
+  }
+
+  Future<void> uploadFile(
+    _OnboardingData data, {
     required String fileKind,
-    required String documentType,
   }) async {
-    final current = onboarding;
-    if (current == null || busy) return;
+    if (busy || !data.access.canEdit) return;
+    final type = await _documentType(fileKind);
+    if (type == null || !mounted) return;
+    DocumentTemplateRecord? template;
+    if (fileKind == 'generated') {
+      template = await _selectTemplate(data);
+      if (template == null || !mounted) return;
+    }
     final file = await openFile(
       acceptedTypeGroups: const <XTypeGroup>[
         XTypeGroup(
           label: 'Документы',
-          extensions: <String>['pdf', 'docx', 'jpg', 'jpeg', 'png', 'webp'],
+          extensions: <String>[
+            'pdf',
+            'doc',
+            'docx',
+            'jpg',
+            'jpeg',
+            'png',
+            'webp',
+            'txt',
+          ],
         ),
       ],
     );
-    if (file == null) return;
+    if (file == null || !mounted) return;
     setState(() => busy = true);
     try {
-      final bytes = await file.readAsBytes();
+      final version = template?.currentVersion;
       await DocumentWorkflowRepository.uploadFile(
         companyId: companyId,
-        onboardingId: current.id,
-        employeeId: current.employeeId,
+        onboardingId: onboardingId,
+        employeeId: data.process.employeeId,
         fileKind: fileKind,
-        documentType: documentType,
+        documentType: type,
         fileName: file.name,
         mimeType: _mime(file.name),
-        bytes: bytes,
+        bytes: await file.readAsBytes(),
+        templateId: template?.id,
+        templateVersionId: version?.id,
+        metadata: <String, dynamic>{
+          if (template != null) 'template_title': template.title,
+          if (version != null) 'template_version': version.versionNo,
+        },
       );
       await refresh();
     } catch (error) {
-      showError(error);
+      _message(_cleanError(error));
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
-  Future<void> verify(EmployeeDocumentFileRecord file, bool accepted) async {
-    final current = onboarding;
-    if (current == null || busy) return;
+  Future<String?> _documentType(String fileKind) async {
+    final options = switch (fileKind) {
+      'source' => const <(String, String)>[
+        ('passport', 'Паспорт'),
+        ('registration', 'Прописка'),
+        ('snils', 'СНИЛС'),
+        ('inn', 'ИНН'),
+        ('policy', 'Полис'),
+        ('photo', 'Фото'),
+        ('other', 'Другой документ'),
+      ],
+      'generated' => const <(String, String)>[
+        ('generated_document', 'Сформированный документ'),
+      ],
+      'signed' => const <(String, String)>[
+        ('signed_contract', 'Подписанный договор'),
+        ('signed_application', 'Подписанное заявление'),
+        ('signed_consent', 'Подписанное согласие'),
+        ('signed_other', 'Другой подписанный документ'),
+      ],
+      _ => const <(String, String)>[
+        ('passport', 'Паспорт'),
+        ('registration', 'Прописка'),
+        ('snils', 'СНИЛС'),
+        ('inn', 'ИНН'),
+        ('policy', 'Полис'),
+        ('photo', 'Фото'),
+        ('other', 'Другой финальный скан'),
+      ],
+    };
+    return showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Тип документа'),
+        children: [
+          for (final option in options)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, option.$1),
+              child: Text(option.$2),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<DocumentTemplateRecord?> _selectTemplate(_OnboardingData data) async {
+    final allowedIds = data.packageLinks.map((item) => item.templateId).toSet();
+    final templates = data.templates
+        .where((template) {
+          if (!template.isActive || template.currentVersion == null)
+            return false;
+          return allowedIds.isEmpty || allowedIds.contains(template.id);
+        })
+        .toList(growable: false);
+    if (templates.isEmpty) {
+      throw StateError(
+        'В выбранном пакете нет утверждённого шаблона с активной версией',
+      );
+    }
+    return showDialog<DocumentTemplateRecord>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Исходный шаблон'),
+        children: [
+          for (final template in templates)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, template),
+              child: Text(
+                '${template.title} · v${template.currentVersion!.versionNo}',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> openTemplate(_OnboardingData data) async {
+    try {
+      final template = await _selectTemplate(data);
+      final version = template?.currentVersion;
+      if (version == null) return;
+      await DocumentTemplateRepository.downloadVersion(version);
+    } catch (error) {
+      _message(_cleanError(error));
+    }
+  }
+
+  Future<void> verifyFile(
+    _OnboardingData data,
+    EmployeeDocumentFileRecord file,
+  ) async {
+    if (busy || !data.access.canVerify) return;
+    final decision = await showDialog<_VerificationDraft>(
+      context: context,
+      builder: (context) => const _VerificationDialog(),
+    );
+    if (decision == null || !mounted) return;
     setState(() => busy = true);
     try {
       await DocumentWorkflowRepository.verifyFile(
-        companyId: companyId,
         fileId: file.id,
-        onboardingId: current.id,
-        accepted: accepted,
+        accepted: decision.accepted,
+        qualityStatus: decision.qualityStatus,
+        comment: decision.comment,
       );
       await refresh();
     } catch (error) {
-      showError(error);
+      _message(_cleanError(error));
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -189,157 +903,197 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
   Future<void> openFileRecord(EmployeeDocumentFileRecord file) async {
     try {
       final url = await DocumentWorkflowRepository.createSignedFileUrl(file);
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(file.originalFileName),
-          content: SelectableText(url),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Закрыть'),
-            ),
-          ],
-        ),
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
       );
+      if (!opened) throw StateError('Не удалось открыть файл');
     } catch (error) {
-      showError(error);
+      _message(_cleanError(error));
     }
   }
 
-  void showError(Object error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_cleanError(error))),
+  Future<bool> _confirm({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
     );
+    return result == true;
+  }
+
+  DocumentCandidateOption? _candidateForProcess(_OnboardingData data) {
+    final id = data.process.recruitmentApplicationId;
+    if (id == null) return null;
+    for (final candidate in data.candidates) {
+      if (candidate.id == id) return candidate;
+    }
+    return null;
+  }
+
+  DocumentEmployeeOption? _findDuplicate(
+    List<DocumentEmployeeOption> employees,
+    DocumentCandidateOption candidate,
+  ) {
+    final name = candidate.fullName.trim().toLowerCase();
+    final phone = _digits(candidate.phone);
+    for (final employee in employees) {
+      if (employee.fullName.trim().toLowerCase() == name) return employee;
+      if (phone.isNotEmpty && _digits(employee.phone) == phone) return employee;
+    }
+    return null;
+  }
+
+  String _objectName(List<DocumentObjectOption> objects, String id) {
+    for (final object in objects) {
+      if (object.id == id) return object.name;
+    }
+    return '';
+  }
+
+  void _message(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final current = onboarding;
     return AppPage(
-      title: current == null ? 'Новое оформление' : 'Оформление сотрудника',
-      subtitle: current == null ? 'Создание процесса' : _statusTitle(current.status),
-      child: current == null
-          ? _CreateState(busy: busy, onCreate: create)
-          : FutureBuilder<_OnboardingData>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return _ErrorState(
-                    message: _cleanError(snapshot.error),
-                    onRetry: refresh,
-                  );
-                }
-                final data = snapshot.requireData;
-                final active = data.steps.where((step) => step.stepCode == current.currentStep).firstOrNull ?? data.steps.firstOrNull;
-                return RefreshIndicator(
-                  onRefresh: refresh,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    children: [
-                      _ProgressHeader(
-                        steps: data.steps,
-                        currentStep: current.currentStep,
-                      ),
-                      const SizedBox(height: 16),
-                      if (active != null)
-                        _CurrentStepCard(
-                          step: active,
-                          busy: busy,
-                          files: data.files,
-                          onAdvance: () => advance(active),
-                          onUploadSource: () => upload(
-                            fileKind: 'source',
-                            documentType: 'candidate_document',
-                          ),
-                          onUploadSigned: () => upload(
-                            fileKind: 'signed',
-                            documentType: 'signed_document',
-                          ),
-                          onUploadFinal: () => upload(
-                            fileKind: 'final_scan',
-                            documentType: 'final_scan',
-                          ),
-                        ),
-                      const SizedBox(height: 18),
-                      _FilesSection(
-                        files: data.files,
-                        busy: busy,
-                        onOpen: openFileRecord,
-                        onVerify: verify,
-                      ),
-                      const SizedBox(height: 18),
-                      _AuditSection(records: data.audit),
-                    ],
+      title: 'Оформление сотрудника',
+      subtitle: '13 обязательных этапов',
+      child: FutureBuilder<_OnboardingData>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _ErrorState(
+              message: _cleanError(snapshot.error),
+              onRetry: refresh,
+            );
+          }
+          final data = snapshot.requireData;
+          final currentStep = _currentStep(data);
+          return RefreshIndicator(
+            onRefresh: refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: [
+                _ProcessHeader(data: data),
+                const SizedBox(height: 14),
+                _ProgressHeader(
+                  steps: data.steps,
+                  currentStep: data.process.currentStep,
+                ),
+                const SizedBox(height: 14),
+                if (data.process.isCompleted)
+                  _CompletedCard(process: data.process)
+                else if (currentStep != null)
+                  _CurrentStepCard(
+                    data: data,
+                    step: currentStep,
+                    busy: busy,
+                    onAdvance: () => advance(data, currentStep),
+                    onUpload: (kind) => uploadFile(data, fileKind: kind),
+                    onOpenTemplate: () => openTemplate(data),
                   ),
-                );
-              },
+                const SizedBox(height: 18),
+                _FilesSection(
+                  data: data,
+                  busy: busy,
+                  onOpen: openFileRecord,
+                  onVerify: (file) => verifyFile(data, file),
+                ),
+                if (data.access.canViewAudit) ...[
+                  const SizedBox(height: 18),
+                  _AuditSection(records: data.audit),
+                ],
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 }
 
 class _OnboardingData {
+  final DocumentWorkflowAccess access;
+  final EmployeeOnboardingRecord process;
   final List<DocumentOnboardingStepRecord> steps;
   final List<EmployeeDocumentFileRecord> files;
-  final List<DocumentAuditRecord> audit;
   final List<DocumentPackageRecord> packages;
+  final List<DocumentEmployeeOption> employees;
+  final List<DocumentCandidateOption> candidates;
+  final List<DocumentObjectOption> objects;
+  final List<DocumentTemplateRecord> templates;
+  final List<DocumentPackageTemplateLink> packageLinks;
+  final List<DocumentAuditRecord> audit;
 
   const _OnboardingData({
+    required this.access,
+    required this.process,
     required this.steps,
     required this.files,
-    required this.audit,
     required this.packages,
+    required this.employees,
+    required this.candidates,
+    required this.objects,
+    required this.templates,
+    required this.packageLinks,
+    required this.audit,
   });
 }
 
-class _CreateState extends StatelessWidget {
-  final bool busy;
-  final VoidCallback onCreate;
+class _ProcessHeader extends StatelessWidget {
+  final _OnboardingData data;
 
-  const _CreateState({required this.busy, required this.onCreate});
+  const _ProcessHeader({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const SizedBox(height: 60),
-        PremiumWorkCard(
-          radius: 28,
-          child: Column(
-            children: [
-              const Icon(Icons.assignment_ind_outlined, size: 58),
-              const SizedBox(height: 16),
-              const Text(
-                'Создать процесс оформления',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Будут созданы 13 последовательных этапов — от исходных документов кандидата до проверенного кадрового архива.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                onPressed: busy ? null : onCreate,
-                icon: busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_rounded),
-                label: const Text('Начать оформление'),
-              ),
-            ],
+    return PremiumWorkCard(
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            data.process.personName,
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          Text(
+            [
+              if (data.process.packageTitle.isNotEmpty)
+                data.process.packageTitle,
+              if (data.process.objectName.isNotEmpty) data.process.objectName,
+              _statusTitle(data.process.status),
+            ].join(' · '),
+          ),
+          if (data.process.dueAt != null) ...[
+            const SizedBox(height: 7),
+            Text('Срок: ${_dateText(data.process.dueAt!)}'),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -364,14 +1118,17 @@ class _ProgressHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   _stepTitle(currentStep),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Text('$completed из $total'),
             ],
           ),
           const SizedBox(height: 12),
-          LinearProgressIndicator(value: completed / total),
+          LinearProgressIndicator(value: total == 0 ? 0 : completed / total),
           const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -406,7 +1163,11 @@ class _StepDot extends StatelessWidget {
   final bool completed;
   final bool active;
 
-  const _StepDot({required this.index, required this.completed, required this.active});
+  const _StepDot({
+    required this.index,
+    required this.completed,
+    required this.active,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +1178,9 @@ class _StepDot extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: completed || active ? scheme.primary : scheme.surfaceContainerHighest,
+        color: completed || active
+            ? scheme.primary
+            : scheme.surfaceContainerHighest,
       ),
       child: completed
           ? Icon(Icons.check_rounded, size: 17, color: scheme.onPrimary)
@@ -434,39 +1197,41 @@ class _StepDot extends StatelessWidget {
 }
 
 class _CurrentStepCard extends StatelessWidget {
+  final _OnboardingData data;
   final DocumentOnboardingStepRecord step;
   final bool busy;
-  final List<EmployeeDocumentFileRecord> files;
   final VoidCallback onAdvance;
-  final VoidCallback onUploadSource;
-  final VoidCallback onUploadSigned;
-  final VoidCallback onUploadFinal;
+  final ValueChanged<String> onUpload;
+  final VoidCallback onOpenTemplate;
 
   const _CurrentStepCard({
+    required this.data,
     required this.step,
     required this.busy,
-    required this.files,
     required this.onAdvance,
-    required this.onUploadSource,
-    required this.onUploadSigned,
-    required this.onUploadFinal,
+    required this.onUpload,
+    required this.onOpenTemplate,
   });
 
   @override
   Widget build(BuildContext context) {
-    final uploadAction = switch (step.stepCode) {
-      DocumentOnboardingSteps.sourceFiles => onUploadSource,
-      DocumentOnboardingSteps.signedDocuments => onUploadSigned,
-      DocumentOnboardingSteps.finalScans => onUploadFinal,
-      _ => null,
-    };
-    final relevantKind = switch (step.stepCode) {
+    final uploadKind = switch (step.stepCode) {
       DocumentOnboardingSteps.sourceFiles => 'source',
+      DocumentOnboardingSteps.generation => 'generated',
       DocumentOnboardingSteps.signedDocuments => 'signed',
       DocumentOnboardingSteps.finalScans => 'final_scan',
       _ => null,
     };
-    final relevantCount = relevantKind == null ? 0 : files.where((file) => file.fileKind == relevantKind).length;
+    final requiredVerify = <String>{
+      DocumentOnboardingSteps.hrVerification,
+      DocumentOnboardingSteps.signedDocuments,
+      DocumentOnboardingSteps.finalScans,
+      DocumentOnboardingSteps.archiveVerification,
+      DocumentOnboardingSteps.completion,
+    }.contains(step.stepCode);
+    final canAdvance = requiredVerify
+        ? data.access.canVerify
+        : data.access.canEdit;
     return PremiumWorkCard(
       radius: 26,
       child: Column(
@@ -478,10 +1243,11 @@ class _CurrentStepCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(_stepDescription(step.stepCode)),
-          if (relevantKind != null) ...[
-            const SizedBox(height: 14),
+          if (uploadKind != null) ...[
+            const SizedBox(height: 10),
             Text(
-              'Загружено: $relevantCount',
+              'Файлов этого этапа: '
+              '${data.files.where((file) => file.fileKind == uploadKind).length}',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ],
@@ -490,15 +1256,30 @@ class _CurrentStepCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: [
-              if (uploadAction != null)
+              if (step.stepCode == DocumentOnboardingSteps.generation)
                 OutlinedButton.icon(
-                  onPressed: busy ? null : uploadAction,
+                  onPressed: busy ? null : onOpenTemplate,
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('Открыть утверждённый шаблон'),
+                ),
+              if (uploadKind != null && data.access.canEdit)
+                OutlinedButton.icon(
+                  onPressed: busy ? null : () => onUpload(uploadKind),
                   icon: const Icon(Icons.upload_file_outlined),
-                  label: const Text('Загрузить файл'),
+                  label: Text(
+                    uploadKind == 'generated'
+                        ? 'Загрузить сформированный файл'
+                        : 'Загрузить файл',
+                  ),
                 ),
               FilledButton.icon(
-                onPressed: busy ? null : onAdvance,
-                icon: const Icon(Icons.arrow_forward_rounded),
+                onPressed: busy || !canAdvance ? null : onAdvance,
+                icon: busy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward_rounded),
                 label: Text(
                   step.stepCode == DocumentOnboardingSteps.completion
                       ? 'Завершить оформление'
@@ -514,13 +1295,13 @@ class _CurrentStepCard extends StatelessWidget {
 }
 
 class _FilesSection extends StatelessWidget {
-  final List<EmployeeDocumentFileRecord> files;
+  final _OnboardingData data;
   final bool busy;
-  final Future<void> Function(EmployeeDocumentFileRecord file) onOpen;
-  final Future<void> Function(EmployeeDocumentFileRecord file, bool accepted) onVerify;
+  final ValueChanged<EmployeeDocumentFileRecord> onOpen;
+  final ValueChanged<EmployeeDocumentFileRecord> onVerify;
 
   const _FilesSection({
-    required this.files,
+    required this.data,
     required this.busy,
     required this.onOpen,
     required this.onVerify,
@@ -528,61 +1309,47 @@ class _FilesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Файлы оформления',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        if (files.isEmpty)
-          const PremiumWorkCard(
-            radius: 22,
-            child: Text('Файлы ещё не загружены.'),
-          )
-        else
-          for (final file in files)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: PremiumWorkCard(
-                radius: 22,
-                child: Row(
-                  children: [
-                    const Icon(Icons.insert_drive_file_outlined),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            file.originalFileName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          Text('${_fileKindTitle(file.fileKind)} · v${file.versionNo} · ${_verificationTitle(file.verificationStatus)}'),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Открыть',
-                      onPressed: busy ? null : () => onOpen(file),
-                      icon: const Icon(Icons.open_in_new_rounded),
-                    ),
-                    PopupMenuButton<bool>(
-                      enabled: !busy,
-                      onSelected: (value) => onVerify(file, value),
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(value: true, child: Text('Принять файл')),
-                        PopupMenuItem(value: false, child: Text('Отклонить файл')),
-                      ],
-                    ),
-                  ],
+    return PremiumWorkCard(
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Файлы и версии',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 10),
+          if (data.files.isEmpty)
+            const Text('Файлы ещё не загружены')
+          else
+            for (final file in data.files)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(_fileIcon(file.fileKind)),
+                title: Text(file.originalFileName),
+                subtitle: Text(
+                  '${_fileKindTitle(file.fileKind)} · ${file.documentType} · '
+                  'v${file.versionNo} · ${_verificationTitle(file.verificationStatus)}',
                 ),
+                onTap: () => onOpen(file),
+                trailing:
+                    data.access.canVerify &&
+                        file.verificationStatus == 'pending'
+                    ? IconButton(
+                        tooltip: 'Проверить',
+                        onPressed: busy ? null : () => onVerify(file),
+                        icon: const Icon(Icons.fact_check_outlined),
+                      )
+                    : Icon(
+                        file.isAccepted
+                            ? Icons.verified_rounded
+                            : file.isRejected
+                            ? Icons.cancel_outlined
+                            : Icons.chevron_right_rounded,
+                      ),
               ),
-            ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -594,23 +1361,219 @@ class _AuditSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      title: const Text(
-        'История действий',
-        style: TextStyle(fontWeight: FontWeight.w900),
-      ),
-      children: [
-        for (final record in records)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.history_rounded),
-            title: Text(_auditTitle(record.action)),
-            subtitle: Text('${record.entityType} · ${_dateTime(record.createdAt)}'),
+    return PremiumWorkCard(
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'История действий',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
+          const SizedBox(height: 10),
+          if (records.isEmpty)
+            const Text('Записей пока нет')
+          else
+            for (final record in records.take(30))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: const Icon(Icons.history_rounded),
+                title: Text(record.action),
+                subtitle: Text(
+                  '${record.entityType} · ${_dateTimeText(record.createdAt)}',
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletedCard extends StatelessWidget {
+  final EmployeeOnboardingRecord process;
+
+  const _CompletedCard({required this.process});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumWorkCard(
+      radius: 26,
+      child: Column(
+        children: [
+          const Icon(Icons.verified_rounded, size: 58),
+          const SizedBox(height: 12),
+          const Text(
+            'Оформление завершено',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Архив, версии шаблонов и журнал действий сохранены.',
+            textAlign: TextAlign.center,
+          ),
+          if (process.completionSnapshot.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Сформировано: ${process.completionSnapshot['generated_files'] ?? 0} · '
+              'Подписано: ${process.completionSnapshot['signed_files'] ?? 0} · '
+              'Финальных сканов: ${process.completionSnapshot['final_scans'] ?? 0}',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _VerificationDialog extends StatefulWidget {
+  const _VerificationDialog();
+
+  @override
+  State<_VerificationDialog> createState() => _VerificationDialogState();
+}
+
+class _VerificationDialogState extends State<_VerificationDialog> {
+  bool accepted = true;
+  String quality = 'accepted';
+  final comment = TextEditingController();
+
+  @override
+  void dispose() {
+    comment.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Проверка файла'),
+      content: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(Icons.check_rounded),
+                  label: Text('Принять'),
+                ),
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.close_rounded),
+                  label: Text('Отклонить'),
+                ),
+              ],
+              selected: <bool>{accepted},
+              onSelectionChanged: (values) {
+                setState(() => accepted = values.first);
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: quality,
+              decoration: const InputDecoration(labelText: 'Качество'),
+              items: const [
+                DropdownMenuItem(value: 'accepted', child: Text('Читаемый')),
+                DropdownMenuItem(
+                  value: 'manual_review',
+                  child: Text('Нужна ручная проверка'),
+                ),
+                DropdownMenuItem(value: 'blurred', child: Text('Смазан')),
+                DropdownMenuItem(value: 'cropped', child: Text('Обрезан')),
+                DropdownMenuItem(value: 'dark', child: Text('Слишком тёмный')),
+                DropdownMenuItem(
+                  value: 'unreadable',
+                  child: Text('Нечитаемый'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => quality = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: comment,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Комментарий'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _VerificationDraft(
+              accepted: accepted,
+              qualityStatus: accepted ? quality : 'rejected',
+              comment: comment.text.trim(),
+            ),
+          ),
+          child: const Text('Сохранить проверку'),
+        ),
       ],
     );
   }
+}
+
+class _VerificationDraft {
+  final bool accepted;
+  final String qualityStatus;
+  final String comment;
+
+  const _VerificationDraft({
+    required this.accepted,
+    required this.qualityStatus,
+    required this.comment,
+  });
+}
+
+class _EmployeeChoice {
+  final String? employeeId;
+  final bool createFromCandidate;
+
+  const _EmployeeChoice.existing(String id)
+    : employeeId = id,
+      createFromCandidate = false;
+
+  const _EmployeeChoice.create()
+    : employeeId = null,
+      createFromCandidate = true;
+}
+
+class _EmployeeDraft {
+  final String phone;
+  final String position;
+  final String objectName;
+  final int dailyRate;
+
+  const _EmployeeDraft({
+    required this.phone,
+    required this.position,
+    required this.objectName,
+    required this.dailyRate,
+  });
+}
+
+class _ContextDraft {
+  final String packageId;
+  final String? objectId;
+  final String onboardingType;
+  final Map<String, dynamic> conditions;
+
+  const _ContextDraft({
+    required this.packageId,
+    required this.objectId,
+    required this.onboardingType,
+    required this.conditions,
+  });
 }
 
 class _ErrorState extends StatelessWidget {
@@ -627,11 +1590,9 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 52),
-            const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 14),
-            FilledButton(onPressed: onRetry, child: const Text('Повторить')),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
           ],
         ),
       ),
@@ -639,85 +1600,117 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-String _stepTitle(String value) => switch (value) {
-      DocumentOnboardingSteps.sourceFiles => '1. Документы кандидата получены',
-      DocumentOnboardingSteps.sourceCompleteness => '2. Комплектность исходных документов',
-      DocumentOnboardingSteps.recognition => '3. Распознавание данных',
-      DocumentOnboardingSteps.hrVerification => '4. Проверка HR',
-      DocumentOnboardingSteps.employeeCard => '5. Создание или обновление сотрудника',
-      DocumentOnboardingSteps.packageAndConditions => '6. Пакет и условия',
-      DocumentOnboardingSteps.generation => '7. Формирование документов',
-      DocumentOnboardingSteps.printing => '8. Печать',
-      DocumentOnboardingSteps.signing => '9. Подписание',
-      DocumentOnboardingSteps.signedDocuments => '10. Подписанные документы',
-      DocumentOnboardingSteps.finalScans => '11. Финальные сканы',
-      DocumentOnboardingSteps.archiveVerification => '12. Проверка архива',
-      DocumentOnboardingSteps.completion => '13. Завершение оформления',
-      _ => value,
-    };
-
-String _stepDescription(String value) => switch (value) {
-      DocumentOnboardingSteps.sourceFiles => 'Загрузите фото, PDF или сканы исходных документов кандидата.',
-      DocumentOnboardingSteps.sourceCompleteness => 'Проверьте паспорт, прописку, СНИЛС, ИНН, полис, фото и требования компании.',
-      DocumentOnboardingSteps.recognition => 'Запустите распознавание и предварительное заполнение карточки. Юридически значимые данные автоматически не подтверждаются.',
-      DocumentOnboardingSteps.hrVerification => 'HR вручную сверяет и подтверждает каждое распознанное поле.',
-      DocumentOnboardingSteps.employeeCard => 'Создайте черновик сотрудника или свяжите процесс с существующей карточкой без дубля.',
-      DocumentOnboardingSteps.packageAndConditions => 'Выберите тип оформления, пакет, объект, должность, дату начала и вознаграждение.',
-      DocumentOnboardingSteps.generation => 'Сформируйте DOCX и PDF по утверждённым версиям существующих шаблонов.',
-      DocumentOnboardingSteps.printing => 'Зафиксируйте передачу документов на печать.',
-      DocumentOnboardingSteps.signing => 'Подтвердите подписание сотрудником и компанией.',
-      DocumentOnboardingSteps.signedDocuments => 'Загрузите подписанные договоры, заявления и согласия.',
-      DocumentOnboardingSteps.finalScans => 'Загрузите качественные архивные сканы документов.',
-      DocumentOnboardingSteps.archiveVerification => 'Проверьте комплектность, качество, версии и соответствие данных.',
-      DocumentOnboardingSteps.completion => 'Система повторно проверит обязательные этапы, подписанные документы и финальные сканы.',
-      _ => '',
-    };
-
-String _fileKindTitle(String value) => switch (value) {
-      'source' => 'Исходный файл',
-      'generated' => 'Сформированный документ',
-      'signed' => 'Подписанный документ',
-      'final_scan' => 'Финальный скан',
-      _ => value,
-    };
-
-String _verificationTitle(String value) => switch (value) {
-      'pending' => 'ожидает проверки',
-      'accepted' => 'принят',
-      'rejected' => 'отклонён',
-      _ => value,
-    };
-
-String _statusTitle(String value) => switch (value) {
-      'draft' => 'Черновик',
-      'in_progress' => 'В работе',
-      'blocked' => 'Заблокировано',
-      'completed' => 'Завершено',
-      _ => value,
-    };
-
-String _auditTitle(String value) => switch (value) {
-      'created' => 'Процесс создан',
-      'uploaded' => 'Файл загружен',
-      'accepted' => 'Файл принят',
-      'rejected' => 'Файл отклонён',
-      'completed' => 'Этап или процесс завершён',
-      _ => value,
-    };
-
-String _dateTime(DateTime value) {
-  final local = value.toLocal();
-  String two(int value) => value.toString().padLeft(2, '0');
-  return '${two(local.day)}.${two(local.month)}.${local.year} ${two(local.hour)}:${two(local.minute)}';
+DocumentOnboardingStepRecord? _currentStep(_OnboardingData data) {
+  for (final step in data.steps) {
+    if (step.stepCode == data.process.currentStep) return step;
+  }
+  return data.steps.isEmpty ? null : data.steps.first;
 }
 
+String _stepTitle(String code) => switch (code) {
+  'source_files' => 'Исходные документы',
+  'source_completeness' => 'Комплектность',
+  'recognition' => 'Распознавание данных',
+  'hr_verification' => 'Проверка HR',
+  'employee_card' => 'Карточка сотрудника',
+  'package_and_conditions' => 'Пакет и условия',
+  'generation' => 'Формирование документов',
+  'printing' => 'Печать',
+  'signing' => 'Подписание',
+  'signed_documents' => 'Подписанные документы',
+  'final_scans' => 'Финальные сканы',
+  'archive_verification' => 'Проверка архива',
+  'completion' => 'Завершение',
+  _ => code,
+};
+
+String _stepDescription(String code) => switch (code) {
+  'source_files' =>
+    'Загрузите фото, PDF или сканы документов кандидата. Файлы из CRM подключаются автоматически без дублирования.',
+  'source_completeness' =>
+    'Проверьте обязательный комплект по правилам компании.',
+  'recognition' =>
+    'Проверьте и исправьте поля, полученные из документов. Автоподтверждение запрещено.',
+  'hr_verification' =>
+    'Ответственный HR вручную сверяет каждое юридически значимое поле.',
+  'employee_card' =>
+    'Выберите существующего сотрудника или создайте карточку из кандидата без дубля.',
+  'package_and_conditions' =>
+    'Зафиксируйте пакет, объект, должность, дату начала и оплату. Для ГПХ используется формулировка «вознаграждение».',
+  'generation' =>
+    'Используйте утверждённую версию шаблона, подготовьте DOCX/PDF и загрузите результат с привязкой к версии.',
+  'printing' => 'Зафиксируйте передачу сформированного комплекта на печать.',
+  'signing' => 'Зафиксируйте подписание сотрудником и компанией.',
+  'signed_documents' =>
+    'Загрузите подписанные экземпляры. Проверяющий должен принять хотя бы один файл.',
+  'final_scans' =>
+    'Загрузите качественные финальные сканы. Проверяющий должен принять хотя бы один файл.',
+  'archive_verification' =>
+    'Проверьте комплект, качество, версии и правила формирования общего Word/PDF.',
+  'completion' =>
+    'Система повторно проверит все обязательные этапы и закроет процесс.',
+  _ => '',
+};
+
+String _statusTitle(String value) => switch (value) {
+  'draft' => 'Черновик',
+  'in_progress' => 'В работе',
+  'blocked' => 'Заблокировано',
+  'completed' => 'Завершено',
+  'cancelled' => 'Отменено',
+  _ => value,
+};
+
+String _fileKindTitle(String value) => switch (value) {
+  'source' => 'Исходный файл',
+  'generated' => 'Сформированный документ',
+  'signed' => 'Подписанный документ',
+  'final_scan' => 'Финальный скан',
+  'archive' => 'Архив',
+  _ => value,
+};
+
+String _verificationTitle(String value) => switch (value) {
+  'accepted' => 'принят',
+  'rejected' => 'отклонён',
+  _ => 'ожидает проверки',
+};
+
+IconData _fileIcon(String value) => switch (value) {
+  'source' => Icons.file_present_outlined,
+  'generated' => Icons.description_outlined,
+  'signed' => Icons.draw_outlined,
+  'final_scan' => Icons.scanner_outlined,
+  'archive' => Icons.archive_outlined,
+  _ => Icons.insert_drive_file_outlined,
+};
+
 String _mime(String name) {
-  final lower = name.toLowerCase();
-  if (lower.endsWith('.pdf')) return 'application/pdf';
-  if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  if (lower.endsWith('.png')) return 'image/png';
-  if (lower.endsWith('.webp')) return 'image/webp';
-  return 'image/jpeg';
+  final value = name.toLowerCase();
+  if (value.endsWith('.pdf')) return 'application/pdf';
+  if (value.endsWith('.doc')) return 'application/msword';
+  if (value.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (value.endsWith('.png')) return 'image/png';
+  if (value.endsWith('.webp')) return 'image/webp';
+  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
+  if (value.endsWith('.txt')) return 'text/plain';
+  return 'application/octet-stream';
+}
+
+String _digits(String value) => value.replaceAll(RegExp(r'\D'), '');
+
+String _dateText(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  return '$day.$month.${value.year}';
+}
+
+String _dateTimeText(DateTime value) {
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '${_dateText(value)} $hour:$minute';
 }
 
 String _cleanError(Object? value) {
