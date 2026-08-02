@@ -5,6 +5,9 @@ on:
     branches: [hotfix/document-workflow-mobile-blank]
     paths:
       - '.github/workflows/apply-document-tools-hotfix.yml'
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
