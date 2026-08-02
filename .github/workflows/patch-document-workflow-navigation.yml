@@ -1,0 +1,57 @@
+name: Connect document workflow navigation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/document-workflow-v3]
+    paths:
+      - '.github/workflows/patch-document-workflow-navigation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/document-workflow-v3
+          fetch-depth: 0
+      - name: Patch settings navigation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/screens/settings_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          import_line = "import '../features/documents/presentation/document_workflow_settings_entry.dart';\n"
+          anchor = "import '../features/dispatcher/presentation/dispatcher_settings_screen.dart';\n"
+          if import_line not in text:
+              if anchor not in text:
+                  raise SystemExit('Settings import anchor not found')
+              text = text.replace(anchor, anchor + import_line, 1)
+          widget_line = "          DocumentWorkflowSettingsEntry(profile: profile),\n"
+          section_anchor = "          sectionTitle('Настройки профессии'),\n"
+          if widget_line not in text:
+              if section_anchor not in text:
+                  raise SystemExit('Settings section anchor not found')
+              text = text.replace(section_anchor, widget_line + section_anchor, 1)
+          path.write_text(text, encoding='utf-8')
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+      - name: Format and commit
+        shell: bash
+        run: |
+          dart format lib/screens/settings_screen.dart lib/features/documents/presentation/document_workflow_settings_entry.dart
+          if git diff --quiet -- lib/screens/settings_screen.dart lib/features/documents/presentation/document_workflow_settings_entry.dart; then
+            echo 'Navigation already connected'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/screens/settings_screen.dart lib/features/documents/presentation/document_workflow_settings_entry.dart
+          git commit -m 'feat: expose document workflow by permission'
+          git push origin HEAD:feature/document-workflow-v3
