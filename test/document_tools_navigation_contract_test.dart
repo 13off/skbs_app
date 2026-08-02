@@ -14,7 +14,8 @@ void main() {
     expect(settings, contains('CompanyToolsScreen(profile: profile)'));
     expect(settings, isNot(contains('DocumentWorkflowSettingsEntry')));
 
-    expect(tools, contains("'AppСтрой Документы'"));
+    expect(tools, contains("'AppСтрой Трудоустройство'"));
+    expect(tools, isNot(contains("'AppСтрой Документы'")));
     expect(tools, contains("'Подключить инструмент'"));
     expect(tools, contains("'Открыть инструмент'"));
     expect(tools, contains("title: 'Оформления'"));
