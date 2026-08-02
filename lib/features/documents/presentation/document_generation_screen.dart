@@ -84,14 +84,16 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
         .map((link) => link.templateId)
         .toSet();
 
-    return data.templates.where((template) {
-      final version = template.currentVersion;
-      if (!template.isActive || version == null || !version.isApproved) {
-        return false;
-      }
-      if (!version.isAsset && !version.isStorage) return false;
-      return allowedIds.isEmpty || allowedIds.contains(template.id);
-    }).toList(growable: false);
+    return data.templates
+        .where((template) {
+          final version = template.currentVersion;
+          if (!template.isActive || version == null || !version.isApproved) {
+            return false;
+          }
+          if (!version.isAsset && !version.isStorage) return false;
+          return allowedIds.isEmpty || allowedIds.contains(template.id);
+        })
+        .toList(growable: false);
   }
 
   Future<DocumentTemplateRecord?> _selectTemplate(
@@ -183,8 +185,7 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
           'position': process.conditions['position']?.toString() ?? '',
           'object_name': process.objectName,
           'start_date': process.conditions['start_date']?.toString() ?? '',
-          'compensation':
-              process.conditions['compensation']?.toString() ?? '',
+          'compensation': process.conditions['compensation']?.toString() ?? '',
           'company_name': data.companyName,
           'manager_full_name': widget.profile.fullName,
           'document_date': _dateText(now),
@@ -230,6 +231,7 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
     return AppPage(
       title: 'Генератор документов',
       subtitle: 'Утверждённые DOCX-версии без изменения оригинала',
+      onRefresh: _refresh,
       child: FutureBuilder<_GenerationWorkspace>(
         future: future,
         builder: (context, snapshot) {
@@ -243,44 +245,40 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
             );
           }
           final data = snapshot.requireData;
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const PremiumWorkCard(
+                radius: 24,
+                child: Text(
+                  'Генератор использует только утверждённую версию DOCX из '
+                  'AppСтрой. Исходник не меняется: результат получает новую '
+                  'версию, привязку к шаблону и запись в журнале.',
+                  style: TextStyle(height: 1.45),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (data.onboardings.isEmpty)
                 const PremiumWorkCard(
                   radius: 24,
                   child: Text(
-                    'Генератор использует только утверждённую версию DOCX из '
-                    'AppСтрой. Исходник не меняется: результат получает новую '
-                    'версию, привязку к шаблону и запись в журнале.',
-                    style: TextStyle(height: 1.45),
+                    'Нет оформлений, для которых уже выбраны сотрудник и '
+                    'пакет документов.',
                   ),
-                ),
-                const SizedBox(height: 16),
-                if (data.onboardings.isEmpty)
-                  const PremiumWorkCard(
-                    radius: 24,
-                    child: Text(
-                      'Нет оформлений, для которых уже выбраны сотрудник и '
-                      'пакет документов.',
+                )
+              else
+                for (final process in data.onboardings)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _ProcessGenerationCard(
+                      process: process,
+                      templates: _templatesFor(data, process),
+                      busy: generatingIds.contains(process.id),
+                      onGenerate: () => _generate(data, process),
+                      onOpen: () => _openOnboarding(process.id),
                     ),
-                  )
-                else
-                  for (final process in data.onboardings)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _ProcessGenerationCard(
-                        process: process,
-                        templates: _templatesFor(data, process),
-                        busy: generatingIds.contains(process.id),
-                        onGenerate: () => _generate(data, process),
-                        onOpen: () => _openOnboarding(process.id),
-                      ),
-                    ),
-              ],
-            ),
+                  ),
+            ],
           );
         },
       ),
@@ -398,10 +396,7 @@ class _ErrorState extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
+            OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
           ],
         ),
       ),
@@ -410,21 +405,21 @@ class _ErrorState extends StatelessWidget {
 }
 
 String _stepTitle(String value) => switch (value) {
-      'source_files' => 'Исходные документы',
-      'source_completeness' => 'Комплектность',
-      'recognition' => 'Распознавание данных',
-      'hr_verification' => 'Проверка HR',
-      'employee_card' => 'Карточка сотрудника',
-      'package_and_conditions' => 'Пакет и условия',
-      'generation' => 'Формирование документов',
-      'printing' => 'Печать',
-      'signing' => 'Подписание',
-      'signed_documents' => 'Подписанные документы',
-      'final_scans' => 'Финальные сканы',
-      'archive_verification' => 'Проверка архива',
-      'completion' => 'Завершение',
-      _ => value,
-    };
+  'source_files' => 'Исходные документы',
+  'source_completeness' => 'Комплектность',
+  'recognition' => 'Распознавание данных',
+  'hr_verification' => 'Проверка HR',
+  'employee_card' => 'Карточка сотрудника',
+  'package_and_conditions' => 'Пакет и условия',
+  'generation' => 'Формирование документов',
+  'printing' => 'Печать',
+  'signing' => 'Подписание',
+  'signed_documents' => 'Подписанные документы',
+  'final_scans' => 'Финальные сканы',
+  'archive_verification' => 'Проверка архива',
+  'completion' => 'Завершение',
+  _ => value,
+};
 
 String _dateText(DateTime value) {
   final day = value.day.toString().padLeft(2, '0');
