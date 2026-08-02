@@ -31,7 +31,7 @@ class _DocumentWorkflowSettingsEntryState
   void didUpdateWidget(covariant DocumentWorkflowSettingsEntry oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId ||
-        oldWidget.profile.roleCode != widget.profile.roleCode) {
+        oldWidget.profile.roleTitle != widget.profile.roleTitle) {
       accessFuture = DocumentWorkflowRepository.fetchAccess();
     }
   }
