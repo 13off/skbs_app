@@ -10,7 +10,7 @@ import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/developer/presentation/developer_system_screen.dart';
 import '../features/developer/presentation/role_permission_matrix_screen.dart';
 import '../features/dispatcher/presentation/dispatcher_settings_screen.dart';
-import '../features/documents/presentation/document_workflow_settings_entry.dart';
+import '../features/tools/presentation/app_tools_entry.dart';
 import '../features/employee/presentation/employee_location_settings_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/recruitment/presentation/recruitment_crm_settings_screen.dart';
@@ -297,10 +297,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Push-уведомления',
             onTap: () => open(const PushNotificationSettingsScreen()),
           ),
-          const SizedBox(height: 8),
-          DocumentWorkflowSettingsEntry(profile: profile),
           sectionTitle('Настройки профессии'),
           ...roleItems,
+          const SizedBox(height: 8),
+          AppToolsSettingsEntry(profile: profile),
           if (managementItems.isNotEmpty) ...[
             const SizedBox(height: 8),
             sectionTitle('Управление компанией'),

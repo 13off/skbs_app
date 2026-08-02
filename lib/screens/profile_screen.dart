@@ -8,6 +8,7 @@ import '../features/employee/presentation/employee_simple_work_screen.dart';
 import '../features/profile/data/personal_profile_controller.dart';
 import '../features/profile/data/profile_repository.dart';
 import '../features/role_preview/role_preview_controller.dart';
+import '../features/tools/presentation/app_tools_entry.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
@@ -107,9 +108,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void open(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Future<void> signOut() async {
@@ -172,9 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void showError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error.toString().replaceFirst('Exception: ', '')),
-      ),
+      SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
     );
   }
 
@@ -243,9 +242,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       PersonalProfileController.apply(updated);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Фотография удалена')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Фотография удалена')));
     } catch (error) {
       showError(error);
     } finally {
@@ -255,8 +254,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> previewPhoto() async {
     if (avatarPath.isEmpty) return;
-    final url = await (avatarUrlFuture ??
-        ProfileRepository.createAvatarUrl(avatarPath));
+    final url =
+        await (avatarUrlFuture ??
+            ProfileRepository.createAvatarUrl(avatarPath));
     if (!mounted || url == null || url.isEmpty) return;
     await showDialog<void>(
       context: context,
@@ -273,7 +273,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: InteractiveViewer(
                     minScale: 0.8,
                     maxScale: 4,
-                    child: Center(child: Image.network(url, fit: BoxFit.contain)),
+                    child: Center(
+                      child: Image.network(url, fit: BoxFit.contain),
+                    ),
                   ),
                 ),
               ),
@@ -406,22 +408,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       PersonalProfileController.apply(updated);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Личные данные сохранены')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Личные данные сохранены')));
     } catch (error) {
       showError(error);
     }
   }
 
   Widget fallbackAvatar({double fontSize = 22}) => Text(
-        profileInitial,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-        ),
-      );
+    profileInitial,
+    style: TextStyle(
+      color: Colors.white,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w900,
+    ),
+  );
 
   Widget avatar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -664,10 +666,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icon(Icons.logout_rounded, color: scheme.onSurface),
       label: Text(
         'Выйти',
-        style: TextStyle(
-          color: scheme.onSurface,
-          fontWeight: FontWeight.w900,
-        ),
+        style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -697,11 +696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           profileHero(context),
           const SizedBox(height: 20),
           sectionTitle('Личные данные'),
-          infoTile(
-            icon: Icons.badge_outlined,
-            title: 'ФИО',
-            value: fullName,
-          ),
+          infoTile(icon: Icons.badge_outlined, title: 'ФИО', value: fullName),
           infoTile(
             icon: Icons.phone_outlined,
             title: 'Номер телефона',
@@ -717,7 +712,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Компания',
                 value:
                     snapshot.data?.name ??
-                    (snapshot.hasError ? 'Не удалось загрузить' : 'Загрузка...'),
+                    (snapshot.hasError
+                        ? 'Не удалось загрузить'
+                        : 'Загрузка...'),
               ),
             ),
           infoTile(
@@ -750,6 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+          ConnectedAppToolsSection(profile: profile),
           const SizedBox(height: 8),
           signOutButton(),
         ],

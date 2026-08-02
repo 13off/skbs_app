@@ -43,10 +43,7 @@ class _AppToolsSettingsEntryState extends State<AppToolsSettingsEntry> {
     final installation = await DocumentWorkflowRepository.fetchInstallation(
       widget.profile.activeCompanyId,
     );
-    return _ToolsEntryState(
-      access: access,
-      installation: installation,
-    );
+    return _ToolsEntryState(access: access, installation: installation);
   }
 
   void _openTools() {
@@ -64,7 +61,8 @@ class _AppToolsSettingsEntryState extends State<AppToolsSettingsEntry> {
       builder: (context, snapshot) {
         final data = snapshot.data;
         if (data == null) return const SizedBox.shrink();
-        final visible = data.access.canManage ||
+        final visible =
+            data.access.canManage ||
             (data.installation?.isEnabled == true && data.access.canView);
         if (!visible) return const SizedBox.shrink();
 
@@ -121,10 +119,7 @@ class _ConnectedAppToolsSectionState extends State<ConnectedAppToolsSection> {
     final installation = await DocumentWorkflowRepository.fetchInstallation(
       widget.profile.activeCompanyId,
     );
-    return _ToolsEntryState(
-      access: access,
-      installation: installation,
-    );
+    return _ToolsEntryState(access: access, installation: installation);
   }
 
   void _openEmployment() {
@@ -219,10 +214,7 @@ class _ToolNavigationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

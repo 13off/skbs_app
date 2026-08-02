@@ -7,6 +7,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/document_workflow_repository.dart';
 import '../models/document_onboarding.dart';
+import 'document_generation_screen.dart';
 import 'document_onboarding_screen.dart';
 import 'document_package_management_screen.dart';
 
@@ -21,7 +22,6 @@ class DocumentWorkflowScreen extends StatefulWidget {
 
 class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   late Future<DocumentWorkflowDashboardData> future;
-  bool changingInstallation = false;
   bool creating = false;
 
   String get companyId => widget.profile.activeCompanyId;
@@ -45,26 +45,6 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
     Navigator.of(
       context,
     ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
-  }
-
-  Future<void> toggleInstallation(
-    DocumentWorkflowDashboardData data,
-    bool enabled,
-  ) async {
-    if (changingInstallation || !data.access.canManage) return;
-    setState(() => changingInstallation = true);
-    try {
-      await DocumentWorkflowRepository.setInstallation(
-        companyId: companyId,
-        isEnabled: enabled,
-        settings: data.installation.settings,
-      );
-      await refresh();
-    } catch (error) {
-      _message(_cleanError(error));
-    } finally {
-      if (mounted) setState(() => changingInstallation = false);
-    }
   }
 
   Future<void> seedPackages() async {
@@ -141,8 +121,8 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Документооборот',
-      subtitle: 'Оформление сотрудника от исходников до архива',
+      title: 'AppСтрой Трудоустройство',
+      subtitle: 'Кадровое оформление от кандидата до архива',
       onRefresh: refresh,
       child: FutureBuilder<DocumentWorkflowDashboardData>(
         future: future,
@@ -160,20 +140,43 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _InstallationCard(
-                installation: data.installation,
-                access: data.access,
-                loading: changingInstallation,
-                onChanged: (value) => toggleInstallation(data, value),
+              const PremiumWorkCard(
+                radius: 26,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.badge_outlined, size: 30),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AppСтрой Трудоустройство',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Оформления, генератор, пакеты, шаблоны и кадровый архив внутри одного инструмента.',
+                            style: TextStyle(height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (!data.installation.isEnabled) ...[
                 const SizedBox(height: 14),
                 const PremiumWorkCard(
                   radius: 24,
                   child: Text(
-                    'Инструмент отключён. Данные, шаблоны и ранее созданные '
-                    'архивы не удаляются. После включения появляются мастер, '
-                    'пакеты и история.',
+                    'Инструмент отключён для компании. Подключите его в разделе '
+                    '«Инструменты AppСтрой». Данные и архив при отключении '
+                    'не удаляются.',
                     style: TextStyle(height: 1.45),
                   ),
                 ),
@@ -194,6 +197,8 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
                   data: data,
                   creating: creating,
                   onCreate: () => createOnboarding(data),
+                  onGenerator: () =>
+                      open(DocumentGenerationScreen(profile: widget.profile)),
                   onTemplates: () =>
                       open(TemplateDocumentsScreen(profile: widget.profile)),
                   onPackages: () => open(
@@ -240,53 +245,6 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _InstallationCard extends StatelessWidget {
-  final DocumentToolInstallation installation;
-  final DocumentWorkflowAccess access;
-  final bool loading;
-  final ValueChanged<bool> onChanged;
-
-  const _InstallationCard({
-    required this.installation,
-    required this.access,
-    required this.loading,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      radius: 26,
-      child: SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        value: installation.isEnabled,
-        onChanged: access.canManage && !loading ? onChanged : null,
-        secondary: loading
-            ? const SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                installation.isEnabled
-                    ? Icons.folder_special_rounded
-                    : Icons.folder_off_outlined,
-              ),
-        title: const Text(
-          'AppСтрой Документооборот',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          access.canManage
-              ? 'Подключаемый инструмент компании'
-              : installation.isEnabled
-              ? 'Подключён компанией'
-              : 'Отключён компанией',
-        ),
       ),
     );
   }
@@ -344,6 +302,7 @@ class _Actions extends StatelessWidget {
   final DocumentWorkflowDashboardData data;
   final bool creating;
   final VoidCallback onCreate;
+  final VoidCallback onGenerator;
   final VoidCallback onTemplates;
   final VoidCallback onPackages;
   final VoidCallback onSeedPackages;
@@ -352,6 +311,7 @@ class _Actions extends StatelessWidget {
     required this.data,
     required this.creating,
     required this.onCreate,
+    required this.onGenerator,
     required this.onTemplates,
     required this.onPackages,
     required this.onSeedPackages,
@@ -375,6 +335,12 @@ class _Actions extends StatelessWidget {
                     )
                   : const Icon(Icons.person_add_alt_1_rounded),
               label: const Text('Новое оформление'),
+            ),
+          if (data.access.canEdit)
+            OutlinedButton.icon(
+              onPressed: onGenerator,
+              icon: const Icon(Icons.auto_awesome_outlined),
+              label: const Text('Генератор'),
             ),
           if (data.access.canViewTemplates)
             OutlinedButton.icon(

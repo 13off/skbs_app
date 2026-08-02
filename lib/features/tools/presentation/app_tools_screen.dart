@@ -36,8 +36,9 @@ class _AppToolsScreenState extends State<AppToolsScreen> {
     if (!access.hasEntry) {
       throw StateError('Для вашей роли нет доступных инструментов');
     }
-    final installation =
-        await DocumentWorkflowRepository.fetchInstallation(companyId);
+    final installation = await DocumentWorkflowRepository.fetchInstallation(
+      companyId,
+    );
     if (!installation.isEnabled && access.canManage) {
       selectedTab = _ToolsTab.catalog;
     }
@@ -111,8 +112,8 @@ class _AppToolsScreenState extends State<AppToolsScreen> {
           }
 
           final workspace = snapshot.requireData;
-          final canOpen = workspace.installation.isEnabled &&
-              workspace.access.canView;
+          final canOpen =
+              workspace.installation.isEnabled && workspace.access.canView;
           final showCatalog = workspace.access.canManage;
 
           return Column(
@@ -177,7 +178,8 @@ class _AppToolsScreenState extends State<AppToolsScreen> {
             if (workspace.access.canManage) ...[
               const SizedBox(height: 14),
               FilledButton.icon(
-                onPressed: () => setState(() => selectedTab = _ToolsTab.catalog),
+                onPressed: () =>
+                    setState(() => selectedTab = _ToolsTab.catalog),
                 icon: const Icon(Icons.storefront_outlined),
                 label: const Text('Открыть каталог'),
               ),
@@ -200,8 +202,7 @@ class _AppToolsScreenState extends State<AppToolsScreen> {
   Widget _catalogView(_ToolsWorkspace workspace) {
     return _EmploymentToolCard(
       connected: workspace.installation.isEnabled,
-      canOpen:
-          workspace.installation.isEnabled && workspace.access.canView,
+      canOpen: workspace.installation.isEnabled && workspace.access.canView,
       canManage: workspace.access.canManage,
       busy: changingInstallation,
       onOpen: workspace.installation.isEnabled && workspace.access.canView
@@ -358,10 +359,7 @@ class _ToolsError extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: const Text('Повторить'),
-          ),
+          OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
         ],
       ),
     );
@@ -372,10 +370,7 @@ class _ToolsWorkspace {
   final DocumentWorkflowAccess access;
   final DocumentToolInstallation installation;
 
-  const _ToolsWorkspace({
-    required this.access,
-    required this.installation,
-  });
+  const _ToolsWorkspace({required this.access, required this.installation});
 }
 
 enum _ToolsTab { connected, catalog }
