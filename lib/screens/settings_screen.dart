@@ -10,6 +10,7 @@ import '../features/developer/presentation/developer_panel_screen.dart';
 import '../features/developer/presentation/developer_system_screen.dart';
 import '../features/developer/presentation/role_permission_matrix_screen.dart';
 import '../features/dispatcher/presentation/dispatcher_settings_screen.dart';
+import '../features/documents/presentation/document_workflow_settings_entry.dart';
 import '../features/employee/presentation/employee_location_settings_screen.dart';
 import '../features/legal/presentation/legal_manager_summary_screen.dart';
 import '../features/recruitment/presentation/recruitment_crm_settings_screen.dart';
@@ -44,9 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void open(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Widget sectionTitle(String title) {
@@ -249,9 +250,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       actionTile(
         icon: Icons.manage_accounts_outlined,
         title: 'Компания и пользователи',
-        onTap: () => open(
-          CompanyManagementScreen(companyId: profile.activeCompanyId),
-        ),
+        onTap: () =>
+            open(CompanyManagementScreen(companyId: profile.activeCompanyId)),
       ),
       actionTile(
         icon: Icons.gavel_rounded,
@@ -298,6 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => open(const PushNotificationSettingsScreen()),
           ),
           const SizedBox(height: 8),
+          DocumentWorkflowSettingsEntry(profile: profile),
           sectionTitle('Настройки профессии'),
           ...roleItems,
           if (managementItems.isNotEmpty) ...[
