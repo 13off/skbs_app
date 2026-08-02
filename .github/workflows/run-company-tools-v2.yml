@@ -1,0 +1,49 @@
+name: Run company tools v2
+
+on:
+  push:
+    branches: [hotfix/company-tools-v2]
+    paths:
+      - 'tool/materialize_company_tools_v2.py'
+      - '.github/workflows/run-company-tools-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/company-tools-v2
+          fetch-depth: 0
+
+      - name: Apply architecture
+        run: python3 tool/materialize_company_tools_v2.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and validate
+        run: |
+          dart format lib/features/tools lib/screens/settings_screen.dart lib/screens/profile_screen.dart
+          flutter pub get --enforce-lockfile >/dev/null
+          flutter analyze
+          flutter test --reporter compact
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit result
+        shell: bash
+        run: |
+          rm -f tool/materialize_company_tools_v2.py
+          rm -f .github/workflows/materialize-company-tools-v2.yml
+          rm -f .github/workflows/run-company-tools-v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: finish connected and catalog tools architecture'
+          git push origin HEAD:hotfix/company-tools-v2
