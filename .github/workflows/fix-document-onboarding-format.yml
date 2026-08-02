@@ -185,4 +185,4 @@ jobs:
           git commit -m 'feat: integrate automatic DOCX generation'
           git push origin HEAD:feature/document-workflow-v3
 
-# Re-run after analyzer cleanup.
+# Forced run after database index migration.
