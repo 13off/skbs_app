@@ -23,6 +23,7 @@ jobs:
       - name: Patch navigation and mobile layouts
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           settings = Path('lib/screens/settings_screen.dart')
@@ -31,11 +32,13 @@ jobs:
               "import '../features/documents/presentation/document_workflow_settings_entry.dart';\n",
               "import '../features/tools/presentation/company_tools_screen.dart';\n",
           )
-          old = """          const SizedBox(height: 8),
-          DocumentWorkflowSettingsEntry(profile: profile),
-          sectionTitle('Настройки профессии'),
-          """
-          new = """          const SizedBox(height: 8),
+          pattern = re.compile(
+              r"\n\s*const SizedBox\(height: 8\),"
+              r"\n\s*DocumentWorkflowSettingsEntry\(profile: profile\),"
+              r"\n\s*sectionTitle\('Настройки профессии'\),"
+          )
+          replacement = """
+          const SizedBox(height: 8),
           sectionTitle('Инструменты'),
           actionTile(
             icon: Icons.extension_rounded,
@@ -43,46 +46,57 @@ jobs:
             onTap: () => open(CompanyToolsScreen(profile: profile)),
           ),
           const SizedBox(height: 8),
-          sectionTitle('Настройки профессии'),
-          """
-          if old not in text:
+          sectionTitle('Настройки профессии'),"""
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
               raise SystemExit('settings insertion point not found')
-          settings.write_text(text.replace(old, new, 1))
+          settings.write_text(text)
 
           def unwrap(path: str, refresh: str, subtitle: str):
               file = Path(path)
               source = file.read_text()
-              subtitle_line = f"      subtitle: '{subtitle}',\n"
-              if subtitle_line not in source:
-                  raise SystemExit(f'subtitle not found: {path}')
-              source = source.replace(
-                  subtitle_line,
-                  subtitle_line + f'      onRefresh: {refresh},\n',
-                  1,
+              subtitle_pattern = re.compile(
+                  rf"^(?P<indent>\s*)subtitle: '{re.escape(subtitle)}',\n",
+                  re.MULTILINE,
               )
-              prefix = f"""          return RefreshIndicator(
-            onRefresh: {refresh},
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-              """
-              start = source.find(prefix)
-              if start < 0:
+              match = subtitle_pattern.search(source)
+              if match is None:
+                  raise SystemExit(f'subtitle not found: {path}')
+              refresh_line = f"{match.group('indent')}onRefresh: {refresh},\n"
+              if refresh_line not in source:
+                  source = source[:match.end()] + refresh_line + source[match.end():]
+
+              prefix_pattern = re.compile(
+                  rf"^(?P<indent>\s*)return RefreshIndicator\(\n"
+                  rf"\s*onRefresh: {re.escape(refresh)},\n"
+                  r"\s*child: ListView\(\n"
+                  r"\s*physics: const AlwaysScrollableScrollPhysics\(\),\n"
+                  r"\s*padding: const EdgeInsets\.fromLTRB\(16, 8, 16, 32\),\n"
+                  r"\s*children: \[\n",
+                  re.MULTILINE,
+              )
+              prefix_match = prefix_pattern.search(source)
+              if prefix_match is None:
                   raise SystemExit(f'nested list prefix not found: {path}')
-              tail = """              ],
-            ),
-          );"""
-              end = source.find(tail, start + len(prefix))
-              if end < 0:
+              indent = prefix_match.group('indent')
+              tail = f"\n{indent}    ],\n{indent}  ),\n{indent});"
+              tail_index = source.find(tail, prefix_match.end())
+              if tail_index < 0:
                   raise SystemExit(f'nested list tail not found: {path}')
-              body = source[start + len(prefix):end]
-              replacement = """          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              """ + body + """              ],
-          );"""
-              file.write_text(source[:start] + replacement + source[end + len(tail):])
+              body = source[prefix_match.end():tail_index]
+              replacement = (
+                  f"{indent}return Column(\n"
+                  f"{indent}  crossAxisAlignment: CrossAxisAlignment.stretch,\n"
+                  f"{indent}  children: [\n"
+                  f"{body}\n"
+                  f"{indent}  ],\n"
+                  f"{indent});"
+              )
+              file.write_text(
+                  source[:prefix_match.start()]
+                  + replacement
+                  + source[tail_index + len(tail):]
+              )
 
           unwrap(
               'lib/features/documents/presentation/document_workflow_screen.dart',
@@ -111,8 +125,7 @@ jobs:
           if legacy.exists():
               legacy.unlink()
 
-          workflow = Path('.github/workflows/apply-document-tools-hotfix.yml')
-          workflow.unlink()
+          Path('.github/workflows/apply-document-tools-hotfix.yml').unlink()
           PY
       - uses: subosito/flutter-action@v2
         with:
