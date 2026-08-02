@@ -24,6 +24,17 @@ void main() {
     expect(tools, contains("title: 'Архив'"));
   });
 
+  test('onboarding list is a section of the connected tool', () {
+    final workflow = File(
+      'lib/features/documents/presentation/document_workflow_screen.dart',
+    ).readAsStringSync();
+
+    expect(workflow, contains("title: 'Оформления'"));
+    expect(workflow, isNot(contains('class _InstallationCard')));
+    expect(workflow, isNot(contains('toggleInstallation(')));
+    expect(workflow, contains('onRefresh: refresh'));
+  });
+
   test('document screens do not nest a vertical ListView inside AppPage', () {
     const paths = <String>[
       'lib/features/documents/presentation/document_workflow_screen.dart',
