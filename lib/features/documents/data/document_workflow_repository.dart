@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,17 +6,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/document_onboarding.dart';
 
 class DocumentWorkflowDashboardData {
+  final DocumentWorkflowAccess access;
   final DocumentToolInstallation installation;
   final List<DocumentPackageRecord> packages;
   final List<EmployeeOnboardingRecord> onboardings;
-  final Map<String, int> counters;
 
   const DocumentWorkflowDashboardData({
+    required this.access,
     required this.installation,
     required this.packages,
     required this.onboardings,
-    required this.counters,
   });
+
+  int get activeCount => onboardings
+      .where((item) => !item.isCompleted && item.status != 'cancelled')
+      .length;
+
+  int get completedCount => onboardings.where((item) => item.isCompleted).length;
+
+  int get overdueCount {
+    final now = DateTime.now();
+    return onboardings.where((item) {
+      final dueAt = item.dueAt;
+      return !item.isCompleted && dueAt != null && dueAt.isBefore(now);
+    }).length;
+  }
 }
 
 class DocumentOnboardingStepRecord {
@@ -42,7 +57,6 @@ class DocumentOnboardingStepRecord {
   });
 
   bool get isCompleted => status == 'completed';
-  bool get isBlocked => status == 'blocked';
 
   factory DocumentOnboardingStepRecord.fromMap(Map<String, dynamic> map) {
     return DocumentOnboardingStepRecord(
@@ -51,16 +65,17 @@ class DocumentOnboardingStepRecord {
       stepCode: map['step_code']?.toString() ?? '',
       status: map['status']?.toString() ?? 'pending',
       isRequired: map['is_required'] != false,
-      assignedUserId: _nullableText(map['assigned_user_id']),
-      dueAt: _date(map['due_at']),
-      payload: _map(map['payload']),
-      completedAt: _date(map['completed_at']),
+      assignedUserId: nullableText(map['assigned_user_id']),
+      dueAt: dateValue(map['due_at']),
+      payload: jsonMap(map['payload']),
+      completedAt: dateValue(map['completed_at']),
     );
   }
 }
 
 class EmployeeDocumentFileRecord {
   final String id;
+  final String companyId;
   final String? onboardingId;
   final String? employeeId;
   final String fileKind;
@@ -69,7 +84,10 @@ class EmployeeDocumentFileRecord {
   final String storagePath;
   final String originalFileName;
   final String mimeType;
+  final int? fileSize;
   final int versionNo;
+  final String? templateId;
+  final String? templateVersionId;
   final String qualityStatus;
   final String verificationStatus;
   final Map<String, dynamic> metadata;
@@ -77,6 +95,7 @@ class EmployeeDocumentFileRecord {
 
   const EmployeeDocumentFileRecord({
     required this.id,
+    required this.companyId,
     required this.onboardingId,
     required this.employeeId,
     required this.fileKind,
@@ -85,29 +104,43 @@ class EmployeeDocumentFileRecord {
     required this.storagePath,
     required this.originalFileName,
     required this.mimeType,
+    required this.fileSize,
     required this.versionNo,
+    required this.templateId,
+    required this.templateVersionId,
     required this.qualityStatus,
     required this.verificationStatus,
     required this.metadata,
     required this.createdAt,
   });
 
+  bool get isAccepted => verificationStatus == 'accepted';
+  bool get isRejected => verificationStatus == 'rejected';
+
   factory EmployeeDocumentFileRecord.fromMap(Map<String, dynamic> map) {
+    final rawSize = map['file_size'];
     return EmployeeDocumentFileRecord(
       id: map['id']?.toString() ?? '',
-      onboardingId: _nullableText(map['onboarding_id']),
-      employeeId: _nullableText(map['employee_id']),
+      companyId: map['company_id']?.toString() ?? '',
+      onboardingId: nullableText(map['onboarding_id']),
+      employeeId: nullableText(map['employee_id']),
       fileKind: map['file_kind']?.toString() ?? '',
       documentType: map['document_type']?.toString() ?? '',
       storageBucket: map['storage_bucket']?.toString() ?? '',
       storagePath: map['storage_path']?.toString() ?? '',
       originalFileName: map['original_file_name']?.toString() ?? '',
       mimeType: map['mime_type']?.toString() ?? 'application/octet-stream',
-      versionNo: (map['version_no'] as num?)?.toInt() ?? 1,
+      fileSize: rawSize is num
+          ? rawSize.toInt()
+          : int.tryParse(rawSize?.toString() ?? ''),
+      versionNo: intValue(map['version_no']),
+      templateId: nullableText(map['template_id']),
+      templateVersionId: nullableText(map['template_version_id']),
       qualityStatus: map['quality_status']?.toString() ?? 'not_checked',
       verificationStatus: map['verification_status']?.toString() ?? 'pending',
-      metadata: _map(map['metadata']),
-      createdAt: _date(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      metadata: jsonMap(map['metadata']),
+      createdAt:
+          dateValue(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
@@ -117,6 +150,7 @@ class DocumentAuditRecord {
   final String entityType;
   final String entityId;
   final String action;
+  final String? actorUserId;
   final Map<String, dynamic> details;
   final DateTime createdAt;
 
@@ -125,75 +159,152 @@ class DocumentAuditRecord {
     required this.entityType,
     required this.entityId,
     required this.action,
+    required this.actorUserId,
     required this.details,
     required this.createdAt,
   });
 
   factory DocumentAuditRecord.fromMap(Map<String, dynamic> map) {
     return DocumentAuditRecord(
-      id: (map['id'] as num?)?.toInt() ?? 0,
+      id: intValue(map['id']),
       entityType: map['entity_type']?.toString() ?? '',
       entityId: map['entity_id']?.toString() ?? '',
       action: map['action']?.toString() ?? '',
-      details: _map(map['details']),
-      createdAt: _date(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      actorUserId: nullableText(map['actor_user_id']),
+      details: jsonMap(map['details']),
+      createdAt:
+          dateValue(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
 
-class DocumentWorkflowRepository {
-  DocumentWorkflowRepository._();
-
+abstract final class DocumentWorkflowRepository {
   static final SupabaseClient _client = Supabase.instance.client;
-  static const String employeeBucket = 'employee-documents';
+  static const String employeeDocumentsBucket = 'employee-documents';
+  static const int maxUploadBytes = 20 * 1024 * 1024;
 
-  static Future<DocumentToolInstallation> fetchInstallation(String companyId) async {
-    final rows = await _client
+  static Future<DocumentWorkflowAccess> fetchAccess() async {
+    final raw = await _client.rpc('document_workflow_permission_map');
+    return DocumentWorkflowAccess.fromMap(_map(raw));
+  }
+
+  static Future<DocumentToolInstallation> fetchInstallation(
+    String companyId,
+  ) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) {
+      return const DocumentToolInstallation(
+        companyId: '',
+        isEnabled: false,
+        settings: <String, dynamic>{},
+      );
+    }
+    final row = await _client
         .from('document_tool_installations')
         .select('company_id, is_enabled, settings')
-        .eq('company_id', companyId)
-        .limit(1);
-    if (rows is List && rows.isNotEmpty) {
-      return DocumentToolInstallation.fromMap(Map<String, dynamic>.from(rows.first as Map));
+        .eq('company_id', cleanCompanyId)
+        .maybeSingle();
+    if (row == null) {
+      return DocumentToolInstallation(
+        companyId: cleanCompanyId,
+        isEnabled: false,
+        settings: const <String, dynamic>{},
+      );
     }
-    return DocumentToolInstallation(
-      companyId: companyId,
-      isEnabled: false,
-      settings: const <String, dynamic>{},
-    );
+    return DocumentToolInstallation.fromMap(_map(row));
   }
 
-  static Future<void> setInstallation({
+  static Future<DocumentToolInstallation> setInstallation({
     required String companyId,
-    required bool enabled,
-    Map<String, dynamic>? settings,
+    required bool isEnabled,
+    Map<String, dynamic> settings = const <String, dynamic>{},
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    await _client.from('document_tool_installations').upsert(<String, dynamic>{
-      'company_id': companyId,
-      'is_enabled': enabled,
-      'settings': settings ?? const <String, dynamic>{},
-      'enabled_at': enabled ? DateTime.now().toUtc().toIso8601String() : null,
-      'enabled_by': enabled ? userId : null,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    });
-    await audit(
-      companyId: companyId,
+    final cleanCompanyId = _required(companyId, 'Компания не выбрана');
+    final row = await _client
+        .from('document_tool_installations')
+        .upsert(
+          <String, dynamic>{
+            'company_id': cleanCompanyId,
+            'is_enabled': isEnabled,
+            'settings': settings,
+            'enabled_at': isEnabled
+                ? DateTime.now().toUtc().toIso8601String()
+                : null,
+            'enabled_by': isEnabled ? _client.auth.currentUser?.id : null,
+          },
+          onConflict: 'company_id',
+        )
+        .select('company_id, is_enabled, settings')
+        .single();
+    await recordAudit(
+      companyId: cleanCompanyId,
       entityType: 'document_tool_installation',
-      entityId: companyId,
-      action: enabled ? 'enabled' : 'disabled',
+      entityId: cleanCompanyId,
+      action: isEnabled ? 'enabled' : 'disabled',
+      details: <String, dynamic>{'settings': settings},
+    );
+    return DocumentToolInstallation.fromMap(_map(row));
+  }
+
+  static Future<DocumentWorkflowDashboardData> fetchDashboard(
+    String companyId,
+  ) async {
+    final access = await fetchAccess();
+    if (!access.hasEntry) throw StateError('Нет доступа к документообороту');
+    final values = await Future.wait<dynamic>(<Future<dynamic>>[
+      fetchInstallation(companyId),
+      access.canView
+          ? fetchPackages(companyId)
+          : Future<List<DocumentPackageRecord>>.value(
+              const <DocumentPackageRecord>[],
+            ),
+      access.canView
+          ? fetchOnboardings(companyId: companyId)
+          : Future<List<EmployeeOnboardingRecord>>.value(
+              const <EmployeeOnboardingRecord>[],
+            ),
+    ]);
+    return DocumentWorkflowDashboardData(
+      access: access,
+      installation: values[0] as DocumentToolInstallation,
+      packages: values[1] as List<DocumentPackageRecord>,
+      onboardings: values[2] as List<EmployeeOnboardingRecord>,
     );
   }
 
-  static Future<List<DocumentPackageRecord>> fetchPackages(String companyId) async {
+  static Future<List<DocumentPackageRecord>> fetchPackages(
+    String companyId,
+  ) async {
     final rows = await _client
         .from('document_packages')
-        .select('id, company_id, code, title, description, onboarding_type, is_active')
-        .eq('company_id', companyId)
+        .select(
+          'id, company_id, code, title, description, onboarding_type, is_active',
+        )
+        .eq('company_id', companyId.trim())
+        .eq('is_active', true)
         .order('title');
-    return rows
-        .whereType<Map>()
-        .map((row) => DocumentPackageRecord.fromMap(Map<String, dynamic>.from(row)))
+    return _rows(rows)
+        .map(DocumentPackageRecord.fromMap)
+        .where((item) => item.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<List<DocumentPackageTemplateLink>> fetchPackageTemplateLinks({
+    required String companyId,
+    String? packageId,
+  }) async {
+    var query = _client
+        .from('document_package_templates')
+        .select('package_id, template_id, sort_order, is_required')
+        .eq('company_id', companyId.trim());
+    final cleanPackageId = packageId?.trim() ?? '';
+    if (cleanPackageId.isNotEmpty) {
+      query = query.eq('package_id', cleanPackageId);
+    }
+    final rows = await query.order('sort_order');
+    return _rows(rows)
+        .map(DocumentPackageTemplateLink.fromMap)
+        .where((item) => item.packageId.isNotEmpty && item.templateId.isNotEmpty)
         .toList(growable: false);
   }
 
@@ -201,44 +312,52 @@ class DocumentWorkflowRepository {
     String? id,
     required String companyId,
     required String title,
+    required String description,
     required String onboardingType,
-    String description = '',
-    bool isActive = true,
   }) async {
-    final cleanTitle = title.trim();
-    if (cleanTitle.isEmpty) throw StateError('Введите название пакета');
-    final code = id == null ? _slug(cleanTitle) : null;
-    final values = <String, dynamic>{
-      'company_id': companyId,
+    final cleanCompanyId = _required(companyId, 'Компания не выбрана');
+    final cleanTitle = _required(title, 'Введите название пакета');
+    final data = <String, dynamic>{
+      'company_id': cleanCompanyId,
       'title': cleanTitle,
       'description': description.trim(),
       'onboarding_type': onboardingType,
-      'is_active': isActive,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
+      'is_active': true,
     };
     Map<String, dynamic> row;
-    if (id == null) {
-      values['code'] = '${code}_${DateTime.now().millisecondsSinceEpoch}';
-      values['created_by'] = _client.auth.currentUser?.id;
-      row = Map<String, dynamic>.from(await _client
-          .from('document_packages')
-          .insert(values)
-          .select('id, company_id, code, title, description, onboarding_type, is_active')
-          .single());
+    final cleanId = id?.trim() ?? '';
+    if (cleanId.isEmpty) {
+      data['code'] =
+          '${_slug(cleanTitle)}_${DateTime.now().toUtc().millisecondsSinceEpoch}';
+      row = _map(
+        await _client
+            .from('document_packages')
+            .insert(data)
+            .select(
+              'id, company_id, code, title, description, onboarding_type, is_active',
+            )
+            .single(),
+      );
     } else {
-      row = Map<String, dynamic>.from(await _client
-          .from('document_packages')
-          .update(values)
-          .eq('id', id)
-          .select('id, company_id, code, title, description, onboarding_type, is_active')
-          .single());
+      row = _map(
+        await _client
+            .from('document_packages')
+            .update(data)
+            .eq('id', cleanId)
+            .eq('company_id', cleanCompanyId)
+            .select(
+              'id, company_id, code, title, description, onboarding_type, is_active',
+            )
+            .single(),
+      );
     }
     final result = DocumentPackageRecord.fromMap(row);
-    await audit(
-      companyId: companyId,
+    await recordAudit(
+      companyId: cleanCompanyId,
       entityType: 'document_package',
       entityId: result.id,
-      action: id == null ? 'created' : 'updated',
+      action: cleanId.isEmpty ? 'created' : 'updated',
+      details: <String, dynamic>{'title': result.title},
     );
     return result;
   }
@@ -248,194 +367,178 @@ class DocumentWorkflowRepository {
     required String packageId,
     required List<({String templateId, bool required})> templates,
   }) async {
-    await _client.from('document_package_templates').delete().eq('package_id', packageId);
-    if (templates.isNotEmpty) {
-      await _client.from('document_package_templates').insert([
-        for (var index = 0; index < templates.length; index++)
-          <String, dynamic>{
-            'company_id': companyId,
-            'package_id': packageId,
-            'template_id': templates[index].templateId,
-            'sort_order': index,
-            'is_required': templates[index].required,
-          },
-      ]);
-    }
-    await audit(
-      companyId: companyId,
-      entityType: 'document_package',
-      entityId: packageId,
-      action: 'templates_replaced',
-      details: <String, dynamic>{'count': templates.length},
+    await _client.rpc(
+      'replace_document_package_templates',
+      params: <String, dynamic>{
+        'p_company_id': companyId.trim(),
+        'p_package_id': packageId.trim(),
+        'p_templates': <Map<String, dynamic>>[
+          for (final item in templates)
+            <String, dynamic>{
+              'template_id': item.templateId,
+              'required': item.required,
+            },
+        ],
+      },
+    );
+  }
+
+  static Future<void> seedDefaultPackages(String companyId) async {
+    await _client.rpc(
+      'seed_default_document_packages',
+      params: <String, dynamic>{'p_company_id': companyId.trim()},
     );
   }
 
   static Future<List<EmployeeOnboardingRecord>> fetchOnboardings({
     required String companyId,
     String? employeeId,
-    String? status,
   }) async {
     var query = _client
         .from('employee_onboardings')
-        .select('id, company_id, employee_id, package_id, status, current_step, onboarding_type, assigned_user_id, due_at, created_at, updated_at')
-        .eq('company_id', companyId);
-    if (employeeId != null && employeeId.trim().isNotEmpty) {
-      query = query.eq('employee_id', employeeId.trim());
+        .select(
+          'id, company_id, recruitment_application_id, employee_id, package_id, '
+          'object_id, status, current_step, onboarding_type, assigned_user_id, '
+          'due_at, conditions, recognized_data, verification_data, '
+          'completion_snapshot, created_at, updated_at, '
+          'employees(fio), recruitment_applications(full_name), '
+          'document_packages(title), objects(name)',
+        )
+        .eq('company_id', companyId.trim());
+    final cleanEmployeeId = employeeId?.trim() ?? '';
+    if (cleanEmployeeId.isNotEmpty) {
+      query = query.eq('employee_id', cleanEmployeeId);
     }
-    if (status != null && status.trim().isNotEmpty) {
-      query = query.eq('status', status.trim());
-    }
-    final rows = await query.order('updated_at', ascending: false);
-    return rows
-        .whereType<Map>()
-        .map((row) => EmployeeOnboardingRecord.fromMap(Map<String, dynamic>.from(row)))
+    final rows = await query.order('updated_at', ascending: false).limit(500);
+    return _rows(rows)
+        .map(EmployeeOnboardingRecord.fromMap)
+        .where((item) => item.id.isNotEmpty)
         .toList(growable: false);
+  }
+
+  static Future<EmployeeOnboardingRecord> fetchOnboarding(
+    String onboardingId,
+  ) async {
+    final row = await _client
+        .from('employee_onboardings')
+        .select(
+          'id, company_id, recruitment_application_id, employee_id, package_id, '
+          'object_id, status, current_step, onboarding_type, assigned_user_id, '
+          'due_at, conditions, recognized_data, verification_data, '
+          'completion_snapshot, created_at, updated_at, '
+          'employees(fio), recruitment_applications(full_name), '
+          'document_packages(title), objects(name)',
+        )
+        .eq('id', onboardingId.trim())
+        .single();
+    return EmployeeOnboardingRecord.fromMap(_map(row));
   }
 
   static Future<EmployeeOnboardingRecord> createOnboarding({
     required String companyId,
+    String? recruitmentApplicationId,
     String? employeeId,
     String? packageId,
-    String onboardingType = 'custom',
+    String? objectId,
+    String onboardingType = 'gph',
     String? assignedUserId,
     DateTime? dueAt,
-    Map<String, dynamic>? conditions,
+    Map<String, dynamic> conditions = const <String, dynamic>{},
   }) async {
-    final row = Map<String, dynamic>.from(await _client
-        .from('employee_onboardings')
-        .insert(<String, dynamic>{
-          'company_id': companyId,
-          'employee_id': _emptyToNull(employeeId),
-          'package_id': _emptyToNull(packageId),
-          'status': 'in_progress',
-          'current_step': DocumentOnboardingSteps.sourceFiles,
-          'onboarding_type': onboardingType,
-          'assigned_user_id': _emptyToNull(assignedUserId),
-          'due_at': dueAt?.toUtc().toIso8601String(),
-          'conditions': conditions ?? const <String, dynamic>{},
-          'created_by': _client.auth.currentUser?.id,
-        })
-        .select('id, company_id, employee_id, package_id, status, current_step, onboarding_type, assigned_user_id, due_at, created_at, updated_at')
-        .single());
-    final onboarding = EmployeeOnboardingRecord.fromMap(row);
-    await _client.from('employee_onboarding_steps').insert([
-      for (final code in DocumentOnboardingSteps.ordered)
-        <String, dynamic>{
-          'company_id': companyId,
-          'onboarding_id': onboarding.id,
-          'step_code': code,
-          'status': code == DocumentOnboardingSteps.sourceFiles ? 'in_progress' : 'pending',
-          'assigned_user_id': _emptyToNull(assignedUserId),
-          'is_required': true,
-        },
-    ]);
-    await audit(
-      companyId: companyId,
-      onboardingId: onboarding.id,
-      employeeId: employeeId,
-      entityType: 'employee_onboarding',
-      entityId: onboarding.id,
-      action: 'created',
+    final raw = await _client.rpc(
+      'create_document_onboarding',
+      params: <String, dynamic>{
+        'p_company_id': companyId.trim(),
+        'p_recruitment_application_id': _nullIfEmpty(recruitmentApplicationId),
+        'p_employee_id': _nullIfEmpty(employeeId),
+        'p_package_id': _nullIfEmpty(packageId),
+        'p_object_id': _nullIfEmpty(objectId),
+        'p_onboarding_type': onboardingType,
+        'p_assigned_user_id': _nullIfEmpty(assignedUserId),
+        'p_due_at': dueAt?.toUtc().toIso8601String(),
+        'p_conditions': conditions,
+      },
     );
-    return onboarding;
+    final id = raw?.toString().replaceAll('"', '').trim() ?? '';
+    if (id.isEmpty) throw StateError('Сервер не вернул ID оформления');
+    return fetchOnboarding(id);
   }
 
-  static Future<List<DocumentOnboardingStepRecord>> fetchSteps(String onboardingId) async {
+  static Future<void> setOnboardingContext({
+    required String onboardingId,
+    String? employeeId,
+    String? packageId,
+    String? objectId,
+    String? onboardingType,
+    Map<String, dynamic>? conditions,
+    Map<String, dynamic>? recognizedData,
+    Map<String, dynamic>? verificationData,
+    String? assignedUserId,
+    DateTime? dueAt,
+  }) async {
+    await _client.rpc(
+      'set_document_onboarding_context',
+      params: <String, dynamic>{
+        'p_onboarding_id': onboardingId.trim(),
+        'p_employee_id': _nullIfEmpty(employeeId),
+        'p_package_id': _nullIfEmpty(packageId),
+        'p_object_id': _nullIfEmpty(objectId),
+        'p_onboarding_type': _nullIfEmpty(onboardingType),
+        'p_conditions': conditions,
+        'p_recognized_data': recognizedData,
+        'p_verification_data': verificationData,
+        'p_assigned_user_id': _nullIfEmpty(assignedUserId),
+        'p_due_at': dueAt?.toUtc().toIso8601String(),
+      },
+    );
+  }
+
+  static Future<List<DocumentOnboardingStepRecord>> fetchSteps(
+    String onboardingId,
+  ) async {
     final rows = await _client
         .from('employee_onboarding_steps')
-        .select('id, onboarding_id, step_code, status, is_required, assigned_user_id, due_at, payload, completed_at')
-        .eq('onboarding_id', onboardingId);
-    final result = rows
-        .whereType<Map>()
-        .map((row) => DocumentOnboardingStepRecord.fromMap(Map<String, dynamic>.from(row)))
+        .select(
+          'id, onboarding_id, step_code, status, assigned_user_id, is_required, '
+          'due_at, payload, completed_at',
+        )
+        .eq('onboarding_id', onboardingId.trim());
+    final values = _rows(rows)
+        .map(DocumentOnboardingStepRecord.fromMap)
+        .where((item) => item.id.isNotEmpty)
         .toList();
-    result.sort((a, b) => DocumentOnboardingSteps.ordered.indexOf(a.stepCode).compareTo(DocumentOnboardingSteps.ordered.indexOf(b.stepCode)));
-    return result;
+    values.sort((first, second) {
+      return DocumentOnboardingSteps.ordered
+          .indexOf(first.stepCode)
+          .compareTo(DocumentOnboardingSteps.ordered.indexOf(second.stepCode));
+    });
+    return values;
   }
 
-  static Future<void> saveStep({
-    required String companyId,
-    required String onboardingId,
-    required String stepCode,
-    required String status,
-    Map<String, dynamic>? payload,
-    String? assignedUserId,
-  }) async {
-    final completed = status == 'completed';
-    await _client.from('employee_onboarding_steps').update(<String, dynamic>{
-      'status': status,
-      'payload': payload ?? const <String, dynamic>{},
-      'assigned_user_id': _emptyToNull(assignedUserId),
-      'completed_at': completed ? DateTime.now().toUtc().toIso8601String() : null,
-      'completed_by': completed ? _client.auth.currentUser?.id : null,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('onboarding_id', onboardingId).eq('step_code', stepCode);
-    await audit(
-      companyId: companyId,
-      onboardingId: onboardingId,
-      entityType: 'employee_onboarding_step',
-      entityId: '$onboardingId:$stepCode',
-      action: status,
-      details: payload,
-    );
-  }
-
-  static Future<void> advanceOnboarding({
-    required String companyId,
+  static Future<String> advanceOnboarding({
     required String onboardingId,
     required String currentStep,
-    Map<String, dynamic>? payload,
+    Map<String, dynamic> payload = const <String, dynamic>{},
   }) async {
-    await saveStep(
-      companyId: companyId,
-      onboardingId: onboardingId,
-      stepCode: currentStep,
-      status: 'completed',
-      payload: payload,
+    final raw = await _client.rpc(
+      'advance_document_onboarding',
+      params: <String, dynamic>{
+        'p_onboarding_id': onboardingId.trim(),
+        'p_step_code': currentStep,
+        'p_payload': payload,
+      },
     );
-    final currentIndex = DocumentOnboardingSteps.ordered.indexOf(currentStep);
-    if (currentIndex < 0) throw StateError('Неизвестный этап оформления');
-    if (currentIndex == DocumentOnboardingSteps.ordered.length - 1) {
-      await completeOnboarding(companyId: companyId, onboardingId: onboardingId);
-      return;
-    }
-    final next = DocumentOnboardingSteps.ordered[currentIndex + 1];
-    await _client.from('employee_onboarding_steps').update(<String, dynamic>{
-      'status': 'in_progress',
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('onboarding_id', onboardingId).eq('step_code', next);
-    await _client.from('employee_onboardings').update(<String, dynamic>{
-      'current_step': next,
-      'status': 'in_progress',
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', onboardingId);
+    return raw?.toString().replaceAll('"', '') ?? '';
   }
 
-  static Future<void> completeOnboarding({
-    required String companyId,
-    required String onboardingId,
-  }) async {
-    final blockers = await _client.rpc('document_onboarding_blockers', params: <String, dynamic>{
-      'p_onboarding_id': onboardingId,
-    });
-    if (blockers is List && blockers.isNotEmpty) {
-      final titles = blockers.whereType<Map>().map((row) => row['message']?.toString() ?? '').where((value) => value.isNotEmpty).join('\n');
-      throw StateError(titles.isEmpty ? 'Оформление не прошло проверку комплектности' : titles);
-    }
-    await _client.from('employee_onboardings').update(<String, dynamic>{
-      'status': 'completed',
-      'current_step': DocumentOnboardingSteps.completion,
-      'completed_at': DateTime.now().toUtc().toIso8601String(),
-      'completed_by': _client.auth.currentUser?.id,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', onboardingId);
-    await audit(
-      companyId: companyId,
-      onboardingId: onboardingId,
-      entityType: 'employee_onboarding',
-      entityId: onboardingId,
-      action: 'completed',
+  static Future<List<Map<String, dynamic>>> fetchBlockers(
+    String onboardingId,
+  ) async {
+    final rows = await _client.rpc(
+      'document_onboarding_blockers',
+      params: <String, dynamic>{'p_onboarding_id': onboardingId.trim()},
     );
+    return _rows(rows);
   }
 
   static Future<List<EmployeeDocumentFileRecord>> fetchFiles({
@@ -445,14 +548,25 @@ class DocumentWorkflowRepository {
   }) async {
     var query = _client
         .from('employee_document_files')
-        .select('id, onboarding_id, employee_id, file_kind, document_type, storage_bucket, storage_path, original_file_name, mime_type, version_no, quality_status, verification_status, metadata, created_at')
-        .eq('company_id', companyId);
-    if (onboardingId != null && onboardingId.isNotEmpty) query = query.eq('onboarding_id', onboardingId);
-    if (employeeId != null && employeeId.isNotEmpty) query = query.eq('employee_id', employeeId);
-    final rows = await query.order('created_at', ascending: false);
-    return rows
-        .whereType<Map>()
-        .map((row) => EmployeeDocumentFileRecord.fromMap(Map<String, dynamic>.from(row)))
+        .select(
+          'id, company_id, onboarding_id, employee_id, file_kind, document_type, '
+          'storage_bucket, storage_path, original_file_name, mime_type, '
+          'file_size, version_no, template_id, template_version_id, metadata, '
+          'quality_status, verification_status, created_at',
+        )
+        .eq('company_id', companyId.trim());
+    final cleanOnboardingId = onboardingId?.trim() ?? '';
+    final cleanEmployeeId = employeeId?.trim() ?? '';
+    if (cleanOnboardingId.isNotEmpty) {
+      query = query.eq('onboarding_id', cleanOnboardingId);
+    }
+    if (cleanEmployeeId.isNotEmpty) {
+      query = query.eq('employee_id', cleanEmployeeId);
+    }
+    final rows = await query.order('created_at', ascending: false).limit(1000);
+    return _rows(rows)
+        .map(EmployeeDocumentFileRecord.fromMap)
+        .where((item) => item.id.isNotEmpty)
         .toList(growable: false);
   }
 
@@ -467,11 +581,216 @@ class DocumentWorkflowRepository {
     required Uint8List bytes,
     String? templateId,
     String? templateVersionId,
-    Map<String, dynamic>? metadata,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
   }) async {
-    if (bytes.isEmpty) throw StateError('Файл пустой');
-    if (bytes.length > 30 * 1024 * 1024) throw StateError('Максимальный размер файла — 30 МБ');
-    final previous = await _client
+    if (bytes.isEmpty) throw StateError('Выбранный файл пустой');
+    if (bytes.length > maxUploadBytes) {
+      throw StateError('Максимальный размер файла — 20 МБ');
+    }
+    final cleanCompanyId = _required(companyId, 'Компания не выбрана');
+    final cleanOnboardingId = _required(
+      onboardingId,
+      'Процесс оформления не выбран',
+    );
+    final cleanName = _safeFileName(fileName);
+    final version = await _nextFileVersion(
+      companyId: cleanCompanyId,
+      onboardingId: cleanOnboardingId,
+      fileKind: fileKind,
+      documentType: documentType,
+    );
+    final timestamp = DateTime.now().toUtc().microsecondsSinceEpoch;
+    final storagePath =
+        '$cleanCompanyId/$cleanOnboardingId/$fileKind/${timestamp}_v$version-$cleanName';
+
+    await _client.storage.from(employeeDocumentsBucket).uploadBinary(
+          storagePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: mimeType,
+            cacheControl: '3600',
+            upsert: false,
+          ),
+        );
+
+    try {
+      final row = await _client
+          .from('employee_document_files')
+          .insert(<String, dynamic>{
+            'company_id': cleanCompanyId,
+            'onboarding_id': cleanOnboardingId,
+            'employee_id': _nullIfEmpty(employeeId),
+            'file_kind': fileKind,
+            'document_type': documentType,
+            'storage_bucket': employeeDocumentsBucket,
+            'storage_path': storagePath,
+            'original_file_name': fileName.trim().isEmpty ? cleanName : fileName,
+            'mime_type': mimeType,
+            'file_size': bytes.length,
+            'version_no': version,
+            'template_id': _nullIfEmpty(templateId),
+            'template_version_id': _nullIfEmpty(templateVersionId),
+            'metadata': <String, dynamic>{
+              ...metadata,
+              'uploaded_from': 'document_workflow_v3',
+            },
+          })
+          .select()
+          .single();
+      final result = EmployeeDocumentFileRecord.fromMap(_map(row));
+      await recordAudit(
+        companyId: cleanCompanyId,
+        onboardingId: cleanOnboardingId,
+        employeeId: employeeId,
+        entityType: 'employee_document_file',
+        entityId: result.id,
+        action: 'uploaded',
+        details: <String, dynamic>{
+          'file_kind': fileKind,
+          'document_type': documentType,
+          'version_no': version,
+          'file_name': fileName,
+        },
+      );
+      return result;
+    } catch (_) {
+      try {
+        await _client.storage
+            .from(employeeDocumentsBucket)
+            .remove(<String>[storagePath]);
+      } catch (_) {
+        // Orphan cleanup can be retried by a maintenance task.
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> verifyFile({
+    required String fileId,
+    required bool accepted,
+    String qualityStatus = 'accepted',
+    String comment = '',
+  }) async {
+    await _client.rpc(
+      'verify_employee_document_file',
+      params: <String, dynamic>{
+        'p_file_id': fileId.trim(),
+        'p_accepted': accepted,
+        'p_quality_status': qualityStatus,
+        'p_comment': comment.trim(),
+      },
+    );
+  }
+
+  static Future<String> createSignedFileUrl(
+    EmployeeDocumentFileRecord file, {
+    int expiresInSeconds = 300,
+  }) async {
+    if (file.storageBucket.trim().isEmpty || file.storagePath.trim().isEmpty) {
+      throw StateError('У файла отсутствует путь в хранилище');
+    }
+    return _client.storage
+        .from(file.storageBucket)
+        .createSignedUrl(file.storagePath, expiresInSeconds);
+  }
+
+  static Future<List<DocumentAuditRecord>> fetchAudit({
+    required String companyId,
+    String? onboardingId,
+  }) async {
+    var query = _client
+        .from('document_audit_log')
+        .select(
+          'id, entity_type, entity_id, action, actor_user_id, details, created_at',
+        )
+        .eq('company_id', companyId.trim());
+    final cleanOnboardingId = onboardingId?.trim() ?? '';
+    if (cleanOnboardingId.isNotEmpty) {
+      query = query.eq('onboarding_id', cleanOnboardingId);
+    }
+    final rows = await query.order('created_at', ascending: false).limit(500);
+    return _rows(rows)
+        .map(DocumentAuditRecord.fromMap)
+        .toList(growable: false);
+  }
+
+  static Future<void> recordAudit({
+    required String companyId,
+    String? onboardingId,
+    String? employeeId,
+    required String entityType,
+    required String entityId,
+    required String action,
+    Map<String, dynamic> details = const <String, dynamic>{},
+  }) async {
+    await _client.rpc(
+      'record_document_workflow_audit',
+      params: <String, dynamic>{
+        'p_company_id': companyId.trim(),
+        'p_onboarding_id': _nullIfEmpty(onboardingId),
+        'p_employee_id': _nullIfEmpty(employeeId),
+        'p_entity_type': entityType,
+        'p_entity_id': entityId,
+        'p_action': action,
+        'p_details': details,
+      },
+    );
+  }
+
+  static Future<List<DocumentCandidateOption>> fetchCandidates(
+    String companyId,
+  ) async {
+    final rows = await _client
+        .from('recruitment_applications')
+        .select(
+          'id, full_name, phone, object_id, position_title, employee_id, objects(name)',
+        )
+        .eq('company_id', companyId.trim())
+        .order('updated_at', ascending: false)
+        .limit(500);
+    return _rows(rows)
+        .map(DocumentCandidateOption.fromMap)
+        .where((item) => item.id.isNotEmpty && item.fullName.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<List<DocumentEmployeeOption>> fetchEmployees(
+    String companyId,
+  ) async {
+    final rows = await _client
+        .from('employees')
+        .select('id, fio, phone, position, object_id, object_name')
+        .eq('company_id', companyId.trim())
+        .order('fio')
+        .limit(1000);
+    return _rows(rows)
+        .map(DocumentEmployeeOption.fromMap)
+        .where((item) => item.id.isNotEmpty && item.fullName.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<List<DocumentObjectOption>> fetchObjects(
+    String companyId,
+  ) async {
+    final rows = await _client
+        .from('objects')
+        .select('id, name')
+        .eq('company_id', companyId.trim())
+        .eq('is_active', true)
+        .order('name');
+    return _rows(rows)
+        .map(DocumentObjectOption.fromMap)
+        .where((item) => item.id.isNotEmpty && item.name.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<int> _nextFileVersion({
+    required String companyId,
+    required String onboardingId,
+    required String fileKind,
+    required String documentType,
+  }) async {
+    final rows = await _client
         .from('employee_document_files')
         .select('version_no')
         .eq('company_id', companyId)
@@ -480,168 +799,54 @@ class DocumentWorkflowRepository {
         .eq('document_type', documentType)
         .order('version_no', ascending: false)
         .limit(1);
-    final version = previous is List && previous.isNotEmpty
-        ? ((previous.first as Map)['version_no'] as num? ?? 0).toInt() + 1
-        : 1;
-    final safeName = _safeFileName(fileName);
-    final storagePath = '$companyId/$onboardingId/$fileKind/$documentType/${DateTime.now().millisecondsSinceEpoch}_$safeName';
-    await _client.storage.from(employeeBucket).uploadBinary(
-      storagePath,
-      bytes,
-      fileOptions: FileOptions(contentType: mimeType, upsert: false),
-    );
-    try {
-      final row = Map<String, dynamic>.from(await _client
-          .from('employee_document_files')
-          .insert(<String, dynamic>{
-            'company_id': companyId,
-            'onboarding_id': onboardingId,
-            'employee_id': _emptyToNull(employeeId),
-            'file_kind': fileKind,
-            'document_type': documentType,
-            'storage_bucket': employeeBucket,
-            'storage_path': storagePath,
-            'original_file_name': fileName,
-            'mime_type': mimeType,
-            'file_size': bytes.length,
-            'version_no': version,
-            'template_id': _emptyToNull(templateId),
-            'template_version_id': _emptyToNull(templateVersionId),
-            'metadata': metadata ?? const <String, dynamic>{},
-            'uploaded_by': _client.auth.currentUser?.id,
-          })
-          .select('id, onboarding_id, employee_id, file_kind, document_type, storage_bucket, storage_path, original_file_name, mime_type, version_no, quality_status, verification_status, metadata, created_at')
-          .single());
-      final file = EmployeeDocumentFileRecord.fromMap(row);
-      await audit(
-        companyId: companyId,
-        onboardingId: onboardingId,
-        employeeId: employeeId,
-        entityType: 'employee_document_file',
-        entityId: file.id,
-        action: 'uploaded',
-        details: <String, dynamic>{
-          'file_kind': fileKind,
-          'document_type': documentType,
-          'version_no': version,
-        },
-      );
-      return file;
-    } catch (_) {
-      await _client.storage.from(employeeBucket).remove(<String>[storagePath]);
-      rethrow;
+    final values = _rows(rows);
+    if (values.isEmpty) return 1;
+    return intValue(values.first['version_no']) + 1;
+  }
+
+  static Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    if (value is String) {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
+    return const <String, dynamic>{};
   }
 
-  static Future<String> createSignedFileUrl(EmployeeDocumentFileRecord file) {
-    return _client.storage.from(file.storageBucket).createSignedUrl(file.storagePath, 600);
-  }
-
-  static Future<void> verifyFile({
-    required String companyId,
-    required String fileId,
-    required String onboardingId,
-    required bool accepted,
-    String qualityStatus = 'accepted',
-  }) async {
-    await _client.from('employee_document_files').update(<String, dynamic>{
-      'verification_status': accepted ? 'accepted' : 'rejected',
-      'quality_status': accepted ? qualityStatus : 'rejected',
-    }).eq('id', fileId);
-    await audit(
-      companyId: companyId,
-      onboardingId: onboardingId,
-      entityType: 'employee_document_file',
-      entityId: fileId,
-      action: accepted ? 'accepted' : 'rejected',
-    );
-  }
-
-  static Future<List<DocumentAuditRecord>> fetchAudit({
-    required String companyId,
-    String? onboardingId,
-    int limit = 100,
-  }) async {
-    var query = _client
-        .from('document_audit_log')
-        .select('id, entity_type, entity_id, action, details, created_at')
-        .eq('company_id', companyId);
-    if (onboardingId != null && onboardingId.isNotEmpty) query = query.eq('onboarding_id', onboardingId);
-    final rows = await query.order('created_at', ascending: false).limit(limit);
-    return rows
+  static List<Map<String, dynamic>> _rows(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+    return value
         .whereType<Map>()
-        .map((row) => DocumentAuditRecord.fromMap(Map<String, dynamic>.from(row)))
+        .map((row) => Map<String, dynamic>.from(row))
         .toList(growable: false);
   }
 
-  static Future<DocumentWorkflowDashboardData> fetchDashboard(String companyId) async {
-    final values = await Future.wait<dynamic>([
-      fetchInstallation(companyId),
-      fetchPackages(companyId),
-      fetchOnboardings(companyId: companyId),
-    ]);
-    final onboardings = values[2] as List<EmployeeOnboardingRecord>;
-    return DocumentWorkflowDashboardData(
-      installation: values[0] as DocumentToolInstallation,
-      packages: values[1] as List<DocumentPackageRecord>,
-      onboardings: onboardings,
-      counters: <String, int>{
-        'active': onboardings.where((item) => !item.isCompleted).length,
-        'completed': onboardings.where((item) => item.isCompleted).length,
-        'overdue': onboardings.where((item) => item.dueAt != null && item.dueAt!.isBefore(DateTime.now()) && !item.isCompleted).length,
-      },
-    );
+  static String _required(String value, String message) {
+    final clean = value.trim();
+    if (clean.isEmpty) throw StateError(message);
+    return clean;
   }
 
-  static Future<void> audit({
-    required String companyId,
-    String? onboardingId,
-    String? employeeId,
-    required String entityType,
-    required String entityId,
-    required String action,
-    Map<String, dynamic>? details,
-  }) async {
-    await _client.from('document_audit_log').insert(<String, dynamic>{
-      'company_id': companyId,
-      'onboarding_id': _emptyToNull(onboardingId),
-      'employee_id': _emptyToNull(employeeId),
-      'entity_type': entityType,
-      'entity_id': entityId,
-      'action': action,
-      'actor_user_id': _client.auth.currentUser?.id,
-      'details': details ?? const <String, dynamic>{},
-    });
+  static String? _nullIfEmpty(String? value) {
+    final clean = value?.trim() ?? '';
+    return clean.isEmpty ? null : clean;
   }
-}
 
-Map<String, dynamic> _map(dynamic value) {
-  if (value is Map<String, dynamic>) return value;
-  if (value is Map) return Map<String, dynamic>.from(value);
-  return const <String, dynamic>{};
-}
+  static String _safeFileName(String value) {
+    final clean = value
+        .trim()
+        .replaceAll(RegExp(r'[^a-zA-Zа-яА-Я0-9._-]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_');
+    return clean.isEmpty ? 'document' : clean;
+  }
 
-String? _nullableText(dynamic value) {
-  final text = value?.toString().trim() ?? '';
-  return text.isEmpty ? null : text;
-}
-
-DateTime? _date(dynamic value) {
-  if (value is DateTime) return value;
-  return DateTime.tryParse(value?.toString() ?? '');
-}
-
-String? _emptyToNull(String? value) {
-  final clean = value?.trim() ?? '';
-  return clean.isEmpty ? null : clean;
-}
-
-String _safeFileName(String value) {
-  final clean = value.trim().replaceAll(RegExp(r'[^a-zA-Zа-яА-Я0-9._-]+'), '_');
-  return clean.isEmpty ? 'document.bin' : clean;
-}
-
-String _slug(String value) {
-  final clean = value.toLowerCase().trim().replaceAll(RegExp(r'[^a-zа-я0-9]+'), '_');
-  return clean.replaceAll(RegExp(r'^_+|_+$'), '');
+  static String _slug(String value) {
+    final clean = value
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replaceAll(RegExp(r'[^a-zа-я0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return clean.isEmpty ? 'package' : clean;
+  }
 }
