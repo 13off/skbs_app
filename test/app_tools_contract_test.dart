@@ -6,6 +6,7 @@ void main() {
   late String settings;
   late String profile;
   late String tools;
+  late String toolEntry;
   late String employment;
 
   setUpAll(() {
@@ -13,6 +14,9 @@ void main() {
     profile = File('lib/screens/profile_screen.dart').readAsStringSync();
     tools = File(
       'lib/features/tools/presentation/app_tools_screen.dart',
+    ).readAsStringSync();
+    toolEntry = File(
+      'lib/features/tools/presentation/app_tools_entry.dart',
     ).readAsStringSync();
     employment = File(
       'lib/features/documents/presentation/document_workflow_screen.dart',
@@ -38,6 +42,18 @@ void main() {
     expect(tools, contains('Подключённые'));
     expect(tools, contains('Каталог'));
     expect(tools, contains('AppСтрой Трудоустройство'));
+  });
+
+  test('connection changes refresh settings and profile immediately', () {
+    expect(tools, contains('AppToolsController.notifyChanged()'));
+    expect(
+      toolEntry,
+      contains('AppToolsController.revision.addListener(_handleToolsChanged)'),
+    );
+    expect(
+      toolEntry,
+      contains('AppToolsController.revision.removeListener(_handleToolsChanged)'),
+    );
   });
 
   test('generator and packages stay inside the installed tool', () {
