@@ -24,6 +24,7 @@ class DocumentPackageManagementScreen extends StatefulWidget {
 class _DocumentPackageManagementScreenState
     extends State<DocumentPackageManagementScreen> {
   late Future<_PackageData> future;
+  bool seeding = false;
 
   String get companyId => widget.profile.activeCompanyId;
 
@@ -34,13 +35,26 @@ class _DocumentPackageManagementScreenState
   }
 
   Future<_PackageData> load() async {
-    final values = await Future.wait<dynamic>([
+    final values = await Future.wait<dynamic>(<Future<dynamic>>[
+      DocumentWorkflowRepository.fetchAccess(),
       DocumentWorkflowRepository.fetchPackages(companyId),
       DocumentTemplateRepository.fetchTemplates(companyId: companyId),
+      DocumentWorkflowRepository.fetchPackageTemplateLinks(
+        companyId: companyId,
+      ),
     ]);
+    final access = values[0] as DocumentWorkflowAccess;
+    if (!access.canView) {
+      throw StateError('Нет доступа к пакетам документооборота');
+    }
+    final templates = (values[2] as List<DocumentTemplateRecord>)
+        .where((item) => item.isActive && item.currentVersion != null)
+        .toList(growable: false);
     return _PackageData(
-      packages: values[0] as List<DocumentPackageRecord>,
-      templates: values[1] as List<DocumentTemplateRecord>,
+      access: access,
+      packages: values[1] as List<DocumentPackageRecord>,
+      templates: templates,
+      links: values[3] as List<DocumentPackageTemplateLink>,
     );
   }
 
@@ -49,22 +63,44 @@ class _DocumentPackageManagementScreenState
     await future;
   }
 
+  Future<void> seedDefaults() async {
+    if (seeding) return;
+    setState(() => seeding = true);
+    try {
+      await DocumentWorkflowRepository.seedDefaultPackages(companyId);
+      await refresh();
+      _message('Базовые пакеты обновлены');
+    } catch (error) {
+      _message(_cleanError(error));
+    } finally {
+      if (mounted) setState(() => seeding = false);
+    }
+  }
+
   Future<void> edit({
     DocumentPackageRecord? package,
-    required List<DocumentTemplateRecord> templates,
+    required _PackageData data,
   }) async {
+    if (!data.access.canManagePackages) return;
     final title = TextEditingController(text: package?.title ?? '');
     final description = TextEditingController(text: package?.description ?? '');
-    var onboardingType = package?.onboardingType ?? 'custom';
+    var onboardingType = package?.onboardingType ?? 'gph';
     final selected = <String>{};
     final required = <String>{};
+    if (package != null) {
+      for (final link in data.links) {
+        if (link.packageId != package.id) continue;
+        selected.add(link.templateId);
+        if (link.isRequired) required.add(link.templateId);
+      }
+    }
     final result = await showDialog<_PackageDraft>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(package == null ? 'Новый пакет' : 'Редактирование пакета'),
           content: SizedBox(
-            width: 620,
+            width: 640,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -90,53 +126,70 @@ class _DocumentPackageManagementScreenState
                       labelText: 'Сценарий оформления',
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'employment', child: Text('Трудовой договор')),
-                      DropdownMenuItem(value: 'gph', child: Text('ГПХ / оказание услуг')),
-                      DropdownMenuItem(value: 'transfer', child: Text('Перевод / изменение условий')),
-                      DropdownMenuItem(value: 'termination', child: Text('Увольнение')),
-                      DropdownMenuItem(value: 'custom', child: Text('Пользовательский')),
+                      DropdownMenuItem(
+                        value: 'employment',
+                        child: Text('Трудовой договор'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'gph',
+                        child: Text('ГПХ / оказание услуг'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'transfer',
+                        child: Text('Перевод / изменение условий'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'termination',
+                        child: Text('Увольнение'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'custom',
+                        child: Text('Пользовательский'),
+                      ),
                     ],
                     onChanged: (value) {
-                      if (value != null) setDialogState(() => onboardingType = value);
+                      if (value != null) {
+                        setDialogState(() => onboardingType = value);
+                      }
                     },
                   ),
                   const SizedBox(height: 18),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Шаблоны пакета',
+                      'Утверждённые шаблоны пакета',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (templates.isEmpty)
-                    const Text('Сначала создайте или подключите шаблоны документов.')
+                  if (data.templates.isEmpty)
+                    const Text(
+                      'Нет утверждённых шаблонов с активной версией. '
+                      'Сначала опубликуйте шаблон.',
+                    )
                   else
-                    for (final template in templates)
+                    for (final template in data.templates)
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         value: selected.contains(template.id),
                         title: Text(template.title),
                         subtitle: Text(
-                          template.currentVersion == null
-                              ? 'Нет активной версии'
-                              : 'Версия ${template.currentVersion!.versionNo}',
+                          '${template.category} · '
+                          'v${template.currentVersion!.versionNo}',
                         ),
-                        onChanged: template.currentVersion == null
-                            ? null
-                            : (value) {
-                                setDialogState(() {
-                                  if (value == true) {
-                                    selected.add(template.id);
-                                    required.add(template.id);
-                                  } else {
-                                    selected.remove(template.id);
-                                    required.remove(template.id);
-                                  }
-                                });
-                              },
+                        onChanged: (value) {
+                          setDialogState(() {
+                            if (value == true) {
+                              selected.add(template.id);
+                              required.add(template.id);
+                            } else {
+                              selected.remove(template.id);
+                              required.remove(template.id);
+                            }
+                          });
+                        },
                         secondary: selected.contains(template.id)
                             ? IconButton(
                                 tooltip: required.contains(template.id)
@@ -167,18 +220,31 @@ class _DocumentPackageManagementScreenState
               child: const Text('Отмена'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                _PackageDraft(
-                  title: title.text,
-                  description: description.text,
-                  onboardingType: onboardingType,
-                  templates: [
-                    for (final id in selected)
-                      (templateId: id, required: required.contains(id)),
-                  ],
-                ),
-              ),
+              onPressed: () {
+                final cleanTitle = title.text.trim();
+                if (cleanTitle.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Введите название пакета')),
+                  );
+                  return;
+                }
+                Navigator.pop(
+                  context,
+                  _PackageDraft(
+                    title: cleanTitle,
+                    description: description.text.trim(),
+                    onboardingType: onboardingType,
+                    templates: <({String templateId, bool required})>[
+                      for (final template in data.templates)
+                        if (selected.contains(template.id))
+                          (
+                            templateId: template.id,
+                            required: required.contains(template.id),
+                          ),
+                    ],
+                  ),
+                );
+              },
               child: const Text('Сохранить'),
             ),
           ],
@@ -202,12 +268,15 @@ class _DocumentPackageManagementScreenState
         templates: result.templates,
       );
       await refresh();
+      _message('Пакет сохранён');
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_cleanError(error))),
-      );
+      _message(_cleanError(error));
     }
+  }
+
+  void _message(String value) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 
   @override
@@ -231,20 +300,43 @@ class _DocumentPackageManagementScreenState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.icon(
-                    onPressed: () => edit(templates: data.templates),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Создать пакет'),
+                if (data.access.canManagePackages)
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => edit(data: data),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Создать пакет'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: seeding ? null : seedDefaults,
+                        icon: seeding
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: const Text('Обновить базовые пакеты'),
+                      ),
+                    ],
+                  )
+                else
+                  const PremiumWorkCard(
+                    radius: 24,
+                    child: Text(
+                      'Доступен просмотр пакетов. Изменение требует разрешения '
+                      '«Пакеты документов».',
+                    ),
                   ),
-                ),
                 const SizedBox(height: 16),
                 if (data.packages.isEmpty)
                   const PremiumWorkCard(
                     radius: 24,
                     child: Text(
-                      'Пакетов пока нет. Создайте набор документов или добавьте базовые пакеты на главной инструмента.',
+                      'Пакетов пока нет. Пользователь с правом управления '
+                      'может создать набор или добавить базовые пакеты.',
                     ),
                   )
                 else
@@ -263,15 +355,18 @@ class _DocumentPackageManagementScreenState
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                           subtitle: Text(
-                            '${_typeTitle(package.onboardingType)}\n${package.description}',
+                            '${_typeTitle(package.onboardingType)} · '
+                            '${_templateCount(data.links, package.id)} шабл.\n'
+                            '${package.description}',
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          trailing: const Icon(Icons.edit_outlined),
-                          onTap: () => edit(
-                            package: package,
-                            templates: data.templates,
-                          ),
+                          trailing: data.access.canManagePackages
+                              ? const Icon(Icons.edit_outlined)
+                              : const Icon(Icons.chevron_right_rounded),
+                          onTap: data.access.canManagePackages
+                              ? () => edit(package: package, data: data)
+                              : null,
                         ),
                       ),
                     ),
@@ -285,10 +380,17 @@ class _DocumentPackageManagementScreenState
 }
 
 class _PackageData {
+  final DocumentWorkflowAccess access;
   final List<DocumentPackageRecord> packages;
   final List<DocumentTemplateRecord> templates;
+  final List<DocumentPackageTemplateLink> links;
 
-  const _PackageData({required this.packages, required this.templates});
+  const _PackageData({
+    required this.access,
+    required this.packages,
+    required this.templates,
+    required this.links,
+  });
 }
 
 class _PackageDraft {
@@ -303,6 +405,10 @@ class _PackageDraft {
     required this.onboardingType,
     required this.templates,
   });
+}
+
+int _templateCount(List<DocumentPackageTemplateLink> links, String packageId) {
+  return links.where((item) => item.packageId == packageId).length;
 }
 
 String _typeTitle(String value) => switch (value) {
