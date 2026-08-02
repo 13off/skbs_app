@@ -1,0 +1,256 @@
+name: Materialize AppСтрой tools architecture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - '.github/workflows/materialize-app-tools-architecture.yml'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Move document module into AppСтрой tools
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_required(text, old, new, file_name):
+              if old not in text:
+                  raise SystemExit(f'Marker not found in {file_name}: {old[:80]!r}')
+              return text.replace(old, new, 1)
+
+          settings_path = Path('lib/screens/settings_screen.dart')
+          settings = settings_path.read_text(encoding='utf-8')
+          settings = replace_required(
+              settings,
+              "import '../features/documents/presentation/document_workflow_settings_entry.dart';",
+              "import '../features/tools/presentation/app_tools_entry.dart';",
+              str(settings_path),
+          )
+          settings = replace_required(
+              settings,
+              "          const SizedBox(height: 8),\n"
+              "          DocumentWorkflowSettingsEntry(profile: profile),\n"
+              "          sectionTitle('Настройки профессии'),",
+              "          sectionTitle('Настройки профессии'),",
+              str(settings_path),
+          )
+          settings = replace_required(
+              settings,
+              "          sectionTitle('Настройки профессии'),\n"
+              "          ...roleItems,\n"
+              "          if (managementItems.isNotEmpty) ...[",
+              "          sectionTitle('Настройки профессии'),\n"
+              "          ...roleItems,\n"
+              "          const SizedBox(height: 8),\n"
+              "          AppToolsSettingsEntry(profile: profile),\n"
+              "          if (managementItems.isNotEmpty) ...[",
+              str(settings_path),
+          )
+          settings_path.write_text(settings, encoding='utf-8')
+
+          profile_path = Path('lib/screens/profile_screen.dart')
+          profile = profile_path.read_text(encoding='utf-8')
+          profile = replace_required(
+              profile,
+              "import '../features/role_preview/role_preview_controller.dart';",
+              "import '../features/role_preview/role_preview_controller.dart';\n"
+              "import '../features/tools/presentation/app_tools_entry.dart';",
+              str(profile_path),
+          )
+          profile = replace_required(
+              profile,
+              "          const SizedBox(height: 8),\n"
+              "          signOutButton(),",
+              "          ConnectedAppToolsSection(profile: profile),\n"
+              "          const SizedBox(height: 8),\n"
+              "          signOutButton(),",
+              str(profile_path),
+          )
+          profile_path.write_text(profile, encoding='utf-8')
+
+          workflow_path = Path(
+              'lib/features/documents/presentation/document_workflow_screen.dart'
+          )
+          workflow = workflow_path.read_text(encoding='utf-8')
+          workflow = replace_required(
+              workflow,
+              "import 'document_onboarding_screen.dart';",
+              "import 'document_generation_screen.dart';\n"
+              "import 'document_onboarding_screen.dart';",
+              str(workflow_path),
+          )
+          workflow = workflow.replace('  bool changingInstallation = false;\n', '', 1)
+
+          toggle_start = workflow.find('  Future<void> toggleInstallation(')
+          if toggle_start >= 0:
+              toggle_end = workflow.find('  Future<void> seedPackages()', toggle_start)
+              if toggle_end < 0:
+                  raise SystemExit('toggleInstallation closing marker not found')
+              workflow = workflow[:toggle_start] + workflow[toggle_end:]
+
+          workflow = replace_required(
+              workflow,
+              "      title: 'Документооборот',\n"
+              "      subtitle: 'Оформление сотрудника от исходников до архива',",
+              "      title: 'AppСтрой Трудоустройство',\n"
+              "      subtitle: 'Кадровое оформление от кандидата до архива',",
+              str(workflow_path),
+          )
+
+          installation_card = (
+              "              _InstallationCard(\n"
+              "                installation: data.installation,\n"
+              "                access: data.access,\n"
+              "                loading: changingInstallation,\n"
+              "                onChanged: (value) => toggleInstallation(data, value),\n"
+              "              ),"
+          )
+          tool_header = (
+              "              const PremiumWorkCard(\n"
+              "                radius: 26,\n"
+              "                child: Row(\n"
+              "                  crossAxisAlignment: CrossAxisAlignment.start,\n"
+              "                  children: [\n"
+              "                    Icon(Icons.badge_outlined, size: 30),\n"
+              "                    SizedBox(width: 14),\n"
+              "                    Expanded(\n"
+              "                      child: Column(\n"
+              "                        crossAxisAlignment: CrossAxisAlignment.start,\n"
+              "                        children: [\n"
+              "                          Text(\n"
+              "                            'AppСтрой Трудоустройство',\n"
+              "                            style: TextStyle(\n"
+              "                              fontSize: 18,\n"
+              "                              fontWeight: FontWeight.w900,\n"
+              "                            ),\n"
+              "                          ),\n"
+              "                          SizedBox(height: 5),\n"
+              "                          Text(\n"
+              "                            'Оформления, генератор, пакеты, шаблоны и кадровый архив внутри одного инструмента.',\n"
+              "                            style: TextStyle(height: 1.4),\n"
+              "                          ),\n"
+              "                        ],\n"
+              "                      ),\n"
+              "                    ),\n"
+              "                  ],\n"
+              "                ),\n"
+              "              ),"
+          )
+          workflow = replace_required(
+              workflow,
+              installation_card,
+              tool_header,
+              str(workflow_path),
+          )
+          workflow = workflow.replace(
+              "                    'Инструмент отключён. Данные, шаблоны и ранее созданные '\n"
+              "                    'архивы не удаляются. После включения появляются мастер, '\n"
+              "                    'пакеты и история.',",
+              "                    'Инструмент отключён для компании. Подключите его в разделе '\n"
+              "                    '«Инструменты AppСтрой». Данные и архив при отключении '\n"
+              "                    'не удаляются.',",
+              1,
+          )
+
+          class_start = workflow.find('class _InstallationCard extends StatelessWidget')
+          if class_start >= 0:
+              class_end = workflow.find('class _Metrics extends StatelessWidget', class_start)
+              if class_end < 0:
+                  raise SystemExit('_InstallationCard closing marker not found')
+              workflow = workflow[:class_start] + workflow[class_end:]
+
+          workflow = replace_required(
+              workflow,
+              "                  onCreate: () => createOnboarding(data),\n"
+              "                  onTemplates:",
+              "                  onCreate: () => createOnboarding(data),\n"
+              "                  onGenerator: () => open(\n"
+              "                    DocumentGenerationScreen(profile: widget.profile),\n"
+              "                  ),\n"
+              "                  onTemplates:",
+              str(workflow_path),
+          )
+          workflow = replace_required(
+              workflow,
+              "  final VoidCallback onCreate;\n"
+              "  final VoidCallback onTemplates;",
+              "  final VoidCallback onCreate;\n"
+              "  final VoidCallback onGenerator;\n"
+              "  final VoidCallback onTemplates;",
+              str(workflow_path),
+          )
+          workflow = replace_required(
+              workflow,
+              "    required this.onCreate,\n"
+              "    required this.onTemplates,",
+              "    required this.onCreate,\n"
+              "    required this.onGenerator,\n"
+              "    required this.onTemplates,",
+              str(workflow_path),
+          )
+          workflow = replace_required(
+              workflow,
+              "          if (data.access.canViewTemplates)\n"
+              "            OutlinedButton.icon(\n"
+              "              onPressed: onTemplates,",
+              "          if (data.access.canEdit)\n"
+              "            OutlinedButton.icon(\n"
+              "              onPressed: onGenerator,\n"
+              "              icon: const Icon(Icons.auto_awesome_outlined),\n"
+              "              label: const Text('Генератор'),\n"
+              "            ),\n"
+              "          if (data.access.canViewTemplates)\n"
+              "            OutlinedButton.icon(\n"
+              "              onPressed: onTemplates,",
+              str(workflow_path),
+          )
+          workflow_path.write_text(workflow, encoding='utf-8')
+
+          old_entry = Path(
+              'lib/features/documents/presentation/document_workflow_settings_entry.dart'
+          )
+          if old_entry.exists():
+              old_entry.unlink()
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Format and validate
+        run: |
+          dart format lib/features/tools/presentation/app_tools_screen.dart \
+            lib/features/tools/presentation/app_tools_entry.dart \
+            lib/features/documents/presentation/document_workflow_screen.dart \
+            lib/screens/settings_screen.dart \
+            lib/screens/profile_screen.dart \
+            test/app_tools_contract_test.dart
+          flutter pub get --enforce-lockfile >/dev/null
+          flutter analyze
+          flutter test --reporter compact
+          flutter build web --release --base-href /appstroy-web/
+
+      - name: Commit architecture
+        shell: bash
+        run: |
+          rm .github/workflows/materialize-app-tools-architecture.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: separate AppСтрой tools from settings sections'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
