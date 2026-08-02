@@ -281,6 +281,7 @@ class _DocumentPackageManagementScreenState
     return AppPage(
       title: 'Пакеты документов',
       subtitle: 'Готовые наборы для HR',
+      onRefresh: refresh,
       child: FutureBuilder<_PackageData>(
         future: future,
         builder: (context, snapshot) {

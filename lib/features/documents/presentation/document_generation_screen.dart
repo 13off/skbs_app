@@ -231,6 +231,7 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
     return AppPage(
       title: 'Генератор документов',
       subtitle: 'Утверждённые DOCX-версии без изменения оригинала',
+      onRefresh: _refresh,
       child: FutureBuilder<_GenerationWorkspace>(
         future: future,
         builder: (context, snapshot) {

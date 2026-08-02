@@ -21,7 +21,6 @@ class DocumentWorkflowScreen extends StatefulWidget {
 
 class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   late Future<DocumentWorkflowDashboardData> future;
-  bool changingInstallation = false;
   bool creating = false;
 
   String get companyId => widget.profile.activeCompanyId;
@@ -45,26 +44,6 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
     Navigator.of(
       context,
     ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
-  }
-
-  Future<void> toggleInstallation(
-    DocumentWorkflowDashboardData data,
-    bool enabled,
-  ) async {
-    if (changingInstallation || !data.access.canManage) return;
-    setState(() => changingInstallation = true);
-    try {
-      await DocumentWorkflowRepository.setInstallation(
-        companyId: companyId,
-        isEnabled: enabled,
-        settings: data.installation.settings,
-      );
-      await refresh();
-    } catch (error) {
-      _message(_cleanError(error));
-    } finally {
-      if (mounted) setState(() => changingInstallation = false);
-    }
   }
 
   Future<void> seedPackages() async {
@@ -141,8 +120,9 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: 'Документооборот',
+      title: 'Оформления',
       subtitle: 'Оформление сотрудника от исходников до архива',
+      onRefresh: refresh,
       child: FutureBuilder<DocumentWorkflowDashboardData>(
         future: future,
         builder: (context, snapshot) {
@@ -159,12 +139,6 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _InstallationCard(
-                installation: data.installation,
-                access: data.access,
-                loading: changingInstallation,
-                onChanged: (value) => toggleInstallation(data, value),
-              ),
               if (!data.installation.isEnabled) ...[
                 const SizedBox(height: 14),
                 const PremiumWorkCard(
@@ -239,53 +213,6 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _InstallationCard extends StatelessWidget {
-  final DocumentToolInstallation installation;
-  final DocumentWorkflowAccess access;
-  final bool loading;
-  final ValueChanged<bool> onChanged;
-
-  const _InstallationCard({
-    required this.installation,
-    required this.access,
-    required this.loading,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      radius: 26,
-      child: SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        value: installation.isEnabled,
-        onChanged: access.canManage && !loading ? onChanged : null,
-        secondary: loading
-            ? const SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                installation.isEnabled
-                    ? Icons.folder_special_rounded
-                    : Icons.folder_off_outlined,
-              ),
-        title: const Text(
-          'AppСтрой Документооборот',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          access.canManage
-              ? 'Подключаемый инструмент компании'
-              : installation.isEnabled
-              ? 'Подключён компанией'
-              : 'Отключён компанией',
-        ),
       ),
     );
   }

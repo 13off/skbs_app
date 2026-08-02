@@ -977,6 +977,7 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
     return AppPage(
       title: 'Оформление сотрудника',
       subtitle: '13 обязательных этапов',
+      onRefresh: refresh,
       child: FutureBuilder<_OnboardingData>(
         future: future,
         builder: (context, snapshot) {
