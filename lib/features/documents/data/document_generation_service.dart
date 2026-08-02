@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:docx_template/docx_template.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
