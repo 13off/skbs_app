@@ -165,11 +165,11 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
                       child: Text(
                         data.access.canManage
                             ? 'Владелец или администратор подключает инструмент '
-                                'один раз для компании. После этого HR, юрист и '
-                                'другие роли видят только разрешённые разделы.'
+                                  'один раз для компании. После этого HR, юрист и '
+                                  'другие роли видят только разрешённые разделы.'
                             : 'Инструменты подключаются владельцем или '
-                                'администратором компании. Внутри отображаются '
-                                'только разделы, разрешённые вашей роли.',
+                                  'администратором компании. Внутри отображаются '
+                                  'только разделы, разрешённые вашей роли.',
                         style: const TextStyle(height: 1.45),
                       ),
                     ),
@@ -195,9 +195,9 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   });
 
   void _open(BuildContext context, Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   @override
@@ -241,9 +241,9 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Разделы инструмента',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           if (access.canView)
@@ -251,20 +251,16 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
               icon: Icons.fact_check_outlined,
               title: 'Оформления',
               subtitle: 'Кандидаты и сотрудники: 13 этапов до архива',
-              onTap: () => _open(
-                context,
-                DocumentWorkflowScreen(profile: profile),
-              ),
+              onTap: () =>
+                  _open(context, DocumentWorkflowScreen(profile: profile)),
             ),
           if (access.canEdit)
             _ToolActionCard(
               icon: Icons.auto_awesome_outlined,
               title: 'Генератор документов',
               subtitle: 'DOCX по утверждённым версиям шаблонов',
-              onTap: () => _open(
-                context,
-                DocumentGenerationScreen(profile: profile),
-              ),
+              onTap: () =>
+                  _open(context, DocumentGenerationScreen(profile: profile)),
             ),
           if (access.canManagePackages)
             _ToolActionCard(
@@ -281,20 +277,16 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
               icon: Icons.description_outlined,
               title: 'Шаблоны',
               subtitle: 'Утверждённые версии и защищённые поля',
-              onTap: () => _open(
-                context,
-                TemplateDocumentsScreen(profile: profile),
-              ),
+              onTap: () =>
+                  _open(context, TemplateDocumentsScreen(profile: profile)),
             ),
           if (access.canViewAudit)
             _ToolActionCard(
               icon: Icons.archive_outlined,
               title: 'Архив',
               subtitle: 'Документы сотрудников, версии и история',
-              onTap: () => _open(
-                context,
-                ArchiveManagementScreenV3(profile: profile),
-              ),
+              onTap: () =>
+                  _open(context, ArchiveManagementScreenV3(profile: profile)),
             ),
         ],
       ),
@@ -453,10 +445,7 @@ class _ToolActionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -514,10 +503,7 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message),
           const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: const Text('Повторить'),
-          ),
+          OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
         ],
       ),
     );

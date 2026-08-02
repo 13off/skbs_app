@@ -11,10 +11,7 @@ import '../models/document_template.dart';
 class DocumentPackageManagementScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const DocumentPackageManagementScreen({
-    super.key,
-    required this.profile,
-  });
+  const DocumentPackageManagementScreen({super.key, required this.profile});
 
   @override
   State<DocumentPackageManagementScreen> createState() =>
@@ -98,7 +95,9 @@ class _DocumentPackageManagementScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(package == null ? 'Новый пакет' : 'Редактирование пакета'),
+          title: Text(
+            package == null ? 'Новый пакет' : 'Редактирование пакета',
+          ),
           content: SizedBox(
             width: 640,
             child: SingleChildScrollView(
@@ -115,9 +114,7 @@ class _DocumentPackageManagementScreenState
                   TextField(
                     controller: description,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Описание',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Описание'),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -159,8 +156,8 @@ class _DocumentPackageManagementScreenState
                     child: Text(
                       'Утверждённые шаблоны пакета',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -294,84 +291,80 @@ class _DocumentPackageManagementScreenState
             return Center(child: Text(_cleanError(snapshot.error)));
           }
           final data = snapshot.requireData;
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                if (data.access.canManagePackages)
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => edit(data: data),
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('Создать пакет'),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (data.access.canManagePackages)
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => edit(data: data),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Создать пакет'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: seeding ? null : seedDefaults,
+                      icon: seeding
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome_outlined),
+                      label: const Text('Обновить базовые пакеты'),
+                    ),
+                  ],
+                )
+              else
+                const PremiumWorkCard(
+                  radius: 24,
+                  child: Text(
+                    'Доступен просмотр пакетов. Изменение требует разрешения '
+                    '«Пакеты документов».',
+                  ),
+                ),
+              const SizedBox(height: 16),
+              if (data.packages.isEmpty)
+                const PremiumWorkCard(
+                  radius: 24,
+                  child: Text(
+                    'Пакетов пока нет. Пользователь с правом управления '
+                    'может создать набор или добавить базовые пакеты.',
+                  ),
+                )
+              else
+                for (final package in data.packages)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: PremiumWorkCard(
+                      radius: 23,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.inventory_2_outlined),
+                        ),
+                        title: Text(
+                          package.title,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        subtitle: Text(
+                          '${_typeTitle(package.onboardingType)} · '
+                          '${_templateCount(data.links, package.id)} шабл.\n'
+                          '${package.description}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: data.access.canManagePackages
+                            ? const Icon(Icons.edit_outlined)
+                            : const Icon(Icons.chevron_right_rounded),
+                        onTap: data.access.canManagePackages
+                            ? () => edit(package: package, data: data)
+                            : null,
                       ),
-                      OutlinedButton.icon(
-                        onPressed: seeding ? null : seedDefaults,
-                        icon: seeding
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.auto_awesome_outlined),
-                        label: const Text('Обновить базовые пакеты'),
-                      ),
-                    ],
-                  )
-                else
-                  const PremiumWorkCard(
-                    radius: 24,
-                    child: Text(
-                      'Доступен просмотр пакетов. Изменение требует разрешения '
-                      '«Пакеты документов».',
                     ),
                   ),
-                const SizedBox(height: 16),
-                if (data.packages.isEmpty)
-                  const PremiumWorkCard(
-                    radius: 24,
-                    child: Text(
-                      'Пакетов пока нет. Пользователь с правом управления '
-                      'может создать набор или добавить базовые пакеты.',
-                    ),
-                  )
-                else
-                  for (final package in data.packages)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: PremiumWorkCard(
-                        radius: 23,
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.inventory_2_outlined),
-                          ),
-                          title: Text(
-                            package.title,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          subtitle: Text(
-                            '${_typeTitle(package.onboardingType)} · '
-                            '${_templateCount(data.links, package.id)} шабл.\n'
-                            '${package.description}',
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: data.access.canManagePackages
-                              ? const Icon(Icons.edit_outlined)
-                              : const Icon(Icons.chevron_right_rounded),
-                          onTap: data.access.canManagePackages
-                              ? () => edit(package: package, data: data)
-                              : null,
-                        ),
-                      ),
-                    ),
-              ],
-            ),
+            ],
           );
         },
       ),
@@ -412,13 +405,13 @@ int _templateCount(List<DocumentPackageTemplateLink> links, String packageId) {
 }
 
 String _typeTitle(String value) => switch (value) {
-      'employment' => 'Трудовой договор',
-      'gph' => 'ГПХ / оказание услуг',
-      'transfer' => 'Перевод / изменение условий',
-      'termination' => 'Увольнение',
-      'custom' => 'Пользовательский пакет',
-      _ => value,
-    };
+  'employment' => 'Трудовой договор',
+  'gph' => 'ГПХ / оказание услуг',
+  'transfer' => 'Перевод / изменение условий',
+  'termination' => 'Увольнение',
+  'custom' => 'Пользовательский пакет',
+  _ => value,
+};
 
 String _cleanError(Object? value) {
   final text = value?.toString() ?? 'Неизвестная ошибка';

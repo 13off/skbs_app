@@ -991,43 +991,39 @@ class _DocumentOnboardingScreenState extends State<DocumentOnboardingScreen> {
           }
           final data = snapshot.requireData;
           final currentStep = _currentStep(data);
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                _ProcessHeader(data: data),
-                const SizedBox(height: 14),
-                _ProgressHeader(
-                  steps: data.steps,
-                  currentStep: data.process.currentStep,
-                ),
-                const SizedBox(height: 14),
-                if (data.process.isCompleted)
-                  _CompletedCard(process: data.process)
-                else if (currentStep != null)
-                  _CurrentStepCard(
-                    data: data,
-                    step: currentStep,
-                    busy: busy,
-                    onAdvance: () => advance(data, currentStep),
-                    onUpload: (kind) => uploadFile(data, fileKind: kind),
-                    onOpenTemplate: () => openTemplate(data),
-                  ),
-                const SizedBox(height: 18),
-                _FilesSection(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ProcessHeader(data: data),
+              const SizedBox(height: 14),
+              _ProgressHeader(
+                steps: data.steps,
+                currentStep: data.process.currentStep,
+              ),
+              const SizedBox(height: 14),
+              if (data.process.isCompleted)
+                _CompletedCard(process: data.process)
+              else if (currentStep != null)
+                _CurrentStepCard(
                   data: data,
+                  step: currentStep,
                   busy: busy,
-                  onOpen: openFileRecord,
-                  onVerify: (file) => verifyFile(data, file),
+                  onAdvance: () => advance(data, currentStep),
+                  onUpload: (kind) => uploadFile(data, fileKind: kind),
+                  onOpenTemplate: () => openTemplate(data),
                 ),
-                if (data.access.canViewAudit) ...[
-                  const SizedBox(height: 18),
-                  _AuditSection(records: data.audit),
-                ],
+              const SizedBox(height: 18),
+              _FilesSection(
+                data: data,
+                busy: busy,
+                onOpen: openFileRecord,
+                onVerify: (file) => verifyFile(data, file),
+              ),
+              if (data.access.canViewAudit) ...[
+                const SizedBox(height: 18),
+                _AuditSection(records: data.audit),
               ],
-            ),
+            ],
           );
         },
       ),

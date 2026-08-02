@@ -42,9 +42,9 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   }
 
   void open(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Future<void> toggleInstallation(
@@ -77,9 +77,7 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
     }
   }
 
-  Future<void> createOnboarding(
-    DocumentWorkflowDashboardData dashboard,
-  ) async {
+  Future<void> createOnboarding(DocumentWorkflowDashboardData dashboard) async {
     if (creating || !dashboard.access.canCreate) return;
     setState(() => creating = true);
     try {
@@ -158,92 +156,87 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
             );
           }
           final data = snapshot.requireData;
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                _InstallationCard(
-                  installation: data.installation,
-                  access: data.access,
-                  loading: changingInstallation,
-                  onChanged: (value) => toggleInstallation(data, value),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _InstallationCard(
+                installation: data.installation,
+                access: data.access,
+                loading: changingInstallation,
+                onChanged: (value) => toggleInstallation(data, value),
+              ),
+              if (!data.installation.isEnabled) ...[
+                const SizedBox(height: 14),
+                const PremiumWorkCard(
+                  radius: 24,
+                  child: Text(
+                    'Инструмент отключён. Данные, шаблоны и ранее созданные '
+                    'архивы не удаляются. После включения появляются мастер, '
+                    'пакеты и история.',
+                    style: TextStyle(height: 1.45),
+                  ),
                 ),
-                if (!data.installation.isEnabled) ...[
-                  const SizedBox(height: 14),
+              ] else if (!data.access.canView) ...[
+                const SizedBox(height: 14),
+                const PremiumWorkCard(
+                  radius: 24,
+                  child: Text(
+                    'Инструмент подключён, но вашей роли не выдано право '
+                    'просмотра документооборота.',
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 14),
+                _Metrics(data: data),
+                const SizedBox(height: 14),
+                _Actions(
+                  data: data,
+                  creating: creating,
+                  onCreate: () => createOnboarding(data),
+                  onTemplates: () =>
+                      open(TemplateDocumentsScreen(profile: widget.profile)),
+                  onPackages: () => open(
+                    DocumentPackageManagementScreen(profile: widget.profile),
+                  ),
+                  onSeedPackages: seedPackages,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Оформления',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 10),
+                if (data.onboardings.isEmpty)
                   const PremiumWorkCard(
                     radius: 24,
                     child: Text(
-                      'Инструмент отключён. Данные, шаблоны и ранее созданные '
-                      'архивы не удаляются. После включения появляются мастер, '
-                      'пакеты и история.',
-                      style: TextStyle(height: 1.45),
+                      'Процессов пока нет. Создайте оформление из кандидата '
+                      'CRM или выберите уже существующего сотрудника.',
                     ),
-                  ),
-                ] else if (!data.access.canView) ...[
-                  const SizedBox(height: 14),
-                  const PremiumWorkCard(
-                    radius: 24,
-                    child: Text(
-                      'Инструмент подключён, но вашей роли не выдано право '
-                      'просмотра документооборота.',
-                    ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 14),
-                  _Metrics(data: data),
-                  const SizedBox(height: 14),
-                  _Actions(
-                    data: data,
-                    creating: creating,
-                    onCreate: () => createOnboarding(data),
-                    onTemplates: () => open(
-                      TemplateDocumentsScreen(profile: widget.profile),
-                    ),
-                    onPackages: () => open(
-                      DocumentPackageManagementScreen(profile: widget.profile),
-                    ),
-                    onSeedPackages: seedPackages,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Оформления',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (data.onboardings.isEmpty)
-                    const PremiumWorkCard(
-                      radius: 24,
-                      child: Text(
-                        'Процессов пока нет. Создайте оформление из кандидата '
-                        'CRM или выберите уже существующего сотрудника.',
-                      ),
-                    )
-                  else
-                    for (final onboarding in data.onboardings)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _OnboardingTile(
-                          onboarding: onboarding,
-                          onTap: () async {
-                            await Navigator.of(context).push<void>(
-                              CupertinoPageRoute<void>(
-                                builder: (_) => DocumentOnboardingScreen(
-                                  profile: widget.profile,
-                                  onboardingId: onboarding.id,
-                                ),
+                  )
+                else
+                  for (final onboarding in data.onboardings)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _OnboardingTile(
+                        onboarding: onboarding,
+                        onTap: () async {
+                          await Navigator.of(context).push<void>(
+                            CupertinoPageRoute<void>(
+                              builder: (_) => DocumentOnboardingScreen(
+                                profile: widget.profile,
+                                onboardingId: onboarding.id,
                               ),
-                            );
-                            await refresh();
-                          },
-                        ),
+                            ),
+                          );
+                          await refresh();
+                        },
                       ),
-                ],
+                    ),
               ],
-            ),
+            ],
           );
         },
       ),
@@ -290,8 +283,8 @@ class _InstallationCard extends StatelessWidget {
           access.canManage
               ? 'Подключаемый инструмент компании'
               : installation.isEnabled
-                  ? 'Подключён компанией'
-                  : 'Отключён компанией',
+              ? 'Подключён компанией'
+              : 'Отключён компанией',
         ),
       ),
     );
@@ -414,12 +407,13 @@ class _OnboardingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progressIndex =
-        DocumentOnboardingSteps.ordered.indexOf(onboarding.currentStep);
+    final progressIndex = DocumentOnboardingSteps.ordered.indexOf(
+      onboarding.currentStep,
+    );
     final progress = onboarding.isCompleted
         ? 1.0
         : ((progressIndex < 0 ? 0 : progressIndex) + 1) /
-            DocumentOnboardingSteps.ordered.length;
+              DocumentOnboardingSteps.ordered.length;
     return PremiumWorkCard(
       radius: 24,
       child: InkWell(
@@ -560,8 +554,9 @@ class _CreateOnboardingDialogState extends State<_CreateOnboardingDialog> {
   }
 
   void submit() {
-    final hasPerson =
-        source == 'candidate' ? candidateId != null : employeeId != null;
+    final hasPerson = source == 'candidate'
+        ? candidateId != null
+        : employeeId != null;
     if (!hasPerson) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Выберите кандидата или сотрудника')),
@@ -797,10 +792,7 @@ class _ErrorState extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
+            OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
           ],
         ),
       ),
@@ -809,21 +801,21 @@ class _ErrorState extends StatelessWidget {
 }
 
 String _stepTitle(String code) => switch (code) {
-      'source_files' => 'Исходные документы',
-      'source_completeness' => 'Комплектность',
-      'recognition' => 'Распознавание данных',
-      'hr_verification' => 'Проверка HR',
-      'employee_card' => 'Карточка сотрудника',
-      'package_and_conditions' => 'Пакет и условия',
-      'generation' => 'Формирование документов',
-      'printing' => 'Печать',
-      'signing' => 'Подписание',
-      'signed_documents' => 'Подписанные документы',
-      'final_scans' => 'Финальные сканы',
-      'archive_verification' => 'Проверка архива',
-      'completion' => 'Завершение',
-      _ => code,
-    };
+  'source_files' => 'Исходные документы',
+  'source_completeness' => 'Комплектность',
+  'recognition' => 'Распознавание данных',
+  'hr_verification' => 'Проверка HR',
+  'employee_card' => 'Карточка сотрудника',
+  'package_and_conditions' => 'Пакет и условия',
+  'generation' => 'Формирование документов',
+  'printing' => 'Печать',
+  'signing' => 'Подписание',
+  'signed_documents' => 'Подписанные документы',
+  'final_scans' => 'Финальные сканы',
+  'archive_verification' => 'Проверка архива',
+  'completion' => 'Завершение',
+  _ => code,
+};
 
 String _dateText(DateTime value) {
   final day = value.day.toString().padLeft(2, '0');
