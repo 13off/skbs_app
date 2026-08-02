@@ -26,6 +26,10 @@ void main() {
       settings.indexOf("sectionTitle('Уведомления')"),
       lessThan(settings.indexOf("sectionTitle('Настройки профессии')")),
     );
+    expect(
+      settings.indexOf("sectionTitle('Настройки профессии')"),
+      lessThan(settings.indexOf('AppToolsSettingsEntry(profile: profile)')),
+    );
   });
 
   test('connected employment tool appears as a profile work tool', () {
