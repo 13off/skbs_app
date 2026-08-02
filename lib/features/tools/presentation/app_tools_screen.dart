@@ -7,6 +7,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../../documents/data/document_workflow_repository.dart';
 import '../../documents/models/document_onboarding.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
+import '../data/app_tools_controller.dart';
 
 class AppToolsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -62,6 +63,7 @@ class _AppToolsScreenState extends State<AppToolsScreen> {
         isEnabled: enabled,
         settings: workspace.installation.settings,
       );
+      AppToolsController.notifyChanged();
       selectedTab = enabled ? _ToolsTab.connected : _ToolsTab.catalog;
       await refresh();
       _message(

@@ -6,6 +6,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../../documents/data/document_workflow_repository.dart';
 import '../../documents/models/document_onboarding.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
+import '../data/app_tools_controller.dart';
 import 'app_tools_screen.dart';
 
 class AppToolsSettingsEntry extends StatefulWidget {
@@ -23,7 +24,19 @@ class _AppToolsSettingsEntryState extends State<AppToolsSettingsEntry> {
   @override
   void initState() {
     super.initState();
+    AppToolsController.revision.addListener(_handleToolsChanged);
     future = _load();
+  }
+
+  @override
+  void dispose() {
+    AppToolsController.revision.removeListener(_handleToolsChanged);
+    super.dispose();
+  }
+
+  void _handleToolsChanged() {
+    if (!mounted) return;
+    setState(() => future = _load());
   }
 
   @override
@@ -101,7 +114,19 @@ class _ConnectedAppToolsSectionState extends State<ConnectedAppToolsSection> {
   @override
   void initState() {
     super.initState();
+    AppToolsController.revision.addListener(_handleToolsChanged);
     future = _load();
+  }
+
+  @override
+  void dispose() {
+    AppToolsController.revision.removeListener(_handleToolsChanged);
+    super.dispose();
+  }
+
+  void _handleToolsChanged() {
+    if (!mounted) return;
+    setState(() => future = _load());
   }
 
   @override
