@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
@@ -79,9 +78,7 @@ abstract final class DocumentTemplateOnlineEditor {
       if (block.isProtected) return false;
       return (values[block.id]?.trim() ?? block.text) != block.text;
     }).length;
-    if (changedCount == 0) {
-      throw StateError('Изменений нет');
-    }
+    if (changedCount == 0) throw StateError('Изменений нет');
 
     final bytes = save(draft, values);
     final workingTemplateId = await _companyTemplateId(
@@ -217,39 +214,51 @@ abstract final class DocumentTemplateOnlineEditor {
     DocumentTemplateOnlineDraft draft,
     Map<String, String> values,
   ) {
-    final archive = ZipDecoder().decodeBytes(draft.sourceBytes, verify: true);
+    final sourceArchive = ZipDecoder().decodeBytes(
+      draft.sourceBytes,
+      verify: true,
+    );
+    final outputArchive = Archive();
     final blocksByPart = <String, Map<int, DocumentTemplateEditableBlock>>{};
     for (final block in draft.blocks) {
       if (block.isProtected) continue;
       blocksByPart
-          .putIfAbsent(block.partPath, () => <int, DocumentTemplateEditableBlock>{})
-          [block.paragraphIndex] = block;
+          .putIfAbsent(
+            block.partPath,
+            () => <int, DocumentTemplateEditableBlock>{},
+          )[block.paragraphIndex] = block;
     }
 
-    for (final file in archive.files) {
-      final partBlocks = blocksByPart[file.name];
-      if (partBlocks == null || partBlocks.isEmpty) continue;
+    for (final file in sourceArchive.files) {
       final content = file.content;
       if (content is! List<int>) continue;
-      var xml = utf8.decode(content, allowMalformed: true);
-      final paragraphs = _paragraphPattern.allMatches(xml).toList();
-      final indexes = partBlocks.keys.toList()..sort((a, b) => b.compareTo(a));
-      for (final paragraphIndex in indexes) {
-        if (paragraphIndex < 0 || paragraphIndex >= paragraphs.length) continue;
-        final block = partBlocks[paragraphIndex]!;
-        final nextText = values[block.id]?.trim() ?? block.text;
-        if (nextText == block.text) continue;
-        final match = paragraphs[paragraphIndex];
-        final paragraph = match.group(0) ?? '';
-        final updated = _replaceParagraphText(paragraph, nextText);
-        xml = xml.replaceRange(match.start, match.end, updated);
+      var nextBytes = Uint8List.fromList(content);
+      final partBlocks = blocksByPart[file.name];
+      if (partBlocks != null && partBlocks.isNotEmpty) {
+        var xml = utf8.decode(content, allowMalformed: true);
+        final paragraphs = _paragraphPattern.allMatches(xml).toList();
+        final indexes = partBlocks.keys.toList()
+          ..sort((first, second) => second.compareTo(first));
+        for (final paragraphIndex in indexes) {
+          if (paragraphIndex < 0 || paragraphIndex >= paragraphs.length) {
+            continue;
+          }
+          final block = partBlocks[paragraphIndex]!;
+          final nextText = values[block.id]?.trim() ?? block.text;
+          if (nextText == block.text) continue;
+          final match = paragraphs[paragraphIndex];
+          final paragraph = match.group(0) ?? '';
+          final updated = _replaceParagraphText(paragraph, nextText);
+          xml = xml.replaceRange(match.start, match.end, updated);
+        }
+        nextBytes = Uint8List.fromList(utf8.encode(xml));
       }
-      final encoded = Uint8List.fromList(utf8.encode(xml));
-      file.content = encoded;
-      file.size = encoded.length;
+      outputArchive.addFile(
+        ArchiveFile(file.name, nextBytes.length, nextBytes),
+      );
     }
 
-    final encoded = ZipEncoder().encode(archive);
+    final encoded = ZipEncoder().encode(outputArchive);
     if (encoded == null || encoded.isEmpty) {
       throw StateError('Не удалось собрать новую DOCX-версию');
     }
