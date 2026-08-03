@@ -56,3 +56,5 @@ jobs:
           git add -A
           git commit -m 'chore: remove completed template import workflow'
           git push origin main
+
+# trigger after workflow exists on main
