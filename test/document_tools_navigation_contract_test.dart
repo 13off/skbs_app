@@ -41,14 +41,15 @@ void main() {
     expect(tools, isNot(contains("Chip(label: Text('Юрист'))")));
   });
 
-  test('connected tool appears in profile as an app shortcut', () {
+  test('only an enabled connected tool appears in profile as an app shortcut', () {
     final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
 
     expect(profile, contains("sectionTitle('Инструменты')"));
     expect(profile, contains('DocumentToolAppShortcut('));
     expect(profile, contains('DocumentToolWorkspaceScreen('));
-    expect(profile, contains('installation.isEnabled'));
-    expect(profile, contains('access.canView'));
+    expect(profile, contains('!data.installation.isEnabled'));
+    expect(profile, contains('!data.access.canView'));
+    expect(profile, contains('return const SizedBox.shrink();'));
   });
 
   test('onboarding list is a section of the connected tool', () {
