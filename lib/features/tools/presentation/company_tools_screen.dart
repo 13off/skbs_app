@@ -11,6 +11,7 @@ import '../../documents/models/document_onboarding.dart';
 import '../../documents/presentation/document_generation_screen.dart';
 import '../../documents/presentation/document_package_management_screen.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
+import 'document_tool_feature_gate.dart';
 
 class CompanyToolsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -38,18 +39,15 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
     if (companyId.isEmpty) {
       throw StateError('Сначала выберите активную компанию');
     }
-
     final values = await Future.wait<dynamic>(<Future<dynamic>>[
       DocumentWorkflowRepository.fetchAccess(),
       DocumentWorkflowRepository.fetchInstallation(companyId),
     ]);
     final access = values[0] as DocumentWorkflowAccess;
     final installation = values[1] as DocumentToolInstallation;
-
     if (!installation.isEnabled && access.canManage) {
       selectedTab = _CompanyToolsTab.catalog;
     }
-
     return _ToolsData(access: access, installation: installation);
   }
 
@@ -60,15 +58,14 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
 
   Future<void> _setEnabled(_ToolsData data, bool enabled) async {
     if (changing || !data.access.canManage) return;
-
     if (!enabled) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Отключить инструмент?'),
           content: const Text(
-            'Оформления, шаблоны, документы и архивы не удалятся. '
-            'Инструмент просто перестанет быть доступен до повторного включения.',
+            'Оформления, шаблоны, документы и архивы сохранятся. '
+            'Рабочие функции снова появятся после включения.',
           ),
           actions: [
             TextButton(
@@ -92,6 +89,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
         isEnabled: enabled,
         settings: data.installation.settings,
       );
+      DocumentToolAvailability.notifyChanged();
       selectedTab = enabled
           ? _CompanyToolsTab.connected
           : _CompanyToolsTab.catalog;
@@ -120,6 +118,18 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
     );
   }
 
+  void _showInfo(_ToolsData data) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _ToolInfoSheet(
+        enabled: data.installation.isEnabled,
+        canManage: data.access.canManage,
+      ),
+    );
+  }
+
   void _message(String value) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
@@ -129,23 +139,23 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
     if (!data.installation.isEnabled) {
       return PremiumWorkCard(
         radius: 24,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
           children: [
-            const Text(
-              'Подключённых инструментов пока нет',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            const Icon(Icons.extension_off_outlined),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Подключённых инструментов нет',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
             ),
-            if (data.access.canManage) ...[
-              const SizedBox(height: 14),
-              FilledButton.icon(
+            if (data.access.canManage)
+              TextButton(
                 onPressed: () {
                   setState(() => selectedTab = _CompanyToolsTab.catalog);
                 },
-                icon: const Icon(Icons.storefront_outlined),
-                label: const Text('Открыть каталог'),
+                child: const Text('Каталог'),
               ),
-            ],
           ],
         ),
       );
@@ -156,6 +166,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       installation: data.installation,
       changing: changing,
       onOpen: () => _openWorkspace(data),
+      onInfo: () => _showInfo(data),
       onEnable: () => _setEnabled(data, true),
       onDisable: () => _setEnabled(data, false),
     );
@@ -167,6 +178,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       installation: data.installation,
       changing: changing,
       onOpen: () => _openWorkspace(data),
+      onInfo: () => _showInfo(data),
       onEnable: () => _setEnabled(data, true),
       onDisable: () => _setEnabled(data, false),
     );
@@ -176,6 +188,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Инструменты AppСтрой',
+      subtitle: 'Подключение и управление',
       onRefresh: _refresh,
       child: FutureBuilder<_ToolsData>(
         future: future,
@@ -192,7 +205,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
               onRetry: _refresh,
             );
           }
-
           final data = snapshot.requireData;
           if (!data.access.hasEntry) {
             return const PremiumWorkCard(
@@ -257,9 +269,17 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'AppСтрой Трудоустройство',
+      subtitle: 'Рабочий инструмент',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            'Разделы',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 10),
           if (access.canView)
             _ToolActionCard(
               icon: Icons.fact_check_outlined,
@@ -303,11 +323,52 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   }
 }
 
+class DocumentToolAppShortcut extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const DocumentToolAppShortcut({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 168,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: PremiumWorkCard(
+          radius: 24,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _ToolLogo(size: 62),
+              const SizedBox(height: 12),
+              Text(
+                'AppСтрой\nТрудоустройство',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w900,
+                  height: 1.15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _EmploymentToolCard extends StatelessWidget {
   final DocumentWorkflowAccess access;
   final DocumentToolInstallation installation;
   final bool changing;
   final VoidCallback onOpen;
+  final VoidCallback onInfo;
   final VoidCallback onEnable;
   final VoidCallback onDisable;
 
@@ -316,6 +377,7 @@ class _EmploymentToolCard extends StatelessWidget {
     required this.installation,
     required this.changing,
     required this.onOpen,
+    required this.onInfo,
     required this.onEnable,
     required this.onDisable,
   });
@@ -323,78 +385,225 @@ class _EmploymentToolCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = installation.isEnabled;
-    final scheme = Theme.of(context).colorScheme;
-
     return PremiumWorkCard(
-      radius: 28,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      radius: 26,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              const _ToolLogo(),
-              const SizedBox(width: 14),
-              const Expanded(
+          const _ToolLogo(size: 52),
+          const SizedBox(width: 13),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: enabled && access.canView && !changing ? onOpen : null,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'AppСтрой Трудоустройство',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                 ),
               ),
-              Chip(
-                avatar: Icon(
-                  enabled
-                      ? Icons.check_circle_rounded
-                      : Icons.pause_circle_outline_rounded,
-                  size: 18,
-                ),
-                label: Text(enabled ? 'Включён' : 'Отключён'),
-              ),
-              if (access.canManage) ...[
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 58,
-                  height: 48,
-                  child: changing
-                      ? const Center(
-                          child: SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          ),
-                        )
-                      : Switch.adaptive(
-                          value: enabled,
-                          onChanged: (value) {
+            ),
+          ),
+          IconButton(
+            tooltip: 'Об инструменте',
+            onPressed: onInfo,
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
+          const SizedBox(width: 2),
+          SizedBox(
+            width: 58,
+            height: 48,
+            child: changing
+                ? const Center(
+                    child: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  )
+                : Switch.adaptive(
+                    value: enabled,
+                    onChanged: access.canManage
+                        ? (value) {
                             if (value) {
                               onEnable();
                             } else {
                               onDisable();
                             }
-                          },
-                        ),
+                          }
+                        : null,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolInfoSheet extends StatefulWidget {
+  final bool enabled;
+  final bool canManage;
+
+  const _ToolInfoSheet({required this.enabled, required this.canManage});
+
+  @override
+  State<_ToolInfoSheet> createState() => _ToolInfoSheetState();
+}
+
+class _ToolInfoSheetState extends State<_ToolInfoSheet> {
+  final PageController controller = PageController();
+  int page = 0;
+
+  static const steps = <_InfoStep>[
+    _InfoStep(
+      icon: Icons.extension_rounded,
+      title: 'Подключите',
+      text: 'Владелец или администратор включает инструмент для всей компании.',
+    ),
+    _InfoStep(
+      icon: Icons.apps_rounded,
+      title: 'Откройте в профиле',
+      text: 'После подключения инструмент появляется в профиле как отдельное приложение.',
+    ),
+    _InfoStep(
+      icon: Icons.fact_check_outlined,
+      title: 'Оформляйте сотрудников',
+      text: 'HR и юрист работают с документами, шаблонами, подписями и архивом по своим правам.',
+    ),
+    _InfoStep(
+      icon: Icons.lock_outline_rounded,
+      title: 'Отключайте безопасно',
+      text: 'Отключение закрывает функции, но не удаляет документы, версии и историю.',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const _ToolLogo(size: 54),
+                const SizedBox(width: 13),
+                const Expanded(
+                  child: Text(
+                    'AppСтрой Трудоустройство',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Закрыть',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
                 ),
               ],
-            ],
-          ),
-          if (enabled) ...[
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: access.canView && !changing ? onOpen : null,
-              icon: const Icon(Icons.open_in_new_rounded),
-              label: const Text('Открыть инструмент'),
             ),
-          ] else if (!access.canManage) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
-              'Инструмент отключён',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+              'Распознавание документов, оформление по ГПХ или трудовому договору, генерация DOCX, подписание и защищённый архив.',
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 190,
+              child: PageView.builder(
+                controller: controller,
+                itemCount: steps.length,
+                onPageChanged: (value) => setState(() => page = value),
+                itemBuilder: (context, index) {
+                  final step = steps[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(step.icon, size: 44),
+                          const SizedBox(height: 13),
+                          Text(
+                            step.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            step.text,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var index = 0; index < steps.length; index++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: page == index ? 22 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: page == index
+                          ? scheme.primary
+                          : scheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  widget.enabled
+                      ? Icons.check_circle_rounded
+                      : Icons.pause_circle_outline_rounded,
+                  color: widget.enabled ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    widget.enabled ? 'Сейчас включён' : 'Сейчас отключён',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                if (!widget.canManage)
+                  const Text(
+                    'Управляет администратор',
+                    style: TextStyle(fontSize: 12),
+                  ),
+              ],
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -414,7 +623,6 @@ class _ToolActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -456,26 +664,39 @@ class _ToolActionCard extends StatelessWidget {
 }
 
 class _ToolLogo extends StatelessWidget {
-  const _ToolLogo();
+  final double size;
+
+  const _ToolLogo({this.size = 58});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-
     return Container(
-      width: 58,
-      height: 58,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: Icon(
         Icons.badge_outlined,
         color: scheme.onPrimaryContainer,
-        size: 30,
+        size: size * 0.52,
       ),
     );
   }
+}
+
+class _InfoStep {
+  final IconData icon;
+  final String title;
+  final String text;
+
+  const _InfoStep({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
 }
 
 enum _CompanyToolsTab { connected, catalog }

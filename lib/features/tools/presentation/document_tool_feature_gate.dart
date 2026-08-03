@@ -8,21 +8,26 @@ const String documentToolRequiredMessage =
 
 class DocumentToolAvailability {
   static final SupabaseClient _client = Supabase.instance.client;
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  static void notifyChanged() {
+    revision.value = revision.value + 1;
+  }
 
   static Future<bool> isEnabled({String companyId = ''}) async {
     var resolvedCompanyId = companyId.trim();
     if (resolvedCompanyId.isEmpty) {
       final rawCompanyId = await _client.rpc('current_user_company_id');
-      resolvedCompanyId = rawCompanyId?.toString().replaceAll('"', '').trim() ?? '';
+      resolvedCompanyId =
+          rawCompanyId?.toString().replaceAll('"', '').trim() ?? '';
     }
     if (resolvedCompanyId.isEmpty) return false;
 
-    final row = await _client
-        .from('document_tool_installations')
-        .select('is_enabled')
-        .eq('company_id', resolvedCompanyId)
-        .maybeSingle();
-    return row?['is_enabled'] == true;
+    final raw = await _client.rpc(
+      'document_tool_is_enabled',
+      params: <String, dynamic>{'p_company_id': resolvedCompanyId},
+    );
+    return raw == true || raw?.toString().toLowerCase() == 'true';
   }
 }
 
@@ -54,15 +59,31 @@ class _DocumentToolAvailabilityBuilderState
   @override
   void initState() {
     super.initState();
-    future = DocumentToolAvailability.isEnabled(companyId: widget.companyId);
+    future = _load();
+    DocumentToolAvailability.revision.addListener(_handleRevision);
   }
 
   @override
   void didUpdateWidget(covariant DocumentToolAvailabilityBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.companyId.trim() != widget.companyId.trim()) {
-      future = DocumentToolAvailability.isEnabled(companyId: widget.companyId);
+      future = _load();
     }
+  }
+
+  @override
+  void dispose() {
+    DocumentToolAvailability.revision.removeListener(_handleRevision);
+    super.dispose();
+  }
+
+  void _handleRevision() {
+    if (!mounted) return;
+    setState(() => future = _load());
+  }
+
+  Future<bool> _load() {
+    return DocumentToolAvailability.isEnabled(companyId: widget.companyId);
   }
 
   @override
@@ -99,39 +120,54 @@ class DocumentToolFeatureLock extends StatelessWidget {
     if (enabled) return child;
 
     final tooltip = loading ? 'Проверяем подключение инструмента' : message;
-    return Tooltip(
-      message: tooltip,
-      waitDuration: const Duration(milliseconds: 250),
-      child: Stack(
-        children: [
-          AbsorbPointer(
-            absorbing: true,
-            child: Opacity(opacity: 0.42, child: child),
-          ),
-          Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                mouseCursor: loading
-                    ? SystemMouseCursors.progress
-                    : SystemMouseCursors.forbidden,
-                borderRadius: BorderRadius.circular(16),
-                onTap: loading
-                    ? null
-                    : () => showDocumentToolRequiredSheet(
-                          context,
-                          toolsScreen: toolsScreen,
-                          message: message,
-                        ),
+    return Semantics(
+      button: true,
+      enabled: false,
+      label: tooltip,
+      child: Tooltip(
+        message: tooltip,
+        waitDuration: const Duration(milliseconds: 120),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AbsorbPointer(
+              absorbing: true,
+              child: ColorFiltered(
+                colorFilter: const ColorFilter.matrix(<double>[
+                  0.35, 0.35, 0.35, 0, 0,
+                  0.35, 0.35, 0.35, 0, 0,
+                  0.35, 0.35, 0.35, 0, 0,
+                  0, 0, 0, 0.48, 0,
+                ]),
+                child: child,
               ),
             ),
-          ),
-          Positioned(
-            top: 10,
-            right: 10,
-            child: _LockBadge(loading: loading),
-          ),
-        ],
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  mouseCursor: loading
+                      ? SystemMouseCursors.progress
+                      : SystemMouseCursors.forbidden,
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: loading
+                      ? null
+                      : () => showDocumentToolRequiredSheet(
+                            context,
+                            toolsScreen: toolsScreen,
+                            message: message,
+                          ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 18,
+              top: 0,
+              bottom: 10,
+              child: Center(child: _LockBadge(loading: loading)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -296,28 +332,29 @@ class _LockBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 34,
-      height: 34,
+      width: 42,
+      height: 42,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppAdaptivePalette.surfaceElevated,
+        color: scheme.surfaceContainerHighest,
         shape: BoxShape.circle,
-        border: Border.all(color: AppAdaptivePalette.border),
+        border: Border.all(color: scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: loading
           ? const SizedBox.square(
-              dimension: 16,
+              dimension: 17,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.lock_rounded, size: 18),
+          : Icon(Icons.lock_rounded, size: 21, color: scheme.onSurfaceVariant),
     );
   }
 }
