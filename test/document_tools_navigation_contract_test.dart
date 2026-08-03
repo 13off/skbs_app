@@ -17,15 +17,38 @@ void main() {
     expect(tools, contains("'AppСтрой Трудоустройство'"));
     expect(tools, isNot(contains("'AppСтрой Документы'")));
     expect(tools, contains('Switch.adaptive('));
-    expect(tools, contains("enabled ? 'Включён' : 'Отключён'"));
-    expect(tools, contains("title: const Text('Отключить инструмент?')"));
-    expect(tools, contains('Все данные сохранены'));
-    expect(tools, contains("'Открыть инструмент'"));
+    expect(tools, contains('Icons.info_outline_rounded'));
+    expect(tools, contains('PageView.builder('));
+    expect(tools, contains('AnimatedContainer('));
+    expect(tools, contains('DocumentToolAvailability.notifyChanged()'));
+    expect(tools, contains('class DocumentToolAppShortcut'));
     expect(tools, contains("title: 'Оформления'"));
     expect(tools, contains("title: 'Генератор документов'"));
     expect(tools, contains("title: 'Пакеты документов'"));
     expect(tools, contains("title: 'Шаблоны'"));
     expect(tools, contains("title: 'Архив'"));
+
+    expect(
+      tools,
+      isNot(
+        contains(
+          'Распознавание документов, карточка сотрудника, оформление по ГПХ',
+        ),
+      ),
+    );
+    expect(tools, isNot(contains("label: const Text('Открыть инструмент')")));
+    expect(tools, isNot(contains("Chip(label: Text('HR'))")));
+    expect(tools, isNot(contains("Chip(label: Text('Юрист'))")));
+  });
+
+  test('connected tool appears in profile as an app shortcut', () {
+    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
+
+    expect(profile, contains("sectionTitle('Инструменты')"));
+    expect(profile, contains('DocumentToolAppShortcut('));
+    expect(profile, contains('DocumentToolWorkspaceScreen('));
+    expect(profile, contains('installation.isEnabled'));
+    expect(profile, contains('access.canView'));
   });
 
   test('onboarding list is a section of the connected tool', () {
