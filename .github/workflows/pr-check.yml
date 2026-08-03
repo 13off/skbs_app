@@ -193,3 +193,100 @@ jobs:
           path: /tmp/deno-check.log
           if-no-files-found: error
           retention-days: 3
+
+  live-startup-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for rollback and cache recovery publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://13off.github.io/appstroy-web/'
+          for attempt in $(seq 1 30); do
+            marker=$(curl --silent --show-error --location --max-time 15 "${base}downloads/web-source-commit.txt?attempt=${attempt}" || true)
+            worker=$(curl --silent --show-error --location --max-time 15 "${base}flutter_service_worker.js?attempt=${attempt}" || true)
+            echo "attempt=${attempt} marker=${marker}"
+            if [[ "$marker" == "2504d441fa011e60f26b1510f526094824426767" ]] && \
+               grep -q 'appstroy-recovery-20260803-1' <<<"$worker"; then
+              printf '%s' "$worker" > /tmp/live-service-worker.js
+              exit 0
+            fi
+            sleep 4
+          done
+          echo 'Rollback or cache recovery did not reach GitHub Pages in time.'
+          exit 1
+
+      - name: Install live browser dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1
+
+      - name: Open deployed AppСтрой as iPhone
+        shell: bash
+        run: |
+          mkdir -p .artifacts/live-startup
+          cat > /tmp/live_startup.py <<'PY'
+          import json
+          import time
+          from pathlib import Path
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+
+          artifacts = Path('.artifacts/live-startup')
+          options = Options()
+          options.add_argument('--headless=new')
+          options.add_argument('--no-sandbox')
+          options.add_argument('--disable-dev-shm-usage')
+          options.add_argument('--window-size=390,844')
+          options.add_experimental_option('mobileEmulation', {
+              'deviceMetrics': {'width': 390, 'height': 844, 'pixelRatio': 1.0},
+              'userAgent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
+          })
+          options.set_capability('goog:loggingPrefs', {'browser': 'ALL', 'performance': 'ALL'})
+
+          driver = webdriver.Chrome(options=options)
+          state = {}
+          try:
+              driver.set_page_load_timeout(60)
+              driver.get(f'https://13off.github.io/appstroy-web/?live_diag={int(time.time())}')
+              time.sleep(20)
+              state = driver.execute_script('''
+                return {
+                  href: location.href,
+                  title: document.title,
+                  readyState: document.readyState,
+                  bodyText: document.body ? document.body.innerText : '',
+                  bodyHtmlLength: document.body ? document.body.innerHTML.length : -1,
+                  canvases: document.querySelectorAll('canvas').length,
+                  flutterViews: document.querySelectorAll('flutter-view').length,
+                  glassPanes: document.querySelectorAll('flt-glass-pane').length,
+                  serviceWorkerController: navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null,
+                  scripts: Array.from(document.scripts).map((script) => script.src || '<inline>'),
+                };
+              ''')
+              logs = driver.get_log('browser')
+              (artifacts / 'state.json').write_text(
+                  json.dumps({'state': state, 'browserLogs': logs}, ensure_ascii=False, indent=2),
+                  encoding='utf-8',
+              )
+              driver.save_screenshot(str(artifacts / 'live-mobile.png'))
+              print(json.dumps(state, ensure_ascii=False, indent=2))
+              for entry in logs:
+                  print(f"[{entry.get('level')}] {entry.get('message')}")
+
+              severe = [entry for entry in logs if entry.get('level') == 'SEVERE']
+              mounted = state.get('flutterViews', 0) > 0 or state.get('canvases', 0) > 0 or state.get('glassPanes', 0) > 0
+              if severe or not mounted:
+                  raise SystemExit(2)
+          finally:
+              driver.quit()
+          PY
+          python3 /tmp/live_startup.py
+
+      - name: Upload live startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-startup-evidence
+          path: .artifacts/live-startup
+          if-no-files-found: warn
+          retention-days: 3
