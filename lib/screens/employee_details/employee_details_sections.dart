@@ -4,7 +4,6 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
   Widget buildActionTile({
     required IconData icon,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
     bool isLoading = false,
   }) {
@@ -22,7 +21,6 @@ extension _EmployeeDetailsSections on _EmployeeDetailsScreenState {
               )
             : Icon(icon),
         title: Text(title, style: TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
         trailing: Icon(Icons.chevron_right),
         onTap: isLoading ? null : onTap,
       ),
