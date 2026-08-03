@@ -8,6 +8,11 @@ const String documentToolRequiredMessage =
 
 class DocumentToolAvailability {
   static final SupabaseClient _client = Supabase.instance.client;
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  static void notifyChanged() {
+    revision.value = revision.value + 1;
+  }
 
   static Future<bool> isEnabled({String companyId = ''}) async {
     var resolvedCompanyId = companyId.trim();
@@ -55,6 +60,7 @@ class _DocumentToolAvailabilityBuilderState
   void initState() {
     super.initState();
     future = _load();
+    DocumentToolAvailability.revision.addListener(_handleRevision);
   }
 
   @override
@@ -63,6 +69,17 @@ class _DocumentToolAvailabilityBuilderState
     if (oldWidget.companyId.trim() != widget.companyId.trim()) {
       future = _load();
     }
+  }
+
+  @override
+  void dispose() {
+    DocumentToolAvailability.revision.removeListener(_handleRevision);
+    super.dispose();
+  }
+
+  void _handleRevision() {
+    if (!mounted) return;
+    setState(() => future = _load());
   }
 
   Future<bool> _load() {
