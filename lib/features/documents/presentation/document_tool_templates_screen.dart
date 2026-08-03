@@ -84,10 +84,21 @@ class _DocumentToolTemplatesScreenState
     }).toList(growable: false);
   }
 
+  bool canEditOnlineVersion(DocumentTemplateVersion version) {
+    final isDocx =
+        version.mimeType == DocumentTemplateRepository.docxMime ||
+        version.fileName.toLowerCase().endsWith('.docx');
+    return isDocx && (version.isAsset || version.isStorage);
+  }
+
   Future<void> editOnline(
     DocumentTemplateRecord template,
     DocumentTemplateVersion version,
   ) async {
+    if (!canEditOnlineVersion(version)) {
+      await uploadVersion(template, openEditorAfterUpload: true);
+      return;
+    }
     final changed = await Navigator.of(context).push<bool>(
       CupertinoPageRoute<bool>(
         builder: (_) => DocumentTemplateOnlineEditorScreen(
@@ -107,8 +118,11 @@ class _DocumentToolTemplatesScreenState
     }
   }
 
-  Future<void> uploadVersion(DocumentTemplateRecord template) async {
-    if (!canManage) return;
+  Future<DocumentTemplateRecord?> uploadVersion(
+    DocumentTemplateRecord template, {
+    bool openEditorAfterUpload = false,
+  }) async {
+    if (!canManage) return null;
     final notesController = TextEditingController();
     var approve = canApprove;
     final confirmed = await showModalBottomSheet<bool>(
@@ -131,11 +145,21 @@ class _DocumentToolTemplatesScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Загрузить исходный DOCX',
+                      'Загрузить DOCX в AppСтрой',
                       style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 8),
                     Text(template.title),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Внешнюю ссылку нельзя безопасно редактировать. '
+                      'Выберите сам файл DOCX — он сохранится как новая версия '
+                      'в закрытом хранилище компании.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     TextField(
                       controller: notesController,
@@ -162,7 +186,7 @@ class _DocumentToolTemplatesScreenState
                     FilledButton.icon(
                       onPressed: () => Navigator.pop(sheetContext, true),
                       icon: const Icon(Icons.upload_file_outlined),
-                      label: const Text('Выбрать DOCX или ODT'),
+                      label: const Text('Выбрать DOCX'),
                     ),
                   ],
                 ),
@@ -174,7 +198,7 @@ class _DocumentToolTemplatesScreenState
     );
     if (confirmed != true) {
       notesController.dispose();
-      return;
+      return null;
     }
     final notes = notesController.text;
     notesController.dispose();
@@ -185,13 +209,29 @@ class _DocumentToolTemplatesScreenState
         approve: approve && canApprove,
         notes: notes,
       );
-      if (!mounted || result == null) return;
+      if (!mounted || result == null) return result;
       await load();
+      final current = result.currentVersion;
+      if (openEditorAfterUpload && current != null && mounted) {
+        if (canEditOnlineVersion(current)) {
+          await editOnline(result, current);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Файл сохранён, но онлайн-редактор поддерживает только DOCX',
+              ),
+            ),
+          );
+        }
+      }
+      return result;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_cleanError(error))),
       );
+      return null;
     }
   }
 
@@ -234,6 +274,7 @@ class _DocumentToolTemplatesScreenState
                 else
                   ...template.versions.map((version) {
                     final current = version.id == template.currentVersionId;
+                    final editable = canEditOnlineVersion(version);
                     return Card(
                       elevation: 0,
                       margin: const EdgeInsets.only(bottom: 10),
@@ -256,6 +297,12 @@ class _DocumentToolTemplatesScreenState
                             if (value == 'edit') {
                               Navigator.pop(sheetContext);
                               await editOnline(template, version);
+                            } else if (value == 'import') {
+                              Navigator.pop(sheetContext);
+                              await uploadVersion(
+                                template,
+                                openEditorAfterUpload: true,
+                              );
                             } else if (value == 'download') {
                               await download(version);
                             } else if (value == 'activate') {
@@ -270,10 +317,15 @@ class _DocumentToolTemplatesScreenState
                             }
                           },
                           itemBuilder: (_) => [
-                            if (canManage)
+                            if (canManage && editable)
                               const PopupMenuItem(
                                 value: 'edit',
                                 child: Text('Редактировать онлайн'),
+                              )
+                            else if (canManage)
+                              const PopupMenuItem(
+                                value: 'import',
+                                child: Text('Загрузить DOCX в AppСтрой'),
                               ),
                             const PopupMenuItem(
                               value: 'download',
@@ -300,6 +352,7 @@ class _DocumentToolTemplatesScreenState
   Widget buildTemplate(DocumentTemplateRecord template) {
     final version = template.currentVersion;
     final active = template.isActive;
+    final editable = version != null && canEditOnlineVersion(version);
     final statusColor = active
         ? AppAdaptivePalette.success
         : AppAdaptivePalette.warning;
@@ -351,11 +404,13 @@ class _DocumentToolTemplatesScreenState
           Text(
             version == null
                 ? 'Исходный файл ещё не загружен'
-                : 'Версия ${version.versionNo} • ${version.fileName}',
+                : editable
+                    ? 'Версия ${version.versionNo} • ${version.fileName}'
+                    : 'Подключена внешняя ссылка. Для редактора загрузите DOCX в AppСтрой',
             style: TextStyle(
-              color: version == null
-                  ? AppAdaptivePalette.danger
-                  : AppColors.textMuted,
+              color: editable
+                  ? AppColors.textMuted
+                  : AppAdaptivePalette.warning,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -364,17 +419,26 @@ class _DocumentToolTemplatesScreenState
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (canManage && version != null)
+              if (canManage && editable)
                 FilledButton.icon(
                   onPressed: () => editOnline(template, version),
                   icon: const Icon(Icons.edit_note_rounded),
                   label: const Text('Редактировать онлайн'),
+                )
+              else if (canManage)
+                FilledButton.icon(
+                  onPressed: () => uploadVersion(
+                    template,
+                    openEditorAfterUpload: true,
+                  ),
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: const Text('Загрузить DOCX в AppСтрой'),
                 ),
-              if (canManage)
+              if (canManage && editable)
                 OutlinedButton.icon(
                   onPressed: () => uploadVersion(template),
                   icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(version == null ? 'Загрузить DOCX' : 'Новая версия'),
+                  label: const Text('Новая версия'),
                 ),
               OutlinedButton.icon(
                 onPressed: () => showVersions(template),
@@ -421,7 +485,7 @@ class _DocumentToolTemplatesScreenState
               ),
               const SizedBox(height: 7),
               const Text(
-                'Юрист или администратор может редактировать текст DOCX прямо в AppСтрой. Системные поля автозаполнения защищены, а каждое сохранение создаёт новую версию.',
+                'Онлайн-редактор работает с DOCX, который загружен в закрытое хранилище AppСтрой. Внешние ссылки сначала импортируются как новая версия.',
                 style: TextStyle(height: 1.45),
               ),
               const SizedBox(height: 16),
