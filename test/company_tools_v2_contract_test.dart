@@ -48,7 +48,7 @@ void main() {
 
   test('disabling a tool preserves data and mobile screens stay bounded', () {
     expect(tools, contains('Все данные сохранены'));
-    expect(tools, contains('документы и архивы не удалятся'));
+    expect(tools, contains('документы и архивы сохранятся'));
     expect(workflow, isNot(contains('return RefreshIndicator(')));
     expect(workflow, contains('onRefresh: refresh'));
   });
