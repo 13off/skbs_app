@@ -1,0 +1,52 @@
+name: Fix tool shortcut full title
+
+on:
+  push:
+    branches:
+      - fix/tool-shortcut-full-title
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tool-shortcut-full-title
+          fetch-depth: 0
+
+      - name: Expand shortcut and show full title
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/tools/presentation/company_tools_screen.dart')
+          source = path.read_text(encoding='utf-8')
+
+          old_size = """    return SizedBox(\n      width: 144,\n      child: InkWell(\n        borderRadius: BorderRadius.circular(26),\n        onTap: onTap,\n        child: Container(\n          constraints: const BoxConstraints(minHeight: 164),\n"""
+          new_size = """    return SizedBox(\n      width: 168,\n      child: InkWell(\n        borderRadius: BorderRadius.circular(26),\n        onTap: onTap,\n        child: Container(\n          constraints: const BoxConstraints(minHeight: 174),\n"""
+          if old_size not in source:
+              raise SystemExit('Shortcut size block not found')
+          source = source.replace(old_size, new_size, 1)
+
+          old_text = """                maxLines: 2,\n                overflow: TextOverflow.ellipsis,\n                style: TextStyle(\n                  fontSize: 13,\n"""
+          new_text = """                maxLines: 2,\n                style: TextStyle(\n                  fontSize: 13,\n"""
+          if old_text not in source:
+              raise SystemExit('Shortcut title block not found')
+          source = source.replace(old_text, new_text, 1)
+
+          path.write_text(source, encoding='utf-8')
+          PY
+
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/fix-tool-shortcut-full-title.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/tools/presentation/company_tools_screen.dart .github/workflows/fix-tool-shortcut-full-title.yml
+          git commit -m "Показать полное название инструмента в профиле"
+          git push origin HEAD:fix/tool-shortcut-full-title
