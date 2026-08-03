@@ -275,8 +275,6 @@ class DocumentToolAppShortcut extends StatelessWidget {
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
         child: Ink(
-          constraints: const BoxConstraints(minHeight: 174),
-          padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             borderRadius: radius,
@@ -285,22 +283,28 @@ class DocumentToolAppShortcut extends StatelessWidget {
           child: InkWell(
             borderRadius: radius,
             onTap: onTap,
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _EmploymentToolIcon(size: 72),
-                SizedBox(height: 13),
-                Text(
-                  'AppСтрой\nТрудоустройство',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    height: 1.12,
-                  ),
+            child: const ConstrainedBox(
+              constraints: BoxConstraints(minHeight: 174),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(14, 16, 14, 14),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _EmploymentToolIcon(size: 72),
+                    SizedBox(height: 13),
+                    Text(
+                      'AppСтрой\nТрудоустройство',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        height: 1.12,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
