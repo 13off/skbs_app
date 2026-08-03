@@ -2,14 +2,13 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
-import '../../../screens/template_documents_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
-import '../../archive/presentation/archive_management_screen_v3.dart';
 import '../../documents/data/document_workflow_repository.dart';
 import '../../documents/models/document_onboarding.dart';
 import '../../documents/presentation/document_generation_screen.dart';
 import '../../documents/presentation/document_package_management_screen.dart';
+import '../../documents/presentation/document_tool_templates_screen.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
 import 'document_tool_feature_gate.dart';
 
@@ -61,8 +60,9 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Отключить инструмент?'),
           content: const Text(
-            'Оформления, шаблоны, документы и архивы сохранятся. '
-            'Рабочие функции снова появятся после включения.',
+            'Оформления, шаблоны и документы сохранятся. '
+            'Общий архив AppСтрой также не изменится. Рабочие функции '
+            'снова появятся после включения.',
           ),
           actions: [
             TextButton(
@@ -157,7 +157,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
               child: Text('Для вашей роли нет доступных инструментов.'),
             );
           }
-
           return _EmploymentToolCard(
             access: data.access,
             installation: data.installation,
@@ -229,18 +228,31 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
             ),
           if (access.canViewTemplates)
             _ToolActionCard(
-              icon: Icons.description_outlined,
+              icon: Icons.edit_document,
               title: 'Шаблоны',
               onTap: () =>
-                  _open(context, TemplateDocumentsScreen(profile: profile)),
+                  _open(context, DocumentToolTemplatesScreen(profile: profile)),
             ),
-          if (access.canViewAudit)
-            _ToolActionCard(
-              icon: Icons.archive_outlined,
-              title: 'Архив',
-              onTap: () =>
-                  _open(context, ArchiveManagementScreenV3(profile: profile)),
+          const SizedBox(height: 8),
+          PremiumWorkCard(
+            radius: 22,
+            padding: const EdgeInsets.all(16),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.archive_outlined, size: 22),
+                SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    'После завершения оформления финальные документы '
+                    'автоматически доступны в общем архиве AppСтрой. '
+                    'Отдельный второй архив внутри инструмента не создаётся.',
+                    style: TextStyle(height: 1.4),
+                  ),
+                ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -256,27 +268,32 @@ class DocumentToolAppShortcut extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 168,
+      width: 144,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         onTap: onTap,
-        child: PremiumWorkCard(
-          radius: 24,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 164),
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const _ToolLogo(size: 62),
-              const SizedBox(height: 12),
+              _EmploymentToolIcon(size: 72),
+              SizedBox(height: 13),
               Text(
                 'AppСтрой\nТрудоустройство',
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: scheme.onSurface,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
-                  height: 1.15,
+                  height: 1.12,
                 ),
               ),
             ],
@@ -314,7 +331,7 @@ class _EmploymentToolCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       child: Row(
         children: [
-          const _ToolLogo(size: 52),
+          const _EmploymentToolIcon(size: 54),
           const SizedBox(width: 13),
           Expanded(
             child: InkWell(
@@ -336,7 +353,6 @@ class _EmploymentToolCard extends StatelessWidget {
             onPressed: onInfo,
             icon: const Icon(Icons.info_outline_rounded),
           ),
-          const SizedBox(width: 2),
           SizedBox(
             width: 58,
             height: 48,
@@ -350,13 +366,7 @@ class _EmploymentToolCard extends StatelessWidget {
                 : Switch.adaptive(
                     value: enabled,
                     onChanged: access.canManage
-                        ? (value) {
-                            if (value) {
-                              onEnable();
-                            } else {
-                              onDisable();
-                            }
-                          }
+                        ? (value) => value ? onEnable() : onDisable()
                         : null,
                   ),
           ),
@@ -370,73 +380,50 @@ class _ToolInfoSheet extends StatelessWidget {
   final bool enabled;
   final bool canManage;
 
-  const _ToolInfoSheet({
-    required this.enabled,
-    required this.canManage,
-  });
+  const _ToolInfoSheet({required this.enabled, required this.canManage});
 
   static const capabilities = <_Capability>[
     _Capability(
-      icon: Icons.document_scanner_outlined,
-      title: 'Документы кандидата',
-      text:
-          'Собирает паспорт, регистрацию, СНИЛС, ИНН, полис и фото в одном оформлении без повторного копирования файлов.',
+      Icons.document_scanner_outlined,
+      'Исходные документы',
+      'Собирает документы кандидата в одном процессе без повторного копирования.',
     ),
     _Capability(
-      icon: Icons.fact_check_outlined,
-      title: 'Распознавание и проверка',
-      text:
-          'Создаёт черновик распознанных данных. HR проверяет каждое значение и только после этого подтверждает сведения.',
+      Icons.fact_check_outlined,
+      'Проверка данных',
+      'HR вручную проверяет распознанные поля до генерации кадровых форм.',
     ),
     _Capability(
-      icon: Icons.badge_outlined,
-      title: 'Карточка сотрудника',
-      text:
-          'Создаёт нового сотрудника или связывает оформление с существующим, защищая компанию от дублей.',
+      Icons.edit_document,
+      'Онлайн-редактор',
+      'Юрист меняет текст DOCX внутри AppСтрой. Системные поля защищены замком.',
     ),
     _Capability(
-      icon: Icons.inventory_2_outlined,
-      title: 'Пакеты и условия',
-      text:
-          'Позволяет выбрать должность, объект, условия вознаграждения и утверждённый комплект документов.',
+      Icons.auto_awesome_outlined,
+      'Генерация DOCX',
+      'Заполняет утверждённую версию шаблона проверенными данными сотрудника.',
     ),
     _Capability(
-      icon: Icons.auto_awesome_outlined,
-      title: 'Генерация DOCX',
-      text:
-          'Заполняет утверждённые версии шаблонов компании и сохраняет созданный документ внутри того же оформления.',
+      Icons.draw_outlined,
+      'Подписание',
+      'Разделяет исходник, созданный документ, подписанную версию и финальный скан.',
     ),
     _Capability(
-      icon: Icons.draw_outlined,
-      title: 'Подписание',
-      text:
-          'Ведёт документ через печать, подпись и загрузку подписанной версии, не смешивая исходники и финальные файлы.',
-    ),
-    _Capability(
-      icon: Icons.archive_outlined,
-      title: 'Закрытый архив',
-      text:
-          'Хранит версии, финальные сканы и историю действий с разграничением доступа по ролям компании.',
-    ),
-    _Capability(
-      icon: Icons.rule_outlined,
-      title: 'Контроль завершения',
-      text:
-          'Не даёт закрыть оформление, пока не выполнены обязательные проверки, подписи, сканы и архивные требования.',
+      Icons.archive_outlined,
+      'Общий архив',
+      'Передаёт итоговые документы в существующий архив AppСтрой, не создавая дубль.',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-
     return Align(
       alignment: Alignment.bottomCenter,
       child: FractionallySizedBox(
-        heightFactor: 0.96,
-        widthFactor: 1,
+        heightFactor: .96,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1040),
+          constraints: const BoxConstraints(maxWidth: 980),
           child: Material(
             color: scheme.surface,
             clipBehavior: Clip.antiAlias,
@@ -453,18 +440,15 @@ class _ToolInfoSheet extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 10, 14),
                   child: Row(
                     children: [
-                      const _ToolLogo(size: 54),
+                      const _EmploymentToolIcon(size: 56),
                       const SizedBox(width: 13),
                       const Expanded(
                         child: Text(
                           'AppСтрой Трудоустройство',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                         ),
                       ),
                       IconButton(
@@ -483,25 +467,18 @@ class _ToolInfoSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _ToolHero(enabled: enabled, canManage: canManage),
-                        const SizedBox(height: 28),
-                        const _SectionTitle(
-                          title: 'Что умеет инструмент',
-                          description:
-                              'Полный путь сотрудника: от файлов кандидата до проверенного архива.',
+                        const SizedBox(height: 26),
+                        const Text(
+                          'Что умеет инструмент',
+                          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            final columns = constraints.maxWidth >= 820
-                                ? 4
-                                : constraints.maxWidth >= 560
-                                    ? 2
-                                    : 1;
+                            final columns = constraints.maxWidth >= 720 ? 3 : 1;
                             final width = columns == 1
                                 ? constraints.maxWidth
-                                : (constraints.maxWidth -
-                                        (columns - 1) * 12) /
-                                    columns;
+                                : (constraints.maxWidth - 24) / 3;
                             return Wrap(
                               spacing: 12,
                               runSpacing: 12,
@@ -515,24 +492,18 @@ class _ToolInfoSheet extends StatelessWidget {
                             );
                           },
                         ),
-                        const SizedBox(height: 30),
-                        const _SectionTitle(
-                          title: 'Кто и за что отвечает',
-                          description:
-                              'Каждый сотрудник видит только доступные ему действия.',
+                        const SizedBox(height: 28),
+                        const Text(
+                          'Как работать',
+                          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                         ),
-                        const SizedBox(height: 14),
-                        const _RoleFlow(),
-                        const SizedBox(height: 30),
-                        const _SectionTitle(
-                          title: 'Как работать с инструментом',
-                          description:
-                              'Пройдите весь сценарий. Внутри каждого шага показано, что нажать, что проверить и какой результат должен получиться.',
+                        const SizedBox(height: 7),
+                        Text(
+                          'Пошаговый путь от подключения до завершённого оформления.',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         const _WorkflowGuide(),
-                        const SizedBox(height: 30),
-                        const _ArchiveRuleCard(),
                       ],
                     ),
                   ),
@@ -550,129 +521,56 @@ class _ToolHero extends StatelessWidget {
   final bool enabled;
   final bool canManage;
 
-  const _ToolHero({
-    required this.enabled,
-    required this.canManage,
-  });
+  const _ToolHero({required this.enabled, required this.canManage});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(21),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: scheme.primary.withValues(alpha: 0.18),
-        ),
+        color: scheme.primaryContainer.withValues(alpha: .42),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Кадровое оформление как управляемый процесс',
+            'Полное кадровое оформление в одном процессе',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  height: 1.1,
                 ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            'Инструмент объединяет документы кандидата, проверку персональных данных, создание карточки сотрудника, выбор условий и пакета, генерацию DOCX, печать, подписание, финальные сканы и защищённый архив. Этапы связаны между собой, поэтому оформление не теряется между чатами, папками и разными сотрудниками.',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.5,
-              fontSize: 15,
-            ),
+            'Инструмент связывает кандидата, документы, проверку данных, '
+            'карточку сотрудника, условия, шаблоны, генерацию, подпись и '
+            'финальные сканы. Результат хранится в общем архиве AppСтрой.',
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5),
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _FeatureChip(
-                icon: Icons.people_alt_outlined,
-                label: 'Кандидат и сотрудник',
-              ),
-              _FeatureChip(
-                icon: Icons.description_outlined,
-                label: 'Шаблоны и версии',
-              ),
-              _FeatureChip(
-                icon: Icons.verified_user_outlined,
-                label: 'Права и аудит',
-              ),
-              _FeatureChip(
-                icon: Icons.folder_copy_outlined,
-                label: 'Единый архив',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           Row(
             children: [
               Icon(
-                enabled
-                    ? Icons.check_circle_rounded
-                    : Icons.pause_circle_outline_rounded,
+                enabled ? Icons.check_circle_rounded : Icons.pause_circle_outline,
                 color: enabled ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  enabled
-                      ? 'Инструмент подключён для компании'
-                      : 'Инструмент пока не подключён',
+                  enabled ? 'Инструмент подключён' : 'Инструмент отключён',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
               if (!canManage)
-                Text(
+                const Text(
                   'Управляет администратор',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(fontSize: 12),
                 ),
             ],
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final String description;
-
-  const _SectionTitle({
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          description,
-          style: TextStyle(
-            color: scheme.onSurfaceVariant,
-            height: 1.4,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -686,32 +584,18 @@ class _CapabilityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      constraints: const BoxConstraints(minHeight: 176),
-      padding: const EdgeInsets.all(17),
+      constraints: const BoxConstraints(minHeight: 158),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(21),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(item.icon, color: scheme.primary),
-          ),
-          const SizedBox(height: 13),
-          Text(
-            item.title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Icon(item.icon, color: scheme.primary, size: 28),
+          const SizedBox(height: 11),
+          Text(item.title, style: const TextStyle(fontWeight: FontWeight.w900)),
           const SizedBox(height: 7),
           Text(
             item.text,
@@ -719,128 +603,6 @@ class _CapabilityCard extends StatelessWidget {
               color: scheme.onSurfaceVariant,
               height: 1.4,
               fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoleFlow extends StatelessWidget {
-  const _RoleFlow();
-
-  static const roles = <_RoleInfo>[
-    _RoleInfo(
-      icon: Icons.admin_panel_settings_outlined,
-      title: 'Владелец / администратор',
-      text:
-          'Подключает инструмент, настраивает права, шаблоны и пакеты документов.',
-    ),
-    _RoleInfo(
-      icon: Icons.person_search_outlined,
-      title: 'HR',
-      text:
-          'Загружает исходники, проверяет данные, создаёт карточку и ведёт оформление по этапам.',
-    ),
-    _RoleInfo(
-      icon: Icons.gavel_outlined,
-      title: 'Юрист / ответственный',
-      text:
-          'Контролирует утверждённые шаблоны, формулировки, подписанные версии и обязательные проверки.',
-    ),
-    _RoleInfo(
-      icon: Icons.manage_search_outlined,
-      title: 'Руководитель',
-      text:
-          'Видит статус, блокирующие причины, историю действий и готовность сотрудника.',
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 720;
-          if (wide) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var index = 0; index < roles.length; index++) ...[
-                  Expanded(child: _RoleTile(info: roles[index])),
-                  if (index != roles.length - 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        color: scheme.onSurfaceVariant,
-                        size: 18,
-                      ),
-                    ),
-                ],
-              ],
-            );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var index = 0; index < roles.length; index++) ...[
-                _RoleTile(info: roles[index]),
-                if (index != roles.length - 1)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Icon(
-                      Icons.arrow_downward_rounded,
-                      color: scheme.onSurfaceVariant,
-                      size: 18,
-                    ),
-                  ),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _RoleTile extends StatelessWidget {
-  final _RoleInfo info;
-
-  const _RoleTile({required this.info});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(19),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(info.icon, color: scheme.primary),
-          const SizedBox(height: 10),
-          Text(
-            info.title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            info.text,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.35,
-              fontSize: 12,
             ),
           ),
         ],
@@ -861,101 +623,28 @@ class _WorkflowGuideState extends State<_WorkflowGuide> {
   int page = 0;
 
   static const steps = <_GuideStep>[
-    _GuideStep(
-      icon: Icons.toggle_on_outlined,
-      eyebrow: 'Шаг 1 из 8',
-      title: 'Подключите инструмент',
-      description:
-          'Владелец или администратор открывает «Инструменты» и включает тумблер. Модуль появляется в профиле компании как отдельное приложение.',
-      result:
-          'HR и другие роли получают только разрешённые им разделы. Отключение позже не удалит документы и историю.',
-      previewRows: ['Тумблер включён', 'Права ролей загружены', 'Модуль в профиле'],
-    ),
-    _GuideStep(
-      icon: Icons.upload_file_outlined,
-      eyebrow: 'Шаг 2 из 8',
-      title: 'Загрузите исходные документы',
-      description:
-          'Создайте оформление из кандидата или существующего сотрудника. Добавьте паспорт, регистрацию, СНИЛС, ИНН, полис, фото и другие необходимые файлы.',
-      result:
-          'Все исходники связаны с одним оформлением. Файлы кандидата можно использовать без создания лишних копий.',
-      previewRows: ['Паспорт и регистрация', 'СНИЛС, ИНН, полис', 'Фото сотрудника'],
-    ),
-    _GuideStep(
-      icon: Icons.document_scanner_outlined,
-      eyebrow: 'Шаг 3 из 8',
-      title: 'Проверьте распознанные данные',
-      description:
-          'Система подготавливает черновик полей. HR сверяет ФИО, даты, паспорт, адреса и номера документов с оригиналами и исправляет неточности.',
-      result:
-          'В дальнейшие документы попадают только подтверждённые человеком данные, а не непроверенный результат распознавания.',
-      previewRows: ['ФИО подтверждено', 'Паспорт проверен', 'Адрес исправлен'],
-    ),
-    _GuideStep(
-      icon: Icons.badge_outlined,
-      eyebrow: 'Шаг 4 из 8',
-      title: 'Создайте карточку и выберите условия',
-      description:
-          'Создайте нового сотрудника либо привяжите существующего. Укажите должность, объект, дату начала, вознаграждение и нужный пакет документов.',
-      result:
-          'Оформление связано с единственной карточкой сотрудника и содержит полный набор условий для генерации.',
-      previewRows: ['Карточка сотрудника', 'Объект и должность', 'Пакет документов'],
-    ),
-    _GuideStep(
-      icon: Icons.auto_awesome_outlined,
-      eyebrow: 'Шаг 5 из 8',
-      title: 'Сгенерируйте документы',
-      description:
-          'Выберите утверждённую DOCX-версию шаблона. Инструмент подставит проверенные данные, сохранит связь с версией шаблона и загрузит результат в оформление.',
-      result:
-          'Получается редактируемый DOCX без изменения исходного шаблона. При необходимости можно загрузить готовый файл вручную.',
-      previewRows: ['Шаблон утверждён', 'Поля заполнены', 'DOCX сохранён'],
-    ),
-    _GuideStep(
-      icon: Icons.print_outlined,
-      eyebrow: 'Шаг 6 из 8',
-      title: 'Распечатайте и подпишите',
-      description:
-          'Передайте документ на печать, зафиксируйте этап подписания и загрузите подписанную версию отдельным файлом.',
-      result:
-          'Исходник, сгенерированная версия и подписанный документ не смешиваются. Для каждого файла сохраняется назначение и версия.',
-      previewRows: ['Отправлено на печать', 'Подпись получена', 'Версия загружена'],
-    ),
-    _GuideStep(
-      icon: Icons.scanner_outlined,
-      eyebrow: 'Шаг 7 из 8',
-      title: 'Добавьте финальные сканы',
-      description:
-          'Загрузите читаемые финальные сканы и проверьте их. Общий архив формируется по правилам компании, а соглашения, билеты и удостоверения остаются отдельными файлами.',
-      result:
-          'Архив содержит только принятые документы, а спорные или нечитаемые файлы можно отклонить с причиной.',
-      previewRows: ['Сканы загружены', 'Качество проверено', 'Архив собран'],
-    ),
-    _GuideStep(
-      icon: Icons.verified_outlined,
-      eyebrow: 'Шаг 8 из 8',
-      title: 'Завершите оформление',
-      description:
-          'Инструмент проверит обязательные этапы: карточку, пакет, HR-проверку, генерацию, подписанный документ и финальный скан.',
-      result:
-          'После устранения всех блокирующих причин оформление закрывается, а документы, версии и журнал действий остаются в защищённом архиве.',
-      previewRows: ['Блокеров нет', 'Оформление завершено', 'Аудит сохранён'],
-    ),
+    _GuideStep(Icons.toggle_on_outlined, '1 из 8', 'Подключите инструмент',
+        'Администратор включает тумблер для компании.', 'Модуль появляется у разрешённых ролей.'),
+    _GuideStep(Icons.person_add_alt_1_outlined, '2 из 8', 'Создайте оформление',
+        'Выберите кандидата CRM или существующего сотрудника.', 'Файлы и данные связываются с одним процессом.'),
+    _GuideStep(Icons.upload_file_outlined, '3 из 8', 'Загрузите исходники',
+        'Добавьте паспорт, регистрацию, СНИЛС, ИНН, полис и фото.', 'Исходные документы остаются отдельными файлами.'),
+    _GuideStep(Icons.fact_check_outlined, '4 из 8', 'Проверьте данные',
+        'HR сверяет распознанные значения с оригиналами.', 'В шаблоны попадут только подтверждённые сведения.'),
+    _GuideStep(Icons.edit_document, '5 из 8', 'Настройте шаблоны',
+        'Юрист редактирует DOCX онлайн и утверждает новую версию.', 'Системные поля и исходник защищены.'),
+    _GuideStep(Icons.auto_awesome_outlined, '6 из 8', 'Сгенерируйте документы',
+        'Выберите пакет и заполните формы проверенными данными.', 'Созданный DOCX связан с версией шаблона.'),
+    _GuideStep(Icons.draw_outlined, '7 из 8', 'Подпишите и загрузите сканы',
+        'Зафиксируйте печать, подпись и проверку финальных сканов.', 'Каждый тип файла хранится отдельно.'),
+    _GuideStep(Icons.verified_outlined, '8 из 8', 'Завершите оформление',
+        'Устраните блокирующие причины и закройте процесс.', 'Документы доступны в общем архиве AppСтрой.'),
   ];
 
   @override
   void dispose() {
     controller.dispose();
     super.dispose();
-  }
-
-  void _goTo(int value) {
-    if (value < 0 || value >= steps.length) return;
-    controller.animateToPage(
-      value,
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeOutCubic,
-    );
   }
 
   @override
@@ -965,184 +654,59 @@ class _WorkflowGuideState extends State<_WorkflowGuide> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 720;
-          return Column(
-            children: [
-              SizedBox(
-                height: wide ? 390 : 650,
-                child: PageView.builder(
-                  controller: controller,
-                  itemCount: steps.length,
-                  onPageChanged: (value) => setState(() => page = value),
-                  itemBuilder: (context, index) => _GuideStepCard(
-                    step: steps[index],
-                    wide: wide,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Предыдущий шаг',
-                    onPressed: page == 0 ? null : () => _goTo(page - 1),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  ),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var index = 0; index < steps.length; index++)
-                          GestureDetector(
-                            onTap: () => _goTo(index),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 240),
-                              width: page == index ? 26 : 8,
-                              height: 8,
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              decoration: BoxDecoration(
-                                color: page == index
-                                    ? scheme.primary
-                                    : scheme.outlineVariant,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Следующий шаг',
-                    onPressed: page == steps.length - 1
-                        ? null
-                        : () => _goTo(page + 1),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _GuideStepCard extends StatelessWidget {
-  final _GuideStep step;
-  final bool wide;
-
-  const _GuideStepCard({
-    required this.step,
-    required this.wide,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final preview = _AnimatedWorkflowPreview(step: step);
-    final content = Padding(
-      padding: EdgeInsets.fromLTRB(
-        wide ? 22 : 4,
-        wide ? 12 : 18,
-        4,
-        4,
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            step.eyebrow,
-            style: TextStyle(
-              color: scheme.primary,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
+          SizedBox(
+            height: 360,
+            child: PageView.builder(
+              controller: controller,
+              itemCount: steps.length,
+              onPageChanged: (value) => setState(() => page = value),
+              itemBuilder: (context, index) => _GuideCard(step: steps[index]),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            step.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1.1,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            step.description,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: scheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    step.result,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                      fontSize: 13,
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var index = 0; index < steps.length; index++)
+                GestureDetector(
+                  onTap: () => controller.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 360),
+                    curve: Curves.easeOutCubic,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: page == index ? 25 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: page == index ? scheme.primary : scheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ],
       ),
     );
-
-    if (wide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: preview),
-          Expanded(child: content),
-        ],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(height: 235, child: preview),
-        Expanded(child: content),
-      ],
-    );
   }
 }
 
-class _AnimatedWorkflowPreview extends StatefulWidget {
+class _GuideCard extends StatefulWidget {
   final _GuideStep step;
 
-  const _AnimatedWorkflowPreview({required this.step});
+  const _GuideCard({required this.step});
 
   @override
-  State<_AnimatedWorkflowPreview> createState() =>
-      _AnimatedWorkflowPreviewState();
+  State<_GuideCard> createState() => _GuideCardState();
 }
 
-class _AnimatedWorkflowPreviewState extends State<_AnimatedWorkflowPreview>
+class _GuideCardState extends State<_GuideCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController animation;
 
@@ -1151,7 +715,7 @@ class _AnimatedWorkflowPreviewState extends State<_AnimatedWorkflowPreview>
     super.initState();
     animation = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1900),
+      duration: const Duration(milliseconds: 1700),
     )..repeat(reverse: true);
   }
 
@@ -1168,49 +732,61 @@ class _AnimatedWorkflowPreviewState extends State<_AnimatedWorkflowPreview>
       animation: animation,
       builder: (context, child) {
         return Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: scheme.surface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(21),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Transform.scale(
-                scale: 0.94 + animation.value * 0.08,
+                scale: .94 + animation.value * .08,
                 child: Container(
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: scheme.primary.withValues(
-                      alpha: 0.10 + animation.value * 0.08,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
+                    color: scheme.primary.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(23),
                   ),
-                  child: Icon(
-                    widget.step.icon,
-                    color: scheme.primary,
-                    size: 36,
-                  ),
+                  child: Icon(widget.step.icon, size: 36, color: scheme.primary),
                 ),
               ),
-              const SizedBox(height: 20),
-              for (var index = 0;
-                  index < widget.step.previewRows.length;
-                  index++)
-                _AnimatedPreviewRow(
-                  label: widget.step.previewRows[index],
-                  index: index,
-                  progress: animation.value,
+              const SizedBox(height: 15),
+              Text(
+                widget.step.number,
+                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                widget.step.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                widget.step.action,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                  value: 0.18 + animation.value * 0.76,
-                  minHeight: 7,
-                  backgroundColor: scheme.surfaceContainerHighest,
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: scheme.primary, size: 19),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.step.result,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1221,154 +797,12 @@ class _AnimatedWorkflowPreviewState extends State<_AnimatedWorkflowPreview>
   }
 }
 
-class _AnimatedPreviewRow extends StatelessWidget {
-  final String label;
-  final int index;
-  final double progress;
-
-  const _AnimatedPreviewRow({
-    required this.label,
-    required this.index,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final shifted = ((progress + index * 0.20) % 1.0);
-    final emphasis = 0.55 + (1 - (shifted - 0.5).abs() * 2) * 0.45;
-    return Transform.translate(
-      offset: Offset((1 - emphasis) * 8, 0),
-      child: Opacity(
-        opacity: emphasis,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 9),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle_rounded,
-                color: scheme.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ArchiveRuleCard extends StatelessWidget {
-  const _ArchiveRuleCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.tertiaryContainer.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.folder_special_outlined,
-            color: scheme.onTertiaryContainer,
-            size: 30,
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Правило общего кадрового архива',
-                  style: TextStyle(
-                    color: scheme.onTertiaryContainer,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'В общий Word/PDF входят только паспорт, регистрация, СНИЛС, ИНН, полис и фото. Соглашения, билеты, удостоверения и остальные документы хранятся отдельно и не смешиваются с основным комплектом.',
-                  style: TextStyle(
-                    color: scheme.onTertiaryContainer,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _FeatureChip({
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 17, color: scheme.primary),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ToolActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
 
-  const _ToolActionCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+  const _ToolActionCard({required this.icon, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1396,12 +830,7 @@ class _ToolActionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                 ),
               ),
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
@@ -1413,10 +842,10 @@ class _ToolActionCard extends StatelessWidget {
   }
 }
 
-class _ToolLogo extends StatelessWidget {
+class _EmploymentToolIcon extends StatelessWidget {
   final double size;
 
-  const _ToolLogo({this.size = 58});
+  const _EmploymentToolIcon({required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -1426,12 +855,42 @@ class _ToolLogo extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(size * 0.32),
+        borderRadius: BorderRadius.circular(size * .27),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: .12),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Icon(
-        Icons.badge_outlined,
-        color: scheme.onPrimaryContainer,
-        size: size * 0.52,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Icon(
+            Icons.description_rounded,
+            color: scheme.onPrimaryContainer,
+            size: size * .48,
+          ),
+          Positioned(
+            right: size * .10,
+            bottom: size * .10,
+            child: Container(
+              width: size * .30,
+              height: size * .30,
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: scheme.primaryContainer, width: 2),
+              ),
+              child: Icon(
+                Icons.person_add_alt_1_rounded,
+                color: scheme.onPrimary,
+                size: size * .17,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1442,41 +901,17 @@ class _Capability {
   final String title;
   final String text;
 
-  const _Capability({
-    required this.icon,
-    required this.title,
-    required this.text,
-  });
-}
-
-class _RoleInfo {
-  final IconData icon;
-  final String title;
-  final String text;
-
-  const _RoleInfo({
-    required this.icon,
-    required this.title,
-    required this.text,
-  });
+  const _Capability(this.icon, this.title, this.text);
 }
 
 class _GuideStep {
   final IconData icon;
-  final String eyebrow;
+  final String number;
   final String title;
-  final String description;
+  final String action;
   final String result;
-  final List<String> previewRows;
 
-  const _GuideStep({
-    required this.icon,
-    required this.eyebrow,
-    required this.title,
-    required this.description,
-    required this.result,
-    required this.previewRows,
-  });
+  const _GuideStep(this.icon, this.number, this.title, this.action, this.result);
 }
 
 class _ToolsData {
@@ -1506,10 +941,7 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message),
           const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: const Text('Повторить'),
-          ),
+          OutlinedButton(onPressed: onRetry, child: const Text('Повторить')),
         ],
       ),
     );
