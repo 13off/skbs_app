@@ -26,21 +26,22 @@ class DocumentTemplateOnlineEditorScreen extends StatefulWidget {
 
 class _DocumentTemplateOnlineEditorScreenState
     extends State<DocumentTemplateOnlineEditorScreen> {
-  late Future<DocumentTemplateOnlineDraft> future;
+  late final Future<DocumentTemplateOnlineDraft> future;
   final Map<String, TextEditingController> controllers = {};
   bool saving = false;
 
   @override
   void initState() {
     super.initState();
-    future = load();
+    future = _load();
   }
 
-  Future<DocumentTemplateOnlineDraft> load() async {
+  Future<DocumentTemplateOnlineDraft> _load() async {
     final draft = await DocumentTemplateOnlineEditor.load(widget.version);
     for (final block in draft.blocks) {
-      if (block.isProtected) continue;
-      controllers[block.id] = TextEditingController(text: block.text);
+      if (!block.isProtected) {
+        controllers[block.id] = TextEditingController(text: block.text);
+      }
     }
     return draft;
   }
@@ -53,14 +54,45 @@ class _DocumentTemplateOnlineEditorScreenState
     super.dispose();
   }
 
-  int changedCount(DocumentTemplateOnlineDraft draft) {
+  int _changedCount(DocumentTemplateOnlineDraft draft) {
     return draft.blocks.where((block) {
       if (block.isProtected) return false;
-      return (controllers[block.id]?.text.trim() ?? block.text) != block.text;
+      final current = controllers[block.id]?.text.trim() ?? block.text;
+      return current != block.text;
     }).length;
   }
 
-  Future<void> save(DocumentTemplateOnlineDraft draft) async {
+  List<Widget> _documentBlocks(DocumentTemplateOnlineDraft draft) {
+    final widgets = <Widget>[];
+    String? activeSection;
+    for (var index = 0; index < draft.blocks.length; index++) {
+      final block = draft.blocks[index];
+      if (block.sectionTitle != activeSection) {
+        activeSection = block.sectionTitle;
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 9),
+            child: Text(
+              activeSection,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+          ),
+        );
+      }
+      widgets.add(
+        _EditorBlock(
+          index: index + 1,
+          block: block,
+          controller: controllers[block.id],
+          onChanged: () => setState(() {}),
+        ),
+      );
+      widgets.add(const SizedBox(height: 10));
+    }
+    return widgets;
+  }
+
+  Future<void> _save(DocumentTemplateOnlineDraft draft) async {
     if (saving) return;
     final notesController = TextEditingController(
       text: 'Изменено в онлайн-редакторе AppСтрой',
@@ -91,7 +123,8 @@ class _DocumentTemplateOnlineEditorScreenState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Исходный DOCX не изменится. AppСтрой создаст отдельную версию с сохранением таблиц, стилей и защищённых системных полей.',
+                      'Исходный DOCX не меняется. AppСтрой создаёт отдельную '
+                      'версию и сохраняет таблицы, стили и защищённые поля.',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.4,
@@ -118,7 +151,7 @@ class _DocumentTemplateOnlineEditorScreenState
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                         subtitle: const Text(
-                          'Отключите, чтобы юрист или администратор сначала проверил версию.',
+                          'Отключите, если версию сначала должен проверить юрист.',
                         ),
                       ),
                     ],
@@ -142,28 +175,22 @@ class _DocumentTemplateOnlineEditorScreenState
 
     setState(() => saving = true);
     try {
-      final values = <String, String>{
-        for (final entry in controllers.entries) entry.key: entry.value.text,
-      };
       await DocumentTemplateOnlineEditor.saveVersion(
         template: widget.template,
         sourceVersion: widget.version,
         companyId: widget.companyId,
         draft: draft,
-        values: values,
+        values: {
+          for (final entry in controllers.entries) entry.key: entry.value.text,
+        },
         approve: approve && widget.canApprove,
         notes: notes,
       );
-      if (!mounted) return;
-      Navigator.pop(context, true);
+      if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
-          ),
-        ),
+        SnackBar(content: Text(_cleanError(error))),
       );
     } finally {
       if (mounted) setState(() => saving = false);
@@ -185,44 +212,11 @@ class _DocumentTemplateOnlineEditorScreenState
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              final message = snapshot.error
-                  .toString()
-                  .replaceFirst('Bad state: ', '')
-                  .replaceFirst('Exception: ', '');
-              return ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  PremiumWorkCard(
-                    radius: 24,
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.cloud_off_outlined,
-                          size: 50,
-                          color: AppAdaptivePalette.warning,
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'Этот исходник пока нельзя редактировать онлайн',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 9),
-                        Text(
-                          message,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(height: 1.45),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
+              return _UnavailableEditor(message: _cleanError(snapshot.error));
             }
 
             final draft = snapshot.requireData;
-            String? previousSection;
+            final changes = _changedCount(draft);
             return Column(
               children: [
                 Expanded(
@@ -238,7 +232,9 @@ class _DocumentTemplateOnlineEditorScreenState
                       ),
                       const SizedBox(height: 7),
                       const Text(
-                        'Редактируйте текст прямо в AppСтрой. Системные поля, маркеры автозаполнения и служебные элементы Word защищены замком.',
+                        'Меняйте текст прямо в AppСтрой. Системные поля, '
+                        'маркеры автозаполнения и служебные элементы Word '
+                        'защищены замком.',
                         style: TextStyle(height: 1.45),
                       ),
                       const SizedBox(height: 14),
@@ -262,38 +258,13 @@ class _DocumentTemplateOnlineEditorScreenState
                             _Counter(
                               icon: Icons.change_circle_outlined,
                               label: 'Изменено',
-                              valueBuilder: () => changedCount(draft),
+                              value: changes,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      for (var index = 0; index < draft.blocks.length; index++) ...[
-                        if (draft.blocks[index].sectionTitle != previousSection) ...[
-                          Builder(
-                            builder: (_) {
-                              previousSection = draft.blocks[index].sectionTitle;
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 10, bottom: 9),
-                                child: Text(
-                                  draft.blocks[index].sectionTitle,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                        _EditorBlock(
-                          index: index + 1,
-                          block: draft.blocks[index],
-                          controller: controllers[draft.blocks[index].id],
-                          onChanged: () => setState(() {}),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
+                      const SizedBox(height: 6),
+                      ..._documentBlocks(draft),
                     ],
                   ),
                 ),
@@ -313,9 +284,9 @@ class _DocumentTemplateOnlineEditorScreenState
                       width: double.infinity,
                       height: 52,
                       child: FilledButton.icon(
-                        onPressed: saving || changedCount(draft) == 0
+                        onPressed: saving || changes == 0
                             ? null
-                            : () => save(draft),
+                            : () => _save(draft),
                         icon: saving
                             ? const SizedBox.square(
                                 dimension: 20,
@@ -323,9 +294,9 @@ class _DocumentTemplateOnlineEditorScreenState
                               )
                             : const Icon(Icons.save_outlined),
                         label: Text(
-                          changedCount(draft) == 0
+                          changes == 0
                               ? 'Измените текст, чтобы создать версию'
-                              : 'Сохранить новую версию (${changedCount(draft)})',
+                              : 'Сохранить новую версию ($changes)',
                         ),
                       ),
                     ),
@@ -336,6 +307,46 @@ class _DocumentTemplateOnlineEditorScreenState
           },
         ),
       ),
+    );
+  }
+}
+
+class _UnavailableEditor extends StatelessWidget {
+  final String message;
+
+  const _UnavailableEditor({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        PremiumWorkCard(
+          radius: 24,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Icon(
+                Icons.cloud_off_outlined,
+                size: 50,
+                color: AppAdaptivePalette.warning,
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Этот исходник пока нельзя редактировать онлайн',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(height: 1.45),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -413,29 +424,33 @@ class _EditorBlock extends StatelessWidget {
 class _Counter extends StatelessWidget {
   final IconData icon;
   final String label;
-  final int? value;
-  final int Function()? valueBuilder;
+  final int value;
 
   const _Counter({
     required this.icon,
     required this.label,
-    this.value,
-    this.valueBuilder,
+    required this.value,
   });
 
   @override
   Widget build(BuildContext context) {
-    final currentValue = valueBuilder?.call() ?? value ?? 0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 20),
         const SizedBox(width: 7),
         Text(
-          '$label: $currentValue',
+          '$label: $value',
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ],
     );
   }
+}
+
+String _cleanError(Object? error) {
+  return (error?.toString() ?? 'Неизвестная ошибка')
+      .replaceFirst('Bad state: ', '')
+      .replaceFirst('Exception: ', '')
+      .trim();
 }
