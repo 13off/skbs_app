@@ -3,6 +3,7 @@ part of '../employee_details_screen.dart';
 extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
   Widget buildEmployeeDetailsView() {
     final isAdmin = widget.profile.isAdmin;
+    final toolsScreen = CompanyToolsScreen(profile: widget.profile);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,18 +38,35 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             onTap: openTimesheet,
           ),
           if (isAdmin)
-            buildActionTile(
-              icon: Icons.lock_person_outlined,
-              title: 'Личные данные',
-              subtitle: 'Паспорт, СНИЛС, ИНН, адреса и кадровые документы',
-              onTap: openPrivateData,
-            ),
-          if (isAdmin)
-            buildActionTile(
-              icon: Icons.folder_outlined,
-              title: 'Документы',
-              subtitle: 'Фото, PDF, Word, Excel и другие файлы',
-              onTap: openDocuments,
+            DocumentToolAvailabilityBuilder(
+              companyId: widget.profile.activeCompanyId,
+              builder: (context, enabled, loading) => Column(
+                children: [
+                  DocumentToolFeatureLock(
+                    enabled: enabled,
+                    loading: loading,
+                    toolsScreen: toolsScreen,
+                    child: buildActionTile(
+                      icon: Icons.lock_person_outlined,
+                      title: 'Личные данные',
+                      subtitle:
+                          'Паспорт, СНИЛС, ИНН, адреса и кадровые документы',
+                      onTap: openPrivateData,
+                    ),
+                  ),
+                  DocumentToolFeatureLock(
+                    enabled: enabled,
+                    loading: loading,
+                    toolsScreen: toolsScreen,
+                    child: buildActionTile(
+                      icon: Icons.folder_outlined,
+                      title: 'Документы',
+                      subtitle: 'Фото, PDF, Word, Excel и другие файлы',
+                      onTap: openDocuments,
+                    ),
+                  ),
+                ],
+              ),
             ),
           buildActionTile(
             icon: Icons.payments_outlined,
