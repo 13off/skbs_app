@@ -17,126 +17,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: fix/template-import-and-online-editing
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - name: Patch template import, editor and generator
-        shell: python
+      - name: Recover and run prepared patch
+        shell: bash
         run: |
-          from pathlib import Path
-
-          def replace(path, old, new, count=1):
-              p = Path(path)
-              text = p.read_text(encoding='utf-8')
-              if old not in text:
-                  raise SystemExit(f'Pattern not found in {path}: {old[:120]!r}')
-              p.write_text(text.replace(old, new, count), encoding='utf-8')
-
-          # Template list: external/missing versions import instead of opening a dead-end editor.
-          path = 'lib/features/documents/presentation/document_tool_templates_screen.dart'
-          replace(path,
-          """  Future<void> editOnline(\n    DocumentTemplateRecord template,\n    DocumentTemplateVersion version,\n  ) async {\n""",
-          """  bool canEditOnlineVersion(DocumentTemplateVersion version) {\n    final isDocx =\n        version.mimeType == DocumentTemplateRepository.docxMime ||\n        version.fileName.toLowerCase().endsWith('.docx');\n    return isDocx && (version.isAsset || version.isStorage);\n  }\n\n  Future<void> editOnline(\n    DocumentTemplateRecord template,\n    DocumentTemplateVersion version,\n  ) async {\n    if (!canEditOnlineVersion(version)) {\n      await uploadVersion(template, openEditorAfterUpload: true);\n      return;\n    }\n""")
-          replace(path,
-          """  Future<void> uploadVersion(DocumentTemplateRecord template) async {\n""",
-          """  Future<DocumentTemplateRecord?> uploadVersion(\n    DocumentTemplateRecord template, {\n    bool openEditorAfterUpload = false,\n  }) async {\n""")
-          replace(path,
-          """                    const Text(\n                      'Загрузить исходный DOCX',\n""",
-          """                    const Text(\n                      'Загрузить DOCX в AppСтрой',\n""")
-          replace(path,
-          """                      label: const Text('Выбрать DOCX или ODT'),\n""",
-          """                      label: const Text('Выбрать DOCX'),\n""")
-          replace(path,
-          """      notesController.dispose();\n      return;\n""",
-          """      notesController.dispose();\n      return null;\n""", 1)
-          replace(path,
-          """      if (!mounted || result == null) return;\n      await load();\n    } catch (error) {\n""",
-          """      if (!mounted || result == null) return result;\n      await load();\n      final current = result.currentVersion;\n      if (openEditorAfterUpload &&\n          current != null &&\n          canEditOnlineVersion(current) &&\n          mounted) {\n        await editOnline(result, current);\n      }\n      return result;\n    } catch (error) {\n""")
-          replace(path,
-          """      ScaffoldMessenger.of(context).showSnackBar(\n        SnackBar(content: Text(_cleanError(error))),\n      );\n    }\n  }\n\n  Future<void> download""",
-          """      ScaffoldMessenger.of(context).showSnackBar(\n        SnackBar(content: Text(_cleanError(error))),\n      );\n      return null;\n    }\n  }\n\n  Future<void> download""")
-          replace(path,
-          """              if (canManage && version != null)\n                FilledButton.icon(\n                  onPressed: () => editOnline(template, version),\n                  icon: const Icon(Icons.edit_note_rounded),\n                  label: const Text('Редактировать онлайн'),\n                ),\n              if (canManage)\n                OutlinedButton.icon(\n                  onPressed: () => uploadVersion(template),\n                  icon: const Icon(Icons.upload_file_outlined),\n                  label: Text(version == null ? 'Загрузить DOCX' : 'Новая версия'),\n                ),\n""",
-          """              if (canManage &&\n                  version != null &&\n                  canEditOnlineVersion(version))\n                FilledButton.icon(\n                  onPressed: () => editOnline(template, version),\n                  icon: const Icon(Icons.edit_note_rounded),\n                  label: const Text('Редактировать онлайн'),\n                )\n              else if (canManage)\n                FilledButton.icon(\n                  onPressed: () =>\n                      uploadVersion(template, openEditorAfterUpload: true),\n                  icon: const Icon(Icons.cloud_upload_outlined),\n                  label: const Text('Загрузить DOCX в AppСтрой'),\n                ),\n              if (canManage &&\n                  version != null &&\n                  canEditOnlineVersion(version))\n                OutlinedButton.icon(\n                  onPressed: () => uploadVersion(template),\n                  icon: const Icon(Icons.upload_file_outlined),\n                  label: const Text('Новая версия'),\n                ),\n""")
-
-          # Upload repository: DOCX only for online editor + inspect plain placeholders.
-          path = 'lib/features/documents/data/document_template_repository.dart'
-          replace(path,
-          """      extensions: <String>['docx', 'odt'],\n""",
-          """      extensions: <String>['docx'],\n""")
-          replace(path,
-          """    if (extension != 'docx' && extension != 'odt') {\n      throw StateError('Поддерживаются только DOCX и ODT');\n    }\n""",
-          """    if (extension != 'docx') {\n      throw StateError(\n        'Для онлайн-редактирования нужен DOCX. Сначала преобразуйте ODT в DOCX',\n      );\n    }\n""")
-          replace(path,
-          """    final mimeType = extension == 'odt' ? odtMime : docxMime;\n    final controls = extension == 'docx'\n        ? inspectDocxContentControls(bytes)\n        : const <String>[];\n""",
-          """    const mimeType = docxMime;\n    final controls = inspectDocxContentControls(bytes);\n    final placeholders = inspectDocxPlainPlaceholders(bytes);\n    final inheritedRequired =\n        workingTemplate.currentVersion?.fieldSchema['required_fields'];\n""")
-          replace(path,
-          """            'field_schema': <String, dynamic>{'content_controls': controls},\n""",
-          """            'field_schema': <String, dynamic>{\n              'content_controls': controls,\n              'plain_placeholders': placeholders,\n              if (inheritedRequired is List)\n                'required_fields': inheritedRequired,\n            },\n""")
-          marker = """  static List<String> inspectDocxContentControls(Uint8List bytes) {\n"""
-          addition = """  static List<String> inspectDocxPlainPlaceholders(Uint8List bytes) {\n    try {\n      final archive = ZipDecoder().decodeBytes(bytes, verify: true);\n      final values = <String>{};\n      final pattern = RegExp(\n        r'(?:\\{\\{([^}]+)\\}\\}|\\[\\[([^\\]]+)\\]\\]|\\$\\{([^}]+)\\}|<<([^>]+)>>)',\n      );\n      for (final file in archive.files) {\n        final name = file.name.toLowerCase();\n        if (!name.startsWith('word/') || !name.endsWith('.xml')) continue;\n        final content = file.content;\n        if (content is! List<int>) continue;\n        final xml = utf8.decode(content, allowMalformed: true);\n        for (final match in pattern.allMatches(xml)) {\n          final value = <String?>[\n            match.group(1),\n            match.group(2),\n            match.group(3),\n            match.group(4),\n          ].whereType<String>().map((item) => item.trim()).firstWhere(\n                (item) => item.isNotEmpty,\n                orElse: () => '',\n              );\n          if (value.isNotEmpty) values.add(value);\n        }\n      }\n      final result = values.toList()..sort();\n      return result;\n    } catch (_) {\n      return const <String>[];\n    }\n  }\n\n"""
-          replace(path, marker, addition + marker)
-
-          # Online editor: placeholders remain editable around the token, but token itself is protected.
-          path = 'lib/features/documents/data/document_template_online_editor.dart'
-          replace(path,
-          """  final bool isProtected;\n  final String protectionReason;\n""",
-          """  final bool isProtected;\n  final String protectionReason;\n  final List<String> protectedTokens;\n""")
-          replace(path,
-          """    required this.isProtected,\n    required this.protectionReason,\n  });\n""",
-          """    required this.isProtected,\n    required this.protectionReason,\n    this.protectedTokens = const <String>[],\n  });\n""")
-          replace(path,
-          """    final changedCount = draft.blocks.where((block) {\n""",
-          """    _validateProtectedTokens(draft, values);\n    final changedCount = draft.blocks.where((block) {\n""")
-          replace(path,
-          """        final reason = _protectionReason(paragraph, text, normalizedTags);\n        blocks.add(\n""",
-          """        final reason = _protectionReason(paragraph, text, normalizedTags);\n        final protectedTokens = _placeholderPattern\n            .allMatches(text)\n            .map((match) => match.group(0)?.trim() ?? '')\n            .where((value) => value.isNotEmpty)\n            .toList(growable: false);\n        blocks.add(\n""")
-          replace(path,
-          """            isProtected: reason.isNotEmpty,\n            protectionReason: reason,\n          ),\n""",
-          """            isProtected: reason.isNotEmpty,\n            protectionReason: reason,\n            protectedTokens: protectedTokens,\n          ),\n""")
-          replace(path,
-          """    if (_placeholderPattern.hasMatch(text)) {\n      return 'Маркер автозаполнения защищён';\n    }\n""",
-          """")
-          marker = """  static Uint8List save(\n"""
-          addition = """  static void _validateProtectedTokens(\n    DocumentTemplateOnlineDraft draft,\n    Map<String, String> values,\n  ) {\n    for (final block in draft.blocks) {\n      if (block.isProtected || block.protectedTokens.isEmpty) continue;\n      final current = values[block.id] ?? block.text;\n      final currentTokens = _placeholderPattern\n          .allMatches(current)\n          .map((match) => match.group(0)?.trim() ?? '')\n          .where((value) => value.isNotEmpty)\n          .toList()\n        ..sort();\n      final expected = [...block.protectedTokens]..sort();\n      if (currentTokens.length != expected.length) {\n        throw StateError(\n          'Нельзя удалять системные поля: ${expected.join(', ')}',\n        );\n      }\n      for (var index = 0; index < expected.length; index++) {\n        if (expected[index] != currentTokens[index]) {\n          throw StateError(\n            'Нельзя переименовывать системные поля: ${expected.join(', ')}',\n          );\n        }\n      }\n    }\n  }\n\n"""
-          replace(path, marker, addition + marker)
-
-          # Editor UI: show protected markers without locking the whole paragraph.
-          path = 'lib/features/documents/presentation/document_template_online_editor_screen.dart'
-          replace(path,
-          """      decoration: InputDecoration(\n        labelText: 'Блок $index',\n        alignLabelWithHint: true,\n        prefixIcon: const Icon(Icons.edit_outlined),\n      ),\n""",
-          """      decoration: InputDecoration(\n        labelText: 'Блок $index',\n        alignLabelWithHint: true,\n        prefixIcon: const Icon(Icons.edit_outlined),\n        suffixIcon: block.protectedTokens.isEmpty\n            ? null\n            : Tooltip(\n                message: 'Системные поля нельзя удалить или переименовать',\n                child: const Icon(Icons.lock_outline_rounded),\n              ),\n        helperText: block.protectedTokens.isEmpty\n            ? null\n            : 'Защищено: ${block.protectedTokens.join(', ')}',\n        helperMaxLines: 3,\n      ),\n""")
-
-          # Generator: support plain {{...}} placeholders and more employee/bank fields.
-          path = 'lib/features/documents/data/document_generation_service.dart'
-          replace(path,
-          """import 'package:docx_template/docx_template.dart';\n""",
-          """import 'dart:convert';\n\nimport 'package:archive/archive.dart';\nimport 'package:docx_template/docx_template.dart';\n""")
-          replace(path,
-          """    'birth_date': ['birth_date', 'date_of_birth', 'Дата рождения'],\n""",
-          """    'birth_date': ['birth_date', 'date_of_birth', 'Дата рождения'],\n    'birth_place': ['birth_place', 'place_of_birth', 'Место рождения'],\n""")
-          replace(path,
-          """    'registration_address': [\n      'registration_address',\n      'address',\n      'Адрес регистрации',\n    ],\n""",
-          """    'registration_address': [\n      'registration_address',\n      'address',\n      'Адрес регистрации',\n    ],\n    'living_address': ['living_address', 'Адрес проживания'],\n    'passport_department_code': [\n      'passport_department_code',\n      'department_code',\n      'Код подразделения',\n    ],\n""")
-          replace(path,
-          """    'bank_details': ['bank_details', 'Банковские реквизиты'],\n""",
-          """    'bank_details': ['bank_details', 'Банковские реквизиты'],\n    'bank_name': ['bank_name', 'Банк получателя'],\n    'bank_card': ['bank_card', 'Номер карты'],\n    'bank_account': ['bank_account', 'Номер счёта'],\n    'bank_bik': ['bank_bik', 'БИК'],\n    'bank_corr_account': ['bank_corr_account', 'Корр. счёт'],\n    'bank_inn': ['bank_inn', 'ИНН банка'],\n    'bank_kpp': ['bank_kpp', 'КПП банка'],\n    'bank_okpo': ['bank_okpo', 'ОКПО'],\n    'bank_ogrn': ['bank_ogrn', 'ОГРН банка'],\n    'bank_swift': ['bank_swift', 'SWIFT-код'],\n    'bank_address': ['bank_address', 'Почтовый адрес банка'],\n    'bank_office_address': [\n      'bank_office_address',\n      'Почтовый адрес доп.офиса',\n    ],\n""")
-          replace(path,
-          """    'document_number': ['document_number', 'Номер документа'],\n""",
-          """    'document_number': ['document_number', 'Номер документа'],\n    'contract_number': ['contract_number', 'Номер договора'],\n    'dismissal_date': ['dismissal_date', 'Дата увольнения'],\n    'document_city': ['document_city', 'Город документа'],\n""")
-          old = """    final templateBytes = await _loadTemplateBytes(version);\n    final docx = await DocxTemplate.fromBytes(templateBytes);\n    final tags = <String>{\n      ...docx.getTags().map((item) => item.trim()),\n      ...version.contentControls.map((item) => item.trim()),\n    }..removeWhere((item) => item.isEmpty);\n    if (tags.isEmpty) {\n      throw StateError(\n        'В шаблоне не найдены защищённые системные поля Word',\n      );\n    }\n\n    final values = _normalizedValues(fields);\n    final requiredFields = _requiredFields(version);\n    final content = Content();\n    final filled = <String>[];\n    final empty = <String>[];\n    for (final tag in tags) {\n      final value = _valueForTag(tag, values);\n      content.add(TextContent(tag, value));\n      if (value.trim().isEmpty) {\n        empty.add(tag);\n      } else {\n        filled.add(tag);\n      }\n    }\n\n    final missingRequired = requiredFields\n        .where((field) => _valueForTag(field, values).trim().isEmpty)\n        .toList(growable: false);\n    if (missingRequired.isNotEmpty) {\n      throw StateError(\n        'Не заполнены обязательные поля: ${missingRequired.join(', ')}',\n      );\n    }\n\n    final generated = await docx.generate(content);\n    if (generated == null || generated.isEmpty) {\n      throw StateError('Шаблон не удалось сформировать');\n    }\n    final bytes = Uint8List.fromList(generated);\n"""
-          new = """    final templateBytes = await _loadTemplateBytes(version);\n    final docx = await DocxTemplate.fromBytes(templateBytes);\n    final contentControlTags = <String>{\n      ...docx.getTags().map((item) => item.trim()),\n      ...version.contentControls.map((item) => item.trim()),\n    }..removeWhere((item) => item.isEmpty);\n    final plainTags = <String>{\n      ..._plainPlaceholders(templateBytes),\n      ..._schemaPlainPlaceholders(version),\n    }..removeWhere((item) => item.isEmpty);\n    final tags = <String>{...contentControlTags, ...plainTags};\n    if (tags.isEmpty) {\n      throw StateError(\n        'В шаблоне не найдены системные поля Word или маркеры {{...}}',\n      );\n    }\n\n    final values = _normalizedValues(fields);\n    final requiredFields = _requiredFields(version);\n    final filled = <String>[];\n    final empty = <String>[];\n    for (final tag in tags) {\n      final value = _valueForTag(tag, values);\n      if (value.trim().isEmpty) {\n        empty.add(tag);\n      } else {\n        filled.add(tag);\n      }\n    }\n\n    final missingRequired = requiredFields\n        .where((field) => _valueForTag(field, values).trim().isEmpty)\n        .toList(growable: false);\n    if (missingRequired.isNotEmpty) {\n      throw StateError(\n        'Не заполнены обязательные поля: ${missingRequired.join(', ')}',\n      );\n    }\n\n    var generatedBytes = templateBytes;\n    if (contentControlTags.isNotEmpty) {\n      final content = Content();\n      for (final tag in contentControlTags) {\n        content.add(TextContent(tag, _valueForTag(tag, values)));\n      }\n      final generated = await docx.generate(content);\n      if (generated == null || generated.isEmpty) {\n        throw StateError('Шаблон не удалось сформировать');\n      }\n      generatedBytes = Uint8List.fromList(generated);\n    }\n    final bytes = _replacePlainPlaceholders(\n      generatedBytes,\n      plainTags,\n      values,\n    );\n"""
-          replace(path, old, new)
-          marker = """  static Future<Uint8List> _loadTemplateBytes(\n"""
-          addition = """  static final RegExp _plainPlaceholderPattern = RegExp(\n    r'(?:\\{\\{([^}]+)\\}\\}|\\[\\[([^\\]]+)\\]\\]|\\$\\{([^}]+)\\}|<<([^>]+)>>)',\n  );\n\n  static List<String> _schemaPlainPlaceholders(\n    DocumentTemplateVersion version,\n  ) {\n    final raw = version.fieldSchema['plain_placeholders'];\n    if (raw is! List) return const <String>[];\n    return raw\n        .map((item) => item.toString().trim())\n        .where((item) => item.isNotEmpty)\n        .toList(growable: false);\n  }\n\n  static Set<String> _plainPlaceholders(Uint8List bytes) {\n    final values = <String>{};\n    try {\n      final archive = ZipDecoder().decodeBytes(bytes, verify: true);\n      for (final file in archive.files) {\n        final path = file.name.toLowerCase();\n        if (!path.startsWith('word/') || !path.endsWith('.xml')) continue;\n        final content = file.content;\n        if (content is! List<int>) continue;\n        final xml = utf8.decode(content, allowMalformed: true);\n        for (final match in _plainPlaceholderPattern.allMatches(xml)) {\n          final tag = _placeholderTag(match);\n          if (tag.isNotEmpty) values.add(tag);\n        }\n      }\n    } catch (_) {\n      return <String>{};\n    }\n    return values;\n  }\n\n  static Uint8List _replacePlainPlaceholders(\n    Uint8List bytes,\n    Set<String> allowedTags,\n    Map<String, String> values,\n  ) {\n    if (allowedTags.isEmpty) return bytes;\n    final source = ZipDecoder().decodeBytes(bytes, verify: true);\n    final output = Archive();\n    for (final file in source.files) {\n      final content = file.content;\n      if (content is! List<int>) continue;\n      var next = Uint8List.fromList(content);\n      final path = file.name.toLowerCase();\n      if (path.startsWith('word/') && path.endsWith('.xml')) {\n        var xml = utf8.decode(content, allowMalformed: true);\n        xml = xml.replaceAllMapped(_plainPlaceholderPattern, (match) {\n          final tag = _placeholderTag(match);\n          if (!allowedTags.contains(tag)) return match.group(0) ?? '';\n          return _encodeXml(_valueForTag(tag, values));\n        });\n        next = Uint8List.fromList(utf8.encode(xml));\n      }\n      output.addFile(ArchiveFile(file.name, next.length, next));\n    }\n    final encoded = ZipEncoder().encode(output);\n    if (encoded == null || encoded.isEmpty) {\n      throw StateError('Не удалось заполнить DOCX-маркеры');\n    }\n    return Uint8List.fromList(encoded);\n  }\n\n  static String _placeholderTag(RegExpMatch match) {\n    for (final index in <int>[1, 2, 3, 4]) {\n      final value = match.group(index)?.trim() ?? '';\n      if (value.isNotEmpty) return value;\n    }\n    return '';\n  }\n\n  static String _encodeXml(String value) {\n    return value\n        .replaceAll('&', '&amp;')\n        .replaceAll('<', '&lt;')\n        .replaceAll('>', '&gt;')\n        .replaceAll('"', '&quot;')\n        .replaceAll("'", '&apos;');\n  }\n\n"""
-          replace(path, marker, addition + marker)
-
-          # Add missing template cards through a migration.
-          migration = Path('supabase/migrations/20260803174500_add_current_hr_template_slots.sql')
-          migration.write_text("""begin;\n\ninsert into public.document_templates (\n  company_id, code, title, category, description, status\n)\nselect null, values_row.code, values_row.title, 'hr', values_row.description, 'review'\nfrom (values\n  ('termination_application', 'Заявление на увольнение',\n   'Форма заявления на увольнение сотрудника.'),\n  ('ticket_purchase_agreement', 'Соглашение на приобретение билетов',\n   'Соглашение об условиях приобретения и возмещения стоимости билетов с подтверждением по СМС.')\n) as values_row(code, title, description)\nwhere not exists (\n  select 1\n  from public.document_templates existing\n  where existing.company_id is null\n    and existing.code = values_row.code\n);\n\ncommit;\n""", encoding='utf-8')
-
-          # Regression contract.
-          test = Path('test/document_template_import_contract_test.dart')
-          test.write_text("""import 'dart:io';\n\nimport 'package:flutter_test/flutter_test.dart';\n\nvoid main() {\n  test('external templates import DOCX instead of opening dead-end editor', () {\n    final screen = File(\n      'lib/features/documents/presentation/document_tool_templates_screen.dart',\n    ).readAsStringSync();\n    final repository = File(\n      'lib/features/documents/data/document_template_repository.dart',\n    ).readAsStringSync();\n\n    expect(screen, contains('canEditOnlineVersion'));\n    expect(screen, contains('Загрузить DOCX в AppСтрой'));\n    expect(screen, contains('openEditorAfterUpload: true'));\n    expect(repository, contains("extensions: <String>['docx']"));\n    expect(repository, contains('inspectDocxPlainPlaceholders'));\n  });\n\n  test('plain placeholders are protected and generated', () {\n    final editor = File(\n      'lib/features/documents/data/document_template_online_editor.dart',\n    ).readAsStringSync();\n    final generator = File(\n      'lib/features/documents/data/document_generation_service.dart',\n    ).readAsStringSync();\n\n    expect(editor, contains('_validateProtectedTokens'));\n    expect(editor, contains('protectedTokens'));\n    expect(generator, contains('_replacePlainPlaceholders'));\n    expect(generator, contains('_schemaPlainPlaceholders'));\n    expect(generator, contains("'bank_account'"));\n    expect(generator, contains("'dismissal_date'"));\n  });\n}\n""", encoding='utf-8')
+          ruby -ryaml -e '
+            raw = `git show HEAD^:.github/workflows/apply-template-import-fix.yml`
+            doc = YAML.safe_load(raw, aliases: true)
+            step = doc.fetch("jobs").fetch("patch").fetch("steps").find { |item| item["name"] == "Patch template import, editor and generator" }
+            abort "prepared patch step not found" unless step
+            File.write("/tmp/apply_template_import_fix.py", step.fetch("run"))
+          '
+          python /tmp/apply_template_import_fix.py
 
       - name: Format changed Dart files
         shell: bash
