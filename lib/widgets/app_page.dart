@@ -350,30 +350,6 @@ class AppSurfaceBackdrop extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Positioned(
-            top: -170,
-            right: -110,
-            child: IgnorePointer(
-              child: Container(
-                width: 390,
-                height: 390,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: dark
-                        ? [
-                            AppAdaptivePalette.telegramBlue.withValues(alpha: 0.18),
-                            Colors.transparent,
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.84),
-                            Colors.transparent,
-                          ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
             bottom: -210,
             left: -145,
             child: IgnorePointer(
