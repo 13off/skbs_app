@@ -3,12 +3,14 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('mobile timesheet save button has no surrounding dark card', () {
+  test('mobile timesheet save button floats directly above navigation', () {
     final view = File(
       'lib/screens/timesheet/timesheet_view.dart',
     ).readAsStringSync();
 
     expect(view, contains("key: const ValueKey('timesheet-floating-save')"));
+    expect(view, contains('bottom: 14'));
+    expect(view, contains('EdgeInsets.fromLTRB(18, 18, 18, 118)'));
     expect(view, contains('PremiumActionButton('));
     expect(
       view,
