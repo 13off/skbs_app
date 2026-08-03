@@ -486,7 +486,7 @@ class _ToolInfoSheet extends StatelessWidget {
                         const SizedBox(height: 28),
                         const _SectionTitle(
                           title: 'Что умеет инструмент',
-                          subtitle:
+                          description:
                               'Полный путь сотрудника: от файлов кандидата до проверенного архива.',
                         ),
                         const SizedBox(height: 14),
@@ -518,7 +518,7 @@ class _ToolInfoSheet extends StatelessWidget {
                         const SizedBox(height: 30),
                         const _SectionTitle(
                           title: 'Кто и за что отвечает',
-                          subtitle:
+                          description:
                               'Каждый сотрудник видит только доступные ему действия.',
                         ),
                         const SizedBox(height: 14),
@@ -526,7 +526,7 @@ class _ToolInfoSheet extends StatelessWidget {
                         const SizedBox(height: 30),
                         const _SectionTitle(
                           title: 'Как работать с инструментом',
-                          subtitle:
+                          description:
                               'Пройдите весь сценарий. Внутри каждого шага показано, что нажать, что проверить и какой результат должен получиться.',
                         ),
                         const SizedBox(height: 14),
@@ -645,11 +645,11 @@ class _ToolHero extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String description;
 
   const _SectionTitle({
     required this.title,
-    required this.subtitle,
+    required this.description,
   });
 
   @override
@@ -666,7 +666,7 @@ class _SectionTitle extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          subtitle,
+          description,
           style: TextStyle(
             color: scheme.onSurfaceVariant,
             height: 1.4,
