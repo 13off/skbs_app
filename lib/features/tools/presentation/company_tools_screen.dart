@@ -283,9 +283,9 @@ class DocumentToolAppShortcut extends StatelessWidget {
           child: InkWell(
             borderRadius: radius,
             onTap: onTap,
-            child: const ConstrainedBox(
-              constraints: BoxConstraints(minHeight: 174),
-              child: Padding(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 174),
+              child: const Padding(
                 padding: EdgeInsets.fromLTRB(14, 16, 14, 14),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
