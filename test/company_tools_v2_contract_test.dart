@@ -38,30 +38,32 @@ void main() {
     expect(tools, contains('Switch.adaptive'));
   });
 
-  test('employment is one installable tool with internal sections', () {
+  test('employment tool contains workflow functions but not a second archive', () {
     expect(tools, contains('AppСтрой Трудоустройство'));
     expect(tools, isNot(contains('AppСтрой Документы')));
     expect(tools, contains("title: 'Оформления'"));
     expect(tools, contains("title: 'Генератор документов'"));
     expect(tools, contains("title: 'Пакеты документов'"));
     expect(tools, contains("title: 'Шаблоны'"));
-    expect(tools, contains("title: 'Архив'"));
+    expect(tools, contains('DocumentToolTemplatesScreen'));
+    expect(tools, isNot(contains("title: 'Архив'")));
+    expect(tools, contains('Отдельный второй архив внутри инструмента не создаётся'));
   });
 
-  test('tool information is detailed and contains an animated guide', () {
-    expect(tools, contains("title: 'Что умеет инструмент'"));
-    expect(tools, contains("title: 'Кто и за что отвечает'"));
-    expect(tools, contains("title: 'Как работать с инструментом'"));
-    expect(tools, contains('Шаг 8 из 8'));
+  test('tool information contains the online editor and animated guide', () {
+    expect(tools, contains('Что умеет инструмент'));
+    expect(tools, contains('Как работать'));
+    expect(tools, contains('Онлайн-редактор'));
+    expect(tools, contains("'8 из 8'"));
     expect(tools, contains('AnimationController'));
     expect(tools, contains('PageView.builder'));
-    expect(tools, contains('LinearProgressIndicator'));
-    expect(tools, contains('Правило общего кадрового архива'));
+    expect(tools, contains('AnimatedContainer'));
+    expect(tools, contains('общем архиве AppСтрой'));
   });
 
   test('disabling a tool preserves data and mobile screens stay bounded', () {
     expect(tools, contains('Все данные сохранены'));
-    expect(tools, contains('документы и архивы сохранятся'));
+    expect(tools, contains('Общий архив AppСтрой также не изменится'));
     expect(workflow, isNot(contains('return RefreshIndicator(')));
     expect(workflow, contains('onRefresh: refresh'));
   });
