@@ -2,6 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../models/document_template.dart';
+import 'document_template_repository.dart';
 
 class DocumentTemplateEditableBlock {
   final String id;
@@ -37,6 +42,8 @@ class DocumentTemplateOnlineDraft {
 }
 
 abstract final class DocumentTemplateOnlineEditor {
+  static final SupabaseClient _client = Supabase.instance.client;
+
   static final RegExp _paragraphPattern = RegExp(
     r'<w:p\b[^>]*>[\s\S]*?</w:p>',
     caseSensitive: false,
@@ -48,6 +55,118 @@ abstract final class DocumentTemplateOnlineEditor {
   static final RegExp _placeholderPattern = RegExp(
     r'(\{\{[^}]+\}\}|\[\[[^\]]+\]\]|\$\{[^}]+\}|<<[^>]+>>)',
   );
+
+  static Future<DocumentTemplateOnlineDraft> load(
+    DocumentTemplateVersion version,
+  ) async {
+    if (!_isDocx(version)) {
+      throw StateError('Онлайн-редактор поддерживает только DOCX');
+    }
+    final bytes = await _loadVersionBytes(version);
+    return open(bytes, protectedTags: version.contentControls);
+  }
+
+  static Future<DocumentTemplateRecord?> saveVersion({
+    required DocumentTemplateRecord template,
+    required DocumentTemplateVersion sourceVersion,
+    required String companyId,
+    required DocumentTemplateOnlineDraft draft,
+    required Map<String, String> values,
+    required bool approve,
+    required String notes,
+  }) async {
+    final changedCount = draft.blocks.where((block) {
+      if (block.isProtected) return false;
+      return (values[block.id]?.trim() ?? block.text) != block.text;
+    }).length;
+    if (changedCount == 0) {
+      throw StateError('Изменений нет');
+    }
+
+    final bytes = save(draft, values);
+    final workingTemplateId = await _companyTemplateId(
+      template: template,
+      companyId: companyId,
+    );
+    final versionRows = await _client
+        .from('document_template_versions')
+        .select('version_no')
+        .eq('template_id', workingTemplateId)
+        .order('version_no', ascending: false)
+        .limit(1);
+    final nextVersion = versionRows.isEmpty
+        ? 1
+        : (int.tryParse(versionRows.first['version_no'].toString()) ?? 0) + 1;
+    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final fileName = _editedFileName(sourceVersion.fileName, nextVersion);
+    final storagePath = '$companyId/$workingTemplateId/${timestamp}_$fileName';
+    final controls = DocumentTemplateRepository.inspectDocxContentControls(bytes);
+    final fieldSchema = <String, dynamic>{
+      ...sourceVersion.fieldSchema,
+      'content_controls': controls,
+      'online_editor': <String, dynamic>{
+        'engine': 'docx_text_blocks_v1',
+        'source_version_id': sourceVersion.id,
+        'changed_blocks': changedCount,
+        'protected_blocks': draft.protectedCount,
+        'edited_at': DateTime.now().toUtc().toIso8601String(),
+      },
+    };
+
+    await _client.storage
+        .from(DocumentTemplateRepository.bucketName)
+        .uploadBinary(
+          storagePath,
+          bytes,
+          fileOptions: const FileOptions(
+            contentType: DocumentTemplateRepository.docxMime,
+            cacheControl: '3600',
+            upsert: false,
+          ),
+        );
+
+    try {
+      final versionRow = await _client
+          .from('document_template_versions')
+          .insert(<String, dynamic>{
+            'template_id': workingTemplateId,
+            'company_id': companyId,
+            'version_no': nextVersion,
+            'file_name': fileName,
+            'mime_type': DocumentTemplateRepository.docxMime,
+            'source_kind': 'storage',
+            'storage_path': storagePath,
+            'field_schema': fieldSchema,
+            'notes': notes.trim().isEmpty
+                ? 'Изменено в онлайн-редакторе AppСтрой'
+                : notes.trim(),
+            'is_approved': approve,
+          })
+          .select('id')
+          .single();
+      await _client
+          .from('document_templates')
+          .update(<String, dynamic>{
+            'current_version_id': versionRow['id'],
+            'status': approve ? 'active' : 'review',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', workingTemplateId);
+    } catch (_) {
+      await _client.storage
+          .from(DocumentTemplateRepository.bucketName)
+          .remove(<String>[storagePath]);
+      rethrow;
+    }
+
+    final refreshed = await DocumentTemplateRepository.fetchTemplates(
+      companyId: companyId,
+    );
+    for (final item in refreshed) {
+      if (item.code == template.code) return item;
+    }
+    return null;
+  }
 
   static DocumentTemplateOnlineDraft open(
     Uint8List bytes, {
@@ -71,11 +190,7 @@ abstract final class DocumentTemplateOnlineEditor {
         final paragraph = paragraphs[index].group(0) ?? '';
         final text = _paragraphText(paragraph).trim();
         if (text.isEmpty) continue;
-        final reason = _protectionReason(
-          paragraph,
-          text,
-          normalizedTags,
-        );
+        final reason = _protectionReason(paragraph, text, normalizedTags);
         blocks.add(
           DocumentTemplateEditableBlock(
             id: '${file.name}#$index',
@@ -139,6 +254,71 @@ abstract final class DocumentTemplateOnlineEditor {
       throw StateError('Не удалось собрать новую DOCX-версию');
     }
     return Uint8List.fromList(encoded);
+  }
+
+  static Future<Uint8List> _loadVersionBytes(
+    DocumentTemplateVersion version,
+  ) async {
+    if (version.isAsset) {
+      if (version.assetPath.trim().isEmpty) {
+        throw StateError('У версии отсутствует встроенный DOCX-файл');
+      }
+      final data = await rootBundle.load(version.assetPath);
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }
+    if (version.isStorage) {
+      if (version.storagePath.trim().isEmpty) {
+        throw StateError('У версии отсутствует файл в хранилище');
+      }
+      return _client.storage
+          .from(DocumentTemplateRepository.bucketName)
+          .download(version.storagePath);
+    }
+    throw StateError(
+      'Этот исходник подключён внешней ссылкой. Сначала нажмите «Новая версия» '
+      'и загрузите DOCX в AppСтрой — после этого его можно редактировать онлайн.',
+    );
+  }
+
+  static Future<String> _companyTemplateId({
+    required DocumentTemplateRecord template,
+    required String companyId,
+  }) async {
+    if (!template.isGlobal) return template.id;
+    final existing = await _client
+        .from('document_templates')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('code', template.code)
+        .maybeSingle();
+    if (existing != null) return existing['id'].toString();
+    final inserted = await _client
+        .from('document_templates')
+        .insert(<String, dynamic>{
+          'company_id': companyId,
+          'code': template.code,
+          'title': template.title,
+          'category': template.category,
+          'description': template.description,
+          'status': 'review',
+        })
+        .select('id')
+        .single();
+    return inserted['id'].toString();
+  }
+
+  static bool _isDocx(DocumentTemplateVersion version) {
+    return version.mimeType == DocumentTemplateRepository.docxMime ||
+        version.fileName.toLowerCase().endsWith('.docx');
+  }
+
+  static String _editedFileName(String sourceName, int versionNo) {
+    final dot = sourceName.toLowerCase().lastIndexOf('.docx');
+    final base = (dot > 0 ? sourceName.substring(0, dot) : sourceName)
+        .trim()
+        .replaceAll(RegExp(r'[^a-zA-Zа-яА-Я0-9._-]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_');
+    return '${base.isEmpty ? 'template' : base}_online_v$versionNo.docx';
   }
 
   static bool _isEditablePart(String path) {
