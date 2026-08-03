@@ -43,6 +43,7 @@ void main() {
 
     expect(generator, contains(".from('document_templates')"));
     expect(generator, contains(".from('document_template_versions')"));
+    expect(generator, contains(".from('document-templates')"));
     expect(generator, contains("case 'storage':"));
     expect(generator, contains("case 'asset':"));
     expect(generator, contains("case 'external':"));
