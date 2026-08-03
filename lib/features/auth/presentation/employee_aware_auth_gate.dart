@@ -5,7 +5,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../employee/presentation/employee_platform_with_passport.dart';
-import 'resilient_management_auth_gate.dart' as management;
+import 'premium_auth_gate_v2.dart' as management;
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
