@@ -267,35 +267,41 @@ class DocumentToolAppShortcut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(26);
     return SizedBox(
       width: 168,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(26),
-        onTap: onTap,
-        child: Container(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
           constraints: const BoxConstraints(minHeight: 174),
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: radius,
             border: Border.all(color: scheme.outlineVariant),
           ),
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _EmploymentToolIcon(size: 72),
-              SizedBox(height: 13),
-              Text(
-                'AppСтрой\nТрудоустройство',
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  height: 1.12,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _EmploymentToolIcon(size: 72),
+                SizedBox(height: 13),
+                Text(
+                  'AppСтрой\nТрудоустройство',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    height: 1.12,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
