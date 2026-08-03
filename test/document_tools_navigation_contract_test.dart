@@ -22,20 +22,15 @@ void main() {
     expect(tools, contains('AnimatedContainer('));
     expect(tools, contains('DocumentToolAvailability.notifyChanged()'));
     expect(tools, contains('class DocumentToolAppShortcut'));
+    expect(tools, contains('class _EmploymentToolIcon'));
     expect(tools, contains("title: 'Оформления'"));
     expect(tools, contains("title: 'Генератор документов'"));
     expect(tools, contains("title: 'Пакеты документов'"));
     expect(tools, contains("title: 'Шаблоны'"));
-    expect(tools, contains("title: 'Архив'"));
+    expect(tools, contains('DocumentToolTemplatesScreen'));
+    expect(tools, isNot(contains("title: 'Архив'")));
+    expect(tools, contains('общем архиве AppСтрой'));
 
-    expect(
-      tools,
-      isNot(
-        contains(
-          'Распознавание документов, карточка сотрудника, оформление по ГПХ',
-        ),
-      ),
-    );
     expect(tools, isNot(contains("label: const Text('Открыть инструмент')")));
     expect(tools, isNot(contains("Chip(label: Text('HR'))")));
     expect(tools, isNot(contains("Chip(label: Text('Юрист'))")));
@@ -50,6 +45,27 @@ void main() {
     expect(profile, contains('!data.installation.isEnabled'));
     expect(profile, contains('!data.access.canView'));
     expect(profile, contains('return const SizedBox.shrink();'));
+  });
+
+  test('tool templates support protected online editing and versioning', () {
+    final templates = File(
+      'lib/features/documents/presentation/document_tool_templates_screen.dart',
+    ).readAsStringSync();
+    final editorScreen = File(
+      'lib/features/documents/presentation/document_template_online_editor_screen.dart',
+    ).readAsStringSync();
+    final editor = File(
+      'lib/features/documents/data/document_template_online_editor.dart',
+    ).readAsStringSync();
+
+    expect(templates, contains('Редактировать онлайн'));
+    expect(templates, contains('DocumentTemplateOnlineEditorScreen'));
+    expect(editorScreen, contains('Icons.lock_rounded'));
+    expect(editorScreen, contains('Сохранить новую версию'));
+    expect(editor, contains('source_version_id'));
+    expect(editor, contains('protected_blocks'));
+    expect(editor, contains("'source_kind': 'storage'"));
+    expect(editor, contains('Сначала нажмите «Новая версия»'));
   });
 
   test('onboarding list is a section of the connected tool', () {
