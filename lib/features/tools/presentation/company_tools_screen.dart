@@ -11,6 +11,7 @@ import '../../documents/models/document_onboarding.dart';
 import '../../documents/presentation/document_generation_screen.dart';
 import '../../documents/presentation/document_package_management_screen.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
+import 'document_tool_feature_gate.dart';
 
 class CompanyToolsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -88,6 +89,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
         isEnabled: enabled,
         settings: data.installation.settings,
       );
+      DocumentToolAvailability.notifyChanged();
       selectedTab = enabled
           ? _CompanyToolsTab.connected
           : _CompanyToolsTab.catalog;
