@@ -38,15 +38,18 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
     if (companyId.isEmpty) {
       throw StateError('Сначала выберите активную компанию');
     }
+
     final values = await Future.wait<dynamic>(<Future<dynamic>>[
       DocumentWorkflowRepository.fetchAccess(),
       DocumentWorkflowRepository.fetchInstallation(companyId),
     ]);
     final access = values[0] as DocumentWorkflowAccess;
     final installation = values[1] as DocumentToolInstallation;
+
     if (!installation.isEnabled && access.canManage) {
       selectedTab = _CompanyToolsTab.catalog;
     }
+
     return _ToolsData(access: access, installation: installation);
   }
 
@@ -57,6 +60,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
 
   Future<void> _setEnabled(_ToolsData data, bool enabled) async {
     if (changing || !data.access.canManage) return;
+
     if (!enabled) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -64,8 +68,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
           title: const Text('Отключить инструмент?'),
           content: const Text(
             'Оформления, шаблоны, документы и архивы не удалятся. '
-            'Инструмент просто перестанет быть доступен пользователям '
-            'до повторного включения.',
+            'Инструмент просто перестанет быть доступен до повторного включения.',
           ),
           actions: [
             TextButton(
@@ -127,18 +130,11 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       return PremiumWorkCard(
         radius: 24,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
               'Подключённых инструментов пока нет',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              data.access.canManage
-                  ? 'Откройте каталог и включите нужный модуль компании.'
-                  : 'Инструменты включаются владельцем или администратором компании.',
-              style: const TextStyle(height: 1.4),
             ),
             if (data.access.canManage) ...[
               const SizedBox(height: 14),
@@ -180,7 +176,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Инструменты AppСтрой',
-      subtitle: 'Подключаемые рабочие модули компании',
       onRefresh: _refresh,
       child: FutureBuilder<_ToolsData>(
         future: future,
@@ -197,30 +192,18 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
               onRetry: _refresh,
             );
           }
+
           final data = snapshot.requireData;
           if (!data.access.hasEntry) {
             return const PremiumWorkCard(
               radius: 24,
-              child: Text(
-                'Для вашей роли пока нет доступных инструментов компании.',
-                style: TextStyle(height: 1.45),
-              ),
+              child: Text('Для вашей роли нет доступных инструментов.'),
             );
           }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const PremiumWorkCard(
-                radius: 24,
-                child: Text(
-                  'Инструменты работают как расширения браузера: их можно '
-                  'включать и отключать отдельно, не меняя основную логику '
-                  'AppСтрой и не удаляя накопленные данные.',
-                  style: TextStyle(height: 1.45),
-                ),
-              ),
-              const SizedBox(height: 16),
               if (data.access.canManage)
                 SegmentedButton<_CompanyToolsTab>(
                   segments: const [
@@ -246,30 +229,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
                 _connectedView(data)
               else
                 _catalogView(data),
-              const SizedBox(height: 14),
-              PremiumWorkCard(
-                radius: 24,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline_rounded),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        data.access.canManage
-                            ? 'Владелец или администратор управляет инструментом '
-                                  'переключателем на карточке. После включения HR, '
-                                  'юрист и другие роли используют только те '
-                                  'разделы, на которые им выданы права.'
-                            : 'Здесь отображаются включённые компанией '
-                                  'инструменты и только разрешённые вашей роли '
-                                  'рабочие разделы.',
-                        style: const TextStyle(height: 1.45),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           );
         },
@@ -298,53 +257,13 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'AppСтрой Трудоустройство',
-      subtitle: 'Оформление и кадровый документооборот',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const PremiumWorkCard(
-            radius: 26,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ToolLogo(),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Подключённый инструмент',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Единый процесс: документы кандидата, проверка HR, '
-                        'карточка сотрудника, договоры, подписи и архив.',
-                        style: TextStyle(height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Разделы инструмента',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 10),
           if (access.canView)
             _ToolActionCard(
               icon: Icons.fact_check_outlined,
               title: 'Оформления',
-              subtitle: 'Кандидаты и сотрудники: 13 этапов до архива',
               onTap: () =>
                   _open(context, DocumentWorkflowScreen(profile: profile)),
             ),
@@ -352,7 +271,6 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
             _ToolActionCard(
               icon: Icons.auto_awesome_outlined,
               title: 'Генератор документов',
-              subtitle: 'DOCX по утверждённым версиям шаблонов',
               onTap: () =>
                   _open(context, DocumentGenerationScreen(profile: profile)),
             ),
@@ -360,7 +278,6 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
             _ToolActionCard(
               icon: Icons.inventory_2_outlined,
               title: 'Пакеты документов',
-              subtitle: 'Наборы для ГПХ, приёма и изменения условий',
               onTap: () => _open(
                 context,
                 DocumentPackageManagementScreen(profile: profile),
@@ -370,7 +287,6 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
             _ToolActionCard(
               icon: Icons.description_outlined,
               title: 'Шаблоны',
-              subtitle: 'Утверждённые версии и защищённые поля',
               onTap: () =>
                   _open(context, TemplateDocumentsScreen(profile: profile)),
             ),
@@ -378,7 +294,6 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
             _ToolActionCard(
               icon: Icons.archive_outlined,
               title: 'Архив',
-              subtitle: 'Документы сотрудников, версии и история',
               onTap: () =>
                   _open(context, ArchiveManagementScreenV3(profile: profile)),
             ),
@@ -409,44 +324,32 @@ class _EmploymentToolCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = installation.isEnabled;
     final scheme = Theme.of(context).colorScheme;
+
     return PremiumWorkCard(
       radius: 28,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _ToolLogo(),
               const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'AppСтрой Трудоустройство',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Оформление и кадровый документооборот',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 10),
-                    Chip(
-                      avatar: Icon(
-                        enabled
-                            ? Icons.check_circle_rounded
-                            : Icons.pause_circle_outline_rounded,
-                        size: 18,
-                      ),
-                      label: Text(enabled ? 'Включён' : 'Отключён'),
-                    ),
-                  ],
+              const Expanded(
+                child: Text(
+                  'AppСтрой Трудоустройство',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
                 ),
+              ),
+              Chip(
+                avatar: Icon(
+                  enabled
+                      ? Icons.check_circle_rounded
+                      : Icons.pause_circle_outline_rounded,
+                  size: 18,
+                ),
+                label: Text(enabled ? 'Включён' : 'Отключён'),
               ),
               if (access.canManage) ...[
                 const SizedBox(width: 8),
@@ -474,56 +377,23 @@ class _EmploymentToolCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 14),
-          const Text(
-            'Распознавание документов, карточка сотрудника, оформление по ГПХ '
-            'или трудовому договору, генерация DOCX, подписание, финальные '
-            'сканы и защищённый кадровый архив.',
-            style: TextStyle(height: 1.45),
-          ),
-          const SizedBox(height: 14),
-          const Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(label: Text('HR')),
-              Chip(label: Text('Юрист')),
-              Chip(label: Text('Документы')),
-              Chip(label: Text('Архив')),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (enabled)
+          if (enabled) ...[
+            const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: access.canView && !changing ? onOpen : null,
               icon: const Icon(Icons.open_in_new_rounded),
               label: const Text('Открыть инструмент'),
-            )
-          else if (access.canManage)
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.power_settings_new_rounded, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Инструмент отключён. Включите переключатель, чтобы снова открыть доступ компании.',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            const Text(
-              'Инструмент отключён владельцем или администратором компании.',
-              style: TextStyle(fontWeight: FontWeight.w700),
             ),
+          ] else if (!access.canManage) ...[
+            const SizedBox(height: 14),
+            Text(
+              'Инструмент отключён',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -533,19 +403,18 @@ class _EmploymentToolCard extends StatelessWidget {
 class _ToolActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   const _ToolActionCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -567,19 +436,14 @@ class _ToolActionCard extends StatelessWidget {
               ),
               const SizedBox(width: 13),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(subtitle),
-                  ],
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
@@ -597,6 +461,7 @@ class _ToolLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Container(
       width: 58,
       height: 58,

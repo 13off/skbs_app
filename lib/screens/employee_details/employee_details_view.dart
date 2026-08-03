@@ -21,20 +21,17 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
             buildActionTile(
               icon: Icons.badge_outlined,
               title: 'Паспорт специалиста',
-              subtitle: 'Реальный опыт, смены, задачи, объекты и навыки',
               onTap: openProfessionalPassport,
             ),
           ],
           buildActionTile(
             icon: Icons.donut_large_rounded,
             title: 'Личный вклад',
-            subtitle: 'Доля в завершённых задачах, сводка и история',
             onTap: openContribution,
           ),
           buildActionTile(
             icon: Icons.calendar_month_outlined,
             title: 'Индивидуальный табель',
-            subtitle: 'Смены, начислено, выплаты и Excel',
             onTap: openTimesheet,
           ),
           if (isAdmin)
@@ -49,8 +46,6 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
                     child: buildActionTile(
                       icon: Icons.lock_person_outlined,
                       title: 'Личные данные',
-                      subtitle:
-                          'Паспорт, СНИЛС, ИНН, адреса и кадровые документы',
                       onTap: openPrivateData,
                     ),
                   ),
@@ -61,7 +56,6 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
                     child: buildActionTile(
                       icon: Icons.folder_outlined,
                       title: 'Документы',
-                      subtitle: 'Фото, PDF, Word, Excel и другие файлы',
                       onTap: openDocuments,
                     ),
                   ),
@@ -71,13 +65,11 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
           buildActionTile(
             icon: Icons.payments_outlined,
             title: 'Выплаты',
-            subtitle: 'История выплат, авансов и штрафов',
             onTap: openPayments,
           ),
           buildActionTile(
             icon: Icons.comment_outlined,
             title: 'Комментарии',
-            subtitle: 'Несколько заметок по сотруднику',
             onTap: openComments,
           ),
         ],

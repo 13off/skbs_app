@@ -12,6 +12,15 @@ void main() {
     final rolePreview = File(
       'lib/features/role_preview/role_preview_screen.dart',
     ).readAsStringSync();
+    final employeeSections = File(
+      'lib/screens/employee_details/employee_details_sections.dart',
+    ).readAsStringSync();
+    final employeeView = File(
+      'lib/screens/employee_details/employee_details_view.dart',
+    ).readAsStringSync();
+    final tools = File(
+      'lib/features/tools/presentation/company_tools_screen.dart',
+    ).readAsStringSync();
 
     expect(reports, isNot(contains('cleanMeta')));
     expect(reports, isNot(contains('Text(\n                          cleanMeta')));
@@ -31,6 +40,19 @@ void main() {
     expect(rolePreview, contains('final details = <String>['));
     expect(rolePreview, contains('badge: preview.isForemanMode'));
     expect(rolePreview, contains('badge: preview.isEmployeeMode'));
+
+    expect(employeeSections, isNot(contains('required String subtitle')));
+    expect(employeeSections, isNot(contains('subtitle: Text(subtitle)')));
+    expect(employeeView, isNot(contains('subtitle:')));
+    expect(employeeView, contains("title: 'Личные данные'"));
+    expect(employeeView, contains("title: 'Документы'"));
+
+    expect(tools, isNot(contains('required String subtitle')));
+    expect(tools, isNot(contains('final String subtitle;')));
+    expect(tools, isNot(contains('Кандидаты и сотрудники: 13 этапов')));
+    expect(tools, isNot(contains('DOCX по утверждённым версиям')));
+    expect(tools, contains("title: 'Оформления'"));
+    expect(tools, contains("title: 'Генератор документов'"));
   });
 
   test('панели профессий не возвращают описания в кнопки', () {
