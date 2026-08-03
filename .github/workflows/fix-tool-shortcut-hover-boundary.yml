@@ -115,3 +115,5 @@ jobs:
           git add lib/features/tools/presentation/company_tools_screen.dart .github/workflows/fix-tool-shortcut-hover-boundary.yml
           git commit -m "Ограничить подсветку границами ярлыка инструмента"
           git push origin HEAD:fix/tool-shortcut-hover-boundary
+
+# trigger after workflow exists on branch
