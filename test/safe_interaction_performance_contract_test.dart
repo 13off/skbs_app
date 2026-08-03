@@ -27,8 +27,9 @@ void main() {
     );
     expect(
       navigation,
-      contains("ValueKey('professional-bottom-navigation-panel')"),
+      contains("ValueKey('professional-bottom-navigation-items')"),
     );
+    expect(navigation, contains('MaterialType.transparency'));
     expect(theme, contains('GoogleFonts.manropeTextTheme'));
     expect(theme, contains('static const background = Color(0xFFF5F4F1)'));
   });
