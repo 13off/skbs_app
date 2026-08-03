@@ -22,22 +22,33 @@ class AdaptiveTimesheetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useDesktop =
-            kIsWeb && constraints.maxWidth >= desktopBreakpoint;
+        final useDesktop = kIsWeb && constraints.maxWidth >= desktopBreakpoint;
         final canDownload = profile.isAdmin || profile.isForeman;
         final contentProfile = profile.isAdmin
             ? profile.copyWith(role: 'foreman')
             : profile;
-        final content = useDesktop
-            ? DesktopTimesheetScreen(
-                profile: contentProfile,
-                selectedObjectName: selectedObjectName,
-              )
-            : TimesheetScreen(
-                profile: contentProfile,
-                selectedObjectName: selectedObjectName,
-              );
+        final VoidCallback? downloadAction = canDownload
+            ? () {
+                TimesheetDownloadSheet.show(
+                  context,
+                  selectedObjectName: selectedObjectName,
+                  initialDate: DateTime.now(),
+                );
+              }
+            : null;
 
+        if (useDesktop) {
+          return DesktopTimesheetScreen(
+            profile: contentProfile,
+            selectedObjectName: selectedObjectName,
+            onDownload: downloadAction,
+          );
+        }
+
+        final content = TimesheetScreen(
+          profile: contentProfile,
+          selectedObjectName: selectedObjectName,
+        );
         if (!canDownload) return content;
         return Stack(
           children: [
@@ -46,11 +57,7 @@ class AdaptiveTimesheetScreen extends StatelessWidget {
               top: 18,
               right: 18,
               child: FilledButton.tonalIcon(
-                onPressed: () => TimesheetDownloadSheet.show(
-                  context,
-                  selectedObjectName: selectedObjectName,
-                  initialDate: DateTime.now(),
-                ),
+                onPressed: downloadAction,
                 icon: const Icon(Icons.download_rounded, size: 18),
                 label: const Text('Скачать табель'),
               ),

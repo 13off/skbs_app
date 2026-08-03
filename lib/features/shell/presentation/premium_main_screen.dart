@@ -502,6 +502,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return WillPopScope(
       onWillPop: () async => !(await handleBackRequest()),
       child: Scaffold(
+        extendBody: true,
+        backgroundColor: Colors.transparent,
         body: Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: handlePointerDown,
