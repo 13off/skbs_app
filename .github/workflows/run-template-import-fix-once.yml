@@ -1,0 +1,58 @@
+name: Run template import fix once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/run-template-import-fix-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/template-import-and-online-editing
+          fetch-depth: 2
+
+      - name: Recover and run prepared patch
+        shell: bash
+        run: |
+          ruby -ryaml -e '
+            raw = `git show HEAD^:.github/workflows/apply-template-import-fix.yml`
+            doc = YAML.safe_load(raw, aliases: true)
+            step = doc.fetch("jobs").fetch("patch").fetch("steps").find { |item| item["name"] == "Patch template import, editor and generator" }
+            abort "prepared patch step not found" unless step
+            File.write("/tmp/apply_template_import_fix.py", step.fetch("run"))
+          '
+          python /tmp/apply_template_import_fix.py
+
+      - name: Format and push feature branch
+        shell: bash
+        run: |
+          dart format \
+            lib/features/documents/presentation/document_tool_templates_screen.dart \
+            lib/features/documents/data/document_template_repository.dart \
+            lib/features/documents/data/document_template_online_editor.dart \
+            lib/features/documents/presentation/document_template_online_editor_screen.dart \
+            lib/features/documents/data/document_generation_service.dart \
+            test/document_template_import_contract_test.dart
+          rm -f .github/workflows/apply-template-import-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Исправить импорт и онлайн-редактирование шаблонов'
+          git push origin HEAD:fix/template-import-and-online-editing
+
+      - name: Remove one-off workflow from main
+        shell: bash
+        run: |
+          git fetch origin main
+          git switch -C main origin/main
+          rm -f .github/workflows/run-template-import-fix-once.yml
+          git add -A
+          git commit -m 'chore: remove completed template import workflow'
+          git push origin main
