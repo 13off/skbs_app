@@ -268,12 +268,12 @@ class DocumentToolAppShortcut extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 144,
+      width: 168,
       child: InkWell(
         borderRadius: BorderRadius.circular(26),
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 164),
+          constraints: const BoxConstraints(minHeight: 174),
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
@@ -289,7 +289,6 @@ class DocumentToolAppShortcut extends StatelessWidget {
                 'AppСтрой\nТрудоустройство',
                 textAlign: TextAlign.center,
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
