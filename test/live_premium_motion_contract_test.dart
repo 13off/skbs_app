@@ -32,8 +32,9 @@ void main() {
     expect(navigation, contains("ValueKey('professional-bottom-navigation')"));
     expect(
       navigation,
-      contains("ValueKey('professional-bottom-navigation-panel')"),
+      contains("ValueKey('professional-bottom-navigation-items')"),
     );
+    expect(navigation, isNot(contains('LiquidGlassSurface(')));
     expect(navigation, contains('NavigationSession.writeTabIndex'));
   });
 
