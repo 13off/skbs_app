@@ -18,7 +18,12 @@ void main() {
 
     expect(navigation, contains("key: const ValueKey('professional-bottom-navigation')"));
     expect(navigation, contains('panelHeight + topSpacing + bottomSpacing + bottomInset'));
-    expect(navigation, contains('LiquidGlassSurface('));
+    expect(navigation, contains('MaterialType.transparency'));
+    expect(
+      navigation,
+      contains("ValueKey('professional-bottom-navigation-items')"),
+    );
+    expect(navigation, isNot(contains('LiquidGlassSurface(')));
     expect(navigation, isNot(contains('child: Align(')));
   });
 }
