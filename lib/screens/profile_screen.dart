@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
 import '../features/company/data/company_repository.dart';
+import '../features/documents/data/document_workflow_repository.dart';
+import '../features/documents/models/document_onboarding.dart';
 import '../features/employee/presentation/employee_simple_work_screen.dart';
 import '../features/profile/data/personal_profile_controller.dart';
 import '../features/profile/data/profile_repository.dart';
 import '../features/role_preview/role_preview_controller.dart';
+import '../features/tools/presentation/company_tools_screen.dart';
 import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
@@ -39,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AppUserProfile get profile => widget.profile;
 
   Future<CompanySummary>? companyFuture;
+  Future<_ProfileToolsData>? toolsFuture;
   late PersonalProfileData personalData;
   Future<String?>? avatarUrlFuture;
   bool savingPhoto = false;
@@ -60,6 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     personalData = PersonalProfileController.state.value;
     PersonalProfileController.state.addListener(_handlePersonalChanged);
     _configureCompanyFuture();
+    _configureToolsFuture();
     _refreshAvatarUrl();
   }
 
@@ -73,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
       _configureCompanyFuture();
+      _configureToolsFuture();
     }
   }
 
@@ -106,10 +112,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : CompanyRepository.fetchCompany(companyId);
   }
 
-  void open(Widget screen) {
-    Navigator.of(context).push<void>(
+  void _configureToolsFuture() {
+    final companyId = profile.activeCompanyId.trim();
+    toolsFuture = companyId.isEmpty ? null : _loadTools(companyId);
+  }
+
+  Future<_ProfileToolsData> _loadTools(String companyId) async {
+    final values = await Future.wait<dynamic>(<Future<dynamic>>[
+      DocumentWorkflowRepository.fetchAccess(),
+      DocumentWorkflowRepository.fetchInstallation(companyId),
+    ]);
+    return _ProfileToolsData(
+      access: values[0] as DocumentWorkflowAccess,
+      installation: values[1] as DocumentToolInstallation,
+    );
+  }
+
+  Future<void> open(Widget screen) async {
+    await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(builder: (_) => screen),
     );
+    if (!mounted) return;
+    _configureToolsFuture();
+    setState(() {});
   }
 
   Future<void> signOut() async {
@@ -653,6 +678,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget connectedToolsSection() {
+    final future = toolsFuture;
+    if (future == null) return const SizedBox.shrink();
+
+    return FutureBuilder<_ProfileToolsData>(
+      future: future,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        if (data == null ||
+            snapshot.hasError ||
+            !data.installation.isEnabled ||
+            !data.access.canView) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            sectionTitle('Инструменты'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: DocumentToolAppShortcut(
+                onTap: () => open(
+                  DocumentToolWorkspaceScreen(
+                    profile: settingsProfile(),
+                    access: data.access,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget signOutButton() {
     final scheme = Theme.of(context).colorScheme;
     return OutlinedButton.icon(
@@ -735,6 +797,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Объект',
             value: profile.objectName,
           ),
+          connectedToolsSection(),
           if (profile.isEmployee) ...[
             const SizedBox(height: 8),
             sectionTitle('Приложение'),
@@ -765,6 +828,16 @@ class _PersonalProfileDraft {
   final String phone;
 
   const _PersonalProfileDraft({required this.fullName, required this.phone});
+}
+
+class _ProfileToolsData {
+  final DocumentWorkflowAccess access;
+  final DocumentToolInstallation installation;
+
+  const _ProfileToolsData({
+    required this.access,
+    required this.installation,
+  });
 }
 
 class _ProfileTileIcon extends StatelessWidget {
