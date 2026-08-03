@@ -65,7 +65,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
           content: const Text(
             'Оформления, шаблоны, документы и архивы не удалятся. '
             'Инструмент просто перестанет быть доступен пользователям '
-            'до повторного подключения.',
+            'до повторного включения.',
           ),
           actions: [
             TextButton(
@@ -95,7 +95,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       await _refresh();
       _message(
         enabled
-            ? '«AppСтрой Трудоустройство» подключён'
+            ? '«AppСтрой Трудоустройство» включён'
             : 'Инструмент отключён. Все данные сохранены',
       );
     } catch (error) {
@@ -136,8 +136,8 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
             const SizedBox(height: 7),
             Text(
               data.access.canManage
-                  ? 'Откройте каталог и подключите нужный модуль компании.'
-                  : 'Инструменты подключаются владельцем или администратором компании.',
+                  ? 'Откройте каталог и включите нужный модуль компании.'
+                  : 'Инструменты включаются владельцем или администратором компании.',
               style: const TextStyle(height: 1.4),
             ),
             if (data.access.canManage) ...[
@@ -159,7 +159,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       access: data.access,
       installation: data.installation,
       changing: changing,
-      showManagement: false,
       onOpen: () => _openWorkspace(data),
       onEnable: () => _setEnabled(data, true),
       onDisable: () => _setEnabled(data, false),
@@ -171,7 +170,6 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
       access: data.access,
       installation: data.installation,
       changing: changing,
-      showManagement: true,
       onOpen: () => _openWorkspace(data),
       onEnable: () => _setEnabled(data, true),
       onDisable: () => _setEnabled(data, false),
@@ -216,9 +214,9 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
               const PremiumWorkCard(
                 radius: 24,
                 child: Text(
-                  'Инструменты устанавливаются отдельно и не меняют основную '
-                  'логику AppСтрой. Подключение действует для всей компании, '
-                  'а доступ к разделам определяется ролью пользователя.',
+                  'Инструменты работают как расширения браузера: их можно '
+                  'включать и отключать отдельно, не меняя основную логику '
+                  'AppСтрой и не удаляя накопленные данные.',
                   style: TextStyle(height: 1.45),
                 ),
               ),
@@ -259,11 +257,11 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
                     Expanded(
                       child: Text(
                         data.access.canManage
-                            ? 'Владелец или администратор подключает инструмент '
-                                  'один раз для компании. После подключения HR, '
+                            ? 'Владелец или администратор управляет инструментом '
+                                  'переключателем на карточке. После включения HR, '
                                   'юрист и другие роли используют только те '
                                   'разделы, на которые им выданы права.'
-                            : 'Здесь отображаются подключённые компанией '
+                            : 'Здесь отображаются включённые компанией '
                                   'инструменты и только разрешённые вашей роли '
                                   'рабочие разделы.',
                         style: const TextStyle(height: 1.45),
@@ -394,7 +392,6 @@ class _EmploymentToolCard extends StatelessWidget {
   final DocumentWorkflowAccess access;
   final DocumentToolInstallation installation;
   final bool changing;
-  final bool showManagement;
   final VoidCallback onOpen;
   final VoidCallback onEnable;
   final VoidCallback onDisable;
@@ -403,7 +400,6 @@ class _EmploymentToolCard extends StatelessWidget {
     required this.access,
     required this.installation,
     required this.changing,
-    required this.showManagement,
     required this.onOpen,
     required this.onEnable,
     required this.onDisable,
@@ -444,14 +440,38 @@ class _EmploymentToolCard extends StatelessWidget {
                       avatar: Icon(
                         enabled
                             ? Icons.check_circle_rounded
-                            : Icons.add_circle_outline_rounded,
+                            : Icons.pause_circle_outline_rounded,
                         size: 18,
                       ),
-                      label: Text(enabled ? 'Подключён' : 'Доступен'),
+                      label: Text(enabled ? 'Включён' : 'Отключён'),
                     ),
                   ],
                 ),
               ),
+              if (access.canManage) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 58,
+                  height: 48,
+                  child: changing
+                      ? const Center(
+                          child: SizedBox.square(
+                            dimension: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          ),
+                        )
+                      : Switch.adaptive(
+                          value: enabled,
+                          onChanged: (value) {
+                            if (value) {
+                              onEnable();
+                            } else {
+                              onDisable();
+                            }
+                          },
+                        ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 14),
@@ -473,28 +493,35 @@ class _EmploymentToolCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (changing)
-            const Center(child: CircularProgressIndicator())
-          else if (enabled) ...[
+          if (enabled)
             FilledButton.icon(
-              onPressed: access.canView ? onOpen : null,
+              onPressed: access.canView && !changing ? onOpen : null,
               icon: const Icon(Icons.open_in_new_rounded),
               label: const Text('Открыть инструмент'),
-            ),
-            if (showManagement && access.canManage)
-              TextButton(
-                onPressed: onDisable,
-                child: const Text('Отключить для компании'),
+            )
+          else if (access.canManage)
+            Container(
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
               ),
-          ] else if (showManagement && access.canManage)
-            FilledButton.icon(
-              onPressed: onEnable,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Подключить инструмент'),
+              child: const Row(
+                children: [
+                  Icon(Icons.power_settings_new_rounded, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Инструмент отключён. Включите переключатель, чтобы снова открыть доступ компании.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
             )
           else
             const Text(
-              'Ожидает подключения владельцем или администратором компании.',
+              'Инструмент отключён владельцем или администратором компании.',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
         ],

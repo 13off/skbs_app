@@ -16,7 +16,10 @@ void main() {
 
     expect(tools, contains("'AppСтрой Трудоустройство'"));
     expect(tools, isNot(contains("'AppСтрой Документы'")));
-    expect(tools, contains("'Подключить инструмент'"));
+    expect(tools, contains('Switch.adaptive('));
+    expect(tools, contains("enabled ? 'Включён' : 'Отключён'"));
+    expect(tools, contains("title: const Text('Отключить инструмент?')"));
+    expect(tools, contains('Все данные сохранены'));
     expect(tools, contains("'Открыть инструмент'"));
     expect(tools, contains("title: 'Оформления'"));
     expect(tools, contains("title: 'Генератор документов'"));
