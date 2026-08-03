@@ -55,7 +55,12 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeeDocumentsScreen(employee: employee),
+        builder: (_) => DocumentToolProtectedScreen(
+          companyId: widget.profile.activeCompanyId,
+          title: 'Документы',
+          toolsScreen: CompanyToolsScreen(profile: widget.profile),
+          child: EmployeeDocumentsScreen(employee: employee),
+        ),
       ),
     );
   }
@@ -64,7 +69,12 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeePrivateDataScreen(employee: employee),
+        builder: (_) => DocumentToolProtectedScreen(
+          companyId: widget.profile.activeCompanyId,
+          title: 'Личные данные',
+          toolsScreen: CompanyToolsScreen(profile: widget.profile),
+          child: EmployeePrivateDataScreen(employee: employee),
+        ),
       ),
     );
   }
