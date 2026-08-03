@@ -1,0 +1,35 @@
+name: Run timesheet floating patch
+
+on:
+  push:
+    branches:
+      - fix/timesheet-floating-controls
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/timesheet-floating-controls
+          fetch-depth: 0
+      - run: python tool_timesheet_floating_patch.py
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart format lib/screens/adaptive_timesheet_screen.dart lib/screens/desktop_timesheet_screen.dart lib/features/shell/presentation/premium_main_screen.dart test/timesheet_floating_controls_contract_test.dart
+      - name: Commit patch
+        run: |
+          rm -f tool_timesheet_floating_patch.py
+          rm -f .github/workflows/apply-timesheet-floating-controls.yml
+          rm -f .github/workflows/run-timesheet-floating-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Исправить плавающие элементы табеля'
+          git push origin HEAD:fix/timesheet-floating-controls
