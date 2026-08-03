@@ -24,9 +24,9 @@ extension _TimesheetView on _TimesheetScreenState {
               );
             }
 
-            return Column(
+            return Stack(
               children: [
-                Expanded(
+                Positioned.fill(
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 860),
@@ -81,7 +81,7 @@ extension _TimesheetView on _TimesheetScreenState {
                             // Flutter 3.44 deprecates this field before exposing its replacement.
                             // ignore: deprecated_member_use
                             cacheExtent: 700,
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 190),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];
@@ -97,28 +97,26 @@ extension _TimesheetView on _TimesheetScreenState {
                     ),
                   ),
                 ),
-                SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 104,
                   child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 460),
-                      child: PremiumWorkCard(
-                        radius: 24,
-                        padding: const EdgeInsets.all(10),
-                        child: PremiumActionButton(
-                          label: hasUnsavedChanges
-                              ? 'Сохранить изменения'
-                              : 'Сохранить табель',
-                          icon: Icons.save_outlined,
-                          isLoading: isSaving,
-                          onPressed:
-                              allEmployees.isEmpty ||
-                                  isAttendanceLoading ||
-                                  isSaving
-                              ? null
-                              : () => saveTimesheet(allEmployees),
-                        ),
+                    child: SizedBox(
+                      key: const ValueKey('timesheet-floating-save'),
+                      width: 340,
+                      child: PremiumActionButton(
+                        label: hasUnsavedChanges
+                            ? 'Сохранить изменения'
+                            : 'Сохранить табель',
+                        icon: Icons.save_outlined,
+                        isLoading: isSaving,
+                        onPressed:
+                            allEmployees.isEmpty ||
+                                isAttendanceLoading ||
+                                isSaving
+                            ? null
+                            : () => saveTimesheet(allEmployees),
                       ),
                     ),
                   ),

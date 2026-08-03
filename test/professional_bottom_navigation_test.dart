@@ -90,7 +90,7 @@ void main() {
     expect(selected, 3);
   });
 
-  testWidgets('mobile navigation stays usable and keeps all tabs visible', (
+  testWidgets('mobile navigation floats transparently and keeps all tabs visible', (
     tester,
   ) async {
     await pumpNavigation(tester, const Size(390, 844), onSelected: (_) {});
@@ -98,14 +98,18 @@ void main() {
     final bodyHeight = tester
         .getSize(find.byKey(const ValueKey('screen-body')))
         .height;
-    final panelHeight = tester
+    final itemsHeight = tester
         .getSize(
-          find.byKey(const ValueKey('professional-bottom-navigation-panel')),
+          find.byKey(const ValueKey('professional-bottom-navigation-items')),
         )
         .height;
 
     expect(bodyHeight, greaterThanOrEqualTo(750));
-    expect(panelHeight, 76);
+    expect(itemsHeight, 62);
+    expect(
+      find.byKey(const ValueKey('professional-bottom-navigation-panel')),
+      findsNothing,
+    );
     for (final item in items) {
       expect(find.text(item.label), findsOneWidget);
     }

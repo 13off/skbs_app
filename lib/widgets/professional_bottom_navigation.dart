@@ -6,7 +6,6 @@ import '../app/app_theme.dart';
 import '../app/app_ui_tokens.dart';
 import '../navigation/navigation_session.dart';
 import '../navigation/platform_tab_override_scope.dart';
-import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
 class ProfessionalBottomNavigationItem {
@@ -148,133 +147,119 @@ class _ProfessionalBottomNavigationState
               constraints: BoxConstraints(
                 maxWidth: isDesktop ? 900 : double.infinity,
               ),
-              child: LiquidGlassSurface(
-                key: const ValueKey('professional-bottom-navigation-panel'),
-                blur: true,
-                blurSigma: isDesktop ? 20 : 16,
-                radius: isDesktop ? 34 : 29,
-                padding: EdgeInsets.all(isDesktop ? 8 : 7),
-                child: SizedBox(
-                  height: panelHeight - (isDesktop ? 16 : 14),
-                  child: Row(
-                    children: List<Widget>.generate(widget.items.length, (index) {
-                      final baseItem = widget.items[index];
-                      final override = PlatformTabOverrideScope.resolve(
-                        context,
-                        storageKey: platformKey,
-                        index: index,
-                      );
-                      final item = ProfessionalBottomNavigationItem(
-                        label: override?.label ?? baseItem.label,
-                        icon: override?.icon ?? baseItem.icon,
-                        selectedIcon:
-                            override?.selectedIcon ?? baseItem.selectedIcon,
-                      );
-                      final selected = index == widget.selectedIndex;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: PremiumPressable(
-                            onTap: () => unawaited(handleSelected(index)),
-                            pressedScale: 0.955,
-                            hoverScale: isDesktop ? 1.014 : 1,
-                            borderRadius: BorderRadius.circular(24),
-                            child: AnimatedContainer(
-                              duration: animationsDisabled
-                                  ? Duration.zero
-                                  : AppMotion.regular,
-                              curve: AppMotion.interactionCurve,
-                              height: double.infinity,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isDesktop ? 14 : 4,
-                                vertical: isDesktop ? 6 : 4,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: selected
-                                    ? LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          scheme.primary.withValues(
-                                            alpha: dark ? 0.34 : 0.19,
-                                          ),
-                                          scheme.primary.withValues(
-                                            alpha: dark ? 0.14 : 0.08,
-                                          ),
-                                        ],
-                                      )
-                                    : null,
-                                borderRadius: BorderRadius.circular(23),
-                                border: Border.all(
-                                  color: selected
-                                      ? Colors.white.withValues(
-                                          alpha: dark ? 0.14 : 0.72,
-                                        )
-                                      : Colors.transparent,
-                                  width: 1.05,
-                                ),
-                                boxShadow: selected
-                                    ? [
-                                        BoxShadow(
-                                          color: scheme.primary.withValues(
-                                            alpha: dark ? 0.23 : 0.13,
-                                          ),
-                                          blurRadius: 24,
-                                          spreadRadius: -10,
-                                          offset: const Offset(0, 10),
+              child: SizedBox(
+                key: const ValueKey('professional-bottom-navigation-items'),
+                height: panelHeight - (isDesktop ? 16 : 14),
+                child: Row(
+                  children: List<Widget>.generate(widget.items.length, (index) {
+                    final baseItem = widget.items[index];
+                    final override = PlatformTabOverrideScope.resolve(
+                      context,
+                      storageKey: platformKey,
+                      index: index,
+                    );
+                    final item = ProfessionalBottomNavigationItem(
+                      label: override?.label ?? baseItem.label,
+                      icon: override?.icon ?? baseItem.icon,
+                      selectedIcon:
+                          override?.selectedIcon ?? baseItem.selectedIcon,
+                    );
+                    final selected = index == widget.selectedIndex;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: PremiumPressable(
+                          onTap: () => unawaited(handleSelected(index)),
+                          pressedScale: 0.955,
+                          hoverScale: isDesktop ? 1.014 : 1,
+                          borderRadius: BorderRadius.circular(24),
+                          child: AnimatedContainer(
+                            duration: animationsDisabled
+                                ? Duration.zero
+                                : AppMotion.regular,
+                            curve: AppMotion.interactionCurve,
+                            height: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isDesktop ? 14 : 4,
+                              vertical: isDesktop ? 6 : 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: selected
+                                  ? LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        scheme.primary.withValues(
+                                          alpha: dark ? 0.31 : 0.18,
                                         ),
-                                        BoxShadow(
-                                          color: Colors.white.withValues(
-                                            alpha: dark ? 0.05 : 0.48,
-                                          ),
-                                          blurRadius: 8,
-                                          spreadRadius: -5,
-                                          offset: const Offset(-2, -3),
-                                        ),
-                                      ]
-                                    : const <BoxShadow>[],
-                              ),
-                              child: isDesktop
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        _NavigationIcon(
-                                          item: item,
-                                          selected: selected,
-                                          size: 23,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Flexible(
-                                          child: _NavigationLabel(
-                                            item: item,
-                                            selected: selected,
-                                            fontSize: 13,
-                                          ),
+                                        scheme.primary.withValues(
+                                          alpha: dark ? 0.10 : 0.06,
                                         ),
                                       ],
                                     )
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        _NavigationIcon(
-                                          item: item,
-                                          selected: selected,
-                                          size: 23,
+                                  : null,
+                              borderRadius: BorderRadius.circular(23),
+                              border: Border.all(
+                                color: selected
+                                    ? Colors.white.withValues(
+                                        alpha: dark ? 0.12 : 0.60,
+                                      )
+                                    : Colors.transparent,
+                                width: 1,
+                              ),
+                              boxShadow: selected
+                                  ? [
+                                      BoxShadow(
+                                        color: scheme.primary.withValues(
+                                          alpha: dark ? 0.19 : 0.10,
                                         ),
-                                        const SizedBox(height: 3),
-                                        _NavigationLabel(
-                                          item: item,
-                                          selected: selected,
-                                          fontSize: 10.5,
-                                        ),
-                                      ],
-                                    ),
+                                        blurRadius: 20,
+                                        spreadRadius: -10,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ]
+                                  : const <BoxShadow>[],
                             ),
+                            child: isDesktop
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _NavigationIcon(
+                                        item: item,
+                                        selected: selected,
+                                        size: 23,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: _NavigationLabel(
+                                          item: item,
+                                          selected: selected,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _NavigationIcon(
+                                        item: item,
+                                        selected: selected,
+                                        size: 23,
+                                      ),
+                                      const SizedBox(height: 3),
+                                      _NavigationLabel(
+                                        item: item,
+                                        selected: selected,
+                                        fontSize: 10.5,
+                                      ),
+                                    ],
+                                  ),
                           ),
                         ),
-                      );
-                    }),
-                  ),
+                      ),
+                    );
+                  }),
                 ),
               ),
             ),

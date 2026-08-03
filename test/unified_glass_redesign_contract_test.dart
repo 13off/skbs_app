@@ -22,7 +22,11 @@ void main() {
       navigation,
       contains("key: const ValueKey('professional-bottom-navigation')"),
     );
-    expect(navigation, contains('blurSigma: isDesktop ? 20 : 16'));
+    expect(
+      navigation,
+      contains("key: const ValueKey('professional-bottom-navigation-items')"),
+    );
+    expect(navigation, contains('MaterialType.transparency'));
   });
 
   test('главная сотрудника остаётся функциональной с одной рабочей кнопкой', () {
@@ -63,7 +67,7 @@ void main() {
     expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
   });
 
-  test('профиль отчёты и табель используют одинаковые крупные карточки', () {
+  test('профиль и отчёты используют карточки, табель — плавающее сохранение', () {
     final profile = File(
       'lib/features/employee/presentation/employee_identity_profile_screen.dart',
     ).readAsStringSync();
@@ -86,7 +90,8 @@ void main() {
     expect(reportTile, contains('PremiumWorkCard('));
     expect(reportTile, contains('borderRadius: BorderRadius.circular(24)'));
     expect(reports, isNot(contains('Единый центр аналитики руководителя')));
-    expect(timesheet, contains('BoxConstraints(maxWidth: 460)'));
-    expect(timesheet, contains('PremiumWorkCard('));
+    expect(timesheet, contains("ValueKey('timesheet-floating-save')"));
+    expect(timesheet, contains('width: 340'));
+    expect(timesheet, isNot(contains('PremiumWorkCard(')));
   });
 }
