@@ -81,7 +81,7 @@ extension _TimesheetView on _TimesheetScreenState {
                             // Flutter 3.44 deprecates this field before exposing its replacement.
                             // ignore: deprecated_member_use
                             cacheExtent: 700,
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 190),
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];
@@ -100,7 +100,7 @@ extension _TimesheetView on _TimesheetScreenState {
                 Positioned(
                   left: 20,
                   right: 20,
-                  bottom: 104,
+                  bottom: 12,
                   child: Center(
                     child: SizedBox(
                       key: const ValueKey('timesheet-floating-save'),
