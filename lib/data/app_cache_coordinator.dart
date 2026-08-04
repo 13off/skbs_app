@@ -89,12 +89,17 @@ class AppCacheCoordinator {
 
   static void clearAreas(Iterable<AppCacheArea> areas) {
     final selected = areas.toSet();
+    if (selected.isEmpty) return;
+
+    final clearEmployeeCabinet =
+        selected.contains(AppCacheArea.employees) ||
+        selected.contains(AppCacheArea.tasks);
+
     if (selected.contains(AppCacheArea.attendance)) {
       AttendanceRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.employees)) {
       EmployeeRepository.clearCache();
-      EmployeeTaskCabinetRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.financeSummary)) {
       FinanceSummaryRepository.clearCache();
@@ -107,6 +112,8 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.tasks)) {
       TaskRepository.clearTaskListCache();
+    }
+    if (clearEmployeeCabinet) {
       EmployeeTaskCabinetRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.developerPolicies)) {
