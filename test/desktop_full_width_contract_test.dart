@@ -12,7 +12,7 @@ void main() {
       'lib/widgets/professional_bottom_navigation.dart',
     );
 
-    expect(tokens, contains('pageDesktopHorizontalPadding = 36'));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
     expect(page, contains('final effectiveMaxContentWidth = isDesktop'));
     expect(page, contains('? double.infinity'));
     expect(navigation, contains('maxWidth: double.infinity'));
