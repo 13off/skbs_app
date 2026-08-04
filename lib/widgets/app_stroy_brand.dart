@@ -3,11 +3,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+double _interval(double value, double begin, double end) {
+  if (value <= begin) return 0;
+  if (value >= end) return 1;
+  final normalized = (value - begin) / (end - begin);
+  return Curves.easeOutBack.transform(normalized.clamp(0.0, 1.0));
+}
+
 class AppStroyBrandIcon extends StatelessWidget {
   final double size;
   final bool? darkBackground;
   final bool animate;
   final String semanticLabel;
+  final double leftProgress;
+  final double centerProgress;
+  final double rightProgress;
 
   const AppStroyBrandIcon({
     super.key,
@@ -15,50 +25,68 @@ class AppStroyBrandIcon extends StatelessWidget {
     this.darkBackground,
     this.animate = false,
     this.semanticLabel = 'AppСтрой',
+    this.leftProgress = 1,
+    this.centerProgress = 1,
+    this.rightProgress = 1,
   });
 
   @override
   Widget build(BuildContext context) {
     final useDarkArtwork =
         darkBackground ?? Theme.of(context).brightness == Brightness.dark;
-    final mark = Semantics(
-      label: semanticLabel,
-      image: true,
-      child: SizedBox(
-        width: size * 1.115,
-        height: size,
-        child: CustomPaint(
-          painter: _AppStroyMetalMarkPainter(
-            darkBackground: useDarkArtwork,
+    final animationsDisabled =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    Widget buildMark(double left, double center, double right) {
+      return Semantics(
+        label: semanticLabel,
+        image: true,
+        child: SizedBox(
+          width: size * 1.115,
+          height: size,
+          child: CustomPaint(
+            painter: _AppStroyMetalMarkPainter(
+              darkBackground: useDarkArtwork,
+              leftProgress: left,
+              centerProgress: center,
+              rightProgress: right,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
-    if (!animate ||
-        (MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
-      return mark;
+    if (!animate || animationsDisabled) {
+      return buildMark(leftProgress, centerProgress, rightProgress);
     }
 
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.12, end: 1),
-      duration: const Duration(milliseconds: 950),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value.clamp(0.0, 1.0).toDouble(),
-          child: Transform.scale(scale: value, child: child),
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 1050),
+      curve: Curves.linear,
+      builder: (context, value, _) {
+        return buildMark(
+          _interval(value, 0, 0.66),
+          _interval(value, 0.12, 0.83),
+          _interval(value, 0.24, 1),
         );
       },
-      child: mark,
     );
   }
 }
 
 class _AppStroyMetalMarkPainter extends CustomPainter {
   final bool darkBackground;
+  final double leftProgress;
+  final double centerProgress;
+  final double rightProgress;
 
-  const _AppStroyMetalMarkPainter({required this.darkBackground});
+  const _AppStroyMetalMarkPainter({
+    required this.darkBackground,
+    required this.leftProgress,
+    required this.centerProgress,
+    required this.rightProgress,
+  });
 
   static Path get _left => Path()
     ..moveTo(38, 204)
@@ -129,8 +157,20 @@ class _AppStroyMetalMarkPainter extends CustomPainter {
       alpha: darkBackground ? 0.48 : 0.27,
     );
 
-    for (final path in [_left, _center, _right]) {
-      canvas.drawShadow(path, shadowColor, darkBackground ? 7 : 10, false);
+    void drawTower(Path path, double rawProgress) {
+      final progress = rawProgress.clamp(0.0, 1.0).toDouble();
+      if (progress <= 0.001) return;
+
+      canvas.save();
+      canvas.translate(0, 204 * (1 - progress));
+      canvas.scale(1, progress);
+
+      canvas.drawShadow(
+        path,
+        shadowColor.withValues(alpha: shadowColor.a * progress),
+        darkBackground ? 7 : 10,
+        false,
+      );
 
       final bounds = path.getBounds();
       final fill = Paint()
@@ -139,29 +179,40 @@ class _AppStroyMetalMarkPainter extends CustomPainter {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           stops: const [0, 0.34, 0.70, 1],
-          colors: fillColors,
+          colors: fillColors
+              .map((color) => color.withValues(alpha: progress))
+              .toList(growable: false),
         ).createShader(bounds);
       canvas.drawPath(path, fill);
 
       final edge = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.55
-        ..color = edgeColor;
+        ..color = edgeColor.withValues(alpha: progress);
       canvas.drawPath(path, edge);
 
       final highlight = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.72
-        ..color = highlightColor;
+        ..color = highlightColor.withValues(
+          alpha: highlightColor.a * progress,
+        );
       canvas.drawPath(path, highlight);
+      canvas.restore();
     }
 
+    drawTower(_left, leftProgress);
+    drawTower(_center, centerProgress);
+    drawTower(_right, rightProgress);
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _AppStroyMetalMarkPainter oldDelegate) {
-    return oldDelegate.darkBackground != darkBackground;
+    return oldDelegate.darkBackground != darkBackground ||
+        oldDelegate.leftProgress != leftProgress ||
+        oldDelegate.centerProgress != centerProgress ||
+        oldDelegate.rightProgress != rightProgress;
   }
 }
 
@@ -172,7 +223,7 @@ class AppStroyAnimatedBrand extends StatefulWidget {
 
   const AppStroyAnimatedBrand({
     super.key,
-    this.logoSize = 146,
+    this.logoSize = 152,
     this.showProgress = false,
     this.semanticsLabel = 'AppСтрой. планируй. строй. управляй.',
   });
@@ -191,7 +242,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(milliseconds: 2450),
     )..forward();
   }
 
@@ -215,21 +266,20 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
         animation: _controller,
         builder: (context, _) {
           final value = animationsDisabled ? 1.0 : _controller.value;
-          final logoProgress = CurvedAnimation(
-            parent: AlwaysStoppedAnimation<double>(value),
-            curve: const Interval(0, 0.40, curve: Curves.easeOutBack),
-          ).value;
+          final leftTower = _interval(value, 0.00, 0.29);
+          final centerTower = _interval(value, 0.07, 0.37);
+          final rightTower = _interval(value, 0.14, 0.44);
           final textProgress = CurvedAnimation(
             parent: AlwaysStoppedAnimation<double>(value),
-            curve: const Interval(0.48, 0.84, curve: Curves.easeOutCubic),
+            curve: const Interval(0.42, 0.78, curve: Curves.easeOutCubic),
           ).value;
           final quoteProgress = CurvedAnimation(
             parent: AlwaysStoppedAnimation<double>(value),
-            curve: const Interval(0.68, 1, curve: Curves.easeOutCubic),
+            curve: const Interval(0.60, 0.92, curve: Curves.easeOutCubic),
           ).value;
           final progressOpacity = CurvedAnimation(
             parent: AlwaysStoppedAnimation<double>(value),
-            curve: const Interval(0.82, 1, curve: Curves.easeOut),
+            curve: const Interval(0.78, 1, curve: Curves.easeOut),
           ).value;
 
           return FittedBox(
@@ -241,15 +291,12 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Opacity(
-                      opacity: logoProgress.clamp(0.0, 1.0).toDouble(),
-                      child: Transform.scale(
-                        scale: 0.12 + (0.88 * logoProgress),
-                        child: AppStroyBrandIcon(
-                          size: widget.logoSize,
-                          darkBackground: dark,
-                        ),
-                      ),
+                    AppStroyBrandIcon(
+                      size: widget.logoSize,
+                      darkBackground: dark,
+                      leftProgress: leftTower,
+                      centerProgress: centerTower,
+                      rightProgress: rightTower,
                     ),
                     ClipRect(
                       child: Align(
@@ -258,11 +305,11 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                         child: Opacity(
                           opacity: textProgress,
                           child: Transform.translate(
-                            offset: Offset(-20 * (1 - textProgress), 0),
+                            offset: Offset(-22 * (1 - textProgress), 0),
                             child: Padding(
-                              padding: const EdgeInsets.only(left: 18),
+                              padding: const EdgeInsets.only(left: 16),
                               child: SizedBox(
-                                width: 226,
+                                width: 210,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +322,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                                             color: theme.colorScheme.onSurface,
                                             fontSize: 46,
                                             fontWeight: FontWeight.w500,
-                                            letterSpacing: -2.0,
+                                            letterSpacing: -2.1,
                                             height: 0.98,
                                           ),
                                     ),
@@ -284,7 +331,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                                       opacity: quoteProgress,
                                       child: Transform.translate(
                                         offset: Offset(
-                                          -12 * (1 - quoteProgress),
+                                          -14 * (1 - quoteProgress),
                                           0,
                                         ),
                                         child: Text(
@@ -296,7 +343,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                                                     .onSurfaceVariant,
                                                 fontSize: 12.5,
                                                 fontWeight: FontWeight.w700,
-                                                letterSpacing: 1.15,
+                                                letterSpacing: 1.05,
                                                 height: 1.1,
                                               ),
                                         ),
@@ -313,7 +360,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                   ],
                 ),
                 if (widget.showProgress) ...[
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 34),
                   Opacity(
                     opacity: progressOpacity,
                     child: _BrandLoadingDots(
@@ -512,7 +559,7 @@ class _BrandLoadingDotsState extends State<_BrandLoadingDots>
         final wave = (phase <= 0.5 ? phase : 1 - phase) * 2;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 3.5),
           child: Transform.translate(
             offset: Offset(0, -3 * wave),
             child: Container(
