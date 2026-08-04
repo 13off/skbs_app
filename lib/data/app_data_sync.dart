@@ -47,6 +47,7 @@ class AppDataSync {
   AppDataSync._();
 
   static const Duration _coalesceDuration = Duration(milliseconds: 120);
+  static const Duration _maxCoalesceDuration = Duration(milliseconds: 500);
   static final StreamController<AppDataChange> _changesController =
       StreamController<AppDataChange>.broadcast();
   static final Set<AppDataDomain> _pendingDomains = <AppDataDomain>{};
@@ -55,8 +56,10 @@ class AppDataSync {
   static String? _companyId;
   static AppDataCacheInvalidator? _cacheInvalidator;
   static Timer? _deliveryTimer;
+  static Timer? _maxDeliveryTimer;
   static bool _pendingHasRemote = false;
   static bool _hasSubscribedOnce = false;
+  static int _subscriptionGeneration = 0;
   static Map<String, dynamic> _pendingContext = <String, dynamic>{};
 
   static Stream<AppDataChange> get changes => _changesController.stream;
@@ -79,21 +82,40 @@ class AppDataSync {
     _removeRealtimeChannel();
     _companyId = cleanCompanyId;
     _hasSubscribedOnce = false;
+    final subscriptionGeneration = _subscriptionGeneration;
 
     final channel = Supabase.instance.client.channel(
       'company:$cleanCompanyId:data',
       opts: const RealtimeChannelConfig(private: true),
     );
+    _channel = channel;
 
     channel
-        .onBroadcast(event: 'app_data_changed', callback: _handleRemotePayload)
+        .onBroadcast(
+          event: 'app_data_changed',
+          callback: (payload) {
+            if (!_isCurrentSubscription(
+              channel: channel,
+              companyId: cleanCompanyId,
+              generation: subscriptionGeneration,
+            )) {
+              return;
+            }
+            _handleRemotePayload(payload);
+          },
+        )
         .subscribe((status, _) {
           if (status != RealtimeSubscribeStatus.subscribed) return;
+          if (!_isCurrentSubscription(
+            channel: channel,
+            companyId: cleanCompanyId,
+            generation: subscriptionGeneration,
+          )) {
+            return;
+          }
           if (_hasSubscribedOnce) _refreshAfterReconnect();
           _hasSubscribedOnce = true;
         });
-
-    _channel = channel;
   }
 
   static void stop({String? companyId}) {
@@ -109,6 +131,8 @@ class AppDataSync {
     _cacheInvalidator = null;
     _deliveryTimer?.cancel();
     _deliveryTimer = null;
+    _maxDeliveryTimer?.cancel();
+    _maxDeliveryTimer = null;
     _pendingDomains.clear();
     _pendingContext = <String, dynamic>{};
     _pendingHasRemote = false;
@@ -146,6 +170,16 @@ class AppDataSync {
       context: <String, dynamic>{'source': source},
       isRemote: true,
     );
+  }
+
+  static bool _isCurrentSubscription({
+    required RealtimeChannel channel,
+    required String companyId,
+    required int generation,
+  }) {
+    return generation == _subscriptionGeneration &&
+        companyId == _companyId &&
+        identical(channel, _channel);
   }
 
   static void _handleRemotePayload(Map<String, dynamic> payload) {
@@ -234,12 +268,20 @@ class AppDataSync {
     if (context.isNotEmpty) {
       _pendingContext = Map<String, dynamic>.from(context);
     }
+
     _deliveryTimer?.cancel();
     _deliveryTimer = Timer(_coalesceDuration, _deliverPendingChange);
+    _maxDeliveryTimer ??= Timer(
+      _maxCoalesceDuration,
+      _deliverPendingChange,
+    );
   }
 
   static void _deliverPendingChange() {
+    _deliveryTimer?.cancel();
     _deliveryTimer = null;
+    _maxDeliveryTimer?.cancel();
+    _maxDeliveryTimer = null;
     if (_pendingDomains.isEmpty) return;
 
     final domains = Set<AppDataDomain>.unmodifiable(_pendingDomains);
@@ -262,6 +304,7 @@ class AppDataSync {
   }
 
   static void _removeRealtimeChannel() {
+    _subscriptionGeneration++;
     final channel = _channel;
     _channel = null;
     _hasSubscribedOnce = false;
