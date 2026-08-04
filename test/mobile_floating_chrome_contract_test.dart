@@ -24,19 +24,20 @@ void main() {
     expect(view, isNot(contains('PremiumWorkCard(')));
   });
 
-  test('bottom navigation has no full-width glass panel', () {
+  test('bottom navigation has one bounded glass panel', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
 
     expect(
       navigation,
-      contains("key: const ValueKey('professional-bottom-navigation-items')"),
+      contains("key: const ValueKey('professional-bottom-navigation-panel')"),
     );
     expect(
       navigation,
-      isNot(contains("key: const ValueKey('professional-bottom-navigation-panel')")),
+      contains("key: const ValueKey('professional-bottom-navigation-items')"),
     );
-    expect(navigation, isNot(contains('LiquidGlassSurface(')));
+    expect(navigation, contains('LiquidGlassSurface('));
+    expect(navigation, contains('MaterialType.transparency'));
   });
 }
