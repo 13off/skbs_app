@@ -10,6 +10,8 @@ extension _TimesheetView on _TimesheetScreenState {
           builder: (context, employeesSnapshot) {
             final allEmployees = employeesSnapshot.data ?? <Employee>[];
             final visibleEmployees = filterEmployees(allEmployees);
+            final floatingBottom = AppUi.floatingActionBottom(context);
+            final listBottom = AppUi.floatingActionListBottomPadding(context);
 
             if (employeesSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -81,7 +83,7 @@ extension _TimesheetView on _TimesheetScreenState {
                             // Flutter 3.44 deprecates this field before exposing its replacement.
                             // ignore: deprecated_member_use
                             cacheExtent: 700,
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 118),
+                            padding: EdgeInsets.fromLTRB(18, 18, 18, listBottom),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];
@@ -100,7 +102,7 @@ extension _TimesheetView on _TimesheetScreenState {
                 Positioned(
                   left: 20,
                   right: 20,
-                  bottom: 14,
+                  bottom: floatingBottom,
                   child: Center(
                     child: SizedBox(
                       key: const ValueKey('timesheet-floating-save'),
