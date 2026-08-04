@@ -60,7 +60,7 @@ class AppPage extends StatelessWidget {
     final topPadding = isDesktop
         ? AppUi.pageDesktopTopPadding
         : AppUi.pageMobileTopPadding;
-    final effectiveMaxContentWidth = isDesktop && title == 'Кандидаты'
+    final effectiveMaxContentWidth = isDesktop
         ? double.infinity
         : maxContentWidth;
 
@@ -162,12 +162,15 @@ class AppLazyPage extends StatelessWidget {
     final topPadding = isDesktop
         ? AppUi.pageDesktopTopPadding
         : AppUi.pageMobileTopPadding;
+    final effectiveMaxContentWidth = isDesktop
+        ? double.infinity
+        : maxContentWidth;
     final fixedLeadingCount = 2 + leading.length;
     final totalCount = fixedLeadingCount + itemCount + trailing.length;
 
     Widget constrain(Widget value) => Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            constraints: BoxConstraints(maxWidth: effectiveMaxContentWidth),
             child: value,
           ),
         );
