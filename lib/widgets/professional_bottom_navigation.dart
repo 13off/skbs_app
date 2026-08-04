@@ -136,16 +136,14 @@ class _ProfessionalBottomNavigationState
         type: MaterialType.transparency,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            isDesktop ? 30 : 12,
+            isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
             topSpacing,
-            isDesktop ? 30 : 12,
+            isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
             bottomSpacing + bottomInset,
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isDesktop ? 900 : double.infinity,
-              ),
+              constraints: const BoxConstraints(maxWidth: double.infinity),
               child: SizedBox(
                 key: const ValueKey('professional-bottom-navigation-items'),
                 height: panelHeight - (isDesktop ? 16 : 14),
