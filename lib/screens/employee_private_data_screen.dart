@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app/app_ui_tokens.dart';
 import '../data/employee_private_data_repository.dart';
 import '../data/hr_document_generator.dart';
 import '../models/employee.dart';
@@ -542,6 +543,7 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
   @override
   Widget build(BuildContext context) {
     final digitKeyboard = TextInputType.number;
+    final bottomSpacing = AppUi.navigationTotalHeight(context) + 24;
 
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -551,7 +553,7 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
       appBar: AppBar(
         leading: const BackButton(),title: const Text('Личные данные')),
       body: ListView(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.fromLTRB(18, 18, 18, bottomSpacing),
         children: [
           Text(
             widget.employee.name,
