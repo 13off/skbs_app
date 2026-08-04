@@ -9,16 +9,16 @@ import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
-const _darkNavigationPanelTint = Color(0xFF232C35);
-const _lightNavigationPanelTint = Color(0xFFF1F4F7);
+const _darkNavigationPanelTint = Color(0x66232C35);
+const _lightNavigationPanelTint = Color(0x66F1F4F7);
 
 const _darkNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [
-    Color(0xF7353B42),
-    Color(0xF72C3640),
-    Color(0xF711171E),
+    Color(0xB3353B42),
+    Color(0x992C3640),
+    Color(0x8011171E),
   ],
   stops: [0, 0.55, 1],
 );
@@ -27,9 +27,9 @@ const _lightNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [
-    Color(0xFAFFFFFF),
-    Color(0xFAF4F7FA),
-    Color(0xFAE9EEF4),
+    Color(0xB3FFFFFF),
+    Color(0x99F4F7FA),
+    Color(0x80E9EEF4),
   ],
   stops: [0, 0.55, 1],
 );
@@ -173,7 +173,7 @@ class _ProfessionalBottomNavigationState
               child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
                 blur: true,
-                blurSigma: isDesktop ? 20 : 16,
+                blurSigma: isDesktop ? 24 : 20,
                 tint: dark
                     ? _darkNavigationPanelTint
                     : _lightNavigationPanelTint,
