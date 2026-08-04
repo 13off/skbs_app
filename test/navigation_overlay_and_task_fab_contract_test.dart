@@ -46,4 +46,18 @@ void main() {
     expect(tasks, contains("label: 'Добавить задачу'"));
     expect(tasks, contains('const SizedBox(height: 78)'));
   });
+
+  test('navigation and task action remain presentation-only changes', () {
+    final files = <String>[
+      'lib/features/shell/presentation/premium_main_screen.dart',
+      'lib/features/shell/presentation/persistent_tab_shell.dart',
+      'lib/screens/mobile_tasks_screen.dart',
+      'lib/widgets/professional_bottom_navigation.dart',
+    ];
+
+    for (final path in files) {
+      final value = source(path);
+      expect(value, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
+    }
+  });
 }
