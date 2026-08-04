@@ -77,7 +77,7 @@ void main() {
     expect(darkThemeSource, contains('indicatorColor: accentSoft'));
   });
 
-  test('shared navigation uses blue selected states without an opaque base panel', () {
+  test('shared navigation uses blue selected states on a glass base panel', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
@@ -95,9 +95,13 @@ void main() {
     expect(navigation, contains('MaterialType.transparency'));
     expect(
       navigation,
+      contains("ValueKey('professional-bottom-navigation-panel')"),
+    );
+    expect(
+      navigation,
       contains("ValueKey('professional-bottom-navigation-items')"),
     );
-    expect(navigation, isNot(contains('LiquidGlassSurface(')));
+    expect(navigation, contains('LiquidGlassSurface('));
     expect(navigation, contains('scheme.primary.withValues('));
     expect(
       navigation,
