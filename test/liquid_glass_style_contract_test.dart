@@ -17,7 +17,11 @@ void main() {
 
     expect(liquid, contains('class LiquidGlassSurface'));
     expect(liquid, contains('BackdropFilter('));
-    expect(navigation, isNot(contains('LiquidGlassSurface(')));
+    expect(navigation, contains('LiquidGlassSurface('));
+    expect(
+      navigation,
+      contains("ValueKey('professional-bottom-navigation-panel')"),
+    );
     expect(navigation, contains('MaterialType.transparency'));
     expect(page, contains('class AppPageHeader'));
     expect(page, contains('blur: true'));
