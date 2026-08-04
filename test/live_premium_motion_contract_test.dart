@@ -54,7 +54,10 @@ void main() {
     expect(loading, contains('showProgress: true'));
     expect(brand, contains("'планируй. строй. управляй.'"));
     expect(brand, contains('widthFactor: textProgress'));
-    expect(brand, contains('scale: 0.12 + (0.88 * logoProgress)'));
+    expect(brand, contains('leftTower'));
+    expect(brand, contains('centerTower'));
+    expect(brand, contains('rightTower'));
+    expect(brand, contains('canvas.scale(1, progress)'));
     expect(brand, contains('liveRegion: widget.showProgress'));
     expect(loading, isNot(contains('PremiumBrandMark')));
     expect(loading, isNot(contains('PremiumDots(')));

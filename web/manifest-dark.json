@@ -7,14 +7,14 @@
   "scope": "/appstroy-web/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
-  "background_color": "#0E1621",
-  "theme_color": "#0E1621",
+  "background_color": "#141517",
+  "theme_color": "#141517",
   "orientation": "any",
   "categories": ["business", "productivity"],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "icons/app_icon_matte_dark_v2.svg",
+      "src": "icons/app_icon_matte_dark_v3.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

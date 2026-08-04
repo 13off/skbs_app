@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AppСтрой">
+  <defs>
+    <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#ECECEC"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#BFC1C4"/>
+      <stop offset=".34" stop-color="#777A7E"/>
+      <stop offset=".70" stop-color="#474A4E"/>
+      <stop offset="1" stop-color="#26282B"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#25272A" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+
+  <rect x="6" y="6" width="500" height="500" rx="134" fill="url(#stone)"/>
+  <rect x="15" y="15" width="482" height="482" rx="126" fill="none" stroke="#FFFFFF" stroke-opacity=".96" stroke-width="3"/>
+
+  <g transform="translate(-46 -6) scale(2.28)" fill="url(#metal)" filter="url(#shadow)" stroke="#202225" stroke-width=".8">
+    <path d="M38 204V146C38 130 48 119 61 114L72 110C79 107 86 112 86 120V204Z"/>
+    <path d="M96 204V82C96 61 109 45 128 39L139 36C146 34 153 39 153 47V204Z"/>
+    <path d="M163 204V110C163 97 174 88 187 91C211 96 225 109 225 129V204Z"/>
+  </g>
+</svg>
