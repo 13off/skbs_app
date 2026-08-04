@@ -1,0 +1,7 @@
+AppСтрой accepted Android artifact release
+release date: 2026-08-04
+acceptance run: 30934980308
+artifact: full-acceptance-android
+binary source: 416f35ccf0d2c3b1b3cb30b3b6cc7d206954eee1
+accepted merge: cf07e81bbce12b62b63754b93dd00df1590f5323
+workflow: 620404d3367dc93dc6ba649a0a39003258e70ec9
