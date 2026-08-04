@@ -6,10 +6,7 @@ extension _EmployeeDetailsView on _EmployeeDetailsScreenState {
     final toolsScreen = CompanyToolsScreen(profile: widget.profile);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: Text(employee.name),
-      ),
+      appBar: AppBar(leading: const BackButton(), title: Text(employee.name)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
         children: [

@@ -120,10 +120,7 @@ class EmployeeTaskCabinetData {
   final EmployeeTaskCabinetProfile profile;
   final List<EmployeeTaskCabinetTask> tasks;
 
-  const EmployeeTaskCabinetData({
-    required this.profile,
-    required this.tasks,
-  });
+  const EmployeeTaskCabinetData({required this.profile, required this.tasks});
 
   factory EmployeeTaskCabinetData.fromJson(Map<String, dynamic> json) {
     return EmployeeTaskCabinetData(

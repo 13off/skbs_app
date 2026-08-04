@@ -22,6 +22,19 @@ function botToken(): string {
 
 type JsonMap = Record<string, unknown>;
 
+type TelegramFileRow = {
+  id: string;
+  company_id: string;
+  application_id: string;
+  telegram_file_id: string | null;
+  storage_bucket: string | null;
+  storage_path: string | null;
+  original_name: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  document_type?: string | null;
+};
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -94,17 +107,18 @@ Deno.serve(async (request: Request) => {
       .maybeSingle();
     if (error) throw error;
     if (!data) return json({ error: "row not found" }, 404);
+    const row = data as unknown as TelegramFileRow;
 
-    const existingPath = String(data.storage_path ?? "");
+    const existingPath = String(row.storage_path ?? "");
     if (
-      String(data.storage_bucket ?? "") === bucket
+      String(row.storage_bucket ?? "") === bucket
       && existingPath
       && !existingPath.startsWith("telegram://")
     ) {
       return json({ ok: true, skipped: true, path: existingPath });
     }
 
-    const fileId = String(data.telegram_file_id ?? "");
+    const fileId = String(row.telegram_file_id ?? "");
     if (!fileId) return json({ error: "telegram file id missing" }, 409);
 
     const getFileResponse = await fetch(
@@ -137,16 +151,16 @@ Deno.serve(async (request: Request) => {
     }
 
     const mimeType = String(
-      data.mime_type
+      row.mime_type
         ?? downloadResponse.headers.get("content-type")
         ?? "application/octet-stream",
     );
     const ext = extension(telegramPath, mimeType);
     const category = kind === "document"
-      ? String(data.document_type ?? "other")
+      ? String(row.document_type ?? "other")
       : "messages";
     const storagePath =
-      `${String(data.company_id)}/${String(data.application_id)}/${category}/${String(data.id)}.${ext}`;
+      `${String(row.company_id)}/${String(row.application_id)}/${category}/${String(row.id)}.${ext}`;
     const { error: uploadError } = await admin.storage
       .from(bucket)
       .upload(storagePath, bytes, {
@@ -159,7 +173,7 @@ Deno.serve(async (request: Request) => {
     const updatePayload: JsonMap = {
       storage_bucket: bucket,
       storage_path: storagePath,
-      original_name: String(data.original_name ?? "")
+      original_name: String(row.original_name ?? "")
         || telegramPath.split("/").at(-1)
         || `file.${ext}`,
       mime_type: mimeType,

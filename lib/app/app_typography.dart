@@ -26,9 +26,7 @@ abstract final class AppTypography {
 
   static ThemeData apply(ThemeData theme) {
     final textTheme = GoogleFonts.interTextTheme(theme.textTheme);
-    final primaryTextTheme = GoogleFonts.interTextTheme(
-      theme.primaryTextTheme,
-    );
+    final primaryTextTheme = GoogleFonts.interTextTheme(theme.primaryTextTheme);
 
     return theme.copyWith(
       textTheme: textTheme,

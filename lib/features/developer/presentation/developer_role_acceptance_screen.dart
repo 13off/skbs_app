@@ -29,9 +29,10 @@ class _DeveloperRoleAcceptanceScreenState
     final actualRole = RoleAcceptanceRepository.normalizeRole(
       widget.profile.actualRole,
     );
-    selectedRole = RoleAcceptanceRepository.scenarios.any(
-      (item) => item.role == actualRole,
-    )
+    selectedRole =
+        RoleAcceptanceRepository.scenarios.any(
+          (item) => item.role == actualRole,
+        )
         ? actualRole
         : 'developer';
     runChecks();

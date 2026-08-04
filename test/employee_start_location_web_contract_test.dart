@@ -5,8 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const homePath =
       'lib/features/employee/presentation/employee_home_screen.dart';
-  const runtimePath =
-      'lib/features/employee/data/employee_shift_runtime.dart';
+  const runtimePath = 'lib/features/employee/data/employee_shift_runtime.dart';
   const fallbackPath =
       'lib/features/employee/data/employee_shift_web_fallback_repository.dart';
   const rollbackMigrationPath =
@@ -21,21 +20,32 @@ void main() {
     expect(File(fallbackPath).existsSync(), isFalse);
   });
 
-  test('Safari получает координату напрямую без ненадёжного Permissions API', () {
-    final runtime = File(runtimePath).readAsStringSync();
-    expect(runtime, contains('if (kIsWeb) return LocationPermission.whileInUse'));
-    expect(runtime, contains('WebSettings('));
-    expect(runtime, contains('maximumAge: Duration(seconds: 30)'));
-    expect(runtime, contains('on TimeoutException'));
-    expect(runtime, contains('final position = await _requiredPosition()'));
-  });
+  test(
+    'Safari получает координату напрямую без ненадёжного Permissions API',
+    () {
+      final runtime = File(runtimePath).readAsStringSync();
+      expect(
+        runtime,
+        contains('if (kIsWeb) return LocationPermission.whileInUse'),
+      );
+      expect(runtime, contains('WebSettings('));
+      expect(runtime, contains('maximumAge: Duration(seconds: 30)'));
+      expect(runtime, contains('on TimeoutException'));
+      expect(runtime, contains('final position = await _requiredPosition()'));
+    },
+  );
 
   test('без стартовой координаты серверная смена снова запрещена', () {
     final migration = File(rollbackMigrationPath).readAsStringSync();
     expect(migration, contains('start_latitude set not null'));
     expect(migration, contains('start_longitude set not null'));
     expect(migration, contains('start_accuracy_m set not null'));
-    expect(migration, contains('drop function if exists public.start_employee_shift_without_location'));
+    expect(
+      migration,
+      contains(
+        'drop function if exists public.start_employee_shift_without_location',
+      ),
+    );
   });
 
   test('сырая ошибка браузера не показывается как object Object', () {

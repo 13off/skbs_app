@@ -137,16 +137,14 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   }
 
   void openScreen(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   void openRoutes() {
     openScreen(
-      EmployeeRoutesReportScreen(
-        selectedObjectName: widget.selectedObjectName,
-      ),
+      EmployeeRoutesReportScreen(selectedObjectName: widget.selectedObjectName),
     );
   }
 
@@ -180,9 +178,9 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -204,8 +202,9 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
           meta: center.criticalCount > 0
               ? 'Требует внимания: ${center.criticalCount}'
               : 'Критичных отклонений нет',
-          trailingLabel:
-              center.criticalCount > 0 ? '${center.criticalCount}' : null,
+          trailingLabel: center.criticalCount > 0
+              ? '${center.criticalCount}'
+              : null,
           onTap: () => openDailyReview(center),
         ),
         ManagerWeeklyContributionSection(

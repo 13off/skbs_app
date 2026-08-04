@@ -589,7 +589,10 @@ class _DispatcherSettingsScreenState extends State<DispatcherSettingsScreen> {
             ),
             if (dateText.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(dateText, style: TextStyle(color: AppAdaptivePalette.textMuted)),
+              Text(
+                dateText,
+                style: TextStyle(color: AppAdaptivePalette.textMuted),
+              ),
             ],
             if (run.body.isNotEmpty) ...[
               const SizedBox(height: 8),

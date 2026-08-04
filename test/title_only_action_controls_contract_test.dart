@@ -7,7 +7,9 @@ void main() {
     final reports = File(
       'lib/features/reports/presentation/manager_report_tile.dart',
     ).readAsStringSync();
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
+    ).readAsStringSync();
     final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
     final rolePreview = File(
       'lib/features/role_preview/role_preview_screen.dart',
@@ -23,7 +25,10 @@ void main() {
     ).readAsStringSync();
 
     expect(reports, isNot(contains('cleanMeta')));
-    expect(reports, isNot(contains('Text(\n                          cleanMeta')));
+    expect(
+      reports,
+      isNot(contains('Text(\n                          cleanMeta')),
+    );
     expect(reports, contains('trailingLabel'));
 
     expect(settings, isNot(contains('final String subtitle;')));
@@ -38,8 +43,8 @@ void main() {
     expect(rolePreview, isNot(contains('required String subtitle')));
     expect(rolePreview, isNot(contains('Обычная платформа администратора')));
     expect(rolePreview, contains('final details = <String>['));
-    expect(rolePreview, contains('badge: preview.isForemanMode'));
-    expect(rolePreview, contains('badge: preview.isEmployeeMode'));
+    expect(rolePreview, matches(RegExp(r'badge:\s*preview\.isForemanMode')));
+    expect(rolePreview, matches(RegExp(r'badge:\s*preview\.isEmployeeMode')));
 
     expect(employeeSections, isNot(contains('required String subtitle')));
     expect(employeeSections, isNot(contains('subtitle: Text(subtitle)')));
@@ -66,11 +71,7 @@ void main() {
 
     for (final path in paths) {
       final source = File(path).readAsStringSync();
-      expect(
-        source,
-        isNot(contains('required String subtitle')),
-        reason: path,
-      );
+      expect(source, isNot(contains('required String subtitle')), reason: path);
     }
   });
 }

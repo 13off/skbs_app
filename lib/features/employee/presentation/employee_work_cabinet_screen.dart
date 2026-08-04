@@ -57,7 +57,8 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
             if (tasks.isEmpty)
               const _MessageCard(
                 title: 'Активных задач пока нет',
-                text: 'Назначенная мастером задача появится здесь автоматически.',
+                text:
+                    'Назначенная мастером задача появится здесь автоматически.',
               )
             else
               for (var index = 0; index < tasks.length; index++) ...[
@@ -121,7 +122,9 @@ class _EmployeeWorkTaskHistoryScreenState
       confirmText: 'Выбрать',
     );
     if (picked == null) return;
-    setState(() => selectedDate = DateTime(picked.year, picked.month, picked.day));
+    setState(
+      () => selectedDate = DateTime(picked.year, picked.month, picked.day),
+    );
   }
 
   void changeDay(int delta) {
@@ -136,13 +139,15 @@ class _EmployeeWorkTaskHistoryScreenState
       year: selectedDate.year,
       month: selectedDate.month,
       builder: (data, refresh) {
-        final tasks = data.tasks.where((task) {
-          final date = task.date;
-          return date != null &&
-              date.year == selectedDate.year &&
-              date.month == selectedDate.month &&
-              date.day == selectedDate.day;
-        }).toList(growable: false);
+        final tasks = data.tasks
+            .where((task) {
+              final date = task.date;
+              return date != null &&
+                  date.year == selectedDate.year &&
+                  date.month == selectedDate.month &&
+                  date.day == selectedDate.day;
+            })
+            .toList(growable: false);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -369,9 +374,7 @@ class _EmployeeWorkTaskDetailsScreenState
                             task.work.trim().isEmpty
                                 ? 'Рабочая задача'
                                 : task.work,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -384,7 +387,9 @@ class _EmployeeWorkTaskDetailsScreenState
                     ],
                     if (task.photoRequirementsEnforced) ...[
                       const SizedBox(height: 8),
-                      const Text('Для задачи предусмотрены фото «До» и «После».'),
+                      const Text(
+                        'Для задачи предусмотрены фото «До» и «После».',
+                      ),
                     ],
                     const SizedBox(height: 18),
                     if (canStart)
@@ -405,7 +410,9 @@ class _EmployeeWorkTaskDetailsScreenState
                             icon: isFinishing
                                 ? const SizedBox.square(
                                     dimension: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Icon(Icons.stop_circle_outlined),
                             label: Text(
@@ -460,7 +467,8 @@ class _CabinetLoader extends StatefulWidget {
   final Widget Function(
     EmployeeCabinetData data,
     Future<void> Function() refresh,
-  ) builder;
+  )
+  builder;
 
   const _CabinetLoader({
     super.key,
@@ -561,7 +569,9 @@ class _ShiftStatusCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _IconBox(
-                active ? Icons.location_on_rounded : Icons.location_off_outlined,
+                active
+                    ? Icons.location_on_rounded
+                    : Icons.location_off_outlined,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -579,8 +589,8 @@ class _ShiftStatusCard extends StatelessWidget {
                     Text(
                       active
                           ? (snapshot.message.isEmpty
-                              ? 'Маршрут записывается.'
-                              : snapshot.message)
+                                ? 'Маршрут записывается.'
+                                : snapshot.message)
                           : 'Откройте назначенную задачу и нажмите «Начать смену».',
                     ),
                     if (active && snapshot.shift?.startedAt != null) ...[
@@ -768,7 +778,9 @@ class _PhotoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(enabled ? 'Фотографии прикрепляются к этой задаче.' : disabledText),
+          Text(
+            enabled ? 'Фотографии прикрепляются к этой задаче.' : disabledText,
+          ),
           const SizedBox(height: 14),
           if (photos.isEmpty)
             const Text('Фотографий пока нет')
@@ -781,28 +793,30 @@ class _PhotoCard extends StatelessWidget {
                 return Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: photos.map((photo) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        width: width,
-                        height: width,
-                        child: photo.signedUrl.trim().isEmpty
-                            ? const ColoredBox(
-                                color: Colors.black12,
-                                child: Icon(Icons.broken_image_outlined),
-                              )
-                            : Image.network(
-                                photo.signedUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => const ColoredBox(
-                                  color: Colors.black12,
-                                  child: Icon(Icons.broken_image_outlined),
-                                ),
-                              ),
-                      ),
-                    );
-                  }).toList(growable: false),
+                  children: photos
+                      .map((photo) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: SizedBox(
+                            width: width,
+                            height: width,
+                            child: photo.signedUrl.trim().isEmpty
+                                ? const ColoredBox(
+                                    color: Colors.black12,
+                                    child: Icon(Icons.broken_image_outlined),
+                                  )
+                                : Image.network(
+                                    photo.signedUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const ColoredBox(
+                                      color: Colors.black12,
+                                      child: Icon(Icons.broken_image_outlined),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
                 );
               },
             ),
@@ -828,10 +842,9 @@ class _MessageCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 7),
           Text(text, textAlign: TextAlign.center),
@@ -888,10 +901,8 @@ Future<void> _openTask(
 ) async {
   await Navigator.of(context).push<void>(
     CupertinoPageRoute<void>(
-      builder: (_) => EmployeeWorkTaskDetailsScreen(
-        task: task,
-        onChanged: refresh,
-      ),
+      builder: (_) =>
+          EmployeeWorkTaskDetailsScreen(task: task, onChanged: refresh),
     ),
   );
 }

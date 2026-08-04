@@ -81,7 +81,9 @@ abstract final class PremiumDepthTheme {
         elevation: 18,
         shadowColor: const Color(0xFF17191C).withValues(alpha: 0.16),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppUi.modalRadius)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppUi.modalRadius),
+          ),
         ),
       ),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(

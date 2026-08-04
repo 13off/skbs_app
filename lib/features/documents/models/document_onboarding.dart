@@ -282,8 +282,12 @@ class EmployeeOnboardingRecord {
       candidateName: candidate['full_name']?.toString() ?? '',
       packageTitle: package['title']?.toString() ?? '',
       objectName: object['name']?.toString() ?? '',
-      createdAt: dateValue(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: dateValue(map['updated_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt:
+          dateValue(map['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt:
+          dateValue(map['updated_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }

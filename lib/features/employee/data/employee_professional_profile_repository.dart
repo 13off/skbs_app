@@ -26,15 +26,15 @@ class EmployeeProfessionalProfile {
   });
 
   const EmployeeProfessionalProfile.empty()
-      : grade = '',
-        experienceYears = 0,
-        skills = const <String>[],
-        about = '',
-        preferredCities = const <String>[],
-        readyForRotation = false,
-        openToOffers = false,
-        desiredDailyRate = null,
-        updatedAt = null;
+    : grade = '',
+      experienceYears = 0,
+      skills = const <String>[],
+      about = '',
+      preferredCities = const <String>[],
+      readyForRotation = false,
+      openToOffers = false,
+      desiredDailyRate = null,
+      updatedAt = null;
 
   factory EmployeeProfessionalProfile.fromJson(Map<String, dynamic> json) {
     return EmployeeProfessionalProfile(
@@ -116,9 +116,7 @@ class EmployeeProfessionalPassportData {
     required this.verified,
   });
 
-  factory EmployeeProfessionalPassportData.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory EmployeeProfessionalPassportData.fromJson(Map<String, dynamic> json) {
     return EmployeeProfessionalPassportData(
       professional: EmployeeProfessionalProfile.fromJson(
         _map(json['professional']),
@@ -174,10 +172,9 @@ class EmployeeProfessionalProfileRepository {
   static final SupabaseClient _client = Supabase.instance.client;
 
   static Future<EmployeeProfessionalPassportData> fetch() async {
-    return _invoke(
-      'employee-professional-profile',
-      <String, dynamic>{'action': 'fetch'},
-    );
+    return _invoke('employee-professional-profile', <String, dynamic>{
+      'action': 'fetch',
+    });
   }
 
   static Future<EmployeeProfessionalPassportData> fetchForEmployee({
@@ -187,22 +184,18 @@ class EmployeeProfessionalProfileRepository {
     if (cleanEmployeeId.isEmpty) {
       throw Exception('У сотрудника нет рабочей карточки');
     }
-    return _invoke(
-      'employee-professional-profile-view',
-      <String, dynamic>{'employee_id': cleanEmployeeId},
-    );
+    return _invoke('employee-professional-profile-view', <String, dynamic>{
+      'employee_id': cleanEmployeeId,
+    });
   }
 
   static Future<EmployeeProfessionalPassportData> save(
     EmployeeProfessionalProfile professional,
   ) async {
-    return _invoke(
-      'employee-professional-profile',
-      <String, dynamic>{
-        'action': 'update',
-        'professional': professional.toJson(),
-      },
-    );
+    return _invoke('employee-professional-profile', <String, dynamic>{
+      'action': 'update',
+      'professional': professional.toJson(),
+    });
   }
 
   static Future<EmployeeProfessionalPassportData> _invoke(
@@ -210,10 +203,7 @@ class EmployeeProfessionalProfileRepository {
     Map<String, dynamic> body,
   ) async {
     try {
-      final response = await _client.functions.invoke(
-        functionName,
-        body: body,
-      );
+      final response = await _client.functions.invoke(functionName, body: body);
       final raw = response.data;
       if (raw is! Map) {
         throw Exception('Паспорт специалиста вернул некорректный ответ');

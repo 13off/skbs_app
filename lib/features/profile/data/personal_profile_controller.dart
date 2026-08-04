@@ -40,17 +40,18 @@ class PersonalProfileController {
 
     final expectedUserId = configuredUserId;
     late final Future<void> future;
-    future = () async {
-      try {
-        final value = await ProfileRepository.fetchPersonalData();
-        if (configuredUserId != expectedUserId) return;
-        state.value = value;
-      } catch (_) {
-        // Базовый профиль уже показан. Следующее открытие повторит загрузку.
-      }
-    }().whenComplete(() {
-      if (identical(loadingFuture, future)) loadingFuture = null;
-    });
+    future =
+        () async {
+          try {
+            final value = await ProfileRepository.fetchPersonalData();
+            if (configuredUserId != expectedUserId) return;
+            state.value = value;
+          } catch (_) {
+            // Базовый профиль уже показан. Следующее открытие повторит загрузку.
+          }
+        }().whenComplete(() {
+          if (identical(loadingFuture, future)) loadingFuture = null;
+        });
     loadingFuture = future;
     return future;
   }

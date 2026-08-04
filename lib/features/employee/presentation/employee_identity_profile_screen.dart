@@ -61,9 +61,9 @@ class _EmployeeIdentityProfileScreenState
   }
 
   void open(Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   String initials(String fullName) {
@@ -102,9 +102,7 @@ class _EmployeeIdentityProfileScreenState
                 ],
               ),
               borderRadius: BorderRadius.circular(17),
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.18),
-              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.18)),
             ),
             child: Icon(icon, color: scheme.primary, size: 23),
           ),
@@ -378,30 +376,31 @@ class _EmployeeIdentityProfileScreenState
             icon: const Icon(Icons.settings_rounded, size: 27),
           ),
           onRefresh: refresh,
-          child: snapshot.connectionState == ConnectionState.waiting &&
+          child:
+              snapshot.connectionState == ConnectionState.waiting &&
                   !snapshot.hasData
               ? const SizedBox(
                   height: 360,
                   child: Center(child: CircularProgressIndicator.adaptive()),
                 )
               : snapshot.hasError || snapshot.data == null
-                  ? PremiumWorkCard(
-                      child: Text(
-                        snapshot.error
+              ? PremiumWorkCard(
+                  child: Text(
+                    snapshot.error
                                 ?.toString()
                                 .replaceFirst('Exception: ', '')
                                 .trim()
                                 .isNotEmpty ==
                             true
-                            ? snapshot.error
-                                .toString()
-                                .replaceFirst('Exception: ', '')
-                                .trim()
-                            : 'Не удалось загрузить профиль сотрудника',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    )
-                  : content(snapshot.data!),
+                        ? snapshot.error
+                              .toString()
+                              .replaceFirst('Exception: ', '')
+                              .trim()
+                        : 'Не удалось загрузить профиль сотрудника',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                )
+              : content(snapshot.data!),
         );
       },
     );

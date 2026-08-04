@@ -7,11 +7,7 @@ import 'support/task_details_source.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
-void expectTextContains(
-  String label,
-  String text,
-  Iterable<String> values,
-) {
+void expectTextContains(String label, String text, Iterable<String> values) {
   for (final value in values) {
     expect(text, contains(value), reason: '$label должен содержать $value');
   }
@@ -145,16 +141,12 @@ void main() {
       'Фото «До» — обязательно',
       'Фото «До» — по желанию',
     ]);
-    expectTextContains(
-      'редактор задачи',
-      taskDetailsEditorSource(),
-      const [
-        "photoStage: 'before'",
-        "photoStage: 'after'",
-        'policy.requireAfterPhotoOnComplete',
-        'policy.minAfterPhotos',
-        "widget.task.status != 'Выполнено'",
-      ],
-    );
+    expectTextContains('редактор задачи', taskDetailsEditorSource(), const [
+      "photoStage: 'before'",
+      "photoStage: 'after'",
+      'policy.requireAfterPhotoOnComplete',
+      'policy.minAfterPhotos',
+      "widget.task.status != 'Выполнено'",
+    ]);
   });
 }

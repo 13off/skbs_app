@@ -31,11 +31,8 @@ class DocumentToolAvailability {
   }
 }
 
-typedef DocumentToolAvailabilityWidgetBuilder = Widget Function(
-  BuildContext context,
-  bool enabled,
-  bool loading,
-);
+typedef DocumentToolAvailabilityWidgetBuilder =
+    Widget Function(BuildContext context, bool enabled, bool loading);
 
 class DocumentToolAvailabilityBuilder extends StatefulWidget {
   final String companyId;
@@ -134,10 +131,26 @@ class DocumentToolFeatureLock extends StatelessWidget {
               absorbing: true,
               child: ColorFiltered(
                 colorFilter: const ColorFilter.matrix(<double>[
-                  0.35, 0.35, 0.35, 0, 0,
-                  0.35, 0.35, 0.35, 0, 0,
-                  0.35, 0.35, 0.35, 0, 0,
-                  0, 0, 0, 0.48, 0,
+                  0.35,
+                  0.35,
+                  0.35,
+                  0,
+                  0,
+                  0.35,
+                  0.35,
+                  0.35,
+                  0,
+                  0,
+                  0.35,
+                  0.35,
+                  0.35,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0.48,
+                  0,
                 ]),
                 child: child,
               ),
@@ -153,10 +166,10 @@ class DocumentToolFeatureLock extends StatelessWidget {
                   onTap: loading
                       ? null
                       : () => showDocumentToolRequiredSheet(
-                            context,
-                            toolsScreen: toolsScreen,
-                            message: message,
-                          ),
+                          context,
+                          toolsScreen: toolsScreen,
+                          message: message,
+                        ),
                 ),
               ),
             ),

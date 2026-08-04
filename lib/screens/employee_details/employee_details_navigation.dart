@@ -26,9 +26,8 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeeProfessionalPassportViewerScreen(
-          employee: employee,
-        ),
+        builder: (_) =>
+            EmployeeProfessionalPassportViewerScreen(employee: employee),
       ),
     );
   }

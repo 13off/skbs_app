@@ -13,10 +13,7 @@ import 'employee_actionable_tasks.dart';
 class EmployeeDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeDashboardScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeDashboardScreen({super.key, required this.profile});
 
   @override
   State<EmployeeDashboardScreen> createState() =>
@@ -50,7 +47,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     final employee = await _resolvePreviewEmployee();
     final now = DateTime.now();
     return EmployeeCabinetData(
-      fullName: employee.name.trim().isEmpty ? 'Сотрудник' : employee.name.trim(),
+      fullName: employee.name.trim().isEmpty
+          ? 'Сотрудник'
+          : employee.name.trim(),
       phone: employee.phone.trim(),
       profession: employee.positionTitle.trim(),
       currentObject: employee.objectName.trim(),
@@ -86,8 +85,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
       return employee.isActive &&
           (employee.id ?? '').trim().isNotEmpty &&
           employee.objectName.trim().isNotEmpty;
-    }).toList()
-      ..sort((left, right) => left.name.compareTo(right.name));
+    }).toList()..sort((left, right) => left.name.compareTo(right.name));
 
     if (candidates.isEmpty) {
       throw Exception('Нет активного сотрудника с назначенным объектом');
@@ -150,18 +148,17 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    snapshot.error
-                            ?.toString()
-                            .replaceFirst('Exception: ', '') ??
+                    snapshot.error?.toString().replaceFirst(
+                          'Exception: ',
+                          '',
+                        ) ??
                         'Не удалось загрузить данные сотрудника',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   FilledButton.icon(
@@ -199,10 +196,10 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            task == null ? 'На сегодня задач нет' : 'Текущая задача',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            task == null
+                                ? 'На сегодня задач нет'
+                                : 'Текущая задача',
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -214,20 +211,17 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                       Text(
                         'Новая задача появится здесь автоматически после назначения мастером.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.45,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                        ),
                       )
                     else ...[
                       Text(
                         task.work.trim().isEmpty ? 'Рабочая задача' : task.work,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 9),
                       Text(
@@ -238,12 +232,10 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                           if (task.date != null) _formatDate(task.date!),
                         ].join(' · '),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       PremiumActionButton(
@@ -289,9 +281,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                         Expanded(
                           child: Text(
                             'Этот месяц',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -328,7 +318,9 @@ class _EmployeeIdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = data.fullName.trim().isEmpty ? 'Сотрудник' : data.fullName.trim();
+    final name = data.fullName.trim().isEmpty
+        ? 'Сотрудник'
+        : data.fullName.trim();
     final profession = data.profession.trim().isEmpty
         ? 'Должность не указана'
         : data.profession.trim();
@@ -352,9 +344,9 @@ class _EmployeeIdentityCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppAdaptivePalette.textPrimary,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -362,10 +354,10 @@ class _EmployeeIdentityCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppAdaptivePalette.textMuted,
-                        height: 1.35,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppAdaptivePalette.textMuted,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -402,9 +394,9 @@ class _InitialsAvatar extends StatelessWidget {
       child: Text(
         initials.isEmpty ? 'С' : initials,
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppAdaptivePalette.textPrimary,
-              fontWeight: FontWeight.w900,
-            ),
+          color: AppAdaptivePalette.textPrimary,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -448,11 +440,11 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         text.trim().isEmpty ? 'Запланировано' : text,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: completed
-                  ? AppAdaptivePalette.success
-                  : AppAdaptivePalette.textPrimary,
-              fontWeight: FontWeight.w900,
-            ),
+          color: completed
+              ? AppAdaptivePalette.success
+              : AppAdaptivePalette.textPrimary,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -480,17 +472,17 @@ class _StatCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppAdaptivePalette.textPrimary,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: AppAdaptivePalette.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppAdaptivePalette.textMuted,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -514,18 +506,18 @@ class _ValueLine extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppAdaptivePalette.textMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Text(
             value,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppAdaptivePalette.textPrimary,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: AppAdaptivePalette.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),

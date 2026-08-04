@@ -391,13 +391,11 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
           child: FutureBuilder<List<String>>(
             future: objectNamesFuture,
             builder: (context, objectSnapshot) {
-              final objectNames =
-                  objectSnapshot.data ?? const <String>[];
+              final objectNames = objectSnapshot.data ?? const <String>[];
               return FutureBuilder<List<Employee>>(
                 future: employeesFuture,
                 builder: (context, employeeSnapshot) {
-                  final employees =
-                      employeeSnapshot.data ?? const <Employee>[];
+                  final employees = employeeSnapshot.data ?? const <Employee>[];
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -418,11 +416,14 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         icon: Icons.engineering_rounded,
                         title: 'Прораб',
                         selected: preview.isForemanMode,
-                        onTap: objectSnapshot.connectionState ==
+                        onTap:
+                            objectSnapshot.connectionState ==
                                 ConnectionState.waiting
                             ? null
                             : () => selectForeman(objectNames),
-                        badge: preview.isForemanMode && preview.objectName.isNotEmpty
+                        badge:
+                            preview.isForemanMode &&
+                                preview.objectName.isNotEmpty
                             ? preview.objectName
                             : null,
                       ),
@@ -430,11 +431,13 @@ class _RolePreviewScreenState extends State<RolePreviewScreen> {
                         icon: Icons.construction_rounded,
                         title: 'Сотрудник',
                         selected: preview.isEmployeeMode,
-                        onTap: employeeSnapshot.connectionState ==
+                        onTap:
+                            employeeSnapshot.connectionState ==
                                 ConnectionState.waiting
                             ? null
                             : () => selectEmployee(employees),
-                        badge: preview.isEmployeeMode &&
+                        badge:
+                            preview.isEmployeeMode &&
                                 preview.employeeName.isNotEmpty
                             ? preview.employeeName
                             : null,

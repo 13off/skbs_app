@@ -90,28 +90,29 @@ void main() {
     expect(selected, 3);
   });
 
-  testWidgets('mobile navigation uses one glass panel and keeps all tabs visible', (
-    tester,
-  ) async {
-    await pumpNavigation(tester, const Size(390, 844), onSelected: (_) {});
+  testWidgets(
+    'mobile navigation uses one glass panel and keeps all tabs visible',
+    (tester) async {
+      await pumpNavigation(tester, const Size(390, 844), onSelected: (_) {});
 
-    final bodyHeight = tester
-        .getSize(find.byKey(const ValueKey('screen-body')))
-        .height;
-    final itemsHeight = tester
-        .getSize(
-          find.byKey(const ValueKey('professional-bottom-navigation-items')),
-        )
-        .height;
+      final bodyHeight = tester
+          .getSize(find.byKey(const ValueKey('screen-body')))
+          .height;
+      final itemsHeight = tester
+          .getSize(
+            find.byKey(const ValueKey('professional-bottom-navigation-items')),
+          )
+          .height;
 
-    expect(bodyHeight, greaterThanOrEqualTo(750));
-    expect(itemsHeight, 62);
-    expect(
-      find.byKey(const ValueKey('professional-bottom-navigation-panel')),
-      findsOneWidget,
-    );
-    for (final item in items) {
-      expect(find.text(item.label), findsOneWidget);
-    }
-  });
+      expect(bodyHeight, greaterThanOrEqualTo(750));
+      expect(itemsHeight, 62);
+      expect(
+        find.byKey(const ValueKey('professional-bottom-navigation-panel')),
+        findsOneWidget,
+      );
+      for (final item in items) {
+        expect(find.text(item.label), findsOneWidget);
+      }
+    },
+  );
 }

@@ -97,7 +97,9 @@ abstract final class DocumentTemplateOnlineEditor {
     final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
     final fileName = _editedFileName(sourceVersion.fileName, nextVersion);
     final storagePath = '$companyId/$workingTemplateId/${timestamp}_$fileName';
-    final controls = DocumentTemplateRepository.inspectDocxContentControls(bytes);
+    final controls = DocumentTemplateRepository.inspectDocxContentControls(
+      bytes,
+    );
     final fieldSchema = <String, dynamic>{
       ...sourceVersion.fieldSchema,
       'content_controls': controls,
@@ -150,9 +152,9 @@ abstract final class DocumentTemplateOnlineEditor {
           })
           .eq('id', workingTemplateId);
     } catch (_) {
-      await _client.storage
-          .from(DocumentTemplateRepository.bucketName)
-          .remove(<String>[storagePath]);
+      await _client.storage.from(DocumentTemplateRepository.bucketName).remove(
+        <String>[storagePath],
+      );
       rethrow;
     }
 
@@ -222,11 +224,10 @@ abstract final class DocumentTemplateOnlineEditor {
     final blocksByPart = <String, Map<int, DocumentTemplateEditableBlock>>{};
     for (final block in draft.blocks) {
       if (block.isProtected) continue;
-      blocksByPart
-          .putIfAbsent(
-            block.partPath,
-            () => <int, DocumentTemplateEditableBlock>{},
-          )[block.paragraphIndex] = block;
+      blocksByPart.putIfAbsent(
+        block.partPath,
+        () => <int, DocumentTemplateEditableBlock>{},
+      )[block.paragraphIndex] = block;
     }
 
     for (final file in sourceArchive.files) {

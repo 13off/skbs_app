@@ -96,13 +96,14 @@ class _EmployeeTeamSeedDirectoryScreenState
           final cleanQuery = query.trim().toLowerCase();
           final employees = (snapshot.data ?? const <Employee>[])
               .where((employee) {
-            if (cleanQuery.isEmpty) return true;
-            return <String>[
-              employee.name,
-              employee.positionTitle,
-              employee.objectName,
-            ].join(' ').toLowerCase().contains(cleanQuery);
-          }).toList(growable: false);
+                if (cleanQuery.isEmpty) return true;
+                return <String>[
+                  employee.name,
+                  employee.positionTitle,
+                  employee.objectName,
+                ].join(' ').toLowerCase().contains(cleanQuery);
+              })
+              .toList(growable: false);
 
           return AppPage(
             title: 'Команда',
@@ -135,8 +136,12 @@ class _EmployeeTeamSeedDirectoryScreenState
                       child: PremiumWorkCard(
                         padding: EdgeInsets.zero,
                         child: ListTile(
-                          contentPadding:
-                              const EdgeInsets.fromLTRB(14, 8, 10, 8),
+                          contentPadding: const EdgeInsets.fromLTRB(
+                            14,
+                            8,
+                            10,
+                            8,
+                          ),
                           onTap: () => _open(employee),
                           leading: _InitialsAvatar(
                             name: employee.name,
@@ -209,16 +214,11 @@ class _EmployeeTeamScreenState extends State<EmployeeTeamScreen> {
     await next;
   }
 
-  Future<void> _openMember(
-    EmployeeTeamMember member,
-    String objectName,
-  ) async {
+  Future<void> _openMember(EmployeeTeamMember member, String objectName) async {
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeeTeamMemberScreen(
-          member: member,
-          objectName: objectName,
-        ),
+        builder: (_) =>
+            EmployeeTeamMemberScreen(member: member, objectName: objectName),
       ),
     );
   }
@@ -246,14 +246,16 @@ class _EmployeeTeamScreenState extends State<EmployeeTeamScreen> {
 
           final data = snapshot.data!;
           final cleanQuery = query.trim().toLowerCase();
-          final members = data.members.where((member) {
-            if (cleanQuery.isEmpty) return true;
-            return <String>[
-              member.fullName,
-              member.profession,
-              member.phone,
-            ].join(' ').toLowerCase().contains(cleanQuery);
-          }).toList(growable: false);
+          final members = data.members
+              .where((member) {
+                if (cleanQuery.isEmpty) return true;
+                return <String>[
+                  member.fullName,
+                  member.profession,
+                  member.phone,
+                ].join(' ').toLowerCase().contains(cleanQuery);
+              })
+              .toList(growable: false);
           final objectName = data.currentObject.trim();
           final subtitle = <String>[
             if (widget.seedEmployeeName.trim().isNotEmpty)
@@ -326,9 +328,9 @@ class EmployeeTeamMemberScreen extends StatelessWidget {
     await Clipboard.setData(ClipboardData(text: member.phone));
     if (!context.mounted) return;
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Номер телефона скопирован')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Номер телефона скопирован')));
   }
 
   @override
@@ -344,16 +346,14 @@ class EmployeeTeamMemberScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: _EmployeeAvatar(member: member, size: 92),
-              ),
+              Center(child: _EmployeeAvatar(member: member, size: 92)),
               const SizedBox(height: 16),
               Text(
                 member.fullName,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               if (member.profession.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -361,33 +361,37 @@ class EmployeeTeamMemberScreen extends StatelessWidget {
                   member.profession,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
               const SizedBox(height: 14),
-              Center(child: _VerificationBadge(verified: member.profileVerified)),
+              Center(
+                child: _VerificationBadge(verified: member.profileVerified),
+              ),
               const SizedBox(height: 22),
               Divider(color: scheme.outlineVariant),
               const SizedBox(height: 12),
               Text(
                 'Телефон',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               SelectableText(
                 member.phone.isEmpty ? 'Не указан' : member.phone,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 18),
               OutlinedButton.icon(
-                onPressed: member.phone.isEmpty ? null : () => _copyPhone(context),
+                onPressed: member.phone.isEmpty
+                    ? null
+                    : () => _copyPhone(context),
                 icon: const Icon(Icons.copy_rounded),
                 label: const Text('Скопировать номер'),
               ),
@@ -436,7 +440,10 @@ class _MemberTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
-              _VerificationBadge(verified: member.profileVerified, compact: true),
+              _VerificationBadge(
+                verified: member.profileVerified,
+                compact: true,
+              ),
             ],
           ),
         ),
@@ -503,10 +510,7 @@ class _VerificationBadge extends StatelessWidget {
   final bool verified;
   final bool compact;
 
-  const _VerificationBadge({
-    required this.verified,
-    this.compact = false,
-  });
+  const _VerificationBadge({required this.verified, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -613,19 +617,19 @@ class _EmptyCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 7),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -663,9 +667,9 @@ class _TeamErrorPage extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 18),
             FilledButton.icon(

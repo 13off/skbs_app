@@ -108,7 +108,9 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
           }
           if (snapshot.hasError || snapshot.data == null) {
             return PremiumWorkCard(
-              child: Text('Не удалось загрузить маршрут: ${_error(snapshot.error)}'),
+              child: Text(
+                'Не удалось загрузить маршрут: ${_error(snapshot.error)}',
+              ),
             );
           }
           final data = snapshot.data!;
@@ -117,7 +119,10 @@ class _EmployeeRouteMapScreenState extends State<EmployeeRouteMapScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PremiumWorkCard(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -171,17 +176,20 @@ class _RouteScreenData {
         .where((shift) => shift.status != 'cancelled')
         .toList(growable: false);
     return values..sort(
-        (left, right) => _safeDate(left.startedAt).compareTo(_safeDate(right.startedAt)),
-      );
+      (left, right) =>
+          _safeDate(left.startedAt).compareTo(_safeDate(right.startedAt)),
+    );
   }
 
   Set<String> get shiftIds => shifts.map((shift) => shift.id).toSet();
 
   List<EmployeeLocationPoint> get points {
     final ids = shiftIds;
-    final values = route.points.where((point) {
-      return point.shiftId.isEmpty || ids.contains(point.shiftId);
-    }).toList(growable: false);
+    final values = route.points
+        .where((point) {
+          return point.shiftId.isEmpty || ids.contains(point.shiftId);
+        })
+        .toList(growable: false);
     return values
       ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
   }
@@ -280,15 +288,14 @@ class _RouteSummary extends StatelessWidget {
           ),
           _SummaryRow('Длительность', _duration(totalDuration)),
           _SummaryRow('Рабочих интервалов', '${data.shifts.length}'),
-          if (shortStarts > 0)
-            _SummaryRow('Коротких запусков', '$shortStarts'),
+          if (shortStarts > 0) _SummaryRow('Коротких запусков', '$shortStarts'),
           _SummaryRow('Получено точек', '${data.points.length}'),
           _SummaryRow('Разрывов геолокации', '${data.gaps.length}'),
           _SummaryRow(
             'Источник',
             data.shifts.any(
-              (shift) => shift.trackingMode == 'native_background',
-            )
+                  (shift) => shift.trackingMode == 'native_background',
+                )
                 ? 'Установленное приложение'
                 : 'Открытая браузерная версия',
           ),
@@ -463,7 +470,9 @@ class _RouteMapState extends State<_RouteMap> {
       return const PremiumWorkCard(
         child: SizedBox(
           height: 360,
-          child: Center(child: Text('За выбранную дату координаты не получены.')),
+          child: Center(
+            child: Text('За выбранную дату координаты не получены.'),
+          ),
         ),
       );
     }
@@ -473,11 +482,13 @@ class _RouteMapState extends State<_RouteMap> {
     final primaryPoints = primary == null
         ? validPoints
         : validPoints
-            .where((point) => point.shiftId == primary.id)
-            .toList(growable: false);
-    final startPoint = _sourcePoint(primaryPoints, 'start') ??
+              .where((point) => point.shiftId == primary.id)
+              .toList(growable: false);
+    final startPoint =
+        _sourcePoint(primaryPoints, 'start') ??
         (primaryPoints.isNotEmpty ? primaryPoints.first : validPoints.first);
-    final finishPoint = _sourcePoint(primaryPoints.reversed, 'finish') ??
+    final finishPoint =
+        _sourcePoint(primaryPoints.reversed, 'finish') ??
         (primaryPoints.length > 1 ? primaryPoints.last : null);
     final gapMarkers = <Marker>[];
     for (final gap in widget.data.gaps.take(8)) {
@@ -565,10 +576,8 @@ class _RouteMapState extends State<_RouteMap> {
                           (points) => Polyline(
                             points: points
                                 .map(
-                                  (point) => LatLng(
-                                    point.latitude,
-                                    point.longitude,
-                                  ),
+                                  (point) =>
+                                      LatLng(point.latitude, point.longitude),
                                 )
                                 .toList(growable: false),
                             strokeWidth: 5,
@@ -637,17 +646,19 @@ class _RouteMapState extends State<_RouteMap> {
                 top: 10,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surface
-                        .withValues(alpha: 0.9),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                     child: Text(
                       'Нажмите на маршрут — увидите время',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
@@ -657,10 +668,9 @@ class _RouteMapState extends State<_RouteMap> {
                 bottom: 8,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surface
-                        .withValues(alpha: 0.86),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.86),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Padding(
@@ -714,7 +724,8 @@ class _RouteMapState extends State<_RouteMap> {
     }
     EmployeeTrackingGap? previousGap;
     for (final gap in widget.data.gaps) {
-      if (gap.shiftId != point.shiftId || gap.endedAt.isAfter(point.recordedAt)) {
+      if (gap.shiftId != point.shiftId ||
+          gap.endedAt.isAfter(point.recordedAt)) {
         continue;
       }
       final distance = point.recordedAt.difference(gap.endedAt);
@@ -844,10 +855,11 @@ List<_OutsideEpisode> _outsideEpisodes(_RouteScreenData data) {
   for (final shift in data.shifts) {
     final geofence = data.geofenceForShift(shift.id);
     if (geofence == null) continue;
-    final points = data.points
-        .where((point) => point.shiftId == shift.id)
-        .toList(growable: false)
-      ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
+    final points =
+        data.points
+            .where((point) => point.shiftId == shift.id)
+            .toList(growable: false)
+          ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
     if (points.isEmpty) continue;
 
     EmployeeLocationPoint? outsideStart;
@@ -962,7 +974,8 @@ List<List<EmployeeLocationPoint>> _routeSegments(
             gap.startedAt.isBefore(next.recordedAt) &&
             gap.endedAt.isAfter(previous.recordedAt),
       );
-      final shouldSplit = recordedGap ||
+      final shouldSplit =
+          recordedGap ||
           timeGap >= EmployeeRouteDay.inferredGapThreshold ||
           meters >= 500;
       if (shouldSplit) {
@@ -992,7 +1005,8 @@ EmployeeLocationPoint? _firstPointAfterGap(
   EmployeeTrackingGap gap,
 ) {
   for (final point in points) {
-    if (point.shiftId == gap.shiftId && !point.recordedAt.isBefore(gap.endedAt)) {
+    if (point.shiftId == gap.shiftId &&
+        !point.recordedAt.isBefore(gap.endedAt)) {
       return point;
     }
   }
@@ -1043,10 +1057,10 @@ String _distanceText(double meters) {
 }
 
 String _sourceTitle(String source) => switch (source) {
-      'start' => 'Начало смены',
-      'finish' => 'Завершение смены',
-      _ => 'Маршрутная точка',
-    };
+  'start' => 'Начало смены',
+  'finish' => 'Завершение смены',
+  _ => 'Маршрутная точка',
+};
 
 String _error(Object? value) {
   final text = value?.toString().replaceFirst('Exception: ', '').trim() ?? '';

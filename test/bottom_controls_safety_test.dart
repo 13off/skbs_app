@@ -57,39 +57,42 @@ void main() {
     );
   });
 
-  test('other page-level bottom actions already own a safe layout boundary', () {
-    final archiveV2 = File(
-      'lib/features/archive/presentation/archive_management_screen_v2.dart',
-    ).readAsStringSync();
-    final archiveV3 = File(
-      'lib/features/archive/presentation/archive_management_screen_v3.dart',
-    ).readAsStringSync();
-    final milestones = File(
-      'lib/features/milestones/presentation/milestones_screen.dart',
-    ).readAsStringSync();
-    final persistentShell = File(
-      'lib/features/shell/presentation/persistent_tab_shell.dart',
-    ).readAsStringSync();
+  test(
+    'other page-level bottom actions already own a safe layout boundary',
+    () {
+      final archiveV2 = File(
+        'lib/features/archive/presentation/archive_management_screen_v2.dart',
+      ).readAsStringSync();
+      final archiveV3 = File(
+        'lib/features/archive/presentation/archive_management_screen_v3.dart',
+      ).readAsStringSync();
+      final milestones = File(
+        'lib/features/milestones/presentation/milestones_screen.dart',
+      ).readAsStringSync();
+      final persistentShell = File(
+        'lib/features/shell/presentation/persistent_tab_shell.dart',
+      ).readAsStringSync();
 
-    expect(archiveV2, contains('bottomNavigationBar:'));
-    expect(archiveV2, contains('SafeArea('));
-    expect(archiveV3, contains('bottomNavigationBar:'));
-    expect(archiveV3, contains('SafeArea('));
+      expect(archiveV2, contains('bottomNavigationBar:'));
+      expect(archiveV2, contains('SafeArea('));
+      expect(archiveV3, contains('bottomNavigationBar:'));
+      expect(archiveV3, contains('SafeArea('));
 
-    // The milestones FAB belongs to its own pushed Scaffold, not to the
-    // root tab shell, and its list reserves space for the control.
-    expect(milestones, contains('leading: const BackButton()'));
-    expect(milestones, contains('floatingActionButton:'));
-    expect(milestones, contains('EdgeInsets.fromLTRB(18, 18, 18, 120)'));
+      // The milestones FAB belongs to its own pushed Scaffold, not to the
+      // root tab shell, and its list reserves space for the control.
+      expect(milestones, contains('leading: const BackButton()'));
+      expect(milestones, contains('floatingActionButton:'));
+      expect(milestones, contains('EdgeInsets.fromLTRB(18, 18, 18, 120)'));
 
-    // The root specialist shell now paints its navigation above page content,
-    // so Scaffold cannot create a separate dark strip behind the panel.
-    expect(persistentShell, contains('extendBody: true'));
-    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
-    expect(persistentShell, contains('child: ProfessionalBottomNavigation('));
-    expect(
-      persistentShell,
-      isNot(contains('bottomNavigationBar: ProfessionalBottomNavigation(')),
-    );
-  });
+      // The root specialist shell now paints its navigation above page content,
+      // so Scaffold cannot create a separate dark strip behind the panel.
+      expect(persistentShell, contains('extendBody: true'));
+      expect(persistentShell, contains('backgroundColor: Colors.transparent'));
+      expect(persistentShell, contains('child: ProfessionalBottomNavigation('));
+      expect(
+        persistentShell,
+        isNot(contains('bottomNavigationBar: ProfessionalBottomNavigation(')),
+      );
+    },
+  );
 }

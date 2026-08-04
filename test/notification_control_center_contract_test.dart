@@ -4,6 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
+String notificationControlMigrationPath() {
+  final matches = Directory('supabase/migrations')
+      .listSync()
+      .where(
+        (entry) =>
+            entry is File &&
+            entry.path.endsWith('_notification_control_center.sql'),
+      )
+      .toList();
+  expect(matches, hasLength(1));
+  return matches.single.path;
+}
+
 void expectContains(String path, Iterable<String> values) {
   final text = source(path);
   for (final value in values) {
@@ -42,33 +55,27 @@ void main() {
   test(
     'напоминания по умолчанию выключены и включаются только настройками',
     () {
-      expectContains(
-        'supabase/migrations/20260718150000_notification_control_center.sql',
-        const [
-          'company_reminder_settings',
-          'enabled boolean not null default false',
-          'get_my_notification_control_center',
-          'set_my_notification_control_preferences',
-          'set_company_reminder_settings',
-          'and s.enabled = true',
-          'populate_role_operational_reminders',
-        ],
-      );
+      expectContains(notificationControlMigrationPath(), const [
+        'company_reminder_settings',
+        'enabled boolean not null default false',
+        'get_my_notification_control_center',
+        'set_my_notification_control_preferences',
+        'set_company_reminder_settings',
+        'and s.enabled = true',
+        'populate_role_operational_reminders',
+      ]);
     },
   );
 
   test('колокольчик и push учитывают роли, события и общие выключатели', () {
-    expectContains(
-      'supabase/migrations/20260718150000_notification_control_center.sql',
-      const [
-        'in_app_enabled',
-        'push_enabled',
-        'selected_event_groups',
-        'notification_event_group',
-        'current_admin_notification_in_app_enabled',
-        'current_admin_notification_event_groups',
-      ],
-    );
+    expectContains(notificationControlMigrationPath(), const [
+      'in_app_enabled',
+      'push_enabled',
+      'selected_event_groups',
+      'notification_event_group',
+      'current_admin_notification_in_app_enabled',
+      'current_admin_notification_event_groups',
+    ]);
     expectContains(
       'supabase/migrations/20260718153000_separate_bell_push_roles.sql',
       const [

@@ -87,7 +87,10 @@ class ManagerDailyAiReviewCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _MetricChip(label: 'Выполнено задач', value: '${metrics.tasks.done}'),
+              _MetricChip(
+                label: 'Выполнено задач',
+                value: '${metrics.tasks.done}',
+              ),
               _MetricChip(
                 label: 'Отмечено сотрудников',
                 value: '${metrics.attendance.marked}',
@@ -135,10 +138,14 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
       );
     }
     if (metrics.payments.dayCount > 0) {
-      lines.add('В реестр внесено ${metrics.payments.dayCount} выплат за день.');
+      lines.add(
+        'В реестр внесено ${metrics.payments.dayCount} выплат за день.',
+      );
     }
     if (lines.isEmpty) {
-      lines.add('Завершённые операции за выбранный день пока не зафиксированы.');
+      lines.add(
+        'Завершённые операции за выбранный день пока не зафиксированы.',
+      );
     }
     return lines;
   }
@@ -147,7 +154,9 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     final metrics = center.metrics;
     final lines = <String>[];
     if (metrics.attendance.missing > 0) {
-      lines.add('Нет отметки в табеле у ${metrics.attendance.missing} сотрудников.');
+      lines.add(
+        'Нет отметки в табеле у ${metrics.attendance.missing} сотрудников.',
+      );
     }
     if (metrics.tasks.problem > 0) {
       lines.add('С проблемой отмечено ${metrics.tasks.problem} задач.');
@@ -163,7 +172,9 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     }
     final legalProblems = metrics.legal.overdue + metrics.legal.highRisk;
     if (legalProblems > 0) {
-      lines.add('Юридических просрочек и вопросов высокого риска: $legalProblems.');
+      lines.add(
+        'Юридических просрочек и вопросов высокого риска: $legalProblems.',
+      );
     }
     if (metrics.milestones.overdue > 0) {
       lines.add('По объектам просрочено ${metrics.milestones.overdue} этапов.');
@@ -181,9 +192,9 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
           'операций в реестре: ${payments.monthCount}.',
       payments.dayMissingReceipts > 0
           ? 'За выбранный день проведено ${payments.dayCount} операций, '
-              'без чеков — ${payments.dayMissingReceipts}.'
+                'без чеков — ${payments.dayMissingReceipts}.'
           : 'За выбранный день проведено ${payments.dayCount} операций; '
-              'все имеют подтверждения.',
+                'все имеют подтверждения.',
     ];
   }
 
@@ -191,9 +202,10 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     final details = center.detailItems('missing_attendance');
     if (details.isNotEmpty) {
       return details.take(6).map((item) {
-        final note = <String>[item.subtitle, item.note]
-            .where((value) => value.trim().isNotEmpty)
-            .join(' · ');
+        final note = <String>[
+          item.subtitle,
+          item.note,
+        ].where((value) => value.trim().isNotEmpty).join(' · ');
         return note.isEmpty ? item.title : '${item.title} — $note';
       }).toList();
     }
@@ -222,9 +234,10 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
       );
     }
     for (final item in center.detailItems('legal_attention').take(4)) {
-      final note = <String>[item.subtitle, item.note]
-          .where((value) => value.trim().isNotEmpty)
-          .join(' · ');
+      final note = <String>[
+        item.subtitle,
+        item.note,
+      ].where((value) => value.trim().isNotEmpty).join(' · ');
       lines.add(note.isEmpty ? item.title : '${item.title} — $note');
     }
     if (lines.isEmpty) {
@@ -284,10 +297,7 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
         ),
         OutlinedButton.icon(
           onPressed: () => onOpen(
-            TasksScreen(
-              profile: profile,
-              selectedObjectName: objectName,
-            ),
+            TasksScreen(profile: profile, selectedObjectName: objectName),
           ),
           icon: const Icon(Icons.assignment_outlined),
           label: const Text('Открыть задачи'),

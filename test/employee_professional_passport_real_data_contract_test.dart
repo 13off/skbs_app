@@ -30,8 +30,16 @@ void main() {
     expect(wrapper, isNot(contains('EmployeeProfessionalPassport')));
     expect(wrapper, isNot(contains('EmployeeTeamSeedDirectoryScreen')));
     expect(wrapper, isNot(contains('EmployeeCommunityHubScreen')));
-    expect(teamTab, contains('EmployeeWorkActionRepository.resolveSelection()'));
-    expect(teamTab, contains('EmployeeTeamRepository.fetch(employeeId: selection.employeeId)'));
+    expect(
+      teamTab,
+      contains('EmployeeWorkActionRepository.resolveSelection()'),
+    );
+    expect(
+      teamTab,
+      contains(
+        'EmployeeTeamRepository.fetch(employeeId: selection.employeeId)',
+      ),
+    );
     expect(teamTab, isNot(contains('_resolvePreviewSeed')));
     expect(teamTab, isNot(contains('EmployeeRepository.fetchEmployees')));
 

@@ -16,8 +16,7 @@ class EmployeeMaxLoginScreen extends StatefulWidget {
   const EmployeeMaxLoginScreen({super.key, this.onSignedIn});
 
   @override
-  State<EmployeeMaxLoginScreen> createState() =>
-      _EmployeeMaxLoginScreenState();
+  State<EmployeeMaxLoginScreen> createState() => _EmployeeMaxLoginScreenState();
 }
 
 class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
@@ -181,10 +180,7 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
     final uri = Uri.tryParse(value);
     if (uri == null) return;
     try {
-      final opened = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && mounted) {
         setState(() {
           errorText =
@@ -254,7 +250,8 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
                       const SizedBox(height: 18),
                       Text(
                         'Вход через MAX',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               color: AppAdaptivePalette.textPrimary,
                               fontWeight: FontWeight.w900,
                             ),
@@ -299,7 +296,9 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
                           decoration: BoxDecoration(
                             color: AppAdaptivePalette.accentSoft,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: AppAdaptivePalette.border),
+                            border: Border.all(
+                              color: AppAdaptivePalette.border,
+                            ),
                           ),
                           child: Column(
                             children: [

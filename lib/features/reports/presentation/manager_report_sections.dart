@@ -49,9 +49,9 @@ class ManagerReportSections extends StatelessWidget {
       children: [
         Text(
           'Все отчёты',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         _DispatcherReports(
@@ -85,9 +85,8 @@ class ManagerReportSections extends StatelessWidget {
             ),
           ),
           openLabel: 'Открыть табель',
-          onSecondary: () => onOpen(
-            PeriodTimesheetScreen(selectedObjectName: objectName),
-          ),
+          onSecondary: () =>
+              onOpen(PeriodTimesheetScreen(selectedObjectName: objectName)),
           secondaryLabel: 'Отчёт за период',
         ),
         _ReportSection(
@@ -131,10 +130,7 @@ class ManagerReportSections extends StatelessWidget {
           ],
           details: center.detailItems('pending_tasks'),
           onOpen: () => onOpen(
-            TasksScreen(
-              profile: profile,
-              selectedObjectName: objectName,
-            ),
+            TasksScreen(profile: profile, selectedObjectName: objectName),
           ),
           openLabel: 'Открыть задачи',
         ),
@@ -174,7 +170,8 @@ class ManagerReportSections extends StatelessWidget {
           icon: Icons.person_search_outlined,
           title: 'Подбор и HR',
           subtitle: 'Кандидаты и входящие обращения',
-          meta: '${recruitment.newCount} новых · '
+          meta:
+              '${recruitment.newCount} новых · '
               '${recruitment.incomingMessages} входящих',
           problemCount: 0,
           metrics: [
@@ -191,9 +188,8 @@ class ManagerReportSections extends StatelessWidget {
           onOpen: () => onOpen(
             RecruitmentDashboardScreen(
               profile: profile,
-              onOpenApplications: () => onOpen(
-                RecruitmentApplicationsScreen(profile: profile),
-              ),
+              onOpenApplications: () =>
+                  onOpen(RecruitmentApplicationsScreen(profile: profile)),
             ),
           ),
           openLabel: 'Открыть HR',
@@ -231,10 +227,7 @@ class ManagerReportSections extends StatelessWidget {
           problemCount: milestones.overdue,
           metrics: [
             _ReportMetric(label: 'Открыто', value: '${milestones.open}'),
-            _ReportMetric(
-              label: 'Просрочено',
-              value: '${milestones.overdue}',
-            ),
+            _ReportMetric(label: 'Просрочено', value: '${milestones.overdue}'),
             _ReportMetric(
               label: 'Срок до 7 дней',
               value: '${milestones.upcoming}',
@@ -437,18 +430,18 @@ class _ManagerReportSectionScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Ключевые показатели',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: metrics),
           const SizedBox(height: 18),
           Text(
             'Подробности',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           PremiumWorkCard(
@@ -483,8 +476,9 @@ class _ReportDetailItems extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               child: Text('${index + 1}'),
             ),
             title: Text(
@@ -531,11 +525,12 @@ class _DispatcherReports extends StatelessWidget {
     final runs = center.dispatcherRuns.take(12).toList();
     if (onlyProblems) {
       runs.removeWhere((run) {
-        final critical = int.tryParse(
+        final critical =
+            int.tryParse(
               (run.body.contains('отклонений')
-                      ? RegExp(r'(\d+) отклонений')
-                          .firstMatch(run.body)
-                          ?.group(1)
+                      ? RegExp(
+                          r'(\d+) отклонений',
+                        ).firstMatch(run.body)?.group(1)
                       : null) ??
                   '',
             ) ??
@@ -553,7 +548,7 @@ class _DispatcherReports extends StatelessWidget {
     final meta = latest == null
         ? 'Сводок пока нет'
         : '${runs.length} сводок · '
-            '${latest.summaryDate == null ? 'без даты' : managerReportDateText(latest.summaryDate!)}';
+              '${latest.summaryDate == null ? 'без даты' : managerReportDateText(latest.summaryDate!)}';
 
     return ManagerReportTile(
       icon: Icons.auto_awesome_outlined,
@@ -562,10 +557,8 @@ class _DispatcherReports extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push<void>(
           CupertinoPageRoute<void>(
-            builder: (_) => _DispatcherReportsScreen(
-              runs: runs,
-              onOpen: onOpen,
-            ),
+            builder: (_) =>
+                _DispatcherReportsScreen(runs: runs, onOpen: onOpen),
           ),
         );
       },
@@ -630,8 +623,8 @@ class _DispatcherRunTile extends StatelessWidget {
           child: Text(
             run.body.trim().isEmpty
                 ? run.errorText.trim().isEmpty
-                    ? 'Отчёт ещё не сформирован.'
-                    : run.errorText
+                      ? 'Отчёт ещё не сформирован.'
+                      : run.errorText
                 : run.body,
             style: const TextStyle(height: 1.4, fontWeight: FontWeight.w600),
           ),
@@ -641,9 +634,8 @@ class _DispatcherRunTile extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton.tonalIcon(
-              onPressed: () => onOpen(
-                DispatcherSummaryDetailsScreen(runId: run.id),
-              ),
+              onPressed: () =>
+                  onOpen(DispatcherSummaryDetailsScreen(runId: run.id)),
               icon: const Icon(Icons.analytics_outlined),
               label: const Text('Разобрать по пунктам'),
             ),

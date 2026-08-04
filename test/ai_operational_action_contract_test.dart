@@ -26,7 +26,10 @@ void main() {
     expect(edge, contains('.from("company_memberships")'));
     expect(edge, contains('.eq("company_id", companyId)'));
     expect(edge, contains('isForeman ? assignedObject : requestedObject'));
-    expect(edge, contains('Работа с сотрудниками доступна руководителю или HR'));
+    expect(
+      edge,
+      contains('Работа с сотрудниками доступна руководителю или HR'),
+    );
     expect(edge, contains('Выплаты доступны руководителю или бухгалтеру'));
     expect(
       edge,
@@ -54,7 +57,10 @@ void main() {
       'lib/features/ai/presentation/ai_reminder_draft_screen.dart',
     ).readAsStringSync();
 
-    expect(coordinator, contains('EditEmployeeScreen(employee: proposedEmployee)'));
+    expect(
+      coordinator,
+      contains('EditEmployeeScreen(employee: proposedEmployee)'),
+    );
     expect(coordinator, isNot(contains('EmployeeRepository.updateEmployee(')));
     expect(reminder, contains('DeveloperConstructorRepository.saveReminder('));
     expect(reminder, contains("'Сохранить напоминание'"));

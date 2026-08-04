@@ -87,7 +87,9 @@ extension _HomeObjectActions on _HomeScreenState {
                           children: [
                             Expanded(
                               child: Text(
-                                isEdit ? 'Редактировать объект' : 'Новый объект',
+                                isEdit
+                                    ? 'Редактировать объект'
+                                    : 'Новый объект',
                                 style: TextStyle(
                                   color: _text,
                                   fontSize: 22,
@@ -118,7 +120,8 @@ extension _HomeObjectActions on _HomeScreenState {
                           validator: (value) {
                             final text = value?.trim() ?? '';
                             if (text.isEmpty) return 'Введите название объекта';
-                            if (text.length < 2) return 'Название слишком короткое';
+                            if (text.length < 2)
+                              return 'Название слишком короткое';
                             return null;
                           },
                           onFieldSubmitted: (_) => saveObject(),
@@ -228,9 +231,9 @@ extension _HomeObjectActions on _HomeScreenState {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -242,9 +245,9 @@ extension _HomeObjectActions on _HomeScreenState {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
       return;
     }
 
@@ -355,7 +358,9 @@ extension _HomeObjectActions on _HomeScreenState {
                                     Navigator.pop(sheetContext);
                                     refreshObjectsAndDashboard();
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           'Объект "$objectName" восстановлен',
@@ -364,7 +369,9 @@ extension _HomeObjectActions on _HomeScreenState {
                                     );
                                   } catch (error) {
                                     if (!sheetContext.mounted) return;
-                                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      sheetContext,
+                                    ).showSnackBar(
                                       SnackBar(content: Text(error.toString())),
                                     );
                                   }
@@ -517,9 +524,7 @@ extension _HomeObjectActions on _HomeScreenState {
       return;
     }
     if (pickedValue.startsWith(_editObjectPrefix)) {
-      await handleRenameObject(
-        pickedValue.substring(_editObjectPrefix.length),
-      );
+      await handleRenameObject(pickedValue.substring(_editObjectPrefix.length));
       return;
     }
     if (pickedValue.startsWith(_archiveObjectPrefix)) {

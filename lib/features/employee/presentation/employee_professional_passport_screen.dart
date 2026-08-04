@@ -13,10 +13,7 @@ import '../data/employee_professional_profile_repository.dart';
 class EmployeeProfessionalPassportScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeProfessionalPassportScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeProfessionalPassportScreen({super.key, required this.profile});
 
   @override
   State<EmployeeProfessionalPassportScreen> createState() =>
@@ -58,13 +55,13 @@ class _EmployeeProfessionalPassportScreenState
       );
       return;
     }
-    final result = await Navigator.of(context).push<EmployeeProfessionalProfile>(
-      MaterialPageRoute<EmployeeProfessionalProfile>(
-        builder: (_) => _ProfessionalPassportEditPage(
-          initial: data.professional,
-        ),
-      ),
-    );
+    final result = await Navigator.of(context)
+        .push<EmployeeProfessionalProfile>(
+          MaterialPageRoute<EmployeeProfessionalProfile>(
+            builder: (_) =>
+                _ProfessionalPassportEditPage(initial: data.professional),
+          ),
+        );
     if (result == null || !mounted) return;
 
     setState(() => saving = true);
@@ -80,9 +77,7 @@ class _EmployeeProfessionalPassportScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
         ),
       );
     } finally {
@@ -95,9 +90,7 @@ class _EmployeeProfessionalPassportScreenState
     if (!mounted) return;
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Профессиональное резюме скопировано'),
-      ),
+      const SnackBar(content: Text('Профессиональное резюме скопировано')),
     );
   }
 
@@ -125,9 +118,8 @@ class _EmployeeProfessionalPassportScreenState
           }
           if (snapshot.hasError || snapshot.data == null) {
             return _PassportLoadError(
-              message: snapshot.error
-                      ?.toString()
-                      .replaceFirst('Exception: ', '') ??
+              message:
+                  snapshot.error?.toString().replaceFirst('Exception: ', '') ??
                   'Не удалось загрузить паспорт специалиста',
               onRetry: refresh,
             );
@@ -213,18 +205,18 @@ class _PassportBody extends StatelessWidget {
                 verified.fullName.isEmpty ? 'Сотрудник' : verified.fullName,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 professionLine.isEmpty ? 'Специалист AppСтрой' : professionLine,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 14),
               const _VerifiedBadge(),
@@ -237,10 +229,7 @@ class _PassportBody extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  TextButton(
-                    onPressed: onEdit,
-                    child: const Text('Дополнить'),
-                  ),
+                  TextButton(onPressed: onEdit, child: const Text('Дополнить')),
                 ],
               ),
               ClipRRect(
@@ -263,7 +252,8 @@ class _PassportBody extends StatelessWidget {
               const _SectionTitle(
                 icon: Icons.workspace_premium_rounded,
                 title: 'Подтверждено работой',
-                subtitle: 'Эти показатели берутся из AppСтрой и не редактируются вручную',
+                subtitle:
+                    'Эти показатели берутся из AppСтрой и не редактируются вручную',
               ),
               const SizedBox(height: 18),
               _VerifiedLine(
@@ -278,8 +268,10 @@ class _PassportBody extends StatelessWidget {
                 label: 'Первая подтверждённая смена',
                 value: verified.firstWorkDate == null
                     ? 'Пока нет данных'
-                    : DateFormat('d MMMM y', 'ru_RU')
-                        .format(verified.firstWorkDate!),
+                    : DateFormat(
+                        'd MMMM y',
+                        'ru_RU',
+                      ).format(verified.firstWorkDate!),
               ),
               _VerifiedLine(
                 icon: Icons.description_rounded,
@@ -313,9 +305,9 @@ class _PassportBody extends StatelessWidget {
                   Text(
                     professional.about,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.5,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      height: 1.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 if (professional.about.isNotEmpty) const SizedBox(height: 16),
                 Wrap(
@@ -352,7 +344,8 @@ class _PassportBody extends StatelessWidget {
               const SizedBox(height: 16),
               if (professional.skills.isEmpty)
                 _EmptyPassportSection(
-                  text: 'Укажите основные работы и технологии, которыми владеете.',
+                  text:
+                      'Укажите основные работы и технологии, которыми владеете.',
                   onPressed: onEdit,
                 )
               else
@@ -451,10 +444,10 @@ class _PassportBody extends StatelessWidget {
               Text(
                 'В копию попадут профессия, навыки, опыт и подтверждённые результаты. Телефон, выплаты и внутренние комментарии не включаются.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.45,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 16),
               PremiumActionButton(
@@ -526,8 +519,7 @@ class _PassportStats extends StatelessWidget {
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 650 ? 4 : 2;
         const gap = 10.0;
-        final width =
-            (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         final items = <Widget>[
           _PassportStat(
             icon: Icons.calendar_month_rounded,
@@ -583,17 +575,17 @@ class _PassportStat extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -664,18 +656,18 @@ class _SectionTitle extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -716,12 +708,15 @@ class _VerifiedLine extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 3),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  value,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
               ],
             ),
           ),
@@ -831,10 +826,7 @@ class _EmptyPassportSection extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
 
-  const _EmptyPassportSection({
-    required this.text,
-    required this.onPressed,
-  });
+  const _EmptyPassportSection({required this.text, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -842,10 +834,9 @@ class _EmptyPassportSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.55),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -894,9 +885,9 @@ class _AchievementCard extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 150, maxWidth: 250),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withValues(
-              alpha: 0.55,
-            ),
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
@@ -911,14 +902,17 @@ class _AchievementCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  data.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   data.text,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -1037,7 +1031,8 @@ class _ProfessionalPassportEditPageState
   }
 
   void save() {
-    final experience = double.tryParse(
+    final experience =
+        double.tryParse(
           experienceController.text.trim().replaceAll(',', '.'),
         ) ??
         0;
@@ -1253,7 +1248,8 @@ double _completion(EmployeeProfessionalProfile profile) {
   if (profile.experienceYears > 0) completed++;
   if (profile.about.isNotEmpty) completed++;
   if (profile.skills.isNotEmpty) completed++;
-  if (profile.preferredCities.isNotEmpty || profile.readyForRotation) completed++;
+  if (profile.preferredCities.isNotEmpty || profile.readyForRotation)
+    completed++;
   if (profile.desiredDailyRate != null || profile.openToOffers) completed++;
   return completed / total * 100;
 }

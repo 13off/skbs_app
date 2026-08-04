@@ -75,7 +75,10 @@ void main() {
     expect(repository, contains("'employee-professional-profile'"));
     expect(repository, contains("'action': 'fetch'"));
     expect(repository, contains("'action': 'update'"));
-    expect(repository, isNot(contains(".from('employee_professional_profiles')")));
+    expect(
+      repository,
+      isNot(contains(".from('employee_professional_profiles')")),
+    );
   });
 
   test('паспорт сохранён в системе, но убран из рабочего кабинета', () {
@@ -114,13 +117,18 @@ void main() {
 
   test('русская дата паспорта инициализируется до runApp', () {
     final appMain = File(appMainPath).readAsStringSync();
-    final bindingIndex =
-        appMain.indexOf('WidgetsFlutterBinding.ensureInitialized()');
-    final localeIndex =
-        appMain.indexOf("await initializeDateFormatting('ru_RU')");
+    final bindingIndex = appMain.indexOf(
+      'WidgetsFlutterBinding.ensureInitialized()',
+    );
+    final localeIndex = appMain.indexOf(
+      "await initializeDateFormatting('ru_RU')",
+    );
     final runAppIndex = appMain.indexOf('runApp(');
 
-    expect(appMain, contains("import 'package:intl/date_symbol_data_local.dart';"));
+    expect(
+      appMain,
+      contains("import 'package:intl/date_symbol_data_local.dart';"),
+    );
     expect(bindingIndex, greaterThanOrEqualTo(0));
     expect(localeIndex, greaterThan(bindingIndex));
     expect(runAppIndex, greaterThan(localeIndex));

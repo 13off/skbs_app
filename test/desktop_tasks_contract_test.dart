@@ -26,10 +26,7 @@ void main() {
   test('desktop tasks provide date controls, filters and clickable rows', () {
     final desktop = source('lib/screens/desktop_tasks_screen.dart');
 
-    expect(
-      desktop,
-      contains('BoxConstraints(maxWidth: double.infinity)'),
-    );
+    expect(desktop, contains('BoxConstraints(maxWidth: double.infinity)'));
     expect(desktop, contains("label: 'Объект'"));
     expect(desktop, contains("label: 'Статус'"));
     expect(desktop, contains("hintText: 'Поиск по работе"));

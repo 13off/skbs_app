@@ -19,7 +19,10 @@ void main() {
       'supabase/migrations/20260717110000_add_task_progress_percent.sql',
     );
 
-    expect(repository, contains(".select('task_id, progress_percent, tasks(status)')"));
+    expect(
+      repository,
+      contains(".select('task_id, progress_percent, tasks(status)')"),
+    );
     expect(repository, contains("'progress_percent': progressPercent"));
     expect(repository, contains("? 'done'"));
     expect(repository, contains("? 'in_progress'"));
@@ -31,19 +34,22 @@ void main() {
     expect(migration, contains('progress_percent between 0 and 100'));
   });
 
-  test('task completion asks for todays contribution and protects remainder', () {
-    final details = source('lib/screens/task_details_screen.dart');
-    final editor = taskDetailsEditorSource();
+  test(
+    'task completion asks for todays contribution and protects remainder',
+    () {
+      final details = source('lib/screens/task_details_screen.dart');
+      final editor = taskDetailsEditorSource();
 
-    expect(details, contains('Что выполнили сегодня?'));
-    expect(details, contains('Максимум для этой задачи'));
-    expect(details, contains('ownProgressIsCounted'));
-    expect(details, contains('Сохранить выполнение'));
-    expect(details, contains('editor.TaskDetailsScreen'));
-    expect(editor, contains('Фото'));
-    expect(editor, contains('Исполнители'));
-    expect(editor, contains('TaskMilestonePicker'));
-  });
+      expect(details, contains('Что выполнили сегодня?'));
+      expect(details, contains('Максимум для этой задачи'));
+      expect(details, contains('ownProgressIsCounted'));
+      expect(details, contains('Сохранить выполнение'));
+      expect(details, contains('editor.TaskDetailsScreen'));
+      expect(editor, contains('Фото'));
+      expect(editor, contains('Исполнители'));
+      expect(editor, contains('TaskMilestonePicker'));
+    },
+  );
 
   test('act contains daily, checklist and goal percentages', () {
     final context = source('lib/models/task_act_context.dart');

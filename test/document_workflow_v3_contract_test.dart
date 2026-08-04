@@ -35,14 +35,8 @@ void main() {
       foundation,
       contains('references public.document_template_versions'),
     );
-    expect(
-      foundation,
-      contains('references public.recruitment_applications'),
-    );
-    expect(
-      foundation,
-      contains('references public.recruitment_documents'),
-    );
+    expect(foundation, contains('references public.recruitment_applications'));
+    expect(foundation, contains('references public.recruitment_documents'));
     expect(
       foundation,
       isNot(contains('create table if not exists public.document_template ')),
@@ -59,14 +53,17 @@ void main() {
     expect(foundation.toLowerCase(), isNot(contains('truncate table')));
   });
 
-  test('runtime uses atomic server transitions instead of client-only checks', () {
-    expect(runtime, contains('create_document_onboarding'));
-    expect(runtime, contains('advance_document_onboarding'));
-    expect(runtime, contains('complete_document_onboarding'));
-    expect(runtime, contains('verify_employee_document_file'));
-    expect(runtime, contains('document_onboarding_blockers'));
-    expect(runtime, contains('security definer'));
-  });
+  test(
+    'runtime uses atomic server transitions instead of client-only checks',
+    () {
+      expect(runtime, contains('create_document_onboarding'));
+      expect(runtime, contains('advance_document_onboarding'));
+      expect(runtime, contains('complete_document_onboarding'));
+      expect(runtime, contains('verify_employee_document_file'));
+      expect(runtime, contains('document_onboarding_blockers'));
+      expect(runtime, contains('security definer'));
+    },
+  );
 
   test('completion requires accepted signed documents and final scans', () {
     expect(runtime, contains("file_kind = 'signed'"));

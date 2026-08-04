@@ -6,30 +6,39 @@ import 'package:skbs_app/features/recruitment/models/recruitment_models.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('HR can configure kanban columns without creating another candidate base', () {
-    final migration = source(
-      'supabase/migrations/20260723270000_configurable_recruitment_crm.sql',
-    );
-    final settings = source(
-      'lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart',
-    );
-    final repository = source(
-      'lib/features/recruitment/data/recruitment_repository.dart',
-    );
+  test(
+    'HR can configure kanban columns without creating another candidate base',
+    () {
+      final migration = source(
+        'supabase/migrations/20260723270000_configurable_recruitment_crm.sql',
+      );
+      final settings = source(
+        'lib/features/recruitment/presentation/recruitment_crm_settings_screen.dart',
+      );
+      final repository = source(
+        'lib/features/recruitment/data/recruitment_repository.dart',
+      );
 
-    expect(migration, contains('recruitment_pipeline_stages'));
-    expect(migration, contains("'recruitment.crm.configure'"));
-    expect(migration, contains("('owner'), ('admin'), ('developer'), ('hr')"));
-    expect(migration, contains('sync_recruitment_pipeline_stage'));
-    expect(migration, contains('move_recruitment_application_stage'));
-    expect(migration, contains('Сначала переместите кандидатов из этой колонки'));
-    expect(settings, contains("title: 'Настройка CRM'"));
-    expect(settings, contains("Text('Добавить колонку')"));
-    expect(settings, contains('reorderPipelineStages'));
-    expect(settings, contains('setPipelineStageActive'));
-    expect(repository, contains(".from('recruitment_applications')"));
-    expect(repository, isNot(contains(".from('crm_candidates')")));
-  });
+      expect(migration, contains('recruitment_pipeline_stages'));
+      expect(migration, contains("'recruitment.crm.configure'"));
+      expect(
+        migration,
+        contains("('owner'), ('admin'), ('developer'), ('hr')"),
+      );
+      expect(migration, contains('sync_recruitment_pipeline_stage'));
+      expect(migration, contains('move_recruitment_application_stage'));
+      expect(
+        migration,
+        contains('Сначала переместите кандидатов из этой колонки'),
+      );
+      expect(settings, contains("title: 'Настройка CRM'"));
+      expect(settings, contains("Text('Добавить колонку')"));
+      expect(settings, contains('reorderPipelineStages'));
+      expect(settings, contains('setPipelineStageActive'));
+      expect(repository, contains(".from('recruitment_applications')"));
+      expect(repository, isNot(contains(".from('crm_candidates')")));
+    },
+  );
 
   test('custom candidate fields support Bitrix-like data types', () {
     final settings = source(
@@ -64,7 +73,10 @@ void main() {
     expect(applications, contains('customFieldWidget'));
     expect(applications, contains('validateCustomValues'));
     expect(applications, contains('configuration.customSearchText'));
-    expect(migration, contains("custom_values jsonb not null default '{}'::jsonb"));
+    expect(
+      migration,
+      contains("custom_values jsonb not null default '{}'::jsonb"),
+    );
   });
 
   test('dynamic CRM remains synchronized through realtime and history', () {

@@ -45,7 +45,9 @@ class _ProcurementRequestEditorScreenState
     super.initState();
     final request = widget.request;
     titleController = TextEditingController(text: request?.title ?? '');
-    invoiceController = TextEditingController(text: request?.invoiceNumber ?? '');
+    invoiceController = TextEditingController(
+      text: request?.invoiceNumber ?? '',
+    );
     commentController = TextEditingController(text: request?.comment ?? '');
     objectId = request?.objectId ?? '';
     supplierId = request?.supplierId ?? '';
@@ -184,7 +186,10 @@ class _ProcurementRequestEditorScreenState
             Row(
               children: [
                 Expanded(
-                  child: Text('Позиция ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                  child: Text(
+                    'Позиция ${index + 1}',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
                 ),
                 if (items.length > 1)
                   IconButton(
@@ -197,7 +202,9 @@ class _ProcurementRequestEditorScreenState
             TextField(
               controller: item.name,
               enabled: !saving,
-              decoration: const InputDecoration(labelText: 'Материал / оборудование'),
+              decoration: const InputDecoration(
+                labelText: 'Материал / оборудование',
+              ),
             ),
             const SizedBox(height: 10),
             Row(
@@ -206,7 +213,9 @@ class _ProcurementRequestEditorScreenState
                   child: TextField(
                     controller: item.quantity,
                     enabled: !saving,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Количество'),
                   ),
                 ),
@@ -224,8 +233,12 @@ class _ProcurementRequestEditorScreenState
             TextField(
               controller: item.price,
               enabled: !saving,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Цена за единицу, ₽'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Цена за единицу, ₽',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -260,7 +273,11 @@ class _ProcurementRequestEditorScreenState
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Не удалось загрузить справочники: ${snapshot.error}'));
+              return Center(
+                child: Text(
+                  'Не удалось загрузить справочники: ${snapshot.error}',
+                ),
+              );
             }
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 36),
@@ -275,28 +292,49 @@ class _ProcurementRequestEditorScreenState
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: objects.any((item) => item.id == objectId) ? objectId : null,
+                  initialValue: objects.any((item) => item.id == objectId)
+                      ? objectId
+                      : null,
                   decoration: const InputDecoration(
                     labelText: 'Объект',
                     prefixIcon: Icon(Icons.apartment_rounded),
                   ),
                   items: objects
-                      .map((object) => DropdownMenuItem(value: object.id, child: Text(object.name)))
+                      .map(
+                        (object) => DropdownMenuItem(
+                          value: object.id,
+                          child: Text(object.name),
+                        ),
+                      )
                       .toList(),
-                  onChanged: saving ? null : (value) => setState(() => objectId = value ?? ''),
+                  onChanged: saving
+                      ? null
+                      : (value) => setState(() => objectId = value ?? ''),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  initialValue: suppliers.any((item) => item.id == supplierId) ? supplierId : '',
+                  initialValue: suppliers.any((item) => item.id == supplierId)
+                      ? supplierId
+                      : '',
                   decoration: const InputDecoration(
                     labelText: 'Поставщик',
                     prefixIcon: Icon(Icons.storefront_outlined),
                   ),
                   items: <DropdownMenuItem<String>>[
-                    const DropdownMenuItem(value: '', child: Text('Пока не выбран')),
-                    ...suppliers.map((supplier) => DropdownMenuItem(value: supplier.id, child: Text(supplier.name))),
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('Пока не выбран'),
+                    ),
+                    ...suppliers.map(
+                      (supplier) => DropdownMenuItem(
+                        value: supplier.id,
+                        child: Text(supplier.name),
+                      ),
+                    ),
                   ],
-                  onChanged: saving ? null : (value) => setState(() => supplierId = value ?? ''),
+                  onChanged: saving
+                      ? null
+                      : (value) => setState(() => supplierId = value ?? ''),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -311,18 +349,26 @@ class _ProcurementRequestEditorScreenState
                     DropdownMenuItem(value: 'high', child: Text('Высокий')),
                     DropdownMenuItem(value: 'urgent', child: Text('Срочно')),
                   ],
-                  onChanged: saving ? null : (value) => setState(() => priority = value ?? 'normal'),
+                  onChanged: saving
+                      ? null
+                      : (value) => setState(() => priority = value ?? 'normal'),
                 ),
                 const SizedBox(height: 12),
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(color: AppAdaptivePalette.border),
                   ),
                   leading: const Icon(Icons.event_outlined),
                   title: const Text('Нужно к дате'),
-                  trailing: Text(dateText(neededBy), style: const TextStyle(fontWeight: FontWeight.w800)),
+                  trailing: Text(
+                    dateText(neededBy),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   onTap: saving ? null : pickNeededBy,
                 ),
                 const SizedBox(height: 12),
@@ -347,15 +393,35 @@ class _ProcurementRequestEditorScreenState
                 const SizedBox(height: 22),
                 Row(
                   children: [
-                    Expanded(child: Text('Состав заявки', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-                    TextButton.icon(onPressed: saving ? null : addItem, icon: const Icon(Icons.add_rounded), label: const Text('Добавить')),
+                    Expanded(
+                      child: Text(
+                        'Состав заявки',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: saving ? null : addItem,
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Добавить'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                ...List<Widget>.generate(items.length, (index) => itemCard(index, items[index])),
+                ...List<Widget>.generate(
+                  items.length,
+                  (index) => itemCard(index, items[index]),
+                ),
                 if (errorText != null) ...[
                   const SizedBox(height: 4),
-                  Text(errorText!, textAlign: TextAlign.center, style: TextStyle(color: AppAdaptivePalette.danger, fontWeight: FontWeight.w800)),
+                  Text(
+                    errorText!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.danger,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 16),
                 PremiumActionButton(
@@ -392,26 +458,31 @@ class _ItemDraft {
     this.actualUnitPrice = 0,
     this.orderedQuantity = 0,
     this.deliveredQuantity = 0,
-  })  : name = TextEditingController(text: nameValue),
-        quantity = TextEditingController(text: quantityValue),
-        unit = TextEditingController(text: unitValue),
-        price = TextEditingController(text: priceValue),
-        note = TextEditingController(text: noteValue);
+  }) : name = TextEditingController(text: nameValue),
+       quantity = TextEditingController(text: quantityValue),
+       unit = TextEditingController(text: unitValue),
+       price = TextEditingController(text: priceValue),
+       note = TextEditingController(text: noteValue);
 
   factory _ItemDraft.fromItem(ProcurementRequestItem item) => _ItemDraft(
-        nameValue: item.name,
-        quantityValue: _format(item.quantity),
-        unitValue: item.unit,
-        priceValue: item.estimatedUnitPrice == 0 ? '' : _format(item.estimatedUnitPrice),
-        noteValue: item.note,
-        actualUnitPrice: item.actualUnitPrice,
-        orderedQuantity: item.orderedQuantity,
-        deliveredQuantity: item.deliveredQuantity,
-      );
+    nameValue: item.name,
+    quantityValue: _format(item.quantity),
+    unitValue: item.unit,
+    priceValue: item.estimatedUnitPrice == 0
+        ? ''
+        : _format(item.estimatedUnitPrice),
+    noteValue: item.note,
+    actualUnitPrice: item.actualUnitPrice,
+    orderedQuantity: item.orderedQuantity,
+    deliveredQuantity: item.deliveredQuantity,
+  );
 
   static String _format(double value) => value == value.roundToDouble()
       ? value.round().toString()
-      : value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+      : value
+            .toStringAsFixed(2)
+            .replaceFirst(RegExp(r'0+$'), '')
+            .replaceFirst(RegExp(r'\.$'), '');
 
   void dispose() {
     name.dispose();

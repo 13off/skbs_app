@@ -225,7 +225,8 @@ class _ProcurementDashboardScreenState
           }
           if (snapshot.hasError) return loadError(snapshot.error);
 
-          final data = snapshot.data ??
+          final data =
+              snapshot.data ??
               const ProcurementDashboardData(
                 requests: <ProcurementRequest>[],
                 suppliers: <ProcurementSupplier>[],
@@ -291,10 +292,9 @@ class _ProcurementDashboardScreenState
               const SizedBox(height: 24),
               Text(
                 'В работе',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               if (latest.isEmpty)

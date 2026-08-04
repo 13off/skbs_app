@@ -34,10 +34,11 @@ void main() {
     // Проверяем весь рабочий интерфейс, а не только экраны из присланных снимков.
     // Декоративные тени, фотооверлеи и белые иконки на цветных кнопках не запрещаем.
     for (final root in roots) {
-      for (final file in root
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((file) => file.path.endsWith('.dart'))) {
+      for (final file
+          in root
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((file) => file.path.endsWith('.dart'))) {
         final source = file.readAsStringSync();
         for (final token in forbidden) {
           if (source.contains(token)) {

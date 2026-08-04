@@ -19,8 +19,7 @@ class ForemanAttendanceControl extends StatelessWidget {
     final absent = data.employees.where((employee) {
       final id = employee.id;
       return id == null || (data.shifts[id] ?? 0) <= 0;
-    }).toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    }).toList()..sort((a, b) => a.name.compareTo(b.name));
 
     return PremiumWorkCard(
       radius: 26,
@@ -36,7 +35,10 @@ class ForemanAttendanceControl extends StatelessWidget {
                   children: [
                     Text(
                       'Контроль явки',
-                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       'Сотрудники без отмеченной смены',
@@ -49,7 +51,9 @@ class ForemanAttendanceControl extends StatelessWidget {
                 ),
               ),
               SpecialistStatusPill(
-                label: absent.isEmpty ? 'Все отмечены' : 'Не отмечены: ${absent.length}',
+                label: absent.isEmpty
+                    ? 'Все отмечены'
+                    : 'Не отмечены: ${absent.length}',
                 color: absent.isEmpty ? specialistSuccess : specialistWarning,
               ),
             ],
@@ -81,31 +85,33 @@ class ForemanAttendanceControl extends StatelessWidget {
               ),
             )
           else
-            ...absent.take(8).map(
-              (employee) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: specialistSoft,
-                  child: Icon(Icons.person_outline, color: specialistText),
+            ...absent
+                .take(8)
+                .map(
+                  (employee) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: specialistSoft,
+                      child: Icon(Icons.person_outline, color: specialistText),
+                    ),
+                    title: Text(
+                      employee.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text(
+                      employee.position.trim().isEmpty
+                          ? 'Должность не указана'
+                          : employee.position,
+                    ),
+                    trailing: SpecialistStatusPill(
+                      label: '0 смен',
+                      color: specialistWarning,
+                    ),
+                    onTap: onOpenTimesheet,
+                  ),
                 ),
-                title: Text(
-                  employee.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(
-                  employee.position.trim().isEmpty
-                      ? 'Должность не указана'
-                      : employee.position,
-                ),
-                trailing: SpecialistStatusPill(
-                  label: '0 смен',
-                  color: specialistWarning,
-                ),
-                onTap: onOpenTimesheet,
-              ),
-            ),
           const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: onOpenTimesheet,

@@ -405,10 +405,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
           onChanged: onChanged,
           title: Text(
             title,
-            style: TextStyle(
-              color: _archiveText,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: _archiveText, fontWeight: FontWeight.w900),
           ),
           subtitle: Text(
             subtitle,

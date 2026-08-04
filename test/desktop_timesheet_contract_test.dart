@@ -27,7 +27,9 @@ void main() {
     expect(desktop, contains('class DesktopTimesheetScreen'));
     expect(
       desktop,
-      contains('BoxConstraints(maxWidth: double.infinity)'),
+      matches(
+        RegExp(r'BoxConstraints\(\s*maxWidth:\s*double\.infinity\s*,?\s*\)'),
+      ),
     );
     expect(desktop, contains('class _TableHeader'));
     expect(desktop, contains('class _TimesheetRow'));
@@ -47,38 +49,38 @@ void main() {
     );
   });
 
-  test('desktop timesheet preserves input save realtime and direct download', () {
-    final desktop = source('lib/screens/desktop_timesheet_screen.dart');
-    final adaptive = source('lib/screens/adaptive_timesheet_screen.dart');
-    final download = source('lib/screens/timesheet_download_sheet.dart');
+  test(
+    'desktop timesheet preserves input save realtime and direct download',
+    () {
+      final desktop = source('lib/screens/desktop_timesheet_screen.dart');
+      final adaptive = source('lib/screens/adaptive_timesheet_screen.dart');
+      final download = source('lib/screens/timesheet_download_sheet.dart');
 
-    expect(desktop, contains('AppDataSync.changes.listen'));
-    expect(desktop, contains('AttendanceRepository.fetchShiftValuesForDate'));
-    expect(desktop, contains('AttendanceRepository.saveTimesheet'));
-    expect(desktop, contains('originalShiftValuesByEmployeeId'));
-    expect(desktop, contains('hasPendingRemoteAttendance'));
-    expect(desktop, contains('hasUnsavedChanges'));
-    expect(desktop, contains("'Всем 1'"));
-    expect(desktop, contains("'Всем 0'"));
-    expect(desktop, contains("'Все сотрудники'"));
-    expect(desktop, contains("'Только вышедшие'"));
-    expect(desktop, contains("'Не вышли'"));
-    expect(desktop, contains('showShiftPicker(employee)'));
-    expect(desktop, contains('setVisibleShifts(visible, 1)'));
-    expect(desktop, contains('setVisibleShifts(visible, 0)'));
-    expect(desktop, contains("'Сохранить изменения'"));
-    expect(desktop, contains("'Сохранить табель'"));
+      expect(desktop, contains('AppDataSync.changes.listen'));
+      expect(desktop, contains('AttendanceRepository.fetchShiftValuesForDate'));
+      expect(desktop, contains('AttendanceRepository.saveTimesheet'));
+      expect(desktop, contains('originalShiftValuesByEmployeeId'));
+      expect(desktop, contains('hasPendingRemoteAttendance'));
+      expect(desktop, contains('hasUnsavedChanges'));
+      expect(desktop, contains("'Всем 1'"));
+      expect(desktop, contains("'Всем 0'"));
+      expect(desktop, contains("'Все сотрудники'"));
+      expect(desktop, contains("'Только вышедшие'"));
+      expect(desktop, contains("'Не вышли'"));
+      expect(desktop, contains('showShiftPicker(employee)'));
+      expect(desktop, contains('setVisibleShifts(visible, 1)'));
+      expect(desktop, contains('setVisibleShifts(visible, 0)'));
+      expect(desktop, contains("'Сохранить изменения'"));
+      expect(desktop, contains("'Сохранить табель'"));
 
-    // The desktop save card sits directly above the shared bottom navigation.
-    expect(
-      desktop,
-      contains('bottom: AppUi.navigationTotalHeight(context)'),
-    );
-    expect(desktop, isNot(contains('bottom: 112')));
+      // The desktop save card sits directly above the shared bottom navigation.
+      expect(desktop, contains('bottom: AppUi.navigationTotalHeight(context)'));
+      expect(desktop, isNot(contains('bottom: 112')));
 
-    expect(adaptive, contains("label: const Text('Скачать табель')"));
-    expect(download, contains("label: Text('Месяцы')"));
-    expect(download, contains("label: Text('Даты')"));
-    expect(download, contains('downloadMonthlyTimesheets'));
-  });
+      expect(adaptive, contains("label: const Text('Скачать табель')"));
+      expect(download, contains("label: Text('Месяцы')"));
+      expect(download, contains("label: Text('Даты')"));
+      expect(download, contains('downloadMonthlyTimesheets'));
+    },
+  );
 }

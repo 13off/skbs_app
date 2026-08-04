@@ -72,23 +72,14 @@ class TaskPolicy {
       ),
       minAfterPhotos: integer('min_after_photos', 1).clamp(0, 20).toInt(),
       requireNotDoneComment: boolean('require_not_done_comment', true),
-      foremanCanCreateAnyDate: boolean(
-        'foreman_can_create_any_date',
-        false,
-      ),
-      foremanCanEditPastTasks: boolean(
-        'foreman_can_edit_past_tasks',
-        false,
-      ),
+      foremanCanCreateAnyDate: boolean('foreman_can_create_any_date', false),
+      foremanCanEditPastTasks: boolean('foreman_can_edit_past_tasks', false),
       editWindowDays: windowValue == null
           ? null
           : int.tryParse(windowValue.toString())?.clamp(0, 3650).toInt(),
       foremanCanEditDate: boolean('foreman_can_edit_date', true),
       foremanCanEditAxesWork: boolean('foreman_can_edit_axes_work', true),
-      foremanCanEditAssignees: boolean(
-        'foreman_can_edit_assignees',
-        true,
-      ),
+      foremanCanEditAssignees: boolean('foreman_can_edit_assignees', true),
       foremanCanEditStatus: boolean('foreman_can_edit_status', true),
       foremanCanDeleteBeforePhotos: boolean(
         'foreman_can_delete_before_photos',
@@ -99,8 +90,9 @@ class TaskPolicy {
         true,
       ),
       foremanCanDeleteTask: boolean('foreman_can_delete_task', false),
-      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '')
-          ?.toLocal(),
+      updatedAt: DateTime.tryParse(
+        json['updated_at']?.toString() ?? '',
+      )?.toLocal(),
       updatedBy: json['updated_by']?.toString() ?? '',
     );
   }
@@ -170,14 +162,12 @@ class TaskPolicy {
           foremanCanEditAxesWork ?? this.foremanCanEditAxesWork,
       foremanCanEditAssignees:
           foremanCanEditAssignees ?? this.foremanCanEditAssignees,
-      foremanCanEditStatus:
-          foremanCanEditStatus ?? this.foremanCanEditStatus,
+      foremanCanEditStatus: foremanCanEditStatus ?? this.foremanCanEditStatus,
       foremanCanDeleteBeforePhotos:
           foremanCanDeleteBeforePhotos ?? this.foremanCanDeleteBeforePhotos,
       foremanCanDeleteAfterPhotos:
           foremanCanDeleteAfterPhotos ?? this.foremanCanDeleteAfterPhotos,
-      foremanCanDeleteTask:
-          foremanCanDeleteTask ?? this.foremanCanDeleteTask,
+      foremanCanDeleteTask: foremanCanDeleteTask ?? this.foremanCanDeleteTask,
       updatedAt: updatedAt ?? this.updatedAt,
       updatedBy: updatedBy ?? this.updatedBy,
     );
@@ -232,8 +222,9 @@ class DeveloperAuditEntry {
       objectId: json['object_id']?.toString() ?? '',
       objectName: json['object_name']?.toString() ?? '',
       action: json['action']?.toString() ?? 'update',
-      changedAt: DateTime.tryParse(json['changed_at']?.toString() ?? '')
-          ?.toLocal(),
+      changedAt: DateTime.tryParse(
+        json['changed_at']?.toString() ?? '',
+      )?.toLocal(),
       changedByName: json['changed_by_name']?.toString() ?? '',
     );
   }

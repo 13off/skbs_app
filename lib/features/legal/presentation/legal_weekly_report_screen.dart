@@ -10,7 +10,8 @@ class LegalWeeklyReportScreen extends StatefulWidget {
   const LegalWeeklyReportScreen({super.key});
 
   @override
-  State<LegalWeeklyReportScreen> createState() => _LegalWeeklyReportScreenState();
+  State<LegalWeeklyReportScreen> createState() =>
+      _LegalWeeklyReportScreenState();
 }
 
 class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
@@ -69,7 +70,9 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(submit ? 'Отчёт отправлен руководителю' : 'Черновик сохранён'),
+          content: Text(
+            submit ? 'Отчёт отправлен руководителю' : 'Черновик сохранён',
+          ),
         ),
       );
       setState(() => future = load());
@@ -93,8 +96,16 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700))),
-          Text('${value ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(
+            '${value ?? 0}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
@@ -104,10 +115,13 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Недельный отчёт')),
+        leading: const BackButton(),
+        title: const Text('Недельный отчёт'),
+      ),
       body: AppPage(
         title: 'Отчёт юриста',
-        subtitle: 'Автоматический черновик можно дополнить и отправить руководителю',
+        subtitle:
+            'Автоматический черновик можно дополнить и отправить руководителю',
         child: FutureBuilder<_ReportData>(
           future: future,
           builder: (context, snapshot) {
@@ -129,13 +143,25 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
                   padding: const EdgeInsets.all(18),
                   child: Column(
                     children: [
-                      draftMetric('Подготовлено документов', draft['prepared_documents']),
+                      draftMetric(
+                        'Подготовлено документов',
+                        draft['prepared_documents'],
+                      ),
                       const SizedBox(height: 8),
-                      draftMetric('Подписано документов', draft['signed_documents']),
+                      draftMetric(
+                        'Подписано документов',
+                        draft['signed_documents'],
+                      ),
                       const SizedBox(height: 8),
-                      draftMetric('Ожидают подписи', draft['unsigned_documents']),
+                      draftMetric(
+                        'Ожидают подписи',
+                        draft['unsigned_documents'],
+                      ),
                       const SizedBox(height: 8),
-                      draftMetric('Приближаются сроки', draft['approaching_deadlines']),
+                      draftMetric(
+                        'Приближаются сроки',
+                        draft['approaching_deadlines'],
+                      ),
                       const SizedBox(height: 8),
                       draftMetric('Высокие риски', draft['new_risks']),
                       const SizedBox(height: 8),
@@ -186,11 +212,15 @@ class _LegalWeeklyReportScreenState extends State<LegalWeeklyReportScreen> {
                   onPressed: saving ? null : () => save(false, draft),
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('Сохранить черновик'),
-                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 PremiumActionButton(
-                  label: data.report?.status == 'submitted' ? 'Отправить обновлённый отчёт' : 'Отправить руководителю',
+                  label: data.report?.status == 'submitted'
+                      ? 'Отправить обновлённый отчёт'
+                      : 'Отправить руководителю',
                   icon: Icons.send_outlined,
                   onPressed: saving ? null : () => save(true, draft),
                   isLoading: saving,

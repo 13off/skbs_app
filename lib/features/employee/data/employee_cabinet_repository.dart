@@ -306,17 +306,15 @@ class EmployeeCabinetData {
       tasks: _list(json['tasks'])
           .whereType<Map>()
           .map(
-            (row) => EmployeeCabinetTask.fromJson(
-              Map<String, dynamic>.from(row),
-            ),
+            (row) =>
+                EmployeeCabinetTask.fromJson(Map<String, dynamic>.from(row)),
           )
           .toList(growable: false),
       payments: _list(json['payments'])
           .whereType<Map>()
           .map(
-            (row) => EmployeeCabinetPayment.fromJson(
-              Map<String, dynamic>.from(row),
-            ),
+            (row) =>
+                EmployeeCabinetPayment.fromJson(Map<String, dynamic>.from(row)),
           )
           .toList(growable: false),
       documents: _list(json['documents'])
@@ -368,10 +366,7 @@ class EmployeeCabinetData {
 class EmployeeCabinetRepository {
   static final _client = Supabase.instance.client;
 
-  static Future<EmployeeCabinetData> fetch({
-    int? year,
-    int? month,
-  }) async {
+  static Future<EmployeeCabinetData> fetch({int? year, int? month}) async {
     try {
       final body = <String, dynamic>{};
       if (year != null) body['year'] = year;

@@ -16,10 +16,7 @@ class PremiumBackdrop extends StatelessWidget {
 class PremiumLoadingScreen extends StatelessWidget {
   final String message;
 
-  const PremiumLoadingScreen({
-    super.key,
-    this.message = 'Загрузка',
-  });
+  const PremiumLoadingScreen({super.key, this.message = 'Загрузка'});
 
   @override
   Widget build(BuildContext context) {

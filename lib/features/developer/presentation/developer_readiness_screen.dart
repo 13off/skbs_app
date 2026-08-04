@@ -324,7 +324,10 @@ class _DeveloperReadinessScreenState extends State<DeveloperReadinessScreen> {
         AppAdaptivePalette.success,
       ),
       _ReadinessStatus.failed => (Icons.error_outline, scheme.error),
-      _ReadinessStatus.blocked => (Icons.lock_outline, AppAdaptivePalette.warning),
+      _ReadinessStatus.blocked => (
+        Icons.lock_outline,
+        AppAdaptivePalette.warning,
+      ),
       _ReadinessStatus.external => (Icons.cloud_sync_outlined, scheme.primary),
     };
 

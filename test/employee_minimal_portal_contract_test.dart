@@ -15,7 +15,10 @@ void main() {
     ).readAsStringSync();
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
-    expect(authGate, contains('EmployeePlatformWithPassport(profile: profile)'));
+    expect(
+      authGate,
+      contains('EmployeePlatformWithPassport(profile: profile)'),
+    );
     expect(authGate, isNot(contains('EmployeeMainScreen(profile: profile)')));
     expect(platform, contains("label: 'Задачи'"));
     expect(platform, contains("label: 'История задач'"));

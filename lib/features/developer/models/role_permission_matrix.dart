@@ -159,14 +159,15 @@ class RolePermissionCenter {
         .map(RolePermissionRole.fromJson)
         .where((item) => item.code.isNotEmpty)
         .toList();
-    final permissions = _maps(json['permissions'])
-        .map(RolePermissionDefinition.fromJson)
-        .where((item) => item.code.isNotEmpty)
-        .toList()
-      ..sort((a, b) {
-        final order = a.sortOrder.compareTo(b.sortOrder);
-        return order == 0 ? a.code.compareTo(b.code) : order;
-      });
+    final permissions =
+        _maps(json['permissions'])
+            .map(RolePermissionDefinition.fromJson)
+            .where((item) => item.code.isNotEmpty)
+            .toList()
+          ..sort((a, b) {
+            final order = a.sortOrder.compareTo(b.sortOrder);
+            return order == 0 ? a.code.compareTo(b.code) : order;
+          });
 
     final defaults = <String>{};
     for (final item in _maps(json['defaults'])) {
@@ -181,10 +182,8 @@ class RolePermissionCenter {
     for (final item in _maps(json['company_overrides'])) {
       final value = RolePermissionOverride.fromJson(item);
       if (value.roleCode.isNotEmpty && value.permissionCode.isNotEmpty) {
-        companyOverrides[_permissionKey(
-          value.roleCode,
-          value.permissionCode,
-        )] = value.isAllowed;
+        companyOverrides[_permissionKey(value.roleCode, value.permissionCode)] =
+            value.isAllowed;
       }
     }
 
@@ -196,10 +195,11 @@ class RolePermissionCenter {
           value.roleCode.isNotEmpty &&
           value.permissionCode.isNotEmpty) {
         objectOverrides[_objectPermissionKey(
-          objectId,
-          value.roleCode,
-          value.permissionCode,
-        )] = value.isAllowed;
+              objectId,
+              value.roleCode,
+              value.permissionCode,
+            )] =
+            value.isAllowed;
       }
     }
 
@@ -214,9 +214,9 @@ class RolePermissionCenter {
           .where((item) => item.id.isNotEmpty && item.name.isNotEmpty)
           .toList(),
       objectOverrides: objectOverrides,
-      audit: _maps(json['audit'])
-          .map(RolePermissionAuditEntry.fromJson)
-          .toList(),
+      audit: _maps(
+        json['audit'],
+      ).map(RolePermissionAuditEntry.fromJson).toList(),
     );
   }
 
@@ -254,11 +254,7 @@ class RolePermissionCenter {
     final normalizedObjectId = objectId?.trim() ?? '';
     if (normalizedObjectId.isNotEmpty) {
       return objectOverrides.containsKey(
-        _objectPermissionKey(
-          normalizedObjectId,
-          roleCode,
-          permissionCode,
-        ),
+        _objectPermissionKey(normalizedObjectId, roleCode, permissionCode),
       );
     }
     return companyOverrides.containsKey(

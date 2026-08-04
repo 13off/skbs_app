@@ -16,10 +16,7 @@ enum _EmployeeTimesheetDownloadMode { months, dates }
 class EmployeeTimesheetDownloadScreen extends StatefulWidget {
   final Employee employee;
 
-  const EmployeeTimesheetDownloadScreen({
-    super.key,
-    required this.employee,
-  });
+  const EmployeeTimesheetDownloadScreen({super.key, required this.employee});
 
   @override
   State<EmployeeTimesheetDownloadScreen> createState() =>
@@ -28,8 +25,7 @@ class EmployeeTimesheetDownloadScreen extends StatefulWidget {
 
 class _EmployeeTimesheetDownloadScreenState
     extends State<EmployeeTimesheetDownloadScreen> {
-  _EmployeeTimesheetDownloadMode mode =
-      _EmployeeTimesheetDownloadMode.months;
+  _EmployeeTimesheetDownloadMode mode = _EmployeeTimesheetDownloadMode.months;
   late int visibleYear;
   late Set<DateTime> selectedMonths;
   late DateTimeRange selectedRange;
@@ -150,7 +146,11 @@ class _EmployeeTimesheetDownloadScreenState
     if (picked == null) return;
     setState(() {
       selectedRange = DateTimeRange(
-        start: DateTime(picked.start.year, picked.start.month, picked.start.day),
+        start: DateTime(
+          picked.start.year,
+          picked.start.month,
+          picked.start.day,
+        ),
         end: DateTime(picked.end.year, picked.end.month, picked.end.day),
       );
     });
@@ -226,10 +226,7 @@ class _EmployeeTimesheetDownloadScreenState
     }
 
     await downloadExactPeriodWorkbook(
-      PeriodTimesheetRow(
-        employee: widget.employee,
-        shiftsByDate: shiftsByDate,
-      ),
+      PeriodTimesheetRow(employee: widget.employee, shiftsByDate: shiftsByDate),
     );
   }
 
@@ -305,10 +302,9 @@ class _EmployeeTimesheetDownloadScreenState
       'Табель_${widget.employee.name}_$period',
     );
     final fileName = '$baseName.xlsx';
-    final blob = html.Blob(
-      <dynamic>[bytes],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
+    final blob = html.Blob(<dynamic>[
+      bytes,
+    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
       ..download = fileName
@@ -463,9 +459,7 @@ class _EmployeeTimesheetDownloadScreenState
                     color: isSelected
                         ? AppAdaptivePalette.onAccent
                         : AppAdaptivePalette.textPrimary,
-                    fontWeight: isSelected
-                        ? FontWeight.w900
-                        : FontWeight.w600,
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
                   ),
                 ),
               ),
@@ -591,7 +585,8 @@ class _EmployeeTimesheetDownloadScreenState
   }
 
   Widget buildDownloadButton() {
-    final disabled = isExporting ||
+    final disabled =
+        isExporting ||
         (mode == _EmployeeTimesheetDownloadMode.months &&
             selectedMonths.isEmpty);
     return SizedBox(

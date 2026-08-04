@@ -9,7 +9,10 @@ void main() {
     ).readAsStringSync();
 
     expect(repository, contains('requestedEmployeeId'));
-    expect(repository, contains('result.profile.employeeId != requestedEmployeeId'));
+    expect(
+      repository,
+      contains('result.profile.employeeId != requestedEmployeeId'),
+    );
     expect(
       repository,
       contains('Выбранный сотрудник и открытая рабочая карточка не совпадают'),
@@ -41,10 +44,7 @@ void main() {
       'supabase/migrations/20260731171500_employee_route_identity_integrity.sql',
     ).readAsStringSync();
 
-    expect(
-      migration,
-      contains('unique (company_id, id, employee_id)'),
-    );
+    expect(migration, contains('unique (company_id, id, employee_id)'));
     expect(
       migration,
       contains('foreign key (company_id, shift_id, employee_id)'),
@@ -57,7 +57,9 @@ void main() {
     );
     expect(
       migration,
-      contains('validate constraint employee_work_shift_points_shift_identity_fkey'),
+      contains(
+        'validate constraint employee_work_shift_points_shift_identity_fkey',
+      ),
     );
   });
 }

@@ -116,19 +116,19 @@ class _EmployeeAccessDeniedScreenState
                       widget.title,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppAdaptivePalette.textPrimary,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: AppAdaptivePalette.textPrimary,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       widget.message,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppAdaptivePalette.textMuted,
-                            height: 1.45,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: AppAdaptivePalette.textMuted,
+                        height: 1.45,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 22),
                     SizedBox(
@@ -140,7 +140,9 @@ class _EmployeeAccessDeniedScreenState
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.arrow_back_rounded),
                         label: const Text('Вернуться ко входу'),

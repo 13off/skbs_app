@@ -19,10 +19,10 @@ void main() {
 
   test('dark theme is enabled and persisted by the application controller', () {
     final mainSource = File('lib/main.dart').readAsStringSync();
-    final controller = File(
-      'lib/app/theme_controller.dart',
+    final controller = File('lib/app/theme_controller.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
     ).readAsStringSync();
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
 
     expect(
       mainSource,
@@ -81,9 +81,7 @@ void main() {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
-    final surfaces = File(
-      'lib/widgets/premium_ui_v2.dart',
-    ).readAsStringSync();
+    final surfaces = File('lib/widgets/premium_ui_v2.dart').readAsStringSync();
     final appPage = File('lib/widgets/app_page.dart').readAsStringSync();
     final surfacesV3 = File(
       'lib/widgets/premium_surfaces_v3.dart',
@@ -151,7 +149,11 @@ void main() {
 
     for (final path in changedSources) {
       final source = File(path).readAsStringSync();
-      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
+      expect(
+        source,
+        isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
+        reason: path,
+      );
       expect(source, isNot(contains('.insert(')), reason: path);
       expect(source, isNot(contains('.update(')), reason: path);
       expect(source, isNot(contains('.delete(')), reason: path);

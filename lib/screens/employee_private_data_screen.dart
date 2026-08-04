@@ -551,7 +551,9 @@ class _EmployeePrivateDataScreenState extends State<EmployeePrivateDataScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Личные данные')),
+        leading: const BackButton(),
+        title: const Text('Личные данные'),
+      ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(18, 18, 18, bottomSpacing),
         children: [

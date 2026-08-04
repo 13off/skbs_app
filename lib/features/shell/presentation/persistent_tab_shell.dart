@@ -186,17 +186,13 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
           children: [
             IndexedStack(
               index: activeIndex,
-              children: List<Widget>.generate(
-                widget.controller.pageCount,
-                (index) {
-                  final child = _tabNavigators[index];
-                  if (child == null) return const SizedBox.shrink();
-                  return TickerMode(
-                    enabled: index == activeIndex,
-                    child: child,
-                  );
-                },
-              ),
+              children: List<Widget>.generate(widget.controller.pageCount, (
+                index,
+              ) {
+                final child = _tabNavigators[index];
+                if (child == null) return const SizedBox.shrink();
+                return TickerMode(enabled: index == activeIndex, child: child);
+              }),
             ),
             Positioned(
               left: 0,

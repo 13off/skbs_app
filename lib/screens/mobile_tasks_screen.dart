@@ -696,7 +696,8 @@ class _TasksScreenState extends State<TasksScreen> {
       children: [
         AppLazyPage(
           title: 'Задачи',
-          subtitle: 'Работы по осям, исполнители и готовность за выбранную дату',
+          subtitle:
+              'Работы по осям, исполнители и готовность за выбранную дату',
           leading: leading,
           itemCount: loadError == null ? tasks.length : 0,
           itemBuilder: (context, index) {

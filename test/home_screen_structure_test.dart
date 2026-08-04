@@ -7,7 +7,9 @@ import 'support/home_source.dart';
 void main() {
   test('главный экран разделён по ответственности', () {
     final shell = File('lib/screens/home_screen.dart').readAsStringSync();
-    final loading = File('lib/screens/home/home_loading.dart').readAsStringSync();
+    final loading = File(
+      'lib/screens/home/home_loading.dart',
+    ).readAsStringSync();
     final objects = File(
       'lib/screens/home/home_object_actions.dart',
     ).readAsStringSync();
@@ -15,7 +17,9 @@ void main() {
       'lib/screens/home/home_sections.dart',
     ).readAsStringSync();
     final view = File('lib/screens/home/home_view.dart').readAsStringSync();
-    final widgets = File('lib/screens/home/home_widgets.dart').readAsStringSync();
+    final widgets = File(
+      'lib/screens/home/home_widgets.dart',
+    ).readAsStringSync();
 
     expect(shell, contains("part 'home/home_loading.dart';"));
     expect(shell, contains("part 'home/home_object_actions.dart';"));
@@ -49,7 +53,9 @@ void main() {
   });
 
   test('очистка кешей главной проходит через координатор', () {
-    final loading = File('lib/screens/home/home_loading.dart').readAsStringSync();
+    final loading = File(
+      'lib/screens/home/home_loading.dart',
+    ).readAsStringSync();
 
     expect(loading, contains('AppCacheCoordinator.invalidate('));
     expect(loading, contains('AppDataDomain.objects'));

@@ -385,7 +385,7 @@ class _RecruitmentApplicationDetailScreenState
       await FileSaver.instance.saveFile(
         name: 'Документы_$suffix',
         bytes: Uint8List.fromList(encoded),
-        ext: 'zip',
+        fileExtension: 'zip',
         mimeType: MimeType.zip,
       );
     } catch (error) {

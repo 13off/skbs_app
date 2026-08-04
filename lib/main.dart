@@ -16,8 +16,7 @@ import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
 
-const String _defaultSupabaseUrl =
-    'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
+const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
     'sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm';
 
@@ -118,8 +117,7 @@ class _SkbsAppState extends State<SkbsApp> {
     _pushNavigationScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pushNavigationScheduled = false;
-      if (!mounted ||
-          PushNotificationService.navigationRequest.value == null) {
+      if (!mounted || PushNotificationService.navigationRequest.value == null) {
         return;
       }
 
@@ -138,9 +136,8 @@ class _SkbsAppState extends State<SkbsApp> {
 
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => NotificationsScreen(
-            focusNotificationId: request.notificationId,
-          ),
+          builder: (_) =>
+              NotificationsScreen(focusNotificationId: request.notificationId),
         ),
       );
     });
@@ -159,9 +156,7 @@ class _SkbsAppState extends State<SkbsApp> {
           navigatorKey: appNavigatorKey,
           navigatorObservers: [AppWebHistoryObserver()],
           scrollBehavior: const PremiumScrollBehavior(),
-          theme: AppTypography.apply(
-            PremiumDepthTheme.apply(AppTheme.light),
-          ),
+          theme: AppTypography.apply(PremiumDepthTheme.apply(AppTheme.light)),
           darkTheme: AppTypography.apply(AppDarkTheme.theme),
           themeMode: themeController.themeMode,
           themeAnimationDuration: const Duration(milliseconds: 220),

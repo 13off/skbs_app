@@ -44,9 +44,9 @@ class AppPage extends StatelessWidget {
     final canPop = navigator?.canPop() ?? false;
     final scopedTrailing = canPop
         ? null
-        : PlatformTabOverrideScope.resolveRootHeaderTrailing(context)?.call(
+        : PlatformTabOverrideScope.resolveRootHeaderTrailing(
             context,
-          );
+          )?.call(context);
     final effectiveTrailing =
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
@@ -147,9 +147,9 @@ class AppLazyPage extends StatelessWidget {
     final canPop = navigator?.canPop() ?? false;
     final scopedTrailing = canPop
         ? null
-        : PlatformTabOverrideScope.resolveRootHeaderTrailing(context)?.call(
+        : PlatformTabOverrideScope.resolveRootHeaderTrailing(
             context,
-          );
+          )?.call(context);
     final effectiveTrailing =
         title == 'Профиль' && !AppThemeController.featureEnabled
         ? null
@@ -169,11 +169,11 @@ class AppLazyPage extends StatelessWidget {
     final totalCount = fixedLeadingCount + itemCount + trailing.length;
 
     Widget constrain(Widget value) => Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: effectiveMaxContentWidth),
-            child: value,
-          ),
-        );
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: effectiveMaxContentWidth),
+        child: value,
+      ),
+    );
 
     final list = ListView.builder(
       // Flutter 3.44 deprecates this field before exposing its replacement.
@@ -238,7 +238,8 @@ class AppPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cleanSubtitle = subtitle.trim();
-    final isDesktop = MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
+    final isDesktop =
+        MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
 
     return LiquidGlassSurface(
       blur: true,
@@ -306,10 +307,14 @@ class AppPageHeader extends StatelessWidget {
                 child: IconButtonTheme(
                   data: IconButtonThemeData(
                     style: IconButton.styleFrom(
-                      minimumSize: const Size.square(AppUi.pageHeaderActionSize),
+                      minimumSize: const Size.square(
+                        AppUi.pageHeaderActionSize,
+                      ),
                       padding: const EdgeInsets.all(13),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppUi.controlRadius),
+                        borderRadius: BorderRadius.circular(
+                          AppUi.controlRadius,
+                        ),
                       ),
                     ),
                   ),

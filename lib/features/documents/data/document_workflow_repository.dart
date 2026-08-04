@@ -22,7 +22,8 @@ class DocumentWorkflowDashboardData {
       .where((item) => !item.isCompleted && item.status != 'cancelled')
       .length;
 
-  int get completedCount => onboardings.where((item) => item.isCompleted).length;
+  int get completedCount =>
+      onboardings.where((item) => item.isCompleted).length;
 
   int get overdueCount {
     final now = DateTime.now();
@@ -140,7 +141,8 @@ class EmployeeDocumentFileRecord {
       verificationStatus: map['verification_status']?.toString() ?? 'pending',
       metadata: jsonMap(map['metadata']),
       createdAt:
-          dateValue(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+          dateValue(map['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
@@ -173,7 +175,8 @@ class DocumentAuditRecord {
       actorUserId: nullableText(map['actor_user_id']),
       details: jsonMap(map['details']),
       createdAt:
-          dateValue(map['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+          dateValue(map['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
@@ -222,18 +225,15 @@ abstract final class DocumentWorkflowRepository {
     final cleanCompanyId = _required(companyId, 'Компания не выбрана');
     final row = await _client
         .from('document_tool_installations')
-        .upsert(
-          <String, dynamic>{
-            'company_id': cleanCompanyId,
-            'is_enabled': isEnabled,
-            'settings': settings,
-            'enabled_at': isEnabled
-                ? DateTime.now().toUtc().toIso8601String()
-                : null,
-            'enabled_by': isEnabled ? _client.auth.currentUser?.id : null,
-          },
-          onConflict: 'company_id',
-        )
+        .upsert(<String, dynamic>{
+          'company_id': cleanCompanyId,
+          'is_enabled': isEnabled,
+          'settings': settings,
+          'enabled_at': isEnabled
+              ? DateTime.now().toUtc().toIso8601String()
+              : null,
+          'enabled_by': isEnabled ? _client.auth.currentUser?.id : null,
+        }, onConflict: 'company_id')
         .select('company_id, is_enabled, settings')
         .single();
     await recordAudit(
@@ -304,7 +304,9 @@ abstract final class DocumentWorkflowRepository {
     final rows = await query.order('sort_order');
     return _rows(rows)
         .map(DocumentPackageTemplateLink.fromMap)
-        .where((item) => item.packageId.isNotEmpty && item.templateId.isNotEmpty)
+        .where(
+          (item) => item.packageId.isNotEmpty && item.templateId.isNotEmpty,
+        )
         .toList(growable: false);
   }
 
@@ -603,7 +605,9 @@ abstract final class DocumentWorkflowRepository {
     final storagePath =
         '$cleanCompanyId/$cleanOnboardingId/$fileKind/${timestamp}_v$version-$cleanName';
 
-    await _client.storage.from(employeeDocumentsBucket).uploadBinary(
+    await _client.storage
+        .from(employeeDocumentsBucket)
+        .uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
@@ -624,7 +628,9 @@ abstract final class DocumentWorkflowRepository {
             'document_type': documentType,
             'storage_bucket': employeeDocumentsBucket,
             'storage_path': storagePath,
-            'original_file_name': fileName.trim().isEmpty ? cleanName : fileName,
+            'original_file_name': fileName.trim().isEmpty
+                ? cleanName
+                : fileName,
             'mime_type': mimeType,
             'file_size': bytes.length,
             'version_no': version,
@@ -655,9 +661,9 @@ abstract final class DocumentWorkflowRepository {
       return result;
     } catch (_) {
       try {
-        await _client.storage
-            .from(employeeDocumentsBucket)
-            .remove(<String>[storagePath]);
+        await _client.storage.from(employeeDocumentsBucket).remove(<String>[
+          storagePath,
+        ]);
       } catch (_) {
         // Orphan cleanup can be retried by a maintenance task.
       }
@@ -709,9 +715,7 @@ abstract final class DocumentWorkflowRepository {
       query = query.eq('onboarding_id', cleanOnboardingId);
     }
     final rows = await query.order('created_at', ascending: false).limit(500);
-    return _rows(rows)
-        .map(DocumentAuditRecord.fromMap)
-        .toList(growable: false);
+    return _rows(rows).map(DocumentAuditRecord.fromMap).toList(growable: false);
   }
 
   static Future<void> recordAudit({

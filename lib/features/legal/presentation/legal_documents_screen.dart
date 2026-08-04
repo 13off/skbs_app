@@ -125,7 +125,10 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                     prefixIcon: Icon(Icons.filter_alt_outlined),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Все статусы'),
+                    ),
                     ...LegalDocumentStatus.values.map(
                       (value) => DropdownMenuItem<String>(
                         value: value,
@@ -163,7 +166,9 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                   return PremiumWorkCard(
                     child: Padding(
                       padding: const EdgeInsets.all(22),
-                      child: Text('Не удалось загрузить документы: ${snapshot.error}'),
+                      child: Text(
+                        'Не удалось загрузить документы: ${snapshot.error}',
+                      ),
                     ),
                   );
                 }
@@ -188,7 +193,8 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                   final links = <String>[
                     if (document.employeeName.isNotEmpty) document.employeeName,
                     if (document.objectName.isNotEmpty) document.objectName,
-                    if (document.counterpartyName.isNotEmpty) document.counterpartyName,
+                    if (document.counterpartyName.isNotEmpty)
+                      document.counterpartyName,
                   ];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -217,16 +223,23 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                 children: [
                                   Text(
                                     document.title,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
                                     [
                                       document.statusTitle,
                                       document.expiryTitle,
-                                      if (document.documentNumber.isNotEmpty) '№ ${document.documentNumber}',
+                                      if (document.documentNumber.isNotEmpty)
+                                        '№ ${document.documentNumber}',
                                     ].join(' • '),
-                                    style: TextStyle(color: AppAdaptivePalette.textMuted, fontWeight: FontWeight.w700),
+                                    style: TextStyle(
+                                      color: AppAdaptivePalette.textMuted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                   if (links.isNotEmpty) ...[
                                     const SizedBox(height: 5),
@@ -234,13 +247,19 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                       links.join(' • '),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(color: AppAdaptivePalette.textFaint, fontSize: 12),
+                                      style: TextStyle(
+                                        color: AppAdaptivePalette.textFaint,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppAdaptivePalette.textFaint,
+                            ),
                           ],
                         ),
                       ),

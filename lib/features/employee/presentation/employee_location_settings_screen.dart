@@ -86,10 +86,7 @@ class _EmployeeLocationSettingsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
               const SizedBox(height: 4),
               Text(
                 value,
@@ -154,7 +151,8 @@ class _EmployeeLocationSettingsScreenState
                         value: snapshot.isActive
                             ? 'Маршрут записывается'
                             : 'Сейчас не начат',
-                        ready: !snapshot.isActive ||
+                        ready:
+                            !snapshot.isActive ||
                             (serviceEnabled && permissionReady),
                       ),
                       if (snapshot.isActive) ...[
@@ -180,12 +178,12 @@ class _EmployeeLocationSettingsScreenState
                 child: Text(
                   kIsWeb
                       ? 'Фоновая запись маршрута работает в установленном '
-                          'Android-приложении. В браузере координаты поступают '
-                          'только пока страница открыта.'
+                            'Android-приложении. В браузере координаты поступают '
+                            'только пока страница открыта.'
                       : 'Для надёжной записи выберите доступ «Разрешить всегда». '
-                          'Во время рабочего дня Android показывает постоянное '
-                          'уведомление AppСтрой. Не закрывайте приложение '
-                          'принудительно и не ограничивайте его работу в фоне.',
+                            'Во время рабочего дня Android показывает постоянное '
+                            'уведомление AppСтрой. Не закрывайте приложение '
+                            'принудительно и не ограничивайте его работу в фоне.',
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     height: 1.45,

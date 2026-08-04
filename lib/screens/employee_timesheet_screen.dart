@@ -86,10 +86,10 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
     try {
       final loadedRow =
           await AttendanceRepository.fetchMonthlyTimesheetForEmployee(
-        employee: widget.employee,
-        year: selectedMonth.year,
-        month: selectedMonth.month,
-      );
+            employee: widget.employee,
+            year: selectedMonth.year,
+            month: selectedMonth.month,
+          );
       if (!mounted || currentToken != loadToken) return;
       setState(() {
         row = loadedRow;
@@ -155,8 +155,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () =>
-                              setSheetState(() => visibleYear--),
+                          onPressed: () => setSheetState(() => visibleYear--),
                           icon: const Icon(Icons.chevron_left),
                         ),
                         Expanded(
@@ -171,8 +170,7 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () =>
-                              setSheetState(() => visibleYear++),
+                          onPressed: () => setSheetState(() => visibleYear++),
                           icon: const Icon(Icons.chevron_right),
                         ),
                       ],
@@ -184,14 +182,15 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
                       itemCount: 12,
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 2.4,
-                      ),
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 2.4,
+                          ),
                       itemBuilder: (context, index) {
                         final month = index + 1;
-                        final isSelected = selectedMonth.year == visibleYear &&
+                        final isSelected =
+                            selectedMonth.year == visibleYear &&
                             selectedMonth.month == month;
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
@@ -337,71 +336,76 @@ class _EmployeeTimesheetScreenState extends State<EmployeeTimesheetScreen> {
         final columns = constraints.maxWidth >= 1050
             ? 3
             : constraints.maxWidth >= 720
-                ? 2
-                : 1;
+            ? 2
+            : 1;
         const gap = 10.0;
-        final width =
-            (constraints.maxWidth - (gap * (columns - 1))) / columns;
+        final width = (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
         return Wrap(
           spacing: gap,
           runSpacing: gap,
-          children: days.map((day) {
-            final shift = currentRow.shiftForDay(day);
-            final date = DateTime(selectedMonth.year, selectedMonth.month, day);
-            final worked = shift > 0;
-            return SizedBox(
-              width: width,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: worked
-                      ? AppAdaptivePalette.success.withValues(alpha: 0.13)
-                      : AppAdaptivePalette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: worked
-                        ? AppAdaptivePalette.success.withValues(alpha: 0.42)
-                        : AppAdaptivePalette.border,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      worked
-                          ? Icons.check_circle_outline
-                          : Icons.remove_circle_outline,
+          children: days
+              .map((day) {
+                final shift = currentRow.shiftForDay(day);
+                final date = DateTime(
+                  selectedMonth.year,
+                  selectedMonth.month,
+                  day,
+                );
+                final worked = shift > 0;
+                return SizedBox(
+                  width: width,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
                       color: worked
-                          ? AppAdaptivePalette.success
-                          : AppAdaptivePalette.textMuted,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        formatDate(date),
-                        style: TextStyle(
-                          color: AppAdaptivePalette.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      formatShift(shift),
-                      style: TextStyle(
+                          ? AppAdaptivePalette.success.withValues(alpha: 0.13)
+                          : AppAdaptivePalette.surfaceElevated,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
                         color: worked
-                            ? AppAdaptivePalette.success
-                            : AppAdaptivePalette.textMuted,
-                        fontWeight: FontWeight.w900,
+                            ? AppAdaptivePalette.success.withValues(alpha: 0.42)
+                            : AppAdaptivePalette.border,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(growable: false),
+                    child: Row(
+                      children: [
+                        Icon(
+                          worked
+                              ? Icons.check_circle_outline
+                              : Icons.remove_circle_outline,
+                          color: worked
+                              ? AppAdaptivePalette.success
+                              : AppAdaptivePalette.textMuted,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            formatDate(date),
+                            style: TextStyle(
+                              color: AppAdaptivePalette.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          formatShift(shift),
+                          style: TextStyle(
+                            color: worked
+                                ? AppAdaptivePalette.success
+                                : AppAdaptivePalette.textMuted,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
         );
       },
     );

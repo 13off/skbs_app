@@ -44,8 +44,22 @@ void main() {
     expect(guide, contains('Icons.keyboard_arrow_down_rounded'));
     expect(guide, contains('WidgetsBinding.instance.rootElement'));
     expect(guide, contains("GlobalKey(debugLabel: 'first-run-guide-overlay')"));
-    expect(guide, contains('coordinateBox.globalToLocal(globalTopLeft)'));
-    expect(guide, contains('coordinateBox.globalToLocal(globalBottomRight)'));
+    expect(
+      guide,
+      matches(
+        RegExp(
+          r'coordinateBox\s*\.\s*globalToLocal\s*\(\s*globalTopLeft\s*,?\s*\)',
+        ),
+      ),
+    );
+    expect(
+      guide,
+      matches(
+        RegExp(
+          r'coordinateBox\s*\.\s*globalToLocal\s*\(\s*globalBottomRight\s*,?\s*\)',
+        ),
+      ),
+    );
     expect(
       guide,
       matches(

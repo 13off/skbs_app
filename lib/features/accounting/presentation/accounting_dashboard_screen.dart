@@ -29,8 +29,7 @@ class AccountingDashboardScreen extends StatefulWidget {
       _AccountingDashboardScreenState();
 }
 
-class _AccountingDashboardScreenState
-    extends State<AccountingDashboardScreen> {
+class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
   late Future<AccountingDashboardData> future;
   StreamSubscription<AppDataChange>? subscription;
 

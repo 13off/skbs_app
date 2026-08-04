@@ -63,12 +63,13 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
       final loaded = await EmployeeRepository.fetchObjectNames(
         forceRefresh: true,
       );
-      final result = loaded
-          .map((item) => item.trim())
-          .where((item) => item.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+      final result =
+          loaded
+              .map((item) => item.trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       if (objectName.isNotEmpty && !result.contains(objectName)) {
         result.add(objectName);
         result.sort();
@@ -129,7 +130,9 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Черновик сотрудника')),
+        leading: const BackButton(),
+        title: const Text('Черновик сотрудника'),
+      ),
       body: Form(
         key: formKey,
         child: ListView(
@@ -158,18 +161,15 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
                 ),
                 items: objectNames
                     .map(
-                      (item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item),
-                      ),
+                      (item) =>
+                          DropdownMenuItem(value: item, child: Text(item)),
                     )
                     .toList(),
                 onChanged: saving
                     ? null
                     : (value) => setState(() => objectName = value ?? ''),
-                validator: (value) => (value ?? '').trim().isEmpty
-                    ? 'Выберите объект'
-                    : null,
+                validator: (value) =>
+                    (value ?? '').trim().isEmpty ? 'Выберите объект' : null,
               ),
             const SizedBox(height: 14),
             TextFormField(
@@ -180,9 +180,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
                 labelText: 'ФИО',
                 prefixIcon: Icon(Icons.person_outline),
               ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'Введите ФИО'
-                  : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Введите ФИО' : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -192,9 +191,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
                 labelText: 'Должность',
                 prefixIcon: Icon(Icons.badge_outlined),
               ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'Введите должность'
-                  : null,
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Введите должность' : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -215,7 +213,8 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Ставка за смену',
-                helperText: 'Обязательное поле: проверь по согласованным условиям',
+                helperText:
+                    'Обязательное поле: проверь по согласованным условиям',
                 prefixIcon: Icon(Icons.payments_outlined),
               ),
               validator: (value) {
@@ -254,9 +253,7 @@ class _AiEmployeeDraftScreenState extends State<AiEmployeeDraftScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save),
-                label: Text(
-                  saving ? 'Сохраняем...' : 'Сохранить сотрудника',
-                ),
+                label: Text(saving ? 'Сохраняем...' : 'Сохранить сотрудника'),
               ),
             ),
           ],

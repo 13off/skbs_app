@@ -29,8 +29,14 @@ void main() {
     expect(diagnostics, contains('AiAssistantRepository.request('));
     expect(diagnostics, contains("expectedActionType: 'create_task_draft'"));
     expect(diagnostics, contains("expectedActionType: 'prepare_document'"));
-    expect(diagnostics, contains("expectedActionType: 'open_period_timesheet'"));
-    expect(diagnostics, contains('не подтверждает, не сохраняет и не выполняет'));
+    expect(
+      diagnostics,
+      contains("expectedActionType: 'open_period_timesheet'"),
+    );
+    expect(
+      diagnostics,
+      contains('не подтверждает, не сохраняет и не выполняет'),
+    );
 
     expect(diagnostics, isNot(contains('AiActionExecutionCoordinator')));
     expect(diagnostics, isNot(contains('createProposed(')));

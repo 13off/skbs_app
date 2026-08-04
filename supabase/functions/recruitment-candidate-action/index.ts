@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.110.5";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.110.5";
 import JSZip from "npm:jszip@3.10.1";
 
 const corsHeaders = {
@@ -39,6 +39,13 @@ function botToken(): string {
 }
 
 type JsonMap = Record<string, unknown>;
+
+type AdminClient = SupabaseClient<any>;
+
+type StoredFileRow = {
+  storage_bucket: string | null;
+  storage_path: string | null;
+};
 
 type ApplicationRow = {
   id: string;
@@ -107,7 +114,7 @@ function documentTitle(type: string): string {
 }
 
 async function createDocumentsArchive(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   application: ApplicationRow,
 ) {
   const { data, error } = await admin
@@ -184,7 +191,7 @@ async function createDocumentsArchive(
 }
 
 async function removeStoredFiles(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   application: ApplicationRow,
 ) {
   const [
@@ -204,7 +211,11 @@ async function removeStoredFiles(
   if (messagesError) throw messagesError;
 
   const grouped = new Map<string, Set<string>>();
-  for (const row of [...(documents ?? []), ...(messages ?? [])]) {
+  const storedFiles: StoredFileRow[] = [
+    ...((documents ?? []) as StoredFileRow[]),
+    ...((messages ?? []) as StoredFileRow[]),
+  ];
+  for (const row of storedFiles) {
     const bucket = String(row.storage_bucket ?? "").trim();
     const path = String(row.storage_path ?? "").trim();
     if (!bucket || !path || path.startsWith("telegram://")) continue;

@@ -51,10 +51,7 @@ class _EmployeeTasksScreenState extends State<EmployeeTasksScreen> {
     await next;
   }
 
-  Future<void> openTask(
-    String employeeId,
-    EmployeeTaskCabinetTask task,
-  ) async {
+  Future<void> openTask(String employeeId, EmployeeTaskCabinetTask task) async {
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
         builder: (_) => EmployeeWorkTaskDetailsScreen(
@@ -119,12 +116,9 @@ class _EmployeeTasksScreenState extends State<EmployeeTasksScreen> {
                   PremiumWorkCard(
                     padding: EdgeInsets.zero,
                     child: ListTile(
-                      contentPadding:
-                          const EdgeInsets.fromLTRB(16, 14, 12, 14),
-                      onTap: () => openTask(
-                        data.profile.employeeId,
-                        tasks[index],
-                      ),
+                      contentPadding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                      onTap: () =>
+                          openTask(data.profile.employeeId, tasks[index]),
                       leading: const _IconBox(Icons.assignment_outlined),
                       title: Text(
                         tasks[index].work.trim().isEmpty

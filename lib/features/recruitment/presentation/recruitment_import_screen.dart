@@ -191,7 +191,7 @@ class _RecruitmentImportScreenState extends State<RecruitmentImportScreen> {
     await FileSaver.instance.saveFile(
       name: 'Шаблон_импорта_кандидатов',
       bytes: Uint8List.fromList(bytes),
-      ext: 'xlsx',
+      fileExtension: 'xlsx',
       mimeType: MimeType.microsoftExcel,
     );
   }
@@ -316,7 +316,7 @@ class _RecruitmentImportScreenState extends State<RecruitmentImportScreen> {
     await FileSaver.instance.saveFile(
       name: 'Отчёт_импорта_кандидатов',
       bytes: Uint8List.fromList(bytes),
-      ext: 'xlsx',
+      fileExtension: 'xlsx',
       mimeType: MimeType.microsoftExcel,
     );
   }

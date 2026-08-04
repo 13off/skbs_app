@@ -55,10 +55,7 @@ class ManagerReportsRepository {
     if (!forceRefresh && runningRequest != null) return runningRequest;
 
     final generation = _cacheGeneration;
-    final request = _load(
-      objectId: resolvedObjectId,
-      reportDate: reportDate,
-    );
+    final request = _load(objectId: resolvedObjectId, reportDate: reportDate);
     _requests[cacheKey] = request;
 
     try {
@@ -143,7 +140,7 @@ class ManagerReportsRepository {
   }) {
     final sessionPart =
         _client.auth.currentSession?.accessToken.hashCode.toString() ??
-            '__guest__';
+        '__guest__';
     return '$sessionPart::${objectId ?? '__all__'}::${_date(reportDate)}';
   }
 

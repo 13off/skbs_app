@@ -38,7 +38,8 @@ class EmployeeLocationPoint {
       speedMps: _nullableNumber(json['speed_mps']),
       headingDeg: _nullableNumber(json['heading_deg']),
       isMock: json['is_mock'] as bool? ?? false,
-      recordedAt: DateTime.tryParse(_text(json['recorded_at']))?.toLocal() ??
+      recordedAt:
+          DateTime.tryParse(_text(json['recorded_at']))?.toLocal() ??
           DateTime.now(),
       source: _text(json['source']),
       shiftId: _text(json['shift_id']),
@@ -46,15 +47,15 @@ class EmployeeLocationPoint {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy_m': accuracyM,
-        'altitude_m': altitudeM,
-        'speed_mps': speedMps,
-        'heading_deg': headingDeg,
-        'is_mock': isMock,
-        'recorded_at': recordedAt.toUtc().toIso8601String(),
-      };
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy_m': accuracyM,
+    'altitude_m': altitudeM,
+    'speed_mps': speedMps,
+    'heading_deg': headingDeg,
+    'is_mock': isMock,
+    'recorded_at': recordedAt.toUtc().toIso8601String(),
+  };
 }
 
 class EmployeeTrackingGap {
@@ -81,10 +82,10 @@ class EmployeeTrackingGap {
   Duration get duration => endedAt.difference(startedAt);
 
   factory EmployeeTrackingGap.fromJson(Map<String, dynamic> json) {
-    final start = DateTime.tryParse(_text(json['started_at']))?.toLocal() ??
+    final start =
+        DateTime.tryParse(_text(json['started_at']))?.toLocal() ??
         DateTime.now();
-    final end =
-        DateTime.tryParse(_text(json['ended_at']))?.toLocal() ?? start;
+    final end = DateTime.tryParse(_text(json['ended_at']))?.toLocal() ?? start;
     return EmployeeTrackingGap(
       id: _text(json['id']),
       shiftId: _text(json['shift_id']),
@@ -211,9 +212,7 @@ class EmployeeRouteDay {
     return result;
   }
 
-  EmployeeRouteDay copyWith({
-    List<EmployeeTrackingGap>? gaps,
-  }) {
+  EmployeeRouteDay copyWith({List<EmployeeTrackingGap>? gaps}) {
     return EmployeeRouteDay(
       employeeId: employeeId,
       workDate: workDate,
@@ -230,17 +229,14 @@ class EmployeeRouteDay {
       shifts: _list(json['shifts'])
           .whereType<Map>()
           .map(
-            (row) => EmployeeWorkShift.fromJson(
-              Map<String, dynamic>.from(row),
-            ),
+            (row) => EmployeeWorkShift.fromJson(Map<String, dynamic>.from(row)),
           )
           .toList(growable: false),
       points: _list(json['points'])
           .whereType<Map>()
           .map(
-            (row) => EmployeeLocationPoint.fromJson(
-              Map<String, dynamic>.from(row),
-            ),
+            (row) =>
+                EmployeeLocationPoint.fromJson(Map<String, dynamic>.from(row)),
           )
           .toList(growable: false),
     );
@@ -249,22 +245,26 @@ class EmployeeRouteDay {
   List<EmployeeTrackingGap> _inferGaps() {
     final result = <EmployeeTrackingGap>[];
     final now = DateTime.now();
-    final isToday = workDate.year == now.year &&
+    final isToday =
+        workDate.year == now.year &&
         workDate.month == now.month &&
         workDate.day == now.day;
 
     for (final shift in shifts) {
       final startedAt = shift.startedAt;
       if (startedAt == null) continue;
-      final finishedAt = shift.endedAt ?? (shift.isActive && isToday ? now : null);
+      final finishedAt =
+          shift.endedAt ?? (shift.isActive && isToday ? now : null);
       if (finishedAt == null || !finishedAt.isAfter(startedAt)) continue;
 
-      final shiftPoints = points.where((point) {
-        if (point.shiftId.isNotEmpty) return point.shiftId == shift.id;
-        return !point.recordedAt.isBefore(startedAt) &&
-            !point.recordedAt.isAfter(finishedAt);
-      }).toList()
-        ..sort((left, right) => left.recordedAt.compareTo(right.recordedAt));
+      final shiftPoints =
+          points.where((point) {
+            if (point.shiftId.isNotEmpty) return point.shiftId == shift.id;
+            return !point.recordedAt.isBefore(startedAt) &&
+                !point.recordedAt.isAfter(finishedAt);
+          }).toList()..sort(
+            (left, right) => left.recordedAt.compareTo(right.recordedAt),
+          );
 
       var previous = startedAt;
       for (final point in shiftPoints) {
@@ -431,10 +431,7 @@ class EmployeeShiftActionRepository {
     );
     final route = EmployeeRouteDay.fromJson(data);
     try {
-      final gaps = await fetchTrackingGaps(
-        employeeId: employeeId,
-        date: date,
-      );
+      final gaps = await fetchTrackingGaps(employeeId: employeeId, date: date);
       return route.copyWith(gaps: gaps);
     } catch (_) {
       // Старая база без миграции продолжит показывать вычисленные разрывы.
@@ -457,9 +454,7 @@ class EmployeeShiftActionRepository {
     return raw
         .whereType<Map>()
         .map(
-          (row) => EmployeeTrackingGap.fromJson(
-            Map<String, dynamic>.from(row),
-          ),
+          (row) => EmployeeTrackingGap.fromJson(Map<String, dynamic>.from(row)),
         )
         .toList(growable: false);
   }

@@ -3,23 +3,26 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('неотправленные координаты сохраняются локально и восстанавливаются', () {
-    final runtime = File(
-      'lib/features/employee/data/employee_shift_runtime.dart',
-    ).readAsStringSync();
-    final localStore = File(
-      'lib/features/employee/data/employee_route_local_store.dart',
-    ).readAsStringSync();
+  test(
+    'неотправленные координаты сохраняются локально и восстанавливаются',
+    () {
+      final runtime = File(
+        'lib/features/employee/data/employee_shift_runtime.dart',
+      ).readAsStringSync();
+      final localStore = File(
+        'lib/features/employee/data/employee_route_local_store.dart',
+      ).readAsStringSync();
 
-    expect(runtime, contains('EmployeeRouteLocalStore'));
-    expect(runtime, contains('_maximumBatchSize = 100'));
-    expect(runtime, contains('_flushAllPending'));
-    expect(runtime, contains('await _localStore.load'));
-    expect(runtime, contains('await _localStore.save'));
-    expect(localStore, contains('pending_points'));
-    expect(localStore, contains('pending_gaps'));
-    expect(localStore, contains('SharedPreferences.getInstance'));
-  });
+      expect(runtime, contains('EmployeeRouteLocalStore'));
+      expect(runtime, contains('_maximumBatchSize = 100'));
+      expect(runtime, contains('_flushAllPending'));
+      expect(runtime, contains('await _localStore.load'));
+      expect(runtime, contains('await _localStore.save'));
+      expect(localStore, contains('pending_points'));
+      expect(localStore, contains('pending_gaps'));
+      expect(localStore, contains('SharedPreferences.getInstance'));
+    },
+  );
 
   test('разрывы фоновой записи фиксируются и показываются руководителю', () {
     final runtime = File(
@@ -54,7 +57,9 @@ void main() {
       'lib/features/employee/presentation/employee_platform_with_passport.dart',
     ).readAsStringSync();
     final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
+    ).readAsStringSync();
     final employeeSettings = File(
       'lib/features/employee/presentation/employee_location_settings_screen.dart',
     ).readAsStringSync();

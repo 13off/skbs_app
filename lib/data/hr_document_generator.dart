@@ -95,8 +95,7 @@ class HrDocumentGenerator {
     HrDocumentTemplate template,
   ) async {
     final rawCompanyId = await _client.rpc('current_user_company_id');
-    final companyId =
-        rawCompanyId?.toString().replaceAll('"', '').trim() ?? '';
+    final companyId = rawCompanyId?.toString().replaceAll('"', '').trim() ?? '';
 
     final rawRows = await _client
         .from('document_templates')
@@ -150,7 +149,8 @@ class HrDocumentGenerator {
 
     final mimeType = version['mime_type']?.toString() ?? '';
     final fileName = version['file_name']?.toString() ?? '';
-    final isDocx = mimeType.contains('wordprocessingml') ||
+    final isDocx =
+        mimeType.contains('wordprocessingml') ||
         fileName.toLowerCase().endsWith('.docx');
     if (!isDocx) {
       throw HrDocumentGenerationException(

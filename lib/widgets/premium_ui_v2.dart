@@ -68,7 +68,8 @@ class PremiumWorkCard extends StatelessWidget {
       padding: padding,
       radius: radius,
       blur: false,
-      tint: tint ??
+      tint:
+          tint ??
           (dark
               ? theme.colorScheme.surface.withValues(alpha: 0.80)
               : Colors.white.withValues(alpha: 0.66)),
@@ -139,8 +140,8 @@ class PremiumActionButton extends StatelessWidget {
             BoxShadow(
               color: enabled
                   ? (dark
-                      ? theme.colorScheme.primary.withValues(alpha: 0.34)
-                      : const Color(0xFF101216).withValues(alpha: 0.30))
+                        ? theme.colorScheme.primary.withValues(alpha: 0.34)
+                        : const Color(0xFF101216).withValues(alpha: 0.30))
                   : Colors.black.withValues(alpha: 0.05),
               blurRadius: enabled ? 28 : 12,
               spreadRadius: enabled ? -8 : -9,

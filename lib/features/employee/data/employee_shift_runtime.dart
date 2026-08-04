@@ -34,15 +34,16 @@ class EmployeeWorkDaySnapshot {
   });
 
   const EmployeeWorkDaySnapshot.idle()
-      : status = EmployeeWorkDayStatus.idle,
-        employeeId = '',
-        shift = null,
-        lastPoint = null,
-        pendingPoints = 0,
-        errorMessage = '';
+    : status = EmployeeWorkDayStatus.idle,
+      employeeId = '',
+      shift = null,
+      lastPoint = null,
+      pendingPoints = 0,
+      errorMessage = '';
 
   bool get isActive => shift?.isActive == true;
-  bool get isBusy => status == EmployeeWorkDayStatus.requestingPermission ||
+  bool get isBusy =>
+      status == EmployeeWorkDayStatus.requestingPermission ||
       status == EmployeeWorkDayStatus.starting ||
       status == EmployeeWorkDayStatus.finishing;
 
@@ -93,8 +94,8 @@ class EmployeeShiftRuntime {
 
   final ValueNotifier<EmployeeWorkDaySnapshot> state =
       ValueNotifier<EmployeeWorkDaySnapshot>(
-    const EmployeeWorkDaySnapshot.idle(),
-  );
+        const EmployeeWorkDaySnapshot.idle(),
+      );
 
   final EmployeeRouteLocalStore _localStore = EmployeeRouteLocalStore();
   final List<EmployeeLocationPoint> _pending = <EmployeeLocationPoint>[];
@@ -250,8 +251,9 @@ class EmployeeShiftRuntime {
     );
     try {
       final permission = await _ensurePermission();
-      state.value =
-          state.value.copyWith(status: EmployeeWorkDayStatus.starting);
+      state.value = state.value.copyWith(
+        status: EmployeeWorkDayStatus.starting,
+      );
       final position = await _requiredPosition();
       final point = _point(position);
       final shift = await EmployeeShiftActionRepository.startShift(
@@ -491,26 +493,24 @@ class EmployeeShiftRuntime {
 
   Future<void> _startPositionStream() async {
     await _positionSubscription?.cancel();
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: _streamSettings(),
-    ).listen(
-      (position) => unawaited(_handlePosition(position)),
-      onError: (Object error, StackTrace stackTrace) {
-        unawaited(_handleStreamError(error));
-      },
-    );
+    _positionSubscription =
+        Geolocator.getPositionStream(
+          locationSettings: _streamSettings(),
+        ).listen(
+          (position) => unawaited(_handlePosition(position)),
+          onError: (Object error, StackTrace stackTrace) {
+            unawaited(_handleStreamError(error));
+          },
+        );
     _startTimers();
   }
 
   void _startTimers() {
     _flushTimer?.cancel();
-    _flushTimer = Timer.periodic(
-      const Duration(seconds: 45),
-      (_) {
-        unawaited(_flushPending());
-        unawaited(_flushGapEvents());
-      },
-    );
+    _flushTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      unawaited(_flushPending());
+      unawaited(_flushGapEvents());
+    });
     _healthTimer?.cancel();
     _healthTimer = Timer.periodic(
       _healthCheckInterval,
@@ -538,10 +538,7 @@ class EmployeeShiftRuntime {
   }
 
   Future<void> _handleStreamError(Object error) async {
-    _beginGap(
-      reason: 'stream_error',
-      details: _error(error),
-    );
+    _beginGap(reason: 'stream_error', details: _error(error));
     state.value = state.value.copyWith(
       status: EmployeeWorkDayStatus.error,
       errorMessage:

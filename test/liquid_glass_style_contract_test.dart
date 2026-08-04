@@ -11,9 +11,7 @@ void main() {
     ).readAsStringSync();
     final page = File('lib/widgets/app_page.dart').readAsStringSync();
     final cards = File('lib/widgets/premium_ui_v2.dart').readAsStringSync();
-    final viewport = File(
-      'lib/app/app_scale_viewport.dart',
-    ).readAsStringSync();
+    final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
 
     expect(liquid, contains('class LiquidGlassSurface'));
     expect(liquid, contains('BackdropFilter('));

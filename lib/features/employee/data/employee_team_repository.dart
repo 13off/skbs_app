@@ -33,10 +33,7 @@ class EmployeeTeamData {
   final String currentObject;
   final List<EmployeeTeamMember> members;
 
-  const EmployeeTeamData({
-    required this.currentObject,
-    required this.members,
-  });
+  const EmployeeTeamData({required this.currentObject, required this.members});
 
   factory EmployeeTeamData.fromJson(Map<String, dynamic> json) {
     final rawMembers = json['members'];
@@ -44,13 +41,13 @@ class EmployeeTeamData {
       currentObject: _text(json['current_object']),
       members: rawMembers is List
           ? rawMembers
-              .whereType<Map>()
-              .map(
-                (item) => EmployeeTeamMember.fromJson(
-                  Map<String, dynamic>.from(item),
-                ),
-              )
-              .toList(growable: false)
+                .whereType<Map>()
+                .map(
+                  (item) => EmployeeTeamMember.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList(growable: false)
           : const <EmployeeTeamMember>[],
     );
   }

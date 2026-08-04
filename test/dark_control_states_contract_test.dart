@@ -33,10 +33,7 @@ void main() {
     expect(bellSource, contains('? AppAdaptivePalette.accentSoft'));
     expect(bellSource, contains(': _card,'));
     expect(bellSource, contains('hasUnread ? _accent : _line'));
-    expect(
-      bellSource,
-      isNot(contains('Colors.white.withValues(alpha: 0.96)')),
-    );
+    expect(bellSource, isNot(contains('Colors.white.withValues(alpha: 0.96)')));
   });
 
   test('selected HR filters use the blue accent', () {
@@ -63,7 +60,11 @@ void main() {
     for (final file in dartFiles) {
       final source = file.readAsStringSync();
       for (final pattern in forbidden) {
-        expect(source, isNot(contains(pattern)), reason: '${file.path}: $pattern');
+        expect(
+          source,
+          isNot(contains(pattern)),
+          reason: '${file.path}: $pattern',
+        );
       }
     }
   });
@@ -83,7 +84,11 @@ void main() {
       'lib/features/recruitment/presentation/recruitment_applications_screen.dart',
     ]) {
       final source = File(path).readAsStringSync();
-      expect(source, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')), reason: path);
+      expect(
+        source,
+        isNot(contains('SUPABASE_SERVICE_ROLE_KEY')),
+        reason: path,
+      );
       for (final pattern in dataAccessPatterns) {
         expect(source, isNot(contains(pattern)), reason: '$path: $pattern');
       }

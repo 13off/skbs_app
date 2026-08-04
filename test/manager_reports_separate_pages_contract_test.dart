@@ -43,8 +43,9 @@ void main() {
       'lib/features/reports/presentation/manager_report_sections.dart',
     ).readAsStringSync();
 
-    final actionIndex =
-        sections.indexOf('if (onOpen != null || onSecondary != null)');
+    final actionIndex = sections.indexOf(
+      'if (onOpen != null || onSecondary != null)',
+    );
     final detailsIndex = sections.indexOf("Text(\n            'Подробности'");
 
     expect(actionIndex, greaterThanOrEqualTo(0));

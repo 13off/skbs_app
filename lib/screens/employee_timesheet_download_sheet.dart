@@ -190,10 +190,7 @@ class _EmployeeTimesheetDownloadPanelState
     }
 
     await _downloadExactPeriodWorkbook(
-      PeriodTimesheetRow(
-        employee: widget.employee,
-        shiftsByDate: shiftsByDate,
-      ),
+      PeriodTimesheetRow(employee: widget.employee, shiftsByDate: shiftsByDate),
     );
   }
 
@@ -268,10 +265,9 @@ class _EmployeeTimesheetDownloadPanelState
     final baseName = TimesheetExcelExporter.safeFileName(
       'Табель_${widget.employee.name}_$period',
     );
-    final blob = html.Blob(
-      <dynamic>[bytes],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
+    final blob = html.Blob(<dynamic>[
+      bytes,
+    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
       ..download = '$baseName.xlsx'
@@ -337,7 +333,9 @@ class _EmployeeTimesheetDownloadPanelState
                     ),
                   ),
                   IconButton(
-                    onPressed: isExporting ? null : () => Navigator.pop(context),
+                    onPressed: isExporting
+                        ? null
+                        : () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
@@ -404,8 +402,7 @@ class _EmployeeTimesheetDownloadPanelState
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: 12,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
@@ -493,7 +490,8 @@ class _EmployeeTimesheetDownloadPanelState
               SizedBox(
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: isExporting ||
+                  onPressed:
+                      isExporting ||
                           (mode == _DownloadPeriodMode.months &&
                               selected.isEmpty)
                       ? null
@@ -504,7 +502,9 @@ class _EmployeeTimesheetDownloadPanelState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.download_rounded),
-                  label: Text(isExporting ? 'Собираем Excel…' : 'Скачать Excel'),
+                  label: Text(
+                    isExporting ? 'Собираем Excel…' : 'Скачать Excel',
+                  ),
                 ),
               ),
             ],
@@ -516,11 +516,9 @@ class _EmployeeTimesheetDownloadPanelState
 
   String _monthKey(DateTime value) => '${value.year}-${value.month}';
 
-  String _dateKey(DateTime value) =>
-      DateFormat('yyyy-MM-dd').format(value);
+  String _dateKey(DateTime value) => DateFormat('yyyy-MM-dd').format(value);
 
-  String _displayDate(DateTime value) =>
-      DateFormat('dd.MM.yyyy').format(value);
+  String _displayDate(DateTime value) => DateFormat('dd.MM.yyyy').format(value);
 
   String _formatShift(double value) {
     if (value % 1 == 0) return value.toInt().toString();

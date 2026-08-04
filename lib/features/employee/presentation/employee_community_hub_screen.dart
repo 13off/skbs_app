@@ -11,10 +11,7 @@ import 'employee_team_screen.dart';
 class EmployeeCommunityHubScreen extends StatelessWidget {
   final AppUserProfile profile;
 
-  const EmployeeCommunityHubScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeCommunityHubScreen({super.key, required this.profile});
 
   Future<void> _openTeam(BuildContext context) async {
     await Navigator.of(context).push<void>(
@@ -57,8 +54,8 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
                   Text(
                     'Команда объекта',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -66,11 +63,10 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
                         ? 'Выберите конкретного сотрудника и посмотрите реальный состав его текущего объекта.'
                         : 'Посмотрите, кто работает рядом, чем занимаются коллеги и какой опыт подтверждён в AppСтрой.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.45,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   PremiumActionButton(
@@ -95,8 +91,8 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
                         ? 'Паспорта специалистов'
                         : 'Мой паспорт специалиста',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -104,11 +100,10 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
                         ? 'Откройте подтверждённый профиль конкретного человека без вымышленных показателей.'
                         : 'Дополните квалификацию, навыки и опыт. Рабочая статистика считается автоматически.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.45,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   OutlinedButton.icon(
@@ -137,11 +132,10 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
                     child: Text(
                       'В команде не показываются телефоны, ставки, выплаты, комментарии и кадровые документы. Расширенную профессиональную часть сотрудник открывает сам.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.45,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

@@ -8,10 +8,7 @@ void main() {
       'lib/features/company/data/company_repository.dart',
     ).readAsStringSync();
 
-    expect(
-      source,
-      contains('companies!company_memberships_company_id_fkey('),
-    );
+    expect(source, contains('companies!company_memberships_company_id_fkey('));
     expect(source, isNot(contains('companies!inner(')));
   });
 }

@@ -56,7 +56,8 @@ class _PremiumPressableState extends State<PremiumPressable> {
 
     if (widget.enableHaptics && !kIsWeb) {
       final platform = defaultTargetPlatform;
-      if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
+      if (platform == TargetPlatform.android ||
+          platform == TargetPlatform.iOS) {
         HapticFeedback.selectionClick();
       }
     }

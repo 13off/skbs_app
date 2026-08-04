@@ -50,7 +50,8 @@ class EmployeeLocationPoint {
       speedMps: _nullableNumber(json['speed_mps']),
       headingDeg: _nullableNumber(json['heading_deg']),
       isMock: json['is_mock'] as bool? ?? false,
-      recordedAt: DateTime.tryParse(_text(json['recorded_at']))?.toLocal() ??
+      recordedAt:
+          DateTime.tryParse(_text(json['recorded_at']))?.toLocal() ??
           DateTime.now(),
       source: _text(json['source']),
       shiftId: _text(json['shift_id']),
@@ -58,15 +59,15 @@ class EmployeeLocationPoint {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy_m': accuracyM,
-        'altitude_m': altitudeM,
-        'speed_mps': speedMps,
-        'heading_deg': headingDeg,
-        'is_mock': isMock,
-        'recorded_at': recordedAt.toUtc().toIso8601String(),
-      };
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy_m': accuracyM,
+    'altitude_m': altitudeM,
+    'speed_mps': speedMps,
+    'heading_deg': headingDeg,
+    'is_mock': isMock,
+    'recorded_at': recordedAt.toUtc().toIso8601String(),
+  };
 }
 
 class EmployeeObjectGeofence {
@@ -203,21 +204,23 @@ class EmployeeRouteDay {
       workDate: DateTime.tryParse(_text(json['work_date'])) ?? DateTime.now(),
       shifts: _list(json['shifts'])
           .whereType<Map>()
-          .map((row) => EmployeeWorkShift.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) => EmployeeWorkShift.fromJson(Map<String, dynamic>.from(row)),
+          )
           .toList(growable: false),
       points: _list(json['points'])
           .whereType<Map>()
-          .map((row) => EmployeeLocationPoint.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) =>
+                EmployeeLocationPoint.fromJson(Map<String, dynamic>.from(row)),
+          )
           .toList(growable: false),
       geofences: _list(json['geofences'])
           .whereType<Map>()
-          .map((row) => EmployeeObjectGeofence.fromJson(
-                Map<String, dynamic>.from(row),
-              ))
+          .map(
+            (row) =>
+                EmployeeObjectGeofence.fromJson(Map<String, dynamic>.from(row)),
+          )
           .toList(growable: false),
     );
   }
@@ -305,10 +308,7 @@ class EmployeeWorkActionRepository {
   static Future<EmployeeWorkShift> finishShift(
     EmployeeLocationPoint point,
   ) async {
-    final data = await _invoke(
-      'finish_shift',
-      body: point.toJson(),
-    );
+    final data = await _invoke('finish_shift', body: point.toJson());
     final shift = _map(data['completed_shift']);
     if (shift.isEmpty) throw Exception('Смена не была завершена');
     return EmployeeWorkShift.fromJson(shift);
@@ -349,7 +349,10 @@ class EmployeeWorkActionRepository {
   static Future<void> startTask(String taskId) async {
     final cleanTaskId = taskId.trim();
     if (cleanTaskId.isEmpty) throw Exception('Задача не определена');
-    await _invoke('start_task', body: <String, dynamic>{'task_id': cleanTaskId});
+    await _invoke(
+      'start_task',
+      body: <String, dynamic>{'task_id': cleanTaskId},
+    );
   }
 
   static Future<void> uploadTaskPhotos({

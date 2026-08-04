@@ -29,43 +29,49 @@ void main() {
     expect(navigation, contains('MaterialType.transparency'));
   });
 
-  test('главная сотрудника остаётся функциональной с одной рабочей кнопкой', () {
-    final home = File(
-      'lib/features/employee/presentation/employee_home_screen.dart',
-    ).readAsStringSync();
-    final button = File(
-      'lib/features/employee/presentation/premium_round_work_button.dart',
-    ).readAsStringSync();
+  test(
+    'главная сотрудника остаётся функциональной с одной рабочей кнопкой',
+    () {
+      final home = File(
+        'lib/features/employee/presentation/employee_home_screen.dart',
+      ).readAsStringSync();
+      final button = File(
+        'lib/features/employee/presentation/premium_round_work_button.dart',
+      ).readAsStringSync();
 
-    expect(home, contains('await runtime.start(employeeId)'));
-    expect(home, contains('await runtime.finish()'));
-    expect(home, contains('PremiumRoundWorkButton('));
-    expect(home, isNot(contains('FilledButton.tonalIcon(')));
-    expect(
-      button,
-      contains("widget.active ? 'Завершить работу' : 'Начать работу'"),
-    );
-    expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
-    expect(button, contains('Duration(milliseconds: 4200)'));
-    expect(button, contains('Duration(milliseconds: 2400)'));
-    expect(button, contains('idlePulseController.repeat(reverse: true)'));
-    expect(button, contains('shazamWaveController.repeat('));
-    expect(button, contains('class _ShazamWaveRing'));
-    expect(button, contains('class _PremiumButtonBody'));
-    expect(button, contains('class _WorkEmblem'));
-    expect(button, contains('class _MatteTexturePainter'));
-    expect(button, contains('HapticFeedback.mediumImpact()'));
-    expect(button, contains('staggeredWave(waveValue, 0.56)'));
-    expect(button, contains('Curves.easeInOutSine'));
-    expect(button, contains('ui.ImageFilter.blur'));
-    expect(button, contains('Icons.construction_rounded'));
-    expect(button, isNot(contains('CircularProgressIndicator')));
-    expect(button, isNot(contains('play_arrow_rounded')));
-    expect(button, contains('AnimatedSlide('));
-    expect(button, contains('SweepGradient('));
-    expect(button, contains('AnimatedSwitcher('));
-    expect(home, isNot(contains('Нажмите кнопку перед началом рабочего дня.')));
-  });
+      expect(home, contains('await runtime.start(employeeId)'));
+      expect(home, contains('await runtime.finish()'));
+      expect(home, contains('PremiumRoundWorkButton('));
+      expect(home, isNot(contains('FilledButton.tonalIcon(')));
+      expect(
+        button,
+        contains("widget.active ? 'Завершить работу' : 'Начать работу'"),
+      );
+      expect(button, contains('dimension = width < 390 ? 244.0 : 272.0'));
+      expect(button, contains('Duration(milliseconds: 4200)'));
+      expect(button, contains('Duration(milliseconds: 2400)'));
+      expect(button, contains('idlePulseController.repeat(reverse: true)'));
+      expect(button, contains('shazamWaveController.repeat('));
+      expect(button, contains('class _ShazamWaveRing'));
+      expect(button, contains('class _PremiumButtonBody'));
+      expect(button, contains('class _WorkEmblem'));
+      expect(button, contains('class _MatteTexturePainter'));
+      expect(button, contains('HapticFeedback.mediumImpact()'));
+      expect(button, contains('staggeredWave(waveValue, 0.56)'));
+      expect(button, contains('Curves.easeInOutSine'));
+      expect(button, contains('ui.ImageFilter.blur'));
+      expect(button, contains('Icons.construction_rounded'));
+      expect(button, isNot(contains('CircularProgressIndicator')));
+      expect(button, isNot(contains('play_arrow_rounded')));
+      expect(button, contains('AnimatedSlide('));
+      expect(button, contains('SweepGradient('));
+      expect(button, contains('AnimatedSwitcher('));
+      expect(
+        home,
+        isNot(contains('Нажмите кнопку перед началом рабочего дня.')),
+      );
+    },
+  );
 
   test('профиль и отчёты используют карточки, табель — плавающее сохранение', () {
     final profile = File(

@@ -113,9 +113,7 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
                   ],
                 ),
                 borderRadius: BorderRadius.circular(19),
-                border: Border.all(
-                  color: effective.withValues(alpha: 0.18),
-                ),
+                border: Border.all(color: effective.withValues(alpha: 0.18)),
               ),
               child: Icon(icon, color: effective, size: 27),
             ),

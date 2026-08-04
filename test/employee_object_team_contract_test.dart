@@ -33,8 +33,14 @@ void main() {
     final function = File(functionPath).readAsStringSync();
 
     expect(function, contains('viewer.role === "employee"'));
-    expect(function, contains('const selectedEmployeeId = cleanText(input.employee_id'));
-    expect(function, contains('seedForManager(adminClient, viewer, selectedEmployeeId)'));
+    expect(
+      function,
+      contains('const selectedEmployeeId = cleanText(input.employee_id'),
+    );
+    expect(
+      function,
+      contains('seedForManager(adminClient, viewer, selectedEmployeeId)'),
+    );
     expect(function, contains('.eq("company_id", viewer.companyId)'));
   });
 
@@ -86,7 +92,12 @@ void main() {
     expect(wrapper, isNot(contains("label: 'Команда'")));
     expect(wrapper, isNot(contains('EmployeeTeamTabScreen')));
     expect(tab, contains('EmployeeWorkActionRepository.resolveSelection()'));
-    expect(tab, contains('EmployeeTeamRepository.fetch(employeeId: selection.employeeId)'));
+    expect(
+      tab,
+      contains(
+        'EmployeeTeamRepository.fetch(employeeId: selection.employeeId)',
+      ),
+    );
     expect(tab, isNot(contains('EmployeeRepository.fetchEmployees')));
   });
 
@@ -104,7 +115,12 @@ void main() {
     expect(tab, contains('Телефон не указан'));
     expect(tab, contains('Профиль подтверждён'));
     expect(tab, contains('Профиль не подтверждён'));
-    expect(tab, contains('Здесь показываются только активные сотрудники этого же объекта.'));
+    expect(
+      tab,
+      contains(
+        'Здесь показываются только активные сотрудники этого же объекта.',
+      ),
+    );
     expect(details, contains("title: 'Профиль сотрудника'"));
     expect(details, contains("label: const Text('Скопировать номер')"));
   });

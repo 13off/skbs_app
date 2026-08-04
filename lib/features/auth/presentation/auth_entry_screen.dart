@@ -67,7 +67,8 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 22),
                       Text(
                         'AppСтрой',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
                               color: AppAdaptivePalette.textPrimary,
                               fontWeight: FontWeight.w300,
                               letterSpacing: -1,
