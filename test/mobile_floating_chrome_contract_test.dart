@@ -3,14 +3,19 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('mobile timesheet save button floats directly above navigation', () {
+  test('mobile timesheet save button uses navigation-safe clearance', () {
     final view = File(
       'lib/screens/timesheet/timesheet_view.dart',
     ).readAsStringSync();
+    final tokens = File('lib/app/app_ui_tokens.dart').readAsStringSync();
 
     expect(view, contains("key: const ValueKey('timesheet-floating-save')"));
-    expect(view, contains('bottom: 14'));
-    expect(view, contains('EdgeInsets.fromLTRB(18, 18, 18, 118)'));
+    expect(view, contains('AppUi.floatingActionBottom(context)'));
+    expect(view, contains('AppUi.floatingActionListBottomPadding(context)'));
+    expect(view, contains('bottom: floatingBottom'));
+    expect(view, isNot(contains('bottom: 14')));
+    expect(tokens, contains('navigationTotalHeight(BuildContext context)'));
+    expect(tokens, contains('MediaQuery.viewPaddingOf(context).bottom'));
     expect(view, contains('PremiumActionButton('));
     expect(
       view,
