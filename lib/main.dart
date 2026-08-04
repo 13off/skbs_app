@@ -15,6 +15,7 @@ import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
+import 'widgets/app_stroy_brand.dart';
 
 const String _defaultSupabaseUrl =
     'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
@@ -171,7 +172,9 @@ class _SkbsAppState extends State<SkbsApp> {
             child: child ?? const SizedBox.shrink(),
           ),
           home: widget.startupError == null
-              ? const AppBrowserBackBridge(child: AuthGate())
+              ? const AppBrowserBackBridge(
+                  child: AppStroyLaunchGate(child: AuthGate()),
+                )
               : const _StartupErrorScreen(),
         );
       },
