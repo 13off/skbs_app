@@ -68,6 +68,8 @@ void main() {
     expect(desktop, contains('setVisibleShifts(visible, 0)'));
     expect(desktop, contains("'Сохранить изменения'"));
     expect(desktop, contains("'Сохранить табель'"));
+
+    // The desktop save card sits directly above the shared bottom navigation.
     expect(
       desktop,
       contains('bottom: AppUi.navigationTotalHeight(context)'),
