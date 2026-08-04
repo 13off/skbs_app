@@ -29,6 +29,54 @@ abstract final class AppUi {
   static const double cardPadding = 22;
   static const double desktopActionMaxWidth = 420;
 
+  // The main shell paints its body behind this navigation. Any fixed action
+  // inside a tab must use these same metrics instead of a hard-coded bottom.
+  static const double mobileBottomNavigationPanelHeight = 76;
+  static const double desktopBottomNavigationPanelHeight = 78;
+  static const double mobileBottomNavigationTopSpacing = 7;
+  static const double desktopBottomNavigationTopSpacing = 10;
+  static const double mobileBottomNavigationBottomSpacing = 11;
+  static const double desktopBottomNavigationBottomSpacing = 16;
+  static const double bottomActionNavigationGap = 8;
+  static const double bottomActionContentGap = 18;
+
+  static bool usesDesktopBottomNavigation(BuildContext context) {
+    return MediaQuery.sizeOf(context).width >= specialistDesktopBreakpoint;
+  }
+
+  static double bottomNavigationPanelHeight(BuildContext context) {
+    return usesDesktopBottomNavigation(context)
+        ? desktopBottomNavigationPanelHeight
+        : mobileBottomNavigationPanelHeight;
+  }
+
+  static double bottomNavigationTopSpacing(BuildContext context) {
+    return usesDesktopBottomNavigation(context)
+        ? desktopBottomNavigationTopSpacing
+        : mobileBottomNavigationTopSpacing;
+  }
+
+  static double bottomNavigationBottomSpacing(BuildContext context) {
+    return usesDesktopBottomNavigation(context)
+        ? desktopBottomNavigationBottomSpacing
+        : mobileBottomNavigationBottomSpacing;
+  }
+
+  static double bottomNavigationHeight(BuildContext context) {
+    return bottomNavigationPanelHeight(context) +
+        bottomNavigationTopSpacing(context) +
+        bottomNavigationBottomSpacing(context) +
+        MediaQuery.viewPaddingOf(context).bottom;
+  }
+
+  static double bottomActionOffset(BuildContext context) {
+    return bottomNavigationHeight(context) + bottomActionNavigationGap;
+  }
+
+  static double bottomActionContentPadding(BuildContext context) {
+    return bottomActionOffset(context) + controlHeight + bottomActionContentGap;
+  }
+
   static const double gap4 = 4;
   static const double gap8 = 8;
   static const double gap12 = 12;
