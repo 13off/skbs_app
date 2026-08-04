@@ -20,7 +20,7 @@ def main() -> None:
       guide,
       matches(
         RegExp(
-          r'coordinateBox\\s*\\.\\s*globalToLocal\\s*\\(\\s*globalTopLeft\\s*\\)',
+          r'coordinateBox\\s*\\.\\s*globalToLocal\\s*\\(\\s*globalTopLeft\\s*,?\\s*\\)',
         ),
       ),
     );""",
@@ -32,7 +32,7 @@ def main() -> None:
       guide,
       matches(
         RegExp(
-          r'coordinateBox\\s*\\.\\s*globalToLocal\\s*\\(\\s*globalBottomRight\\s*\\)',
+          r'coordinateBox\\s*\\.\\s*globalToLocal\\s*\\(\\s*globalBottomRight\\s*,?\\s*\\)',
         ),
       ),
     );""",
