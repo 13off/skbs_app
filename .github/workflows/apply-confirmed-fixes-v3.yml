@@ -1,0 +1,103 @@
+name: Apply confirmed acceptance fixes v3
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || 'agent/full-acceptance-test-2026-08-04' }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Apply confirmed fixes
+        run: python3 .github/scripts/apply_confirmed_acceptance_fixes.py
+
+      - name: Format and verify Dart
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib test third_party/file_saver/lib
+          dart format --output=none --set-exit-if-changed lib test third_party/file_saver/lib
+
+      - name: Check every Edge TypeScript file
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            deno check "$file"
+          done < <(find supabase/functions -type f -name '*.ts' -print0 | sort -z)
+
+      - name: Validate all SQL migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import re
+
+          versions = []
+          for path in sorted(Path('supabase/migrations').glob('*.sql')):
+              match = re.match(r'^(\d{14})_', path.name)
+              if not match:
+                  raise SystemExit(f'Invalid migration name: {path.name}')
+              text = path.read_text(encoding='utf-8', errors='replace')
+              if not text.strip():
+                  raise SystemExit(f'Empty migration: {path.name}')
+              if re.search(r'^(<<<<<<< .+|=======|>>>>>>> .+)$', text, re.MULTILINE):
+                  raise SystemExit(f'Conflict marker: {path.name}')
+              versions.append(match.group(1))
+          duplicates = [v for v, count in Counter(versions).items() if count > 1]
+          if duplicates:
+              raise SystemExit('Duplicate migration versions: ' + ', '.join(sorted(duplicates)))
+          print(f'Validated {len(versions)} unique migrations')
+          PY
+
+      - name: Analyze Flutter source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run all Flutter tests
+        run: flutter test --no-pub -j 1
+
+      - name: Build Web release
+        run: flutter build web --release --no-pub
+
+      - name: Remove one-time tooling and commit verified fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-confirmed-fixes.yml
+          rm -f .github/workflows/apply-confirmed-fixes-v2.yml
+          rm -f .github/workflows/apply-confirmed-fixes-v3.yml
+          rm -f .github/scripts/apply_confirmed_acceptance_fixes.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Исправить все результаты полного приёмочного теста'
+          git push origin HEAD:${{ github.event.pull_request.head.ref || 'agent/full-acceptance-test-2026-08-04' }}
