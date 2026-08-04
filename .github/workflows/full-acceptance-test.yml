@@ -38,8 +38,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git ls-files -z | python3 - <<'PY'
-          import sys
+          git ls-files -z > /tmp/tracked-files.bin
+          python3 - <<'PY'
+          from pathlib import Path
 
           forbidden_parts = {
               '.DS_Store', 'Thumbs.db', 'desktop.ini',
@@ -47,7 +48,7 @@ jobs:
           }
           forbidden_suffixes = ('.log', '.tmp', '.bak', '.swp', '~')
           bad = []
-          for raw in sys.stdin.buffer.read().split(b'\0'):
+          for raw in Path('/tmp/tracked-files.bin').read_bytes().split(b'\0'):
               if not raw:
                   continue
               path = raw.decode('utf-8', errors='replace')
@@ -58,6 +59,7 @@ jobs:
               print('Tracked garbage files:')
               print('\n'.join(sorted(bad)))
               raise SystemExit(1)
+          print('No tracked build or editor garbage found.')
           PY
 
       - name: Validate key JSON and PWA assets
@@ -68,15 +70,10 @@ jobs:
           import json
           from pathlib import Path
 
-          required = [
-              Path('web/manifest.json'),
-          ]
-          for path in required:
-              if not path.is_file():
-                  raise SystemExit(f'Missing required file: {path}')
-              json.loads(path.read_text(encoding='utf-8'))
-
-          manifest = json.loads(Path('web/manifest.json').read_text(encoding='utf-8'))
+          manifest_path = Path('web/manifest.json')
+          if not manifest_path.is_file():
+              raise SystemExit(f'Missing required file: {manifest_path}')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
           for key in ('name', 'short_name', 'start_url', 'display', 'icons'):
               if key not in manifest:
                   raise SystemExit(f'web/manifest.json misses {key}')
@@ -89,6 +86,7 @@ jobs:
               path = Path('web') / src.lstrip('/')
               if not path.is_file():
                   raise SystemExit(f'Missing PWA icon: {path}')
+          print(f'Validated {len(manifest["icons"])} PWA icons.')
           PY
 
       - name: Scan for committed private keys and service secrets
@@ -105,29 +103,57 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .artifacts/full-acceptance
-          {
-            echo '# Repository hygiene'
-            echo
-            echo "Tracked files: $(git ls-files | wc -l)"
-            echo "Dart files: $(git ls-files '*.dart' | wc -l)"
-            echo "Tests: $(git ls-files 'test/**' | wc -l)"
-            echo "TODO/FIXME markers: $(git grep -nE 'TODO|FIXME|HACK' -- '*.dart' '*.ts' '*.sql' 2>/dev/null | wc -l || true)"
-            echo
-            echo '## Largest tracked files'
-            git ls-files -z | xargs -0 -r du -b | sort -nr | head -n 30
-            echo
-            echo '## Dart files over 1200 lines'
-            while IFS= read -r file; do
-              lines=$(wc -l < "$file")
-              if [ "$lines" -gt 1200 ]; then printf '%7d %s\n' "$lines" "$file"; fi
-            done < <(git ls-files '*.dart') | sort -nr
-          } > .artifacts/full-acceptance/repository-hygiene.md
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          raw = subprocess.check_output(['git', 'ls-files', '-z'])
+          files = [Path(value.decode('utf-8')) for value in raw.split(b'\0') if value]
+          dart_files = [path for path in files if path.suffix == '.dart']
+          test_files = [path for path in files if path.parts and path.parts[0] == 'test']
+          largest = sorted(
+              ((path.stat().st_size, path.as_posix()) for path in files if path.is_file()),
+              reverse=True,
+          )[:30]
+          long_dart = []
+          for path in dart_files:
+              if not path.is_file():
+                  continue
+              lines = sum(1 for _ in path.open('rb'))
+              if lines > 1200:
+                  long_dart.append((lines, path.as_posix()))
+          long_dart.sort(reverse=True)
+
+          markers = subprocess.run(
+              ['git', 'grep', '-nE', 'TODO|FIXME|HACK', '--', '*.dart', '*.ts', '*.sql'],
+              text=True,
+              capture_output=True,
+              check=False,
+          ).stdout.splitlines()
+
+          lines = [
+              '# Repository hygiene', '',
+              f'Tracked files: {len(files)}', '',
+              f'Dart files: {len(dart_files)}', '',
+              f'Tests: {len(test_files)}', '',
+              f'TODO/FIXME/HACK markers: {len(markers)}', '',
+              '## Largest tracked files', '',
+          ]
+          lines.extend(f'{size:12d} {name}' for size, name in largest)
+          lines.extend(['', '## Dart files over 1200 lines', ''])
+          lines.extend(f'{count:7d} {name}' for count, name in long_dart)
+          Path('.artifacts/full-acceptance/repository-hygiene.md').write_text(
+              '\n'.join(lines) + '\n', encoding='utf-8'
+          )
+          PY
 
       - name: Upload repository report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: full-acceptance-repository
           path: .artifacts/full-acceptance
+          if-no-files-found: warn
           retention-days: 7
 
   flutter-core:
@@ -179,16 +205,13 @@ jobs:
               raise SystemExit('coverage/lcov.info was not created')
           found = hit = 0
           files = set()
-          current = None
           for line in path.read_text(encoding='utf-8', errors='replace').splitlines():
               if line.startswith('SF:'):
-                  current = line[3:]
-                  files.add(current)
+                  files.add(line[3:])
               elif line.startswith('DA:'):
-                  _, payload = line.split(':', 1)
-                  _, count = payload.split(',', 1)
+                  payload = line.split(':', 1)[1].split(',')
                   found += 1
-                  if int(count) > 0:
+                  if int(payload[1]) > 0:
                       hit += 1
           percent = 100.0 * hit / found if found else 0.0
           report = Path('.artifacts/full-acceptance/coverage-summary.md')
@@ -209,8 +232,24 @@ jobs:
           test -s build/web/index.html
           test -s build/web/main.dart.js
           test -s build/web/manifest.json
-          du -ah build/web | sort -rh | head -n 40 > .artifacts/full-acceptance/web-largest-files.txt
-          du -sb build/web > .artifacts/full-acceptance/web-total-size.txt
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('build/web')
+          files = sorted(
+              ((path.stat().st_size, path.relative_to(root).as_posix())
+               for path in root.rglob('*') if path.is_file()),
+              reverse=True,
+          )
+          Path('.artifacts/full-acceptance/web-largest-files.txt').write_text(
+              '\n'.join(f'{size:12d} {name}' for size, name in files[:40]) + '\n',
+              encoding='utf-8',
+          )
+          total = sum(size for size, _ in files)
+          Path('.artifacts/full-acceptance/web-total-size.txt').write_text(
+              f'{total}\n', encoding='utf-8'
+          )
+          PY
 
       - name: Install browser smoke dependencies
         run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
@@ -346,13 +385,14 @@ jobs:
       - name: Produce backend inventory
         shell: bash
         run: |
+          mkdir -p .artifacts/full-acceptance
           {
             echo '# Backend inventory'
             echo
             echo "Edge TypeScript files: $(find supabase/functions -type f -name '*.ts' | wc -l)"
             echo "SQL migrations: $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)"
-            echo "SECURITY DEFINER occurrences: $(grep -Ril 'security definer' supabase/migrations --include='*.sql' | wc -l)"
-            echo "RLS occurrences: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
+            echo "SECURITY DEFINER files: $(grep -Ril 'security definer' supabase/migrations --include='*.sql' | wc -l)"
+            echo "RLS files: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
           } > .artifacts/full-acceptance/backend-inventory.md
 
       - name: Upload backend evidence
