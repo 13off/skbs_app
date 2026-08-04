@@ -504,33 +504,43 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       child: Scaffold(
         extendBody: true,
         backgroundColor: Colors.transparent,
-        body: Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: handlePointerDown,
-          onPointerUp: handlePointerUp,
-          onPointerCancel: (_) => topTapStart = null,
-          child: PageView.builder(
-            controller: pageController,
-            itemCount: pageCount,
-            allowImplicitScrolling: false,
-            physics: supportsAppSwipes
-                ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
-                : const NeverScrollableScrollPhysics(),
-            onPageChanged: handlePageChanged,
-            itemBuilder: (context, index) {
-              return buildTabNavigator(index);
-            },
-          ),
-        ),
-        bottomNavigationBar: _PremiumBottomBar(
-          items: tabItems,
-          selectedIndex: activeIndex,
-          storageKey: widget.profile.isAdmin
-              ? 'admin'
-              : widget.profile.isForeman
-              ? 'foreman'
-              : 'worker',
-          onSelected: selectTab,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: handlePointerDown,
+              onPointerUp: handlePointerUp,
+              onPointerCancel: (_) => topTapStart = null,
+              child: PageView.builder(
+                controller: pageController,
+                itemCount: pageCount,
+                allowImplicitScrolling: false,
+                physics: supportsAppSwipes
+                    ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
+                    : const NeverScrollableScrollPhysics(),
+                onPageChanged: handlePageChanged,
+                itemBuilder: (context, index) {
+                  return buildTabNavigator(index);
+                },
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _PremiumBottomBar(
+                items: tabItems,
+                selectedIndex: activeIndex,
+                storageKey: widget.profile.isAdmin
+                    ? 'admin'
+                    : widget.profile.isForeman
+                    ? 'foreman'
+                    : 'worker',
+                onSelected: selectTab,
+              ),
+            ),
+          ],
         ),
       ),
     );
