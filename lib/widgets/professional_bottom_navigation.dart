@@ -123,11 +123,11 @@ class _ProfessionalBottomNavigationState
     final dark = theme.brightness == Brightness.dark;
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final isDesktop = AppUi.usesDesktopNavigation(context);
     final panelHeight = AppUi.navigationPanelHeight(context);
     final topSpacing = AppUi.navigationTopSpacing(context);
     final bottomSpacing = AppUi.navigationBottomSpacing(context);
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return SizedBox(
       key: const ValueKey('professional-bottom-navigation'),
@@ -250,7 +250,7 @@ class _ProfessionalBottomNavigationState
                                       _NavigationLabel(
                                         item: item,
                                         selected: selected,
-                                        fontSize: 11,
+                                        fontSize: 10.5,
                                       ),
                                     ],
                                   ),
@@ -284,18 +284,16 @@ class _NavigationIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AnimatedSwitcher(
-      duration: AppMotion.fast,
-      switchInCurve: AppMotion.enterCurve,
-      switchOutCurve: AppMotion.exitCurve,
-      transitionBuilder: (child, animation) {
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.78, end: 1).animate(animation),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
+      duration: AppMotion.regular,
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeOutCubic,
+      transitionBuilder: (child, animation) => ScaleTransition(
+        scale: Tween<double>(begin: 0.78, end: 1).animate(animation),
+        child: FadeTransition(opacity: animation, child: child),
+      ),
       child: Icon(
         selected ? item.selectedIcon : item.icon,
-        key: ValueKey<bool>(selected),
+        key: ValueKey('${item.label}-$selected'),
         size: size,
         color: selected ? scheme.primary : scheme.onSurfaceVariant,
       ),
@@ -316,21 +314,24 @@ class _NavigationLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return AnimatedDefaultTextStyle(
       duration: AppMotion.regular,
       curve: AppMotion.interactionCurve,
-      style: TextStyle(
-        color: selected ? scheme.primary : scheme.onSurfaceVariant,
-        fontSize: fontSize,
-        height: 1,
-        fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-      ),
+      style:
+          theme.textTheme.labelSmall?.copyWith(
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+            fontSize: fontSize,
+            letterSpacing: -0.2,
+          ) ??
+          const TextStyle(),
       child: Text(
         item.label,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
+        overflow: TextOverflow.fade,
+        softWrap: false,
       ),
     );
   }
