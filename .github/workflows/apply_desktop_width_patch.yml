@@ -4,15 +4,21 @@ on:
   push:
     branches:
       - fix/unify-bottom-navigation-metrics-20260804
-    paths:
-      - .github/workflows/apply_desktop_width_patch.yml
+  pull_request:
+    branches:
+      - main
+    types:
+      - synchronize
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      (github.ref_name == 'fix/unify-bottom-navigation-metrics-20260804' ||
+      github.head_ref == 'fix/unify-bottom-navigation-metrics-20260804')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
