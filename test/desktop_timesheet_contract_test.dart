@@ -68,6 +68,11 @@ void main() {
     expect(desktop, contains('setVisibleShifts(visible, 0)'));
     expect(desktop, contains("'Сохранить изменения'"));
     expect(desktop, contains("'Сохранить табель'"));
+    expect(
+      desktop,
+      contains('bottom: AppUi.navigationTotalHeight(context)'),
+    );
+    expect(desktop, isNot(contains('bottom: 112')));
 
     expect(adaptive, contains("label: const Text('Скачать табель')"));
     expect(download, contains("label: Text('Месяцы')"));

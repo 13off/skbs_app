@@ -849,7 +849,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             Positioned(
               left: 28,
               right: 28,
-              bottom: 112,
+              bottom: AppUi.navigationTotalHeight(context),
               child: SafeArea(
                 top: false,
                 child: Center(

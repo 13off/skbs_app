@@ -27,9 +27,13 @@ void main() {
     expect(navigation, contains('MaterialType.transparency'));
     expect(
       navigation,
+      contains("ValueKey('professional-bottom-navigation-panel')"),
+    );
+    expect(
+      navigation,
       contains("ValueKey('professional-bottom-navigation-items')"),
     );
-    expect(navigation, isNot(contains('LiquidGlassSurface(')));
+    expect(navigation, contains('LiquidGlassSurface('));
     expect(navigation, isNot(contains('child: Align(')));
   });
 }
