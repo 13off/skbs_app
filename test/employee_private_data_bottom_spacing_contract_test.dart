@@ -18,6 +18,7 @@ void main() {
       contains('EdgeInsets.fromLTRB(18, 18, 18, bottomSpacing)'),
     );
     expect(source, contains("'Сохранить личные данные'"));
+    expect(source, contains('height: 54'));
     expect(source, isNot(contains('padding: const EdgeInsets.all(18)')));
   });
 }
