@@ -77,13 +77,19 @@ void main() {
     expect(archiveV3, contains('SafeArea('));
 
     // The milestones FAB belongs to its own pushed Scaffold, not to the
-    // extendBody tab shell, and its list reserves space for the control.
+    // root tab shell, and its list reserves space for the control.
     expect(milestones, contains('leading: const BackButton()'));
     expect(milestones, contains('floatingActionButton:'));
     expect(milestones, contains('EdgeInsets.fromLTRB(18, 18, 18, 120)'));
 
-    // This shell does not paint body content behind its navigation.
-    expect(persistentShell, contains('bottomNavigationBar:'));
-    expect(persistentShell, isNot(contains('extendBody: true')));
+    // The root specialist shell now paints its navigation above page content,
+    // so Scaffold cannot create a separate dark strip behind the panel.
+    expect(persistentShell, contains('extendBody: true'));
+    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
+    expect(persistentShell, contains('child: ProfessionalBottomNavigation('));
+    expect(
+      persistentShell,
+      isNot(contains('bottomNavigationBar: ProfessionalBottomNavigation(')),
+    );
   });
 }
