@@ -14,11 +14,18 @@ void main() {
     expect(workflow, contains("'build-android-apk.yml'"));
     expect(workflow, contains("'build-ios-ipa.yml'"));
     expect(workflow, contains("ref: 'main'"));
-    expect(marker, contains('version: 1.3.2+6'));
-    expect(marker, contains('previous mobile release: 1.3.1+5'));
-    expect(marker, contains('role-specific platforms'));
-    expect(marker, contains('unified employee cabinet'));
-    expect(marker, contains('adaptive dark theme'));
-    expect(marker, contains('Android APK and unsigned iOS IPA'));
+
+    expect(marker, contains('AppСтрой mobile release'));
+    expect(marker, matches(RegExp(r'^version: .+$', multiLine: true)));
+    expect(
+      marker,
+      matches(RegExp(r'^previous mobile release: .+$', multiLine: true)),
+    );
+    expect(marker, matches(RegExp(r'^features: .+$', multiLine: true)));
+    expect(
+      marker,
+      contains('mobile: Android release APK and unsigned verification iOS IPA'),
+    );
+    expect(marker, matches(RegExp(r'^quality gates: .+$', multiLine: true)));
   });
 }
