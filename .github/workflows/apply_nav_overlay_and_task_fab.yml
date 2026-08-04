@@ -16,12 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: fix/nav-overlay-and-task-fab-20260804
           fetch-depth: 0
 
-      - name: Create branch and apply patch
+      - name: Apply patch to prepared branch
         shell: bash
         run: |
-          git checkout -b fix/nav-overlay-and-task-fab-20260804
           python3 - <<'PY'
           from pathlib import Path
 
@@ -33,8 +33,6 @@ jobs:
                   raise SystemExit(f'{path}: expected one occurrence, found {count}: {old!r}')
               file.write_text(text.replace(old, new, 1))
 
-          # Keep the glass translucent, but bright enough that it never reads as
-          # a black slab over an empty dark page.
           nav = Path('lib/widgets/professional_bottom_navigation.dart')
           text = nav.read_text()
           replacements = {
@@ -50,8 +48,6 @@ jobs:
               text = text.replace(old, new, 1)
           nav.write_text(text)
 
-          # Do not let Scaffold reserve/paint a bottom bar strip. The navigation
-          # floats above the already-rendered page content instead.
           replace_once(
               'lib/features/shell/presentation/premium_main_screen.dart',
               "        body: Listener(\n          behavior: HitTestBehavior.translucent,\n          onPointerDown: handlePointerDown,\n          onPointerUp: handlePointerUp,\n          onPointerCancel: (_) => topTapStart = null,\n          child: PageView.builder(\n            controller: pageController,\n            itemCount: pageCount,\n            allowImplicitScrolling: false,\n            physics: supportsAppSwipes\n                ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)\n                : const NeverScrollableScrollPhysics(),\n            onPageChanged: handlePageChanged,\n            itemBuilder: (context, index) {\n              return buildTabNavigator(index);\n            },\n          ),\n        ),\n        bottomNavigationBar: _PremiumBottomBar(\n          items: tabItems,\n          selectedIndex: activeIndex,\n          storageKey: widget.profile.isAdmin\n              ? 'admin'\n              : widget.profile.isForeman\n              ? 'foreman'\n              : 'worker',\n          onSelected: selectTab,\n        ),",
@@ -64,12 +60,10 @@ jobs:
               "      child: Scaffold(\n        extendBody: true,\n        backgroundColor: Colors.transparent,\n        body: Stack(\n          fit: StackFit.expand,\n          children: [\n            IndexedStack(\n              index: activeIndex,\n              children: List<Widget>.generate(\n                widget.controller.pageCount,\n                (index) {\n                  final child = _tabNavigators[index];\n                  if (child == null) return const SizedBox.shrink();\n                  return TickerMode(\n                    enabled: index == activeIndex,\n                    child: child,\n                  );\n                },\n              ),\n            ),\n            Positioned(\n              left: 0,\n              right: 0,\n              bottom: 0,\n              child: ProfessionalBottomNavigation(\n                items: widget.items,\n                selectedIndex: activeIndex,\n                storageKey: widget.navigationStorageKey,\n                onSelected: widget.controller.select,\n              ),\n            ),\n          ],\n        ),\n      ),",
           )
 
-          # Make Add task a fixed floating action, mirroring the timesheet save
-          # action. It stays in one place while the task list scrolls underneath.
           tasks = Path('lib/screens/mobile_tasks_screen.dart')
           text = tasks.read_text()
           import_marker = "import '../app/app_adaptive_palette.dart';\n"
-          if import_marker not in text:
+          if text.count(import_marker) != 1:
               raise SystemExit('Missing AppAdaptivePalette import marker')
           text = text.replace(
               import_marker,
@@ -220,8 +214,6 @@ void main() {
   });
 }
 """)
-
-          Path('.github/workflows/apply_nav_overlay_and_task_fab.yml').unlink()
           PY
 
           git config user.name "github-actions[bot]"
