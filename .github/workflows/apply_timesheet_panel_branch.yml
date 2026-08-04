@@ -1,0 +1,66 @@
+name: Apply timesheet panel branch patch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply_timesheet_panel_branch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/timesheet-bottom-panel-20260804
+          fetch-depth: 0
+
+      - name: Apply exact patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one occurrence, found {count}: {old!r}')
+              file.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              'lib/screens/desktop_timesheet_screen.dart',
+              '              bottom: 112,',
+              '              bottom: AppUi.navigationTotalHeight(context),',
+          )
+
+          replace_once(
+              'test/shell_visibility_contract_test.dart',
+              "    expect(\n      navigation,\n      contains(\"ValueKey('professional-bottom-navigation-items')\"),\n    );\n    expect(navigation, isNot(contains('LiquidGlassSurface(')));",
+              "    expect(\n      navigation,\n      contains(\"ValueKey('professional-bottom-navigation-panel')\"),\n    );\n    expect(\n      navigation,\n      contains(\"ValueKey('professional-bottom-navigation-items')\"),\n    );\n    expect(navigation, contains('LiquidGlassSurface('));",
+          )
+
+          replace_once(
+              'test/desktop_timesheet_contract_test.dart',
+              "    expect(desktop, contains(\"'Сохранить табель'\"));",
+              "    expect(desktop, contains(\"'Сохранить табель'\"));\n    expect(\n      desktop,\n      contains('bottom: AppUi.navigationTotalHeight(context)'),\n    );\n    expect(desktop, isNot(contains('bottom: 112')));",
+          )
+
+          stale = Path('.github/workflows/apply_timesheet_bottom_panel_patch.yml')
+          if stale.exists():
+              stale.unlink()
+          PY
+
+      - name: Commit branch patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Сделать нижнюю панель плотнее и опустить сохранение на ПК"
+          git push origin HEAD:fix/timesheet-bottom-panel-20260804
