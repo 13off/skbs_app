@@ -1,4 +1,3 @@
-// Temporary deployment trigger for restoring the old logo and animation.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
