@@ -44,12 +44,17 @@ void main() {
     expect(viewport, isNot(contains("tooltip: 'Уменьшить масштаб'")));
   });
 
-  test('candidate CRM uses full width without stretching every page', () {
+  test('all desktop AppPage workspaces use the available width', () {
     final tokens = File('lib/app/app_ui_tokens.dart').readAsStringSync();
     final page = File('lib/widgets/app_page.dart').readAsStringSync();
 
     expect(tokens, contains('pageContentWidth = 1220'));
-    expect(page, contains("isDesktop && title == 'Кандидаты'"));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 36'));
+    expect(page, isNot(contains("title == 'Кандидаты'")));
+    expect(
+      page,
+      contains('final effectiveMaxContentWidth = isDesktop'),
+    );
     expect(page, contains('? double.infinity'));
     expect(
       page,
