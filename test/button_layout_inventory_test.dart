@@ -12,26 +12,44 @@ void main() {
       ..sort((a, b) => a.path.compareTo(b.path));
 
     final findings = <String>[];
-    const signals = <String>[
+    const directSignals = <String>[
       'bottomNavigationBar:',
       'floatingActionButton:',
-      'Positioned(',
-      'PositionedDirectional(',
-      'SafeArea(',
       'persistentFooterButtons:',
       'bottomSheet:',
+      'Alignment.bottomCenter',
+      'Alignment.bottomLeft',
+      'Alignment.bottomRight',
+    ];
+    const interactiveSignals = <String>[
+      'Button(',
+      'IconButton(',
+      'InkWell(',
+      'GestureDetector(',
+      'PremiumPressable(',
+      'onTap:',
+      'onPressed:',
     ];
 
     for (final file in files) {
       final lines = file.readAsLinesSync();
       for (var index = 0; index < lines.length; index++) {
         final line = lines[index];
-        if (!signals.any(line.contains)) continue;
+        final direct = directSignals.any(line.contains);
+        final positioned = line.contains('Positioned(') ||
+            line.contains('PositionedDirectional(');
+        if (!direct && !positioned) continue;
 
-        final start = index > 1 ? index - 1 : 0;
-        final end = index + 8 < lines.length ? index + 8 : lines.length - 1;
+        final end = index + 28 < lines.length ? index + 28 : lines.length - 1;
+        final window = lines.sublist(index, end + 1).join('\n');
+        final bottomInteractive = positioned &&
+            window.contains('bottom:') &&
+            interactiveSignals.any(window.contains);
+        if (!direct && !bottomInteractive) continue;
+
+        final snippetEnd = index + 12 < lines.length ? index + 12 : lines.length - 1;
         final snippet = lines
-            .sublist(start, end + 1)
+            .sublist(index, snippetEnd + 1)
             .map((value) => value.trim())
             .join(' ')
             .replaceAll(RegExp(r'\s+'), ' ');
@@ -39,15 +57,6 @@ void main() {
       }
     }
 
-    // ignore: avoid_print
-    print('BUTTON_LAYOUT_INVENTORY_START');
-    for (final finding in findings) {
-      // ignore: avoid_print
-      print(finding);
-    }
-    // ignore: avoid_print
-    print('BUTTON_LAYOUT_INVENTORY_END (${findings.length})');
-
-    expect(findings, isNotEmpty);
+    fail('BUTTON_LAYOUT_INVENTORY (${findings.length})\n${findings.join('\n')}');
   });
 }
