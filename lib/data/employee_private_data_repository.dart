@@ -104,6 +104,7 @@ class EmployeePrivateDataRepository {
     return _fetchMap(
       key: ids.join('|'),
       forceRefresh: forceRefresh,
+      requestedEmployeeIds: ids,
       loader: () => _loadMapByEmployeeIds(ids),
     );
   }
@@ -112,6 +113,7 @@ class EmployeePrivateDataRepository {
     required String key,
     required bool forceRefresh,
     required Future<Map<String, EmployeePrivateData>> Function() loader,
+    List<String>? requestedEmployeeIds,
   }) async {
     final cached = _mapCache[key];
     if (!forceRefresh && cached != null && _isFresh(cached.createdAt)) {
@@ -125,15 +127,45 @@ class EmployeePrivateDataRepository {
     _mapRequests[key] = request;
     try {
       final result = await request;
+      final createdAt = DateTime.now();
       _mapCache[key] = _PrivateDataMapEntry(
         value: _copyMap(result),
-        createdAt: DateTime.now(),
+        createdAt: createdAt,
+      );
+      _warmEmployeeCache(
+        result,
+        createdAt: createdAt,
+        requestedEmployeeIds: requestedEmployeeIds,
       );
       return _copyMap(result);
     } finally {
       if (identical(_mapRequests[key], request)) {
         _mapRequests.remove(key);
       }
+    }
+  }
+
+  static void _warmEmployeeCache(
+    Map<String, EmployeePrivateData> values, {
+    required DateTime createdAt,
+    List<String>? requestedEmployeeIds,
+  }) {
+    final ids = requestedEmployeeIds;
+    if (ids != null) {
+      for (final employeeId in ids) {
+        _employeeCache[employeeId] = _PrivateDataEntry(
+          value: values[employeeId],
+          createdAt: createdAt,
+        );
+      }
+      return;
+    }
+
+    for (final entry in values.entries) {
+      _employeeCache[entry.key] = _PrivateDataEntry(
+        value: entry.value,
+        createdAt: createdAt,
+      );
     }
   }
 
