@@ -123,16 +123,15 @@ class _ProfessionalBottomNavigationState
     final dark = theme.brightness == Brightness.dark;
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = AppUi.usesDesktopBottomNavigation(context);
+    final panelHeight = AppUi.bottomNavigationPanelHeight(context);
+    final topSpacing = AppUi.bottomNavigationTopSpacing(context);
+    final bottomSpacing = AppUi.bottomNavigationBottomSpacing(context);
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    final isDesktop = screenWidth >= AppUi.specialistDesktopBreakpoint;
-    final panelHeight = isDesktop ? 78.0 : 76.0;
-    final topSpacing = isDesktop ? 10.0 : 7.0;
-    final bottomSpacing = isDesktop ? 16.0 : 11.0;
 
     return SizedBox(
       key: const ValueKey('professional-bottom-navigation'),
-      height: panelHeight + topSpacing + bottomSpacing + bottomInset,
+      height: AppUi.bottomNavigationHeight(context),
       child: Material(
         type: MaterialType.transparency,
         child: Padding(
@@ -251,7 +250,7 @@ class _ProfessionalBottomNavigationState
                                       _NavigationLabel(
                                         item: item,
                                         selected: selected,
-                                        fontSize: 10.5,
+                                        fontSize: 11,
                                       ),
                                     ],
                                   ),
@@ -285,16 +284,18 @@ class _NavigationIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AnimatedSwitcher(
-      duration: AppMotion.regular,
-      switchInCurve: Curves.easeOutBack,
-      switchOutCurve: Curves.easeOutCubic,
-      transitionBuilder: (child, animation) => ScaleTransition(
-        scale: Tween<double>(begin: 0.78, end: 1).animate(animation),
-        child: FadeTransition(opacity: animation, child: child),
-      ),
+      duration: AppMotion.fast,
+      switchInCurve: AppMotion.enterCurve,
+      switchOutCurve: AppMotion.exitCurve,
+      transitionBuilder: (child, animation) {
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.78, end: 1).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
       child: Icon(
         selected ? item.selectedIcon : item.icon,
-        key: ValueKey('${item.label}-$selected'),
+        key: ValueKey<bool>(selected),
         size: size,
         color: selected ? scheme.primary : scheme.onSurfaceVariant,
       ),
@@ -315,24 +316,21 @@ class _NavigationLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     return AnimatedDefaultTextStyle(
       duration: AppMotion.regular,
       curve: AppMotion.interactionCurve,
-      style:
-          theme.textTheme.labelSmall?.copyWith(
-            color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
-            fontSize: fontSize,
-            letterSpacing: -0.2,
-          ) ??
-          const TextStyle(),
+      style: TextStyle(
+        color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        fontSize: fontSize,
+        height: 1,
+        fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+      ),
       child: Text(
         item.label,
         maxLines: 1,
-        overflow: TextOverflow.fade,
-        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
       ),
     );
   }
