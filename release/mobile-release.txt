@@ -1,8 +1,9 @@
 AppСтрой mobile release
 version: 1.3.2+6
-previous mobile release: 1.3.1+5
-release date: 2026-07-29
-features: role-specific platforms and what is new, unified employee cabinet, report center and AI workday review, adaptive dark theme, Liquid Glass, smoother navigation and scrolling
-backend: unchanged by this release marker
-mobile: Android APK and unsigned iOS IPA
-what's new: shown once per user and role after sign-in
+previous mobile release: 1.3.2+6
+release date: 2026-08-04
+source commit: cf07e81bbce12b62b63754b93dd00df1590f5323
+features: full acceptance fixes, canonical formatting, corrected Edge Function typing, unique SQL migration versions, file_saver Web compatibility, stable contract tests
+backend: release uses the tested main branch without business-logic changes
+mobile: Android release APK and unsigned verification iOS IPA
+quality gates: analyzer, 741 Flutter tests, Web browser smoke, Android debug/release, 45 Edge Functions and 141 SQL migrations passed
