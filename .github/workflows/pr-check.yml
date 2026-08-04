@@ -168,7 +168,7 @@ jobs:
             git diff --name-only "$BASE_SHA"...HEAD -- supabase/migrations \
               | grep -E '\.sql$' > /tmp/migration-files.txt || true
           else
-            find supabase/migrations -type f -name '*.ts' -print \
+            find supabase/migrations -type f -name '*.sql' -print \
               > /tmp/migration-files.txt
           fi
 
