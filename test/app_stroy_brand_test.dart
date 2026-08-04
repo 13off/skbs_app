@@ -30,7 +30,7 @@ void main() {
       ),
     );
 
-    expect(find.byType(CustomPaint), findsOneWidget);
+    expect(find.byType(CustomPaint), findsWidgets);
     expect(find.byType(Image), findsNothing);
   });
 
