@@ -67,7 +67,12 @@ jobs:
               except Exception as exc:
                   errors.append(f'Invalid web/manifest.json: {exc}')
 
-          private_key = re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----')
+          pem_block = re.compile(
+              r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\s+'
+              r'[A-Za-z0-9+/=\r\n]{80,}'
+              r'-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',
+              re.MULTILINE,
+          )
           jwt_assignment = re.compile(r'(?i)(?:service[_-]?role|secret[_-]?key)\s*[:=]\s*["\'](eyJ[A-Za-z0-9._-]{40,})["\']')
           secret_hits = []
           for path in files:
@@ -76,7 +81,7 @@ jobs:
               if path.suffix.lower() not in {'.dart', '.ts', '.js', '.json', '.yaml', '.yml', '.sql', '.env', '.txt'}:
                   continue
               text = path.read_text(encoding='utf-8', errors='ignore')
-              if private_key.search(text) or jwt_assignment.search(text):
+              if pem_block.search(text) or jwt_assignment.search(text):
                   secret_hits.append(path.as_posix())
           if secret_hits:
               errors.append('Possible committed credentials:\n' + '\n'.join(sorted(secret_hits)))
