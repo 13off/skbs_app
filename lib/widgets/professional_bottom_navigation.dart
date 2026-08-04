@@ -123,30 +123,27 @@ class _ProfessionalBottomNavigationState
     final dark = theme.brightness == Brightness.dark;
     final animationsDisabled =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final screenWidth = MediaQuery.sizeOf(context).width;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    final isDesktop = screenWidth >= AppUi.specialistDesktopBreakpoint;
-    final panelHeight = isDesktop ? 78.0 : 76.0;
-    final topSpacing = isDesktop ? 10.0 : 7.0;
-    final bottomSpacing = isDesktop ? 16.0 : 11.0;
+    final isDesktop = AppUi.usesDesktopNavigation(context);
+    final panelHeight = AppUi.navigationPanelHeight(context);
+    final topSpacing = AppUi.navigationTopSpacing(context);
+    final bottomSpacing = AppUi.navigationBottomSpacing(context);
 
     return SizedBox(
       key: const ValueKey('professional-bottom-navigation'),
-      height: panelHeight + topSpacing + bottomSpacing + bottomInset,
+      height: AppUi.navigationTotalHeight(context),
       child: Material(
         type: MaterialType.transparency,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            isDesktop ? 30 : 12,
+            isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
             topSpacing,
-            isDesktop ? 30 : 12,
+            isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
             bottomSpacing + bottomInset,
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isDesktop ? 900 : double.infinity,
-              ),
+              constraints: const BoxConstraints(maxWidth: double.infinity),
               child: SizedBox(
                 key: const ValueKey('professional-bottom-navigation-items'),
                 height: panelHeight - (isDesktop ? 16 : 14),

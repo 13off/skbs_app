@@ -10,7 +10,7 @@ abstract final class AppUi {
   static const double specialistDesktopBreakpoint = 820;
 
   static const double pageMobileHorizontalPadding = 16;
-  static const double pageDesktopHorizontalPadding = 30;
+  static const double pageDesktopHorizontalPadding = 36;
   static const double pageMobileTopPadding = 14;
   static const double pageDesktopTopPadding = 24;
   static const double pageBottomPadding = 132;

@@ -26,9 +26,15 @@ void main() {
       contains('static const double desktopBreakpoint = AppUi.desktopBreakpoint;'),
     );
     expect(source, contains('this.maxContentWidth = AppUi.pageContentWidth'));
-    expect(source, contains('BoxConstraints(maxWidth: maxContentWidth)'));
+    expect(source, contains('final effectiveMaxContentWidth = isDesktop'));
+    expect(source, contains('? double.infinity'));
+    expect(
+      source,
+      contains('BoxConstraints(maxWidth: effectiveMaxContentWidth)'),
+    );
     expect(tokens, contains('static const double desktopBreakpoint = 1050;'));
     expect(tokens, contains('static const double pageContentWidth = 1220;'));
+    expect(tokens, contains('static const double pageDesktopHorizontalPadding = 36;'));
     expect(source, contains('Navigator.maybeOf(context)'));
     expect(source, contains('navigator?.canPop() ?? false'));
     expect(source, contains('showBackButton: effectiveShowBackButton'));

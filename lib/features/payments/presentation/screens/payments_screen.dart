@@ -1026,7 +1026,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1360),
+        constraints: const BoxConstraints(maxWidth: double.infinity),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

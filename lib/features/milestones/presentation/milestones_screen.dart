@@ -294,7 +294,7 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
               children: [
                 Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1060),
+                    constraints: const BoxConstraints(maxWidth: double.infinity),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

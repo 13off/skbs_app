@@ -18,7 +18,10 @@ void main() {
     expect(adaptive, contains('desktopBreakpoint = 1050'));
     expect(adaptive, contains('kIsWeb && constraints.maxWidth'));
     expect(adaptive, contains('return HomeScreen('));
-    expect(adaptive, contains('BoxConstraints(maxWidth: 1240)'));
+    expect(
+      adaptive,
+      contains('BoxConstraints(maxWidth: double.infinity)'),
+    );
     expect(adaptive, contains('AppDataSync.changes.listen'));
     expect(adaptive, contains('EmployeeRepository.fetchEmployees'));
     expect(adaptive, contains('TaskRepository.fetchTasksForDate'));

@@ -586,7 +586,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                     children: [
                       Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 980),
+                          constraints: const BoxConstraints(maxWidth: double.infinity),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [

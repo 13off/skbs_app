@@ -801,7 +801,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 children: [
                   Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1320),
+                      constraints: const BoxConstraints(maxWidth: double.infinity),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

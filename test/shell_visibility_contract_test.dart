@@ -16,8 +16,14 @@ void main() {
     expect(source, contains('return buildRootPage(index, selectedObjectName);'));
     expect(source, contains('return ProfessionalBottomNavigation('));
 
-    expect(navigation, contains("key: const ValueKey('professional-bottom-navigation')"));
-    expect(navigation, contains('panelHeight + topSpacing + bottomSpacing + bottomInset'));
+    expect(
+      navigation,
+      contains("key: const ValueKey('professional-bottom-navigation')"),
+    );
+    expect(
+      navigation,
+      contains('height: AppUi.navigationTotalHeight(context)'),
+    );
     expect(navigation, contains('MaterialType.transparency'));
     expect(
       navigation,
