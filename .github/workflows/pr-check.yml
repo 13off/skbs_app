@@ -41,6 +41,22 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
+      - name: Install icon renderer
+        run: |
+          sudo apt-get update >/dev/null
+          sudo apt-get install -y librsvg2-bin >/dev/null
+
+      - name: Generate theme-aware web icons
+        shell: bash
+        run: |
+          mkdir -p web/icons
+          rsvg-convert -w 192 -h 192 web/icons/app_icon_matte_v3.svg -o web/icons/AppStroy-192-v3.png
+          rsvg-convert -w 512 -h 512 web/icons/app_icon_matte_v3.svg -o web/icons/AppStroy-512-v3.png
+          rsvg-convert -w 64 -h 64 web/icons/app_icon_matte_v3.svg -o web/favicon-v3.png
+          rsvg-convert -w 192 -h 192 web/icons/app_icon_matte_dark_v3.svg -o web/icons/AppStroy-dark-192-v3.png
+          rsvg-convert -w 512 -h 512 web/icons/app_icon_matte_dark_v3.svg -o web/icons/AppStroy-dark-512-v3.png
+          rsvg-convert -w 64 -h 64 web/icons/app_icon_matte_dark_v3.svg -o web/favicon-dark-v3.png
+
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile >/dev/null
 
