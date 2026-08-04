@@ -9,6 +9,31 @@ import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
+const _darkNavigationPanelTint = Color(0xFF232C35);
+const _lightNavigationPanelTint = Color(0xFFF1F4F7);
+
+const _darkNavigationPanelGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [
+    Color(0xF7353B42),
+    Color(0xF72C3640),
+    Color(0xF711171E),
+  ],
+  stops: [0, 0.55, 1],
+);
+
+const _lightNavigationPanelGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [
+    Color(0xFAFFFFFF),
+    Color(0xFAF4F7FA),
+    Color(0xFAE9EEF4),
+  ],
+  stops: [0, 0.55, 1],
+);
+
 class ProfessionalBottomNavigationItem {
   final String label;
   final IconData icon;
@@ -149,6 +174,12 @@ class _ProfessionalBottomNavigationState
                 key: const ValueKey('professional-bottom-navigation-panel'),
                 blur: true,
                 blurSigma: isDesktop ? 20 : 16,
+                tint: dark
+                    ? _darkNavigationPanelTint
+                    : _lightNavigationPanelTint,
+                gradient: dark
+                    ? _darkNavigationPanelGradient
+                    : _lightNavigationPanelGradient,
                 radius: isDesktop ? 34 : 29,
                 padding: EdgeInsets.all(isDesktop ? 8 : 7),
                 child: SizedBox(
