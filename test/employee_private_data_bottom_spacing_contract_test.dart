@@ -1,3 +1,4 @@
+// Runtime branding is intentionally kept on the original logo and animation.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
