@@ -1,0 +1,411 @@
+name: Full Acceptance Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-full-acceptance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-contracts:
+    name: Repository contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Detect merge-conflict markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '^(<<<<<<< .+|=======|>>>>>>> .+)$' -- ':!pubspec.lock'; then
+            echo 'Merge conflict markers found.'
+            exit 1
+          fi
+
+      - name: Reject tracked build and editor garbage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files -z | python3 - <<'PY'
+          import sys
+
+          forbidden_parts = {
+              '.DS_Store', 'Thumbs.db', 'desktop.ini',
+              '.idea', '.vscode', '.dart_tool', 'build',
+          }
+          forbidden_suffixes = ('.log', '.tmp', '.bak', '.swp', '~')
+          bad = []
+          for raw in sys.stdin.buffer.read().split(b'\0'):
+              if not raw:
+                  continue
+              path = raw.decode('utf-8', errors='replace')
+              parts = set(path.split('/'))
+              if parts & forbidden_parts or path.endswith(forbidden_suffixes):
+                  bad.append(path)
+          if bad:
+              print('Tracked garbage files:')
+              print('\n'.join(sorted(bad)))
+              raise SystemExit(1)
+          PY
+
+      - name: Validate key JSON and PWA assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          required = [
+              Path('web/manifest.json'),
+          ]
+          for path in required:
+              if not path.is_file():
+                  raise SystemExit(f'Missing required file: {path}')
+              json.loads(path.read_text(encoding='utf-8'))
+
+          manifest = json.loads(Path('web/manifest.json').read_text(encoding='utf-8'))
+          for key in ('name', 'short_name', 'start_url', 'display', 'icons'):
+              if key not in manifest:
+                  raise SystemExit(f'web/manifest.json misses {key}')
+          if not manifest['icons']:
+              raise SystemExit('PWA manifest has no icons')
+          for icon in manifest['icons']:
+              src = icon.get('src')
+              if not src:
+                  raise SystemExit('PWA icon misses src')
+              path = Path('web') / src.lstrip('/')
+              if not path.is_file():
+                  raise SystemExit(f'Missing PWA icon: {path}')
+          PY
+
+      - name: Scan for committed private keys and service secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE -- 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|service_role["'"' ]*[:=]["'"' ][A-Za-z0-9._-]{20,}' -- ':!docs/**' ':!test/**'; then
+            echo 'Possible private credential committed to the repository.'
+            exit 1
+          fi
+
+      - name: Produce repository hygiene report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/full-acceptance
+          {
+            echo '# Repository hygiene'
+            echo
+            echo "Tracked files: $(git ls-files | wc -l)"
+            echo "Dart files: $(git ls-files '*.dart' | wc -l)"
+            echo "Tests: $(git ls-files 'test/**' | wc -l)"
+            echo "TODO/FIXME markers: $(git grep -nE 'TODO|FIXME|HACK' -- '*.dart' '*.ts' '*.sql' 2>/dev/null | wc -l || true)"
+            echo
+            echo '## Largest tracked files'
+            git ls-files -z | xargs -0 -r du -b | sort -nr | head -n 30
+            echo
+            echo '## Dart files over 1200 lines'
+            while IFS= read -r file; do
+              lines=$(wc -l < "$file")
+              if [ "$lines" -gt 1200 ]; then printf '%7d %s\n' "$lines" "$file"; fi
+            done < <(git ls-files '*.dart') | sort -nr
+          } > .artifacts/full-acceptance/repository-hygiene.md
+
+      - name: Upload repository report
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-acceptance-repository
+          path: .artifacts/full-acceptance
+          retention-days: 7
+
+  flutter-core:
+    name: Flutter, Web and browser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Record toolchain
+        shell: bash
+        run: |
+          mkdir -p .artifacts/full-acceptance
+          flutter --version > .artifacts/full-acceptance/flutter-version.txt
+          dart --version > .artifacts/full-acceptance/dart-version.txt 2>&1
+          flutter doctor -v > .artifacts/full-acceptance/flutter-doctor.txt
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze source strictly
+        run: flutter analyze
+
+      - name: Run all tests with coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test --coverage --reporter compact 2>&1 | tee .artifacts/full-acceptance/flutter-test.log
+
+      - name: Summarize coverage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('coverage/lcov.info')
+          if not path.is_file():
+              raise SystemExit('coverage/lcov.info was not created')
+          found = hit = 0
+          files = set()
+          current = None
+          for line in path.read_text(encoding='utf-8', errors='replace').splitlines():
+              if line.startswith('SF:'):
+                  current = line[3:]
+                  files.add(current)
+              elif line.startswith('DA:'):
+                  _, payload = line.split(':', 1)
+                  _, count = payload.split(',', 1)
+                  found += 1
+                  if int(count) > 0:
+                      hit += 1
+          percent = 100.0 * hit / found if found else 0.0
+          report = Path('.artifacts/full-acceptance/coverage-summary.md')
+          report.write_text(
+              f'# Coverage summary\n\nFiles: {len(files)}\n\nLines: {hit}/{found} ({percent:.2f}%)\n',
+              encoding='utf-8',
+          )
+          print(report.read_text(encoding='utf-8'))
+          PY
+
+      - name: Build Web release
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Inspect Web build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          test -s build/web/manifest.json
+          du -ah build/web | sort -rh | head -n 40 > .artifacts/full-acceptance/web-largest-files.txt
+          du -sb build/web > .artifacts/full-acceptance/web-total-size.txt
+
+      - name: Install browser smoke dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
+
+      - name: Run headless Chrome browser smoke
+        run: python3 tool/web_smoke.py
+
+      - name: Upload Flutter and Web evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-acceptance-flutter-web
+          path: |
+            .artifacts/full-acceptance
+            .artifacts/browser-smoke
+            coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 7
+
+  android-build:
+    name: Android debug and release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build Android debug APK
+        run: flutter build apk --debug
+
+      - name: Build Android release APK
+        run: flutter build apk --release
+
+      - name: Record APK sizes and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/full-acceptance
+          ls -lh build/app/outputs/flutter-apk/*.apk > .artifacts/full-acceptance/android-apk-sizes.txt
+          sha256sum build/app/outputs/flutter-apk/*.apk > .artifacts/full-acceptance/android-apk-sha256.txt
+
+      - name: Upload Android evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-acceptance-android
+          path: |
+            .artifacts/full-acceptance
+            build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: warn
+          retention-days: 7
+
+  backend-contracts:
+    name: Supabase, Edge and SQL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check all Edge Functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/full-acceptance
+          find supabase/functions -type f -name '*.ts' -print0 | sort -z > /tmp/edge-files.bin
+          : > .artifacts/full-acceptance/deno-check.log
+          while IFS= read -r -d '' file; do
+            echo "deno check $file" | tee -a .artifacts/full-acceptance/deno-check.log
+            deno check "$file" 2>&1 | tee -a .artifacts/full-acceptance/deno-check.log
+          done < /tmp/edge-files.bin
+
+      - name: Validate SQL migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = sorted(Path('supabase/migrations').glob('*.sql'))
+          if not files:
+              raise SystemExit('No SQL migrations found')
+          names = set()
+          timestamps = set()
+          errors = []
+          for path in files:
+              if path.name in names:
+                  errors.append(f'duplicate migration name: {path.name}')
+              names.add(path.name)
+              match = re.match(r'^(\d{14})_', path.name)
+              if not match:
+                  errors.append(f'invalid migration name: {path.name}')
+              elif match.group(1) in timestamps:
+                  errors.append(f'duplicate migration timestamp: {match.group(1)}')
+              else:
+                  timestamps.add(match.group(1))
+              text = path.read_text(encoding='utf-8', errors='replace')
+              if not text.strip():
+                  errors.append(f'empty migration: {path.name}')
+              if re.search(r'^(<<<<<<< .+|=======|>>>>>>> .+)$', text, re.M):
+                  errors.append(f'conflict marker: {path.name}')
+          if errors:
+              print('\n'.join(errors))
+              raise SystemExit(1)
+          print(f'Validated {len(files)} migrations')
+          PY
+
+      - name: Produce backend inventory
+        shell: bash
+        run: |
+          {
+            echo '# Backend inventory'
+            echo
+            echo "Edge TypeScript files: $(find supabase/functions -type f -name '*.ts' | wc -l)"
+            echo "SQL migrations: $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)"
+            echo "SECURITY DEFINER occurrences: $(grep -Ril 'security definer' supabase/migrations --include='*.sql' | wc -l)"
+            echo "RLS occurrences: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
+          } > .artifacts/full-acceptance/backend-inventory.md
+
+      - name: Upload backend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-acceptance-backend
+          path: .artifacts/full-acceptance
+          if-no-files-found: warn
+          retention-days: 7
+
+  automated-summary:
+    name: Automated acceptance summary
+    if: always()
+    needs:
+      - repository-contracts
+      - flutter-core
+      - android-build
+      - backend-contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write summary
+        shell: bash
+        env:
+          REPOSITORY_RESULT: ${{ needs.repository-contracts.result }}
+          FLUTTER_RESULT: ${{ needs.flutter-core.result }}
+          ANDROID_RESULT: ${{ needs.android-build.result }}
+          BACKEND_RESULT: ${{ needs.backend-contracts.result }}
+        run: |
+          mkdir -p .artifacts/full-acceptance
+          cat > .artifacts/full-acceptance/automated-summary.md <<EOF
+          # Full automated acceptance result
+
+          - Repository contracts: ${REPOSITORY_RESULT}
+          - Flutter/Web/browser: ${FLUTTER_RESULT}
+          - Android debug/release: ${ANDROID_RESULT}
+          - Supabase/Edge/SQL: ${BACKEND_RESULT}
+
+          This run covers automated gates only. Role-based workflows, real accounts,
+          camera, geolocation, push delivery, MAX delivery and production RLS data
+          scenarios require the manual acceptance matrix from the QA specification.
+          EOF
+          cat .artifacts/full-acceptance/automated-summary.md
+
+          test "$REPOSITORY_RESULT" = success
+          test "$FLUTTER_RESULT" = success
+          test "$ANDROID_RESULT" = success
+          test "$BACKEND_RESULT" = success
+
+      - name: Upload final summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-acceptance-summary
+          path: .artifacts/full-acceptance/automated-summary.md
+          retention-days: 7
