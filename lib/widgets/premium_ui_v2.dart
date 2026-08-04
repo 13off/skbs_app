@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 import '../app/app_ui_tokens.dart';
 import 'app_page.dart';
+import 'app_stroy_brand.dart';
 import 'liquid_glass.dart';
 import 'premium_ui_v2_legacy.dart' as legacy;
 
@@ -16,6 +17,7 @@ export 'premium_ui_v2_legacy.dart'
     hide
         PremiumActionButton,
         PremiumBackdrop,
+        PremiumBrandMark,
         PremiumLoadingScreen,
         PremiumWorkBackdrop,
         PremiumWorkCard;
@@ -76,6 +78,31 @@ class PremiumWorkCard extends StatelessWidget {
           ? Colors.white.withValues(alpha: 0.12)
           : Colors.white.withValues(alpha: 0.92),
       child: child,
+    );
+  }
+}
+
+class PremiumBrandMark extends StatelessWidget {
+  final double size;
+  final bool animate;
+  final bool light;
+
+  const PremiumBrandMark({
+    super.key,
+    this.size = 78,
+    this.animate = true,
+    this.light = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final darkBackground =
+        light || Theme.of(context).brightness == Brightness.dark;
+
+    return AppStroyBrandIcon(
+      size: size,
+      darkBackground: darkBackground,
+      animate: animate,
     );
   }
 }
@@ -227,35 +254,10 @@ class PremiumLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-
     return Scaffold(
-      body: PremiumBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  legacy.PremiumBrandMark(size: 92, light: dark),
-                  const SizedBox(height: 28),
-                  Text(
-                    'AppСтрой',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  legacy.PremiumDots(color: theme.colorScheme.primary),
-                ],
-              ),
-            ),
-          ),
-        ),
+      body: AppStroyBrandStage(
+        showProgress: true,
+        semanticsLabel: '$message. AppСтрой. планируй. строй. управляй.',
       ),
     );
   }

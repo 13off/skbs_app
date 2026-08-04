@@ -42,16 +42,21 @@ void main() {
     expect(navigation, contains('NavigationSession.writeTabIndex'));
   });
 
-  test('общая загрузка показывает только вращающийся круг', () {
+  test('общая загрузка использует фирменную анимацию AppСтрой', () {
     final loading = File(
       'lib/widgets/premium_surfaces_v3.dart',
     ).readAsStringSync();
+    final brand = File(
+      'lib/widgets/app_stroy_brand.dart',
+    ).readAsStringSync();
 
-    expect(loading, contains('CircularProgressIndicator('));
-    expect(loading, contains('strokeWidth: 2.6'));
-    expect(loading, contains('liveRegion: true'));
+    expect(loading, contains('AppStroyBrandStage('));
+    expect(loading, contains('showProgress: true'));
+    expect(brand, contains("'планируй. строй. управляй.'"));
+    expect(brand, contains('widthFactor: textProgress'));
+    expect(brand, contains('scale: 0.12 + (0.88 * logoProgress)'));
+    expect(brand, contains('liveRegion: widget.showProgress'));
     expect(loading, isNot(contains('PremiumBrandMark')));
-    expect(loading, isNot(contains("Text('AppСтрой'")));
     expect(loading, isNot(contains('PremiumDots(')));
     expect(loading, isNot(contains('AppConstructionLoader')));
     expect(loading, isNot(contains('LiquidGlassSurface')));

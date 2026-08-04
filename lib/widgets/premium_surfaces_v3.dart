@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_page.dart';
+import 'app_stroy_brand.dart';
 
 class PremiumBackdrop extends StatelessWidget {
   final Widget child;
@@ -23,23 +24,10 @@ class PremiumLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Center(
-        child: Semantics(
-          label: message,
-          liveRegion: true,
-          child: SizedBox(
-            width: 30,
-            height: 30,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.6,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
+      body: AppStroyBrandStage(
+        showProgress: true,
+        semanticsLabel: '$message. AppСтрой. планируй. строй. управляй.',
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../widgets/premium_ui.dart';
 import '../../employee/presentation/employee_platform_with_passport.dart';
 import 'premium_auth_gate_v2.dart' as management;
 
@@ -31,8 +32,8 @@ class AuthGate extends StatelessWidget {
           future: UserRepository.fetchCurrentProfile(forceRefresh: true),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return const PremiumLoadingScreen(
+                message: 'Загружаем кабинет сотрудника',
               );
             }
 
