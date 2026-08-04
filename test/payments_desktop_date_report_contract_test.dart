@@ -9,7 +9,10 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('constraints.maxWidth >= 1120'));
-    expect(source, contains('BoxConstraints(maxWidth: 1360)'));
+    expect(
+      source,
+      contains('BoxConstraints(maxWidth: double.infinity)'),
+    );
     expect(source, contains('width: 360'));
     expect(source, contains('buildDesktopPaymentsBody'));
     expect(source, contains('buildCompactPaymentsBody'));
