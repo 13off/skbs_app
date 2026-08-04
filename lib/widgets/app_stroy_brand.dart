@@ -1,17 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
-import 'app_stroy_brand_assets.dart';
-
-final Uint8List _appStroyDarkIconBytes = base64Decode(
-  appStroyDarkIconWebpBase64,
-);
-final Uint8List _appStroyLightIconBytes = base64Decode(
-  appStroyLightIconWebpBase64,
-);
 
 class AppStroyBrandIcon extends StatelessWidget {
   final double size;
@@ -31,19 +21,23 @@ class AppStroyBrandIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final useDarkArtwork =
         darkBackground ?? Theme.of(context).brightness == Brightness.dark;
-    final image = Image.memory(
-      useDarkArtwork ? _appStroyDarkIconBytes : _appStroyLightIconBytes,
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      gaplessPlayback: true,
-      semanticLabel: semanticLabel,
+    final mark = Semantics(
+      label: semanticLabel,
+      image: true,
+      child: SizedBox(
+        width: size * 1.115,
+        height: size,
+        child: CustomPaint(
+          painter: _AppStroyMetalMarkPainter(
+            darkBackground: useDarkArtwork,
+          ),
+        ),
+      ),
     );
 
     if (!animate ||
         (MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
-      return image;
+      return mark;
     }
 
     return TweenAnimationBuilder<double>(
@@ -56,8 +50,118 @@ class AppStroyBrandIcon extends StatelessWidget {
           child: Transform.scale(scale: value, child: child),
         );
       },
-      child: image,
+      child: mark,
     );
+  }
+}
+
+class _AppStroyMetalMarkPainter extends CustomPainter {
+  final bool darkBackground;
+
+  const _AppStroyMetalMarkPainter({required this.darkBackground});
+
+  static Path get _left => Path()
+    ..moveTo(38, 204)
+    ..lineTo(38, 146)
+    ..cubicTo(38, 130, 48, 119, 61, 114)
+    ..lineTo(72, 110)
+    ..cubicTo(79, 107, 86, 112, 86, 120)
+    ..lineTo(86, 204)
+    ..close();
+
+  static Path get _center => Path()
+    ..moveTo(96, 204)
+    ..lineTo(96, 82)
+    ..cubicTo(96, 61, 109, 45, 128, 39)
+    ..lineTo(139, 36)
+    ..cubicTo(146, 34, 153, 39, 153, 47)
+    ..lineTo(153, 204)
+    ..close();
+
+  static Path get _right => Path()
+    ..moveTo(163, 204)
+    ..lineTo(163, 110)
+    ..cubicTo(163, 97, 174, 88, 187, 91)
+    ..cubicTo(211, 96, 225, 109, 225, 129)
+    ..lineTo(225, 204)
+    ..close();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const designLeft = 38.0;
+    const designTop = 36.0;
+    const designWidth = 187.0;
+    const designHeight = 168.0;
+    final scale = math.min(
+      size.width / designWidth,
+      size.height / designHeight,
+    );
+    final drawnWidth = designWidth * scale;
+    final drawnHeight = designHeight * scale;
+
+    canvas.save();
+    canvas.translate(
+      (size.width - drawnWidth) / 2 - designLeft * scale,
+      (size.height - drawnHeight) / 2 - designTop * scale,
+    );
+    canvas.scale(scale);
+
+    final fillColors = darkBackground
+        ? const [
+            Color(0xFFFFFFFF),
+            Color(0xFFE1E2E4),
+            Color(0xFFB7B9BC),
+            Color(0xFF85878A),
+          ]
+        : const [
+            Color(0xFFBFC1C4),
+            Color(0xFF777A7E),
+            Color(0xFF474A4E),
+            Color(0xFF26282B),
+          ];
+    final edgeColor = darkBackground
+        ? const Color(0xFF707277)
+        : const Color(0xFF191B1E);
+    final highlightColor = Colors.white.withValues(
+      alpha: darkBackground ? 0.86 : 0.58,
+    );
+    final shadowColor = Colors.black.withValues(
+      alpha: darkBackground ? 0.48 : 0.27,
+    );
+
+    for (final path in [_left, _center, _right]) {
+      canvas.drawShadow(path, shadowColor, darkBackground ? 7 : 10, false);
+
+      final bounds = path.getBounds();
+      final fill = Paint()
+        ..style = PaintingStyle.fill
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0, 0.34, 0.70, 1],
+          colors: fillColors,
+        ).createShader(bounds);
+      canvas.drawPath(path, fill);
+
+      final edge = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.55
+        ..color = edgeColor;
+      canvas.drawPath(path, edge);
+
+      final highlight = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.72
+        ..color = highlightColor;
+      canvas.drawPath(path, highlight);
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _AppStroyMetalMarkPainter oldDelegate) {
+    return oldDelegate.darkBackground != darkBackground;
   }
 }
 
@@ -68,7 +172,7 @@ class AppStroyAnimatedBrand extends StatefulWidget {
 
   const AppStroyAnimatedBrand({
     super.key,
-    this.logoSize = 104,
+    this.logoSize = 146,
     this.showProgress = false,
     this.semanticsLabel = 'AppСтрой. планируй. строй. управляй.',
   });
@@ -128,104 +232,97 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
             curve: const Interval(0.82, 1, curve: Curves.easeOut),
           ).value;
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final responsiveLogoSize = widget.logoSize;
-
-              return FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Column(
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Opacity(
-                          opacity: logoProgress.clamp(0.0, 1.0).toDouble(),
-                          child: Transform.scale(
-                            scale: 0.12 + (0.88 * logoProgress),
-                            child: AppStroyBrandIcon(
-                              size: responsiveLogoSize,
-                              darkBackground: dark,
-                            ),
-                          ),
+                    Opacity(
+                      opacity: logoProgress.clamp(0.0, 1.0).toDouble(),
+                      child: Transform.scale(
+                        scale: 0.12 + (0.88 * logoProgress),
+                        child: AppStroyBrandIcon(
+                          size: widget.logoSize,
+                          darkBackground: dark,
                         ),
-                        ClipRect(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: textProgress,
-                            child: Opacity(
-                              opacity: textProgress,
-                              child: Transform.translate(
-                                offset: Offset(-18 * (1 - textProgress), 0),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 22),
-                                  child: SizedBox(
-                                    width: 300,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'AppСтрой',
+                      ),
+                    ),
+                    ClipRect(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: textProgress,
+                        child: Opacity(
+                          opacity: textProgress,
+                          child: Transform.translate(
+                            offset: Offset(-20 * (1 - textProgress), 0),
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 18),
+                              child: SizedBox(
+                                width: 226,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'AppСтрой',
+                                      maxLines: 1,
+                                      style: theme.textTheme.displaySmall
+                                          ?.copyWith(
+                                            color: theme.colorScheme.onSurface,
+                                            fontSize: 46,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: -2.0,
+                                            height: 0.98,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Opacity(
+                                      opacity: quoteProgress,
+                                      child: Transform.translate(
+                                        offset: Offset(
+                                          -12 * (1 - quoteProgress),
+                                          0,
+                                        ),
+                                        child: Text(
+                                          'планируй. строй. управляй.',
                                           maxLines: 1,
-                                          style: theme.textTheme.displaySmall
+                                          style: theme.textTheme.bodyMedium
                                               ?.copyWith(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurface,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: -1.7,
-                                                height: 0.98,
+                                                color: theme.colorScheme
+                                                    .onSurfaceVariant,
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 1.15,
+                                                height: 1.1,
                                               ),
                                         ),
-                                        const SizedBox(height: 10),
-                                        Opacity(
-                                          opacity: quoteProgress,
-                                          child: Transform.translate(
-                                            offset: Offset(
-                                              -10 * (1 - quoteProgress),
-                                              0,
-                                            ),
-                                            child: Text(
-                                              'планируй. строй. управляй.',
-                                              maxLines: 1,
-                                              style: theme.textTheme.bodyMedium
-                                                  ?.copyWith(
-                                                    color: theme.colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontWeight: FontWeight.w700,
-                                                    letterSpacing: 1.4,
-                                                    height: 1.1,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    if (widget.showProgress) ...[
-                      const SizedBox(height: 28),
-                      Opacity(
-                        opacity: progressOpacity,
-                        child: _BrandLoadingDots(
-                          color: theme.colorScheme.onSurface,
-                        ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
-              );
-            },
+                if (widget.showProgress) ...[
+                  const SizedBox(height: 32),
+                  Opacity(
+                    opacity: progressOpacity,
+                    child: _BrandLoadingDots(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           );
         },
       ),
@@ -254,7 +351,7 @@ class AppStroyBrandStage extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: dark
               ? const [Color(0xFF111214), Color(0xFF202226)]
-              : const [Color(0xFFFFFFFF), Color(0xFFF2F2F2)],
+              : const [Color(0xFFFFFFFF), Color(0xFFF0F0F0)],
         ),
       ),
       child: Stack(
@@ -287,9 +384,9 @@ class AppStroyBrandStage extends StatelessWidget {
           SafeArea(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
+                  constraints: const BoxConstraints(maxWidth: 760),
                   child: AppStroyAnimatedBrand(
                     showProgress: showProgress,
                     semanticsLabel: semanticsLabel,
@@ -419,8 +516,8 @@ class _BrandLoadingDotsState extends State<_BrandLoadingDots>
           child: Transform.translate(
             offset: Offset(0, -3 * wave),
             child: Container(
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               decoration: BoxDecoration(
                 color: widget.color.withValues(alpha: 0.32 + wave * 0.68),
                 shape: BoxShape.circle,
