@@ -29,6 +29,14 @@ abstract final class AppUi {
   static const double cardPadding = 22;
   static const double desktopActionMaxWidth = 420;
 
+  static const double mobileNavigationPanelHeight = 76;
+  static const double desktopNavigationPanelHeight = 78;
+  static const double mobileNavigationTopSpacing = 7;
+  static const double desktopNavigationTopSpacing = 10;
+  static const double mobileNavigationBottomSpacing = 11;
+  static const double desktopNavigationBottomSpacing = 16;
+  static const double floatingActionGap = 10;
+
   static const double gap4 = 4;
   static const double gap8 = 8;
   static const double gap12 = 12;
@@ -42,4 +50,48 @@ abstract final class AppUi {
     horizontal: 18,
     vertical: 15,
   );
+
+  static bool usesDesktopNavigation(BuildContext context) {
+    return MediaQuery.sizeOf(context).width >= specialistDesktopBreakpoint;
+  }
+
+  static double navigationPanelHeight(BuildContext context) {
+    return usesDesktopNavigation(context)
+        ? desktopNavigationPanelHeight
+        : mobileNavigationPanelHeight;
+  }
+
+  static double navigationTopSpacing(BuildContext context) {
+    return usesDesktopNavigation(context)
+        ? desktopNavigationTopSpacing
+        : mobileNavigationTopSpacing;
+  }
+
+  static double navigationBottomSpacing(BuildContext context) {
+    return usesDesktopNavigation(context)
+        ? desktopNavigationBottomSpacing
+        : mobileNavigationBottomSpacing;
+  }
+
+  static double navigationTotalHeight(BuildContext context) {
+    return navigationPanelHeight(context) +
+        navigationTopSpacing(context) +
+        navigationBottomSpacing(context) +
+        MediaQuery.viewPaddingOf(context).bottom;
+  }
+
+  static double floatingActionBottom(
+    BuildContext context, {
+    double gap = floatingActionGap,
+  }) {
+    return navigationTotalHeight(context) + gap;
+  }
+
+  static double floatingActionListBottomPadding(
+    BuildContext context, {
+    double actionHeight = 64,
+    double gap = 22,
+  }) {
+    return navigationTotalHeight(context) + actionHeight + gap;
+  }
 }
