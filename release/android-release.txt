@@ -1,0 +1,7 @@
+AppСтрой Android release
+version: 1.3.2+6
+release date: 2026-08-04
+accepted application commit: cf07e81bbce12b62b63754b93dd00df1590f5323
+mobile release source: eb3a2442a72a4d36a5260f0eb0ca812f5d01cc93
+release workflow: 035e257a62ef75082bf4015444501886b8068dcc
+reason: publish verified release APK with artifact-existence gate
