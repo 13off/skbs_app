@@ -14,7 +14,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2450));
 
     expect(find.text('AppСтрой'), findsOneWidget);
-    expect(find.text('планируй. строй. управляй.'), findsOneWidget);
+    expect(find.text('планируй • строй • управляй'), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
   });
 
@@ -46,7 +46,7 @@ void main() {
 
     expect(mainSource, contains('AppStroyLaunchGate(child: AuthGate())'));
     expect(loadingSource, contains('AppStroyBrandStage('));
-    expect(brandSource, contains("'планируй. строй. управляй.'"));
+    expect(brandSource, contains("'планируй • строй • управляй'"));
     expect(brandSource, contains('widthFactor: textProgress'));
     expect(brandSource, contains('leftTower'));
     expect(brandSource, contains('centerTower'));

@@ -52,7 +52,7 @@ void main() {
 
     expect(loading, contains('AppStroyBrandStage('));
     expect(loading, contains('showProgress: true'));
-    expect(brand, contains("'планируй. строй. управляй.'"));
+    expect(brand, contains("'планируй • строй • управляй'"));
     expect(brand, contains('widthFactor: textProgress'));
     expect(brand, contains('leftTower'));
     expect(brand, contains('centerTower'));

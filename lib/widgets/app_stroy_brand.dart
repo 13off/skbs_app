@@ -225,7 +225,7 @@ class AppStroyAnimatedBrand extends StatefulWidget {
     super.key,
     this.logoSize = 152,
     this.showProgress = false,
-    this.semanticsLabel = 'AppСтрой. планируй. строй. управляй.',
+    this.semanticsLabel = 'AppСтрой. планируй • строй • управляй',
   });
 
   @override
@@ -309,7 +309,7 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                             child: Padding(
                               padding: const EdgeInsets.only(left: 16),
                               child: SizedBox(
-                                width: 210,
+                                width: 260,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,13 +320,13 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                                       style: theme.textTheme.displaySmall
                                           ?.copyWith(
                                             color: theme.colorScheme.onSurface,
-                                            fontSize: 46,
+                                            fontSize: 56,
                                             fontWeight: FontWeight.w500,
-                                            letterSpacing: -2.1,
+                                            letterSpacing: -2.4,
                                             height: 0.98,
                                           ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 14),
                                     Opacity(
                                       opacity: quoteProgress,
                                       child: Transform.translate(
@@ -335,15 +335,15 @@ class _AppStroyAnimatedBrandState extends State<AppStroyAnimatedBrand>
                                           0,
                                         ),
                                         child: Text(
-                                          'планируй. строй. управляй.',
+                                          'планируй • строй • управляй',
                                           maxLines: 1,
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                                 color: theme.colorScheme
                                                     .onSurfaceVariant,
-                                                fontSize: 12.5,
+                                                fontSize: 18,
                                                 fontWeight: FontWeight.w700,
-                                                letterSpacing: 1.05,
+                                                letterSpacing: 0.2,
                                                 height: 1.1,
                                               ),
                                         ),
@@ -384,7 +384,7 @@ class AppStroyBrandStage extends StatelessWidget {
   const AppStroyBrandStage({
     super.key,
     this.showProgress = false,
-    this.semanticsLabel = 'AppСтрой. планируй. строй. управляй.',
+    this.semanticsLabel = 'AppСтрой. планируй • строй • управляй',
   });
 
   @override
