@@ -36,7 +36,11 @@ jobs:
           deno-version: v2.x
 
       - name: Apply confirmed fixes
-        run: python3 .github/scripts/apply_confirmed_acceptance_fixes.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/apply_confirmed_acceptance_fixes.py
+          python3 .github/scripts/fix_acceptance_contract_tests.py
 
       - name: Format and verify Dart
         shell: bash
@@ -108,6 +112,7 @@ jobs:
           rm -f .github/workflows/apply-confirmed-fixes-v2.yml
           rm -f .github/workflows/apply-confirmed-fixes-v3.yml
           rm -f .github/scripts/apply_confirmed_acceptance_fixes.py
+          rm -f .github/scripts/fix_acceptance_contract_tests.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
