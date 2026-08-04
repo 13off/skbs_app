@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageStat
+from prepare_desktop_patch_artifact import write_desktop_patch_artifact
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -194,6 +195,7 @@ def main() -> int:
         print(f"Browser smoke exception: {error!r}", file=sys.stderr)
         return 1
     finally:
+        write_desktop_patch_artifact(artifacts_dir)
         if driver is not None:
             driver.quit()
         server.shutdown()
