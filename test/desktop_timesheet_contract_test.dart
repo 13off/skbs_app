@@ -69,6 +69,13 @@ void main() {
     expect(desktop, contains("'Сохранить изменения'"));
     expect(desktop, contains("'Сохранить табель'"));
 
+    // The desktop save card sits directly above the shared bottom navigation.
+    expect(
+      desktop,
+      contains('bottom: AppUi.navigationTotalHeight(context)'),
+    );
+    expect(desktop, isNot(contains('bottom: 112')));
+
     expect(adaptive, contains("label: const Text('Скачать табель')"));
     expect(download, contains("label: Text('Месяцы')"));
     expect(download, contains("label: Text('Даты')"));

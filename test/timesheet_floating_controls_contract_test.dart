@@ -17,7 +17,7 @@ void main() {
   });
 
   test(
-    'save action is a compact floating card instead of a full-width footer',
+    'save action is a compact floating card directly above navigation',
     () {
       final desktop = File(
         'lib/screens/desktop_timesheet_screen.dart',
@@ -27,7 +27,11 @@ void main() {
         desktop,
         contains('constraints: const BoxConstraints(maxWidth: 620)'),
       );
-      expect(desktop, contains('bottom: 112'));
+      expect(
+        desktop,
+        contains('bottom: AppUi.navigationTotalHeight(context)'),
+      );
+      expect(desktop, isNot(contains('bottom: 112')));
       expect(
         desktop,
         isNot(contains('border: Border(top: BorderSide(color: _line))')),
