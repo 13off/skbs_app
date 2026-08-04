@@ -184,14 +184,14 @@ jobs:
               raise SystemExit(f'Expected one file_saver_web.dart, found {len(matches)}: {matches}')
           web_file = matches[0]
           text = web_file.read_text(encoding='utf-8')
-          replacements = {
-              'web.Url.revokeObjectUrl': 'web.URL.revokeObjectURL',
-              'web.Url.createObjectUrlFromBlob': 'web.URL.createObjectURL',
-          }
-          for old, new in replacements.items():
-              if old not in text:
-                  raise SystemExit(f'Expected upstream Web call not found: {old}')
-              text = text.replace(old, new)
+          text = text.replace('web.Url.', 'web.URL.')
+          text = text.replace('.revokeObjectUrl(', '.revokeObjectURL(')
+          text = text.replace('.createObjectUrlFromBlob(', '.createObjectURL(')
+          if 'revokeObjectUrl' in text or 'createObjectUrlFromBlob' in text or 'web.Url.' in text:
+              raise SystemExit('Legacy package:web URL calls remain after patch')
+          if 'web.URL.revokeObjectURL(' not in text or 'web.URL.createObjectURL(' not in text:
+              relevant = '\n'.join(line for line in text.splitlines() if 'Object' in line or 'URL' in line or 'Url' in line)
+              raise SystemExit('Modern URL calls were not confirmed:\n' + relevant)
           web_file.write_text(text, encoding='utf-8')
 
           (target / 'APPSTROY_PATCH.md').write_text(
