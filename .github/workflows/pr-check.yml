@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
