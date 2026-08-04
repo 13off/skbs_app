@@ -45,7 +45,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # 1. Explicitly type the candidate archive/delete helpers.
           candidate = Path('supabase/functions/recruitment-candidate-action/index.ts')
           text = candidate.read_text(encoding='utf-8')
           text = text.replace(
@@ -68,7 +67,6 @@ jobs:
               raise SystemExit('candidate-action stored-file loop missing')
           candidate.write_text(text, encoding='utf-8')
 
-          # 2. Explicitly type the dynamic Telegram file row.
           ingest = Path('supabase/functions/recruitment-ingest-telegram-file/index.ts')
           text = ingest.read_text(encoding='utf-8')
           row_type = '''type JsonMap = Record<string, unknown>;\n\ntype TelegramFileRow = {\n  id: string;\n  company_id: string;\n  application_id: string;\n  telegram_file_id: string | null;\n  storage_bucket: string | null;\n  storage_path: string | null;\n  original_name: string | null;\n  mime_type: string | null;\n  size_bytes: number | null;\n  document_type?: string | null;\n};\n'''
@@ -87,7 +85,6 @@ jobs:
               raise SystemExit('telegram-ingest typed row missing')
           ingest.write_text(head + sep + tail.replace('data.', 'row.'), encoding='utf-8')
 
-          # 3. Give duplicate migration files unique adjacent seconds.
           migration_dir = Path('supabase/migrations')
           groups = defaultdict(list)
           used = set()
@@ -124,7 +121,6 @@ jobs:
           ]
           report.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
-          # 4. Upgrade file_saver and migrate its renamed argument.
           pubspec = Path('pubspec.yaml')
           text = pubspec.read_text(encoding='utf-8').replace(
               'file_saver: ^0.2.14', 'file_saver: ^0.4.0'
@@ -148,13 +144,75 @@ jobs:
               raise SystemExit(f'Expected 6 file_saver ext arguments, changed {changed_ext}')
           PY
 
-      - name: Resolve dependencies and format Dart
+      - name: Vendor and patch file_saver Web implementation
         shell: bash
         run: |
           set -euo pipefail
           flutter pub get
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import unquote, urlparse
+          import json
+          import re
+          import shutil
+
+          config = json.loads(Path('.dart_tool/package_config.json').read_text(encoding='utf-8'))
+          package = next(item for item in config['packages'] if item['name'] == 'file_saver')
+          uri = urlparse(package['rootUri'])
+          if uri.scheme != 'file':
+              raise SystemExit(f'Unexpected file_saver root URI: {package["rootUri"]}')
+          source = Path(unquote(uri.path))
+          target = Path('third_party/file_saver')
+          if target.exists():
+              shutil.rmtree(target)
+          shutil.copytree(
+              source,
+              target,
+              ignore=shutil.ignore_patterns('.dart_tool', 'build', '.git', 'example', 'test', 'pubspec.lock'),
+          )
+
+          web_file = target / 'lib/src/web/file_saver_web.dart'
+          text = web_file.read_text(encoding='utf-8')
+          replacements = {
+              'web.Url.revokeObjectUrl': 'web.URL.revokeObjectURL',
+              'web.Url.createObjectUrlFromBlob': 'web.URL.createObjectURL',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Expected upstream Web call not found: {old}')
+              text = text.replace(old, new)
+          web_file.write_text(text, encoding='utf-8')
+
+          notice = target / 'APPSTROY_PATCH.md'
+          notice.write_text(
+              '# AppСтрой compatibility patch\n\n'
+              'Vendored from `file_saver` 0.4.0 under its BSD-3-Clause license.\n\n'
+              'The Web implementation was updated from legacy `web.Url` helpers to '\
+              'the current `package:web` `web.URL.createObjectURL` and '\
+              '`web.URL.revokeObjectURL` APIs. No plugin business behavior was changed.\n',
+              encoding='utf-8',
+          )
+
+          pubspec = Path('pubspec.yaml')
+          text = pubspec.read_text(encoding='utf-8')
+          text, count = re.subn(
+              r'(?m)^  file_saver: \^0\.4\.0$',
+              '  file_saver:\n    path: third_party/file_saver',
+              text,
+          )
+          if count != 1:
+              raise SystemExit(f'Expected one file_saver dependency, changed {count}')
+          pubspec.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+          dart format third_party/file_saver/lib
+
+      - name: Format and verify Dart
+        shell: bash
+        run: |
+          set -euo pipefail
           dart format lib test
-          dart format --output=none --set-exit-if-changed lib test
+          dart format --output=none --set-exit-if-changed lib test third_party/file_saver/lib
 
       - name: Check every Edge TypeScript file
         shell: bash
