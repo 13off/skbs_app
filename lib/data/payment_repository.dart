@@ -8,9 +8,11 @@ class PaymentRepository {
   static final _client = Supabase.instance.client;
 
   static const Duration _employeePaymentsCacheTtl = Duration(seconds: 30);
+  static const Duration _bulkPaymentsCacheTtl = Duration(seconds: 20);
 
   static final Map<String, _EmployeePaymentsCacheEntry> _employeePaymentsCache =
       {};
+  static final Map<String, _BulkPaymentsCacheEntry> _bulkPaymentsCache = {};
   static final Map<String, Future<List<PaymentRecord>>>
   _employeePaymentRequests = {};
   static final Map<String, Future<List<PaymentRecord>>> _bulkPaymentRequests =
@@ -26,6 +28,7 @@ class PaymentRepository {
 
   static void clearCache() {
     _employeePaymentsCache.clear();
+    _bulkPaymentsCache.clear();
     _employeePaymentRequests.clear();
     _bulkPaymentRequests.clear();
   }
@@ -36,6 +39,7 @@ class PaymentRepository {
     if (cleanEmployeeId.isEmpty) return;
 
     _employeePaymentsCache.remove(cleanEmployeeId);
+    _bulkPaymentsCache.clear();
     _employeePaymentRequests.remove(cleanEmployeeId);
     _bulkPaymentRequests.clear();
   }
@@ -43,6 +47,10 @@ class PaymentRepository {
   static bool _isEmployeePaymentsCacheFresh(_EmployeePaymentsCacheEntry entry) {
     return DateTime.now().difference(entry.createdAt) <
         _employeePaymentsCacheTtl;
+  }
+
+  static bool _isBulkPaymentsCacheFresh(_BulkPaymentsCacheEntry entry) {
+    return DateTime.now().difference(entry.createdAt) < _bulkPaymentsCacheTtl;
   }
 
   static List<PaymentRecord> _copyPayments(List<PaymentRecord> payments) {
@@ -185,6 +193,7 @@ class PaymentRepository {
     if (running != null) return _copyPayments(await running);
     final request = _fetchPaymentsForEmployees(
       cleanIds,
+      cacheKey: key,
       forceRefresh: forceRefresh,
     );
     _bulkPaymentRequests[key] = request;
@@ -199,6 +208,7 @@ class PaymentRepository {
 
   static Future<List<PaymentRecord>> _fetchPaymentsForEmployees(
     List<String> employeeIds, {
+    required String cacheKey,
     bool forceRefresh = false,
   }) async {
     final cleanIds = employeeIds
@@ -216,7 +226,47 @@ class PaymentRepository {
       );
     }
 
-    return _fetchPaymentRows(cleanIds);
+    final cached = _bulkPaymentsCache[cacheKey];
+    if (!forceRefresh && cached != null && _isBulkPaymentsCacheFresh(cached)) {
+      return _copyPayments(cached.payments);
+    }
+
+    final payments = await _fetchPaymentRows(cleanIds);
+    final createdAt = DateTime.now();
+
+    _bulkPaymentsCache[cacheKey] = _BulkPaymentsCacheEntry(
+      payments: _copyPayments(payments),
+      createdAt: createdAt,
+    );
+    _warmEmployeePaymentCaches(
+      employeeIds: cleanIds,
+      payments: payments,
+      createdAt: createdAt,
+    );
+
+    return _copyPayments(payments);
+  }
+
+  static void _warmEmployeePaymentCaches({
+    required List<String> employeeIds,
+    required List<PaymentRecord> payments,
+    required DateTime createdAt,
+  }) {
+    final groupedPayments = <String, List<PaymentRecord>>{
+      for (final employeeId in employeeIds) employeeId: <PaymentRecord>[],
+    };
+
+    for (final payment in payments) {
+      final employeeId = payment.employeeId.trim();
+      groupedPayments[employeeId]?.add(payment);
+    }
+
+    for (final entry in groupedPayments.entries) {
+      _employeePaymentsCache[entry.key] = _EmployeePaymentsCacheEntry(
+        payments: _copyPayments(entry.value),
+        createdAt: createdAt,
+      );
+    }
   }
 
   static Future<List<PaymentRecord>> _fetchPaymentRows(
@@ -363,6 +413,16 @@ class _EmployeePaymentsCacheEntry {
   final DateTime createdAt;
 
   const _EmployeePaymentsCacheEntry({
+    required this.payments,
+    required this.createdAt,
+  });
+}
+
+class _BulkPaymentsCacheEntry {
+  final List<PaymentRecord> payments;
+  final DateTime createdAt;
+
+  const _BulkPaymentsCacheEntry({
     required this.payments,
     required this.createdAt,
   });
