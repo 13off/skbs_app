@@ -49,7 +49,10 @@ void main() {
       contains('EmployeePrivateSummaryExporter.downloadSummary'),
     );
 
-    expect(desktop, contains('BoxConstraints(maxWidth: 1400)'));
+    expect(
+      desktop,
+      contains('BoxConstraints(maxWidth: double.infinity)'),
+    );
     expect(desktop, contains("label: 'Объект'"));
     expect(desktop, contains("label: 'Должность'"));
     expect(desktop, contains("label: 'Статус'"));
