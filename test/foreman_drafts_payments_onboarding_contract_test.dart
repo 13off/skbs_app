@@ -48,7 +48,11 @@ void main() {
     expect(guide, contains('coordinateBox.globalToLocal(globalBottomRight)'));
     expect(
       guide,
-      contains("ValueKey<String>('professional-bottom-navigation-panel')"),
+      matches(
+        RegExp(
+          r"ValueKey<String>\s*\(\s*'professional-bottom-navigation-panel'\s*,?\s*\)",
+        ),
+      ),
     );
     expect(guide, contains('widget is NavigationBar'));
     expect(guide, contains('tabIndex: tabIndex'));
