@@ -22,6 +22,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 
+# This temporary import also prepares exact source copies for the PR patch step.
+
 
 class _QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
