@@ -20,22 +20,27 @@ void main() {
     expect(io, contains("MethodChannel('ru.appstroy.skbs/theme')"));
   });
 
-  test('PWA loader and install icon use the saved app theme', () {
+  test('PWA install icon uses the saved app theme without a second loader', () {
     final index = source('web/index.html');
     final lightManifest = source('web/manifest.json');
     final darkManifest = source('web/manifest-dark.json');
-    final darkIcon = source('web/icons/app_icon_matte_dark_v2.svg');
+    final lightIcon = source('web/icons/app_icon_matte_v3.svg');
+    final darkIcon = source('web/icons/app_icon_matte_dark_v3.svg');
 
     expect(index, contains("'flutter.app_theme_mode'"));
     expect(index, contains('window.appstroyApplyTheme'));
     expect(index, contains('html[data-app-theme="dark"]'));
     expect(index, contains("manifest: 'manifest-dark.json'"));
-    expect(index, contains("icon: 'icons/app_icon_matte_dark_v2.svg'"));
+    expect(index, contains("icon: 'icons/app_icon_matte_dark_v3.svg'"));
+    expect(index, isNot(contains('id="app-loader"')));
     expect(lightManifest, contains('"background_color": "#F3F1EC"'));
-    expect(darkManifest, contains('"background_color": "#0E1621"'));
-    expect(darkManifest, contains('app_icon_matte_dark_v2.svg'));
-    expect(darkIcon, contains('#0E1621'));
-    expect(darkIcon, contains('#F5F7FA'));
+    expect(lightManifest, contains('app_icon_matte_v3.svg'));
+    expect(darkManifest, contains('"background_color": "#141517"'));
+    expect(darkManifest, contains('app_icon_matte_dark_v3.svg'));
+    expect(lightIcon, contains('scale(2.28)'));
+    expect(darkIcon, contains('#141517'));
+    expect(darkIcon, contains('#FFFFFF'));
+    expect(darkIcon, contains('scale(2.28)'));
   });
 
   test('Android splash and launcher aliases follow the stored Flutter theme', () {
