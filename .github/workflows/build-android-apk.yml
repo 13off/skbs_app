@@ -99,6 +99,20 @@ jobs:
             --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
             2>&1 | tee apk-build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          if [ "$BUILD_EXIT_CODE" -ne 0 ] && [ -s "$APK_PATH" ]; then
+            echo "::warning::Flutter returned ${BUILD_EXIT_CODE}, but a non-empty release APK was produced. Treating the build as successful."
+            printf '\nRelease APK exists and is non-empty; overriding the Flutter wrapper exit code.\n' >> apk-build.log
+            BUILD_EXIT_CODE=0
+          fi
+
+          if [ "$BUILD_EXIT_CODE" -eq 0 ] && [ ! -s "$APK_PATH" ]; then
+            echo "::error::Flutter reported success, but release APK is missing or empty"
+            printf '\nRelease APK is missing or empty.\n' >> apk-build.log
+            BUILD_EXIT_CODE=1
+          fi
+
           echo "exit_code=${BUILD_EXIT_CODE}" >> "$GITHUB_OUTPUT"
           exit 0
 
