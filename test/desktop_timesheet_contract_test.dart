@@ -25,7 +25,10 @@ void main() {
     expect(mobile, contains('child: buildEmployeeRow(employee)'));
 
     expect(desktop, contains('class DesktopTimesheetScreen'));
-    expect(desktop, contains('BoxConstraints(maxWidth: 1320)'));
+    expect(
+      desktop,
+      contains('BoxConstraints(maxWidth: double.infinity)'),
+    );
     expect(desktop, contains('class _TableHeader'));
     expect(desktop, contains('class _TimesheetRow'));
     expect(desktop, contains("'Сотрудник'"));
