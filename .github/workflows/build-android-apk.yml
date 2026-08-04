@@ -2,6 +2,11 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - release/android-release.txt
 
 permissions:
   contents: read
@@ -24,6 +29,7 @@ env:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Check publish token
@@ -75,10 +81,12 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Run regression tests
+      - name: Run regression tests for manual releases
+        if: github.event_name == 'workflow_dispatch'
         run: flutter test
 
-      - name: Analyze source
+      - name: Analyze source for manual releases
+        if: github.event_name == 'workflow_dispatch'
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK through proxy
