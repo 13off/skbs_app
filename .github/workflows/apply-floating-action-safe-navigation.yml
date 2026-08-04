@@ -134,3 +134,5 @@ void main() {
           git add lib test .github/workflows/apply-floating-action-safe-navigation.yml
           git commit -m "Использовать безопасные отступы для нижних кнопок"
           git push origin HEAD:fix/floating-actions-safe-navigation
+
+# trigger after workflow exists on branch
