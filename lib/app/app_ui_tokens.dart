@@ -10,6 +10,7 @@ abstract final class AppUi {
   static const double specialistDesktopBreakpoint = 820;
 
   static const double pageMobileHorizontalPadding = 16;
+  // Shared PWA desktop outer margin: four times the previous 36 px value.
   static const double pageDesktopHorizontalPadding = 144;
   static const double pageMobileTopPadding = 14;
   static const double pageDesktopTopPadding = 24;
