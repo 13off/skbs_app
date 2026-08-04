@@ -1,9 +1,9 @@
 name: Apply confirmed acceptance fixes
 
 on:
-  push:
-    branches:
-      - agent/full-acceptance-test-2026-08-04
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -19,7 +19,8 @@ jobs:
       - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          ref: agent/full-acceptance-test-2026-08-04
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || 'agent/full-acceptance-test-2026-08-04' }}
           fetch-depth: 0
           show-progress: false
 
@@ -222,4 +223,4 @@ jobs:
             exit 0
           fi
           git commit -m 'Исправить результаты полного приёмочного теста'
-          git push origin HEAD:agent/full-acceptance-test-2026-08-04
+          git push origin HEAD:${{ github.event.pull_request.head.ref || 'agent/full-acceptance-test-2026-08-04' }}
