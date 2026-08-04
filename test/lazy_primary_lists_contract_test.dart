@@ -14,9 +14,10 @@ void main() {
 
   test('mobile tasks preserve exact task taps with lazy rows', () {
     final tasks = source('lib/screens/mobile_tasks_screen.dart');
-    expect(tasks, contains('return AppLazyPage('));
+    expect(tasks, contains('AppLazyPage('));
     expect(tasks, contains('final task = tasks[index]'));
     expect(tasks, contains('onTap: () => openTaskDetails(task)'));
+    expect(tasks, contains("ValueKey('tasks-floating-add')"));
     expect(tasks, isNot(contains('...tasks.map')));
   });
 
