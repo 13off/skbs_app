@@ -15,6 +15,7 @@ class LiquidGlassSurface extends StatelessWidget {
   final bool blur;
   final double blurSigma;
   final Color? tint;
+  final Gradient? gradient;
   final Color? borderColor;
   final bool elevated;
 
@@ -27,6 +28,7 @@ class LiquidGlassSurface extends StatelessWidget {
     this.blur = false,
     this.blurSigma = 16,
     this.tint,
+    this.gradient,
     this.borderColor,
     this.elevated = true,
   });
@@ -40,16 +42,8 @@ class LiquidGlassSurface extends StatelessWidget {
         (dark
             ? scheme.surface.withValues(alpha: 0.74)
             : Colors.white.withValues(alpha: 0.58));
-    final resolvedBorder = borderColor ??
-        (dark
-            ? Colors.white.withValues(alpha: 0.13)
-            : Colors.white.withValues(alpha: 0.90));
-    final borderRadius = BorderRadius.circular(radius);
-
-    final surface = DecoratedBox(
-      decoration: BoxDecoration(
-        color: resolvedTint,
-        gradient: LinearGradient(
+    final resolvedGradient = gradient ??
+        LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: dark
@@ -64,7 +58,17 @@ class LiquidGlassSurface extends StatelessWidget {
                   const Color(0xFFE9EEF4).withValues(alpha: 0.58),
                 ],
           stops: const [0, 0.55, 1],
-        ),
+        );
+    final resolvedBorder = borderColor ??
+        (dark
+            ? Colors.white.withValues(alpha: 0.13)
+            : Colors.white.withValues(alpha: 0.90));
+    final borderRadius = BorderRadius.circular(radius);
+
+    final surface = DecoratedBox(
+      decoration: BoxDecoration(
+        color: resolvedTint,
+        gradient: resolvedGradient,
         borderRadius: borderRadius,
         border: Border.all(color: resolvedBorder, width: 1.15),
         boxShadow: elevated
