@@ -1,7 +1,8 @@
 name: One-off larger brand text
 
 on:
-  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
     branches:
       - main
     paths:
@@ -14,9 +15,10 @@ jobs:
   adjust-brand-text:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           show-progress: false
 
       - name: Setup Flutter
@@ -51,8 +53,7 @@ jobs:
 
           target.write_text(text, encoding='utf-8')
 
-          dart_files = [target, *Path('test').rglob('*.dart')]
-          for dart_file in dart_files:
+          for dart_file in [target, *Path('test').rglob('*.dart')]:
               source = dart_file.read_text(encoding='utf-8')
               updated = source.replace(
                   'планируй. строй. управляй.',
@@ -74,14 +75,16 @@ jobs:
       - name: Build web release
         run: flutter build web --release --base-href /appstroy-web/
 
-      - name: Remove one-off workflow
-        run: rm .github/workflows/one-off-larger-brand-text.yml
+      - name: Remove temporary files
+        run: |
+          rm .github/workflows/one-off-larger-brand-text.yml
+          rm lib/one_off_brand_deploy_trigger.dart
 
       - name: Commit adjustment
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/widgets/app_stroy_brand.dart test .github/workflows/one-off-larger-brand-text.yml
+          git add -A
           git commit -m "Увеличить название и слоган на заставке"
-          git push origin HEAD:main
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
