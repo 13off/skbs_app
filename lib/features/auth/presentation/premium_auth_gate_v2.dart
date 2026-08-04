@@ -171,7 +171,9 @@ class _AuthGateState extends State<AuthGate> {
 
     if (isLoading) {
       screenKey = 'loading';
-      screen = const SizedBox.expand();
+      screen = const PremiumLoadingScreen(
+        message: 'Загружаем рабочее пространство',
+      );
     } else if (session == null) {
       screenKey = 'login';
       screen = LoginScreen(
