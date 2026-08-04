@@ -90,7 +90,7 @@ void main() {
     expect(selected, 3);
   });
 
-  testWidgets('mobile navigation floats transparently and keeps all tabs visible', (
+  testWidgets('mobile navigation uses one glass panel and keeps all tabs visible', (
     tester,
   ) async {
     await pumpNavigation(tester, const Size(390, 844), onSelected: (_) {});
@@ -108,7 +108,7 @@ void main() {
     expect(itemsHeight, 62);
     expect(
       find.byKey(const ValueKey('professional-bottom-navigation-panel')),
-      findsNothing,
+      findsOneWidget,
     );
     for (final item in items) {
       expect(find.text(item.label), findsOneWidget);
