@@ -11,10 +11,7 @@ import 'employee_team_screen.dart';
 class EmployeeTeamTabScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeTeamTabScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeTeamTabScreen({super.key, required this.profile});
 
   @override
   State<EmployeeTeamTabScreen> createState() => _EmployeeTeamTabScreenState();
@@ -62,16 +59,11 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
     await next;
   }
 
-  Future<void> _openMember(
-    EmployeeTeamMember member,
-    String objectName,
-  ) async {
+  Future<void> _openMember(EmployeeTeamMember member, String objectName) async {
     await Navigator.of(context).push<void>(
       CupertinoPageRoute<void>(
-        builder: (_) => EmployeeTeamMemberScreen(
-          member: member,
-          objectName: objectName,
-        ),
+        builder: (_) =>
+            EmployeeTeamMemberScreen(member: member, objectName: objectName),
       ),
     );
   }
@@ -107,14 +99,16 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
 
         final data = snapshot.data!;
         final cleanQuery = query.trim().toLowerCase();
-        final members = data.members.where((member) {
-          if (cleanQuery.isEmpty) return true;
-          return <String>[
-            member.fullName,
-            member.profession,
-            member.phone,
-          ].join(' ').toLowerCase().contains(cleanQuery);
-        }).toList(growable: false);
+        final members = data.members
+            .where((member) {
+              if (cleanQuery.isEmpty) return true;
+              return <String>[
+                member.fullName,
+                member.profession,
+                member.phone,
+              ].join(' ').toLowerCase().contains(cleanQuery);
+            })
+            .toList(growable: false);
         final objectName = data.currentObject.trim();
         final subtitle = <String>[
           objectName.isEmpty ? 'Объект не указан' : objectName,
@@ -129,7 +123,10 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PremiumWorkCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
                 child: TextField(
                   controller: searchController,
                   onChanged: (value) => setState(() => query = value),
@@ -174,7 +171,10 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
                       onTap: () => _openMember(members[index], objectName),
-                      leading: _EmployeeAvatar(member: members[index], size: 50),
+                      leading: _EmployeeAvatar(
+                        member: members[index],
+                        size: 50,
+                      ),
                       title: Text(
                         members[index].fullName,
                         maxLines: 2,
@@ -266,9 +266,9 @@ class _VerificationBadge extends StatelessWidget {
         Text(
           verified ? 'Профиль подтверждён' : 'Профиль не подтверждён',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -296,18 +296,17 @@ class _TeamMessageCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

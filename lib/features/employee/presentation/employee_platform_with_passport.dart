@@ -65,9 +65,7 @@ class _EmployeePlatformWithPassportState
   void initState() {
     super.initState();
     controller = PersistentTabController(pageCount: items.length);
-    selectedEmployeeId = ValueNotifier<String>(
-      widget.initialEmployeeId.trim(),
-    );
+    selectedEmployeeId = ValueNotifier<String>(widget.initialEmployeeId.trim());
     selectedEmployeeName = ValueNotifier<String>(
       widget.initialEmployeeName.trim(),
     );
@@ -79,8 +77,8 @@ class _EmployeePlatformWithPassportState
     super.didUpdateWidget(oldWidget);
     final nextEmployeeId = widget.initialEmployeeId.trim();
     final nextEmployeeName = widget.initialEmployeeName.trim();
-    final identityChanged = nextEmployeeId.isNotEmpty &&
-        nextEmployeeId != selectedEmployeeId.value;
+    final identityChanged =
+        nextEmployeeId.isNotEmpty && nextEmployeeId != selectedEmployeeId.value;
     if (identityChanged) selectedEmployeeId.value = nextEmployeeId;
     if (nextEmployeeName.isNotEmpty &&
         nextEmployeeName != selectedEmployeeName.value) {
@@ -101,7 +99,8 @@ class _EmployeePlatformWithPassportState
       if (employeeId.isNotEmpty && employeeId != selectedEmployeeId.value) {
         selectedEmployeeId.value = employeeId;
       }
-      if (employeeName.isNotEmpty && employeeName != selectedEmployeeName.value) {
+      if (employeeName.isNotEmpty &&
+          employeeName != selectedEmployeeName.value) {
         selectedEmployeeName.value = employeeName;
       }
 
@@ -143,20 +142,21 @@ class _EmployeePlatformWithPassportState
       tabBuilder: (context, index) {
         return switch (index) {
           0 => EmployeeHomeScreen(
-              profile: contentProfile,
-              selectedEmployeeId: selectedEmployeeId,
-            ),
+            profile: contentProfile,
+            selectedEmployeeId: selectedEmployeeId,
+          ),
           1 => EmployeeTasksScreen(
-              profile: contentProfile,
-              selectedEmployeeId: selectedEmployeeId,
-            ),
-          _ => rolePreview
-              ? EmployeeIdentityProfileScreen(
-                  profile: contentProfile,
-                  selectedEmployeeId: selectedEmployeeId,
-                  selectedEmployeeName: selectedEmployeeName,
-                )
-              : ProfileScreen(profile: contentProfile),
+            profile: contentProfile,
+            selectedEmployeeId: selectedEmployeeId,
+          ),
+          _ =>
+            rolePreview
+                ? EmployeeIdentityProfileScreen(
+                    profile: contentProfile,
+                    selectedEmployeeId: selectedEmployeeId,
+                    selectedEmployeeName: selectedEmployeeName,
+                  )
+                : ProfileScreen(profile: contentProfile),
         };
       },
     );

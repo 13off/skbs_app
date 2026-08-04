@@ -6,8 +6,7 @@ void main() {
   const controllerPath =
       'lib/features/role_preview/role_preview_controller.dart';
   const navigationPath = 'lib/navigation/navigation_session.dart';
-  const roleScreenPath =
-      'lib/features/role_preview/role_preview_screen.dart';
+  const roleScreenPath = 'lib/features/role_preview/role_preview_screen.dart';
   const mainPath = 'lib/screens/main_screen.dart';
   const platformPath =
       'lib/features/employee/presentation/employee_platform_with_passport.dart';
@@ -40,10 +39,7 @@ void main() {
   test('сервер не подставляет последнего исполнителя задачи', () {
     final function = File(cabinetFunctionPath).readAsStringSync();
 
-    expect(
-      function,
-      contains('Выберите сотрудника для режима просмотра'),
-    );
+    expect(function, contains('Выберите сотрудника для режима просмотра'));
     expect(function, isNot(contains('recentEmployeeId')));
     expect(function, isNot(contains('assignmentData')));
   });

@@ -73,7 +73,9 @@ class CompanyEmployerProfile {
       retentionPolicy: map['retention_policy']?.toString() ?? '',
       legalDocumentsApproved: map['legal_documents_approved'] == true,
       approvedByName: map['approved_by_name']?.toString() ?? '',
-      approvedAt: DateTime.tryParse(map['approved_at']?.toString() ?? '')?.toLocal(),
+      approvedAt: DateTime.tryParse(
+        map['approved_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -91,16 +93,16 @@ class CompanyEmployerProfile {
       retentionPolicy.trim().isNotEmpty;
 
   String get employerDetails => <String>[
-        legalAddress,
-        if (actualAddress.trim().isNotEmpty) 'Фактический адрес: $actualAddress',
-        'ИНН $inn',
-        'КПП $kpp',
-        'ОГРН $ogrn',
-        if (bankName.trim().isNotEmpty) bankName,
-        if (bankAccount.trim().isNotEmpty) 'р/с $bankAccount',
-        if (bankBik.trim().isNotEmpty) 'БИК $bankBik',
-        if (bankCorrAccount.trim().isNotEmpty) 'к/с $bankCorrAccount',
-      ].where((item) => item.trim().isNotEmpty).join('\n');
+    legalAddress,
+    if (actualAddress.trim().isNotEmpty) 'Фактический адрес: $actualAddress',
+    'ИНН $inn',
+    'КПП $kpp',
+    'ОГРН $ogrn',
+    if (bankName.trim().isNotEmpty) bankName,
+    if (bankAccount.trim().isNotEmpty) 'р/с $bankAccount',
+    if (bankBik.trim().isNotEmpty) 'БИК $bankBik',
+    if (bankCorrAccount.trim().isNotEmpty) 'к/с $bankCorrAccount',
+  ].where((item) => item.trim().isNotEmpty).join('\n');
 }
 
 class CompanyPersonalDataGate {
@@ -165,7 +167,9 @@ class CompanyPersonalDataGate {
       deletionPolicy: map['deletion_policy']?.toString() ?? '',
       incidentOwner: map['incident_owner']?.toString() ?? '',
       approvedByName: map['approved_by_name']?.toString() ?? '',
-      approvedAt: DateTime.tryParse(map['approved_at']?.toString() ?? '')?.toLocal(),
+      approvedAt: DateTime.tryParse(
+        map['approved_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -186,25 +190,22 @@ class CompanyPersonalDataGate {
       approvedAt != null;
 
   int get completedEvidenceCount => <bool>[
-        russianStorageLocationConfirmed,
-        dataControllerDetailsApproved,
-        personalDataConsentApproved,
-        retentionAndDeletionPolicyApproved,
-        downloadAuditLogVerified,
-        backupAndRestoreTested,
-        accessOffboardingTested,
-        incidentResponseOwnerAssigned,
-      ].where((value) => value).length;
+    russianStorageLocationConfirmed,
+    dataControllerDetailsApproved,
+    personalDataConsentApproved,
+    retentionAndDeletionPolicyApproved,
+    downloadAuditLogVerified,
+    backupAndRestoreTested,
+    accessOffboardingTested,
+    incidentResponseOwnerAssigned,
+  ].where((value) => value).length;
 }
 
 class CompanyComplianceSnapshot {
   final CompanyEmployerProfile employer;
   final CompanyPersonalDataGate gate;
 
-  const CompanyComplianceSnapshot({
-    required this.employer,
-    required this.gate,
-  });
+  const CompanyComplianceSnapshot({required this.employer, required this.gate});
 
   bool get realDocumentsAllowed =>
       gate.realDocumentsEnabled &&

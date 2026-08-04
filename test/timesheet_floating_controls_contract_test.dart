@@ -16,28 +16,22 @@ void main() {
     expect(desktop, contains("label: const Text('Скачать табель')"));
   });
 
-  test(
-    'save action is a compact floating card directly above navigation',
-    () {
-      final desktop = File(
-        'lib/screens/desktop_timesheet_screen.dart',
-      ).readAsStringSync();
+  test('save action is a compact floating card directly above navigation', () {
+    final desktop = File(
+      'lib/screens/desktop_timesheet_screen.dart',
+    ).readAsStringSync();
 
-      expect(
-        desktop,
-        contains('constraints: const BoxConstraints(maxWidth: 620)'),
-      );
-      expect(
-        desktop,
-        contains('bottom: AppUi.navigationTotalHeight(context)'),
-      );
-      expect(desktop, isNot(contains('bottom: 112')));
-      expect(
-        desktop,
-        isNot(contains('border: Border(top: BorderSide(color: _line))')),
-      );
-    },
-  );
+    expect(
+      desktop,
+      contains('constraints: const BoxConstraints(maxWidth: 620)'),
+    );
+    expect(desktop, contains('bottom: AppUi.navigationTotalHeight(context)'));
+    expect(desktop, isNot(contains('bottom: 112')));
+    expect(
+      desktop,
+      isNot(contains('border: Border(top: BorderSide(color: _line))')),
+    );
+  });
 
   test('main shell paints page content behind the floating navigation', () {
     final shell = File(

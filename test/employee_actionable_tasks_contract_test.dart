@@ -67,7 +67,10 @@ void main() {
     final function = File(functionPath).readAsStringSync();
 
     expect(repository, contains('class EmployeeCabinetTaskPhoto'));
-    expect(repository, contains('final List<EmployeeCabinetTaskPhoto> photos;'));
+    expect(
+      repository,
+      contains('final List<EmployeeCabinetTaskPhoto> photos;'),
+    );
     expect(function, contains('.from("task_assignees")'));
     expect(function, contains('.in("employee_id", employeeIds)'));
     expect(function, contains('.from("task_photos")'));
@@ -78,7 +81,10 @@ void main() {
   test('панель сотрудника не использует общий редактор прораба', () {
     final tasks = File(tasksPath).readAsStringSync();
 
-    expect(tasks, isNot(contains("import '../../../screens/task_details_screen.dart'")));
+    expect(
+      tasks,
+      isNot(contains("import '../../../screens/task_details_screen.dart'")),
+    );
     expect(tasks, isNot(contains('TaskRepository.updateTask')));
     expect(tasks, isNot(contains('saveTaskAssignees')));
     expect(tasks, isNot(contains(".from('tasks')")));

@@ -557,7 +557,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
         final milestone = snapshot.data;
         return Scaffold(
           appBar: AppBar(
-        leading: const BackButton(),
+            leading: const BackButton(),
             title: const Text('Готовность этапа'),
             actions: [
               IconButton(
@@ -586,7 +586,9 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
                     children: [
                       Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: double.infinity),
+                          constraints: const BoxConstraints(
+                            maxWidth: double.infinity,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [

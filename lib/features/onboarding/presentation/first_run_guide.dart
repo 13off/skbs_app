@@ -353,8 +353,9 @@ class _GuideOverlay extends StatefulWidget {
 
 class _GuideOverlayState extends State<_GuideOverlay>
     with SingleTickerProviderStateMixin {
-  static const ValueKey<String> professionalPanelKey =
-      ValueKey<String>('professional-bottom-navigation-panel');
+  static const ValueKey<String> professionalPanelKey = ValueKey<String>(
+    'professional-bottom-navigation-panel',
+  );
 
   final GlobalKey overlayKey = GlobalKey(debugLabel: 'first-run-guide-overlay');
   late final AnimationController pulseController;
@@ -454,8 +455,8 @@ class _GuideOverlayState extends State<_GuideOverlay>
       navigationRect.height,
     ).deflate(3);
     final inflated = itemRect.inflate(4);
-    final bounds = Offset.zero &
-        (overlaySize.isEmpty ? fallbackSize : overlaySize);
+    final bounds =
+        Offset.zero & (overlaySize.isEmpty ? fallbackSize : overlaySize);
 
     return Rect.fromLTRB(
       math.max(bounds.left + 8, inflated.left),
@@ -515,7 +516,9 @@ class _GuideOverlayState extends State<_GuideOverlay>
             renderObject.size.bottomRight(Offset.zero),
           );
           final localTopLeft = coordinateBox.globalToLocal(globalTopLeft);
-          final localBottomRight = coordinateBox.globalToLocal(globalBottomRight);
+          final localBottomRight = coordinateBox.globalToLocal(
+            globalBottomRight,
+          );
           final rect = Rect.fromPoints(localTopLeft, localBottomRight);
           final nearBottom = rect.bottom >= overlaySize.height * 0.65;
           if (nearBottom && _visible(rect, overlaySize)) {
@@ -553,8 +556,8 @@ class _GuideOverlayState extends State<_GuideOverlay>
     final bubbleLeft = target == null
         ? (screen.width - bubbleWidth) / 2
         : (target.center.dx - bubbleWidth / 2)
-            .clamp(16.0, screen.width - bubbleWidth - 16)
-            .toDouble();
+              .clamp(16.0, screen.width - bubbleWidth - 16)
+              .toDouble();
     final bubbleBottom = target == null
         ? math.max(120.0, screen.height * 0.18)
         : math.max(110.0, screen.height - target.top + 24);
@@ -615,8 +618,7 @@ class _GuideOverlayState extends State<_GuideOverlay>
                       targetFound: target != null,
                       targetReady: targetReady,
                       onSkip: widget.onFinish,
-                      onPrevious:
-                          stepIndex == 0 ? null : () => changeStep(-1),
+                      onPrevious: stepIndex == 0 ? null : () => changeStep(-1),
                       onNext: () => changeStep(1),
                     ),
                   ),
@@ -722,10 +724,7 @@ class _GuideBubble extends StatelessWidget {
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: onSkip,
-                  child: const Text('Пропустить'),
-                ),
+                TextButton(onPressed: onSkip, child: const Text('Пропустить')),
               ],
             ),
             const SizedBox(height: 12),
@@ -761,7 +760,9 @@ class _GuideBubble extends StatelessWidget {
                         width: active ? 22 : 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: active ? scheme.primary : scheme.outlineVariant,
+                          color: active
+                              ? scheme.primary
+                              : scheme.outlineVariant,
                           borderRadius: BorderRadius.circular(99),
                         ),
                       );

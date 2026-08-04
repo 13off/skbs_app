@@ -119,7 +119,10 @@ class _DocumentTemplateOnlineEditorScreenState
                   children: [
                     const Text(
                       'Сохранить новую версию',
-                      style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -189,9 +192,9 @@ class _DocumentTemplateOnlineEditorScreenState
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_cleanError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_cleanError(error))));
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -290,7 +293,9 @@ class _DocumentTemplateOnlineEditorScreenState
                         icon: saving
                             ? const SizedBox.square(
                                 dimension: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2.5),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                ),
                               )
                             : const Icon(Icons.save_outlined),
                         label: Text(

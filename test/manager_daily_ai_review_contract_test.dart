@@ -13,7 +13,10 @@ void main() {
 
     expect(screen, contains("import 'manager_daily_ai_review.dart';"));
     expect(screen, contains("title: 'ИИ-разбор рабочего дня'"));
-    expect(screen, contains('void openDailyReview(ManagerReportsCenter center)'));
+    expect(
+      screen,
+      contains('void openDailyReview(ManagerReportsCenter center)'),
+    );
     expect(screen, contains('ManagerDailyAiReviewScreen('));
     expect(screen, isNot(contains('ManagerDailyAiReviewCard(')));
     expect(review, contains("'ИИ-разбор рабочего дня'"));

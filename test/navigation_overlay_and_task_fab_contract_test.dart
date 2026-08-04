@@ -15,7 +15,10 @@ void main() {
 
     expect(mainShell, contains('body: Stack('));
     expect(mainShell, contains('child: _PremiumBottomBar('));
-    expect(mainShell, isNot(contains('bottomNavigationBar: _PremiumBottomBar(')));
+    expect(
+      mainShell,
+      isNot(contains('bottomNavigationBar: _PremiumBottomBar(')),
+    );
     expect(persistentShell, contains('extendBody: true'));
     expect(persistentShell, contains('backgroundColor: Colors.transparent'));
     expect(persistentShell, contains('child: ProfessionalBottomNavigation('));

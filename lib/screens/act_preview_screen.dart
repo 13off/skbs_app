@@ -152,7 +152,9 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Черновик акта')),
+        leading: const BackButton(),
+        title: const Text('Черновик акта'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -206,8 +208,8 @@ class _ActPreviewScreenState extends State<ActPreviewScreen> {
             child: FilledButton.icon(
               onPressed:
                   isDownloading || isLoadingContext || completedTasks.isEmpty
-                      ? null
-                      : downloadAct,
+                  ? null
+                  : downloadAct,
               icon: isDownloading
                   ? const SizedBox(
                       width: 18,

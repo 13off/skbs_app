@@ -18,7 +18,8 @@ class CompanyComplianceScreen extends StatefulWidget {
 }
 
 class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
-  final Map<String, TextEditingController> fields = <String, TextEditingController>{};
+  final Map<String, TextEditingController> fields =
+      <String, TextEditingController>{};
   bool loading = true;
   bool savingEmployer = false;
   bool savingGate = false;
@@ -92,7 +93,8 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
       controller('bankBik').text = employer.bankBik;
       controller('bankCorrAccount').text = employer.bankCorrAccount;
       controller('representativeName').text = employer.representativeName;
-      controller('representativePosition').text = employer.representativePosition;
+      controller('representativePosition').text =
+          employer.representativePosition;
       controller('representativeBasis').text = employer.representativeBasis;
       controller('contractCity').text = employer.contractCity;
       controller('workSchedule').text = employer.workSchedule;
@@ -125,7 +127,10 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error.toString().replaceFirst('Bad state: ', '').replaceFirst('Exception: ', ''),
+          error
+              .toString()
+              .replaceFirst('Bad state: ', '')
+              .replaceFirst('Exception: ', ''),
         ),
       ),
     );
@@ -203,7 +208,9 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
     if (savingGate) return;
     setState(() => savingGate = true);
     try {
-      final saved = await CompanyComplianceRepository.saveGate(gate: currentGate());
+      final saved = await CompanyComplianceRepository.saveGate(
+        gate: currentGate(),
+      );
       if (!mounted) return;
       setState(() => gate = saved);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -281,8 +288,18 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
           ),
           textField('legalName', 'Полное юридическое наименование'),
           textField('shortName', 'Краткое наименование'),
-          textField('legalAddress', 'Юридический адрес', minLines: 2, maxLines: 3),
-          textField('actualAddress', 'Фактический адрес', minLines: 2, maxLines: 3),
+          textField(
+            'legalAddress',
+            'Юридический адрес',
+            minLines: 2,
+            maxLines: 3,
+          ),
+          textField(
+            'actualAddress',
+            'Фактический адрес',
+            minLines: 2,
+            maxLines: 3,
+          ),
           Row(
             children: [
               Expanded(child: textField('inn', 'ИНН')),
@@ -304,7 +321,12 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
           textField('representativePosition', 'Должность представителя'),
           textField('representativeBasis', 'Основание полномочий'),
           textField('contractCity', 'Город заключения договора'),
-          textField('workSchedule', 'Стандартный режим работы', minLines: 2, maxLines: 4),
+          textField(
+            'workSchedule',
+            'Стандартный режим работы',
+            minLines: 2,
+            maxLines: 4,
+          ),
           textField(
             'salaryTermsTemplate',
             'Стандартные условия оплаты',
@@ -364,9 +386,9 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
   }) {
     return CompanyPersonalDataGate(
       companyId: gate.companyId,
-      realDocumentsEnabled:
-          realDocumentsEnabled ?? gate.realDocumentsEnabled,
-      russianStorageLocationConfirmed: russianStorageLocationConfirmed ??
+      realDocumentsEnabled: realDocumentsEnabled ?? gate.realDocumentsEnabled,
+      russianStorageLocationConfirmed:
+          russianStorageLocationConfirmed ??
           gate.russianStorageLocationConfirmed,
       dataControllerDetailsApproved:
           dataControllerDetailsApproved ?? gate.dataControllerDetailsApproved,
@@ -374,15 +396,15 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
           personalDataConsentApproved ?? gate.personalDataConsentApproved,
       retentionAndDeletionPolicyApproved:
           retentionAndDeletionPolicyApproved ??
-              gate.retentionAndDeletionPolicyApproved,
+          gate.retentionAndDeletionPolicyApproved,
       downloadAuditLogVerified:
           downloadAuditLogVerified ?? gate.downloadAuditLogVerified,
       backupAndRestoreTested:
           backupAndRestoreTested ?? gate.backupAndRestoreTested,
       accessOffboardingTested:
           accessOffboardingTested ?? gate.accessOffboardingTested,
-      incidentResponseOwnerAssigned: incidentResponseOwnerAssigned ??
-          gate.incidentResponseOwnerAssigned,
+      incidentResponseOwnerAssigned:
+          incidentResponseOwnerAssigned ?? gate.incidentResponseOwnerAssigned,
       storageRegion: gate.storageRegion,
       retentionDays: gate.retentionDays,
       deletionPolicy: gate.deletionPolicy,
@@ -439,13 +461,15 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
             'Российское хранение подтверждено',
             'Есть документальное подтверждение региона хранения.',
             gate.russianStorageLocationConfirmed,
-            (value) => updateGate(gateWith(russianStorageLocationConfirmed: value)),
+            (value) =>
+                updateGate(gateWith(russianStorageLocationConfirmed: value)),
           ),
           evidenceSwitch(
             'Реквизиты оператора утверждены',
             'Определены оператор, адрес и ответственные лица.',
             gate.dataControllerDetailsApproved,
-            (value) => updateGate(gateWith(dataControllerDetailsApproved: value)),
+            (value) =>
+                updateGate(gateWith(dataControllerDetailsApproved: value)),
           ),
           evidenceSwitch(
             'Согласие утверждено',
@@ -457,9 +481,8 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
             'Сроки хранения и удаление утверждены',
             'Есть формализованный срок и порядок удаления.',
             gate.retentionAndDeletionPolicyApproved,
-            (value) => updateGate(
-              gateWith(retentionAndDeletionPolicyApproved: value),
-            ),
+            (value) =>
+                updateGate(gateWith(retentionAndDeletionPolicyApproved: value)),
           ),
           evidenceSwitch(
             'Журнал доступа проверен',
@@ -483,9 +506,8 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
             'Ответственный за инциденты назначен',
             'Назначен человек, который принимает и ведёт инциденты.',
             gate.incidentResponseOwnerAssigned,
-            (value) => updateGate(
-              gateWith(incidentResponseOwnerAssigned: value),
-            ),
+            (value) =>
+                updateGate(gateWith(incidentResponseOwnerAssigned: value)),
           ),
           textField('storageRegion', 'Регион и провайдер хранения'),
           textField(
@@ -493,7 +515,12 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
             'Срок хранения, дней',
             keyboardType: TextInputType.number,
           ),
-          textField('deletionPolicy', 'Порядок удаления', minLines: 3, maxLines: 6),
+          textField(
+            'deletionPolicy',
+            'Порядок удаления',
+            minLines: 3,
+            maxLines: 6,
+          ),
           textField('incidentOwner', 'Ответственный за инциденты'),
           textField('gateApprovedBy', 'Кто разрешил production-использование'),
           const SizedBox(height: 4),
@@ -511,9 +538,8 @@ class _CompanyComplianceScreenState extends State<CompanyComplianceScreen> {
               'Даже включённый переключатель не сохранится, если сервер найдёт незакрытый пункт.',
             ),
             value: gate.realDocumentsEnabled,
-            onChanged: (value) => updateGate(
-              gateWith(realDocumentsEnabled: value),
-            ),
+            onChanged: (value) =>
+                updateGate(gateWith(realDocumentsEnabled: value)),
           ),
           FilledButton.icon(
             onPressed: savingGate ? null : saveGate,

@@ -53,9 +53,14 @@ class DeveloperReminderRule {
       localTime: _timeText(json['local_time']),
       timezone: json['timezone']?.toString() ?? 'Europe/Moscow',
       weekdays: rawDays is List
-          ? rawDays.map((item) => int.tryParse(item.toString()) ?? 0).where((day) => day > 0).toSet()
+          ? rawDays
+                .map((item) => int.tryParse(item.toString()) ?? 0)
+                .where((day) => day > 0)
+                .toSet()
           : const <int>{1, 2, 3, 4, 5, 6, 7},
-      runOnceAt: DateTime.tryParse(json['run_once_at']?.toString() ?? '')?.toLocal(),
+      runOnceAt: DateTime.tryParse(
+        json['run_once_at']?.toString() ?? '',
+      )?.toLocal(),
       recipientRoles: rawRoles is List
           ? rawRoles.map((item) => item.toString()).toSet()
           : const <String>{'admin'},
@@ -64,7 +69,9 @@ class DeveloperReminderRule {
       priority: json['priority']?.toString() ?? 'normal',
       objectName: json['object_name']?.toString() ?? '',
       sortOrder: int.tryParse(json['sort_order']?.toString() ?? '') ?? 0,
-      lastScheduledAt: DateTime.tryParse(json['last_scheduled_at']?.toString() ?? '')?.toLocal(),
+      lastScheduledAt: DateTime.tryParse(
+        json['last_scheduled_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -114,22 +121,24 @@ class DeveloperReminderRule {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        if (id.isNotEmpty) 'id': id,
-        'name': name.trim(),
-        'body': body.trim(),
-        'enabled': enabled,
-        'schedule_type': scheduleType,
-        'local_time': localTime,
-        'timezone': timezone,
-        'weekdays': weekdays.toList()..sort(),
-        'run_once_at': scheduleType == 'once' ? runOnceAt?.toUtc().toIso8601String() : null,
-        'recipient_roles': recipientRoles.toList()..sort(),
-        'in_app_enabled': inAppEnabled,
-        'push_enabled': pushEnabled,
-        'priority': priority,
-        'object_name': objectName.trim(),
-        'sort_order': sortOrder,
-      };
+    if (id.isNotEmpty) 'id': id,
+    'name': name.trim(),
+    'body': body.trim(),
+    'enabled': enabled,
+    'schedule_type': scheduleType,
+    'local_time': localTime,
+    'timezone': timezone,
+    'weekdays': weekdays.toList()..sort(),
+    'run_once_at': scheduleType == 'once'
+        ? runOnceAt?.toUtc().toIso8601String()
+        : null,
+    'recipient_roles': recipientRoles.toList()..sort(),
+    'in_app_enabled': inAppEnabled,
+    'push_enabled': pushEnabled,
+    'priority': priority,
+    'object_name': objectName.trim(),
+    'sort_order': sortOrder,
+  };
 }
 
 class DeveloperCustomSetting {
@@ -201,16 +210,16 @@ class DeveloperCustomSetting {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        if (id.isNotEmpty) 'id': id,
-        'setting_key': key.trim().toLowerCase(),
-        'name': name.trim(),
-        'description': description.trim(),
-        'category': category.trim(),
-        'value_type': valueType,
-        'value': value,
-        'enabled': enabled,
-        'sort_order': sortOrder,
-      };
+    if (id.isNotEmpty) 'id': id,
+    'setting_key': key.trim().toLowerCase(),
+    'name': name.trim(),
+    'description': description.trim(),
+    'category': category.trim(),
+    'value_type': valueType,
+    'value': value,
+    'enabled': enabled,
+    'sort_order': sortOrder,
+  };
 }
 
 class DeveloperConstructorData {
@@ -236,15 +245,31 @@ class DeveloperConstructorRepository {
   };
 
   static DeveloperConstructorData _parse(dynamic raw) {
-    final map = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    final map = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : <String, dynamic>{};
     final reminderRows = map['reminders'];
     final settingRows = map['settings'];
     return DeveloperConstructorData(
       reminders: reminderRows is List
-          ? reminderRows.whereType<Map>().map((row) => DeveloperReminderRule.fromJson(Map<String, dynamic>.from(row))).toList()
+          ? reminderRows
+                .whereType<Map>()
+                .map(
+                  (row) => DeveloperReminderRule.fromJson(
+                    Map<String, dynamic>.from(row),
+                  ),
+                )
+                .toList()
           : <DeveloperReminderRule>[],
       settings: settingRows is List
-          ? settingRows.whereType<Map>().map((row) => DeveloperCustomSetting.fromJson(Map<String, dynamic>.from(row))).toList()
+          ? settingRows
+                .whereType<Map>()
+                .map(
+                  (row) => DeveloperCustomSetting.fromJson(
+                    Map<String, dynamic>.from(row),
+                  ),
+                )
+                .toList()
           : <DeveloperCustomSetting>[],
     );
   }
@@ -253,32 +278,49 @@ class DeveloperConstructorRepository {
     return _parse(await _client.rpc('get_developer_constructor_center'));
   }
 
-  static Future<DeveloperReminderRule> saveReminder(DeveloperReminderRule rule) async {
+  static Future<DeveloperReminderRule> saveReminder(
+    DeveloperReminderRule rule,
+  ) async {
     final raw = await _client.rpc(
       'save_developer_reminder_rule',
       params: <String, dynamic>{'p_rule': rule.toJson()},
     );
-    return DeveloperReminderRule.fromJson(Map<String, dynamic>.from(raw as Map));
+    return DeveloperReminderRule.fromJson(
+      Map<String, dynamic>.from(raw as Map),
+    );
   }
 
   static Future<void> deleteReminder(String id) async {
-    await _client.rpc('delete_developer_reminder_rule', params: <String, dynamic>{'p_rule_id': id});
+    await _client.rpc(
+      'delete_developer_reminder_rule',
+      params: <String, dynamic>{'p_rule_id': id},
+    );
   }
 
   static Future<int> testReminder(String id) async {
-    final raw = await _client.rpc('test_developer_reminder_rule', params: <String, dynamic>{'p_rule_id': id});
+    final raw = await _client.rpc(
+      'test_developer_reminder_rule',
+      params: <String, dynamic>{'p_rule_id': id},
+    );
     return int.tryParse(raw?.toString() ?? '') ?? 0;
   }
 
-  static Future<DeveloperCustomSetting> saveSetting(DeveloperCustomSetting setting) async {
+  static Future<DeveloperCustomSetting> saveSetting(
+    DeveloperCustomSetting setting,
+  ) async {
     final raw = await _client.rpc(
       'save_developer_custom_setting',
       params: <String, dynamic>{'p_setting': setting.toJson()},
     );
-    return DeveloperCustomSetting.fromJson(Map<String, dynamic>.from(raw as Map));
+    return DeveloperCustomSetting.fromJson(
+      Map<String, dynamic>.from(raw as Map),
+    );
   }
 
   static Future<void> deleteSetting(String id) async {
-    await _client.rpc('delete_developer_custom_setting', params: <String, dynamic>{'p_setting_id': id});
+    await _client.rpc(
+      'delete_developer_custom_setting',
+      params: <String, dynamic>{'p_setting_id': id},
+    );
   }
 }

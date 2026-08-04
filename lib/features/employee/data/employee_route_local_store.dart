@@ -41,21 +41,19 @@ class EmployeeTrackingGapDraft {
     return EmployeeTrackingGapDraft(
       shiftId: json['shift_id']?.toString().trim() ?? '',
       startedAt: startedAt,
-      endedAt: DateTime.tryParse(
-        json['ended_at']?.toString() ?? '',
-      )?.toLocal(),
+      endedAt: DateTime.tryParse(json['ended_at']?.toString() ?? '')?.toLocal(),
       reason: json['reason']?.toString().trim() ?? 'tracking_interruption',
       details: json['details']?.toString().trim() ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'shift_id': shiftId,
-        'started_at': startedAt.toUtc().toIso8601String(),
-        'ended_at': endedAt?.toUtc().toIso8601String(),
-        'reason': reason,
-        'details': details,
-      };
+    'shift_id': shiftId,
+    'started_at': startedAt.toUtc().toIso8601String(),
+    'ended_at': endedAt?.toUtc().toIso8601String(),
+    'reason': reason,
+    'details': details,
+  };
 }
 
 class EmployeeRouteLocalState {
@@ -78,10 +76,10 @@ class EmployeeRouteLocalState {
   const EmployeeRouteLocalState.empty({
     required this.employeeId,
     required this.shiftId,
-  })  : pendingPoints = const <EmployeeLocationPoint>[],
-        pendingGaps = const <EmployeeTrackingGapDraft>[],
-        openGap = null,
-        lastCapturedAt = null;
+  }) : pendingPoints = const <EmployeeLocationPoint>[],
+       pendingGaps = const <EmployeeTrackingGapDraft>[],
+       openGap = null,
+       lastCapturedAt = null;
 }
 
 class EmployeeRouteLocalStore {
@@ -127,9 +125,7 @@ class EmployeeRouteLocalStore {
         for (final value in rawPoints) {
           if (value is Map) {
             points.add(
-              EmployeeLocationPoint.fromJson(
-                Map<String, dynamic>.from(value),
-              ),
+              EmployeeLocationPoint.fromJson(Map<String, dynamic>.from(value)),
             );
           }
         }
@@ -197,8 +193,9 @@ class EmployeeRouteLocalStore {
       'pending_points': pendingPoints
           .map((point) => point.toJson())
           .toList(growable: false),
-      'pending_gaps':
-          pendingGaps.map((gap) => gap.toJson()).toList(growable: false),
+      'pending_gaps': pendingGaps
+          .map((gap) => gap.toJson())
+          .toList(growable: false),
       'open_gap': openGap?.toJson(),
     });
     final preferences = await SharedPreferences.getInstance();

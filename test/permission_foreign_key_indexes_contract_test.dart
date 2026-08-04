@@ -18,7 +18,10 @@ void main() {
     expect(sql, contains('(updated_by)'));
     expect(sql, contains('object_role_permission_overrides_object_id_idx'));
     expect(sql, contains('(object_id)'));
-    expect(sql, contains('object_role_permission_overrides_permission_code_idx'));
+    expect(
+      sql,
+      contains('object_role_permission_overrides_permission_code_idx'),
+    );
     expect(sql, contains('object_role_permission_overrides_updated_by_idx'));
     expect(sql, contains('role_permission_audit_object_id_idx'));
   });
@@ -27,14 +30,17 @@ void main() {
     final sql = File(migrationPath).readAsStringSync();
 
     expect(
-      RegExp(r'updated_by\)\s+where updated_by is not null;', multiLine: true)
-          .allMatches(sql)
-          .length,
+      RegExp(
+        r'updated_by\)\s+where updated_by is not null;',
+        multiLine: true,
+      ).allMatches(sql).length,
       2,
     );
     expect(
       sql,
-      contains('role_permission_audit (object_id)\n  where object_id is not null'),
+      contains(
+        'role_permission_audit (object_id)\n  where object_id is not null',
+      ),
     );
   });
 

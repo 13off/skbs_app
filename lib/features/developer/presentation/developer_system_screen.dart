@@ -24,9 +24,9 @@ class DeveloperSystemScreen extends StatelessWidget {
   const DeveloperSystemScreen({super.key, required this.profile});
 
   void open(BuildContext context, Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   Widget constructorCard(BuildContext context) {
@@ -54,9 +54,7 @@ class DeveloperSystemScreen extends StatelessWidget {
                 ],
               ),
               borderRadius: BorderRadius.circular(21),
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.18),
-              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.18)),
             ),
             child: Icon(
               Icons.dashboard_customize_rounded,
@@ -202,10 +200,8 @@ class DeveloperSystemScreen extends StatelessWidget {
               context,
               icon: Icons.rule_outlined,
               title: 'Ограничения задач и объектов',
-              onTap: () => open(
-                context,
-                DeveloperPanelScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, DeveloperPanelScreen(profile: profile)),
             ),
             actionCard(
               context,
@@ -242,37 +238,29 @@ class DeveloperSystemScreen extends StatelessWidget {
               context,
               icon: Icons.policy_outlined,
               title: 'Работодатель и персональные данные',
-              onTap: () => open(
-                context,
-                CompanyComplianceScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, CompanyComplianceScreen(profile: profile)),
             ),
             actionCard(
               context,
               icon: Icons.folder_copy_outlined,
               title: 'Шаблоны документов',
-              onTap: () => open(
-                context,
-                TemplateDocumentsScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, TemplateDocumentsScreen(profile: profile)),
             ),
             actionCard(
               context,
               icon: Icons.notifications_none_rounded,
               title: 'Уведомления компании',
-              onTap: () => open(
-                context,
-                const NotificationControlCenterScreen(),
-              ),
+              onTap: () =>
+                  open(context, const NotificationControlCenterScreen()),
             ),
             actionCard(
               context,
               icon: Icons.devices_rounded,
               title: 'Устройства и push',
-              onTap: () => open(
-                context,
-                const PushNotificationSettingsScreen(),
-              ),
+              onTap: () =>
+                  open(context, const PushNotificationSettingsScreen()),
             ),
             actionCard(
               context,
@@ -291,10 +279,8 @@ class DeveloperSystemScreen extends StatelessWidget {
               context,
               icon: Icons.health_and_safety_outlined,
               title: 'Готовность и диагностика',
-              onTap: () => open(
-                context,
-                DeveloperReadinessScreen(profile: profile),
-              ),
+              onTap: () =>
+                  open(context, DeveloperReadinessScreen(profile: profile)),
             ),
             actionCard(
               context,

@@ -32,7 +32,10 @@ void main() {
     expect(employeeView, contains("title: 'Документы'"));
 
     expect(navigation, contains('DocumentToolProtectedScreen('));
-    expect(navigation, contains('EmployeePrivateDataScreen(employee: employee)'));
+    expect(
+      navigation,
+      contains('EmployeePrivateDataScreen(employee: employee)'),
+    );
     expect(navigation, contains('EmployeeDocumentsScreen(employee: employee)'));
   });
 
@@ -48,15 +51,10 @@ void main() {
     expect(generator, contains("case 'asset':"));
     expect(generator, contains("case 'external':"));
     expect(generator, contains('HrDocumentGenerationException'));
+    expect(generator, contains('Загрузите исходный DOCX в AppСтрой'));
     expect(
       generator,
-      contains('Загрузите исходный DOCX в AppСтрой'),
-    );
-    expect(
-      generator,
-      isNot(
-        contains('assets/templates/hr/employment_contract_template.docx'),
-      ),
+      isNot(contains('assets/templates/hr/employment_contract_template.docx')),
     );
   });
 
@@ -66,7 +64,10 @@ void main() {
     ).readAsStringSync();
 
     expect(migration, contains('function public.document_tool_is_enabled'));
-    expect(migration, contains('function public.require_document_tool_enabled'));
+    expect(
+      migration,
+      contains('function public.require_document_tool_enabled'),
+    );
     expect(
       migration,
       contains("message = 'Подключите AppСтрой Трудоустройство'"),

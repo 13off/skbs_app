@@ -1,0 +1,199 @@
+name: Acceptance Backend Follow-up
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-acceptance-backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Repository final scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Scan repository without PEM parser false positives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/acceptance-followup
+          git ls-files -z > /tmp/tracked.bin
+          python3 - <<'PY'
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          paths = [Path(v.decode('utf-8', errors='replace')) for v in Path('/tmp/tracked.bin').read_bytes().split(b'\0') if v]
+          errors = []
+          forbidden_parts = {'.DS_Store', 'Thumbs.db', 'desktop.ini', '.idea', '.vscode', '.dart_tool', 'build'}
+          forbidden_suffixes = ('.log', '.tmp', '.bak', '.swp', '~')
+          garbage = [p.as_posix() for p in paths if set(p.parts) & forbidden_parts or p.as_posix().endswith(forbidden_suffixes)]
+          if garbage:
+              errors.append('Tracked garbage:\n' + '\n'.join(sorted(garbage)))
+
+          conflict = subprocess.run(
+              ['git', 'grep', '-nE', '^(<<<<<<< .+|=======|>>>>>>> .+)$', '--', ':!pubspec.lock'],
+              text=True, capture_output=True, check=False,
+          )
+          if conflict.returncode == 0:
+              errors.append('Conflict markers:\n' + conflict.stdout)
+
+          manifest_path = Path('web/manifest.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          for key in ('name', 'short_name', 'start_url', 'display', 'icons'):
+              if key not in manifest:
+                  errors.append(f'PWA manifest misses {key}')
+          for icon in manifest.get('icons', []):
+              src = str(icon.get('src', '')).lstrip('/')
+              if not src or not (Path('web') / src).is_file():
+                  errors.append(f'Missing PWA icon: {src}')
+
+          pem_block = re.compile(
+              r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\s+'
+              r'[A-Za-z0-9+/=\r\n]{80,}'
+              r'-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',
+              re.MULTILINE,
+          )
+          jwt_assignment = re.compile(
+              r'(?i)(?:service[_-]?role|secret[_-]?key)\s*[:=]\s*["\']'
+              r'(eyJ[A-Za-z0-9._-]{40,})["\']',
+          )
+          secret_hits = []
+          for path in paths:
+              if not path.is_file() or path.parts[:1] in [('docs',), ('test',), ('.github',)]:
+                  continue
+              if path.suffix.lower() not in {'.dart', '.ts', '.js', '.json', '.yaml', '.yml', '.sql', '.env', '.txt'}:
+                  continue
+              text = path.read_text(encoding='utf-8', errors='ignore')
+              if pem_block.search(text) or jwt_assignment.search(text):
+                  secret_hits.append(path.as_posix())
+          if secret_hits:
+              errors.append('Possible real credentials:\n' + '\n'.join(sorted(secret_hits)))
+
+          report = [
+              '# Repository final scan', '',
+              f'Tracked files: {len(paths)}', '',
+              f'PWA icons: {len(manifest.get("icons", []))}', '',
+              f'Tracked garbage: {len(garbage)}', '',
+              f'Credential candidates: {len(secret_hits)}', '',
+              f'Errors: {len(errors)}', '',
+          ]
+          if errors:
+              report.extend(errors)
+          Path('.artifacts/acceptance-followup/repository.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
+          print('\n'.join(report))
+          if errors:
+              raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-repository-final
+          path: .artifacts/acceptance-followup
+          retention-days: 7
+
+  backend:
+    name: Every Edge file and every SQL migration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check all Edge TypeScript files and keep going
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p .artifacts/acceptance-followup
+          : > .artifacts/acceptance-followup/deno-check.log
+          : > .artifacts/acceptance-followup/edge-failures.txt
+          checked=0
+          failures=0
+          while IFS= read -r -d '' file; do
+            checked=$((checked + 1))
+            echo "===== $file =====" >> .artifacts/acceptance-followup/deno-check.log
+            if deno check "$file" >> .artifacts/acceptance-followup/deno-check.log 2>&1; then
+              echo "PASS $file"
+            else
+              failures=$((failures + 1))
+              echo "$file" | tee -a .artifacts/acceptance-followup/edge-failures.txt
+            fi
+          done < <(find supabase/functions -type f -name '*.ts' -print0 | sort -z)
+          echo "EDGE_CHECKED=$checked" >> "$GITHUB_ENV"
+          echo "EDGE_FAILURES=$failures" >> "$GITHUB_ENV"
+          printf '# Edge check\n\nFiles checked: %s\n\nFailed files: %s\n' "$checked" "$failures" > .artifacts/acceptance-followup/edge-summary.md
+
+      - name: Validate all SQL migration files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = sorted(Path('supabase/migrations').glob('*.sql'))
+          errors = []
+          timestamps = set()
+          for path in files:
+              match = re.match(r'^(\d{14})_', path.name)
+              if not match:
+                  errors.append(f'invalid migration name: {path.name}')
+              elif match.group(1) in timestamps:
+                  errors.append(f'duplicate migration timestamp: {match.group(1)}')
+              else:
+                  timestamps.add(match.group(1))
+              text = path.read_text(encoding='utf-8', errors='replace')
+              if not text.strip():
+                  errors.append(f'empty migration: {path.name}')
+              if re.search(r'^(<<<<<<< .+|=======|>>>>>>> .+)$', text, re.MULTILINE):
+                  errors.append(f'conflict marker: {path.name}')
+          report = [
+              '# SQL validation', '',
+              f'Migrations checked: {len(files)}', '',
+              f'Errors: {len(errors)}', '',
+              *errors,
+          ]
+          Path('.artifacts/acceptance-followup/sql-summary.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
+          print('\n'.join(report))
+          if errors:
+              raise SystemExit(1)
+          PY
+
+      - name: Write backend inventory
+        shell: bash
+        run: |
+          {
+            echo '# Backend final inventory'
+            echo
+            echo "Edge TypeScript files checked: ${EDGE_CHECKED:-0}"
+            echo "Edge files failed: ${EDGE_FAILURES:-0}"
+            echo "SQL migrations: $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)"
+            echo "Files containing SECURITY DEFINER: $(grep -Ril 'security definer' supabase/migrations --include='*.sql' | wc -l)"
+            echo "Files containing RLS enablement: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
+          } > .artifacts/acceptance-followup/backend-inventory.md
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-backend-final
+          path: .artifacts/acceptance-followup
+          retention-days: 7
+
+      - name: Enforce Edge result
+        shell: bash
+        run: test "${EDGE_FAILURES:-0}" = "0"

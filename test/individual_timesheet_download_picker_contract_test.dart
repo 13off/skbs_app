@@ -19,7 +19,10 @@ void main() {
     expect(timesheet, contains('initialDate: selectedMonth'));
     expect(timesheet, isNot(contains('showDialog<void>(')));
     expect(timesheet, isNot(contains('EmployeeTimesheetDownloadScreen(')));
-    expect(timesheet, contains('onPressed: canDownload ? downloadExcel : null'));
+    expect(
+      timesheet,
+      contains('onPressed: canDownload ? downloadExcel : null'),
+    );
 
     expect(picker, contains('showModalBottomSheet<void>('));
     expect(picker, contains('SafeArea('));

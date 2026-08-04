@@ -109,8 +109,12 @@ class _RecruitmentOnboardingScreenState
                             height: 48,
                             decoration: BoxDecoration(
                               color: candidate.isLinkedToEmployee
-                                  ? AppAdaptivePalette.success.withValues(alpha: 0.12)
-                                  : AppAdaptivePalette.warning.withValues(alpha: 0.12),
+                                  ? AppAdaptivePalette.success.withValues(
+                                      alpha: 0.12,
+                                    )
+                                  : AppAdaptivePalette.warning.withValues(
+                                      alpha: 0.12,
+                                    ),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(
@@ -145,17 +149,15 @@ class _RecruitmentOnboardingScreenState
                                 const SizedBox(height: 4),
                                 Text(
                                   <String>[
-                                    candidate.positionTitle,
-                                    candidate.objectName,
-                                  ]
-                                      .where(
-                                        (value) => value.trim().isNotEmpty,
-                                      )
+                                        candidate.positionTitle,
+                                        candidate.objectName,
+                                      ]
+                                      .where((value) => value.trim().isNotEmpty)
                                       .join(' · '),
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -330,9 +332,7 @@ class _CandidateOnboardingDetailScreenState
       await refreshForms();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Сотрудник создан и связан с кандидатом'),
-        ),
+        const SnackBar(content: Text('Сотрудник создан и связан с кандидатом')),
       );
     } catch (error) {
       showError(error);
@@ -366,9 +366,7 @@ class _CandidateOnboardingDetailScreenState
         'image/webp',
       ],
     );
-    final file = await openFile(
-      acceptedTypeGroups: const <XTypeGroup>[group],
-    );
+    final file = await openFile(acceptedTypeGroups: const <XTypeGroup>[group]);
     if (file == null) return;
     setState(() => busyFormCode = form.formCode);
     try {
@@ -426,11 +424,13 @@ class _CandidateOnboardingDetailScreenState
       0,
       (sum, form) => sum + form.missingFields.length,
     );
-    if (missing > 0) return 'Заполнить $missing обязательных полей перед подписью';
+    if (missing > 0)
+      return 'Заполнить $missing обязательных полей перед подписью';
     final notPrinted = forms.where((form) => !form.isPrinted && !form.isSigned);
     if (notPrinted.isNotEmpty) return 'Распечатать оставшиеся формы';
     final notSigned = forms.where((form) => !form.isSigned).length;
-    if (notSigned > 0) return 'Загрузить подписанные экземпляры: осталось $notSigned';
+    if (notSigned > 0)
+      return 'Загрузить подписанные экземпляры: осталось $notSigned';
     return 'Кадровый комплект завершён — перейти к выходу на объект';
   }
 
@@ -493,7 +493,9 @@ class _CandidateOnboardingDetailScreenState
 
   Widget progressCard(List<CandidateOnboardingForm> forms) {
     final generated = forms.length;
-    final printed = forms.where((form) => form.isPrinted || form.isSigned).length;
+    final printed = forms
+        .where((form) => form.isPrinted || form.isSigned)
+        .length;
     final signed = forms.where((form) => form.isSigned).length;
     final missing = forms.fold<int>(
       0,
@@ -605,8 +607,8 @@ class _CandidateOnboardingDetailScreenState
                   form.isSigned
                       ? Icons.verified_outlined
                       : form.isPrinted
-                          ? Icons.draw_outlined
-                          : Icons.description_outlined,
+                      ? Icons.draw_outlined
+                      : Icons.description_outlined,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -743,8 +745,7 @@ class _CandidateOnboardingDetailScreenState
                   text: 'Не удалось загрузить формы: ${snapshot.error}',
                 );
               }
-              final forms =
-                  snapshot.data ?? const <CandidateOnboardingForm>[];
+              final forms = snapshot.data ?? const <CandidateOnboardingForm>[];
               if (forms.isEmpty) {
                 return const _MessageCard(
                   icon: Icons.description_outlined,
@@ -812,7 +813,9 @@ class _ProgressBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = complete ? AppAdaptivePalette.success : AppAdaptivePalette.warning;
+    final color = complete
+        ? AppAdaptivePalette.success
+        : AppAdaptivePalette.warning;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -854,7 +857,11 @@ class _SmallBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900),
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

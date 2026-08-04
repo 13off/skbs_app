@@ -100,7 +100,7 @@ class CandidatePackageService {
     await FileSaver.instance.saveFile(
       name: baseName,
       bytes: result.bytes,
-      ext: 'zip',
+      fileExtension: 'zip',
       mimeType: MimeType.zip,
     );
   }

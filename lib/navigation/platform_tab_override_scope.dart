@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-typedef PlatformTabOverrideHandler = FutureOr<bool> Function(
-  BuildContext context,
-);
+typedef PlatformTabOverrideHandler =
+    FutureOr<bool> Function(BuildContext context);
 
 class PlatformTabOverride {
   final String? label;

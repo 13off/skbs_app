@@ -30,7 +30,9 @@ abstract final class _LegalDocuments {
 
     final cleanStatus = status?.trim() ?? '';
     if (cleanStatus.isNotEmpty) {
-      documents = documents.where((item) => item.status == cleanStatus).toList();
+      documents = documents
+          .where((item) => item.status == cleanStatus)
+          .toList();
     }
     if (attentionOnly) {
       documents = documents.where((item) => item.needsAttention).toList();
@@ -95,9 +97,7 @@ abstract final class _LegalDocuments {
           : responsibleUserId,
       'employee_id': _clean(employeeId).isEmpty ? null : employeeId,
       'object_id': _clean(objectId).isEmpty ? null : objectId,
-      'counterparty_id': _clean(counterpartyId).isEmpty
-          ? null
-          : counterpartyId,
+      'counterparty_id': _clean(counterpartyId).isEmpty ? null : counterpartyId,
       'task_id': _clean(taskId).isEmpty ? null : taskId,
       'legal_matter_id': _clean(legalMatterId).isEmpty ? null : legalMatterId,
       'comment': comment.trim(),
@@ -185,10 +185,13 @@ abstract final class _LegalDocuments {
         .eq('document_id', documentId)
         .order('created_at', ascending: false);
 
-    return rows.map<LegalFile>((value) {
-      final row = _map(value);
-      return LegalFile.fromMap(_map(row['app_files']));
-    }).where((file) => file.id.isNotEmpty).toList();
+    return rows
+        .map<LegalFile>((value) {
+          final row = _map(value);
+          return LegalFile.fromMap(_map(row['app_files']));
+        })
+        .where((file) => file.id.isNotEmpty)
+        .toList();
   }
 
   static Future<List<LegalFile>> pickAndUploadFiles({
@@ -221,20 +224,23 @@ abstract final class _LegalDocuments {
     for (var index = 0; index < files.length; index++) {
       final file = files[index];
       final bytes = await file.readAsBytes();
-      final originalName = file.name.trim().isEmpty ? 'document' : file.name.trim();
+      final originalName = file.name.trim().isEmpty
+          ? 'document'
+          : file.name.trim();
       final dot = originalName.lastIndexOf('.');
-      final extension = dot >= 0 ? originalName.substring(dot).toLowerCase() : '';
+      final extension = dot >= 0
+          ? originalName.substring(dot).toLowerCase()
+          : '';
       final safeName =
           '${DateTime.now().microsecondsSinceEpoch}_${index + 1}$extension';
       final path = '$companyId/$documentId/$safeName';
 
-      await _client.storage.from(legalBucket).uploadBinary(
+      await _client.storage
+          .from(legalBucket)
+          .uploadBinary(
             path,
             bytes,
-            fileOptions: FileOptions(
-              contentType: file.mimeType,
-              upsert: false,
-            ),
+            fileOptions: FileOptions(contentType: file.mimeType, upsert: false),
           );
 
       try {

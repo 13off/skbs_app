@@ -19,7 +19,8 @@ dependencies:
   shared_preferences: ^2.3.3
   intl: ^0.19.0
   docx_template: ^0.4.0
-  file_saver: ^0.2.14
+  file_saver:
+    path: third_party/file_saver
   mime_type: ^1.0.0
   file_selector: ^1.0.4
   firebase_core: ^4.11.0

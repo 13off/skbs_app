@@ -7,9 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 // Публикация обновлённой плавной и инерционной физики прокрутки.
 void main() {
   test('global touch glow is removed while viewport scaling stays intact', () {
-    final viewport = File(
-      'lib/app/app_scale_viewport.dart',
-    ).readAsStringSync();
+    final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
     final glowFile = File('lib/widgets/global_touch_glow.dart');
 
     expect(viewport, isNot(contains('AppTouchGlowOverlay')));

@@ -13,7 +13,10 @@ void main() {
 
     expect(service, contains("'web_foreground'"));
     expect(service, contains('Не закрывайте браузер'));
-    expect(screen, contains('PWA не может гарантировать запись после сворачивания'));
+    expect(
+      screen,
+      contains('PWA не может гарантировать запись после сворачивания'),
+    );
     expect(screen, contains('установленное приложение'));
   });
 }

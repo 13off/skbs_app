@@ -38,11 +38,13 @@ class LiquidGlassSurface extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dark = theme.brightness == Brightness.dark;
-    final resolvedTint = tint ??
+    final resolvedTint =
+        tint ??
         (dark
             ? scheme.surface.withValues(alpha: 0.74)
             : Colors.white.withValues(alpha: 0.58));
-    final resolvedGradient = gradient ??
+    final resolvedGradient =
+        gradient ??
         LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -59,7 +61,8 @@ class LiquidGlassSurface extends StatelessWidget {
                 ],
           stops: const [0, 0.55, 1],
         );
-    final resolvedBorder = borderColor ??
+    final resolvedBorder =
+        borderColor ??
         (dark
             ? Colors.white.withValues(alpha: 0.13)
             : Colors.white.withValues(alpha: 0.90));

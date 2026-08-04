@@ -75,13 +75,15 @@ class _DocumentToolTemplatesScreenState
   List<DocumentTemplateRecord> get visibleTemplates {
     final query = searchController.text.trim().toLowerCase();
     if (query.isEmpty) return templates;
-    return templates.where((template) {
-      return <String>[
-        template.title,
-        template.description,
-        template.code,
-      ].join(' ').toLowerCase().contains(query);
-    }).toList(growable: false);
+    return templates
+        .where((template) {
+          return <String>[
+            template.title,
+            template.description,
+            template.code,
+          ].join(' ').toLowerCase().contains(query);
+        })
+        .toList(growable: false);
   }
 
   bool canEditOnlineVersion(DocumentTemplateVersion version) {
@@ -146,7 +148,10 @@ class _DocumentToolTemplatesScreenState
                   children: [
                     const Text(
                       'Загрузить DOCX в AppСтрой',
-                      style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(template.title),
@@ -228,9 +233,9 @@ class _DocumentToolTemplatesScreenState
       return result;
     } catch (error) {
       if (!mounted) return null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_cleanError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_cleanError(error))));
       return null;
     }
   }
@@ -240,9 +245,9 @@ class _DocumentToolTemplatesScreenState
       await DocumentTemplateRepository.downloadVersion(version);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_cleanError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_cleanError(error))));
     }
   }
 
@@ -264,7 +269,10 @@ class _DocumentToolTemplatesScreenState
               children: [
                 Text(
                   template.title,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 const Text('Каждое изменение сохраняется отдельной версией.'),
@@ -381,7 +389,10 @@ class _DocumentToolTemplatesScreenState
                   children: [
                     Text(
                       template.title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -405,8 +416,8 @@ class _DocumentToolTemplatesScreenState
             version == null
                 ? 'Исходный файл ещё не загружен'
                 : editable
-                    ? 'Версия ${version.versionNo} • ${version.fileName}'
-                    : 'Подключена внешняя ссылка. Для редактора загрузите DOCX в AppСтрой',
+                ? 'Версия ${version.versionNo} • ${version.fileName}'
+                : 'Подключена внешняя ссылка. Для редактора загрузите DOCX в AppСтрой',
             style: TextStyle(
               color: editable
                   ? AppColors.textMuted
@@ -427,10 +438,8 @@ class _DocumentToolTemplatesScreenState
                 )
               else if (canManage)
                 FilledButton.icon(
-                  onPressed: () => uploadVersion(
-                    template,
-                    openEditorAfterUpload: true,
-                  ),
+                  onPressed: () =>
+                      uploadVersion(template, openEditorAfterUpload: true),
                   icon: const Icon(Icons.cloud_upload_outlined),
                   label: const Text('Загрузить DOCX в AppСтрой'),
                 ),

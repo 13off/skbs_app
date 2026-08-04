@@ -82,15 +82,10 @@ class EmployeeAuthRepository {
     );
   }
 
-  static Future<EmployeeMaxLoginPoll> pollMaxLogin(
-    String attemptToken,
-  ) async {
+  static Future<EmployeeMaxLoginPoll> pollMaxLogin(String attemptToken) async {
     final response = await _client.functions.invoke(
       'employee-max-login',
-      body: <String, dynamic>{
-        'action': 'poll',
-        'attempt_token': attemptToken,
-      },
+      body: <String, dynamic>{'action': 'poll', 'attempt_token': attemptToken},
     );
     final raw = response.data;
     if (raw is! Map) {

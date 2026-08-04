@@ -38,17 +38,23 @@ void main() {
     expect(tools, contains('Switch.adaptive'));
   });
 
-  test('employment tool contains workflow functions but not a second archive', () {
-    expect(tools, contains('AppСтрой Трудоустройство'));
-    expect(tools, isNot(contains('AppСтрой Документы')));
-    expect(tools, contains("title: 'Оформления'"));
-    expect(tools, contains("title: 'Генератор документов'"));
-    expect(tools, contains("title: 'Пакеты документов'"));
-    expect(tools, contains("title: 'Шаблоны'"));
-    expect(tools, contains('DocumentToolTemplatesScreen'));
-    expect(tools, isNot(contains("title: 'Архив'")));
-    expect(tools, contains('Отдельный второй архив внутри инструмента не создаётся'));
-  });
+  test(
+    'employment tool contains workflow functions but not a second archive',
+    () {
+      expect(tools, contains('AppСтрой Трудоустройство'));
+      expect(tools, isNot(contains('AppСтрой Документы')));
+      expect(tools, contains("title: 'Оформления'"));
+      expect(tools, contains("title: 'Генератор документов'"));
+      expect(tools, contains("title: 'Пакеты документов'"));
+      expect(tools, contains("title: 'Шаблоны'"));
+      expect(tools, contains('DocumentToolTemplatesScreen'));
+      expect(tools, isNot(contains("title: 'Архив'")));
+      expect(
+        tools,
+        contains('Отдельный второй архив внутри инструмента не создаётся'),
+      );
+    },
+  );
 
   test('tool information contains the online editor and animated guide', () {
     expect(tools, contains('Что умеет инструмент'));

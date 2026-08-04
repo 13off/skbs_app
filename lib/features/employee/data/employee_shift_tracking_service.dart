@@ -35,17 +35,18 @@ class EmployeeShiftTrackingSnapshot {
   });
 
   const EmployeeShiftTrackingSnapshot.idle()
-      : status = EmployeeShiftTrackingStatus.idle,
-        shift = null,
-        lastPoint = null,
-        pendingPointCount = 0,
-        message = '',
-        permissionScope = 'unknown',
-        webForegroundOnly = kIsWeb;
+    : status = EmployeeShiftTrackingStatus.idle,
+      shift = null,
+      lastPoint = null,
+      pendingPointCount = 0,
+      message = '',
+      permissionScope = 'unknown',
+      webForegroundOnly = kIsWeb;
 
   EmployeeWorkShift? get activeShift => shift;
   bool get isActive => shift?.isActive == true;
-  bool get isBusy => status == EmployeeShiftTrackingStatus.starting ||
+  bool get isBusy =>
+      status == EmployeeShiftTrackingStatus.starting ||
       status == EmployeeShiftTrackingStatus.finishing ||
       status == EmployeeShiftTrackingStatus.requestingPermission;
 
@@ -95,10 +96,9 @@ class EmployeeShiftTrackingService {
 
   final ValueNotifier<EmployeeShiftTrackingSnapshot> state =
       ValueNotifier<EmployeeShiftTrackingSnapshot>(
-    const EmployeeShiftTrackingSnapshot.idle(),
-  );
-  final List<EmployeeLocationPoint> _pendingPoints =
-      <EmployeeLocationPoint>[];
+        const EmployeeShiftTrackingSnapshot.idle(),
+      );
+  final List<EmployeeLocationPoint> _pendingPoints = <EmployeeLocationPoint>[];
 
   StreamSubscription<Position>? _positionSubscription;
   Timer? _flushTimer;
@@ -130,7 +130,8 @@ class EmployeeShiftTrackingService {
       } else {
         state.value = state.value.copyWith(
           status: EmployeeShiftTrackingStatus.error,
-          message: 'Смена активна, но доступ к геопозиции отключён. '
+          message:
+              'Смена активна, но доступ к геопозиции отключён. '
               'Разрешите доступ «Всегда» и вернитесь в приложение.',
         );
       }
@@ -333,17 +334,18 @@ class EmployeeShiftTrackingService {
 
   Future<void> _startPositionStream() async {
     await _positionSubscription?.cancel();
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: _streamSettings(),
-    ).listen(
-      _handlePosition,
-      onError: (Object error, StackTrace stackTrace) {
-        state.value = state.value.copyWith(
-          status: EmployeeShiftTrackingStatus.error,
-          message: 'Маршрут временно не записывается: ${_errorText(error)}',
+    _positionSubscription =
+        Geolocator.getPositionStream(
+          locationSettings: _streamSettings(),
+        ).listen(
+          _handlePosition,
+          onError: (Object error, StackTrace stackTrace) {
+            state.value = state.value.copyWith(
+              status: EmployeeShiftTrackingStatus.error,
+              message: 'Маршрут временно не записывается: ${_errorText(error)}',
+            );
+          },
         );
-      },
-    );
     _flushTimer?.cancel();
     _flushTimer = Timer.periodic(
       const Duration(seconds: 45),
@@ -387,7 +389,9 @@ class EmployeeShiftTrackingService {
     _pendingPoints.clear();
     try {
       await EmployeeWorkActionRepository.appendRoutePoints(batch);
-      state.value = state.value.copyWith(pendingPointCount: _pendingPoints.length);
+      state.value = state.value.copyWith(
+        pendingPointCount: _pendingPoints.length,
+      );
     } catch (_) {
       _pendingPoints.insertAll(0, batch);
       state.value = state.value.copyWith(

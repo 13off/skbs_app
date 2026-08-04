@@ -9,10 +9,7 @@ import 'employee_simple_work_screen.dart';
 class EmployeeProfileScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeProfileScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeProfileScreen({super.key, required this.profile});
 
   @override
   State<EmployeeProfileScreen> createState() => _EmployeeProfileScreenState();

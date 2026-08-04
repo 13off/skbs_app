@@ -15,22 +15,14 @@ const _lightNavigationPanelTint = Color(0x66F1F4F7);
 const _darkNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [
-    Color(0xCC5B646E),
-    Color(0xB34A5662),
-    Color(0x99404B56),
-  ],
+  colors: [Color(0xCC5B646E), Color(0xB34A5662), Color(0x99404B56)],
   stops: [0, 0.55, 1],
 );
 
 const _lightNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [
-    Color(0xB3FFFFFF),
-    Color(0x99F4F7FA),
-    Color(0x80E9EEF4),
-  ],
+  colors: [Color(0xB3FFFFFF), Color(0x99F4F7FA), Color(0x80E9EEF4)],
   stops: [0, 0.55, 1],
 );
 
@@ -186,7 +178,9 @@ class _ProfessionalBottomNavigationState
                   key: const ValueKey('professional-bottom-navigation-items'),
                   height: panelHeight - (isDesktop ? 16 : 14),
                   child: Row(
-                    children: List<Widget>.generate(widget.items.length, (index) {
+                    children: List<Widget>.generate(widget.items.length, (
+                      index,
+                    ) {
                       final baseItem = widget.items[index];
                       final override = PlatformTabOverrideScope.resolve(
                         context,
@@ -257,7 +251,8 @@ class _ProfessionalBottomNavigationState
                               ),
                               child: isDesktop
                                   ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         _NavigationIcon(
                                           item: item,
@@ -275,7 +270,8 @@ class _ProfessionalBottomNavigationState
                                       ],
                                     )
                                   : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         _NavigationIcon(
                                           item: item,

@@ -53,7 +53,9 @@ void main() {
       'lib/screens/employees_screen.dart': employeesSource(),
       'lib/screens/timesheet_screen.dart': timesheetSource(),
       'lib/screens/tasks_screen.dart': source('lib/screens/tasks_screen.dart'),
-      'lib/screens/profile_screen.dart': source('lib/screens/profile_screen.dart'),
+      'lib/screens/profile_screen.dart': source(
+        'lib/screens/profile_screen.dart',
+      ),
     };
 
     for (final entry in screens.entries) {

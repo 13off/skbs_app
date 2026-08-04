@@ -9,7 +9,10 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('final outputArchive = Archive();'));
-    expect(source, contains('ArchiveFile(file.name, nextBytes.length, nextBytes)'));
+    expect(
+      source,
+      contains('ArchiveFile(file.name, nextBytes.length, nextBytes)'),
+    );
     expect(source, isNot(contains('file.content =')));
     expect(source, contains('_placeholderPattern'));
     expect(source, contains("lower.contains('<w:sdt')"));

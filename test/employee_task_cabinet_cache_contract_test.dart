@@ -22,7 +22,10 @@ void main() {
     expect(repository, contains('if (running != null) return running;'));
     expect(repository, contains('bool forceRefresh = false'));
     expect(repository, contains('static void clearCache()'));
-    expect(repository, contains("_cache[_cacheKey(result.profile.employeeId)]"));
+    expect(
+      repository,
+      contains("_cache[_cacheKey(result.profile.employeeId)]"),
+    );
 
     expect(
       coordinator,

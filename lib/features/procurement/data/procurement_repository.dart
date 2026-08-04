@@ -41,7 +41,9 @@ abstract final class ProcurementRepository {
     if (!includeInactive) query = query.eq('is_active', true);
     final rows = await query.order('name').limit(500);
     return rows
-        .map<ProcurementSupplier>((row) => ProcurementSupplier.fromMap(_map(row)))
+        .map<ProcurementSupplier>(
+          (row) => ProcurementSupplier.fromMap(_map(row)),
+        )
         .where((item) => item.id.isNotEmpty)
         .toList();
   }
@@ -83,7 +85,8 @@ abstract final class ProcurementRepository {
           'needed_by': neededBy == null
               ? ''
               : '${neededBy.year.toString().padLeft(4, '0')}-${neededBy.month.toString().padLeft(2, '0')}-${neededBy.day.toString().padLeft(2, '0')}',
-          'expected_delivery_at': expectedDeliveryAt?.toUtc().toIso8601String() ?? '',
+          'expected_delivery_at':
+              expectedDeliveryAt?.toUtc().toIso8601String() ?? '',
           'invoice_number': invoiceNumber.trim(),
           'comment': comment.trim(),
         },
@@ -102,10 +105,7 @@ abstract final class ProcurementRepository {
   }) async {
     await _client.rpc(
       'set_procurement_request_status',
-      params: <String, dynamic>{
-        'p_request_id': requestId,
-        'p_status': status,
-      },
+      params: <String, dynamic>{'p_request_id': requestId, 'p_status': status},
     );
     AppDataSync.notifyLocal(const <AppDataDomain>{AppDataDomain.procurement});
   }

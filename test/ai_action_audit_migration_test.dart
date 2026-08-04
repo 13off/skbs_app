@@ -27,7 +27,10 @@ void main() {
       'supabase/migrations/20260720205000_ai_action_confirmation_audit.sql',
     ).readAsStringSync();
 
-    expect(sql, contains('alter table public.ai_action_audit enable row level security'));
+    expect(
+      sql,
+      contains('alter table public.ai_action_audit enable row level security'),
+    );
     expect(sql, contains('create policy ai_action_audit_select'));
     expect(sql, contains('user_id = (select auth.uid())'));
     expect(sql, contains('public.is_company_admin(company_id)'));
@@ -50,7 +53,10 @@ void main() {
       'supabase/migrations/20260720205000_ai_action_confirmation_audit.sql',
     ).readAsStringSync();
 
-    expect(sql, contains('create or replace function public.transition_ai_action_audit'));
+    expect(
+      sql,
+      contains('create or replace function public.transition_ai_action_audit'),
+    );
     expect(sql, contains('security definer'));
     expect(sql, contains('set search_path = public, pg_temp'));
     expect(sql, contains("v_row.status = 'proposed'"));

@@ -127,9 +127,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   DateTime get suggestedSettlementMonth {
     if (payments.isNotEmpty) {
       final latest = payments.reduce(
-        (current, candidate) => candidate.paymentDate.isAfter(
-          current.paymentDate,
-        )
+        (current, candidate) =>
+            candidate.paymentDate.isAfter(current.paymentDate)
             ? candidate
             : current,
       );

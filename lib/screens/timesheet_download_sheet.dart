@@ -56,7 +56,11 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
   @override
   void initState() {
     super.initState();
-    final initial = DateTime(widget.initialDate.year, widget.initialDate.month, 1);
+    final initial = DateTime(
+      widget.initialDate.year,
+      widget.initialDate.month,
+      1,
+    );
     shownYear = initial.year;
     selectedMonths = <DateTime>{initial};
     selectedRange = DateTimeRange(
@@ -116,23 +120,26 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
   ) {
     final monthStart = DateTime(month.year, month.month, 1);
     final monthEnd = DateTime(month.year, month.month + 1, 0);
-    final fullMonth = !range.start.isAfter(monthStart) &&
-        !range.end.isBefore(monthEnd);
+    final fullMonth =
+        !range.start.isAfter(monthStart) && !range.end.isBefore(monthEnd);
 
-    return rows.map((row) {
-      final shifts = <int, double>{};
-      row.shiftsByDay.forEach((day, value) {
-        final date = DateTime(month.year, month.month, day);
-        if (!date.isBefore(range.start) && !date.isAfter(range.end)) {
-          shifts[day] = value;
-        }
-      });
-      return MonthlyTimesheetRow(
-        employee: row.employee,
-        shiftsByDay: shifts,
-        paid: fullMonth ? row.paid : 0,
-      );
-    }).where((row) => row.totalShifts > 0).toList(growable: false);
+    return rows
+        .map((row) {
+          final shifts = <int, double>{};
+          row.shiftsByDay.forEach((day, value) {
+            final date = DateTime(month.year, month.month, day);
+            if (!date.isBefore(range.start) && !date.isAfter(range.end)) {
+              shifts[day] = value;
+            }
+          });
+          return MonthlyTimesheetRow(
+            employee: row.employee,
+            shiftsByDay: shifts,
+            paid: fullMonth ? row.paid : 0,
+          );
+        })
+        .where((row) => row.totalShifts > 0)
+        .toList(growable: false);
   }
 
   Future<List<MonthlyTimesheetRow>> fetchRows(DateTime month) async {
@@ -176,9 +183,9 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Табель скачан')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Табель скачан')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -246,7 +253,9 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
                     ),
                   ),
                   IconButton(
-                    onPressed: isExporting ? null : () => Navigator.pop(context),
+                    onPressed: isExporting
+                        ? null
+                        : () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
@@ -273,7 +282,10 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
               const SizedBox(height: 16),
               if (mode == _DownloadPeriodMode.months) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppAdaptivePalette.surfaceSoft,
                     borderRadius: BorderRadius.circular(18),
@@ -310,8 +322,7 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: 12,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
@@ -399,8 +410,10 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
               SizedBox(
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: isExporting ||
-                          (mode == _DownloadPeriodMode.months && selected.isEmpty)
+                  onPressed:
+                      isExporting ||
+                          (mode == _DownloadPeriodMode.months &&
+                              selected.isEmpty)
                       ? null
                       : export,
                   icon: isExporting
@@ -409,7 +422,9 @@ class _TimesheetDownloadPanelState extends State<_TimesheetDownloadPanel> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.download_rounded),
-                  label: Text(isExporting ? 'Формируем Excel' : 'Скачать Excel'),
+                  label: Text(
+                    isExporting ? 'Формируем Excel' : 'Скачать Excel',
+                  ),
                 ),
               ),
             ],

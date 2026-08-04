@@ -59,9 +59,7 @@ void main() {
 
     expect(
       migration,
-      contains(
-        'v_week_end := v_today - extract(isodow from v_today)::integer',
-      ),
+      contains('v_week_end := v_today - extract(isodow from v_today)::integer'),
     );
     expect(migration, contains('v_week_start := v_week_end - 6'));
     expect(

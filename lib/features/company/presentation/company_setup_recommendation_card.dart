@@ -235,9 +235,9 @@ class _CompanySetupRecommendationState {
   final CompanySetupProgress? progress;
 
   const _CompanySetupRecommendationState.hidden()
-      : visible = false,
-        progress = null;
+    : visible = false,
+      progress = null;
 
   const _CompanySetupRecommendationState.visible(this.progress)
-      : visible = true;
+    : visible = true;
 }

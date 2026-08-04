@@ -271,10 +271,7 @@ class AppDataSync {
 
     _deliveryTimer?.cancel();
     _deliveryTimer = Timer(_coalesceDuration, _deliverPendingChange);
-    _maxDeliveryTimer ??= Timer(
-      _maxCoalesceDuration,
-      _deliverPendingChange,
-    );
+    _maxDeliveryTimer ??= Timer(_maxCoalesceDuration, _deliverPendingChange);
   }
 
   static void _deliverPendingChange() {

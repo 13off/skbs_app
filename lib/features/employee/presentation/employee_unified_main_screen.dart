@@ -148,9 +148,11 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
             }
             if (snapshot.hasError || snapshot.data == null) {
               return _EmployeeLoadError(
-                message: snapshot.error
-                        ?.toString()
-                        .replaceFirst('Exception: ', '') ??
+                message:
+                    snapshot.error?.toString().replaceFirst(
+                      'Exception: ',
+                      '',
+                    ) ??
                     'Не удалось загрузить личный кабинет',
                 onRetry: refresh,
               );
@@ -158,24 +160,25 @@ class _EmployeeMainScreenState extends State<EmployeeMainScreen> {
 
             final data = snapshot.data!;
             final now = DateTime.now();
-            final canMoveForward = data.year < now.year ||
+            final canMoveForward =
+                data.year < now.year ||
                 (data.year == now.year && data.month < now.month);
 
             return switch (index) {
               0 => _EmployeeHome(data: data, onRefresh: refresh),
               1 => _EmployeeTasks(data: data, onRefresh: refresh),
               2 => _EmployeeTimesheet(
-                  data: data,
-                  onRefresh: refresh,
-                  onPreviousMonth: () => changeMonth(-1),
-                  onNextMonth: canMoveForward ? () => changeMonth(1) : null,
-                ),
+                data: data,
+                onRefresh: refresh,
+                onPreviousMonth: () => changeMonth(-1),
+                onNextMonth: canMoveForward ? () => changeMonth(1) : null,
+              ),
               3 => _EmployeeDocuments(data: data, onRefresh: refresh),
               4 => _EmployeeProfile(
-                  profile: widget.profile,
-                  data: data,
-                  onRefresh: refresh,
-                ),
+                profile: widget.profile,
+                data: data,
+                onRefresh: refresh,
+              ),
               _ => const SizedBox.shrink(),
             };
           },
@@ -250,19 +253,19 @@ class _EmployeeLoadError extends StatelessWidget {
               'Кабинет не загрузился',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -315,9 +318,8 @@ class _EmployeeHome extends StatelessWidget {
                     children: [
                       Text(
                         'Привет, $firstName',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -325,11 +327,9 @@ class _EmployeeHome extends StatelessWidget {
                             ? 'Сотрудник AppСтрой'
                             : data.profession,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -349,9 +349,8 @@ class _EmployeeHome extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Задача на сегодня',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
                     if (task != null) _StatusBadge(text: task.status),
@@ -362,9 +361,9 @@ class _EmployeeHome extends StatelessWidget {
                   task?.work.trim().isNotEmpty == true
                       ? task!.work
                       : 'Пока задача не назначена',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 if (task != null) ...[
                   const SizedBox(height: 8),
@@ -375,23 +374,19 @@ class _EmployeeHome extends StatelessWidget {
                       if (task.date != null) _formatDate(task.date!),
                     ].join(' · '),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ] else ...[
                   const SizedBox(height: 6),
                   Text(
                     'После назначения здесь появятся описание, срок и рабочие действия.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                          height: 1.4,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 18),
@@ -423,16 +418,13 @@ class _EmployeeHome extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const _IconTile(
-                      icon: Icons.account_balance_wallet_rounded,
-                    ),
+                    const _IconTile(icon: Icons.account_balance_wallet_rounded),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Расчёт за ${_monthTitle(data.month).toLowerCase()}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
                   ],
@@ -508,8 +500,8 @@ class _TaskCard extends StatelessWidget {
                 child: Text(
                   task.work.isEmpty ? 'Рабочая задача' : task.work,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -589,8 +581,8 @@ class _EmployeeTimesheet extends StatelessWidget {
                         '${_monthTitle(data.month)} ${data.year}',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -616,9 +608,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                         child: Center(
                           child: Text(
                             weekday,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
+                            style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                         ),
@@ -630,8 +620,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: itemCount,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
                     mainAxisSpacing: 6,
                     crossAxisSpacing: 6,
@@ -738,9 +727,9 @@ class _EmployeeTimesheet extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             'Выплаты за период',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           if (payments.isEmpty)
@@ -759,10 +748,10 @@ class _EmployeeTimesheet extends StatelessWidget {
           Text(
             'Начисление предварительное. Окончательный расчёт подтверждает бухгалтерия.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -820,9 +809,7 @@ class _EmployeeTimesheet extends StatelessWidget {
                       Expanded(
                         child: Text(
                           _formatDate(DateTime(year, month, day)),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -906,11 +893,9 @@ class _PaymentCard extends StatelessWidget {
                     if (payment.comment.isNotEmpty) payment.comment,
                   ].join(' · '),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -952,10 +937,7 @@ class _AttendanceRecordCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (record.objectName.isNotEmpty)
-            _DetailLine(
-              icon: Icons.apartment_rounded,
-              text: record.objectName,
-            ),
+            _DetailLine(icon: Icons.apartment_rounded, text: record.objectName),
           _DetailLine(
             icon: Icons.event_available_rounded,
             text: '${_formatDecimal(record.shifts)} смен',
@@ -1002,9 +984,7 @@ class _EmployeeDocuments extends StatelessWidget {
               PremiumWorkCard(
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const _IconTile(
-                    icon: Icons.description_outlined,
-                  ),
+                  leading: const _IconTile(icon: Icons.description_outlined),
                   title: Text(
                     data.documents[index].title.isEmpty
                         ? 'Документ'
@@ -1025,10 +1005,10 @@ class _EmployeeDocuments extends StatelessWidget {
           Text(
             'Документы доступны для просмотра статуса. Защищённое скачивание будет подключено отдельно.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -1072,20 +1052,18 @@ class _EmployeeProfile extends StatelessWidget {
                 Text(
                   data.fullName.trim().isEmpty ? 'Сотрудник' : data.fullName,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 if (data.profession.isNotEmpty) ...[
                   const SizedBox(height: 5),
                   Text(
                     data.profession,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -1189,17 +1167,17 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -1228,18 +1206,18 @@ class _EmptySection extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
           ),
         ],
       ),
@@ -1263,11 +1241,7 @@ class _IconTile extends StatelessWidget {
         color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(size * 0.34),
       ),
-      child: Icon(
-        icon,
-        size: size * 0.48,
-        color: scheme.onPrimaryContainer,
-      ),
+      child: Icon(icon, size: size * 0.48, color: scheme.onPrimaryContainer),
     );
   }
 }
@@ -1373,9 +1347,9 @@ class _ProfileLine extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1452,9 +1426,10 @@ class _TimesheetDayCell extends StatelessWidget {
     final isToday = now.year == year && now.month == month && now.day == day;
     final color = _dayColor(kind);
     final marker = switch (kind) {
-      _DayKind.worked => totalShifts > 0
-          ? _formatDecimal(totalShifts)
-          : '${_formatDecimal(totalHours)}ч',
+      _DayKind.worked =>
+        totalShifts > 0
+            ? _formatDecimal(totalShifts)
+            : '${_formatDecimal(totalHours)}ч',
       _DayKind.noShow => 'Н',
       _DayKind.empty => '',
     };
@@ -1476,8 +1451,8 @@ class _TimesheetDayCell extends StatelessWidget {
               color: isToday
                   ? scheme.primary
                   : kind == _DayKind.empty
-                      ? scheme.outlineVariant
-                      : color.withValues(alpha: 0.42),
+                  ? scheme.outlineVariant
+                  : color.withValues(alpha: 0.42),
             ),
           ),
           child: Padding(

@@ -26,7 +26,10 @@ void main() {
         source,
         isNot(contains('EmployeePrivateSummaryExporter.downloadSummary')),
       );
-      expect(source, isNot(contains('WidgetsBinding.instance.addPostFrameCallback')));
+      expect(
+        source,
+        isNot(contains('WidgetsBinding.instance.addPostFrameCallback')),
+      );
     }
   });
 
@@ -37,8 +40,14 @@ void main() {
 
     expect(controller, contains('AppDataSync.changes.listen'));
     expect(controller, contains('EmployeeRepository.fetchEmployees'));
-    expect(controller, contains('EmployeePrivateDataRepository.fetchMapByEmployeeIds'));
-    expect(controller, contains('EmployeePrivateSummaryExporter.downloadSummary'));
+    expect(
+      controller,
+      contains('EmployeePrivateDataRepository.fetchMapByEmployeeIds'),
+    );
+    expect(
+      controller,
+      contains('EmployeePrivateSummaryExporter.downloadSummary'),
+    );
     expect(controller, contains('class EmployeeDirectoryLogic'));
     expect(controller, contains('prepareEmployees('));
     expect(controller, contains('restoreScrollOffset('));

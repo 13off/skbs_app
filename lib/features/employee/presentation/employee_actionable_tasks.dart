@@ -9,10 +9,7 @@ import '../data/employee_cabinet_repository.dart';
 class EmployeeActionableHomeScreen extends StatelessWidget {
   final AppUserProfile profile;
 
-  const EmployeeActionableHomeScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeActionableHomeScreen({super.key, required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +43,7 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Привет, $firstName',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(height: 4),
@@ -56,13 +51,11 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                             data.profession.isEmpty
                                 ? 'Сотрудник AppСтрой'
                                 : data.profession,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -84,9 +77,7 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Текущая задача',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -98,10 +89,9 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                       task?.work.trim().isNotEmpty == true
                           ? task!.work
                           : 'Пока задача не назначена',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     if (task != null) ...[
                       const SizedBox(height: 8),
@@ -112,24 +102,20 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                           if (task.date != null) _formatDate(task.date!),
                         ].join(' · '),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (task.photos.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
                           'Фотографий: ${task.photos.length}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
@@ -139,16 +125,16 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                       Text(
                         'После назначения здесь появятся описание, срок и фотографии.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.4,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 18),
                     PremiumActionButton(
-                      label: task == null ? 'Нет активной задачи' : 'Открыть задачу',
+                      label: task == null
+                          ? 'Нет активной задачи'
+                          : 'Открыть задачу',
                       icon: Icons.arrow_forward_rounded,
                       onPressed: task == null
                           ? null
@@ -191,9 +177,7 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Этот месяц',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -226,10 +210,7 @@ class EmployeeActionableHomeScreen extends StatelessWidget {
 class EmployeeActionableTasksScreen extends StatefulWidget {
   final AppUserProfile profile;
 
-  const EmployeeActionableTasksScreen({
-    super.key,
-    required this.profile,
-  });
+  const EmployeeActionableTasksScreen({super.key, required this.profile});
 
   @override
   State<EmployeeActionableTasksScreen> createState() =>
@@ -294,8 +275,7 @@ class _EmployeeActionableTasksScreenState
                     task: tasks[index],
                     onTap: () => _openTask(context, tasks[index]),
                   ),
-                  if (index != tasks.length - 1)
-                    const SizedBox(height: 12),
+                  if (index != tasks.length - 1) const SizedBox(height: 12),
                 ],
             ],
           ),
@@ -308,10 +288,7 @@ class _EmployeeActionableTasksScreenState
 class EmployeeTaskDetailsScreen extends StatelessWidget {
   final EmployeeCabinetTask task;
 
-  const EmployeeTaskDetailsScreen({
-    super.key,
-    required this.task,
-  });
+  const EmployeeTaskDetailsScreen({super.key, required this.task});
 
   @override
   Widget build(BuildContext context) {
@@ -336,10 +313,9 @@ class EmployeeTaskDetailsScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         task.work.isEmpty ? 'Рабочая задача' : task.work,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -392,12 +368,10 @@ class _EmployeeCabinetLoader extends StatefulWidget {
     BuildContext context,
     EmployeeCabinetData data,
     Future<void> Function() refresh,
-  ) builder;
+  )
+  builder;
 
-  const _EmployeeCabinetLoader({
-    required this.profile,
-    required this.builder,
-  });
+  const _EmployeeCabinetLoader({required this.profile, required this.builder});
 
   @override
   State<_EmployeeCabinetLoader> createState() => _EmployeeCabinetLoaderState();
@@ -437,9 +411,8 @@ class _EmployeeCabinetLoaderState extends State<_EmployeeCabinetLoader> {
           return const PremiumLoadingScreen();
         }
         if (snapshot.hasError || snapshot.data == null) {
-          final message = snapshot.error
-                  ?.toString()
-                  .replaceFirst('Exception: ', '') ??
+          final message =
+              snapshot.error?.toString().replaceFirst('Exception: ', '') ??
               'Не удалось загрузить личный кабинет';
           return AppPage(
             title: 'Личный кабинет',
@@ -453,12 +426,10 @@ class _EmployeeCabinetLoaderState extends State<_EmployeeCabinetLoader> {
                     message,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   FilledButton.icon(
@@ -505,9 +476,7 @@ class _TaskCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         task.work.isEmpty ? 'Рабочая задача' : task.work,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -573,18 +542,17 @@ class _PhotoSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Text(
                 '${photos.length}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -593,9 +561,9 @@ class _PhotoSection extends StatelessWidget {
             Text(
               'Фотографий пока нет',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             )
           else
             LayoutBuilder(
@@ -606,13 +574,15 @@ class _PhotoSection extends StatelessWidget {
                 return Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: photos.map((photo) {
-                    return SizedBox(
-                      width: width,
-                      height: width,
-                      child: _PhotoTile(photo: photo),
-                    );
-                  }).toList(growable: false),
+                  children: photos
+                      .map((photo) {
+                        return SizedBox(
+                          width: width,
+                          height: width,
+                          child: _PhotoTile(photo: photo),
+                        );
+                      })
+                      .toList(growable: false),
                 );
               },
             ),
@@ -677,11 +647,11 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         text.isEmpty ? 'Запланировано' : text,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: completed
-                  ? AppAdaptivePalette.success
-                  : Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
-            ),
+          color: completed
+              ? AppAdaptivePalette.success
+              : Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -728,18 +698,17 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -763,18 +732,17 @@ class _ValueLine extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Text(
             value,
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -805,10 +773,10 @@ class _DetailLine extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -838,19 +806,18 @@ class _EmptySection extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
             text,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -858,10 +825,7 @@ class _EmptySection extends StatelessWidget {
   }
 }
 
-Future<void> _openTask(
-  BuildContext context,
-  EmployeeCabinetTask task,
-) async {
+Future<void> _openTask(BuildContext context, EmployeeCabinetTask task) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(
       builder: (_) => EmployeeTaskDetailsScreen(task: task),

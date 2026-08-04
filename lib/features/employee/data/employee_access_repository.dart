@@ -52,25 +52,37 @@ class EmployeeAccessRepository {
   static final _client = Supabase.instance.client;
 
   static Future<EmployeeAccessState> fetchStatus(String employeeId) async {
-    final access = await _invokeAccess(action: 'status', employeeId: employeeId);
+    final access = await _invokeAccess(
+      action: 'status',
+      employeeId: employeeId,
+    );
     final max = await _invokeMax(action: 'status', employeeId: employeeId);
     return access.withMaxJson(max);
   }
 
   static Future<EmployeeAccessState> enable(String employeeId) async {
-    final access = await _invokeAccess(action: 'enable', employeeId: employeeId);
+    final access = await _invokeAccess(
+      action: 'enable',
+      employeeId: employeeId,
+    );
     final max = await _invokeMax(action: 'prepare', employeeId: employeeId);
     return access.withMaxJson(max);
   }
 
   static Future<EmployeeAccessState> disable(String employeeId) async {
-    final access = await _invokeAccess(action: 'disable', employeeId: employeeId);
+    final access = await _invokeAccess(
+      action: 'disable',
+      employeeId: employeeId,
+    );
     final max = await _invokeMax(action: 'disable', employeeId: employeeId);
     return access.withMaxJson(max);
   }
 
   static Future<EmployeeAccessState> prepareMax(String employeeId) async {
-    final access = await _invokeAccess(action: 'status', employeeId: employeeId);
+    final access = await _invokeAccess(
+      action: 'status',
+      employeeId: employeeId,
+    );
     if (!access.active) {
       throw Exception('Сначала откройте сотруднику доступ в приложение');
     }

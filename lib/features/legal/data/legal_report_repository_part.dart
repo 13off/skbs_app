@@ -50,7 +50,8 @@ abstract final class _LegalReports {
 
     final prepared = documents
         .where(
-          (item) => during(item.updatedAt) &&
+          (item) =>
+              during(item.updatedAt) &&
               <String>{
                 LegalDocumentStatus.prepared,
                 LegalDocumentStatus.review,
@@ -59,7 +60,11 @@ abstract final class _LegalReports {
         )
         .length;
     final signed = documents
-        .where((item) => item.status == LegalDocumentStatus.signed && during(item.updatedAt))
+        .where(
+          (item) =>
+              item.status == LegalDocumentStatus.signed &&
+              during(item.updatedAt),
+        )
         .length;
     final unresolved = documents
         .where((item) => item.status == LegalDocumentStatus.awaitingSignature)
@@ -68,8 +73,10 @@ abstract final class _LegalReports {
     final resolved = matters
         .where(
           (item) =>
-              <String>{LegalMatterStatus.resolved, LegalMatterStatus.closed}
-                  .contains(item.status) &&
+              <String>{
+                LegalMatterStatus.resolved,
+                LegalMatterStatus.closed,
+              }.contains(item.status) &&
               during(item.updatedAt),
         )
         .length;
@@ -131,23 +138,20 @@ abstract final class _LegalReports {
     final weekEnd = weekStart.add(const Duration(days: 6));
     final row = await _client
         .from('weekly_reports')
-        .upsert(
-          <String, dynamic>{
-            'department': 'legal',
-            'author_user_id': userId,
-            'week_start': _dateOnly(weekStart),
-            'week_end': _dateOnly(weekEnd),
-            'status': submit ? 'submitted' : 'draft',
-            'auto_draft': autoDraft,
-            'author_comment': authorComment.trim(),
-            'next_week_plan': nextWeekPlan.trim(),
-            'manager_decisions': managerDecisions.trim(),
-            'submitted_at': submit
-                ? DateTime.now().toUtc().toIso8601String()
-                : null,
-          },
-          onConflict: 'company_id,department,author_user_id,week_start',
-        )
+        .upsert(<String, dynamic>{
+          'department': 'legal',
+          'author_user_id': userId,
+          'week_start': _dateOnly(weekStart),
+          'week_end': _dateOnly(weekEnd),
+          'status': submit ? 'submitted' : 'draft',
+          'auto_draft': autoDraft,
+          'author_comment': authorComment.trim(),
+          'next_week_plan': nextWeekPlan.trim(),
+          'manager_decisions': managerDecisions.trim(),
+          'submitted_at': submit
+              ? DateTime.now().toUtc().toIso8601String()
+              : null,
+        }, onConflict: 'company_id,department,author_user_id,week_start')
         .select(
           'id, week_start, week_end, status, auto_draft, author_comment, next_week_plan, manager_decisions, submitted_at',
         )

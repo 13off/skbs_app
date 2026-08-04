@@ -32,10 +32,14 @@ class AiDocumentDraftBuilder {
     final objectName = _value(action.text('object_name'), 'указать объект');
     final date = _formatDate(action.text('date'));
     final prompt = action.text('source_prompt');
-    final name = _value(employee?.name ?? action.text('employee_name'), 'указать ФИО');
+    final name = _value(
+      employee?.name ?? action.text('employee_name'),
+      'указать ФИО',
+    );
     final position = _value(employee?.position ?? '', 'указать должность');
     final company = _value(companyName, 'указать организацию');
-    final private = privateData ?? EmployeePrivateData.empty(employee?.id ?? '');
+    final private =
+        privateData ?? EmployeePrivateData.empty(employee?.id ?? '');
     final missing = <String>[];
 
     String requiredValue(String value, String field) {
@@ -47,70 +51,76 @@ class AiDocumentDraftBuilder {
 
     final body = switch (kind) {
       'job_application' => _jobApplication(
-          company: company,
-          name: name,
-          position: position,
-          startDate: requiredValue(private.employmentStartDate, 'дату начала работы'),
-          date: date,
+        company: company,
+        name: name,
+        position: position,
+        startDate: requiredValue(
+          private.employmentStartDate,
+          'дату начала работы',
         ),
+        date: date,
+      ),
       'salary_transfer_application' => _salaryApplication(
-          company: company,
-          name: name,
-          bankName: requiredValue(private.bankName, 'наименование банка'),
-          account: requiredValue(private.bankAccount, 'номер счёта'),
-          bik: requiredValue(private.bankBik, 'БИК'),
-          card: private.bankCard.trim(),
-          date: date,
-        ),
+        company: company,
+        name: name,
+        bankName: requiredValue(private.bankName, 'наименование банка'),
+        account: requiredValue(private.bankAccount, 'номер счёта'),
+        bik: requiredValue(private.bankBik, 'БИК'),
+        card: private.bankCard.trim(),
+        date: date,
+      ),
       'personal_data_consent' => _personalDataConsent(
-          company: company,
-          name: name,
-          passport: requiredValue(private.passportFull, 'паспортные данные'),
-          address: requiredValue(
-            private.registrationAddress,
-            'адрес регистрации',
-          ),
-          date: date,
+        company: company,
+        name: name,
+        passport: requiredValue(private.passportFull, 'паспортные данные'),
+        address: requiredValue(
+          private.registrationAddress,
+          'адрес регистрации',
         ),
+        date: date,
+      ),
       'employment_contract' => _employmentContract(
-          company: company,
-          name: name,
-          passport: requiredValue(private.passportFull, 'паспортные данные'),
-          position: position,
-          objectName: objectName,
-          startDate: requiredValue(private.employmentStartDate, 'дату начала работы'),
-          rate: employee == null || employee.dailyRate <= 0
-              ? requiredValue('', 'ставку и порядок оплаты')
-              : '${employee.dailyRate} руб. за смену',
-          date: date,
+        company: company,
+        name: name,
+        passport: requiredValue(private.passportFull, 'паспортные данные'),
+        position: position,
+        objectName: objectName,
+        startDate: requiredValue(
+          private.employmentStartDate,
+          'дату начала работы',
         ),
+        rate: employee == null || employee.dailyRate <= 0
+            ? requiredValue('', 'ставку и порядок оплаты')
+            : '${employee.dailyRate} руб. за смену',
+        date: date,
+      ),
       'service_memo' => _serviceMemo(
-          company: company,
-          author: name,
-          objectName: objectName,
-          prompt: prompt,
-          date: date,
-        ),
+        company: company,
+        author: name,
+        objectName: objectName,
+        prompt: prompt,
+        date: date,
+      ),
       'work_act' => _workAct(
-          company: company,
-          objectName: objectName,
-          prompt: prompt,
-          date: date,
-        ),
+        company: company,
+        objectName: objectName,
+        prompt: prompt,
+        date: date,
+      ),
       'letter' => _letter(
-          company: company,
-          author: name,
-          prompt: prompt,
-          date: date,
-        ),
+        company: company,
+        author: name,
+        prompt: prompt,
+        date: date,
+      ),
       _ => _genericDocument(
-          title: title,
-          company: company,
-          employeeName: name,
-          objectName: objectName,
-          prompt: prompt,
-          date: date,
-        ),
+        title: title,
+        company: company,
+        employeeName: name,
+        objectName: objectName,
+        prompt: prompt,
+        date: date,
+      ),
     };
 
     return AiDocumentDraft(
@@ -126,8 +136,7 @@ class AiDocumentDraftBuilder {
       'job_application' => 'Заявление о приёме на работу',
       'salary_transfer_application' =>
         'Заявление о перечислении заработной платы',
-      'personal_data_consent' =>
-        'Согласие на обработку персональных данных',
+      'personal_data_consent' => 'Согласие на обработку персональных данных',
       'employment_contract' => 'Черновик трудового договора',
       'service_memo' => 'Служебная записка',
       'work_act' => 'Черновик акта',
@@ -143,7 +152,8 @@ class AiDocumentDraftBuilder {
 
   static String _formatDate(String value) {
     final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value.trim());
-    if (match == null) return value.trim().isEmpty ? '[указать дату]' : value.trim();
+    if (match == null)
+      return value.trim().isEmpty ? '[указать дату]' : value.trim();
     return '${match.group(3)}.${match.group(2)}.${match.group(1)}';
   }
 

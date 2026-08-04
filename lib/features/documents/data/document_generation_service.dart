@@ -101,9 +101,7 @@ abstract final class DocumentGenerationService {
       ...version.contentControls.map((item) => item.trim()),
     }..removeWhere((item) => item.isEmpty);
     if (tags.isEmpty) {
-      throw StateError(
-        'В шаблоне не найдены защищённые системные поля Word',
-      );
+      throw StateError('В шаблоне не найдены защищённые системные поля Word');
     }
 
     final values = _normalizedValues(fields);

@@ -47,10 +47,11 @@ void main() {
     expect(TaskPhotoBrowserService.bytesFromReaderResult(bytes), bytes);
 
     final buffer = Uint8List.fromList(<int>[4, 5, 6]).buffer;
-    expect(
-      TaskPhotoBrowserService.bytesFromReaderResult(buffer),
-      <int>[4, 5, 6],
-    );
+    expect(TaskPhotoBrowserService.bytesFromReaderResult(buffer), <int>[
+      4,
+      5,
+      6,
+    ]);
 
     expect(
       () => TaskPhotoBrowserService.bytesFromReaderResult('invalid'),

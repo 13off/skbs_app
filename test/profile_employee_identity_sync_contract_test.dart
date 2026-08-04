@@ -11,7 +11,11 @@ void main() {
     expect(repository, contains("rpc('get_current_user_personal_profile')"));
     expect(
       repository,
-      isNot(contains(".from('user_profiles')\n        .select('full_name, phone, avatar_path')")),
+      isNot(
+        contains(
+          ".from('user_profiles')\n        .select('full_name, phone, avatar_path')",
+        ),
+      ),
     );
   });
 
@@ -40,7 +44,11 @@ void main() {
     expect(migration, contains('select eal.person_id'));
     expect(
       migration,
-      isNot(contains('v_person_id := private.resolve_company_person_identity(\n        v_company_id,\n        v_full_name')),
+      isNot(
+        contains(
+          'v_person_id := private.resolve_company_person_identity(\n        v_company_id,\n        v_full_name',
+        ),
+      ),
     );
   });
 }

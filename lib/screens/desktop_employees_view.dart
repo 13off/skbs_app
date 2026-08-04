@@ -241,7 +241,9 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
               children: [
                 Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: double.infinity),
+                    constraints: const BoxConstraints(
+                      maxWidth: double.infinity,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

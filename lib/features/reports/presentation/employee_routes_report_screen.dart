@@ -11,10 +11,7 @@ import '../../employee/presentation/employee_route_map_screen.dart';
 class EmployeeRoutesReportScreen extends StatefulWidget {
   final String? selectedObjectName;
 
-  const EmployeeRoutesReportScreen({
-    super.key,
-    this.selectedObjectName,
-  });
+  const EmployeeRoutesReportScreen({super.key, this.selectedObjectName});
 
   @override
   State<EmployeeRoutesReportScreen> createState() =>
@@ -153,20 +150,20 @@ class _EmployeeRoutesReportScreenState
         final scheme = Theme.of(context).colorScheme;
         final lastPointAt = route.points.isEmpty
             ? route.shifts
-                .map((shift) => shift.lastPointAt)
-                .whereType<DateTime>()
-                .fold<DateTime?>(
-                  null,
-                  (latest, value) =>
-                      latest == null || value.isAfter(latest) ? value : latest,
-                )
-            : (List<EmployeeLocationPoint>.from(route.points)
-                  ..sort(
+                  .map((shift) => shift.lastPointAt)
+                  .whereType<DateTime>()
+                  .fold<DateTime?>(
+                    null,
+                    (latest, value) => latest == null || value.isAfter(latest)
+                        ? value
+                        : latest,
+                  )
+            : (List<EmployeeLocationPoint>.from(route.points)..sort(
                     (left, right) =>
                         left.recordedAt.compareTo(right.recordedAt),
                   ))
-                .last
-                .recordedAt;
+                  .last
+                  .recordedAt;
 
         return PremiumWorkCard(
           child: Column(
@@ -207,12 +204,14 @@ class _EmployeeRoutesReportScreenState
                 const SizedBox(height: 14),
                 Divider(color: scheme.outlineVariant),
                 const SizedBox(height: 4),
-                ...gaps.take(8).map(
-                  (gap) => Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: _GapRow(gap: gap),
-                  ),
-                ),
+                ...gaps
+                    .take(8)
+                    .map(
+                      (gap) => Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _GapRow(gap: gap),
+                      ),
+                    ),
                 if (gaps.length > 8) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -274,8 +273,9 @@ class _EmployeeRoutesReportScreenState
           final employees = snapshot.data ?? const <Employee>[];
           if (employees.isEmpty) {
             return const PremiumWorkCard(
-              child:
-                  Text('Для выбранного объекта активные сотрудники не найдены.'),
+              child: Text(
+                'Для выбранного объекта активные сотрудники не найдены.',
+              ),
             );
           }
 
@@ -289,8 +289,10 @@ class _EmployeeRoutesReportScreenState
                   children: [
                     const Text(
                       'Сотрудник',
-                      style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
@@ -339,8 +341,7 @@ class _EmployeeRoutesReportScreenState
                     PremiumActionButton(
                       label: 'Показать маршрут',
                       icon: Icons.route_outlined,
-                      onPressed:
-                          selectedEmployee == null ? null : openRoute,
+                      onPressed: selectedEmployee == null ? null : openRoute,
                     ),
                   ],
                 ),
@@ -413,10 +414,7 @@ class _GapRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   gap.details.trim(),
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.3,
-                  ),
+                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.3),
                 ),
               ],
             ],

@@ -9,10 +9,7 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains("if (profile.role == 'admin')"));
-    expect(
-      source,
-      contains('List<_WhatsNewSlide>.unmodifiable(_allSlides)'),
-    );
+    expect(source, contains('List<_WhatsNewSlide>.unmodifiable(_allSlides)'));
     expect(source, contains('slide.common || slide.roles.contains(role)'));
     expect(source, contains("roles: <String>{'developer'}"));
     expect(source, contains("roles: <String>{'foreman', 'employee'}"));

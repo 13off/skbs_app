@@ -46,7 +46,10 @@ void main() {
     expect(home, contains('PremiumRoundWorkButton('));
     expect(workButton, contains("'Начать работу'"));
     expect(workButton, contains("'Завершить работу'"));
-    expect(workButton, contains("'Работа идёт с \${formatTime(widget.startedAt!)}'"));
+    expect(
+      workButton,
+      contains("'Работа идёт с \${formatTime(widget.startedAt!)}'"),
+    );
     expect(home, isNot(contains('FilledButton.tonalIcon(')));
     expect(work, contains("label: 'Начать выполнение'"));
     expect(main, contains('if (profile.isEmployee) return content;'));

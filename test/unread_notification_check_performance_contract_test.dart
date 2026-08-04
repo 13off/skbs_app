@@ -12,7 +12,9 @@ void main() {
     expect(sql, contains('visible as materialized'));
     expect(sql, contains('private.current_user_visible_notification_ids()'));
     expect(
-      RegExp(r'current_user_visible_notification_ids\(\)').allMatches(sql).length,
+      RegExp(
+        r'current_user_visible_notification_ids\(\)',
+      ).allMatches(sql).length,
       1,
     );
   });

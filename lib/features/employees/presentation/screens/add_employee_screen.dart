@@ -277,7 +277,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),title: const Text('Добавить сотрудника')),
+        leading: const BackButton(),
+        title: const Text('Добавить сотрудника'),
+      ),
       body: Form(
         key: formKey,
         child: ListView(
@@ -379,7 +381,10 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             ),
             if (errorText != null) ...[
               const SizedBox(height: 14),
-              Text(errorText!, style: TextStyle(color: AppAdaptivePalette.danger)),
+              Text(
+                errorText!,
+                style: TextStyle(color: AppAdaptivePalette.danger),
+              ),
             ],
             const SizedBox(height: 20),
             SizedBox(

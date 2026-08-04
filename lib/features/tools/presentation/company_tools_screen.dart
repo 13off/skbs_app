@@ -183,9 +183,9 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   });
 
   void _open(BuildContext context, Widget screen) {
-    Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
   }
 
   @override
@@ -198,9 +198,9 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
         children: [
           Text(
             'Разделы',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           if (access.canView)
@@ -457,7 +457,10 @@ class _ToolInfoSheet extends StatelessWidget {
                       const Expanded(
                         child: Text(
                           'AppСтрой Трудоустройство',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -479,7 +482,10 @@ class _ToolInfoSheet extends StatelessWidget {
                         const SizedBox(height: 26),
                         const Text(
                           'Что умеет инструмент',
-                          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         LayoutBuilder(
@@ -504,7 +510,10 @@ class _ToolInfoSheet extends StatelessWidget {
                         const SizedBox(height: 28),
                         const Text(
                           'Как работать',
-                          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 7),
                         Text(
@@ -546,9 +555,9 @@ class _ToolHero extends StatelessWidget {
         children: [
           Text(
             'Полное кадровое оформление в одном процессе',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           Text(
@@ -561,7 +570,9 @@ class _ToolHero extends StatelessWidget {
           Row(
             children: [
               Icon(
-                enabled ? Icons.check_circle_rounded : Icons.pause_circle_outline,
+                enabled
+                    ? Icons.check_circle_rounded
+                    : Icons.pause_circle_outline,
                 color: enabled ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 9),
@@ -632,22 +643,62 @@ class _WorkflowGuideState extends State<_WorkflowGuide> {
   int page = 0;
 
   static const steps = <_GuideStep>[
-    _GuideStep(Icons.toggle_on_outlined, '1 из 8', 'Подключите инструмент',
-        'Администратор включает тумблер для компании.', 'Модуль появляется у разрешённых ролей.'),
-    _GuideStep(Icons.person_add_alt_1_outlined, '2 из 8', 'Создайте оформление',
-        'Выберите кандидата CRM или существующего сотрудника.', 'Файлы и данные связываются с одним процессом.'),
-    _GuideStep(Icons.upload_file_outlined, '3 из 8', 'Загрузите исходники',
-        'Добавьте паспорт, регистрацию, СНИЛС, ИНН, полис и фото.', 'Исходные документы остаются отдельными файлами.'),
-    _GuideStep(Icons.fact_check_outlined, '4 из 8', 'Проверьте данные',
-        'HR сверяет распознанные значения с оригиналами.', 'В шаблоны попадут только подтверждённые сведения.'),
-    _GuideStep(Icons.edit_document, '5 из 8', 'Настройте шаблоны',
-        'Юрист редактирует DOCX онлайн и утверждает новую версию.', 'Системные поля и исходник защищены.'),
-    _GuideStep(Icons.auto_awesome_outlined, '6 из 8', 'Сгенерируйте документы',
-        'Выберите пакет и заполните формы проверенными данными.', 'Созданный DOCX связан с версией шаблона.'),
-    _GuideStep(Icons.draw_outlined, '7 из 8', 'Подпишите и загрузите сканы',
-        'Зафиксируйте печать, подпись и проверку финальных сканов.', 'Каждый тип файла хранится отдельно.'),
-    _GuideStep(Icons.verified_outlined, '8 из 8', 'Завершите оформление',
-        'Устраните блокирующие причины и закройте процесс.', 'Документы доступны в общем архиве AppСтрой.'),
+    _GuideStep(
+      Icons.toggle_on_outlined,
+      '1 из 8',
+      'Подключите инструмент',
+      'Администратор включает тумблер для компании.',
+      'Модуль появляется у разрешённых ролей.',
+    ),
+    _GuideStep(
+      Icons.person_add_alt_1_outlined,
+      '2 из 8',
+      'Создайте оформление',
+      'Выберите кандидата CRM или существующего сотрудника.',
+      'Файлы и данные связываются с одним процессом.',
+    ),
+    _GuideStep(
+      Icons.upload_file_outlined,
+      '3 из 8',
+      'Загрузите исходники',
+      'Добавьте паспорт, регистрацию, СНИЛС, ИНН, полис и фото.',
+      'Исходные документы остаются отдельными файлами.',
+    ),
+    _GuideStep(
+      Icons.fact_check_outlined,
+      '4 из 8',
+      'Проверьте данные',
+      'HR сверяет распознанные значения с оригиналами.',
+      'В шаблоны попадут только подтверждённые сведения.',
+    ),
+    _GuideStep(
+      Icons.edit_document,
+      '5 из 8',
+      'Настройте шаблоны',
+      'Юрист редактирует DOCX онлайн и утверждает новую версию.',
+      'Системные поля и исходник защищены.',
+    ),
+    _GuideStep(
+      Icons.auto_awesome_outlined,
+      '6 из 8',
+      'Сгенерируйте документы',
+      'Выберите пакет и заполните формы проверенными данными.',
+      'Созданный DOCX связан с версией шаблона.',
+    ),
+    _GuideStep(
+      Icons.draw_outlined,
+      '7 из 8',
+      'Подпишите и загрузите сканы',
+      'Зафиксируйте печать, подпись и проверку финальных сканов.',
+      'Каждый тип файла хранится отдельно.',
+    ),
+    _GuideStep(
+      Icons.verified_outlined,
+      '8 из 8',
+      'Завершите оформление',
+      'Устраните блокирующие причины и закройте процесс.',
+      'Документы доступны в общем архиве AppСтрой.',
+    ),
   ];
 
   @override
@@ -693,7 +744,9 @@ class _WorkflowGuideState extends State<_WorkflowGuide> {
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     decoration: BoxDecoration(
-                      color: page == index ? scheme.primary : scheme.outlineVariant,
+                      color: page == index
+                          ? scheme.primary
+                          : scheme.outlineVariant,
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
@@ -758,19 +811,29 @@ class _GuideCardState extends State<_GuideCard>
                     color: scheme.primary.withValues(alpha: .12),
                     borderRadius: BorderRadius.circular(23),
                   ),
-                  child: Icon(widget.step.icon, size: 36, color: scheme.primary),
+                  child: Icon(
+                    widget.step.icon,
+                    size: 36,
+                    color: scheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 15),
               Text(
                 widget.step.number,
-                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 7),
               Text(
                 widget.step.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 9),
               Text(
@@ -787,12 +850,19 @@ class _GuideCardState extends State<_GuideCard>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle_rounded, color: scheme.primary, size: 19),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: scheme.primary,
+                      size: 19,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         widget.step.result,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -811,7 +881,11 @@ class _ToolActionCard extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _ToolActionCard({required this.icon, required this.title, required this.onTap});
+  const _ToolActionCard({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -839,7 +913,10 @@ class _ToolActionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
@@ -920,7 +997,13 @@ class _GuideStep {
   final String action;
   final String result;
 
-  const _GuideStep(this.icon, this.number, this.title, this.action, this.result);
+  const _GuideStep(
+    this.icon,
+    this.number,
+    this.title,
+    this.action,
+    this.result,
+  );
 }
 
 class _ToolsData {

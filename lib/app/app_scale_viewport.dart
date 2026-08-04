@@ -10,11 +10,7 @@ class AppScaleViewport extends StatelessWidget {
   final double scale;
   final Widget child;
 
-  const AppScaleViewport({
-    super.key,
-    required this.scale,
-    required this.child,
-  });
+  const AppScaleViewport({super.key, required this.scale, required this.child});
 
   static const double _designCalibration = 0.80;
 

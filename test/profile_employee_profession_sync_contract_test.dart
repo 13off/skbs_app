@@ -20,7 +20,9 @@ void main() {
   test('employee edits refresh the linked profile profession', () {
     expect(
       migration,
-      contains('create or replace function private.sync_employee_personal_fields()'),
+      contains(
+        'create or replace function private.sync_employee_personal_fields()',
+      ),
     );
     expect(
       migration,
@@ -31,7 +33,9 @@ void main() {
   test('company member profession updates the employee card too', () {
     expect(
       migration,
-      contains('create or replace function public.update_company_member_access('),
+      contains(
+        'create or replace function public.update_company_member_access(',
+      ),
     );
     expect(migration, contains('set position = v_profession'));
     expect(migration, contains("'profession', v_profession"));

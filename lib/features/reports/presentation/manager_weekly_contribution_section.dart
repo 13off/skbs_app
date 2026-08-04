@@ -38,7 +38,8 @@ class ManagerWeeklyContributionSection extends StatelessWidget {
           );
         }
         return _WeeklyContributionCard(
-          report: snapshot.data ??
+          report:
+              snapshot.data ??
               ManagerWeeklyContributionReport(
                 weekStart: DateTime.now(),
                 weekEnd: DateTime.now(),
@@ -74,7 +75,9 @@ class _WeeklyContributionCard extends StatelessWidget {
       icon: Icons.groups_2_outlined,
       title: 'Вклад команды за неделю',
       meta: '$periodTitle · ${report.participants} участников',
-      trailingLabel: report.completedTasks > 0 ? '${report.completedTasks}' : null,
+      trailingLabel: report.completedTasks > 0
+          ? '${report.completedTasks}'
+          : null,
       onTap: () {
         Navigator.of(context).push<void>(
           CupertinoPageRoute<void>(
@@ -131,9 +134,9 @@ class _WeeklyContributionDetailsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Участники',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           if (report.rows.isEmpty)

@@ -33,7 +33,10 @@ void main() {
       'lib/widgets/professional_bottom_navigation.dart',
     );
     final handlerStart = navigation.indexOf('handleSelected(int index)');
-    final handlerEnd = navigation.indexOf('\n  @override\n  Widget build(', handlerStart);
+    final handlerEnd = navigation.indexOf(
+      '\n  @override\n  Widget build(',
+      handlerStart,
+    );
     expect(handlerStart, greaterThanOrEqualTo(0));
     expect(handlerEnd, greaterThan(handlerStart));
     final handler = navigation.substring(handlerStart, handlerEnd);

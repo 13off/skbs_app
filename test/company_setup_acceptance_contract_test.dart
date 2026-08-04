@@ -107,19 +107,22 @@ void main() {
     },
   );
 
-  test('readiness covers core modules and operational AI without duplicate data control', () {
-    final readiness = source(
-      'lib/features/developer/presentation/developer_readiness_screen.dart',
-    );
+  test(
+    'readiness covers core modules and operational AI without duplicate data control',
+    () {
+      final readiness = source(
+        'lib/features/developer/presentation/developer_readiness_screen.dart',
+      );
 
-    expect(readiness, contains('Ключевые рабочие таблицы'));
-    expect(readiness, contains("from('payments')"));
-    expect(readiness, contains("from('app_notifications')"));
-    expect(readiness, contains('DeveloperPolicyRepository.fetchCenter'));
-    expect(readiness, contains("'ai-operational-insights'"));
-    expect(readiness, isNot(contains('DataGovernanceRepository')));
-    expect(readiness, isNot(contains('Корзина и общий журнал')));
-  });
+      expect(readiness, contains('Ключевые рабочие таблицы'));
+      expect(readiness, contains("from('payments')"));
+      expect(readiness, contains("from('app_notifications')"));
+      expect(readiness, contains('DeveloperPolicyRepository.fetchCenter'));
+      expect(readiness, contains("'ai-operational-insights'"));
+      expect(readiness, isNot(contains('DataGovernanceRepository')));
+      expect(readiness, isNot(contains('Корзина и общий журнал')));
+    },
+  );
 
   test('machine acceptance checklist includes workflows and bad states', () {
     final checklist =

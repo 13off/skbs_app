@@ -83,7 +83,12 @@ extension _TimesheetView on _TimesheetScreenState {
                             // Flutter 3.44 deprecates this field before exposing its replacement.
                             // ignore: deprecated_member_use
                             cacheExtent: 700,
-                            padding: EdgeInsets.fromLTRB(18, 18, 18, listBottom),
+                            padding: EdgeInsets.fromLTRB(
+                              18,
+                              18,
+                              18,
+                              listBottom,
+                            ),
                             itemCount: leading.length + visibleEmployees.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];

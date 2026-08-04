@@ -47,9 +47,8 @@ abstract final class EmployeeRouteAnalysisRepository {
       return raw
           .whereType<Map>()
           .map(
-            (row) => EmployeeRouteGeofence.fromMap(
-              Map<String, dynamic>.from(row),
-            ),
+            (row) =>
+                EmployeeRouteGeofence.fromMap(Map<String, dynamic>.from(row)),
           )
           .where(
             (item) =>
@@ -66,9 +65,7 @@ abstract final class EmployeeRouteAnalysisRepository {
     }
   }
 
-  static Future<void> cancelRecentShift({
-    required String employeeId,
-  }) async {
+  static Future<void> cancelRecentShift({required String employeeId}) async {
     final cleanEmployeeId = employeeId.trim();
     if (cleanEmployeeId.isEmpty) throw Exception('Сотрудник не определён');
     try {

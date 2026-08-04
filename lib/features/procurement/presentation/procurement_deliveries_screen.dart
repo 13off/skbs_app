@@ -89,8 +89,8 @@ class _ProcurementDeliveriesScreenState
     final color = request.status == 'delivered'
         ? Colors.green
         : request.isOverdue
-            ? AppAdaptivePalette.danger
-            : Colors.blue;
+        ? AppAdaptivePalette.danger
+        : Colors.blue;
     final deadline = request.expectedDeliveryAt ?? request.neededBy;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -174,7 +174,8 @@ class _ProcurementDeliveriesScreenState
                   ),
               ],
             ),
-            if (request.status != 'delivered' && request.nextStatus != null) ...[
+            if (request.status != 'delivered' &&
+                request.nextStatus != null) ...[
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,

@@ -13,7 +13,10 @@ void main() {
 
     expect(source, contains("show CupertinoPageRoute"));
     expect(source, contains('return CupertinoPageRoute<void>('));
-    expect(source, contains('return buildRootPage(index, selectedObjectName);'));
+    expect(
+      source,
+      contains('return buildRootPage(index, selectedObjectName);'),
+    );
     expect(source, contains('return ProfessionalBottomNavigation('));
 
     expect(

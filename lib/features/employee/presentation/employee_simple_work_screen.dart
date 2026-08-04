@@ -82,7 +82,9 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Завершить рабочий день?'),
-        content: const Text('После завершения продолжить этот рабочий день нельзя.'),
+        content: const Text(
+          'После завершения продолжить этот рабочий день нельзя.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -186,7 +188,8 @@ class _EmployeeWorkTasksScreenState extends State<EmployeeWorkTasksScreen> {
               if (tasks.isEmpty)
                 const _MessageCard(
                   title: 'Активных задач пока нет',
-                  text: 'Назначенная мастером задача появится здесь автоматически.',
+                  text:
+                      'Назначенная мастером задача появится здесь автоматически.',
                 )
               else
                 for (var index = 0; index < tasks.length; index++) ...[
@@ -280,7 +283,9 @@ class _EmployeeWorkTaskHistoryScreenState
       confirmText: 'Выбрать',
     );
     if (picked == null) return;
-    setState(() => selectedDate = DateTime(picked.year, picked.month, picked.day));
+    setState(
+      () => selectedDate = DateTime(picked.year, picked.month, picked.day),
+    );
   }
 
   void changeDay(int delta) {
@@ -314,13 +319,15 @@ class _EmployeeWorkTaskHistoryScreenState
         }
 
         final data = snapshot.data!;
-        final tasks = data.tasks.where((task) {
-          final date = task.date;
-          return date != null &&
-              date.year == selectedDate.year &&
-              date.month == selectedDate.month &&
-              date.day == selectedDate.day;
-        }).toList(growable: false);
+        final tasks = data.tasks
+            .where((task) {
+              final date = task.date;
+              return date != null &&
+                  date.year == selectedDate.year &&
+                  date.month == selectedDate.month &&
+                  date.day == selectedDate.day;
+            })
+            .toList(growable: false);
 
         return AppPage(
           title: 'История задач',
@@ -332,7 +339,10 @@ class _EmployeeWorkTaskHistoryScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PremiumWorkCard(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -444,7 +454,8 @@ class _EmployeeWorkTaskDetailsScreenState
   }
 
   Future<void> addPhotos(String stage) async {
-    if (uploadingStage != null || task.isCompleted || !task.isInProgress) return;
+    if (uploadingStage != null || task.isCompleted || !task.isInProgress)
+      return;
     try {
       final photos = await TaskRepository.pickPhotoFiles();
       if (photos.isEmpty || !mounted) return;
@@ -479,11 +490,13 @@ class _EmployeeWorkTaskDetailsScreenState
         builder: (context, workDay, _) {
           final workDayActive =
               workDay.employeeId == widget.employeeId && workDay.isActive;
-          final canStartTask = workDayActive &&
+          final canStartTask =
+              workDayActive &&
               !task.isCompleted &&
               !task.isInProgress &&
               !startingTask;
-          final canAddPhotos = workDayActive &&
+          final canAddPhotos =
+              workDayActive &&
               task.isInProgress &&
               !task.isCompleted &&
               uploadingStage == null;
@@ -505,9 +518,7 @@ class _EmployeeWorkTaskDetailsScreenState
                             task.work.trim().isEmpty
                                 ? 'Рабочая задача'
                                 : task.work,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
@@ -623,8 +634,8 @@ class _WorkDayCard extends StatelessWidget {
                         Text(
                           active
                               ? (startedAt == null
-                                  ? 'Рабочий день активен.'
-                                  : 'Начало: ${_time(startedAt)}')
+                                    ? 'Рабочий день активен.'
+                                    : 'Начало: ${_time(startedAt)}')
                               : 'Нажмите кнопку перед началом работы.',
                         ),
                       ],
@@ -721,7 +732,10 @@ class _PhotoCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Text(
@@ -751,7 +765,9 @@ class _PhotoCard extends StatelessWidget {
                           errorBuilder: (_, _, _) => const SizedBox(
                             width: 112,
                             height: 112,
-                            child: Center(child: Icon(Icons.broken_image_outlined)),
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined),
+                            ),
                           ),
                         ),
                       ),

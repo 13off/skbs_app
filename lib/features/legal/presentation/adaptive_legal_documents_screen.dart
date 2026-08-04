@@ -203,10 +203,7 @@ class _DesktopLegalDocumentsScreenState
   Widget summary(List<LegalDocument> documents) {
     final attention = documents.where((item) => item.needsAttention).length;
     final signed = documents
-        .where(
-          (item) =>
-              item.status == LegalDocumentStatus.signed,
-        )
+        .where((item) => item.status == LegalDocumentStatus.signed)
         .length;
     final expiring = documents
         .where((item) => item.isExpired || item.isExpiringSoon)
@@ -267,10 +264,7 @@ class _DesktopLegalDocumentsScreenState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    specialistCellText(
-                      document.title,
-                      weight: FontWeight.w900,
-                    ),
+                    specialistCellText(document.title, weight: FontWeight.w900),
                     const SizedBox(height: 3),
                     specialistCellText(
                       document.documentType,
@@ -284,10 +278,7 @@ class _DesktopLegalDocumentsScreenState
                   label: document.statusTitle,
                   color: statusColor(document),
                 ),
-                specialistCellText(
-                  document.documentNumber,
-                  maxLines: 1,
-                ),
+                specialistCellText(document.documentNumber, maxLines: 1),
                 specialistCellText(
                   relatedTitle(document),
                   color: specialistMuted,
@@ -429,7 +420,10 @@ class _Summary extends StatelessWidget {
           ),
           Text(
             value,
-            style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: effectiveColor,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),

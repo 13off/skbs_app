@@ -11,7 +11,9 @@ void main() {
     final developer = File(
       'lib/features/developer/presentation/developer_main_screen.dart',
     ).readAsStringSync();
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
+    ).readAsStringSync();
 
     expect(developer, contains('static const int pageCount = 2;'));
     expect(developer, isNot(contains('DataGovernanceScreen')));
@@ -41,9 +43,7 @@ void main() {
     final homeActions = File(
       'lib/screens/home/home_actions.dart',
     ).readAsStringSync();
-    final homeView = File(
-      'lib/screens/home/home_view.dart',
-    ).readAsStringSync();
+    final homeView = File('lib/screens/home/home_view.dart').readAsStringSync();
     final chat = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();

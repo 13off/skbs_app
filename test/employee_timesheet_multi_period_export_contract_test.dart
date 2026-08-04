@@ -23,7 +23,10 @@ void main() {
     expect(detailsView, contains("title: 'Индивидуальный табель'"));
     expect(detailsView, contains('onTap: openTimesheet'));
     expect(detailsView, isNot(contains("title: 'Скачать табель'")));
-    expect(detailsScreen, isNot(contains('employee_timesheet_download_screen.dart')));
+    expect(
+      detailsScreen,
+      isNot(contains('employee_timesheet_download_screen.dart')),
+    );
     expect(navigation, isNot(contains('openTimesheetDownload')));
 
     expect(

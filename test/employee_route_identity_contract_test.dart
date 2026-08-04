@@ -18,13 +18,19 @@ void main() {
     ).readAsStringSync();
 
     expect(cabinet, contains("'employee_id': requestedEmployeeId"));
-    expect(cabinet, contains('result.profile.employeeId != requestedEmployeeId'));
+    expect(
+      cabinet,
+      contains('result.profile.employeeId != requestedEmployeeId'),
+    );
     expect(actions, contains("'employee_id': cleanEmployeeId"));
     expect(actions, contains("'employee-shift-actions'"));
     expect(runtime, contains('EmployeeShiftActionRepository.startShift('));
     expect(runtime, contains('employeeId: cleanEmployeeId'));
     expect(edge, contains('requestedEmployeeId'));
-    expect(edge, contains('resolveEmployee(admin, viewer, requestedEmployeeId)'));
+    expect(
+      edge,
+      contains('resolveEmployee(admin, viewer, requestedEmployeeId)'),
+    );
     expect(edge, isNot(contains('set_object_geofence')));
     expect(edge, isNot(contains('start_distance_m: distance')));
   });

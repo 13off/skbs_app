@@ -26,14 +26,14 @@ void main() {
       'supabase/migrations/20260729121000_employee_max_one_tap_login.sql',
     ).readAsStringSync();
 
-    expect(
-      entry,
-      contains("import 'employee_max_login_screen.dart';"),
-    );
+    expect(entry, contains("import 'employee_max_login_screen.dart';"));
     expect(entry, contains('EmployeeMaxLoginScreen('));
     expect(entry, contains('Подтвердить вход одной кнопкой в MAX'));
 
-    expect(screen, contains("label: isWaiting ? 'Открыть MAX' : 'Войти через MAX'"));
+    expect(
+      screen,
+      contains("label: isWaiting ? 'Открыть MAX' : 'Войти через MAX'"),
+    );
     expect(screen, contains('EmployeeAuthRepository.requestMaxLogin('));
     expect(screen, contains('EmployeeAuthRepository.pollMaxLogin('));
     expect(screen, contains('Timer.periodic('));

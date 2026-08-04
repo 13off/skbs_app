@@ -59,9 +59,8 @@ class _EmployeePassportDirectoryScreenState
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => EmployeeProfessionalPassportViewerScreen(
-          employee: employee,
-        ),
+        builder: (_) =>
+            EmployeeProfessionalPassportViewerScreen(employee: employee),
       ),
     );
   }
@@ -81,25 +80,28 @@ class _EmployeePassportDirectoryScreenState
           }
           if (snapshot.hasError) {
             return _DirectoryError(
-              message: snapshot.error
-                  .toString()
-                  .replaceFirst('Exception: ', ''),
+              message: snapshot.error.toString().replaceFirst(
+                'Exception: ',
+                '',
+              ),
               onRetry: refresh,
             );
           }
 
           final employees = snapshot.data ?? const <Employee>[];
           final cleanQuery = query.trim().toLowerCase();
-          final visible = employees.where((employee) {
-            if (cleanQuery.isEmpty) return true;
-            final haystack = <String>[
-              employee.name,
-              employee.positionTitle,
-              employee.objectName,
-              employee.phone,
-            ].join(' ').toLowerCase();
-            return haystack.contains(cleanQuery);
-          }).toList(growable: false);
+          final visible = employees
+              .where((employee) {
+                if (cleanQuery.isEmpty) return true;
+                final haystack = <String>[
+                  employee.name,
+                  employee.positionTitle,
+                  employee.objectName,
+                  employee.phone,
+                ].join(' ').toLowerCase();
+                return haystack.contains(cleanQuery);
+              })
+              .toList(growable: false);
 
           return AppPage(
             title: 'Паспорта специалистов',
@@ -140,17 +142,16 @@ class _EmployeePassportDirectoryScreenState
                       child: Text(
                         'Найдено: ${visible.length}',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     Text(
                       'Всего: ${employees.length}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),

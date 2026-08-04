@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('document module is exposed only through company tools', () {
-    final settings = File('lib/screens/settings_screen.dart').readAsStringSync();
+    final settings = File(
+      'lib/screens/settings_screen.dart',
+    ).readAsStringSync();
     final tools = File(
       'lib/features/tools/presentation/company_tools_screen.dart',
     ).readAsStringSync();
@@ -36,16 +38,21 @@ void main() {
     expect(tools, isNot(contains("Chip(label: Text('Юрист'))")));
   });
 
-  test('only an enabled connected tool appears in profile as an app shortcut', () {
-    final profile = File('lib/screens/profile_screen.dart').readAsStringSync();
+  test(
+    'only an enabled connected tool appears in profile as an app shortcut',
+    () {
+      final profile = File(
+        'lib/screens/profile_screen.dart',
+      ).readAsStringSync();
 
-    expect(profile, contains("sectionTitle('Инструменты')"));
-    expect(profile, contains('DocumentToolAppShortcut('));
-    expect(profile, contains('DocumentToolWorkspaceScreen('));
-    expect(profile, contains('!data.installation.isEnabled'));
-    expect(profile, contains('!data.access.canView'));
-    expect(profile, contains('return const SizedBox.shrink();'));
-  });
+      expect(profile, contains("sectionTitle('Инструменты')"));
+      expect(profile, contains('DocumentToolAppShortcut('));
+      expect(profile, contains('DocumentToolWorkspaceScreen('));
+      expect(profile, contains('!data.installation.isEnabled'));
+      expect(profile, contains('!data.access.canView'));
+      expect(profile, contains('return const SizedBox.shrink();'));
+    },
+  );
 
   test('tool templates support protected online editing and versioning', () {
     final templates = File(

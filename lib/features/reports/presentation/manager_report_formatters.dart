@@ -73,8 +73,8 @@ class ManagerReportAnalysis {
       final direction = attendanceMissing < yesterdayMissing
           ? 'меньше, чем вчера'
           : attendanceMissing > yesterdayMissing
-              ? 'больше, чем вчера'
-              : 'столько же, сколько вчера';
+          ? 'больше, чем вчера'
+          : 'столько же, сколько вчера';
       lines.add('Без отметки в табеле: $attendanceMissing — $direction.');
     }
 

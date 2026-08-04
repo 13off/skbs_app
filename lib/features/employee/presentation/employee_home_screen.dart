@@ -347,17 +347,16 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           child: ValueListenableBuilder<EmployeeWorkDaySnapshot>(
             valueListenable: runtime.state,
             builder: (context, state, _) {
-              final active = state.employeeId == data.profile.employeeId &&
-                  state.isActive;
+              final active =
+                  state.employeeId == data.profile.employeeId && state.isActive;
               final startedAt = active ? state.shift?.startedAt : null;
-              final canCancelStart = active &&
+              final canCancelStart =
+                  active &&
                   startedAt != null &&
                   DateTime.now().difference(startedAt) <=
                       const Duration(minutes: 10);
-              final loading = starting ||
-                  finishing ||
-                  checkingLocation ||
-                  cancellingStart;
+              final loading =
+                  starting || finishing || checkingLocation || cancellingStart;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
@@ -372,8 +371,8 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                         onPressed: loading
                             ? null
                             : active
-                                ? finishDay
-                                : () => startDay(data.profile.employeeId),
+                            ? finishDay
+                            : () => startDay(data.profile.employeeId),
                       ),
                       const SizedBox(height: 14),
                       if (!active)
@@ -387,8 +386,8 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                           onPressed: loading
                               ? null
                               : () => cancelAccidentalStart(
-                                    data.profile.employeeId,
-                                  ),
+                                  data.profile.employeeId,
+                                ),
                           icon: const Icon(Icons.undo_rounded),
                           label: const Text('Отменить ошибочный старт'),
                         ),

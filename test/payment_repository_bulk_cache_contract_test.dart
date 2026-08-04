@@ -3,9 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final source = File(
-    'lib/data/payment_repository.dart',
-  ).readAsStringSync();
+  final source = File('lib/data/payment_repository.dart').readAsStringSync();
 
   group('PaymentRepository bulk cache contract', () {
     test('bulk responses have a short bounded cache', () {
@@ -17,10 +15,7 @@ void main() {
     test('bulk load warms individual employee payment caches', () {
       expect(source, contains('_warmEmployeePaymentCaches'));
       expect(source, contains('groupedPayments[employeeId]?.add(payment)'));
-      expect(
-        source,
-        contains('_employeePaymentsCache[entry.key] ='),
-      );
+      expect(source, contains('_employeePaymentsCache[entry.key] ='));
     });
 
     test('writes invalidate both individual and bulk payment caches', () {

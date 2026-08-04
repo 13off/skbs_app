@@ -39,10 +39,7 @@ class ManagerReportFilters extends StatelessWidget {
         prefixIcon: Icon(Icons.apartment_outlined),
       ),
       items: [
-        const DropdownMenuItem<String>(
-          value: '',
-          child: Text('Все объекты'),
-        ),
+        const DropdownMenuItem<String>(value: '', child: Text('Все объекты')),
         ...center.objects.map(
           (object) => DropdownMenuItem<String>(
             value: object.id,
@@ -85,10 +82,7 @@ class ManagerReportFilters extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
-        Switch.adaptive(
-          value: onlyProblems,
-          onChanged: onOnlyProblemsChanged,
-        ),
+        Switch.adaptive(value: onlyProblems, onChanged: onOnlyProblemsChanged),
       ],
     );
 

@@ -10,11 +10,7 @@ class WhatsNewGate extends StatefulWidget {
   final AppUserProfile profile;
   final Widget child;
 
-  const WhatsNewGate({
-    super.key,
-    required this.profile,
-    required this.child,
-  });
+  const WhatsNewGate({super.key, required this.profile, required this.child});
 
   @override
   State<WhatsNewGate> createState() => _WhatsNewGateState();
@@ -337,8 +333,9 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
                 children: [
                   IconButton.filledTonal(
                     tooltip: 'Назад',
-                    onPressed:
-                        _currentIndex == 0 ? null : () => _goTo(_currentIndex - 1),
+                    onPressed: _currentIndex == 0
+                        ? null
+                        : () => _goTo(_currentIndex - 1),
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 8),
@@ -351,8 +348,9 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
-                    onPressed:
-                        _isLast ? _finish : () => _goTo(_currentIndex + 1),
+                    onPressed: _isLast
+                        ? _finish
+                        : () => _goTo(_currentIndex + 1),
                     icon: Icon(
                       _isLast
                           ? Icons.check_rounded
@@ -374,10 +372,7 @@ class _WhatsNewSlideView extends StatelessWidget {
   final _WhatsNewSlide slide;
   final bool active;
 
-  const _WhatsNewSlideView({
-    required this.slide,
-    required this.active,
-  });
+  const _WhatsNewSlideView({required this.slide, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -395,11 +390,7 @@ class _WhatsNewSlideView extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  slide.icon,
-                  size: 24,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(slide.icon, size: 24, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -441,7 +432,9 @@ class _WhatsNewSlideView extends StatelessWidget {
                     Expanded(
                       child: Text(
                         point,
-                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.38),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.38,
+                        ),
                       ),
                     ),
                   ],
@@ -507,33 +500,29 @@ class _DemoFrame extends StatelessWidget {
   final _WhatsNewDemoKind kind;
   final bool active;
 
-  const _DemoFrame({
-    required this.kind,
-    required this.active,
-  });
+  const _DemoFrame({required this.kind, required this.active});
 
   @override
   Widget build(BuildContext context) {
     final child = switch (kind) {
-      _WhatsNewDemoKind.rolePlatforms =>
-        _RolePlatformsDemo(active: active),
+      _WhatsNewDemoKind.rolePlatforms => _RolePlatformsDemo(active: active),
       _WhatsNewDemoKind.dispatcher => _DispatcherDemo(active: active),
       _WhatsNewDemoKind.reportCenter => _ReportCenterDemo(active: active),
       _WhatsNewDemoKind.aiActions => _AiActionsDemo(active: active),
       _WhatsNewDemoKind.documents => _DocumentsDemo(active: active),
       _WhatsNewDemoKind.recruitment => _PipelineDemo(
-          active: active,
-          icon: Icons.person_search_outlined,
-          labels: const ['Заявка', 'Проверка', 'Одобрен'],
-        ),
+        active: active,
+        icon: Icons.person_search_outlined,
+        labels: const ['Заявка', 'Проверка', 'Одобрен'],
+      ),
       _WhatsNewDemoKind.mobilization => _ChecklistDemo(active: active),
-      _WhatsNewDemoKind.developerControls =>
-        _DeveloperControlsDemo(active: active),
+      _WhatsNewDemoKind.developerControls => _DeveloperControlsDemo(
+        active: active,
+      ),
       _WhatsNewDemoKind.contribution => _ContributionDemo(active: active),
       _WhatsNewDemoKind.notifications => _NotificationsDemo(active: active),
       _WhatsNewDemoKind.themeToggle => _ThemeToggleDemo(active: active),
-      _WhatsNewDemoKind.employeeCabinet =>
-        _EmployeeCabinetDemo(active: active),
+      _WhatsNewDemoKind.employeeCabinet => _EmployeeCabinetDemo(active: active),
     };
 
     return AspectRatio(
@@ -542,10 +531,7 @@ class _DemoFrame extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: ColoredBox(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: child,
-          ),
+          child: Padding(padding: const EdgeInsets.all(12), child: child),
         ),
       ),
     );
@@ -590,8 +576,7 @@ class _RolePlatformsDemo extends StatelessWidget {
               Expanded(
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
@@ -630,9 +615,7 @@ class _RolePlatformsDemo extends StatelessWidget {
                             roles[index].$2,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
+                            style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   color: isSelected
@@ -668,7 +651,9 @@ class _DispatcherDemo extends StatelessWidget {
       builder: (context, progress) {
         final scheme = Theme.of(context).colorScheme;
         final pulse = 0.92 + 0.08 * math.sin(progress * math.pi * 8).abs();
-        final reveal = Curves.easeOutCubic.transform(_segment(progress, 0.12, 0.42));
+        final reveal = Curves.easeOutCubic.transform(
+          _segment(progress, 0.12, 0.42),
+        );
 
         return Container(
           padding: const EdgeInsets.all(13),
@@ -755,7 +740,8 @@ class _ReportCenterDemo extends StatelessWidget {
       reducedMotionValue: 0.48,
       builder: (context, progress) {
         final scheme = Theme.of(context).colorScheme;
-        final selected = ((progress * sections.length).floor()) % sections.length;
+        final selected =
+            ((progress * sections.length).floor()) % sections.length;
 
         return Container(
           padding: const EdgeInsets.all(13),
@@ -771,8 +757,7 @@ class _ReportCenterDemo extends StatelessWidget {
               Expanded(
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
@@ -812,9 +797,7 @@ class _ReportCenterDemo extends StatelessWidget {
                                 sections[index].$2,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
+                                style: Theme.of(context).textTheme.labelSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w800,
                                       color: open
@@ -860,8 +843,8 @@ class _AiActionsDemo extends StatelessWidget {
         final stage = complete > 0.7
             ? 'Выполнено'
             : confirm > 0.65
-                ? 'Подтверждено'
-                : 'Предложение';
+            ? 'Подтверждено'
+            : 'Предложение';
 
         return Container(
           padding: const EdgeInsets.all(13),
@@ -980,16 +963,12 @@ class _DocumentsDemo extends StatelessWidget {
                           child: Container(
                             width: 82,
                             height: 108,
-                            margin: EdgeInsets.only(
-                              left: index == 0 ? 0 : -48,
-                            ),
+                            margin: EdgeInsets.only(left: index == 0 ? 0 : -48),
                             padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
                               color: scheme.surface,
                               borderRadius: BorderRadius.circular(13),
-                              border: Border.all(
-                                color: scheme.outlineVariant,
-                              ),
+                              border: Border.all(color: scheme.outlineVariant),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.08),
@@ -1024,8 +1003,9 @@ class _DocumentsDemo extends StatelessWidget {
                                         decoration: BoxDecoration(
                                           color: scheme.onSurfaceVariant
                                               .withValues(alpha: 0.16),
-                                          borderRadius:
-                                              BorderRadius.circular(100),
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1066,9 +1046,9 @@ class _DocumentsDemo extends StatelessWidget {
                       : 'Документы заполняются локально',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -1148,8 +1128,8 @@ class _PipelineDemo extends StatelessWidget {
                                     radius: 8,
                                     backgroundColor:
                                         position >= index / (labels.length - 1)
-                                            ? scheme.primary
-                                            : scheme.outlineVariant,
+                                        ? scheme.primary
+                                        : scheme.outlineVariant,
                                   ),
                                   const SizedBox(height: 7),
                                   SizedBox(
@@ -1161,8 +1141,7 @@ class _PipelineDemo extends StatelessWidget {
                                           .textTheme
                                           .labelSmall
                                           ?.copyWith(
-                                            color:
-                                                scheme.onSurfaceVariant,
+                                            color: scheme.onSurfaceVariant,
                                             fontWeight: FontWeight.w700,
                                           ),
                                     ),
@@ -1181,8 +1160,7 @@ class _PipelineDemo extends StatelessWidget {
                               color: scheme.primaryContainer,
                               borderRadius: BorderRadius.circular(15),
                               border: Border.all(
-                                color: scheme.primary
-                                    .withValues(alpha: 0.35),
+                                color: scheme.primary.withValues(alpha: 0.35),
                               ),
                             ),
                             child: Icon(
@@ -1270,12 +1248,8 @@ class _ChecklistDemo extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 items[index],
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                             ),
                             if (index < completed)
@@ -1330,10 +1304,7 @@ class _DeveloperControlsDemo extends StatelessWidget {
                     Expanded(
                       child: Column(
                         children: [
-                          _ToggleRow(
-                            label: 'Фото «До»',
-                            value: amount > 0.2,
-                          ),
+                          _ToggleRow(label: 'Фото «До»', value: amount > 0.2),
                           const SizedBox(height: 7),
                           _ToggleRow(
                             label: 'Фото «После»',
@@ -1353,10 +1324,10 @@ class _DeveloperControlsDemo extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 5,
-                          crossAxisSpacing: 5,
-                        ),
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 5,
+                              crossAxisSpacing: 5,
+                            ),
                         itemCount: 9,
                         itemBuilder: (context, index) {
                           final enabled = index / 9 < amount;
@@ -1439,10 +1410,7 @@ class _ContributionDemo extends StatelessWidget {
                     label: 'Фото',
                   ),
                   const SizedBox(width: 7),
-                  _MiniFeatureChip(
-                    icon: Icons.flag_outlined,
-                    label: 'Цель',
-                  ),
+                  _MiniFeatureChip(icon: Icons.flag_outlined, label: 'Цель'),
                   const SizedBox(width: 7),
                   _MiniFeatureChip(
                     icon: Icons.edit_note_outlined,
@@ -1619,9 +1587,9 @@ class _ThemeToggleDemo extends StatelessWidget {
                     child: Text(
                       'AppСтрой',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: primaryText,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: primaryText,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   Icon(
@@ -1652,16 +1620,11 @@ class _ThemeToggleDemo extends StatelessWidget {
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: Color.lerp(
-                                Colors.white,
-                                accent,
-                                amount,
-                              ),
+                              color: Color.lerp(Colors.white, accent, amount),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.18),
+                                  color: Colors.black.withValues(alpha: 0.18),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1696,24 +1659,23 @@ class _ThemeToggleDemo extends StatelessWidget {
                       Text(
                         'Сводка объекта',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: primaryText,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          color: primaryText,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Фон, карточки и текст меняются вместе',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: mutedText,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: mutedText,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const Spacer(),
                       LinearProgressIndicator(
                         value: 0.72,
                         color: accent,
-                        backgroundColor:
-                            mutedText.withValues(alpha: 0.14),
+                        backgroundColor: mutedText.withValues(alpha: 0.14),
                         minHeight: 8,
                         borderRadius: BorderRadius.circular(100),
                       ),
@@ -1742,12 +1704,15 @@ class _EmployeeCabinetDemo extends StatelessWidget {
       reducedMotionValue: 0.58,
       builder: (context, progress) {
         final scheme = Theme.of(context).colorScheme;
-        final cardOne =
-            Curves.easeOutBack.transform(_segment(progress, 0.04, 0.25));
-        final cardTwo =
-            Curves.easeOutBack.transform(_segment(progress, 0.14, 0.35));
-        final cardThree =
-            Curves.easeOutBack.transform(_segment(progress, 0.24, 0.45));
+        final cardOne = Curves.easeOutBack.transform(
+          _segment(progress, 0.04, 0.25),
+        );
+        final cardTwo = Curves.easeOutBack.transform(
+          _segment(progress, 0.14, 0.35),
+        );
+        final cardThree = Curves.easeOutBack.transform(
+          _segment(progress, 0.24, 0.45),
+        );
         final selectedIndex = ((progress * 5).floor()) % 5;
 
         return Container(
@@ -1874,11 +1839,7 @@ class _DemoHeader extends StatelessWidget {
             color: scheme.primaryContainer,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: scheme.onPrimaryContainer,
-          ),
+          child: Icon(icon, size: 18, color: scheme.onPrimaryContainer),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -1889,18 +1850,18 @@ class _DemoHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               Text(
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1941,18 +1902,18 @@ class _MetricTile extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: accent,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -1986,16 +1947,16 @@ class _DemoLine extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -2009,10 +1970,7 @@ class _StagePill extends StatelessWidget {
   final String label;
   final bool active;
 
-  const _StagePill({
-    required this.label,
-    required this.active,
-  });
+  const _StagePill({required this.label, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -2032,11 +1990,9 @@ class _StagePill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: active
-                  ? scheme.onPrimaryContainer
-                  : scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
-            ),
+          color: active ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -2046,10 +2002,7 @@ class _ToggleRow extends StatelessWidget {
   final String label;
   final bool value;
 
-  const _ToggleRow({
-    required this.label,
-    required this.value,
-  });
+  const _ToggleRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -2068,9 +2021,9 @@ class _ToggleRow extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             AnimatedContainer(
@@ -2078,23 +2031,18 @@ class _ToggleRow extends StatelessWidget {
               width: 31,
               height: 18,
               decoration: BoxDecoration(
-                color: value
-                    ? scheme.primary
-                    : scheme.surfaceContainerHighest,
+                color: value ? scheme.primary : scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 220),
-                alignment:
-                    value ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
                 child: Container(
                   width: 14,
                   height: 14,
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: value
-                        ? scheme.onPrimary
-                        : scheme.onSurfaceVariant,
+                    color: value ? scheme.onPrimary : scheme.onSurfaceVariant,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -2126,9 +2074,9 @@ class _ContributionRow extends StatelessWidget {
           width: 58,
           child: Text(
             name,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         Expanded(
@@ -2152,9 +2100,9 @@ class _ContributionRow extends StatelessWidget {
             '$value%',
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ],
@@ -2166,10 +2114,7 @@ class _MiniFeatureChip extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _MiniFeatureChip({
-    required this.icon,
-    required this.label,
-  });
+  const _MiniFeatureChip({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -2191,9 +2136,9 @@ class _MiniFeatureChip extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -2244,18 +2189,18 @@ class _AnimatedInfoCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -2320,8 +2265,7 @@ class _LoopingDemoState extends State<_LoopingDemo>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final disabled =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final disabled = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (_animationsDisabled == disabled && _controller.isAnimating) return;
     _animationsDisabled = disabled;
     _syncAnimation();

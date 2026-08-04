@@ -76,41 +76,36 @@ void main() {
       'не отмечен',
       objectName: 'Москва',
     );
-    final rows = PeriodTimesheetReport.filterRows(
-      const <MonthlyTimesheetRow>[
-        MonthlyTimesheetRow(
-          employee: activeEmployee,
-          shiftsByDay: <int, double>{1: 1},
-          paid: 0,
-        ),
-        MonthlyTimesheetRow(
-          employee: other,
-          shiftsByDay: <int, double>{},
-          paid: 0,
-        ),
-      ],
-      query: 'бетон',
-    );
+    final rows = PeriodTimesheetReport.filterRows(const <MonthlyTimesheetRow>[
+      MonthlyTimesheetRow(
+        employee: activeEmployee,
+        shiftsByDay: <int, double>{1: 1},
+        paid: 0,
+      ),
+      MonthlyTimesheetRow(
+        employee: other,
+        shiftsByDay: <int, double>{},
+        paid: 0,
+      ),
+    ], query: 'бетон');
 
     expect(rows, hasLength(1));
     expect(rows.single.employee.name, 'Иванов Иван');
   });
 
   test('считает финансовый итог и статусы сотрудников', () {
-    final summary = PeriodTimesheetReport.summarize(
-      const <MonthlyTimesheetRow>[
-        MonthlyTimesheetRow(
-          employee: activeEmployee,
-          shiftsByDay: <int, double>{1: 1},
-          paid: 1000,
-        ),
-        MonthlyTimesheetRow(
-          employee: firedCopy,
-          shiftsByDay: <int, double>{1: 0.5},
-          paid: 500,
-        ),
-      ],
-    );
+    final summary = PeriodTimesheetReport.summarize(const <MonthlyTimesheetRow>[
+      MonthlyTimesheetRow(
+        employee: activeEmployee,
+        shiftsByDay: <int, double>{1: 1},
+        paid: 1000,
+      ),
+      MonthlyTimesheetRow(
+        employee: firedCopy,
+        shiftsByDay: <int, double>{1: 0.5},
+        paid: 500,
+      ),
+    ]);
 
     expect(summary.employeeCount, 2);
     expect(summary.activeEmployeeCount, 1);

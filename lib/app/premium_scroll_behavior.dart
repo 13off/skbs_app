@@ -49,11 +49,8 @@ class PremiumBouncingScrollPhysics extends BouncingScrollPhysics {
   /// Почти критически затухающая пружина: возврат остаётся живым, но не дёргает
   /// контент и не останавливается резко у границы.
   @override
-  SpringDescription get spring => const SpringDescription(
-    mass: 0.72,
-    stiffness: 92,
-    damping: 14.8,
-  );
+  SpringDescription get spring =>
+      const SpringDescription(mass: 0.72, stiffness: 92, damping: 14.8);
 
   /// Небольшие свайпы тоже получают инерцию, поэтому прокрутка не обрывается
   /// сразу после отпускания пальца.

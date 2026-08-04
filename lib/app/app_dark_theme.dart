@@ -23,29 +23,30 @@ abstract final class AppDarkTheme {
   static const danger = AppAdaptivePalette.darkDanger;
 
   static ThemeData get theme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: Brightness.dark,
-      surface: surface,
-    ).copyWith(
-      primary: accent,
-      onPrimary: Colors.white,
-      primaryContainer: accentSoft,
-      onPrimaryContainer: const Color(0xFFD7ECFF),
-      secondary: const Color(0xFF64B5F6),
-      onSecondary: const Color(0xFF07131E),
-      secondaryContainer: const Color(0xFF1D3345),
-      onSecondaryContainer: const Color(0xFFD7EAF9),
-      surface: surface,
-      onSurface: textPrimary,
-      onSurfaceVariant: textMuted,
-      outline: border,
-      outlineVariant: const Color(0xFF22303D),
-      error: danger,
-      onError: Colors.white,
-      errorContainer: const Color(0xFF4A2530),
-      onErrorContainer: const Color(0xFFFFD9DF),
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: accent,
+          brightness: Brightness.dark,
+          surface: surface,
+        ).copyWith(
+          primary: accent,
+          onPrimary: Colors.white,
+          primaryContainer: accentSoft,
+          onPrimaryContainer: const Color(0xFFD7ECFF),
+          secondary: const Color(0xFF64B5F6),
+          onSecondary: const Color(0xFF07131E),
+          secondaryContainer: const Color(0xFF1D3345),
+          onSecondaryContainer: const Color(0xFFD7EAF9),
+          surface: surface,
+          onSurface: textPrimary,
+          onSurfaceVariant: textMuted,
+          outline: border,
+          outlineVariant: const Color(0xFF22303D),
+          error: danger,
+          onError: Colors.white,
+          errorContainer: const Color(0xFF4A2530),
+          onErrorContainer: const Color(0xFFFFD9DF),
+        );
 
     final base = ThemeData(
       useMaterial3: true,
@@ -285,7 +286,9 @@ abstract final class AppDarkTheme {
         disabledColor: AppAdaptivePalette.darkDisabledSurface,
         checkmarkColor: accent,
         labelStyle: textTheme.labelMedium?.copyWith(color: textPrimary),
-        secondaryLabelStyle: textTheme.labelMedium?.copyWith(color: textPrimary),
+        secondaryLabelStyle: textTheme.labelMedium?.copyWith(
+          color: textPrimary,
+        ),
         side: const BorderSide(color: border),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

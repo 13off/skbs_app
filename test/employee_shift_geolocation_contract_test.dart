@@ -47,7 +47,7 @@ void main() {
     expect(runtime, contains('finishShift'));
     expect(home, contains('PremiumRoundWorkButton('));
     expect(home, contains('await runtime.finish()'));
-    expect(home, contains('active\n                                ? finishDay'));
+    expect(home, matches(RegExp(r'active\s*\?\s*finishDay')));
     expect(home, contains("'Проверить геолокацию'"));
     expect(home, contains("'Отменить ошибочный старт'"));
     expect(workButton, contains("'Начать работу'"));

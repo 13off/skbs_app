@@ -10,11 +10,7 @@ class WhatsNewGate extends StatefulWidget {
   final AppUserProfile profile;
   final Widget child;
 
-  const WhatsNewGate({
-    super.key,
-    required this.profile,
-    required this.child,
-  });
+  const WhatsNewGate({super.key, required this.profile, required this.child});
 
   @override
   State<WhatsNewGate> createState() => _WhatsNewGateState();
@@ -57,10 +53,8 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _WhatsNewDialog(
-        profile: widget.profile,
-        slides: slides,
-      ),
+      builder: (context) =>
+          _WhatsNewDialog(profile: widget.profile, slides: slides),
     );
 
     try {
@@ -108,13 +102,7 @@ const List<_WhatsNewSlide> _allSlides = <_WhatsNewSlide>[
       'Из сводки открываются конкретные проблемные записи.',
     ],
     demo: _WhatsNewDemoKind.dispatcher,
-    roles: <String>{
-      'developer',
-      'foreman',
-      'hr',
-      'accountant',
-      'lawyer',
-    },
+    roles: <String>{'developer', 'foreman', 'hr', 'accountant', 'lawyer'},
   ),
   _WhatsNewSlide(
     icon: Icons.analytics_outlined,
@@ -267,10 +255,7 @@ class _WhatsNewDialog extends StatefulWidget {
   final AppUserProfile profile;
   final List<_WhatsNewSlide> slides;
 
-  const _WhatsNewDialog({
-    required this.profile,
-    required this.slides,
-  });
+  const _WhatsNewDialog({required this.profile, required this.slides});
 
   @override
   State<_WhatsNewDialog> createState() => _WhatsNewDialogState();
@@ -404,8 +389,9 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
                 children: [
                   IconButton.filledTonal(
                     tooltip: 'Назад',
-                    onPressed:
-                        _currentIndex == 0 ? null : () => _goTo(_currentIndex - 1),
+                    onPressed: _currentIndex == 0
+                        ? null
+                        : () => _goTo(_currentIndex - 1),
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 8),
@@ -418,8 +404,9 @@ class _WhatsNewDialogState extends State<_WhatsNewDialog> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
-                    onPressed:
-                        _isLast ? _finish : () => _goTo(_currentIndex + 1),
+                    onPressed: _isLast
+                        ? _finish
+                        : () => _goTo(_currentIndex + 1),
                     icon: Icon(
                       _isLast
                           ? Icons.check_rounded
@@ -441,10 +428,7 @@ class _WhatsNewSlideView extends StatelessWidget {
   final _WhatsNewSlide slide;
   final bool active;
 
-  const _WhatsNewSlideView({
-    required this.slide,
-    required this.active,
-  });
+  const _WhatsNewSlideView({required this.slide, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +487,9 @@ class _WhatsNewSlideView extends StatelessWidget {
                     Expanded(
                       child: Text(
                         point,
-                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
@@ -568,10 +554,7 @@ class _DemoFrame extends StatelessWidget {
   final _WhatsNewDemoKind kind;
   final bool active;
 
-  const _DemoFrame({
-    required this.kind,
-    required this.active,
-  });
+  const _DemoFrame({required this.kind, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -601,10 +584,7 @@ class _DemoScene extends StatelessWidget {
   final _WhatsNewDemoKind kind;
   final double progress;
 
-  const _DemoScene({
-    required this.kind,
-    required this.progress,
-  });
+  const _DemoScene({required this.kind, required this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -675,8 +655,8 @@ class _DemoScene extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.fade,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -761,8 +741,8 @@ class _DemoScene extends StatelessWidget {
                       Text(
                         cards[index].$2,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ],
                   ),
@@ -782,8 +762,8 @@ class _DemoScene extends StatelessWidget {
       subtitle: phase == 0
           ? 'Подготовлено действие'
           : phase == 1
-              ? 'Проверка пользователем'
-              : 'Выполнено и записано в журнал',
+          ? 'Проверка пользователем'
+          : 'Выполнено и записано в журнал',
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -861,7 +841,10 @@ class _DemoScene extends StatelessWidget {
     final amount = Curves.easeInOutCubic.transform(progress);
     final scheme = Theme.of(context).colorScheme;
     const stages = <String>['Новая', 'Проверка', 'Одобрен', 'Архив'];
-    final selected = math.min(stages.length - 1, (amount * stages.length).floor());
+    final selected = math.min(
+      stages.length - 1,
+      (amount * stages.length).floor(),
+    );
 
     return _DemoSurface(
       title: 'Воронка кандидата',
@@ -900,7 +883,10 @@ class _DemoScene extends StatelessWidget {
                                   ? scheme.primary
                                   : scheme.surfaceContainerHighest,
                               shape: BoxShape.circle,
-                              border: Border.all(color: scheme.surface, width: 3),
+                              border: Border.all(
+                                color: scheme.surface,
+                                width: 3,
+                              ),
                             ),
                             child: index < selected
                                 ? Icon(
@@ -915,12 +901,12 @@ class _DemoScene extends StatelessWidget {
                             stages[index],
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      fontWeight: index == selected
-                                          ? FontWeight.w900
-                                          : FontWeight.w600,
-                                    ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  fontWeight: index == selected
+                                      ? FontWeight.w900
+                                      : FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
@@ -973,20 +959,14 @@ class _DemoScene extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _DemoSwitchRow(
-            label: 'Обязательное фото «До»',
-            value: amount > 0.25,
-          ),
+          _DemoSwitchRow(label: 'Обязательное фото «До»', value: amount > 0.25),
           const SizedBox(height: 8),
           _DemoSwitchRow(
             label: 'Обязательное фото «После»',
             value: amount > 0.45,
           ),
           const SizedBox(height: 8),
-          _DemoSwitchRow(
-            label: 'Запрет удаления задачи',
-            value: amount > 0.65,
-          ),
+          _DemoSwitchRow(label: 'Запрет удаления задачи', value: amount > 0.65),
         ],
       ),
     );
@@ -1004,7 +984,11 @@ class _DemoScene extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _ContributionBar(label: 'Иванов', percent: first, accent: scheme.primary),
+          _ContributionBar(
+            label: 'Иванов',
+            percent: first,
+            accent: scheme.primary,
+          ),
           const SizedBox(height: 9),
           _ContributionBar(
             label: 'Петров',
@@ -1046,7 +1030,10 @@ class _DemoScene extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 7),
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 9,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(13),
@@ -1060,9 +1047,8 @@ class _DemoScene extends StatelessWidget {
                           items[index].$2,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -1082,11 +1068,7 @@ class _DemoScene extends StatelessWidget {
       const Color(0xFF111820),
       amount,
     )!;
-    final surface = Color.lerp(
-      Colors.white,
-      const Color(0xFF202A35),
-      amount,
-    )!;
+    final surface = Color.lerp(Colors.white, const Color(0xFF202A35), amount)!;
     final text = Color.lerp(
       const Color(0xFF1A1E24),
       const Color(0xFFF3F6FA),
@@ -1115,9 +1097,9 @@ class _DemoScene extends StatelessWidget {
                 child: Text(
                   'AppСтрой',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: text,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: text,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Icon(
@@ -1172,16 +1154,16 @@ class _DemoScene extends StatelessWidget {
                   Text(
                     'Рабочий экран',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: text,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      color: text,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     'Все поверхности меняются одновременно',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: muted,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: muted),
                   ),
                   const Spacer(),
                   Row(
@@ -1318,17 +1300,17 @@ class _DemoSurface extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -1377,17 +1359,17 @@ class _MetricTile extends StatelessWidget {
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -1435,8 +1417,8 @@ class _StatusRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                    ),
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -1484,9 +1466,9 @@ class _DocumentCard extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -1498,10 +1480,7 @@ class _DemoSwitchRow extends StatelessWidget {
   final String label;
   final bool value;
 
-  const _DemoSwitchRow({
-    required this.label,
-    required this.value,
-  });
+  const _DemoSwitchRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -1511,9 +1490,9 @@ class _DemoSwitchRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         AnimatedContainer(
@@ -1564,17 +1543,17 @@ class _ContributionBar extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             Text(
               '$percent%',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: accent,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),
@@ -1635,10 +1614,7 @@ class _LoopingDemoState extends State<_LoopingDemo>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
   }
 
   @override

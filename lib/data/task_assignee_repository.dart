@@ -61,10 +61,7 @@ class TaskAssigneeRepository {
         .toSet();
   }
 
-  static bool sameIds(
-    Iterable<String> firstIds,
-    Iterable<String> secondIds,
-  ) {
+  static bool sameIds(Iterable<String> firstIds, Iterable<String> secondIds) {
     final first = cleanIdSet(firstIds);
     final second = cleanIdSet(secondIds);
     if (first.length != second.length) return false;
@@ -81,10 +78,12 @@ class TaskAssigneeRepository {
     if (cleanIds.isEmpty) return;
 
     final rows = cleanIds
-        .map((employeeId) => <String, dynamic>{
-              'task_id': taskId,
-              'employee_id': employeeId,
-            })
+        .map(
+          (employeeId) => <String, dynamic>{
+            'task_id': taskId,
+            'employee_id': employeeId,
+          },
+        )
         .toList();
     await _client.from('task_assignees').insert(rows);
   }

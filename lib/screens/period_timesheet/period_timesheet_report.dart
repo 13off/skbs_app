@@ -41,7 +41,8 @@ class PeriodTimesheetReport {
     List<MonthlyTimesheetRow> sourceRows, {
     required bool collapseAcrossObjects,
   }) {
-    if (!collapseAcrossObjects) return List<MonthlyTimesheetRow>.from(sourceRows);
+    if (!collapseAcrossObjects)
+      return List<MonthlyTimesheetRow>.from(sourceRows);
 
     final drafts = <String, _TimesheetDisplayDraft>{};
 
@@ -73,17 +74,17 @@ class PeriodTimesheetReport {
 
     if (normalizedQuery.isEmpty) return workedRows;
 
-    return workedRows.where((row) {
-      final employee = row.employee;
-      return employee.name.toLowerCase().contains(normalizedQuery) ||
-          employee.position.toLowerCase().contains(normalizedQuery) ||
-          employee.objectName.toLowerCase().contains(normalizedQuery);
-    }).toList(growable: false);
+    return workedRows
+        .where((row) {
+          final employee = row.employee;
+          return employee.name.toLowerCase().contains(normalizedQuery) ||
+              employee.position.toLowerCase().contains(normalizedQuery) ||
+              employee.objectName.toLowerCase().contains(normalizedQuery);
+        })
+        .toList(growable: false);
   }
 
-  static PeriodTimesheetSummary summarize(
-    Iterable<MonthlyTimesheetRow> rows,
-  ) {
+  static PeriodTimesheetSummary summarize(Iterable<MonthlyTimesheetRow> rows) {
     var employeeCount = 0;
     var activeEmployeeCount = 0;
     var firedEmployeeCount = 0;

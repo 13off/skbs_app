@@ -31,9 +31,11 @@ void main() {
 
     expect(
       sections,
-      isNot(contains(
-        'Выберите раздел. Длинные списки открываются на отдельной странице.',
-      )),
+      isNot(
+        contains(
+          'Выберите раздел. Длинные списки открываются на отдельной странице.',
+        ),
+      ),
     );
     expect(sections, isNot(contains("label: const Text('Открыть сводку')")));
     expect(

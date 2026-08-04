@@ -17,15 +17,18 @@ void main() {
     );
   });
 
-  test('из истории выплат можно открыть добавление для текущего сотрудника', () {
-    final history = File(
-      'lib/screens/payment_history_screen.dart',
-    ).readAsStringSync();
+  test(
+    'из истории выплат можно открыть добавление для текущего сотрудника',
+    () {
+      final history = File(
+        'lib/screens/payment_history_screen.dart',
+      ).readAsStringSync();
 
-    expect(history, contains("import 'add_payment_screen.dart';"));
-    expect(history, contains('AddPaymentScreen('));
-    expect(history, contains('initialEmployeeId: employeeId'));
-    expect(history, contains("label: const Text('Добавить выплату')"));
-    expect(history, contains('await loadHistory(forceRefresh: true)'));
-  });
+      expect(history, contains("import 'add_payment_screen.dart';"));
+      expect(history, contains('AddPaymentScreen('));
+      expect(history, contains('initialEmployeeId: employeeId'));
+      expect(history, contains("label: const Text('Добавить выплату')"));
+      expect(history, contains('await loadHistory(forceRefresh: true)'));
+    },
+  );
 }

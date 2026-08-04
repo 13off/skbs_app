@@ -291,7 +291,7 @@ abstract final class CandidateOnboardingPackageService {
         '',
       ),
       bytes: result.bytes,
-      ext: 'zip',
+      fileExtension: 'zip',
       mimeType: MimeType.zip,
     );
   }

@@ -22,8 +22,7 @@ class ProcurementRequestsScreen extends StatefulWidget {
       _ProcurementRequestsScreenState();
 }
 
-class _ProcurementRequestsScreenState
-    extends State<ProcurementRequestsScreen> {
+class _ProcurementRequestsScreenState extends State<ProcurementRequestsScreen> {
   late Future<List<ProcurementRequest>> future;
   StreamSubscription<AppDataChange>? subscription;
   String filter = 'open';
@@ -143,8 +142,8 @@ class _ProcurementRequestsScreenState
         'closed' => item.isClosed,
         _ => true,
       };
-      final haystack =
-          '${item.title} ${item.objectName} ${item.supplierName}'.toLowerCase();
+      final haystack = '${item.title} ${item.objectName} ${item.supplierName}'
+          .toLowerCase();
       return matchesFilter && (query.isEmpty || haystack.contains(query));
     }).toList();
   }
