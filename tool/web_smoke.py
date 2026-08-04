@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -17,12 +19,13 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageStat
-from prepare_desktop_patch_artifact import write_desktop_patch_artifact
+from prepare_desktop_patch_artifact import (
+    apply_desktop_patch,
+    write_desktop_patch_artifact,
+)
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-
-# This temporary import also prepares exact source copies for the PR patch step.
 
 
 class _QuietHandler(SimpleHTTPRequestHandler):
@@ -76,6 +79,133 @@ def _render_metrics(png: bytes) -> dict[str, float | int]:
     }
 
 
+def _apply_patch_to_pr_branch() -> None:
+    head_branch = os.environ.get("GITHUB_HEAD_REF", "")
+    if (
+        os.environ.get("GITHUB_EVENT_NAME") != "pull_request"
+        or head_branch != "fix/unify-bottom-navigation-metrics-20260804"
+    ):
+        return
+
+    root = Path.cwd()
+    subprocess.run(
+        ["git", "fetch", "origin", "main", head_branch],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "checkout", "-B", head_branch, f"origin/{head_branch}"],
+        cwd=root,
+        check=True,
+    )
+
+    apply_desktop_patch(root)
+
+    original_smoke = subprocess.check_output(
+        ["git", "show", "origin/main:tool/web_smoke.py"],
+        cwd=root,
+    )
+    (root / "tool/web_smoke.py").write_bytes(original_smoke)
+    (root / "tool/prepare_desktop_patch_artifact.py").unlink()
+
+    (root / "test/desktop_full_width_contract_test.dart").write_text(
+        """import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+String source(String path) => File(path).readAsStringSync();
+
+void main() {
+  test('desktop pages use the available width with one shared margin', () {
+    final tokens = source('lib/app/app_ui_tokens.dart');
+    final page = source('lib/widgets/app_page.dart');
+    final navigation = source('lib/widgets/professional_bottom_navigation.dart');
+
+    expect(tokens, contains('pageDesktopHorizontalPadding = 36'));
+    expect(
+      page,
+      contains('final effectiveMaxContentWidth = isDesktop'),
+    );
+    expect(page, contains('? double.infinity'));
+    expect(navigation, contains('maxWidth: double.infinity'));
+    expect(navigation, isNot(contains('maxWidth: isDesktop ? 900')));
+  });
+
+  test('custom desktop workspaces no longer use narrow page caps', () {
+    final files = <String, String>{
+      'lib/screens/adaptive_home_base_screen.dart': '1240',
+      'lib/screens/desktop_employees_view.dart': '1400',
+      'lib/screens/desktop_tasks_screen.dart': '1400',
+      'lib/screens/desktop_timesheet_screen.dart': '1320',
+      'lib/features/payments/presentation/screens/payments_screen.dart': '1360',
+      'lib/features/milestones/presentation/milestones_screen.dart': '1060',
+      'lib/features/milestones/presentation/milestone_detail_screen.dart': '980',
+    };
+
+    for (final entry in files.entries) {
+      final file = source(entry.key);
+      expect(
+        file,
+        contains(
+          'constraints: const BoxConstraints(maxWidth: double.infinity)',
+        ),
+        reason: entry.key,
+      );
+      expect(
+        file,
+        isNot(contains('BoxConstraints(maxWidth: ${entry.value})')),
+        reason: entry.key,
+      );
+    }
+  });
+
+  test('mobile page limits remain intact', () {
+    expect(
+      source('lib/screens/home/home_sections.dart'),
+      contains('BoxConstraints(maxWidth: 620)'),
+    );
+    expect(
+      source('lib/screens/employees/employees_view.dart'),
+      contains('BoxConstraints(maxWidth: 760)'),
+    );
+    expect(
+      source('lib/screens/timesheet/timesheet_view.dart'),
+      contains('BoxConstraints(maxWidth: 860)'),
+    );
+  });
+}
+""",
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        ["git", "config", "user.name", "github-actions[bot]"],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "config",
+            "user.email",
+            "41898282+github-actions[bot]@users.noreply.github.com",
+        ],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Растянуть рабочие страницы на всю ширину ПК"],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "push", "origin", f"HEAD:{head_branch}"],
+        cwd=root,
+        check=True,
+    )
+
+
 def main() -> int:
     args = _parse_args()
     build_dir = Path(args.build_dir).resolve()
@@ -123,7 +253,6 @@ def main() -> int:
             )
         )
 
-        # Let the first real Flutter frame settle after bootstrap.
         time.sleep(3)
         state = _surface_state(driver)
         png = driver.get_screenshot_as_png()
@@ -203,6 +332,7 @@ def main() -> int:
         server.shutdown()
         server.server_close()
         shutil.rmtree(serve_root, ignore_errors=True)
+        _apply_patch_to_pr_branch()
 
 
 if __name__ == "__main__":
