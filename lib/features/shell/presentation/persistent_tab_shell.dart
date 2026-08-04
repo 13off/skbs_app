@@ -179,19 +179,37 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         returnToFirstTab: widget.returnToFirstTabOnBack,
       ),
       child: Scaffold(
-        body: IndexedStack(
-          index: activeIndex,
-          children: List<Widget>.generate(widget.controller.pageCount, (index) {
-            final child = _tabNavigators[index];
-            if (child == null) return const SizedBox.shrink();
-            return TickerMode(enabled: index == activeIndex, child: child);
-          }),
-        ),
-        bottomNavigationBar: ProfessionalBottomNavigation(
-          items: widget.items,
-          selectedIndex: activeIndex,
-          storageKey: widget.navigationStorageKey,
-          onSelected: widget.controller.select,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            IndexedStack(
+              index: activeIndex,
+              children: List<Widget>.generate(
+                widget.controller.pageCount,
+                (index) {
+                  final child = _tabNavigators[index];
+                  if (child == null) return const SizedBox.shrink();
+                  return TickerMode(
+                    enabled: index == activeIndex,
+                    child: child,
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ProfessionalBottomNavigation(
+                items: widget.items,
+                selectedIndex: activeIndex,
+                storageKey: widget.navigationStorageKey,
+                onSelected: widget.controller.select,
+              ),
+            ),
+          ],
         ),
       ),
     );

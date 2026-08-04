@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
@@ -684,38 +685,58 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
     ];
 
-    return AppLazyPage(
-      title: 'Задачи',
-      subtitle: 'Работы по осям, исполнители и готовность за выбранную дату',
-      leading: leading,
-      itemCount: loadError == null ? tasks.length : 0,
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return TaskTile(task: task, onTap: () => openTaskDetails(task));
-      },
-      trailing: <Widget>[
-        const SizedBox(height: 14),
-        if (widget.profile.isForeman) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-              onPressed: taskDrafts.isEmpty ? null : openDrafts,
-              icon: const Icon(Icons.drafts_outlined),
-              label: Text('Черновики (${taskDrafts.length})'),
+    final canCreateTask = TaskEditPolicy.canCreateForDate(
+      widget.profile,
+      selectedDate,
+    );
+    final floatingBottom = AppUi.floatingActionBottom(context);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AppLazyPage(
+          title: 'Задачи',
+          subtitle: 'Работы по осям, исполнители и готовность за выбранную дату',
+          leading: leading,
+          itemCount: loadError == null ? tasks.length : 0,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            return TaskTile(task: task, onTap: () => openTaskDetails(task));
+          },
+          trailing: <Widget>[
+            const SizedBox(height: 14),
+            if (widget.profile.isForeman) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: taskDrafts.isEmpty ? null : openDrafts,
+                  icon: const Icon(Icons.drafts_outlined),
+                  label: Text('Черновики (${taskDrafts.length})'),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            buildActButton(tasks),
+            const SizedBox(height: 78),
+          ],
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: floatingBottom,
+          child: Center(
+            child: SizedBox(
+              key: const ValueKey('tasks-floating-add'),
+              width: 340,
+              child: PremiumActionButton(
+                label: 'Добавить задачу',
+                icon: Icons.add_rounded,
+                onPressed: canCreateTask ? () => openAddTaskScreen() : null,
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-        ],
-        PremiumActionButton(
-          label: 'Добавить задачу',
-          icon: Icons.add_rounded,
-          onPressed:
-              TaskEditPolicy.canCreateForDate(widget.profile, selectedDate)
-              ? () => openAddTaskScreen()
-              : null,
         ),
-        buildActButton(tasks),
       ],
     );
   }

@@ -9,16 +9,16 @@ import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
 import 'premium_pressable_v3.dart';
 
-const _darkNavigationPanelTint = Color(0x66232C35);
+const _darkNavigationPanelTint = Color(0x8047525D);
 const _lightNavigationPanelTint = Color(0x66F1F4F7);
 
 const _darkNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [
-    Color(0xB3353B42),
-    Color(0x992C3640),
-    Color(0x8011171E),
+    Color(0xCC5B646E),
+    Color(0xB34A5662),
+    Color(0x99404B56),
   ],
   stops: [0, 0.55, 1],
 );
