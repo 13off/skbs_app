@@ -26,166 +26,18 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
 
-      - name: Finalize source and contracts
+      - name: Fix final source detail
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          gate_path = Path(
+          path = Path(
               'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart'
           )
-          gate = gate_path.read_text(encoding='utf-8')
-          gate = gate.replace('FontWeight.w650', 'FontWeight.w600')
-          gate_path.write_text(gate, encoding='utf-8')
-
-          Path('test/whats_new_animation_contract_test.dart').write_text(
-          '''import 'dart:io';
-
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('August what is new uses animated navigable slides', () {
-    final source = File(
-      'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart',
-    ).readAsStringSync();
-
-    expect(source, contains('PageView.builder'));
-    expect(source, contains('Icons.arrow_back_rounded'));
-    expect(source, contains('Icons.arrow_forward_rounded'));
-    expect(source, contains('class _AnimatedUpdatePreview'));
-    expect(source, contains('AnimationController'));
-    expect(source, contains('disableAnimations'));
-    expect(source, contains('_UpdatePreviewKind.employee'));
-    expect(source, contains('_UpdatePreviewKind.route'));
-    expect(source, contains('_UpdatePreviewKind.maxLogin'));
-    expect(source, contains('_UpdatePreviewKind.procurement'));
-    expect(source, contains('_UpdatePreviewKind.pwa'));
-    expect(
-      source,
-      contains(
-        'mobile-2026-08-05-employee-workspace-and-procurement-v1',
-      ),
-    );
-  });
-}
-''', encoding='utf-8')
-
-          Path('test/whats_new_release_contract_test.dart').write_text(
-          '''import 'dart:io';
-
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('August update is shown once per user and role', () {
-    final gate = File(
-      'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart',
-    ).readAsStringSync();
-    final guide = File(
-      'lib/features/onboarding/presentation/first_run_guide.dart',
-    ).readAsStringSync();
-    final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
-
-    expect(
-      gate,
-      contains(
-        "releaseId =\n      'mobile-2026-08-05-employee-workspace-and-procurement-v1'",
-      ),
-    );
-    expect(gate, contains("'whats_new_seen_release'"));
-    expect(gate, contains('widget.profile.id'));
-    expect(gate, contains('widget.profile.role'));
-    expect(gate, contains('SharedPreferences.getInstance()'));
-    expect(gate, contains('widget.profile.isRolePreview'));
-    expect(gate, isNot(contains('FirstRunGuide.showIfNeeded')));
-    expect(gate, contains('Обновление августа 2026'));
-    expect(gate, contains('Новый кабинет сотрудника'));
-    expect(gate, contains('Маршруты, геозоны и работа без связи'));
-    expect(gate, contains('Вход сотрудника через MAX'));
-    expect(gate, contains('Реальные задачи и фотографии'));
-    expect(gate, contains('Табели и выплаты без лишних переходов'));
-    expect(gate, contains('Команда объекта'));
-    expect(gate, contains('Новая платформа снабжения'));
-    expect(gate, contains('Инструменты с анимированным гидом'));
-    expect(gate, contains('Новый интерфейс PWA и нижняя панель'));
-    expect(gate, contains('Быстрее и надёжнее'));
-    expect(gate, isNot(contains('Паспорт специалиста')));
-    expect(gate, contains("label: Text(_isLast ? 'Готово' : 'Далее')"));
-
-    expect(guide, contains('OverlayEntry('));
-    expect(guide, contains('_SpotlightPainter'));
-    expect(
-      mainScreen,
-      contains(
-        "import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';",
-      ),
-    );
-    expect(
-      mainScreen,
-      contains('WhatsNewGate(profile: widget.profile, child: buildPlatform())'),
-    );
-  });
-}
-''', encoding='utf-8')
-
-          Path('test/whats_new_role_filter_contract_test.dart').write_text(
-          '''import 'dart:io';
-
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('updates are filtered and foreman sees employee changes', () {
-    final source = File(
-      'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart',
-    ).readAsStringSync();
-
-    expect(
-      source,
-      contains("profile.role == 'admin' || profile.role == 'developer'"),
-    );
-    expect(source, contains('List<_UpdateSlide>.unmodifiable(_allSlides)'));
-    expect(source, contains('slide.common || slide.roles.contains(role)'));
-    expect(source, contains("roles: <String>{'employee', 'foreman'}"));
-    expect(
-      source,
-      contains("roles: <String>{'employee', 'foreman', 'hr'}"),
-    );
-    expect(source, contains("roles: <String>{'foreman', 'accountant'}"));
-    expect(
-      source,
-      contains(
-        "roles: <String>{'procurement', 'foreman', 'accountant'}",
-      ),
-    );
-    expect(source, contains("roles: <String>{'developer'}"));
-    expect(source, contains("'procurement'"));
-    expect(source, contains('common: true'));
-    expect(source, contains('profile: widget.profile'));
-    expect(source, contains('slides: slides'));
-    expect(source, isNot(contains('Паспорт специалиста')));
-  });
-}
-''', encoding='utf-8')
-
-          chat_test_path = Path('test/company_chat_compact_window_contract_test.dart')
-          chat_test = chat_test_path.read_text(encoding='utf-8')
-          guard = '''
-  test('employee platform is never wrapped in company chat', () {
-    final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
-
-    expect(mainScreen, contains('if (profile.isEmployee) return content'));
-    expect(mainScreen, contains('return CompanyChatShell('));
-    expect(
-      mainScreen.indexOf('if (profile.isEmployee) return content'),
-      lessThan(mainScreen.indexOf('return CompanyChatShell(')),
-    );
-  });
-'''
-          if guard.strip() not in chat_test:
-              position = chat_test.rfind('}\n')
-              if position < 0:
-                  raise SystemExit('chat contract closing brace not found')
-              chat_test = chat_test[:position] + guard + chat_test[position:]
-              chat_test_path.write_text(chat_test, encoding='utf-8')
+          source = path.read_text(encoding='utf-8')
+          old = 'FontWeight.w650'
+          if source.count(old) != 1:
+              raise SystemExit(f'expected one {old}, found {source.count(old)}')
+          path.write_text(source.replace(old, 'FontWeight.w600'), encoding='utf-8')
           PY
 
       - name: Format Dart
@@ -220,3 +72,5 @@ void main() {
           git diff --cached --check
           git commit -m "Завершить августовское «Что нового» и скрытие чата сотрудников"
           git push
+
+# retrigger
