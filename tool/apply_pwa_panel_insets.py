@@ -152,36 +152,64 @@ replace_once(
                 ),""",
 )
 
-for path in (
-    'lib/features/milestones/presentation/milestones_screen.dart',
-    'lib/features/milestones/presentation/milestone_detail_screen.dart',
-):
-    add_import(
-        path,
-        "import 'package:skbs_app/app/app_adaptive_palette.dart';\n",
-        "import 'package:skbs_app/app/app_ui_tokens.dart';\n",
-    )
-    replace_once(
-        path,
-        '  Widget build(BuildContext context) {\n    return Scaffold(',
-        """  Widget build(BuildContext context) {
+milestones_path = 'lib/features/milestones/presentation/milestones_screen.dart'
+add_import(
+    milestones_path,
+    "import 'package:skbs_app/app/app_adaptive_palette.dart';\n",
+    "import 'package:skbs_app/app/app_ui_tokens.dart';\n",
+)
+replace_once(
+    milestones_path,
+    '  Widget build(BuildContext context) {\n    return Scaffold(',
+    """  Widget build(BuildContext context) {
     final horizontalPadding =
         MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint
         ? AppUi.pageDesktopHorizontalPadding
         : 18.0;
 
     return Scaffold(""",
-    )
-    replace_once(
-        path,
-        'padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),',
-        """padding: EdgeInsets.fromLTRB(
+)
+replace_once(
+    milestones_path,
+    'padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),',
+    """padding: EdgeInsets.fromLTRB(
                       horizontalPadding,
                       18,
                       horizontalPadding,
                       120,
                     ),""",
-    )
+)
+
+milestone_detail_path = (
+    'lib/features/milestones/presentation/milestone_detail_screen.dart'
+)
+add_import(
+    milestone_detail_path,
+    "import 'package:skbs_app/app/app_adaptive_palette.dart';\n",
+    "import 'package:skbs_app/app/app_ui_tokens.dart';\n",
+)
+replace_once(
+    milestone_detail_path,
+    """  Widget build(BuildContext context) {
+    return FutureBuilder<ProjectMilestone>(""",
+    """  Widget build(BuildContext context) {
+    final horizontalPadding =
+        MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint
+        ? AppUi.pageDesktopHorizontalPadding
+        : 18.0;
+
+    return FutureBuilder<ProjectMilestone>(""",
+)
+replace_once(
+    milestone_detail_path,
+    'padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),',
+    """padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      18,
+                      horizontalPadding,
+                      120,
+                    ),""",
+)
 
 test_path = 'test/global_ui_scale_contract_test.dart'
 replace_once(
