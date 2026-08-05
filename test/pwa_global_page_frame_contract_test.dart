@@ -5,19 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('one PWA frame covers every application page', () {
+  test('PWA keeps the page background full width and insets its panels', () {
     final main = source('lib/main.dart');
-    final frame = source('lib/widgets/pwa_desktop_page_frame.dart');
     final page = source('lib/widgets/app_page.dart');
+    final tokens = source('lib/app/app_ui_tokens.dart');
 
-    expect(main, contains('builder: (context, child) => PwaDesktopPageFrame('));
-    expect(main, contains('child: AppScaleViewport('));
-    expect(frame, contains('horizontal = AppUi.pageDesktopHorizontalPadding'));
-    expect(frame, contains('media.copyWith('));
-    expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));
-    expect(page, isNot(contains('Color(0xFF080B0F)')));
-    expect(page, contains('gradient: dark'));
-    expect(page, contains('? null'));
+    expect(main, contains('builder: (context, child) => AppScaleViewport('));
+    expect(main, isNot(contains('PwaDesktopPageFrame(')));
+    expect(page, isNot(contains('PwaDesktopPageFrame.isApplied(context)')));
+    expect(page, contains('? AppUi.pageDesktopHorizontalPadding'));
+    expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
   });
 
   test('desktop bottom navigation stays near twenty centimetres', () {
