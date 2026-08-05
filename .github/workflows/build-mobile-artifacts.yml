@@ -1,0 +1,105 @@
+name: Build mobile artifacts
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_NAME: 1.3.4
+  BUILD_NUMBER: 8
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: >-
+          flutter build apk
+          --release
+          --build-name="$BUILD_NAME"
+          --build-number="$BUILD_NUMBER"
+
+      - name: Prepare APK
+        run: |
+          mkdir -p artifacts/android
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "artifacts/android/AppStroy-${BUILD_NAME}+${BUILD_NUMBER}-release.apk"
+          sha256sum artifacts/android/*.apk > artifacts/android/SHA256SUMS.txt
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppStroy-Android-${{ env.BUILD_NAME }}+${{ env.BUILD_NUMBER }}
+          path: artifacts/android/
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    name: iOS unsigned build
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS without code signing
+        run: >-
+          flutter build ios
+          --release
+          --no-codesign
+          --build-name="$BUILD_NAME"
+          --build-number="$BUILD_NUMBER"
+
+      - name: Package unsigned iOS build
+        run: |
+          mkdir -p artifacts/ios/Payload
+          cp -R build/ios/iphoneos/Runner.app artifacts/ios/Payload/AppStroy.app
+          cd artifacts/ios
+          zip -qry "AppStroy-${BUILD_NAME}+${BUILD_NUMBER}-unsigned.ipa" Payload
+          rm -rf Payload
+          shasum -a 256 *.ipa > SHA256SUMS.txt
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppStroy-iOS-unsigned-${{ env.BUILD_NAME }}+${{ env.BUILD_NUMBER }}
+          path: artifacts/ios/
+          if-no-files-found: error
+          retention-days: 14
