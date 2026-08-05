@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_auth_repository.dart';
-import 'employee_sms_login_screen.dart';
 
 class EmployeeMaxLoginScreen extends StatefulWidget {
   final Future<void> Function()? onSignedIn;
@@ -208,14 +207,6 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
     });
   }
 
-  Future<void> openCodeFallback() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => EmployeeSmsLoginScreen(onSignedIn: widget.onSignedIn),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -367,11 +358,6 @@ class _EmployeeMaxLoginScreenState extends State<EmployeeMaxLoginScreen>
                         TextButton(
                           onPressed: isLoading ? null : resetLogin,
                           child: const Text('Начать заново'),
-                        )
-                      else
-                        TextButton(
-                          onPressed: isLoading ? null : openCodeFallback,
-                          child: const Text('Войти по коду из MAX'),
                         ),
                     ],
                   ),
