@@ -10,6 +10,7 @@ import { JsonStore } from './store.js';
 import {
   escapeMarkdown,
   extractPhoneFromAttachments,
+  extractVerifiedPhoneFromAttachments,
   formatApplication,
   getUserName,
   normalizePhone,
@@ -88,6 +89,84 @@ async function sendTemporaryError(userId) {
     'Не удалось получить данные из AppСтрой. Попробуйте ещё раз через минуту.',
     { attachments: [inlineKeyboard([[callbackButton('🔄 Повторить', 'menu:apply')], [callbackButton('⬅️ В меню', 'menu:home')]])] },
   );
+}
+
+function employeeLinkKeyboard() {
+  return inlineKeyboard([[requestContactButton('📱 Подтвердить свой номер')]]);
+}
+
+function isEmployeeConnectToken(value) {
+  return /^[A-Za-z0-9_-]{24,128}$/.test(String(value ?? '').trim());
+}
+
+async function startEmployeeLink(update) {
+  const user = update?.user;
+  const connectToken = String(update?.payload ?? '').trim();
+  if (!user || !isEmployeeConnectToken(connectToken)) return false;
+
+  await store.resetSession(user.user_id);
+  await store.setSession(user.user_id, {
+    stage: 'employee_link',
+    data: {
+      connectToken,
+      chatId: String(update?.chat_id ?? user.user_id),
+    },
+  });
+  await api.sendMessageToUser(
+    user.user_id,
+    '**Подключение кабинета сотрудника AppСтрой**\n\nНажмите кнопку ниже и отправьте именно свой контакт. Номер должен совпадать с карточкой сотрудника.',
+    { attachments: [employeeLinkKeyboard()] },
+  );
+  return true;
+}
+
+async function handleEmployeeLinkContact(user, message, session) {
+  const userId = user.user_id;
+  const attachments = message?.body?.attachments ?? [];
+  const phone = extractVerifiedPhoneFromAttachments(attachments, token);
+  if (!phone) {
+    return api.sendMessageToUser(
+      userId,
+      'Нужно нажать кнопку «Подтвердить свой номер» и отправить контакт, привязанный к вашему аккаунту MAX. Вводить номер текстом нельзя.',
+      { attachments: [employeeLinkKeyboard()] },
+    );
+  }
+
+  try {
+    const result = await appstroy.claimEmployeeLink({
+      connectToken: session?.data?.connectToken,
+      maxUserId: userId,
+      maxChatId: session?.data?.chatId || message?.recipient?.chat_id || userId,
+      maxUsername: user.username ?? '',
+      phone,
+    });
+    await store.resetSession(userId);
+    return api.sendMessageToUser(
+      userId,
+      `✅ ${result?.message || 'MAX подключён к кабинету сотрудника.'}\n\nВернитесь в AppСтрой — вход продолжится автоматически.`,
+    );
+  } catch (error) {
+    console.error('Не удалось подключить MAX к сотруднику:', error.message);
+    if (error.status === 410) {
+      await store.resetSession(userId);
+      return api.sendMessageToUser(
+        userId,
+        'Ссылка подключения истекла. Вернитесь в AppСтрой, нажмите «Начать заново» и снова откройте MAX.',
+      );
+    }
+    if (error.status === 409) {
+      return api.sendMessageToUser(
+        userId,
+        'Этот номер не совпадает с карточкой сотрудника. Отправьте свой контакт MAX либо попросите руководителя исправить номер в карточке.',
+        { attachments: [employeeLinkKeyboard()] },
+      );
+    }
+    return api.sendMessageToUser(
+      userId,
+      'Не удалось подключить кабинет. Попробуйте ещё раз через минуту, не закрывая этот диалог.',
+      { attachments: [employeeLinkKeyboard()] },
+    );
+  }
 }
 
 async function sendMainMenu(userId, firstName = '') {
@@ -542,6 +621,11 @@ async function handleMessage(update) {
   const userId = user.user_id;
   const text = (message.body?.text ?? '').trim();
   const attachments = message.body?.attachments ?? [];
+  const session = store.getSession(userId);
+
+  if (session?.stage === 'employee_link') {
+    return handleEmployeeLinkContact(user, message, session);
+  }
 
   if (/^\/(start|menu)(?:\s|$)/i.test(text)) {
     await store.resetSession(userId);
@@ -555,7 +639,6 @@ async function handleMessage(update) {
   if (/^\/applications(?:\s|$)/i.test(text)) return handleAdminApplications(user);
   if (/^\/sync(?:\s|$)/i.test(text)) return handleAdminSync(user);
 
-  const session = store.getSession(userId);
   if (!session) {
     const application = store.getLatestSyncedApplicationByUserId(userId);
     if (application && await forwardCandidateMessageToAppStroy(update, application)) return;
@@ -648,6 +731,7 @@ async function handleMessage(update) {
 async function handleUpdate(update) {
   if (debug) console.log('Update:', JSON.stringify(update));
   if (update.update_type === 'bot_started') {
+    if (await startEmployeeLink(update)) return;
     await store.resetSession(update.user.user_id);
     return sendMainMenu(update.user.user_id, update.user.first_name);
   }

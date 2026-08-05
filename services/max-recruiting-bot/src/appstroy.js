@@ -3,6 +3,7 @@ export class AppStroyBridge {
     if (!url) throw new Error('Не задан APPSTROY_BRIDGE_URL');
     if (!secret) throw new Error('Не задан APPSTROY_BRIDGE_SECRET');
     this.url = url;
+    this.employeeLinkUrl = url.replace(/max-recruitment-bridge\/?$/, 'max-employee-link-bridge');
     this.fileUrl = fileUrl || url.replace(/max-recruitment-bridge\/?$/, 'max-recruitment-file-bridge');
     this.secret = secret;
     this.debug = debug;
@@ -65,6 +66,33 @@ export class AppStroyBridge {
     const data = await this.parseResponse(response, 'AppСтрой file bridge');
     if (this.debug) console.log(`[AppСтрой файл] POST -> ${response.status}`);
     return data;
+  }
+
+  async claimEmployeeLink({
+    connectToken,
+    maxUserId,
+    maxChatId,
+    maxUsername,
+    phone,
+  }) {
+    const response = await fetch(this.employeeLinkUrl, {
+      method: 'POST',
+      headers: {
+        'x-appstroy-max-secret': this.secret,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'claim_token',
+        connect_token: connectToken,
+        max_user_id: String(maxUserId ?? ''),
+        max_chat_id: String(maxChatId ?? ''),
+        max_username: String(maxUsername ?? ''),
+        phone,
+        contact_verified: true,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    return this.parseResponse(response, 'AppСтрой employee link bridge');
   }
 
   async getCatalog({ force = false } = {}) {

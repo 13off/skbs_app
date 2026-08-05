@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
 export function escapeMarkdown(value) {
   return String(value ?? '')
     .replaceAll('\\', '\\\\')
@@ -17,6 +19,45 @@ export function normalizePhone(value) {
   if (digits.length === 10) digits = `7${digits}`;
   if (digits.length < 10 || digits.length > 15) return null;
   return `+${digits}`;
+}
+
+function secureTextEqual(left, right) {
+  const a = Buffer.from(String(left ?? ''), 'utf8');
+  const b = Buffer.from(String(right ?? ''), 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function contactHashMatches(payload, botToken) {
+  const vcfInfo = typeof payload?.vcf_info === 'string' ? payload.vcf_info : '';
+  const receivedHash = String(payload?.hash ?? '').trim();
+  if (!vcfInfo || !receivedHash || !botToken) return false;
+
+  // MAX may return literal escaped CRLF or already-decoded line breaks.
+  const variants = new Set([vcfInfo, vcfInfo.replaceAll('\\r\\n', '\r\n')]);
+  for (const value of variants) {
+    const digest = createHmac('sha256', botToken).update(value, 'utf8').digest();
+    const candidates = [
+      digest.toString('hex'),
+      digest.toString('base64'),
+      digest.toString('base64url'),
+    ];
+    if (candidates.some((candidate) => secureTextEqual(candidate, receivedHash))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function extractVerifiedPhoneFromAttachments(attachments, botToken) {
+  for (const attachment of attachments ?? []) {
+    if (attachment?.type !== 'contact') continue;
+    if (!contactHashMatches(attachment.payload, botToken)) continue;
+    const vcf = attachment?.payload?.vcf_info;
+    const match = vcf.match(/^TEL(?:;[^:]*)?:(.+)$/im);
+    const normalized = normalizePhone(match?.[1]);
+    if (normalized) return normalized;
+  }
+  return null;
 }
 
 export function extractPhoneFromAttachments(attachments) {
