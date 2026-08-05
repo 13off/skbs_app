@@ -85,3 +85,22 @@ jobs:
             docker compose -f compose.yml up -d --force-recreate --remove-orphans
             docker compose -f compose.yml ps
             docker compose -f compose.yml logs --tail=80 max-recruiting-bot
+
+      - name: Publish deployment marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p release
+          printf '%s\n' "${{ github.sha }}" > release/max-bot-vps-source.txt
+          printf '%s\n' "success" > release/max-bot-vps-status.txt
+          git add release/max-bot-vps-source.txt release/max-bot-vps-status.txt
+          if git diff --cached --quiet; then
+            echo "MAX bot deployment marker is current"
+          else
+            git commit -m "Сохранить статус деплоя MAX-бота"
+            git push origin HEAD:main
+          fi
