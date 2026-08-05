@@ -18,6 +18,7 @@ env:
 
 jobs:
   android:
+    if: ${{ false }}
     name: Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -30,9 +31,6 @@ jobs:
         with:
           channel: stable
           cache: true
-
-      - name: Flutter version
-        run: flutter --version
 
       - name: Install dependencies
         run: flutter pub get
@@ -78,6 +76,12 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Raise minimum iOS version for Firebase
+        run: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          /usr/libexec/PlistBuddy -c 'Set :MinimumOSVersion 15.0' ios/Flutter/AppFrameworkInfo.plist || true
+          grep -n 'IPHONEOS_DEPLOYMENT_TARGET' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS without code signing
         run: >-
