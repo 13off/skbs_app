@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../../../../app/app_adaptive_palette.dart';
+import '../../../../app/app_ui_tokens.dart';
 import '../../../../data/app_data_sync.dart';
 import '../../../../data/attendance_repository.dart';
 import '../../../../data/employee_repository.dart';
@@ -1038,7 +1039,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   // ignore: deprecated_member_use
                   cacheExtent: 800,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(28, 22, 0, 132),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUi.pageDesktopHorizontalPadding,
+                    22,
+                    0,
+                    132,
+                  ),
                   itemCount: leading.length + rowCount,
                   itemBuilder: (context, index) {
                     final child = index < leading.length
@@ -1053,7 +1059,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             SizedBox(
               width: 360,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(0, 22, 28, 132),
+                padding: const EdgeInsets.fromLTRB(
+                  0,
+                  22,
+                  AppUi.pageDesktopHorizontalPadding,
+                  132,
+                ),
                 children: [
                   buildPaymentFilters(),
                   const SizedBox(height: 14),

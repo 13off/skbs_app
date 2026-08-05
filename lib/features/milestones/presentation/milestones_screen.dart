@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
+import 'package:skbs_app/app/app_ui_tokens.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
@@ -242,6 +243,11 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding =
+        MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint
+        ? AppUi.pageDesktopHorizontalPadding
+        : 18.0;
+
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -290,7 +296,12 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
           return RefreshIndicator(
             onRefresh: refresh,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                18,
+                horizontalPadding,
+                120,
+              ),
               children: [
                 Center(
                   child: ConstrainedBox(

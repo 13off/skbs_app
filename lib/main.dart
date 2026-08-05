@@ -15,7 +15,6 @@ import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
-import 'widgets/pwa_desktop_page_frame.dart';
 
 const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
@@ -162,11 +161,9 @@ class _SkbsAppState extends State<SkbsApp> {
           themeMode: themeController.themeMode,
           themeAnimationDuration: const Duration(milliseconds: 220),
           themeAnimationCurve: Curves.easeOutCubic,
-          builder: (context, child) => PwaDesktopPageFrame(
-            child: AppScaleViewport(
-              scale: themeController.uiScale,
-              child: child ?? const SizedBox.shrink(),
-            ),
+          builder: (context, child) => AppScaleViewport(
+            scale: themeController.uiScale,
+            child: child ?? const SizedBox.shrink(),
           ),
           home: widget.startupError == null
               ? const AppBrowserBackBridge(child: AuthGate())

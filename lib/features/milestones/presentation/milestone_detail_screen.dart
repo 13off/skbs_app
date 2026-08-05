@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
+import 'package:skbs_app/app/app_ui_tokens.dart';
 
 import '../../../data/app_state.dart';
 import '../../../data/task_repository.dart';
@@ -551,6 +552,11 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding =
+        MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint
+        ? AppUi.pageDesktopHorizontalPadding
+        : 18.0;
+
     return FutureBuilder<ProjectMilestone>(
       future: future,
       builder: (context, snapshot) {
@@ -582,7 +588,12 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
               : RefreshIndicator(
                   onRefresh: refresh,
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      18,
+                      horizontalPadding,
+                      120,
+                    ),
                     children: [
                       Center(
                         child: ConstrainedBox(

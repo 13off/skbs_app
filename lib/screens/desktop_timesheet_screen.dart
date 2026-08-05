@@ -798,7 +798,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             Positioned.fill(
               child: ListView(
                 controller: verticalController,
-                padding: const EdgeInsets.fromLTRB(28, 24, 28, 230),
+                padding: const EdgeInsets.fromLTRB(
+                  AppUi.pageDesktopHorizontalPadding,
+                  AppUi.pageDesktopTopPadding,
+                  AppUi.pageDesktopHorizontalPadding,
+                  230,
+                ),
                 children: [
                   Center(
                     child: ConstrainedBox(

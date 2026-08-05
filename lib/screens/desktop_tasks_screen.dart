@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/task_repository.dart';
@@ -708,7 +709,12 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
               'desktop-tasks-${widget.selectedObjectName ?? 'all'}',
             ),
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(28, 24, 28, 120),
+            padding: const EdgeInsets.fromLTRB(
+              AppUi.pageDesktopHorizontalPadding,
+              AppUi.pageDesktopTopPadding,
+              AppUi.pageDesktopHorizontalPadding,
+              120,
+            ),
             children: [
               Center(
                 child: ConstrainedBox(

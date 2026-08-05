@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
@@ -430,7 +431,12 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
     return RefreshIndicator(
       onRefresh: refresh,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 120),
+        padding: const EdgeInsets.fromLTRB(
+          AppUi.pageDesktopHorizontalPadding,
+          AppUi.pageDesktopTopPadding,
+          AppUi.pageDesktopHorizontalPadding,
+          120,
+        ),
         children: [
           Center(
             child: ConstrainedBox(

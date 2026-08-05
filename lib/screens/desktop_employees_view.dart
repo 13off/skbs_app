@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
+import '../app/app_ui_tokens.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../models/employee_private_data.dart';
@@ -237,7 +238,12 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                 'desktop-employees-${widget.scopeTitle}',
               ),
               controller: widget.scrollController,
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 120),
+              padding: const EdgeInsets.fromLTRB(
+                AppUi.pageDesktopHorizontalPadding,
+                AppUi.pageDesktopTopPadding,
+                AppUi.pageDesktopHorizontalPadding,
+                120,
+              ),
               children: [
                 Center(
                   child: ConstrainedBox(
