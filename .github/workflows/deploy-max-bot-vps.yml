@@ -6,11 +6,12 @@ on:
       - main
     paths:
       - services/max-recruiting-bot/**
+      - tool/apply_max_employee_link_fix.py
       - .github/workflows/deploy-max-bot-vps.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: deploy-max-recruiting-bot-vps
@@ -21,6 +22,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Apply employee MAX link routing fix
+        run: python3 tool/apply_max_employee_link_fix.py
+
+      - name: Validate patched MAX bot
+        working-directory: services/max-recruiting-bot
+        run: npm run check
+
+      - name: Persist employee MAX link routing fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/max-recruiting-bot/src/index.js \
+            services/max-recruiting-bot/src/appstroy.js \
+            services/max-recruiting-bot/src/utils.js
+          if git diff --cached --quiet; then
+            echo "Employee MAX link routing is already current"
+          else
+            git commit -m "Исправить вход сотрудника через персональную ссылку MAX"
+            git push origin HEAD:main
+          fi
 
       - name: Validate required VPS secrets
         shell: bash
