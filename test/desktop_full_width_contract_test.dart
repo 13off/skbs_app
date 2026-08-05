@@ -13,7 +13,7 @@ void main() {
     );
 
     expect(tokens, contains('pageDesktopHorizontalPadding = 144'));
-    expect(tokens, contains('desktopNavigationMaxWidth = 470'));
+    expect(tokens, contains('desktopNavigationMaxWidth = 945'));
     expect(page, contains('final effectiveMaxContentWidth = isDesktop'));
     expect(page, contains('? double.infinity'));
     expect(navigation, contains('AppUi.desktopNavigationMaxWidth'));
