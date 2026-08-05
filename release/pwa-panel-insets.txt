@@ -1,2 +1,0 @@
-Fix wide PWA content insets without constraining the page background.
-attempt: 3
