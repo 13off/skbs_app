@@ -74,4 +74,15 @@ void main() {
       contains('CompanyChatRepository.createSignedAttachmentUrl('),
     );
   });
+
+  test('employee platform is never wrapped in company chat', () {
+    final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
+
+    expect(mainScreen, contains('if (profile.isEmployee) return content'));
+    expect(mainScreen, contains('return CompanyChatShell('));
+    expect(
+      mainScreen.indexOf('if (profile.isEmployee) return content'),
+      lessThan(mainScreen.indexOf('return CompanyChatShell(')),
+    );
+  });
 }
