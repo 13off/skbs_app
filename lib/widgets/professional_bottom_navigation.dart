@@ -161,7 +161,11 @@ class _ProfessionalBottomNavigationState
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: double.infinity),
+              constraints: BoxConstraints(
+                maxWidth: isDesktop
+                    ? AppUi.desktopNavigationMaxWidth
+                    : double.infinity,
+              ),
               child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
                 blur: true,
@@ -209,7 +213,7 @@ class _ProfessionalBottomNavigationState
                               curve: AppMotion.interactionCurve,
                               height: double.infinity,
                               padding: EdgeInsets.symmetric(
-                                horizontal: isDesktop ? 14 : 4,
+                                horizontal: 4,
                                 vertical: isDesktop ? 6 : 4,
                               ),
                               decoration: BoxDecoration(
@@ -259,12 +263,12 @@ class _ProfessionalBottomNavigationState
                                           selected: selected,
                                           size: 23,
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(width: 4),
                                         Flexible(
                                           child: _NavigationLabel(
                                             item: item,
                                             selected: selected,
-                                            fontSize: 13,
+                                            fontSize: 10.5,
                                           ),
                                         ),
                                       ],

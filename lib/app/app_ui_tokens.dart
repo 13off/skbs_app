@@ -32,6 +32,8 @@ abstract final class AppUi {
 
   static const double mobileNavigationPanelHeight = 76;
   static const double desktopNavigationPanelHeight = 78;
+  // 470 logical px renders near 10 cm after the default scale.
+  static const double desktopNavigationMaxWidth = 470;
   static const double mobileNavigationTopSpacing = 7;
   static const double desktopNavigationTopSpacing = 10;
   static const double mobileNavigationBottomSpacing = 11;

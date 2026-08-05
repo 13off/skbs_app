@@ -9,7 +9,7 @@ void main() {
     final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
 
     expect(main, contains("import 'app/app_scale_viewport.dart';"));
-    expect(main, contains('builder: (context, child) => AppScaleViewport('));
+    expect(main, contains('builder: (context, child) => PwaDesktopPageFrame('));
     expect(main, contains('scale: themeController.uiScale'));
     expect(controller, contains("_scalePreferenceKey = 'app_ui_scale'"));
     expect(controller, contains('defaultUiScale = 1.00'));

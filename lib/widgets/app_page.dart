@@ -5,6 +5,7 @@ import '../app/app_ui_tokens.dart';
 import '../app/theme_controller.dart';
 import '../navigation/platform_tab_override_scope.dart';
 import 'liquid_glass.dart';
+import 'pwa_desktop_page_frame.dart';
 
 class AppPage extends StatelessWidget {
   static const double desktopBreakpoint = AppUi.desktopBreakpoint;
@@ -55,7 +56,9 @@ class AppPage extends StatelessWidget {
         !suppressAutomaticBackButton && (showBackButton || canPop);
     final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
     final horizontalPadding = isDesktop
-        ? AppUi.pageDesktopHorizontalPadding
+        ? PwaDesktopPageFrame.isApplied(context)
+              ? 0.0
+              : AppUi.pageDesktopHorizontalPadding
         : AppUi.pageMobileHorizontalPadding;
     final topPadding = isDesktop
         ? AppUi.pageDesktopTopPadding
@@ -157,7 +160,9 @@ class AppLazyPage extends StatelessWidget {
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
     final horizontalPadding = isDesktop
-        ? AppUi.pageDesktopHorizontalPadding
+        ? PwaDesktopPageFrame.isApplied(context)
+              ? 0.0
+              : AppUi.pageDesktopHorizontalPadding
         : AppUi.pageMobileHorizontalPadding;
     final topPadding = isDesktop
         ? AppUi.pageDesktopTopPadding
