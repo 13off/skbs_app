@@ -347,12 +347,10 @@ class AppSurfaceBackdrop extends StatelessWidget {
         color: dark
             ? AppAdaptivePalette.darkBackground
             : AppAdaptivePalette.background,
+        // Dark mode uses the same graphite background as the global PWA frame.
+        // This prevents a black rectangle from appearing inside the page margins.
         gradient: dark
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF10151B), Color(0xFF080B0F)],
-              )
+            ? null
             : const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
