@@ -1,0 +1,81 @@
+name: Audit PWA layout
+
+on:
+  push:
+    paths:
+      - '.github/workflows/audit-pwa-layout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan every Dart screen and shell
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('lib')
+          rows = []
+          patterns = re.compile(
+              r'AppPage\(|AppLazyPage\(|Scaffold\(|ListView(?:\.builder|\.separated)?\('
+              r'|SingleChildScrollView\(|CustomScrollView\(|ProfessionalBottomNavigation\('
+              r'|EdgeInsets\.(?:symmetric|only|fromLTRB)\(|pageDesktopHorizontalPadding'
+              r'|usesDesktopNavigation\(|isDesktop|kIsWeb'
+          )
+
+          for path in sorted(root.rglob('*.dart')):
+              text = path.read_text(encoding='utf-8')
+              if not patterns.search(text):
+                  continue
+              flags = {
+                  'AppPage': text.count('AppPage('),
+                  'AppLazyPage': text.count('AppLazyPage('),
+                  'Scaffold': text.count('Scaffold('),
+                  'ListView': len(re.findall(r'ListView(?:\.builder|\.separated)?\(', text)),
+                  'ScrollView': text.count('SingleChildScrollView(') + text.count('CustomScrollView('),
+                  'BottomNav': text.count('ProfessionalBottomNavigation('),
+                  'DesktopToken': text.count('pageDesktopHorizontalPadding'),
+              }
+              contexts = []
+              for no, line in enumerate(text.splitlines(), 1):
+                  if patterns.search(line):
+                      contexts.append(f'{no}: {line.strip()}')
+              rows.append((str(path), flags, contexts[:80]))
+
+          out = [
+              'PWA LAYOUT AUDIT',
+              '================',
+              '',
+              'Every matching lib/**/*.dart file. Context is capped at 80 lines per file.',
+              '',
+          ]
+          for path, flags, contexts in rows:
+              out.append(f'## {path}')
+              out.append(' '.join(f'{k}={v}' for k, v in flags.items()))
+              out.extend(contexts)
+              out.append('')
+
+          report = Path('docs/pwa-layout-audit.txt')
+          report.parent.mkdir(parents=True, exist_ok=True)
+          report.write_text('\n'.join(out), encoding='utf-8')
+          PY
+
+      - name: Commit audit report
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/pwa-layout-audit.txt
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Сохранить аудит PWA-разметки"
+          git push
