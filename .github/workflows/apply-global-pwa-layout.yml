@@ -248,7 +248,6 @@ jobs:
           test = '\n'.join(line[10:] if line.startswith('          ') else line for line in test.splitlines()) + '\n'
           write('test/pwa_global_page_frame_contract_test.dart', test)
 
-          # Remove one-time audit and this one-time applier after successful checks.
           for path in (
               '.github/workflows/audit-pwa-layout.yml',
               'docs/pwa-layout-audit.txt',
@@ -287,3 +286,5 @@ jobs:
           git add -A
           git commit -m "Применить единые края ко всем PWA-страницам"
           git push
+
+# retrigger: 2026-08-05
