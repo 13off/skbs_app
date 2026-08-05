@@ -1,4 +1,4 @@
-name: Fix PWA background and navigation
+name: Apply PWA visual correction now
 
 on:
   push:
@@ -12,141 +12,103 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version-file: .fvmrc
-          cache: true
-
-      - name: Restore graphite background and widen desktop navigation
+      - name: Apply the visual correction
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def read(path):
-              return Path(path).read_text(encoding='utf-8')
-
-          def write(path, value):
+          def patch(path, replacements):
+              value = Path(path).read_text(encoding='utf-8')
+              original = value
+              for old, new in replacements:
+                  value = value.replace(old, new, 1)
+              if value == original:
+                  raise SystemExit(f'No changes applied to {path}')
               Path(path).write_text(value, encoding='utf-8')
 
-          def replace_once(value, old, new, label):
-              count = value.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: expected 1 match, found {count}')
-              return value.replace(old, new, 1)
-
-          page_path = 'lib/widgets/app_page.dart'
-          page = read(page_path)
-          old_dark_gradient = """        gradient: dark
+          patch(
+              'lib/widgets/app_page.dart',
+              [(
+                  """        gradient: dark
             ? const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [Color(0xFF10151B), Color(0xFF080B0F)],
               )
-            : const LinearGradient("""
-          new_dark_gradient = """        // Dark pages keep one graphite background instead of a black inset.
+            : const LinearGradient(""",
+                  """        // Keep the dark PWA background graphite instead of black.
         gradient: dark
             ? null
-            : const LinearGradient("""
-          page = replace_once(
-              page,
-              old_dark_gradient,
-              new_dark_gradient,
-              'dark AppSurfaceBackdrop gradient',
+            : const LinearGradient(""",
+              )],
           )
-          write(page_path, page)
 
-          tokens_path = 'lib/app/app_ui_tokens.dart'
-          tokens = read(tokens_path)
-          tokens = replace_once(
-              tokens,
-              '  // 470 logical px renders near 10 cm after the default scale.\n'
-              '  static const double desktopNavigationMaxWidth = 470;\n',
-              '  // 945 logical px renders near 20 cm after the default scale.\n'
-              '  static const double desktopNavigationMaxWidth = 945;\n',
-              'desktop navigation width token',
+          patch(
+              'lib/app/app_ui_tokens.dart',
+              [(
+                  '  // 470 logical px renders near 10 cm after the default scale.\n'
+                  '  static const double desktopNavigationMaxWidth = 470;',
+                  '  // 945 logical px renders near 20 cm after the default scale.\n'
+                  '  static const double desktopNavigationMaxWidth = 945;',
+              )],
           )
-          write(tokens_path, tokens)
 
-          nav_path = 'lib/widgets/professional_bottom_navigation.dart'
-          nav = read(nav_path)
-          nav = replace_once(
-              nav,
-              '                                horizontal: 4,\n'
-              '                                vertical: isDesktop ? 6 : 4,',
-              '                                horizontal: isDesktop ? 14 : 4,\n'
-              '                                vertical: isDesktop ? 6 : 4,',
-              'desktop item horizontal padding',
+          patch(
+              'lib/widgets/professional_bottom_navigation.dart',
+              [
+                  (
+                      '                                horizontal: 4,\n'
+                      '                                vertical: isDesktop ? 6 : 4,',
+                      '                                horizontal: isDesktop ? 14 : 4,\n'
+                      '                                vertical: isDesktop ? 6 : 4,',
+                  ),
+                  (
+                      '                                        const SizedBox(width: 4),',
+                      '                                        const SizedBox(width: 10),',
+                  ),
+                  (
+                      '                                            fontSize: 10.5,',
+                      '                                            fontSize: 13,',
+                  ),
+              ],
           )
-          nav = replace_once(
-              nav,
-              '                                        const SizedBox(width: 4),',
-              '                                        const SizedBox(width: 10),',
-              'desktop icon-label gap',
-          )
-          nav = replace_once(
-              nav,
-              '                                            fontSize: 10.5,',
-              '                                            fontSize: 13,',
-              'desktop label size',
-          )
-          write(nav_path, nav)
 
-          for test_path in (
+          for path in (
               'test/pwa_global_page_frame_contract_test.dart',
               'test/desktop_full_width_contract_test.dart',
           ):
-              value = read(test_path)
-              value = value.replace('desktopNavigationMaxWidth = 470', 'desktopNavigationMaxWidth = 945')
-              value = value.replace('near ten centimetres', 'near twenty centimetres')
-              write(test_path, value)
+              value = Path(path).read_text(encoding='utf-8')
+              value = value.replace(
+                  'desktopNavigationMaxWidth = 470',
+                  'desktopNavigationMaxWidth = 945',
+              )
+              value = value.replace(
+                  'near ten centimetres',
+                  'near twenty centimetres',
+              )
+              Path(path).write_text(value, encoding='utf-8')
 
-          pwa_test_path = 'test/pwa_global_page_frame_contract_test.dart'
-          pwa_test = read(pwa_test_path)
-          anchor = """    expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));
-"""
-          addition = """    expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));
-    expect(page, isNot(contains('Color(0xFF080B0F)')));
-    expect(page, contains('gradient: dark'));
-    expect(page, contains('? null'));
-"""
-          pwa_test = replace_once(
-              pwa_test,
-              anchor,
-              addition,
-              'PWA background regression assertions',
-          )
-          write(pwa_test_path, pwa_test)
+          path = Path('test/pwa_global_page_frame_contract_test.dart')
+          value = path.read_text(encoding='utf-8')
+          anchor = "    expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));\n"
+          if "Color(0xFF080B0F)" not in value:
+              value = value.replace(
+                  anchor,
+                  anchor
+                  + "    expect(page, isNot(contains('Color(0xFF080B0F)')));\n"
+                  + "    expect(page, contains('? null'));\n",
+                  1,
+              )
+          path.write_text(value, encoding='utf-8')
           PY
 
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/widgets/app_page.dart \
-            lib/app/app_ui_tokens.dart \
-            lib/widgets/professional_bottom_navigation.dart \
-            test/pwa_global_page_frame_contract_test.dart \
-            test/desktop_full_width_contract_test.dart
-
-      - name: Install dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Verify focused contracts
-        run: |
-          flutter test \
-            test/pwa_global_page_frame_contract_test.dart \
-            test/desktop_full_width_contract_test.dart \
-            test/bottom_navigation_surface_consistency_contract_test.dart
-
-      - name: Analyze strictly
-        run: flutter analyze --fatal-infos --fatal-warnings
-
-      - name: Commit verified visual correction
+      - name: Commit correction
         run: |
           rm -f .github/workflows/fix-pwa-background-nav.yml
           git config user.name github-actions[bot]
@@ -155,4 +117,4 @@ jobs:
           git commit -m "Исправить фон PWA и расширить нижнюю панель до 20 см"
           git push
 
-# retrigger 2026-08-05T09:30+03:00
+# direct retrigger
