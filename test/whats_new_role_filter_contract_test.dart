@@ -15,16 +15,11 @@ void main() {
     expect(source, contains('List<_UpdateSlide>.unmodifiable(_allSlides)'));
     expect(source, contains('slide.common || slide.roles.contains(role)'));
     expect(source, contains("roles: <String>{'employee', 'foreman'}"));
-    expect(
-      source,
-      contains("roles: <String>{'employee', 'foreman', 'hr'}"),
-    );
+    expect(source, contains("roles: <String>{'employee', 'foreman', 'hr'}"));
     expect(source, contains("roles: <String>{'foreman', 'accountant'}"));
     expect(
       source,
-      contains(
-        "roles: <String>{'procurement', 'foreman', 'accountant'}",
-      ),
+      contains("roles: <String>{'procurement', 'foreman', 'accountant'}"),
     );
     expect(source, contains("roles: <String>{'developer'}"));
     expect(source, contains("'procurement'"));

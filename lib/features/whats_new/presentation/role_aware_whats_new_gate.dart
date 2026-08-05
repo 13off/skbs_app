@@ -10,11 +10,7 @@ class WhatsNewGate extends StatefulWidget {
   final AppUserProfile profile;
   final Widget child;
 
-  const WhatsNewGate({
-    super.key,
-    required this.profile,
-    required this.child,
-  });
+  const WhatsNewGate({super.key, required this.profile, required this.child});
 
   @override
   State<WhatsNewGate> createState() => _WhatsNewGateState();
@@ -57,10 +53,8 @@ class _WhatsNewGateState extends State<WhatsNewGate> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _WhatsNewDialog(
-        profile: widget.profile,
-        slides: slides,
-      ),
+      builder: (context) =>
+          _WhatsNewDialog(profile: widget.profile, slides: slides),
     );
 
     try {
@@ -269,10 +263,7 @@ class _WhatsNewDialog extends StatefulWidget {
   final AppUserProfile profile;
   final List<_UpdateSlide> slides;
 
-  const _WhatsNewDialog({
-    required this.profile,
-    required this.slides,
-  });
+  const _WhatsNewDialog({required this.profile, required this.slides});
 
   @override
   State<_WhatsNewDialog> createState() => _WhatsNewDialogState();
@@ -444,10 +435,7 @@ class _UpdateSlideView extends StatelessWidget {
   final _UpdateSlide slide;
   final bool active;
 
-  const _UpdateSlideView({
-    required this.slide,
-    required this.active,
-  });
+  const _UpdateSlideView({required this.slide, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -492,8 +480,7 @@ class _UpdateSlideView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            for (final point in slide.points)
-              _PointRow(text: point),
+            for (final point in slide.points) _PointRow(text: point),
           ],
         ),
       ),
@@ -513,8 +500,7 @@ class _AnimatedUpdatePreview extends StatefulWidget {
   });
 
   @override
-  State<_AnimatedUpdatePreview> createState() =>
-      _AnimatedUpdatePreviewState();
+  State<_AnimatedUpdatePreview> createState() => _AnimatedUpdatePreviewState();
 }
 
 class _AnimatedUpdatePreviewState extends State<_AnimatedUpdatePreview>
@@ -640,11 +626,7 @@ class _PreviewSurface extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    icon,
-                    size: 54,
-                    color: scheme.onPrimaryContainer,
-                  ),
+                  child: Icon(icon, size: 54, color: scheme.onPrimaryContainer),
                 ),
               ),
             ),
@@ -659,9 +641,7 @@ class _PreviewSurface extends StatelessWidget {
                   _AnimatedPreviewRow(
                     label: labels[index],
                     active: index == selected,
-                    progress: index <= selected
-                        ? 0.70 + wave * 0.25
-                        : 0.28,
+                    progress: index <= selected ? 0.70 + wave * 0.25 : 0.28,
                   ),
                   if (index != labels.length - 1) const SizedBox(height: 9),
                 ],
@@ -722,9 +702,9 @@ class _AnimatedPreviewRow extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 5),
                 LinearProgressIndicator(
@@ -773,7 +753,7 @@ class _PointRow extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w650,
+                fontWeight: FontWeight.w600,
                 height: 1.35,
               ),
             ),
@@ -832,54 +812,54 @@ class _PageDots extends StatelessWidget {
 List<String> _previewLabels(_UpdatePreviewKind kind) {
   return switch (kind) {
     _UpdatePreviewKind.employee => <String>[
-        'Начать рабочий день',
-        'Открыть задачи',
-        'Посмотреть профиль',
-      ],
+      'Начать рабочий день',
+      'Открыть задачи',
+      'Посмотреть профиль',
+    ],
     _UpdatePreviewKind.route => <String>[
-        'Запись маршрута',
-        'Локальная очередь',
-        'Проверка геозоны',
-      ],
+      'Запись маршрута',
+      'Локальная очередь',
+      'Проверка геозоны',
+    ],
     _UpdatePreviewKind.maxLogin => <String>[
-        'Ввести номер',
-        'Подтвердить в MAX',
-        'Вход выполнен',
-      ],
+      'Ввести номер',
+      'Подтвердить в MAX',
+      'Вход выполнен',
+    ],
     _UpdatePreviewKind.tasks => <String>[
-        'Открыть задачу',
-        'Добавить фотографии',
-        'Отметить выполнение',
-      ],
+      'Открыть задачу',
+      'Добавить фотографии',
+      'Отметить выполнение',
+    ],
     _UpdatePreviewKind.timesheet => <String>[
-        'Выбрать период',
-        'Сформировать Excel',
-        'Добавить выплату',
-      ],
+      'Выбрать период',
+      'Сформировать Excel',
+      'Добавить выплату',
+    ],
     _UpdatePreviewKind.team => <String>[
-        'Текущий объект',
-        'Список коллег',
-        'Защищённые данные',
-      ],
+      'Текущий объект',
+      'Список коллег',
+      'Защищённые данные',
+    ],
     _UpdatePreviewKind.procurement => <String>[
-        'Создать заявку',
-        'Выбрать поставщика',
-        'Принять доставку',
-      ],
+      'Создать заявку',
+      'Выбрать поставщика',
+      'Принять доставку',
+    ],
     _UpdatePreviewKind.tools => <String>[
-        'Выбрать инструмент',
-        'Посмотреть описание',
-        'Пройти анимированный гид',
-      ],
+      'Выбрать инструмент',
+      'Посмотреть описание',
+      'Пройти анимированный гид',
+    ],
     _UpdatePreviewKind.pwa => <String>[
-        'Единые края',
-        'Панель 20 см',
-        'Свободные рабочие кнопки',
-      ],
+      'Единые края',
+      'Панель 20 см',
+      'Свободные рабочие кнопки',
+    ],
     _UpdatePreviewKind.performance => <String>[
-        'Быстрый Realtime',
-        'Безопасные кеши',
-        '741 проверка',
-      ],
+      'Быстрый Realtime',
+      'Безопасные кеши',
+      '741 проверка',
+    ],
   };
 }

@@ -21,9 +21,7 @@ void main() {
     expect(source, contains('_UpdatePreviewKind.pwa'));
     expect(
       source,
-      contains(
-        'mobile-2026-08-05-employee-workspace-and-procurement-v1',
-      ),
+      contains('mobile-2026-08-05-employee-workspace-and-procurement-v1'),
     );
   });
 }
