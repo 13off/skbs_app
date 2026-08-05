@@ -36,6 +36,7 @@ void main() {
     expect(gate, contains('Новый интерфейс PWA и нижняя панель'));
     expect(gate, contains('Быстрее и надёжнее'));
     expect(gate, isNot(contains('Паспорт специалиста')));
+    expect(gate, isNot(contains('FontWeight.w650')));
     expect(gate, contains("label: Text(_isLast ? 'Готово' : 'Далее')"));
 
     expect(guide, contains('OverlayEntry('));
