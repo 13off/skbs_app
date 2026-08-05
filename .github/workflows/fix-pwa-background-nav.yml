@@ -154,3 +154,5 @@ jobs:
           git add -A
           git commit -m "Исправить фон PWA и расширить нижнюю панель до 20 см"
           git push
+
+# retrigger 2026-08-05T09:30+03:00
