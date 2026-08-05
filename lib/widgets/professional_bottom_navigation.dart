@@ -213,7 +213,7 @@ class _ProfessionalBottomNavigationState
                               curve: AppMotion.interactionCurve,
                               height: double.infinity,
                               padding: EdgeInsets.symmetric(
-                                horizontal: 4,
+                                horizontal: isDesktop ? 14 : 4,
                                 vertical: isDesktop ? 6 : 4,
                               ),
                               decoration: BoxDecoration(
@@ -263,12 +263,12 @@ class _ProfessionalBottomNavigationState
                                           selected: selected,
                                           size: 23,
                                         ),
-                                        const SizedBox(width: 4),
+                                        const SizedBox(width: 10),
                                         Flexible(
                                           child: _NavigationLabel(
                                             item: item,
                                             selected: selected,
-                                            fontSize: 10.5,
+                                            fontSize: 13,
                                           ),
                                         ),
                                       ],
