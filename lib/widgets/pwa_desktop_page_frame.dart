@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app/app_ui_tokens.dart';
 
 /// Gives every wide PWA route the same physical outer margin.
+/// Applied above the scaled application so every route keeps identical edges.
 class PwaDesktopPageFrame extends StatelessWidget {
   final Widget child;
 
