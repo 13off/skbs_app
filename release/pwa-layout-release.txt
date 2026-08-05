@@ -1,0 +1,6 @@
+AppСтрой PWA layout release
+source application commit: 273995b038c8288f30a525112b972cc553f9ada2
+page frame: 144 physical px on every wide PWA page
+bottom navigation: 470 logical px, approximately 10 cm at default application scale
+scope: all MaterialApp routes, including tabs, nested pages, settings, documents and auth
+release date: 2026-08-05
