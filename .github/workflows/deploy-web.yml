@@ -68,14 +68,6 @@ jobs:
           flutter-version-file: skbs_app/.fvmrc
           cache: true
 
-      - name: Apply PWA panel inset migration
-        working-directory: skbs_app
-        run: python3 tool/apply_pwa_panel_insets.py
-
-      - name: Format migrated source
-        working-directory: skbs_app
-        run: dart format lib test/pwa_panel_insets_contract_test.dart test/global_ui_scale_contract_test.dart
-
       - name: Install icon renderer
         run: |
           sudo apt-get update >/dev/null
@@ -102,18 +94,6 @@ jobs:
         working-directory: skbs_app
         shell: bash
         run: flutter analyze 2>&1 | tee ../flutter-analyze.log
-
-      - name: Commit verified panel inset source
-        working-directory: skbs_app
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib test
-          if ! git diff --cached --quiet; then
-            git commit -m "Исправить PWA-отступы панелей без сжатия страницы"
-            git push
-          fi
 
       - name: Configure public Firebase web values
         working-directory: skbs_app
@@ -225,7 +205,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
-          SOURCE_SHA="$(git -C ../skbs_app rev-parse HEAD)"
 
           for attempt in 1 2 3 4 5; do
             echo "Status attempt ${attempt}/5"
@@ -240,12 +219,12 @@ jobs:
             fi
 
             printf '%s\n' "${BUILD_STATUS}" > downloads/web-build-status.txt
-            printf '%s\n' "${SOURCE_SHA}" > downloads/web-source-commit.txt
+            printf '%s\n' "${{ github.sha }}" > downloads/web-source-commit.txt
 
             if [ "${BUILD_STATUS}" = "failure" ]; then
               {
                 echo "AppStroy web build failure diagnostics"
-                echo "source=${SOURCE_SHA}"
+                echo "source=${{ github.sha }}"
                 for log in ../flutter-test.log ../flutter-analyze.log ../flutter-web-build.log; do
                   if [ -f "${log}" ]; then
                     echo
