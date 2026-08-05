@@ -79,10 +79,15 @@ void main() {
       expect(archiveV3, contains('SafeArea('));
 
       // The milestones FAB belongs to its own pushed Scaffold, not to the
-      // root tab shell, and its list reserves space for the control.
+      // root tab shell, and its list reserves space for the control. The
+      // horizontal inset is adaptive: 18 on phones and 144 in a wide PWA.
       expect(milestones, contains('leading: const BackButton()'));
       expect(milestones, contains('floatingActionButton:'));
-      expect(milestones, contains('EdgeInsets.fromLTRB(18, 18, 18, 120)'));
+      expect(milestones, contains('final horizontalPadding ='));
+      expect(milestones, contains('AppUi.pageDesktopHorizontalPadding'));
+      expect(milestones, contains(': 18.0'));
+      expect(milestones, contains('horizontalPadding,'));
+      expect(milestones, contains('120,'));
 
       // The root specialist shell now paints its navigation above page content,
       // so Scaffold cannot create a separate dark strip behind the panel.
