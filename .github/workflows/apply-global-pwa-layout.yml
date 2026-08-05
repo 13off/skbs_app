@@ -24,156 +24,139 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Apply one PWA frame to every application route
+      - name: Apply one frame above the whole PWA
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          import textwrap
 
-          def read(path):
+          def read(path: str) -> str:
               return Path(path).read_text(encoding='utf-8')
 
-          def write(path, value):
+          def write(path: str, value: str) -> None:
               Path(path).write_text(value, encoding='utf-8')
 
-          def replace_once(text, old, new, label):
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
               count = text.count(old)
               if count != 1:
-                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+                  raise SystemExit(f'{label}: expected one match, found {count}')
               return text.replace(old, new, 1)
 
-          frame = """import 'package:flutter/foundation.dart';
-          import 'package:flutter/material.dart';
+          frame = textwrap.dedent("""
+              import 'package:flutter/foundation.dart';
+              import 'package:flutter/material.dart';
 
-          import '../app/app_ui_tokens.dart';
+              import '../app/app_ui_tokens.dart';
 
-          /// Applies the shared wide-PWA page margin above the nested navigators.
-          ///
-          /// Keeping the frame above Navigator means root tabs and every pushed
-          /// application route receive the same geometry, including screens that
-          /// use their own Scaffold instead of AppPage.
-          class PwaDesktopPageFrame extends StatelessWidget {
-            final Widget child;
+              /// Gives every wide PWA route the same physical outer margin.
+              ///
+              /// The frame is placed above AppScaleViewport and Navigator, so it
+              /// covers root tabs, pushed routes, settings, documents, auth and
+              /// future pages without requiring each screen to use AppPage.
+              class PwaDesktopPageFrame extends StatelessWidget {
+                final Widget child;
 
-            const PwaDesktopPageFrame({super.key, required this.child});
+                const PwaDesktopPageFrame({super.key, required this.child});
 
-            static bool isApplied(BuildContext context) {
-              return context
-                      .dependOnInheritedWidgetOfExactType<_PwaDesktopPageFrameScope>() !=
-                  null;
-            }
+                static bool isApplied(BuildContext context) {
+                  return context
+                          .dependOnInheritedWidgetOfExactType<_PwaDesktopPageFrameScope>() !=
+                      null;
+                }
 
-            @override
-            Widget build(BuildContext context) {
-              final width = MediaQuery.sizeOf(context).width;
-              final enabled = kIsWeb && width >= AppUi.desktopBreakpoint;
-              if (!enabled) return child;
+                @override
+                Widget build(BuildContext context) {
+                  final media = MediaQuery.of(context);
+                  final enabled =
+                      kIsWeb && media.size.width >= AppUi.desktopBreakpoint;
+                  if (!enabled) return child;
 
-              return ColoredBox(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppUi.pageDesktopHorizontalPadding,
-                  ),
-                  child: _PwaDesktopPageFrameScope(child: child),
-                ),
-              );
-            }
-          }
+                  const horizontal = AppUi.pageDesktopHorizontalPadding;
+                  final contentWidth =
+                      (media.size.width - horizontal * 2).clamp(0.0, double.infinity);
 
-          class _PwaDesktopPageFrameScope extends InheritedWidget {
-            const _PwaDesktopPageFrameScope({required super.child});
+                  return ColoredBox(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: horizontal),
+                      child: MediaQuery(
+                        data: media.copyWith(
+                          size: Size(contentWidth.toDouble(), media.size.height),
+                        ),
+                        child: _PwaDesktopPageFrameScope(child: child),
+                      ),
+                    ),
+                  );
+                }
+              }
 
-            @override
-            bool updateShouldNotify(_PwaDesktopPageFrameScope oldWidget) => false;
-          }
-          """
-          frame = '\n'.join(line[10:] if line.startswith('          ') else line for line in frame.splitlines()) + '\n'
+              class _PwaDesktopPageFrameScope extends InheritedWidget {
+                const _PwaDesktopPageFrameScope({required super.child});
+
+                @override
+                bool updateShouldNotify(_PwaDesktopPageFrameScope oldWidget) => false;
+              }
+          """).lstrip()
           write('lib/widgets/pwa_desktop_page_frame.dart', frame)
 
           tokens_path = 'lib/app/app_ui_tokens.dart'
           tokens = read(tokens_path)
-          tokens = replace_once(
-              tokens,
-              '  static const double desktopNavigationPanelHeight = 78;\n',
-              '  static const double desktopNavigationPanelHeight = 78;\n'
-              '  // Approximately 10–11 cm at standard browser pixel density.\n'
-              '  static const double desktopNavigationMaxWidth = 420;\n',
-              'navigation max width token',
-          )
+          if 'desktopNavigationMaxWidth' not in tokens:
+              tokens = replace_once(
+                  tokens,
+                  '  static const double desktopNavigationPanelHeight = 78;\n',
+                  '  static const double desktopNavigationPanelHeight = 78;\n'
+                  '  // 470 logical px renders near 10 cm after the default 0.80 scale.\n'
+                  '  static const double desktopNavigationMaxWidth = 470;\n',
+                  'navigation width token',
+              )
           write(tokens_path, tokens)
+
+          main_path = 'lib/main.dart'
+          main = read(main_path)
+          if "widgets/pwa_desktop_page_frame.dart" not in main:
+              main = replace_once(
+                  main,
+                  "import 'services/push_notification_service.dart';\n",
+                  "import 'services/push_notification_service.dart';\n"
+                  "import 'widgets/pwa_desktop_page_frame.dart';\n",
+                  'main frame import',
+              )
+          old_builder = """          builder: (context, child) => AppScaleViewport(
+                    scale: themeController.uiScale,
+                    child: child ?? const SizedBox.shrink(),
+                  ),"""
+          new_builder = """          builder: (context, child) => PwaDesktopPageFrame(
+                    child: AppScaleViewport(
+                      scale: themeController.uiScale,
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  ),"""
+          main = replace_once(main, old_builder, new_builder, 'MaterialApp global frame')
+          write(main_path, main)
 
           page_path = 'lib/widgets/app_page.dart'
           page = read(page_path)
-          page = replace_once(
-              page,
-              "import 'liquid_glass.dart';\n",
-              "import 'liquid_glass.dart';\nimport 'pwa_desktop_page_frame.dart';\n",
-              'AppPage frame import',
+          if "pwa_desktop_page_frame.dart" not in page:
+              page = replace_once(
+                  page,
+                  "import 'liquid_glass.dart';\n",
+                  "import 'liquid_glass.dart';\nimport 'pwa_desktop_page_frame.dart';\n",
+                  'AppPage frame import',
+              )
+          pattern = re.compile(
+              r"final horizontalPadding = isDesktop\s*\n\s*\? AppUi\.pageDesktopHorizontalPadding\s*\n\s*: AppUi\.pageMobileHorizontalPadding;"
           )
-          old_padding = """    final horizontalPadding = isDesktop
-                  ? AppUi.pageDesktopHorizontalPadding
-                  : AppUi.pageMobileHorizontalPadding;"""
-          new_padding = """    final horizontalPadding = isDesktop
+          replacement = """final horizontalPadding = isDesktop
                   ? PwaDesktopPageFrame.isApplied(context)
                         ? 0.0
                         : AppUi.pageDesktopHorizontalPadding
                   : AppUi.pageMobileHorizontalPadding;"""
-          if page.count(old_padding) != 2:
-              raise SystemExit(f'AppPage padding: expected 2 matches, found {page.count(old_padding)}')
-          page = page.replace(old_padding, new_padding)
+          page, count = pattern.subn(replacement, page)
+          if count != 2:
+              raise SystemExit(f'AppPage desktop padding: expected 2 matches, found {count}')
           write(page_path, page)
-
-          persistent_path = 'lib/features/shell/presentation/persistent_tab_shell.dart'
-          persistent = read(persistent_path)
-          persistent = replace_once(
-              persistent,
-              "import '../../../widgets/premium_ui.dart';\n",
-              "import '../../../widgets/premium_ui.dart';\n"
-              "import '../../../widgets/pwa_desktop_page_frame.dart';\n",
-              'persistent shell frame import',
-          )
-          start = persistent.index('  Widget _buildTabNavigator(int index) {')
-          end = persistent.index('\n  void _handleControllerChanged()', start)
-          block = persistent[start:end]
-          block = replace_once(
-              block,
-              '      child: Navigator(\n',
-              '      child: PwaDesktopPageFrame(\n        child: Navigator(\n',
-              'persistent navigator wrapper',
-          )
-          close = '\n    );'
-          pos = block.rfind(close)
-          if pos < 0:
-              raise SystemExit('persistent wrapper closing point not found')
-          block = block[:pos] + '\n      ),' + block[pos:]
-          persistent = persistent[:start] + block + persistent[end:]
-          write(persistent_path, persistent)
-
-          premium_path = 'lib/features/shell/presentation/premium_main_screen.dart'
-          premium = read(premium_path)
-          premium = replace_once(
-              premium,
-              "import '../../../widgets/premium_ui.dart';\n",
-              "import '../../../widgets/premium_ui.dart';\n"
-              "import '../../../widgets/pwa_desktop_page_frame.dart';\n",
-              'premium shell frame import',
-          )
-          start = premium.index('  Widget buildTabNavigator(int index) {')
-          end = premium.index('\n  List<_TabItem> buildTabItems()', start)
-          block = premium[start:end]
-          block = replace_once(
-              block,
-              '      child: Navigator(\n',
-              '      child: PwaDesktopPageFrame(\n        child: Navigator(\n',
-              'premium navigator wrapper',
-          )
-          close = '\n    );'
-          pos = block.rfind(close)
-          if pos < 0:
-              raise SystemExit('premium wrapper closing point not found')
-          block = block[:pos] + '\n      ),' + block[pos:]
-          premium = premium[:start] + block + premium[end:]
-          write(premium_path, premium)
 
           nav_path = 'lib/widgets/professional_bottom_navigation.dart'
           nav = read(nav_path)
@@ -185,106 +168,143 @@ jobs:
               '                    ? AppUi.desktopNavigationMaxWidth\n'
               '                    : double.infinity,\n'
               '              ),',
-              'desktop navigation width',
+              'bottom navigation max width',
           )
           nav = replace_once(
               nav,
               'horizontal: isDesktop ? 14 : 4,',
               'horizontal: 4,',
-              'desktop navigation item padding',
+              'desktop item padding',
           )
-          nav = replace_once(nav, 'size: 23,\n', 'size: 21,\n', 'desktop navigation icon')
           nav = replace_once(
               nav,
               'const SizedBox(width: 10),',
               'const SizedBox(width: 4),',
-              'desktop navigation icon gap',
+              'desktop item gap',
           )
           nav = replace_once(
               nav,
               'fontSize: 13,',
               'fontSize: 10.5,',
-              'desktop navigation label size',
+              'desktop label size',
           )
           write(nav_path, nav)
 
-          test = """import 'dart:io';
+          # Update source contracts that intentionally pinned the previous shell.
+          for path in Path('test').rglob('*.dart'):
+              value = path.read_text(encoding='utf-8')
+              value = value.replace(
+                  "contains('builder: (context, child) => AppScaleViewport(')",
+                  "contains('builder: (context, child) => PwaDesktopPageFrame(')",
+              )
+              if (
+                  "professional_bottom_navigation.dart" in value
+                  and "BoxConstraints(maxWidth: double.infinity)" in value
+              ):
+                  value = value.replace(
+                      'BoxConstraints(maxWidth: double.infinity)',
+                      'AppUi.desktopNavigationMaxWidth',
+                  )
+              path.write_text(value, encoding='utf-8')
 
-          import 'package:flutter_test/flutter_test.dart';
+          contract = textwrap.dedent("""
+              import 'dart:io';
 
-          String source(String path) => File(path).readAsStringSync();
+              import 'package:flutter_test/flutter_test.dart';
 
-          void main() {
-            test('every main application route inherits one shared PWA frame', () {
-              final frame = source('lib/widgets/pwa_desktop_page_frame.dart');
-              final persistent = source(
-                'lib/features/shell/presentation/persistent_tab_shell.dart',
-              );
-              final premium = source(
-                'lib/features/shell/presentation/premium_main_screen.dart',
-              );
-              final page = source('lib/widgets/app_page.dart');
+              String source(String path) => File(path).readAsStringSync();
 
-              expect(frame, contains('horizontal: AppUi.pageDesktopHorizontalPadding'));
-              expect(frame, contains('kIsWeb && width >= AppUi.desktopBreakpoint'));
-              expect(persistent, contains('child: PwaDesktopPageFrame('));
-              expect(premium, contains('child: PwaDesktopPageFrame('));
-              expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));
-              expect(page, contains('? 0.0'));
-            });
+              void main() {
+                test('one PWA frame covers every application page', () {
+                  final main = source('lib/main.dart');
+                  final frame = source('lib/widgets/pwa_desktop_page_frame.dart');
+                  final page = source('lib/widgets/app_page.dart');
 
-            test('desktop bottom navigation stays centered near ten centimetres', () {
-              final tokens = source('lib/app/app_ui_tokens.dart');
-              final navigation = source(
-                'lib/widgets/professional_bottom_navigation.dart',
-              );
+                  expect(main, contains('builder: (context, child) => PwaDesktopPageFrame('));
+                  expect(main, contains('child: AppScaleViewport('));
+                  expect(frame, contains('horizontal = AppUi.pageDesktopHorizontalPadding'));
+                  expect(frame, contains('media.copyWith('));
+                  expect(page, contains('PwaDesktopPageFrame.isApplied(context)'));
+                  expect(page, contains('? 0.0'));
+                });
 
-              expect(tokens, contains('desktopNavigationMaxWidth = 420'));
-              expect(navigation, contains('AppUi.desktopNavigationMaxWidth'));
-              expect(navigation, contains('child: Center('));
-            });
-          }
-          """
-          test = '\n'.join(line[10:] if line.startswith('          ') else line for line in test.splitlines()) + '\n'
-          write('test/pwa_global_page_frame_contract_test.dart', test)
+                test('desktop bottom navigation is centered near ten centimetres', () {
+                  final tokens = source('lib/app/app_ui_tokens.dart');
+                  final navigation = source(
+                    'lib/widgets/professional_bottom_navigation.dart',
+                  );
 
-          for path in (
-              '.github/workflows/audit-pwa-layout.yml',
-              'docs/pwa-layout-audit.txt',
-              '.github/workflows/apply-global-pwa-layout.yml',
-          ):
-              Path(path).unlink(missing_ok=True)
+                  expect(tokens, contains('desktopNavigationMaxWidth = 470'));
+                  expect(navigation, contains('AppUi.desktopNavigationMaxWidth'));
+                  expect(navigation, contains('child: Center('));
+                });
+              }
+          """).lstrip()
+          write('test/pwa_global_page_frame_contract_test.dart', contract)
           PY
 
       - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/app/app_ui_tokens.dart \
-            lib/widgets/app_page.dart \
-            lib/widgets/pwa_desktop_page_frame.dart \
-            lib/widgets/professional_bottom_navigation.dart \
-            lib/features/shell/presentation/persistent_tab_shell.dart \
-            lib/features/shell/presentation/premium_main_screen.dart \
-            test/pwa_global_page_frame_contract_test.dart
+        run: dart format lib test
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+      - name: Verify analyzer, tests and Web release
+        id: verify
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --fatal-infos --fatal-warnings > /tmp/pwa-analyze.log 2>&1
+          analyze_status=$?
+          flutter test > /tmp/pwa-test.log 2>&1
+          test_status=$?
+          flutter build web --release > /tmp/pwa-build.log 2>&1
+          build_status=$?
+          set -e
 
-      - name: Run all Flutter tests
-        run: flutter test
+          echo "analyze_status=$analyze_status" >> "$GITHUB_OUTPUT"
+          echo "test_status=$test_status" >> "$GITHUB_OUTPUT"
+          echo "build_status=$build_status" >> "$GITHUB_OUTPUT"
 
-      - name: Build release Web/PWA
-        run: flutter build web --release
+          if [ "$analyze_status" -ne 0 ] || [ "$test_status" -ne 0 ] || [ "$build_status" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Save failure diagnostics
+        if: failure() && steps.verify.outcome == 'failure'
+        run: |
+          git reset --hard HEAD
+          mkdir -p docs
+          {
+            echo "PWA layout verification failure"
+            echo "analyze=${{ steps.verify.outputs.analyze_status }}"
+            echo "tests=${{ steps.verify.outputs.test_status }}"
+            echo "build=${{ steps.verify.outputs.build_status }}"
+            echo
+            echo "===== ANALYZE ====="
+            cat /tmp/pwa-analyze.log || true
+            echo
+            echo "===== TESTS ====="
+            cat /tmp/pwa-test.log || true
+            echo
+            echo "===== BUILD ====="
+            cat /tmp/pwa-build.log || true
+          } > docs/pwa-layout-failure.log
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/pwa-layout-failure.log
+          git commit -m "Сохранить ошибку глобальной PWA-разметки"
+          git push
 
       - name: Commit verified global PWA layout
+        if: success()
         run: |
+          rm -f .github/workflows/audit-pwa-layout.yml
+          rm -f .github/workflows/apply-global-pwa-layout.yml
+          rm -f docs/pwa-layout-audit.txt
+          rm -f docs/pwa-layout-failure.log
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
           git commit -m "Применить единые края ко всем PWA-страницам"
           git push
-
-# retrigger: 2026-08-05
