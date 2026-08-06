@@ -1,0 +1,1 @@
+Apply a direct visual lift to the candidate editor on every device.
