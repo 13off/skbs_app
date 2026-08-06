@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
+// This contract also triggers publication of the verified non-overlay shell.
 void main() {
   test('all tab shells place navigation outside the screen body', () {
     final persistent = source(
