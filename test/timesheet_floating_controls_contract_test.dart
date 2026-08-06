@@ -41,9 +41,6 @@ void main() {
     expect(shell, contains('bottomNavigationBar: _PremiumBottomBar('));
     expect(shell, isNot(contains('extendBody: true')));
     expect(shell, isNot(contains('legacy-tab-content-clearance')));
-    expect(
-      shell,
-      contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
-    );
+    expect(shell, contains('backgroundColor: Colors.transparent'));
   });
 }

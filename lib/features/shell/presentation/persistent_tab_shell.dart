@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme_controller.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
+import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
 class PersistentTabController extends ChangeNotifier {
@@ -178,21 +179,25 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
       onWillPop: () => widget.controller.handleBack(
         returnToFirstTab: widget.returnToFirstTabOnBack,
       ),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: IndexedStack(
-          index: activeIndex,
-          children: List<Widget>.generate(widget.controller.pageCount, (index) {
-            final child = _tabNavigators[index];
-            if (child == null) return const SizedBox.shrink();
-            return TickerMode(enabled: index == activeIndex, child: child);
-          }),
-        ),
-        bottomNavigationBar: ProfessionalBottomNavigation(
-          items: widget.items,
-          selectedIndex: activeIndex,
-          storageKey: widget.navigationStorageKey,
-          onSelected: widget.controller.select,
+      child: AppSurfaceBackdrop(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: IndexedStack(
+            index: activeIndex,
+            children: List<Widget>.generate(widget.controller.pageCount, (
+              index,
+            ) {
+              final child = _tabNavigators[index];
+              if (child == null) return const SizedBox.shrink();
+              return TickerMode(enabled: index == activeIndex, child: child);
+            }),
+          ),
+          bottomNavigationBar: ProfessionalBottomNavigation(
+            items: widget.items,
+            selectedIndex: activeIndex,
+            storageKey: widget.navigationStorageKey,
+            onSelected: widget.controller.select,
+          ),
         ),
       ),
     );
