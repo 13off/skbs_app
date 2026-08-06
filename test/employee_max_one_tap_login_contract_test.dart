@@ -39,7 +39,7 @@ void main() {
     expect(screen, contains('Timer.periodic('));
     expect(screen, contains('LaunchMode.externalApplication'));
     expect(screen, contains('AppLifecycleState.resumed'));
-    expect(screen, contains("child: const Text('Войти по коду из MAX')"));
+    expect(screen, isNot(contains("child: const Text('Войти по коду из MAX')")));
 
     expect(repository, contains("'employee-max-login'"));
     expect(repository, contains("'action': 'request'"));
