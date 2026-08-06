@@ -1,1 +1,2 @@
 Paint one continuous AppSurfaceBackdrop behind every tab body and its reserved translucent bottom-navigation area without moving navigation back over content.
+Trigger: 2026-08-06T16:35+03:00
