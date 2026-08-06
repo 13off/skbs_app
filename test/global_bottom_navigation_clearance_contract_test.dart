@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 String source(String path) => File(path).readAsStringSync();
 
+// The source contract also keeps the verified global clearance in every web release.
 void main() {
   test('all tab shells reserve the floating navigation area', () {
     final persistent = source(
