@@ -1,0 +1,1 @@
+Reduce employee route sampling to at most one stored point every ten minutes on every platform, replace continuous high-accuracy web tracking with timed polling, and lower native location power usage.
