@@ -179,7 +179,7 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         returnToFirstTab: widget.returnToFirstTabOnBack,
       ),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: IndexedStack(
           index: activeIndex,
           children: List<Widget>.generate(widget.controller.pageCount, (index) {
