@@ -1,0 +1,402 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../data/app_data_sync.dart';
+import '../../../services/push_notification_service.dart';
+import '../models/recruitment_flight_models.dart';
+import 'recruitment_repository.dart';
+
+abstract final class RecruitmentFlightRepository {
+  static final SupabaseClient _client = Supabase.instance.client;
+  static const String ticketBucket = 'recruitment-documents';
+
+  static Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return const <String, dynamic>{};
+  }
+
+  static String _dateOnly(DateTime value) {
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
+  }
+
+  static String _safeFileName(String value) {
+    final clean = value
+        .trim()
+        .replaceAll(RegExp(r'[^0-9A-Za-zА-Яа-яЁё._-]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return clean.isEmpty ? 'ticket.pdf' : clean;
+  }
+
+  static String _mimeType(String fileName) {
+    final extension = fileName.toLowerCase().split('.').last;
+    return switch (extension) {
+      'pdf' => 'application/pdf',
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'heic' => 'image/heic',
+      _ => 'image/jpeg',
+    };
+  }
+
+  static void _notify(String flightId) {
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{
+        AppDataDomain.recruitment,
+        AppDataDomain.notifications,
+      },
+      context: <String, dynamic>{
+        'table': 'recruitment_flights',
+        'entity_id': flightId,
+      },
+    );
+  }
+
+  static Future<List<RecruitmentFlightCandidate>> fetchCandidates({
+    required String companyId,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlightCandidate>[];
+    final rows = await _client
+        .from('recruitment_applications')
+        .select(
+          'id, company_id, employee_id, full_name, phone, position_title, '
+          'object_id, source, external_user_id, external_chat_id, objects(name)',
+        )
+        .eq('company_id', cleanCompanyId)
+        .isFilter('archived_at', null)
+        .neq('status', 'rejected')
+        .order('full_name');
+    return rows
+        .map<RecruitmentFlightCandidate>(
+          (row) => RecruitmentFlightCandidate.fromMap(_map(row)),
+        )
+        .where(
+          (candidate) =>
+              candidate.applicationId.isNotEmpty &&
+              candidate.fullName.trim().isNotEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  static Future<List<RecruitmentFlight>> fetchFlights({
+    required String companyId,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlight>[];
+    final rows = await _client
+        .from('recruitment_flights')
+        .select()
+        .eq('company_id', cleanCompanyId)
+        .order('departure_at', ascending: true)
+        .limit(1000);
+    return rows
+        .map<RecruitmentFlight>(
+          (row) => RecruitmentFlight.fromMap(_map(row)),
+        )
+        .where((flight) => flight.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<RecruitmentFlightCalendarData> fetchCalendar({
+    required String companyId,
+    bool dispatchReminders = true,
+  }) async {
+    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      fetchCandidates(companyId: companyId),
+      fetchFlights(companyId: companyId),
+    ]);
+    final candidates = results[0] as List<RecruitmentFlightCandidate>;
+    final flights = results[1] as List<RecruitmentFlight>;
+    final candidatesById = <String, RecruitmentFlightCandidate>{
+      for (final candidate in candidates) candidate.applicationId: candidate,
+    };
+    final entries = flights
+        .map((flight) {
+          final candidate = candidatesById[flight.applicationId];
+          if (candidate == null) return null;
+          return RecruitmentFlightEntry(flight: flight, candidate: candidate);
+        })
+        .whereType<RecruitmentFlightEntry>()
+        .toList(growable: false);
+    if (dispatchReminders) {
+      unawaited(
+        dispatchDueReminders(candidates: candidates).catchError((_) {}),
+      );
+    }
+    return RecruitmentFlightCalendarData(
+      candidates: candidates,
+      flights: entries,
+    );
+  }
+
+  static Future<Map<String, dynamic>> _uploadTicket({
+    required String companyId,
+    required String applicationId,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    if (bytes.isEmpty) throw Exception('Файл билета пустой');
+    final safeName = _safeFileName(fileName);
+    final stamp = DateTime.now().toUtc().microsecondsSinceEpoch;
+    final path = '$companyId/$applicationId/tickets/${stamp}_$safeName';
+    final mimeType = _mimeType(safeName);
+    await _client.storage.from(ticketBucket).uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: mimeType, upsert: false),
+    );
+    return <String, dynamic>{
+      'ticket_bucket': ticketBucket,
+      'ticket_path': path,
+      'ticket_original_name': safeName,
+      'ticket_mime_type': mimeType,
+      'ticket_size_bytes': bytes.length,
+    };
+  }
+
+  static Future<RecruitmentFlight> saveFlight({
+    String flightId = '',
+    required RecruitmentFlightCandidate candidate,
+    required DateTime departureAt,
+    DateTime? arrivalAt,
+    required String origin,
+    required String destination,
+    String flightNumber = '',
+    bool remindDayBefore = true,
+    bool remindThreeHours = true,
+    String notes = '',
+    Uint8List? ticketBytes,
+    String ticketFileName = '',
+    RecruitmentFlight? existing,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Нет активной Auth-сессии');
+    if (candidate.applicationId.trim().isEmpty) {
+      throw Exception('Выберите сотрудника');
+    }
+    if (origin.trim().isEmpty || destination.trim().isEmpty) {
+      throw Exception('Укажите город вылета и назначения');
+    }
+    if (departureAt.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
+      throw Exception('Дата вылета уже прошла');
+    }
+    if (arrivalAt != null && !arrivalAt.isAfter(departureAt)) {
+      throw Exception('Прибытие должно быть позже вылета');
+    }
+
+    final ticket = <String, dynamic>{
+      'ticket_bucket': existing?.ticketBucket ?? '',
+      'ticket_path': existing?.ticketPath ?? '',
+      'ticket_original_name': existing?.ticketOriginalName ?? '',
+      'ticket_mime_type': existing?.ticketMimeType ?? '',
+      'ticket_size_bytes': existing?.ticketSizeBytes,
+    };
+    if (ticketBytes != null) {
+      ticket.addAll(
+        await _uploadTicket(
+          companyId: candidate.companyId,
+          applicationId: candidate.applicationId,
+          fileName: ticketFileName,
+          bytes: ticketBytes,
+        ),
+      );
+    }
+    if ((ticket['ticket_path']?.toString() ?? '').isEmpty) {
+      throw Exception('Прикрепите купленный билет');
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    final payload = <String, dynamic>{
+      'company_id': candidate.companyId,
+      'application_id': candidate.applicationId,
+      'employee_id': candidate.employeeId.trim().isEmpty
+          ? null
+          : candidate.employeeId.trim(),
+      'object_id': candidate.objectId.trim().isEmpty
+          ? null
+          : candidate.objectId.trim(),
+      'departure_at': departureAt.toUtc().toIso8601String(),
+      'arrival_at': arrivalAt?.toUtc().toIso8601String(),
+      'origin': origin.trim(),
+      'destination': destination.trim(),
+      'flight_number': flightNumber.trim().toUpperCase(),
+      'remind_day_before': remindDayBefore,
+      'remind_three_hours': remindThreeHours,
+      'notes': notes.trim(),
+      ...ticket,
+      'updated_by': userId,
+      'updated_at': now,
+    };
+
+    final dynamic row;
+    if (flightId.trim().isEmpty) {
+      payload['created_by'] = userId;
+      row = await _client
+          .from('recruitment_flights')
+          .insert(payload)
+          .select()
+          .single();
+    } else {
+      row = await _client
+          .from('recruitment_flights')
+          .update(payload)
+          .eq('company_id', candidate.companyId)
+          .eq('id', flightId.trim())
+          .select()
+          .single();
+    }
+
+    await _client
+        .from('recruitment_applications')
+        .update(<String, dynamic>{
+          'ready_date': _dateOnly(departureAt),
+          'updated_at': now,
+        })
+        .eq('company_id', candidate.companyId)
+        .eq('id', candidate.applicationId);
+
+    if (candidate.employeeId.trim().isNotEmpty &&
+        candidate.objectId.trim().isNotEmpty) {
+      await _client.from('employee_mobilizations').upsert(
+        <String, dynamic>{
+          'company_id': candidate.companyId,
+          'application_id': candidate.applicationId,
+          'employee_id': candidate.employeeId,
+          'object_id': candidate.objectId,
+          'planned_start_date': _dateOnly(departureAt),
+          'ticket_booked': true,
+          'created_by': userId,
+          'updated_by': userId,
+          'updated_at': now,
+        },
+        onConflict: 'company_id,employee_id',
+      );
+    }
+
+    final result = RecruitmentFlight.fromMap(_map(row));
+    _notify(result.id);
+    return result;
+  }
+
+  static Future<void> setStatus({
+    required RecruitmentFlight flight,
+    required String status,
+  }) async {
+    const allowed = <String>{
+      'scheduled',
+      'checked_in',
+      'departed',
+      'arrived',
+      'cancelled',
+    };
+    if (!allowed.contains(status)) return;
+    await _client
+        .from('recruitment_flights')
+        .update(<String, dynamic>{
+          'status': status,
+          'updated_by': _client.auth.currentUser?.id,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('company_id', flight.companyId)
+        .eq('id', flight.id);
+    _notify(flight.id);
+  }
+
+  static Future<String> createTicketUrl(RecruitmentFlight flight) async {
+    if (!flight.hasTicket) throw Exception('Билет не прикреплён');
+    return _client.storage
+        .from(flight.ticketBucket)
+        .createSignedUrl(flight.ticketPath, 300);
+  }
+
+  static String reminderMessage(
+    RecruitmentFlightEntry entry, {
+    String kind = 'manual',
+  }) {
+    final local = entry.flight.departureAt.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    final prefix = switch (kind) {
+      'day_before' => 'Напоминаем: завтра вылет',
+      'three_hours' => 'До вылета осталось около 3 часов',
+      _ => 'Напоминаем о предстоящем вылете',
+    };
+    return '$prefix $day.$month.${local.year} в $hour:$minute. '
+        'Маршрут: ${entry.flight.routeTitle}. '
+        '${entry.flight.flightNumber.isEmpty ? '' : 'Рейс ${entry.flight.flightNumber}. '}'
+        'Проверьте документы и приезжайте в аэропорт заранее.';
+  }
+
+  static Future<RecruitmentFlightReminderResult> sendReminder(
+    RecruitmentFlightEntry entry, {
+    String kind = 'manual',
+  }) async {
+    final message = reminderMessage(entry, kind: kind);
+    final dynamic raw = await _client.rpc(
+      'send_recruitment_flight_reminder',
+      params: <String, dynamic>{
+        'p_flight_id': entry.flight.id,
+        'p_kind': kind,
+        'p_message': message,
+      },
+    );
+    final result = RecruitmentFlightReminderResult.fromMap(_map(raw));
+    if (result.notificationId.isNotEmpty) {
+      unawaited(
+        PushNotificationService.dispatchNotification(result.notificationId),
+      );
+    }
+    if (entry.candidate.canMessageInBot) {
+      await RecruitmentRepository.sendCandidateMessage(
+        applicationId: entry.candidate.applicationId,
+        message: message,
+        source: entry.candidate.source,
+      );
+    }
+    _notify(entry.flight.id);
+    return result;
+  }
+
+  static Future<void> dispatchDueReminders({
+    required List<RecruitmentFlightCandidate> candidates,
+  }) async {
+    final dynamic raw = await _client.rpc(
+      'dispatch_due_recruitment_flight_reminders',
+    );
+    if (raw is! List || raw.isEmpty) return;
+    final byApplication = <String, RecruitmentFlightCandidate>{
+      for (final candidate in candidates) candidate.applicationId: candidate,
+    };
+    for (final value in raw) {
+      final result = RecruitmentFlightReminderResult.fromMap(_map(value));
+      if (result.notificationId.isNotEmpty) {
+        unawaited(
+          PushNotificationService.dispatchNotification(result.notificationId),
+        );
+      }
+      final candidate = byApplication[result.applicationId];
+      if (candidate != null &&
+          candidate.canMessageInBot &&
+          result.message.trim().isNotEmpty) {
+        try {
+          await RecruitmentRepository.sendCandidateMessage(
+            applicationId: candidate.applicationId,
+            message: result.message,
+            source: candidate.source,
+          );
+        } catch (_) {
+          // Внутреннее и push-уведомление уже созданы; ошибка бота не повторяет их.
+        }
+      }
+    }
+  }
+}
