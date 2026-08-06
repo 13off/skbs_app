@@ -1,3 +1,4 @@
+# Temporary trigger; the base PR Check workflow applies the real patch.
 name: Patch candidate editor clearance
 
 on:
