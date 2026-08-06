@@ -1,0 +1,1 @@
+Trigger candidate editor hit-test layout fix through a merge event.
