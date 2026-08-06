@@ -27,6 +27,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  apply-candidate-editor-clearance:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/lift-candidate-editor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Lift candidate editor above navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          if 'AppUi.navigationTotalHeight(context) + AppUi.gap12' not in text:
+              old = """  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: EdgeInsets.fromLTRB(
+        18,
+        16,
+        18,
+        18 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
+"""
+              new = """  @override
+  Widget build(BuildContext context) {
+    final mediaSize = MediaQuery.sizeOf(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomClearance = keyboardInset > 0
+        ? AppUi.gap12
+        : AppUi.navigationTotalHeight(context) + AppUi.gap12;
+    final availableHeight =
+        mediaSize.height - bottomClearance - (AppUi.gap12 * 2);
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(
+        AppUi.gap12,
+        AppUi.gap12,
+        AppUi.gap12,
+        bottomClearance,
+      ),
+      padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + keyboardInset),
+      constraints: BoxConstraints(maxHeight: availableHeight),
+"""
+              if old not in text:
+                  raise SystemExit('Expected candidate editor layout block was not found')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+          git diff --check
+          grep -q "AppUi.navigationTotalHeight(context) + AppUi.gap12" \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          grep -q "constraints: BoxConstraints(maxHeight: availableHeight)" \
+            lib/features/recruitment/presentation/recruitment_applications_screen.dart
+
+      - name: Commit fix branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "AppStroy automation"
+          git config user.email "actions@users.noreply.github.com"
+          if [ -f .github/workflows/patch-candidate-editor-clearance.yml ]; then
+            git rm .github/workflows/patch-candidate-editor-clearance.yml
+          fi
+          git add lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "Поднять карточку нового кандидата над навигацией"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
   flutter-check:
     runs-on: ubuntu-latest
     steps:
