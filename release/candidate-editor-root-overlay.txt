@@ -1,1 +1,0 @@
-Trigger root navigator overlay fix for the candidate editor.

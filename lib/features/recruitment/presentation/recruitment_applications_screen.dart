@@ -258,6 +258,7 @@ class _RecruitmentApplicationsScreenState
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
