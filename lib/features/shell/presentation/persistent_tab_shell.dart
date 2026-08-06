@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
+import '../../../app/app_ui_tokens.dart';
 import '../../../app/theme_controller.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
 import '../../../widgets/premium_ui.dart';
@@ -170,6 +171,12 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
   Widget build(BuildContext context) {
     assert(widget.items.length == widget.controller.pageCount);
     final activeIndex = widget.controller.currentIndex;
+    final mediaQuery = MediaQuery.of(context);
+    final navigationClearance = AppUi.navigationTotalHeight(context);
+    final contentMediaQuery = mediaQuery.copyWith(
+      padding: mediaQuery.padding.copyWith(bottom: 0),
+      viewPadding: mediaQuery.viewPadding.copyWith(bottom: 0),
+    );
     // Keep the established nested-navigation and root-route behavior.
     // Flutter 3.44 deprecates this API before the replacement is covered
     // by route-level integration tests in every target shell.
@@ -184,15 +191,25 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            IndexedStack(
-              index: activeIndex,
-              children: List<Widget>.generate(widget.controller.pageCount, (
-                index,
-              ) {
-                final child = _tabNavigators[index];
-                if (child == null) return const SizedBox.shrink();
-                return TickerMode(enabled: index == activeIndex, child: child);
-              }),
+            Padding(
+              key: const ValueKey('persistent-tab-content-clearance'),
+              padding: EdgeInsets.only(bottom: navigationClearance),
+              child: MediaQuery(
+                data: contentMediaQuery,
+                child: IndexedStack(
+                  index: activeIndex,
+                  children: List<Widget>.generate(widget.controller.pageCount, (
+                    index,
+                  ) {
+                    final child = _tabNavigators[index];
+                    if (child == null) return const SizedBox.shrink();
+                    return TickerMode(
+                      enabled: index == activeIndex,
+                      child: child,
+                    );
+                  }),
+                ),
+              ),
             ),
             Positioned(
               left: 0,

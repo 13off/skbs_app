@@ -1,1 +1,0 @@
-Reserve the floating bottom navigation area in every application shell and verify that content never sits underneath it.

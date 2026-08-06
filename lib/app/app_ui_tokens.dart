@@ -14,7 +14,9 @@ abstract final class AppUi {
   static const double pageDesktopHorizontalPadding = 144;
   static const double pageMobileTopPadding = 14;
   static const double pageDesktopTopPadding = 24;
-  static const double pageBottomPadding = 132;
+  // The tab shell now reserves the complete floating navigation area.
+  // Pages only need a small scroll tail above that reserved area.
+  static const double pageBottomPadding = 32;
   static const double pageContentWidth = 1220;
   static const double specialistContentWidth = 1460;
 
