@@ -389,7 +389,7 @@ class _RecruitmentFlightCalendarScreenState
                   ),
                   child: Icon(
                     flight.isCancelled
-                        ? Icons.flight_off_outlined
+                        ? Icons.airplanemode_inactive_rounded
                         : Icons.flight_takeoff_rounded,
                     color: flight.isCancelled
                         ? AppAdaptivePalette.danger
