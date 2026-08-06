@@ -22,8 +22,18 @@ void main() {
       contains('bottomNavigationBar: ProfessionalBottomNavigation('),
     );
     expect(persistentShell, isNot(contains('extendBody: true')));
-    expect(persistentShell, isNot(contains('persistent-tab-content-clearance')));
-    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
+    expect(
+      persistentShell,
+      isNot(contains('persistent-tab-content-clearance')),
+    );
+    expect(
+      mainShell,
+      contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
+    );
+    expect(
+      persistentShell,
+      contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
+    );
   });
 
   test('dark navigation glass stays graphite instead of black', () {
