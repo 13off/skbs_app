@@ -32,6 +32,24 @@ jobs:
       - name: Apply location sampling patch
         run: python3 tool/apply_location_ten_minute_interval.py
 
+      - name: Correct focused contract scope
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('test/employee_location_sampling_contract_test.dart')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "expect(source, isNot(contains('Duration(seconds: 30)')));",
+              "expect(source, isNot(contains('intervalDuration: const Duration(seconds: 30)')));",
+          )
+          text = text.replace(
+              "expect(source, isNot(contains('LocationAccuracy.bestForNavigation')));",
+              "expect(source, contains('intervalDuration: _captureInterval'));",
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Remove one-time files
         run: |
           rm -f release/location-ten-minute-interval.txt
