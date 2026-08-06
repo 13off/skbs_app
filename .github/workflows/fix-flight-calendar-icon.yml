@@ -1,0 +1,40 @@
+name: Fix flight calendar icon
+
+on:
+  push:
+    branches:
+      - feature/hr-flight-calendar
+    paths:
+      - release/fix-flight-calendar-icon.txt
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/hr-flight-calendar
+      - name: Replace unsupported icon
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          old = 'Icons.flight_off_outlined'
+          new = 'Icons.airplanemode_inactive_rounded'
+          if old not in text:
+              raise SystemExit('Unsupported icon marker was not found')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          rm -f release/fix-flight-calendar-icon.txt
+          rm -f .github/workflows/fix-flight-calendar-icon.yml
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить иконку отменённого вылета"
+          git push origin HEAD:feature/hr-flight-calendar
