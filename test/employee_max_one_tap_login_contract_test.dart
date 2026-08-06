@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// The legacy manual-code MAX button must stay removed from employee login.
 void main() {
   test('employee signs in by confirming one secure button in MAX', () {
     final entry = File(
