@@ -2599,9 +2599,11 @@ class _RecruitmentApplicationEditorState
   Widget build(BuildContext context) {
     final mediaSize = MediaQuery.sizeOf(context);
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isWideScreen = mediaSize.width >= AppUi.specialistDesktopBreakpoint;
     final bottomClearance = keyboardInset > 0
         ? AppUi.gap12
-        : AppUi.navigationTotalHeight(context) + AppUi.gap12;
+        : AppUi.navigationTotalHeight(context) +
+              (isWideScreen ? 120 : AppUi.gap12);
     final availableHeight =
         mediaSize.height - bottomClearance - (AppUi.gap12 * 2);
 
