@@ -212,9 +212,10 @@ class _ProfessionalBottomNavigationState
                                   : AppMotion.regular,
                               curve: AppMotion.interactionCurve,
                               height: double.infinity,
+                              clipBehavior: Clip.hardEdge,
                               padding: EdgeInsets.symmetric(
                                 horizontal: isDesktop ? 14 : 4,
-                                vertical: isDesktop ? 6 : 4,
+                                vertical: isDesktop ? 6 : 2,
                               ),
                               decoration: BoxDecoration(
                                 gradient: selected
@@ -273,22 +274,9 @@ class _ProfessionalBottomNavigationState
                                         ),
                                       ],
                                     )
-                                  : Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        _NavigationIcon(
-                                          item: item,
-                                          selected: selected,
-                                          size: 23,
-                                        ),
-                                        const SizedBox(height: 3),
-                                        _NavigationLabel(
-                                          item: item,
-                                          selected: selected,
-                                          fontSize: 10.5,
-                                        ),
-                                      ],
+                                  : _MobileNavigationItem(
+                                      item: item,
+                                      selected: selected,
                                     ),
                             ),
                           ),
@@ -302,6 +290,47 @@ class _ProfessionalBottomNavigationState
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MobileNavigationItem extends StatelessWidget {
+  final ProfessionalBottomNavigationItem item;
+  final bool selected;
+
+  const _MobileNavigationItem({required this.item, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _NavigationIcon(
+                    item: item,
+                    selected: selected,
+                    size: 23,
+                  ),
+                  const SizedBox(height: 3),
+                  _NavigationLabel(
+                    item: item,
+                    selected: selected,
+                    fontSize: 10.5,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -361,6 +390,7 @@ class _NavigationLabel extends StatelessWidget {
             color: selected ? scheme.primary : scheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
             fontSize: fontSize,
+            height: 1,
             letterSpacing: -0.2,
           ) ??
           const TextStyle(),
@@ -369,6 +399,7 @@ class _NavigationLabel extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.fade,
         softWrap: false,
+        textAlign: TextAlign.center,
       ),
     );
   }
