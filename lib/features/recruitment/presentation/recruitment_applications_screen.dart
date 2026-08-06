@@ -2596,17 +2596,23 @@ class _RecruitmentApplicationEditorState
 
   @override
   Widget build(BuildContext context) {
+    final mediaSize = MediaQuery.sizeOf(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomClearance = keyboardInset > 0
+        ? AppUi.gap12
+        : AppUi.navigationTotalHeight(context) + AppUi.gap12;
+    final availableHeight =
+        mediaSize.height - bottomClearance - (AppUi.gap12 * 2);
+
     return Container(
-      margin: const EdgeInsets.all(12),
-      padding: EdgeInsets.fromLTRB(
-        18,
-        16,
-        18,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
+      margin: EdgeInsets.fromLTRB(
+        AppUi.gap12,
+        AppUi.gap12,
+        AppUi.gap12,
+        bottomClearance,
       ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-      ),
+      padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + keyboardInset),
+      constraints: BoxConstraints(maxHeight: availableHeight),
       decoration: BoxDecoration(
         color: AppAdaptivePalette.surface,
         borderRadius: BorderRadius.circular(AppUi.modalRadius),

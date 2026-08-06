@@ -1,2 +1,0 @@
-Apply and verify the candidate editor bottom clearance above the floating AppStroy navigation panel.
-Trigger: merged PR v3 with external patch script.
