@@ -1,0 +1,1 @@
+Apply hit-test-safe layout lift to the candidate editor.
