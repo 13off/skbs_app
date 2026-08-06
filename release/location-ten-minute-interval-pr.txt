@@ -1,1 +1,2 @@
 Trigger the verified ten-minute location sampling workflow through a normal pull-request merge.
+PR check trigger: 2026-08-06T20:49+03:00
