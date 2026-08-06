@@ -1,26 +1,27 @@
 name: Apply candidate editor clearance
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     branches: [main]
-    paths:
-      - .github/workflows/apply-candidate-editor-clearance.yml
 
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
-  group: apply-candidate-editor-clearance
-  cancel-in-progress: false
+  group: apply-candidate-editor-clearance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/lift-candidate-editor'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout fix branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Lift candidate editor above navigation
@@ -32,6 +33,10 @@ jobs:
 
           path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
           text = path.read_text(encoding='utf-8')
+          if 'AppUi.navigationTotalHeight(context) + AppUi.gap12' in text:
+              print('Candidate editor clearance is already applied')
+              raise SystemExit(0)
+
           old = """  @override
   Widget build(BuildContext context) {
     return Container(
@@ -77,13 +82,19 @@ jobs:
           grep -q "constraints: BoxConstraints(maxHeight: availableHeight)" \
             lib/features/recruitment/presentation/recruitment_applications_screen.dart
 
-      - name: Commit patch and remove temporary workflow
+      - name: Commit fix branch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "AppStroy automation"
           git config user.email "actions@users.noreply.github.com"
-          git rm .github/workflows/apply-candidate-editor-clearance.yml
+          if [ -f .github/workflows/patch-candidate-editor-clearance.yml ]; then
+            git rm .github/workflows/patch-candidate-editor-clearance.yml
+          fi
           git add lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
           git commit -m "Поднять карточку нового кандидата над навигацией"
-          git push origin main
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
