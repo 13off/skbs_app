@@ -1,0 +1,41 @@
+name: Diagnose navigation overlay contracts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/diagnose-navigation-overlay-contracts.txt
+      - .github/workflows/diagnose-navigation-overlay-contracts.yml
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Find stale overlay expectations
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          {
+            echo '# Navigation overlay contract matches'
+            echo
+            grep -RInE "extendBody|navigationClearance|content-clearance|page content behind|floating navigation|Positioned\(" test || true
+          } > diagnostics/navigation-overlay-contracts.txt
+          rm -f release/diagnose-navigation-overlay-contracts.txt
+          rm -f .github/workflows/diagnose-navigation-overlay-contracts.yml
+      - name: Commit report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Собрать диагностику старых контрактов навигации"
+          git push origin HEAD:main
