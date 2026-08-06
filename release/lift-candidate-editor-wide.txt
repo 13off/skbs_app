@@ -1,0 +1,1 @@
+Lift the candidate editor farther above the floating navigation panel on wide screens.
