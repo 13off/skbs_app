@@ -2599,207 +2599,210 @@ class _RecruitmentApplicationEditorState
   Widget build(BuildContext context) {
     final mediaSize = MediaQuery.sizeOf(context);
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final isWideScreen = mediaSize.width >= AppUi.specialistDesktopBreakpoint;
+    final lift = keyboardInset > 0 ? 0.0 : 112.0;
     final bottomClearance = keyboardInset > 0
         ? AppUi.gap12
-        : AppUi.navigationTotalHeight(context) +
-              (isWideScreen ? 120 : AppUi.gap12);
+        : AppUi.navigationTotalHeight(context) + AppUi.gap12;
     final availableHeight =
-        mediaSize.height - bottomClearance - (AppUi.gap12 * 2);
+        mediaSize.height - bottomClearance - lift - (AppUi.gap12 * 2);
 
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        AppUi.gap12,
-        AppUi.gap12,
-        AppUi.gap12,
-        bottomClearance,
-      ),
-      padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + keyboardInset),
-      constraints: BoxConstraints(maxHeight: availableHeight),
-      decoration: BoxDecoration(
-        color: AppAdaptivePalette.surface,
-        borderRadius: BorderRadius.circular(AppUi.modalRadius),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.application == null
-                      ? 'Новый кандидат'
-                      : 'Карточка кандидата',
-                  style: TextStyle(
-                    color: _text,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: saving ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUi.gap8),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
+    return Transform.translate(
+      offset: Offset(0, -lift),
+      child: Container(
+        margin: EdgeInsets.fromLTRB(
+          AppUi.gap12,
+          AppUi.gap12,
+          AppUi.gap12,
+          bottomClearance,
+        ),
+        padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + keyboardInset),
+        constraints: BoxConstraints(maxHeight: availableHeight),
+        decoration: BoxDecoration(
+          color: AppAdaptivePalette.surface,
+          borderRadius: BorderRadius.circular(AppUi.modalRadius),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               children: [
-                TextField(
-                  controller: fullNameController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'ФИО',
-                    prefixIcon: Icon(Icons.person_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                TextField(
-                  controller: phoneController,
-                  enabled: !saving,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Телефон',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                TextField(
-                  controller: citizenshipController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Гражданство',
-                    prefixIcon: Icon(Icons.public_outlined),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                TextField(
-                  controller: vacancyController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Вакансия',
-                    hintText: 'Например: бетонщик-арматурщик',
-                    prefixIcon: Icon(Icons.work_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                TextField(
-                  controller: objectController,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Объект',
-                    prefixIcon: Icon(Icons.apartment_outlined),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                TextField(
-                  controller: experienceController,
-                  enabled: !saving,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Опыт',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                ),
-                const SizedBox(height: AppUi.gap12),
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  leading: const Icon(Icons.flight_takeoff_outlined),
-                  title: const Text('Дата выезда'),
-                  subtitle: Text(dateText(departureDate)),
-                  trailing: departureDate == null
-                      ? const Icon(Icons.chevron_right_rounded)
-                      : IconButton(
-                          tooltip: 'Очистить дату',
-                          onPressed: saving
-                              ? null
-                              : () => setState(() => departureDate = null),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                  onTap: saving ? null : chooseDepartureDate,
-                ),
-                const SizedBox(height: AppUi.gap8),
-                DropdownButtonFormField<String>(
-                  initialValue: widget.configuration.stageById(stageId) == null
-                      ? null
-                      : stageId,
-                  decoration: const InputDecoration(
-                    labelText: 'Колонка CRM',
-                    prefixIcon: Icon(Icons.flag_outlined),
-                  ),
-                  items: widget.configuration.stages
-                      .map(
-                        (stage) => DropdownMenuItem<String>(
-                          value: stage.id,
-                          child: Text(stage.title),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: saving
-                      ? null
-                      : (value) => setState(() => stageId = value ?? ''),
-                ),
-                if (widget.configuration.fields.isNotEmpty) ...[
-                  const SizedBox(height: AppUi.gap20),
-                  Text(
-                    'Дополнительные поля',
+                Expanded(
+                  child: Text(
+                    widget.application == null
+                        ? 'Новый кандидат'
+                        : 'Карточка кандидата',
                     style: TextStyle(
                       color: _text,
-                      fontSize: 17,
+                      fontSize: 21,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: AppUi.gap12),
-                  ...widget.configuration.fields.expand(
-                    (field) => <Widget>[
-                      customFieldWidget(field),
-                      const SizedBox(height: AppUi.gap12),
-                    ],
-                  ),
-                ],
-                TextField(
-                  controller: commentController,
-                  enabled: !saving,
-                  minLines: 2,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Комментарий',
-                    prefixIcon: Icon(Icons.notes_rounded),
-                  ),
                 ),
-                if (errorText != null) ...[
-                  const SizedBox(height: AppUi.gap12),
-                  Text(
-                    errorText!.replaceFirst('Exception: ', ''),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppAdaptivePalette.danger,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppUi.gap16),
-                SizedBox(
-                  height: AppUi.controlHeight,
-                  child: FilledButton.icon(
-                    onPressed: saving ? null : save,
-                    icon: saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: Text(saving ? 'Сохраняем...' : 'Сохранить'),
-                  ),
+                IconButton(
+                  onPressed: saving ? null : () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppUi.gap8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  TextField(
+                    controller: fullNameController,
+                    enabled: !saving,
+                    decoration: const InputDecoration(
+                      labelText: 'ФИО',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  TextField(
+                    controller: phoneController,
+                    enabled: !saving,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Телефон',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  TextField(
+                    controller: citizenshipController,
+                    enabled: !saving,
+                    decoration: const InputDecoration(
+                      labelText: 'Гражданство',
+                      prefixIcon: Icon(Icons.public_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  TextField(
+                    controller: vacancyController,
+                    enabled: !saving,
+                    decoration: const InputDecoration(
+                      labelText: 'Вакансия',
+                      hintText: 'Например: бетонщик-арматурщик',
+                      prefixIcon: Icon(Icons.work_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  TextField(
+                    controller: objectController,
+                    enabled: !saving,
+                    decoration: const InputDecoration(
+                      labelText: 'Объект',
+                      prefixIcon: Icon(Icons.apartment_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  TextField(
+                    controller: experienceController,
+                    enabled: !saving,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Опыт',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: AppUi.gap12),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: const Icon(Icons.flight_takeoff_outlined),
+                    title: const Text('Дата выезда'),
+                    subtitle: Text(dateText(departureDate)),
+                    trailing: departureDate == null
+                        ? const Icon(Icons.chevron_right_rounded)
+                        : IconButton(
+                            tooltip: 'Очистить дату',
+                            onPressed: saving
+                                ? null
+                                : () => setState(() => departureDate = null),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                    onTap: saving ? null : chooseDepartureDate,
+                  ),
+                  const SizedBox(height: AppUi.gap8),
+                  DropdownButtonFormField<String>(
+                    initialValue:
+                        widget.configuration.stageById(stageId) == null
+                        ? null
+                        : stageId,
+                    decoration: const InputDecoration(
+                      labelText: 'Колонка CRM',
+                      prefixIcon: Icon(Icons.flag_outlined),
+                    ),
+                    items: widget.configuration.stages
+                        .map(
+                          (stage) => DropdownMenuItem<String>(
+                            value: stage.id,
+                            child: Text(stage.title),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: saving
+                        ? null
+                        : (value) => setState(() => stageId = value ?? ''),
+                  ),
+                  if (widget.configuration.fields.isNotEmpty) ...[
+                    const SizedBox(height: AppUi.gap20),
+                    Text(
+                      'Дополнительные поля',
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: AppUi.gap12),
+                    ...widget.configuration.fields.expand(
+                      (field) => <Widget>[
+                        customFieldWidget(field),
+                        const SizedBox(height: AppUi.gap12),
+                      ],
+                    ),
+                  ],
+                  TextField(
+                    controller: commentController,
+                    enabled: !saving,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Комментарий',
+                      prefixIcon: Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: AppUi.gap12),
+                    Text(
+                      errorText!.replaceFirst('Exception: ', ''),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppAdaptivePalette.danger,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppUi.gap16),
+                  SizedBox(
+                    height: AppUi.controlHeight,
+                    child: FilledButton.icon(
+                      onPressed: saving ? null : save,
+                      icon: saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined),
+                      label: Text(saving ? 'Сохраняем...' : 'Сохранить'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
