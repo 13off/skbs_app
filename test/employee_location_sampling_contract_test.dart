@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// This contract also triggers publication of the verified battery-saving build.
 void main() {
   test('employee route stores at most one point every ten minutes', () {
     final source = File(
