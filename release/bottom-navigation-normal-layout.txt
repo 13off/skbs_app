@@ -1,1 +1,2 @@
 Move the shared bottom navigation out of the page overlay while preserving its glass design and every feature added after the original redesign.
+Trigger: 2026-08-06T14:12+03:00
