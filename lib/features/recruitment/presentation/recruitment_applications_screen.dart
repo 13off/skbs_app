@@ -2606,8 +2606,8 @@ class _RecruitmentApplicationEditorState
     final availableHeight =
         mediaSize.height - bottomClearance - lift - (AppUi.gap12 * 2);
 
-    return Transform.translate(
-      offset: Offset(0, -lift),
+    return Padding(
+      padding: EdgeInsets.only(bottom: lift),
       child: Container(
         margin: EdgeInsets.fromLTRB(
           AppUi.gap12,
