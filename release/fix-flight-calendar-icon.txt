@@ -1,0 +1,1 @@
+Replace the unsupported cancelled-flight icon and rerun PR checks.
