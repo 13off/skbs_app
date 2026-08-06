@@ -64,4 +64,6 @@ void main() {
     expect(repository, contains('PushNotificationService.dispatchNotification'));
     expect(repository, contains('RecruitmentRepository.sendCandidateMessage'));
   });
+
+  // This contract intentionally covers both the HR calendar and employee delivery channels.
 }
