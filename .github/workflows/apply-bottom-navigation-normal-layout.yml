@@ -1,0 +1,77 @@
+name: Apply bottom navigation normal layout
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/bottom-navigation-normal-layout.txt
+      - tool/apply_bottom_navigation_normal_layout.py
+      - .github/workflows/apply-bottom-navigation-normal-layout.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bottom-navigation-normal-layout
+  cancel-in-progress: true
+
+jobs:
+  patch-test-and-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply surgical navigation fix
+        run: python3 tool/apply_bottom_navigation_normal_layout.py
+
+      - name: Remove one-time files
+        run: |
+          rm -f release/bottom-navigation-normal-layout.txt
+          rm -f tool/apply_bottom_navigation_normal_layout.py
+          rm -f .github/workflows/apply-bottom-navigation-normal-layout.yml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/shell/presentation/persistent_tab_shell.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/global_bottom_navigation_clearance_contract_test.dart \
+            test/persistent_tab_shell_clearance_test.dart
+
+      - name: Run focused navigation tests
+        run: |
+          flutter test --reporter compact \
+            test/global_bottom_navigation_clearance_contract_test.dart \
+            test/persistent_tab_shell_clearance_test.dart \
+            test/professional_bottom_navigation_test.dart
+
+      - name: Run full test suite
+        run: flutter test --reporter compact
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Перенести нижнюю навигацию из оверлея в штатную область"
+          git push origin HEAD:main

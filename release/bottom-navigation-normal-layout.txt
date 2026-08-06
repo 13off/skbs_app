@@ -1,0 +1,1 @@
+Move the shared bottom navigation out of the page overlay while preserving its glass design and every feature added after the original redesign.
