@@ -1,11 +1,11 @@
 AppСтрой mobile release
-version: 1.3.5+9
-previous mobile release: 1.3.4+8
+version: 1.3.6+10
+previous mobile release: 1.3.5+9
 release date: 2026-08-06
 release attempt: 1
-accepted application commit: 96a6ec7d3fba2a038d26f7ee6f0ef37f735d6f89
-release version commit: f0897a549027fd150928ee6e6a4ea05a80c7bcb0
-features: candidate editor lifted above bottom navigation on web and mobile, legacy MAX code-login button removed, current HR and recruitment fixes included
-backend: release uses the tested main branch without business-logic, RLS or company-isolation changes
+accepted application commit: ec3d4e31cf84c03caa3602e96a85deab66722873
+release version commit: pending merge
+features: employee route sampling reduced to at most one point every 10 minutes; PWA uses timed polling; Android and iOS use battery-saving location settings
+backend: no database schema, RLS or company-isolation changes
 mobile: Android release APK and unsigned verification iOS IPA
-quality gates: web publication succeeded; Android and iOS release workflows are dispatched from this marker
+quality gates: Android and iOS workflows run full release validation; web deployment runs tests, strict analyzer and browser smoke
