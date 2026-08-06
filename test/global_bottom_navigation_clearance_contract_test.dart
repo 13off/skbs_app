@@ -24,10 +24,7 @@ void main() {
       expect(shell, isNot(contains('extendBody: true')));
       expect(shell, isNot(contains('navigationClearance')));
       expect(shell, isNot(contains('content-clearance')));
-      expect(
-        shell,
-        contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
-      );
+      expect(shell, contains('backgroundColor: Colors.transparent'));
     }
   });
 }

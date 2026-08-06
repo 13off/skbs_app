@@ -26,14 +26,10 @@ void main() {
       persistentShell,
       isNot(contains('persistent-tab-content-clearance')),
     );
-    expect(
-      mainShell,
-      contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
-    );
-    expect(
-      persistentShell,
-      contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
-    );
+    expect(mainShell, contains('child: AppSurfaceBackdrop('));
+    expect(mainShell, contains('backgroundColor: Colors.transparent'));
+    expect(persistentShell, contains('child: AppSurfaceBackdrop('));
+    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
   });
 
   test('dark navigation glass stays graphite instead of black', () {

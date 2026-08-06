@@ -100,10 +100,7 @@ void main() {
         persistentShell,
         isNot(contains('persistent-tab-content-clearance')),
       );
-      expect(
-        persistentShell,
-        contains('backgroundColor: Theme.of(context).scaffoldBackgroundColor'),
-      );
+      expect(persistentShell, contains('backgroundColor: Colors.transparent'));
     },
   );
 }

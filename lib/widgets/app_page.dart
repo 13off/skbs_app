@@ -329,6 +329,19 @@ class AppPageHeader extends StatelessWidget {
   }
 }
 
+class _AppSurfaceBackdropScope extends InheritedWidget {
+  const _AppSurfaceBackdropScope({required super.child});
+
+  static bool maybeOf(BuildContext context) {
+    return context
+            .dependOnInheritedWidgetOfExactType<_AppSurfaceBackdropScope>() !=
+        null;
+  }
+
+  @override
+  bool updateShouldNotify(_AppSurfaceBackdropScope oldWidget) => false;
+}
+
 class AppSurfaceBackdrop extends StatelessWidget {
   final Widget child;
 
@@ -336,48 +349,53 @@ class AppSurfaceBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_AppSurfaceBackdropScope.maybeOf(context)) return child;
+
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: dark
-            ? AppAdaptivePalette.darkBackground
-            : AppAdaptivePalette.background,
-        // Dark mode uses the same graphite background as the global PWA frame.
-        // This prevents a black rectangle from appearing inside the page margins.
-        gradient: dark
-            ? null
-            : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFF5F7FA), Color(0xFFE9EDF2)],
-              ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            bottom: -210,
-            left: -145,
-            child: IgnorePointer(
-              child: Container(
-                width: 430,
-                height: 430,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppAdaptivePalette.telegramBlue.withValues(
-                        alpha: dark ? 0.11 : 0.065,
-                      ),
-                      Colors.transparent,
-                    ],
+    return _AppSurfaceBackdropScope(
+      child: DecoratedBox(
+        key: const ValueKey('app-surface-backdrop-layer'),
+        decoration: BoxDecoration(
+          color: dark
+              ? AppAdaptivePalette.darkBackground
+              : AppAdaptivePalette.background,
+          // Dark mode uses the same graphite background as the global PWA frame.
+          // This prevents a black rectangle from appearing inside the page margins.
+          gradient: dark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFF5F7FA), Color(0xFFE9EDF2)],
+                ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              bottom: -210,
+              left: -145,
+              child: IgnorePointer(
+                child: Container(
+                  width: 430,
+                  height: 430,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppAdaptivePalette.telegramBlue.withValues(
+                          alpha: dark ? 0.11 : 0.065,
+                        ),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          child,
-        ],
+            child,
+          ],
+        ),
       ),
     );
   }

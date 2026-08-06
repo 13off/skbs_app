@@ -20,6 +20,7 @@ import '../../../screens/payments_screen.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
+import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 
 class MainScreen extends StatefulWidget {
@@ -501,35 +502,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async => !(await handleBackRequest()),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerDown: handlePointerDown,
-          onPointerUp: handlePointerUp,
-          onPointerCancel: (_) => topTapStart = null,
-          child: PageView.builder(
-            controller: pageController,
-            itemCount: pageCount,
-            allowImplicitScrolling: false,
-            physics: supportsAppSwipes
-                ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
-                : const NeverScrollableScrollPhysics(),
-            onPageChanged: handlePageChanged,
-            itemBuilder: (context, index) {
-              return buildTabNavigator(index);
-            },
+      child: AppSurfaceBackdrop(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: handlePointerDown,
+            onPointerUp: handlePointerUp,
+            onPointerCancel: (_) => topTapStart = null,
+            child: PageView.builder(
+              controller: pageController,
+              itemCount: pageCount,
+              allowImplicitScrolling: false,
+              physics: supportsAppSwipes
+                  ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
+                  : const NeverScrollableScrollPhysics(),
+              onPageChanged: handlePageChanged,
+              itemBuilder: (context, index) {
+                return buildTabNavigator(index);
+              },
+            ),
           ),
-        ),
-        bottomNavigationBar: _PremiumBottomBar(
-          items: tabItems,
-          selectedIndex: activeIndex,
-          storageKey: widget.profile.isAdmin
-              ? 'admin'
-              : widget.profile.isForeman
-              ? 'foreman'
-              : 'worker',
-          onSelected: selectTab,
+          bottomNavigationBar: _PremiumBottomBar(
+            items: tabItems,
+            selectedIndex: activeIndex,
+            storageKey: widget.profile.isAdmin
+                ? 'admin'
+                : widget.profile.isForeman
+                ? 'foreman'
+                : 'worker',
+            onSelected: selectTab,
+          ),
         ),
       ),
     );
