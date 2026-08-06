@@ -89,15 +89,18 @@ void main() {
       expect(milestones, contains('horizontalPadding,'));
       expect(milestones, contains('120,'));
 
-      // The root specialist shell now paints its navigation above page content,
-      // so Scaffold cannot create a separate dark strip behind the panel.
-      expect(persistentShell, contains('extendBody: true'));
-      expect(persistentShell, contains('backgroundColor: Colors.transparent'));
-      expect(persistentShell, contains('child: ProfessionalBottomNavigation('));
+      // The root specialist shell gives navigation its own Scaffold slot, so
+      // page content physically ends before the translucent glass panel.
       expect(
         persistentShell,
-        isNot(contains('bottomNavigationBar: ProfessionalBottomNavigation(')),
+        contains('bottomNavigationBar: ProfessionalBottomNavigation('),
       );
+      expect(persistentShell, isNot(contains('extendBody: true')));
+      expect(
+        persistentShell,
+        isNot(contains('persistent-tab-content-clearance')),
+      );
+      expect(persistentShell, contains('backgroundColor: Colors.transparent'));
     },
   );
 }

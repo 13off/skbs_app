@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('all main shells float navigation above page content', () {
+  test('all main shells reserve a real area for bottom navigation', () {
     final mainShell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
@@ -13,19 +13,17 @@ void main() {
       'lib/features/shell/presentation/persistent_tab_shell.dart',
     );
 
-    expect(mainShell, contains('body: Stack('));
-    expect(mainShell, contains('child: _PremiumBottomBar('));
-    expect(
-      mainShell,
-      isNot(contains('bottomNavigationBar: _PremiumBottomBar(')),
-    );
-    expect(persistentShell, contains('extendBody: true'));
-    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
-    expect(persistentShell, contains('child: ProfessionalBottomNavigation('));
+    expect(mainShell, contains('bottomNavigationBar: _PremiumBottomBar('));
+    expect(mainShell, isNot(contains('extendBody: true')));
+    expect(mainShell, isNot(contains('legacy-tab-content-clearance')));
+
     expect(
       persistentShell,
-      isNot(contains('bottomNavigationBar: ProfessionalBottomNavigation(')),
+      contains('bottomNavigationBar: ProfessionalBottomNavigation('),
     );
+    expect(persistentShell, isNot(contains('extendBody: true')));
+    expect(persistentShell, isNot(contains('persistent-tab-content-clearance')));
+    expect(persistentShell, contains('backgroundColor: Colors.transparent'));
   });
 
   test('dark navigation glass stays graphite instead of black', () {
