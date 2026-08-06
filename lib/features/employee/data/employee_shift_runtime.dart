@@ -89,8 +89,10 @@ class EmployeeShiftRuntime {
   static const _employeePreference = 'employee_work_day_employee_id';
   static const _shiftPreference = 'employee_work_day_shift_id';
   static const _maximumBatchSize = 100;
-  static const _gapThreshold = Duration(minutes: 3);
-  static const _healthCheckInterval = Duration(minutes: 1);
+  static const _captureInterval = Duration(minutes: 10);
+  static const _gapThreshold = Duration(minutes: 25);
+  static const _healthCheckInterval = Duration(minutes: 2);
+  static const _flushInterval = Duration(minutes: 2);
 
   final ValueNotifier<EmployeeWorkDaySnapshot> state =
       ValueNotifier<EmployeeWorkDaySnapshot>(
@@ -103,6 +105,7 @@ class EmployeeShiftRuntime {
       <EmployeeTrackingGapDraft>[];
 
   StreamSubscription<Position>? _positionSubscription;
+  Timer? _captureTimer;
   Timer? _flushTimer;
   Timer? _healthTimer;
   EmployeeTrackingGapDraft? _openGap;
@@ -193,12 +196,12 @@ class EmployeeShiftRuntime {
       }
 
       if (kIsWeb) {
-        await _startPositionStream();
+        await _startTracking();
       } else {
         final permission = await _permissionWithoutPrompt();
         if (_canTrack(permission) &&
             await Geolocator.isLocationServiceEnabled()) {
-          await _startPositionStream();
+          await _startTracking();
         } else {
           _beginGap(
             reason: permission == LocationPermission.always
@@ -277,7 +280,7 @@ class EmployeeShiftRuntime {
       );
       await _persist(cleanEmployeeId, shift.id);
       await _saveLocal();
-      await _startPositionStream();
+      await _startTracking();
       return shift;
     } catch (error) {
       state.value = state.value.copyWith(
@@ -435,17 +438,17 @@ class EmployeeShiftRuntime {
     try {
       return await Geolocator.getCurrentPosition(
         locationSettings: WebSettings(
-          accuracy: LocationAccuracy.high,
-          maximumAge: Duration(seconds: 30),
-          timeLimit: Duration(seconds: 45),
+          accuracy: LocationAccuracy.medium,
+          maximumAge: Duration(minutes: 2),
+          timeLimit: Duration(seconds: 30),
         ),
       );
     } on TimeoutException {
       return Geolocator.getCurrentPosition(
         locationSettings: WebSettings(
-          accuracy: LocationAccuracy.medium,
-          maximumAge: Duration(minutes: 1),
-          timeLimit: Duration(seconds: 30),
+          accuracy: LocationAccuracy.low,
+          maximumAge: Duration(minutes: 5),
+          timeLimit: Duration(seconds: 20),
         ),
       );
     }
@@ -454,22 +457,22 @@ class EmployeeShiftRuntime {
   LocationSettings _streamSettings() {
     if (kIsWeb) {
       return WebSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 20,
-        maximumAge: Duration(seconds: 30),
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 100,
+        maximumAge: Duration(minutes: 2),
         timeLimit: Duration(seconds: 60),
       );
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
+        accuracy: LocationAccuracy.medium,
         distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 30),
+        intervalDuration: _captureInterval,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'AppСтрой: рабочий день идёт',
           notificationText: 'Приложение работает до завершения рабочего дня',
           notificationChannelName: 'Рабочий день AppСтрой',
-          enableWakeLock: true,
+          enableWakeLock: false,
           setOngoing: true,
         ),
       );
@@ -477,18 +480,50 @@ class EmployeeShiftRuntime {
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       return AppleSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        activityType: ActivityType.fitness,
-        distanceFilter: 20,
-        pauseLocationUpdatesAutomatically: false,
+        accuracy: LocationAccuracy.medium,
+        activityType: ActivityType.other,
+        distanceFilter: 50,
+        pauseLocationUpdatesAutomatically: true,
         showBackgroundLocationIndicator: true,
         allowBackgroundLocationUpdates: true,
       );
     }
     return const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 20,
+      accuracy: LocationAccuracy.medium,
+      distanceFilter: 50,
     );
+  }
+
+  Future<void> _startTracking() async {
+    if (kIsWeb) {
+      _startTimers();
+      _startWebCaptureTimer();
+      final lastCapturedAt = _lastCapturedAt;
+      if (lastCapturedAt == null ||
+          DateTime.now().difference(lastCapturedAt) >= _captureInterval) {
+        unawaited(_captureTimedPosition());
+      }
+      return;
+    }
+    await _startPositionStream();
+  }
+
+  void _startWebCaptureTimer() {
+    _captureTimer?.cancel();
+    _captureTimer = Timer.periodic(_captureInterval, (_) {
+      unawaited(_captureTimedPosition());
+    });
+  }
+
+  Future<void> _captureTimedPosition() async {
+    if (!state.value.isActive || _boundEmployeeId.isEmpty) return;
+    try {
+      final position = await _requiredPosition();
+      await _handlePosition(position);
+    } catch (error) {
+      _beginGap(reason: 'timed_capture_error', details: _error(error));
+      unawaited(_saveLocal());
+    }
   }
 
   Future<void> _startPositionStream() async {
@@ -507,7 +542,7 @@ class EmployeeShiftRuntime {
 
   void _startTimers() {
     _flushTimer?.cancel();
-    _flushTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+    _flushTimer = Timer.periodic(_flushInterval, (_) {
       unawaited(_flushPending());
       unawaited(_flushGapEvents());
     });
@@ -521,7 +556,12 @@ class EmployeeShiftRuntime {
   Future<void> _handlePosition(Position position) async {
     if (!state.value.isActive || _boundEmployeeId.isEmpty) return;
     final point = _point(position);
-    if (point.accuracyM > 250 || point.isMock) return;
+    if (point.accuracyM > 120 || point.isMock) return;
+    final lastCapturedAt = _lastCapturedAt;
+    if (lastCapturedAt != null &&
+        point.recordedAt.isBefore(lastCapturedAt.add(_captureInterval))) {
+      return;
+    }
 
     _completeOpenGap(point.recordedAt);
     _pending.add(point);
@@ -558,13 +598,11 @@ class EmployeeShiftRuntime {
             DateTime.now().difference(lastCapturedAt) >= _gapThreshold) {
           _beginGap(
             reason: 'tracking_interruption',
-            details: 'Web-приложение перестало передавать координаты.',
+            details: 'Web-приложение не получало контрольную координату.',
             startedAt: lastCapturedAt,
           );
-          await _positionSubscription?.cancel();
-          _positionSubscription = null;
         }
-        if (_positionSubscription == null) await _startPositionStream();
+        if (_captureTimer == null) _startWebCaptureTimer();
         return;
       }
 
@@ -600,7 +638,7 @@ class EmployeeShiftRuntime {
         _beginGap(
           reason: 'tracking_interruption',
           details:
-              'Android не передавал координаты. Возможна остановка приложения '
+              'Телефон не передавал координаты. Возможна остановка приложения '
               'или ограничение фоновой работы.',
           startedAt: lastCapturedAt,
         );
@@ -608,7 +646,7 @@ class EmployeeShiftRuntime {
         _positionSubscription = null;
       }
       if (_positionSubscription == null) {
-        await _startPositionStream();
+        await _startTracking();
       }
     } catch (error) {
       _beginGap(reason: 'health_check_error', details: _error(error));
@@ -746,6 +784,8 @@ class EmployeeShiftRuntime {
   }
 
   Future<void> _stopPositionStream() async {
+    _captureTimer?.cancel();
+    _captureTimer = null;
     _flushTimer?.cancel();
     _flushTimer = null;
     _healthTimer?.cancel();
