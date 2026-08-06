@@ -1,0 +1,1 @@
+Paint one continuous AppSurfaceBackdrop behind every tab body and its reserved translucent bottom-navigation area without moving navigation back over content.
