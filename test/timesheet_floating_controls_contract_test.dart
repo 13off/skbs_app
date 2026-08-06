@@ -33,12 +33,14 @@ void main() {
     );
   });
 
-  test('main shell paints page content behind the floating navigation', () {
+  test('main shell reserves a real layout area for bottom navigation', () {
     final shell = File(
       'lib/features/shell/presentation/premium_main_screen.dart',
     ).readAsStringSync();
 
-    expect(shell, contains('extendBody: true'));
+    expect(shell, contains('bottomNavigationBar: _PremiumBottomBar('));
+    expect(shell, isNot(contains('extendBody: true')));
+    expect(shell, isNot(contains('legacy-tab-content-clearance')));
     expect(shell, contains('backgroundColor: Colors.transparent'));
   });
 }
