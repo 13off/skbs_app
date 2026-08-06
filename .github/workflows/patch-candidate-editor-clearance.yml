@@ -1,4 +1,5 @@
-# Temporary trigger; the base PR Check workflow applies the real patch.
+# Temporary trigger for the base workflow.
+# This file is removed automatically when the UI fix is committed.
 name: Patch candidate editor clearance
 
 on:
