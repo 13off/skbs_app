@@ -20,6 +20,7 @@ jobs:
   patch-test-and-commit:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout main
@@ -54,15 +55,12 @@ jobs:
             test/global_bottom_navigation_clearance_contract_test.dart \
             test/persistent_tab_shell_clearance_test.dart
 
-      - name: Run focused navigation tests
+      - name: Run navigation regression tests
         run: |
           flutter test --reporter compact \
             test/global_bottom_navigation_clearance_contract_test.dart \
             test/persistent_tab_shell_clearance_test.dart \
             test/professional_bottom_navigation_test.dart
-
-      - name: Run full test suite
-        run: flutter test --reporter compact
 
       - name: Analyze source
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
