@@ -1,30 +1,33 @@
 name: Apply candidate editor clearance
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main]
+  push:
+    branches:
+      - main
+    paths:
+      - release/candidate-editor-clearance.txt
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: read
-
-concurrency:
-  group: apply-candidate-editor-clearance-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
-  apply:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/lift-candidate-editor'
+  apply-and-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - name: Checkout fix branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Lift candidate editor above navigation
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Apply candidate editor clearance
         shell: bash
         run: |
           set -euo pipefail
@@ -33,10 +36,6 @@ jobs:
 
           path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
           text = path.read_text(encoding='utf-8')
-          if 'AppUi.navigationTotalHeight(context) + AppUi.gap12' in text:
-              print('Candidate editor clearance is already applied')
-              raise SystemExit(0)
-
           old = """  @override
   Widget build(BuildContext context) {
     return Container(
@@ -72,29 +71,40 @@ jobs:
       constraints: BoxConstraints(maxHeight: availableHeight),
 """
           if old not in text:
+              if 'AppUi.navigationTotalHeight(context) + AppUi.gap12' in text:
+                  print('Candidate editor clearance is already applied')
+                  raise SystemExit(0)
               raise SystemExit('Expected candidate editor layout block was not found')
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
           PY
 
-          git diff --check
+      - name: Format changed Dart file
+        run: dart format lib/features/recruitment/presentation/recruitment_applications_screen.dart
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Analyze source
+        run: flutter analyze
+
+      - name: Verify layout contract
+        shell: bash
+        run: |
+          set -euo pipefail
           grep -q "AppUi.navigationTotalHeight(context) + AppUi.gap12" \
             lib/features/recruitment/presentation/recruitment_applications_screen.dart
           grep -q "constraints: BoxConstraints(maxHeight: availableHeight)" \
             lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          git diff --check
 
-      - name: Commit fix branch
+      - name: Commit verified fix
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "AppStroy automation"
-          git config user.email "actions@users.noreply.github.com"
-          if [ -f .github/workflows/patch-candidate-editor-clearance.yml ]; then
-            git rm .github/workflows/patch-candidate-editor-clearance.yml
-          fi
-          git add lib/features/recruitment/presentation/recruitment_applications_screen.dart
-          if git diff --cached --quiet; then
-            echo "Nothing to commit"
-            exit 0
-          fi
+          rm -f .github/workflows/apply-candidate-editor-clearance.yml
+          rm -f release/candidate-editor-clearance.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
           git commit -m "Поднять карточку нового кандидата над навигацией"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push
