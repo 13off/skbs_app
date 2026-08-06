@@ -1,1 +1,0 @@
-Trigger the verified ten-minute location sampling workflow through a normal pull-request merge.
