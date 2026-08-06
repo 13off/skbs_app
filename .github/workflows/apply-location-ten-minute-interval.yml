@@ -1,0 +1,72 @@
+name: Apply ten minute location interval
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/location-ten-minute-interval.txt
+      - tool/apply_location_ten_minute_interval.py
+      - .github/workflows/apply-location-ten-minute-interval.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: location-ten-minute-interval
+  cancel-in-progress: true
+
+jobs:
+  patch-test-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply location sampling patch
+        run: python3 tool/apply_location_ten_minute_interval.py
+
+      - name: Remove one-time files
+        run: |
+          rm -f release/location-ten-minute-interval.txt
+          rm -f tool/apply_location_ten_minute_interval.py
+          rm -f .github/workflows/apply-location-ten-minute-interval.yml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/employee/data/employee_shift_runtime.dart \
+            test/employee_location_sampling_contract_test.dart
+
+      - name: Run focused tests
+        run: |
+          flutter test --reporter compact \
+            test/employee_location_sampling_contract_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Publish verified branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B fix/location-ten-minute-interval-applied
+          git add -A
+          git commit -m "Снизить частоту геолокации до одной точки в 10 минут"
+          git push --force-with-lease origin HEAD:refs/heads/fix/location-ten-minute-interval-applied
