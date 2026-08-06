@@ -8,6 +8,14 @@ on:
       - release/location-ten-minute-interval.txt
       - tool/apply_location_ten_minute_interval.py
       - .github/workflows/apply-location-ten-minute-interval.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - release/location-ten-minute-interval.txt
+      - release/location-ten-minute-interval-pr.txt
+      - tool/apply_location_ten_minute_interval.py
+      - .github/workflows/apply-location-ten-minute-interval.yml
 
 permissions:
   contents: write
@@ -53,6 +61,7 @@ jobs:
       - name: Remove one-time files
         run: |
           rm -f release/location-ten-minute-interval.txt
+          rm -f release/location-ten-minute-interval-pr.txt
           rm -f tool/apply_location_ten_minute_interval.py
           rm -f .github/workflows/apply-location-ten-minute-interval.yml
 
@@ -87,4 +96,4 @@ jobs:
           git checkout -B fix/location-ten-minute-interval-applied
           git add -A
           git commit -m "Снизить частоту геолокации до одной точки в 10 минут"
-          git push --force-with-lease origin HEAD:refs/heads/fix/location-ten-minute-interval-applied
+          git push --force origin HEAD:refs/heads/fix/location-ten-minute-interval-applied
