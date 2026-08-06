@@ -1,0 +1,75 @@
+name: Apply global bottom navigation clearance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/global-bottom-navigation-clearance.txt
+      - tool/apply_global_bottom_navigation_clearance.py
+      - .github/workflows/apply-global-bottom-navigation-clearance.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: global-bottom-navigation-clearance
+  cancel-in-progress: true
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch both application shells
+        run: python3 tool/apply_global_bottom_navigation_clearance.py
+
+      - name: Remove one-time files
+        run: |
+          rm -f release/global-bottom-navigation-clearance.txt
+          rm -f tool/apply_global_bottom_navigation_clearance.py
+          rm -f .github/workflows/apply-global-bottom-navigation-clearance.yml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/app/app_ui_tokens.dart \
+            lib/features/shell/presentation/persistent_tab_shell.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            test/global_bottom_navigation_clearance_contract_test.dart \
+            test/persistent_tab_shell_clearance_test.dart
+
+      - name: Run focused tests
+        run: |
+          flutter test --reporter compact \
+            test/global_bottom_navigation_clearance_contract_test.dart \
+            test/persistent_tab_shell_clearance_test.dart \
+            test/professional_bottom_navigation_test.dart
+
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить глобальное перекрытие контента нижней навигацией"
+          git push origin HEAD:main
