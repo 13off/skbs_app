@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/services.dart';
 
-import '../../../app/app_ui_tokens.dart';
 import '../../../data/app_cache_coordinator.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../data/app_state.dart';
@@ -497,64 +496,40 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final activeIndex = safeCurrentIndex;
     final tabItems = buildTabItems();
-    final mediaQuery = MediaQuery.of(context);
-    final navigationClearance = AppUi.navigationTotalHeight(context);
-    final contentMediaQuery = mediaQuery.copyWith(
-      padding: mediaQuery.padding.copyWith(bottom: 0),
-      viewPadding: mediaQuery.viewPadding.copyWith(bottom: 0),
-    );
 
     // Keep the established nested-navigation and root-route behavior.
     // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async => !(await handleBackRequest()),
       child: Scaffold(
-        extendBody: true,
         backgroundColor: Colors.transparent,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            Padding(
-              key: const ValueKey('legacy-tab-content-clearance'),
-              padding: EdgeInsets.only(bottom: navigationClearance),
-              child: MediaQuery(
-                data: contentMediaQuery,
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: handlePointerDown,
-                  onPointerUp: handlePointerUp,
-                  onPointerCancel: (_) => topTapStart = null,
-                  child: PageView.builder(
-                    controller: pageController,
-                    itemCount: pageCount,
-                    allowImplicitScrolling: false,
-                    physics: supportsAppSwipes
-                        ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
-                        : const NeverScrollableScrollPhysics(),
-                    onPageChanged: handlePageChanged,
-                    itemBuilder: (context, index) {
-                      return buildTabNavigator(index);
-                    },
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _PremiumBottomBar(
-                items: tabItems,
-                selectedIndex: activeIndex,
-                storageKey: widget.profile.isAdmin
-                    ? 'admin'
-                    : widget.profile.isForeman
-                    ? 'foreman'
-                    : 'worker',
-                onSelected: selectTab,
-              ),
-            ),
-          ],
+        body: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: handlePointerDown,
+          onPointerUp: handlePointerUp,
+          onPointerCancel: (_) => topTapStart = null,
+          child: PageView.builder(
+            controller: pageController,
+            itemCount: pageCount,
+            allowImplicitScrolling: false,
+            physics: supportsAppSwipes
+                ? _ConditionalPagePhysics(canSwipe: canSwipeBetweenTabs)
+                : const NeverScrollableScrollPhysics(),
+            onPageChanged: handlePageChanged,
+            itemBuilder: (context, index) {
+              return buildTabNavigator(index);
+            },
+          ),
+        ),
+        bottomNavigationBar: _PremiumBottomBar(
+          items: tabItems,
+          selectedIndex: activeIndex,
+          storageKey: widget.profile.isAdmin
+              ? 'admin'
+              : widget.profile.isForeman
+              ? 'foreman'
+              : 'worker',
+          onSelected: selectTab,
         ),
       ),
     );

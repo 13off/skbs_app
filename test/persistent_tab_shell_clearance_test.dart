@@ -18,7 +18,9 @@ const navigationItems = <ProfessionalBottomNavigationItem>[
 ];
 
 void main() {
-  testWidgets('tab content ends above the floating navigation', (tester) async {
+  testWidgets('tab body physically ends above the floating panel', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -53,10 +55,6 @@ void main() {
         )
         .dy;
 
-    expect(
-      find.byKey(const ValueKey('persistent-tab-content-clearance')),
-      findsOneWidget,
-    );
     expect(contentBottom, lessThanOrEqualTo(navigationTop + 0.1));
     expect(tester.takeException(), isNull);
   });
