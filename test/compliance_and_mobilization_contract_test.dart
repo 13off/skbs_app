@@ -119,18 +119,23 @@ void main() {
     expect('$compliance\n$mobilization', isNot(contains('service_role')));
   });
 
-  test('HR получил отдельную вкладку выхода на объект', () {
+  test('календарь вылетов сохраняет доступ к подготовке выхода на объект', () {
     final mainScreen = File(
       'lib/features/recruitment/presentation/recruitment_main_screen.dart',
     ).readAsStringSync();
-    final screen = File(
+    final flightCalendar = File(
+      'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
+    ).readAsStringSync();
+    final mobilizationScreen = File(
       'lib/features/recruitment/presentation/recruitment_mobilization_screen.dart',
     ).readAsStringSync();
 
     expect(mainScreen, contains('pageCount = 5'));
-    expect(mainScreen, contains("label: 'Выход'"));
-    expect(screen, contains('Билеты оформлены'));
-    expect(screen, contains('Медицинский допуск получен'));
-    expect(screen, contains('Включён в табель'));
+    expect(mainScreen, contains('RecruitmentFlightCalendarScreen'));
+    expect(mainScreen, contains("label: 'Вылеты'"));
+    expect(flightCalendar, contains('RecruitmentMobilizationScreen'));
+    expect(mobilizationScreen, contains('Билеты оформлены'));
+    expect(mobilizationScreen, contains('Медицинский допуск получен'));
+    expect(mobilizationScreen, contains('Включён в табель'));
   });
 }

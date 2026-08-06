@@ -31,10 +31,40 @@ const items = <ProfessionalBottomNavigationItem>[
   ),
 ];
 
+const hrItems = <ProfessionalBottomNavigationItem>[
+  ProfessionalBottomNavigationItem(
+    label: 'Сегодня',
+    icon: Icons.home_outlined,
+    selectedIcon: Icons.home_rounded,
+  ),
+  ProfessionalBottomNavigationItem(
+    label: 'Кандидаты',
+    icon: Icons.view_kanban_outlined,
+    selectedIcon: Icons.view_kanban_rounded,
+  ),
+  ProfessionalBottomNavigationItem(
+    label: 'Оформление',
+    icon: Icons.assignment_ind_outlined,
+    selectedIcon: Icons.assignment_ind_rounded,
+  ),
+  ProfessionalBottomNavigationItem(
+    label: 'Вылеты',
+    icon: Icons.calendar_month_outlined,
+    selectedIcon: Icons.calendar_month_rounded,
+  ),
+  ProfessionalBottomNavigationItem(
+    label: 'Профиль',
+    icon: Icons.person_outline_rounded,
+    selectedIcon: Icons.person_rounded,
+  ),
+];
+
 Future<void> pumpNavigation(
   WidgetTester tester,
   Size size, {
   required ValueChanged<int> onSelected,
+  List<ProfessionalBottomNavigationItem> navigationItems = items,
+  double textScaleFactor = 1,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -44,6 +74,15 @@ Future<void> pumpNavigation(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(textScaleFactor),
+          ),
+          child: child!,
+        );
+      },
       home: Scaffold(
         body: const ColoredBox(
           key: ValueKey('screen-body'),
@@ -51,7 +90,7 @@ Future<void> pumpNavigation(
           child: SizedBox.expand(),
         ),
         bottomNavigationBar: ProfessionalBottomNavigation(
-          items: items,
+          items: navigationItems,
           selectedIndex: 0,
           onSelected: onSelected,
         ),
@@ -113,6 +152,25 @@ void main() {
       for (final item in items) {
         expect(find.text(item.label), findsOneWidget);
       }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'mobile navigation never overflows on a narrow screen with large text',
+    (tester) async {
+      await pumpNavigation(
+        tester,
+        const Size(320, 640),
+        navigationItems: hrItems,
+        textScaleFactor: 2,
+        onSelected: (_) {},
+      );
+
+      for (final item in hrItems) {
+        expect(find.text(item.label), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
     },
   );
 }

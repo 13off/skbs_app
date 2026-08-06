@@ -3,14 +3,18 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('HR получает отдельные вкладки оформления и выхода', () {
+  test('HR получает отдельные вкладки оформления и вылетов', () {
     final main = File(
       'lib/features/recruitment/presentation/recruitment_main_screen.dart',
     ).readAsStringSync();
+    final flightCalendar = File(
+      'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
+    ).readAsStringSync();
     expect(main, contains('RecruitmentOnboardingScreen'));
-    expect(main, contains('RecruitmentMobilizationScreen'));
+    expect(main, contains('RecruitmentFlightCalendarScreen'));
+    expect(flightCalendar, contains('RecruitmentMobilizationScreen'));
     expect(main, contains("label: 'Оформление'"));
-    expect(main, contains("label: 'Выход'"));
+    expect(main, contains("label: 'Вылеты'"));
     expect(main, contains('pageCount = 5'));
   });
 

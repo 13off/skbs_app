@@ -7,7 +7,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import 'recruitment_applications_screen.dart';
 import 'recruitment_dashboard_screen.dart';
-import 'recruitment_mobilization_screen.dart';
+import 'recruitment_flight_calendar_screen.dart';
 import 'recruitment_onboarding_screen.dart';
 
 class RecruitmentMainScreen extends StatefulWidget {
@@ -50,7 +50,7 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
       ),
       1 => RecruitmentApplicationsScreen(profile: widget.profile),
       2 => RecruitmentOnboardingScreen(profile: widget.profile),
-      3 => RecruitmentMobilizationScreen(profile: widget.profile),
+      3 => RecruitmentFlightCalendarScreen(profile: widget.profile),
       4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -78,9 +78,9 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
           selectedIcon: Icons.assignment_ind_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Выход',
-          icon: Icons.flight_takeoff_outlined,
-          selectedIcon: Icons.flight_takeoff_rounded,
+          label: 'Вылеты',
+          icon: Icons.calendar_month_outlined,
+          selectedIcon: Icons.calendar_month_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
