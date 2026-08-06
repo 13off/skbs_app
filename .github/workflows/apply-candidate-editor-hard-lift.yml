@@ -1,0 +1,59 @@
+name: Apply candidate editor hard lift
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/candidate-editor-hard-lift.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Apply hard lift
+        run: python3 tool/apply_candidate_editor_hard_lift.py
+
+      - name: Format
+        run: dart format lib/features/recruitment/presentation/recruitment_applications_screen.dart
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Verify
+        shell: bash
+        run: |
+          grep -q "final lift = keyboardInset > 0 ? 0.0 : 112.0;" lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          grep -q "return Transform.translate" lib/features/recruitment/presentation/recruitment_applications_screen.dart
+          git diff --check
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-candidate-editor-hard-lift.yml
+          rm -f release/candidate-editor-hard-lift.txt
+          rm -f tool/apply_candidate_editor_hard_lift.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Жёстко поднять карточку нового кандидата"
+          git push
