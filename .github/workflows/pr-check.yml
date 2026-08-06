@@ -2,88 +2,194 @@ name: PR Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+    paths:
+      - lib/**
+      - test/**
+      - assets/**
+      - web/**
+      - tool/web_smoke.py
+      - supabase/functions/**
+      - supabase/migrations/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .fvmrc
+      - .github/workflows/**
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: appstroy-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  apply-candidate-editor-clearance:
-    if: github.event.pull_request.head.ref == 'agent/lift-candidate-editor'
+  flutter-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout fix branch
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
+          show-progress: false
 
-      - name: Apply candidate editor clearance
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile >/dev/null
+
+      - name: Analyze source strictly
+        id: analyze
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('lib/features/recruitment/presentation/recruitment_applications_screen.dart')
-          text = path.read_text(encoding='utf-8')
-          marker = 'AppUi.navigationTotalHeight(context) + AppUi.gap12'
-          if marker not in text:
-              old = """  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: EdgeInsets.fromLTRB(
-        18,
-        16,
-        18,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-      ),
-"""
-              new = """  @override
-  Widget build(BuildContext context) {
-    final mediaSize = MediaQuery.sizeOf(context);
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final bottomClearance = keyboardInset > 0
-        ? AppUi.gap12
-        : AppUi.navigationTotalHeight(context) + AppUi.gap12;
-    final availableHeight =
-        mediaSize.height - bottomClearance - (AppUi.gap12 * 2);
-
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        AppUi.gap12,
-        AppUi.gap12,
-        AppUi.gap12,
-        bottomClearance,
-      ),
-      padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + keyboardInset),
-      constraints: BoxConstraints(maxHeight: availableHeight),
-"""
-              if old not in text:
-                  raise SystemExit('Candidate editor layout block was not found')
-              path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
-
-          git diff --check
-
-      - name: Commit fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "AppStroy automation"
-          git config user.email "actions@users.noreply.github.com"
-          if [ -f .github/workflows/patch-candidate-editor-clearance.yml ]; then
-            git rm .github/workflows/patch-candidate-editor-clearance.yml
+          set +e
+          flutter analyze > /tmp/flutter-analyze.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- Flutter analyzer failure ---"
+            tail -n 160 /tmp/flutter-analyze.log
+            exit "$status"
           fi
-          git add lib/features/recruitment/presentation/recruitment_applications_screen.dart
-          if git diff --cached --quiet; then
-            echo "Nothing to commit"
+          tail -n 20 /tmp/flutter-analyze.log
+
+      - name: Run regression tests
+        id: regression
+        shell: bash
+        run: |
+          set +e
+          flutter test --reporter compact > /tmp/flutter-test.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "--- Flutter test failure (last 220 lines) ---"
+            tail -n 220 /tmp/flutter-test.log
+            exit "$status"
+          fi
+          tail -n 20 /tmp/flutter-test.log
+
+      - name: Build web release
+        run: flutter build web --release --base-href /appstroy-web/
+
+      - name: Install browser smoke dependencies
+        run: python3 -m pip install --disable-pip-version-check --quiet selenium==4.28.1 pillow==11.1.0
+
+      - name: Run headless Chrome browser smoke
+        id: browser-smoke
+        run: python3 tool/web_smoke.py
+
+      - name: Upload browser smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-evidence
+          path: .artifacts/browser-smoke
+          if-no-files-found: warn
+          retention-days: 3
+
+      - name: Upload failing analyzer log
+        if: failure() && steps.analyze.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analyze-log
+          path: /tmp/flutter-analyze.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload failing test log
+        if: failure() && steps.regression.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-log
+          path: /tmp/flutter-test.log
+          if-no-files-found: error
+          retention-days: 3
+
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check changed Edge Functions
+        id: edge-check
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ]; then
+            git diff --name-only "$BASE_SHA"...HEAD -- supabase/functions \
+              | grep -E '\.tsx?$' > /tmp/edge-files.txt || true
+          else
+            find supabase/functions -type f -name '*.ts' -print \
+              > /tmp/edge-files.txt
+          fi
+
+          if [ ! -s /tmp/edge-files.txt ]; then
+            echo "Edge Functions were not changed."
             exit 0
           fi
-          git commit -m "Поднять карточку нового кандидата над навигацией"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+          : > /tmp/deno-check.log
+          while IFS= read -r file; do
+            echo "deno check $file" | tee -a /tmp/deno-check.log
+            set +e
+            deno check "$file" >> /tmp/deno-check.log 2>&1
+            status=$?
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "--- Deno check failure ---"
+              tail -n 160 /tmp/deno-check.log
+              exit "$status"
+            fi
+          done < /tmp/edge-files.txt
+          tail -n 40 /tmp/deno-check.log
+
+      - name: Guard changed SQL migrations
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ]; then
+            git diff --name-only "$BASE_SHA"...HEAD -- supabase/migrations \
+              | grep -E '\.sql$' > /tmp/migration-files.txt || true
+          else
+            find supabase/migrations -type f -name '*.sql' -print \
+              > /tmp/migration-files.txt
+          fi
+
+          if [ ! -s /tmp/migration-files.txt ]; then
+            echo "SQL migrations were not changed."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            test -s "$file"
+            if grep -nE '^(<<<<<<<|=======|>>>>>>>)' "$file"; then
+              echo "Conflict marker found in $file"
+              exit 1
+            fi
+          done < /tmp/migration-files.txt
+
+      - name: Upload failing Deno log
+        if: failure() && steps.edge-check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-check-log
+          path: /tmp/deno-check.log
+          if-no-files-found: error
+          retention-days: 3
