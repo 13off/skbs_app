@@ -1,0 +1,1 @@
+Replace the black strip behind the translucent bottom navigation with the active screen background while keeping navigation outside the page body.
