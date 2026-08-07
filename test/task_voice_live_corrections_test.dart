@@ -16,7 +16,7 @@ void main() {
   test('последняя явная дата заменяет предыдущую во время той же записи', () {
     final result = parseForemanTaskVoice(
       transcript:
-          'Дата завтра оси один два бэ вид работ армирование исполнитель Дементьев нет дата послезавтра',
+          'Дата завтра оси один два бэ вид работ армирование исполнитель Дементьев нет дату послезавтра',
       now: DateTime(2026, 8, 7),
       employees: employees,
     );
@@ -35,6 +35,18 @@ void main() {
     );
 
     expect(result.date, DateTime(2026, 8, 8));
+    expect(result.axes, '5–8 / А–Г');
+    expect(result.work, 'Армирование');
+  });
+
+  test('распознаёт форму «ось», если Web Speech вернул единственное число', () {
+    final result = parseForemanTaskVoice(
+      transcript:
+          'Дата завтра ось пять восемь а г вид работ армирование исполнитель Дементьев',
+      now: DateTime(2026, 8, 7),
+      employees: employees,
+    );
+
     expect(result.axes, '5–8 / А–Г');
     expect(result.work, 'Армирование');
   });
