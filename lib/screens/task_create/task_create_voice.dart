@@ -4,9 +4,37 @@
 
 part of '../add_task_screen.dart';
 
+const _taskVoiceDomainHints = <String>[
+  'оси',
+  'армирование',
+  'арматура',
+  'опалубка',
+  'бетонирование',
+  'бетон',
+  'колонна',
+  'колонны',
+  'стена',
+  'стены',
+  'перекрытие',
+  'плита',
+  'фундамент',
+  'ростверк',
+  'ригель',
+  'балка',
+  'лестница',
+  'захватка',
+  'секция',
+  'этаж',
+  'монтаж',
+  'демонтаж',
+  'закончить',
+  'выполнить',
+  'подготовить',
+];
+
 extension _TaskCreateVoice on _AddTaskScreenState {
   Widget buildVoiceAssistantCard() {
-    final canListen = !isListeningVoice && !isLoadingEmployees;
+    final canUseVoice = !isLoadingEmployees;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -58,7 +86,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           ),
           const SizedBox(height: 12),
           Text(
-            'Например: «На завтра, оси 5–8 А–Г, закончить армирование стены, Иванов и Ахмедов».',
+            isListeningVoice
+                ? 'Говорите в своём темпе. Можно делать паузы — запись закончится только после нажатия «Стоп».'
+                : 'Например: «На завтра, оси 5–8 А–Г, закончить армирование стены, Иванов и Ахмедов».',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               height: 1.35,
@@ -70,17 +100,17 @@ extension _TaskCreateVoice on _AddTaskScreenState {
             width: double.infinity,
             height: 50,
             child: FilledButton.icon(
-              onPressed: canListen ? captureVoiceTask : null,
-              icon: isListeningVoice
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.mic_rounded),
+              onPressed: !canUseVoice
+                  ? null
+                  : isListeningVoice
+                  ? stopVoiceTask
+                  : captureVoiceTask,
+              icon: Icon(
+                isListeningVoice ? Icons.stop_rounded : Icons.mic_rounded,
+              ),
               label: Text(
                 isListeningVoice
-                    ? 'Слушаю…'
+                    ? 'Стоп'
                     : isLoadingEmployees
                     ? 'Загружаем сотрудников…'
                     : 'Сказать задачу',
@@ -122,13 +152,19 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     if (isListeningVoice) return;
     setState(() {
       isListeningVoice = true;
-      voiceMessage = null;
+      voiceMessage = 'Слушаю. Когда закончите — нажмите «Стоп».';
       voiceHasWarning = false;
       errorText = null;
     });
 
     try {
-      final transcript = await recognizeTaskVoice();
+      final transcript = await recognizeTaskVoice(
+        hints: <String>[
+          ..._taskVoiceDomainHints,
+          for (final employee in employees)
+            if (employee.name.trim().isNotEmpty) employee.name.trim(),
+        ],
+      );
       final parsed = parseTaskVoice(
         transcript: transcript,
         now: DateTime.now(),
@@ -199,5 +235,14 @@ extension _TaskCreateVoice on _AddTaskScreenState {
         });
       }
     }
+  }
+
+  Future<void> stopVoiceTask() async {
+    if (!isListeningVoice) return;
+    setState(() {
+      voiceMessage = 'Останавливаю запись и разбираю задачу…';
+      voiceHasWarning = false;
+    });
+    await stopTaskVoiceRecognition();
   }
 }
