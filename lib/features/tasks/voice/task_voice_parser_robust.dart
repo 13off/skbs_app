@@ -3,9 +3,9 @@ import 'task_voice_parser.dart';
 
 /// Усиленный разбор живой диктовки прораба.
 ///
-/// Базовый парсер остаётся источником истины для даты и обычных форматов.
-/// Здесь дополнительно нормализуем живые оси и аккуратно сопоставляем слегка
-/// искажённые браузером фамилии только с реальными сотрудниками объекта.
+/// Базовый парсер остаётся источником истины для обычных форматов.
+/// Явные голосовые поправки работают по правилу «последняя команда по полю
+/// побеждает»: дата, оси и вид работ могут быть исправлены прямо в той же записи.
 TaskVoiceDraft parseForemanTaskVoice({
   required String transcript,
   required DateTime now,
@@ -22,6 +22,7 @@ TaskVoiceDraft parseForemanTaskVoice({
     now: now,
     employees: employees,
   );
+  final labeledDate = _extractLabeledDate(transcript, now);
   final labeledWork = _extractLabeledWork(transcript);
   final fuzzy = _matchFuzzyEmployees(
     transcript,
@@ -46,7 +47,7 @@ TaskVoiceDraft parseForemanTaskVoice({
   }
 
   return TaskVoiceDraft(
-    date: parsed.date,
+    date: labeledDate ?? parsed.date,
     axes: spokenAxes?.value ?? parsed.axes,
     work: work,
     assigneeIds: assigneeIds,
@@ -130,6 +131,8 @@ _FuzzyEmployeeResult _matchFuzzyEmployees(
 const _fuzzyStopWords = <String>{
   'сегодня',
   'завтра',
+  'послезавтра',
+  'дата',
   'задача',
   'работа',
   'работы',
@@ -209,6 +212,33 @@ String _normalize(String value) => value
     .replaceAll(RegExp(r'\s+'), ' ')
     .trim();
 
+DateTime? _extractLabeledDate(String source, DateTime now) {
+  final markers = RegExp(r'дата', caseSensitive: false).allMatches(source).toList();
+  if (markers.isEmpty) return null;
+
+  for (final marker in markers.reversed) {
+    var tail = source.substring(marker.end);
+    final nextField = _nextVoiceFieldMarker(tail);
+    if (nextField != null) {
+      tail = tail.substring(0, nextField.start);
+    }
+    final parsed = parseTaskVoice(
+      transcript: tail,
+      now: now,
+      employees: const <Employee>[],
+    );
+    if (parsed.date != null) return parsed.date;
+  }
+  return null;
+}
+
+RegExpMatch? _nextVoiceFieldMarker(String source) {
+  return RegExp(
+    r'(?:дата|(?:оси?|по\s+осям)|вид\s+работ(?:ы)?|исполнител(?:ь|и|ей|ям|я)?)',
+    caseSensitive: false,
+  ).firstMatch(source);
+}
+
 class _SpokenAxes {
   final String value;
   final int start;
@@ -218,12 +248,20 @@ class _SpokenAxes {
 }
 
 _SpokenAxes? _extractSpokenAxes(String source) {
-  final marker = RegExp(
+  final markers = RegExp(
     r'(?:оси?|по\s+осям)',
     caseSensitive: false,
-  ).firstMatch(source);
-  if (marker == null) return null;
+  ).allMatches(source).toList();
+  if (markers.isEmpty) return null;
 
+  for (final marker in markers.reversed) {
+    final parsed = _extractSpokenAxesAt(source, marker);
+    if (parsed != null) return parsed;
+  }
+  return null;
+}
+
+_SpokenAxes? _extractSpokenAxesAt(String source, RegExpMatch marker) {
   final tail = source.substring(marker.end);
   final tokens = RegExp(r'[А-Яа-яЁёA-Za-z0-9]+').allMatches(tail).toList();
   if (tokens.isEmpty) return null;
@@ -427,26 +465,24 @@ const _axisLetters = <String, String>{
 };
 
 String _extractLabeledWork(String source) {
-  final marker = RegExp(
+  final markers = RegExp(
     r'вид\s+работ(?:ы)?',
     caseSensitive: false,
-  ).firstMatch(source);
-  if (marker == null) return '';
+  ).allMatches(source).toList();
+  if (markers.isEmpty) return '';
 
-  final tail = source.substring(marker.end);
-  final assigneeMarker = RegExp(
-    r'исполнител(?:ь|и|ей|ям|я)?',
-    caseSensitive: false,
-  ).firstMatch(tail);
-  final raw = assigneeMarker == null
-      ? tail
-      : tail.substring(0, assigneeMarker.start);
-  final clean = raw
-      .replaceAll(RegExp(r'^[\s:;,.-]+|[\s:;,.-]+$'), '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-  if (clean.isEmpty) return '';
-  return '${clean[0].toUpperCase()}${clean.substring(1)}';
+  for (final marker in markers.reversed) {
+    final tail = source.substring(marker.end);
+    final nextField = _nextVoiceFieldMarker(tail);
+    final raw = nextField == null ? tail : tail.substring(0, nextField.start);
+    final clean = raw
+        .replaceAll(RegExp(r'^[\s:;,.-]+|[\s:;,.-]+$'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (clean.isEmpty) continue;
+    return '${clean[0].toUpperCase()}${clean.substring(1)}';
+  }
+  return '';
 }
 
 String _removeSpan(String source, int start, int end) {
