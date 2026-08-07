@@ -5,6 +5,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../employee/presentation/employee_platform_with_passport.dart';
+import '../../whats_new/presentation/role_aware_whats_new_gate.dart';
 import 'premium_auth_gate_v2.dart' as management;
 
 class AuthGate extends StatelessWidget {
@@ -49,7 +50,10 @@ class AuthGate extends StatelessWidget {
               );
             }
 
-            return EmployeePlatformWithPassport(profile: profile);
+            return WhatsNewGate(
+              profile: profile,
+              child: EmployeePlatformWithPassport(profile: profile),
+            );
           },
         );
       },
