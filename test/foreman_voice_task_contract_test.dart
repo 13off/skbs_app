@@ -31,7 +31,7 @@ void main() {
 
     expect(voice, contains("? 'Стоп'"));
     expect(voice, contains('stopTaskVoiceRecognition()'));
-    expect(voice, contains('_taskVoiceDomainHints'));
+    expect(voice, contains('_buildTaskVoiceHints(employees)'));
     expect(voice, contains('employee.name.trim()'));
     expect(web, contains("setProperty('continuous'.toJS, true.toJS)"));
     expect(web, contains("setProperty('interimResults'.toJS, true.toJS)"));
@@ -56,14 +56,15 @@ void main() {
     expect(recognition, contains('void Function(String transcript)? onPartial'));
     expect(voice, contains('onPartial: applyVoicePartial'));
     expect(voice, contains('void applyVoicePartial(String transcript)'));
-    expect(voice, contains('поля ниже — они заполняются сразу'));
+    expect(voice, contains('Поля заполняются сразу'));
     expect(voice, contains('Все четыре поля распознаны'));
+    expect(voice, contains('Ещё нужно:'));
     expect(web, contains('_publishPartial(session)'));
     expect(web, contains('session.onPartial?.call(text)'));
     expect(web, contains('session.interim'));
   });
 
-  test('фамилии сотрудников передаются распознавателю отдельными подсказками', () {
+  test('фамилии получают приоритет, фонетическое сравнение и живую коррекцию', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
     ).readAsStringSync();
@@ -71,10 +72,27 @@ void main() {
       'lib/features/tasks/voice/task_voice_parser_robust.dart',
     ).readAsStringSync();
 
-    expect(voice, contains("split(RegExp(r'\\s+')).take(2)"));
+    expect(voice, contains('final surnames = <String>[]'));
+    expect(voice, contains('...surnames'));
+    expect(voice, contains('...fullNames'));
+    expect(voice, contains('_voicePhoneticKey'));
+    expect(voice, contains('_voiceEditDistance'));
+    expect(voice, contains('_resolveVoiceEmployeeIds'));
+    expect(voice, contains('markers.last.end'));
+    expect(voice, contains('исполнитель Фамилия'));
+    expect(voice, contains('Фамилию пока не понял'));
     expect(robust, contains('_matchFuzzyEmployees'));
-    expect(robust, contains('_editDistance'));
-    expect(robust, contains('surnameCounts'));
+  });
+
+  test('приоритет фамилий идёт раньше общего строительного словаря', () {
+    final voice = File(
+      'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+
+    final surnames = voice.indexOf('...surnames');
+    final domain = voice.indexOf('..._taskVoiceDomainHints');
+    expect(surnames, greaterThanOrEqualTo(0));
+    expect(domain, greaterThan(surnames));
   });
 
   test('Android и iOS запрашивают только нужные голосовые разрешения', () {
