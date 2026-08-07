@@ -11,11 +11,14 @@ Future<String> recognizeTaskVoice() async {
       'Голосовой ввод не поддерживается этим браузером. Откройте AppСтрой в Safari или Chrome.',
     );
   }
-  if (constructor is! JSFunction) {
+  if (!constructor.isA<JSFunction>()) {
     throw Exception('Браузер не предоставил распознавание речи.');
   }
+  // isA выше проверяет реальный JS-тип; cast нужен только статической типизации Dart.
+  // ignore: invalid_runtime_check_with_js_interop_types
+  final function = constructor as JSFunction;
 
-  final recognition = constructor.callAsConstructor<JSObject>();
+  final recognition = function.callAsConstructor<JSObject>();
   recognition
     ..setProperty('lang'.toJS, 'ru-RU'.toJS)
     ..setProperty('continuous'.toJS, false.toJS)
