@@ -42,6 +42,41 @@ void main() {
     expect(web, isNot(contains('Duration(seconds: 18)')));
   });
 
+  test('PWA обновляет поля задачи прямо во время речи', () {
+    final voice = File(
+      'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final recognition = File(
+      'lib/features/tasks/voice/task_voice_recognition.dart',
+    ).readAsStringSync();
+    final web = File(
+      'lib/features/tasks/voice/task_voice_recognition_web.dart',
+    ).readAsStringSync();
+
+    expect(recognition, contains('void Function(String transcript)? onPartial'));
+    expect(voice, contains('onPartial: applyVoicePartial'));
+    expect(voice, contains('void applyVoicePartial(String transcript)'));
+    expect(voice, contains('поля ниже — они заполняются сразу'));
+    expect(voice, contains('Все четыре поля распознаны'));
+    expect(web, contains('_publishPartial(session)'));
+    expect(web, contains('session.onPartial?.call(text)'));
+    expect(web, contains('session.interim'));
+  });
+
+  test('фамилии сотрудников передаются распознавателю отдельными подсказками', () {
+    final voice = File(
+      'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final robust = File(
+      'lib/features/tasks/voice/task_voice_parser_robust.dart',
+    ).readAsStringSync();
+
+    expect(voice, contains("split(RegExp(r'\\s+')).take(2)"));
+    expect(robust, contains('_matchFuzzyEmployees'));
+    expect(robust, contains('_editDistance'));
+    expect(robust, contains('surnameCounts'));
+  });
+
   test('Android и iOS запрашивают только нужные голосовые разрешения', () {
     final androidManifest = File(
       'android/app/src/main/AndroidManifest.xml',
