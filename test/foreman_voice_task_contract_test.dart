@@ -14,7 +14,7 @@ void main() {
     expect(view, contains('if (widget.allowDraft)'));
     expect(view, contains('buildVoiceAssistantCard()'));
     expect(voice, contains('Дата • оси • задача • исполнители'));
-    expect(voice, contains('parseTaskVoice('));
+    expect(voice, contains('parseForemanTaskVoice('));
     expect(voice, contains('selectedAssigneeIds'));
     expect(voice, contains('axesController.text'));
     expect(voice, contains('workController.text'));
