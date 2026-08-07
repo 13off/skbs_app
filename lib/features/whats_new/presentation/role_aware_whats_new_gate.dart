@@ -440,7 +440,7 @@ class _DialogHeader extends StatelessWidget {
           onPressed: onClose,
           style: IconButton.styleFrom(
             foregroundColor: Colors.white,
-            backgroundColor: const Color(0x171FFFFFF),
+            backgroundColor: const Color(0x17FFFFFF),
           ),
           icon: const Icon(Icons.close_rounded),
         ),
@@ -1298,7 +1298,7 @@ class _DialogNavigation extends StatelessWidget {
           style: IconButton.styleFrom(
             foregroundColor: Colors.white,
             disabledForegroundColor: const Color(0xFF566172),
-            backgroundColor: const Color(0x171FFFFFF),
+            backgroundColor: const Color(0x17FFFFFF),
           ),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
@@ -1407,7 +1407,7 @@ class _MiniPill extends StatelessWidget {
         color: highlighted ? const Color(0x264A8CFF) : const Color(0xB30E151F),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: highlighted ? const Color(0x554A8CFF) : const Color(0x223FFFFFF),
+          color: highlighted ? const Color(0x554A8CFF) : const Color(0x22FFFFFF),
         ),
       ),
       child: Row(
@@ -1521,7 +1521,7 @@ class _VersionChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: active ? const Color(0x334A8CFF) : const Color(0x151FFFFFF),
+        color: active ? const Color(0x334A8CFF) : const Color(0x15FFFFFF),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1549,7 +1549,7 @@ class _CalendarDay extends StatelessWidget {
       height: 36,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: active ? const Color(0xFF4A8CFF) : const Color(0x181FFFFFF),
+        color: active ? const Color(0xFF4A8CFF) : const Color(0x18FFFFFF),
         borderRadius: BorderRadius.circular(9),
       ),
       child: Text(
