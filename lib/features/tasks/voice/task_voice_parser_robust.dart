@@ -133,6 +133,8 @@ const _fuzzyStopWords = <String>{
   'завтра',
   'послезавтра',
   'дата',
+  'дату',
+  'дате',
   'задача',
   'работа',
   'работы',
@@ -213,7 +215,7 @@ String _normalize(String value) => value
     .trim();
 
 DateTime? _extractLabeledDate(String source, DateTime now) {
-  final markers = RegExp(r'дата', caseSensitive: false).allMatches(source).toList();
+  final markers = RegExp(r'дат(?:а|у|е|ой)', caseSensitive: false).allMatches(source).toList();
   if (markers.isEmpty) return null;
 
   for (final marker in markers.reversed) {
@@ -234,7 +236,7 @@ DateTime? _extractLabeledDate(String source, DateTime now) {
 
 RegExpMatch? _nextVoiceFieldMarker(String source) {
   return RegExp(
-    r'(?:дата|(?:оси?|по\s+осям)|вид\s+работ(?:ы)?|исполнител(?:ь|и|ей|ям|я)?)',
+    r'(?:дат(?:а|у|е|ой)|(?:ось|оси|по\s+осям)|вид\s+работ(?:ы)?|исполнител(?:ь|и|ей|ям|я)?)',
     caseSensitive: false,
   ).firstMatch(source);
 }
@@ -249,7 +251,7 @@ class _SpokenAxes {
 
 _SpokenAxes? _extractSpokenAxes(String source) {
   final markers = RegExp(
-    r'(?:оси?|по\s+осям)',
+    r'(?:ось|оси|по\s+осям)',
     caseSensitive: false,
   ).allMatches(source).toList();
   if (markers.isEmpty) return null;
