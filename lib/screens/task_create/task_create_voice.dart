@@ -106,7 +106,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           const SizedBox(height: 12),
           Text(
             isListeningVoice
-                ? 'Говорите в своём темпе. Можно делать паузы — запись закончится только после нажатия «Стоп».'
+                ? 'Говорите и смотрите на поля ниже — они заполняются сразу. Когда всё распознано правильно, нажмите «Стоп».'
                 : 'Например: «На завтра, оси 5–8 А–Г, закончить армирование стены, Иванов и Ахмедов».',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
@@ -139,7 +139,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           if (voiceTranscript?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 12),
             Text(
-              'Распознано: ${voiceTranscript!.trim()}',
+              isListeningVoice
+                  ? 'Слышу сейчас: ${voiceTranscript!.trim()}'
+                  : 'Распознано: ${voiceTranscript!.trim()}',
               style: TextStyle(
                 color: AppAdaptivePalette.textMuted,
                 fontSize: 12,
@@ -171,7 +173,8 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     if (isListeningVoice) return;
     setState(() {
       isListeningVoice = true;
-      voiceMessage = 'Слушаю. Когда закончите — нажмите «Стоп».';
+      voiceTranscript = null;
+      voiceMessage = 'Слушаю и заполняю поля по мере речи.';
       voiceHasWarning = false;
       errorText = null;
     });
@@ -182,7 +185,11 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           ..._taskVoiceDomainHints,
           for (final employee in employees)
             if (employee.name.trim().isNotEmpty) employee.name.trim(),
+          for (final employee in employees)
+            for (final part in employee.name.trim().split(RegExp(r'\s+')).take(2))
+              if (part.length >= 3) part,
         ],
+        onPartial: applyVoicePartial,
       );
       final parsed = parseForemanTaskVoice(
         transcript: transcript,
@@ -195,10 +202,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       final parsedDate = parsed.date;
       var nextDate = selectedDate;
       if (parsedDate != null) {
-        final sameDate =
-            parsedDate.year == selectedDate.year &&
-            parsedDate.month == selectedDate.month &&
-            parsedDate.day == selectedDate.day;
+        final sameDate = _sameVoiceDate(parsedDate, selectedDate);
         if (widget.allowAnyDate || sameDate) {
           nextDate = parsedDate;
         } else {
@@ -224,11 +228,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
         if (parsed.work.isNotEmpty && !isGoalTask) {
           workController.text = parsed.work;
         }
-        if (parsed.assigneeIds.isNotEmpty) {
-          selectedAssigneeIds
-            ..clear()
-            ..addAll(parsed.assigneeIds);
-        }
+        _applyVoiceAssignees(transcript, parsed.assigneeIds);
         voiceHasWarning = warnings.isNotEmpty;
         voiceMessage = warnings.isEmpty
             ? 'Готово. Проверьте четыре поля и сохраните задачу.'
@@ -256,10 +256,65 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     }
   }
 
+  void applyVoicePartial(String transcript) {
+    if (!mounted || !isListeningVoice || transcript.trim().isEmpty) return;
+    final parsed = parseForemanTaskVoice(
+      transcript: transcript,
+      now: DateTime.now(),
+      employees: employees,
+    );
+    final found = <String>[];
+
+    setState(() {
+      voiceTranscript = transcript;
+      voiceHasWarning = false;
+
+      final parsedDate = parsed.date;
+      if (parsedDate != null) {
+        final sameDate = _sameVoiceDate(parsedDate, selectedDate);
+        if (widget.allowAnyDate || sameDate) {
+          selectedDate = parsedDate;
+          found.add('дата');
+        }
+      }
+      if (parsed.axes.isNotEmpty) {
+        axesController.text = parsed.axes;
+        found.add('оси');
+      }
+      if (parsed.work.isNotEmpty && !isGoalTask) {
+        workController.text = parsed.work;
+        found.add('задача');
+      }
+      _applyVoiceAssignees(transcript, parsed.assigneeIds);
+      if (parsed.assigneeIds.isNotEmpty) found.add('исполнители');
+
+      voiceMessage = found.length == 4
+          ? 'Все четыре поля распознаны. Если всё верно — нажмите «Стоп».'
+          : found.isEmpty
+          ? 'Пока разбираю фразу…'
+          : 'Уже распознано: ${found.join(' • ')}.';
+    });
+  }
+
+  void _applyVoiceAssignees(String transcript, List<String> ids) {
+    final mentionsAssignees = RegExp(
+      r'исполнител(?:ь|и|ей|ям|я)?',
+      caseSensitive: false,
+    ).hasMatch(transcript);
+    if (mentionsAssignees || ids.isNotEmpty) {
+      selectedAssigneeIds
+        ..clear()
+        ..addAll(ids);
+    }
+  }
+
+  bool _sameVoiceDate(DateTime left, DateTime right) =>
+      left.year == right.year && left.month == right.month && left.day == right.day;
+
   Future<void> stopVoiceTask() async {
     if (!isListeningVoice) return;
     setState(() {
-      voiceMessage = 'Останавливаю запись и разбираю задачу…';
+      voiceMessage = 'Останавливаю запись и фиксирую распознанные поля…';
       voiceHasWarning = false;
     });
     await stopTaskVoiceRecognition();

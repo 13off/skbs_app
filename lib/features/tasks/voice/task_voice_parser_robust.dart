@@ -3,9 +3,9 @@ import 'task_voice_parser.dart';
 
 /// Усиленный разбор живой диктовки прораба.
 ///
-/// Базовый парсер остаётся источником истины для даты, сотрудников и обычных
-/// форматов осей. Здесь нормализуем то, что браузерный ASR часто искажает:
-/// числительные словами, названия букв и «Б» -> «6» после числового диапазона.
+/// Базовый парсер остаётся источником истины для даты и обычных форматов.
+/// Здесь дополнительно нормализуем живые оси и аккуратно сопоставляем слегка
+/// искажённые браузером фамилии только с реальными сотрудниками объекта.
 TaskVoiceDraft parseForemanTaskVoice({
   required String transcript,
   required DateTime now,
@@ -23,15 +23,191 @@ TaskVoiceDraft parseForemanTaskVoice({
     employees: employees,
   );
   final labeledWork = _extractLabeledWork(transcript);
+  final fuzzy = _matchFuzzyEmployees(
+    transcript,
+    employees,
+    parsed.assigneeIds.toSet(),
+  );
+
+  final assigneeIds = <String>[...parsed.assigneeIds];
+  final assigneeNames = <String>[...parsed.assigneeNames];
+  for (final employee in fuzzy.employees) {
+    final id = employee.id?.trim() ?? '';
+    if (id.isEmpty || assigneeIds.contains(id)) continue;
+    assigneeIds.add(id);
+    assigneeNames.add(employee.name.trim());
+  }
+
+  var work = labeledWork.isNotEmpty ? labeledWork : parsed.work;
+  if (labeledWork.isEmpty) {
+    for (final token in fuzzy.rawTokens) {
+      work = _removeLooseWord(work, token);
+    }
+  }
 
   return TaskVoiceDraft(
     date: parsed.date,
     axes: spokenAxes?.value ?? parsed.axes,
-    work: labeledWork.isNotEmpty ? labeledWork : parsed.work,
-    assigneeIds: parsed.assigneeIds,
-    assigneeNames: parsed.assigneeNames,
+    work: work,
+    assigneeIds: assigneeIds,
+    assigneeNames: assigneeNames,
   );
 }
+
+class _FuzzyEmployeeResult {
+  final List<Employee> employees;
+  final List<String> rawTokens;
+
+  const _FuzzyEmployeeResult(this.employees, this.rawTokens);
+}
+
+_FuzzyEmployeeResult _matchFuzzyEmployees(
+  String source,
+  List<Employee> employees,
+  Set<String> alreadyMatched,
+) {
+  final marker = RegExp(
+    r'исполнител(?:ь|и|ей|ям|я)?',
+    caseSensitive: false,
+  ).firstMatch(source);
+  final scope = marker == null ? source : source.substring(marker.end);
+  final tokens = RegExp(r'[А-Яа-яЁё]{4,}').allMatches(scope).toList();
+  if (tokens.isEmpty) return const _FuzzyEmployeeResult([], []);
+
+  final surnameCounts = <String, int>{};
+  final candidates = <({Employee employee, String surname})>[];
+  for (final employee in employees) {
+    final id = employee.id?.trim() ?? '';
+    final parts = _normalize(employee.name).split(' ');
+    if (id.isEmpty || parts.isEmpty || parts.first.length < 4) continue;
+    final surname = parts.first;
+    surnameCounts[surname] = (surnameCounts[surname] ?? 0) + 1;
+    candidates.add((employee: employee, surname: surname));
+  }
+
+  final matched = <Employee>[];
+  final rawTokens = <String>[];
+  final claimedIds = <String>{...alreadyMatched};
+  for (final tokenMatch in tokens) {
+    final raw = tokenMatch.group(0) ?? '';
+    final token = _normalize(raw);
+    if (token.length < 4 || _fuzzyStopWords.contains(token)) continue;
+
+    ({Employee employee, int distance})? best;
+    var secondDistance = 999;
+    for (final candidate in candidates) {
+      final id = candidate.employee.id?.trim() ?? '';
+      if (claimedIds.contains(id) || surnameCounts[candidate.surname] != 1) {
+        continue;
+      }
+      final distance = _editDistance(token, candidate.surname);
+      if (best == null || distance < best.distance) {
+        if (best != null) secondDistance = best.distance;
+        best = (employee: candidate.employee, distance: distance);
+      } else if (distance < secondDistance) {
+        secondDistance = distance;
+      }
+    }
+    if (best == null) continue;
+
+    final surname = _normalize(best.employee.name).split(' ').first;
+    final longest = token.length > surname.length ? token.length : surname.length;
+    final maxDistance = longest <= 5 ? 1 : (longest <= 9 ? 2 : 3);
+    final similarity = longest == 0 ? 0.0 : 1 - (best.distance / longest);
+    if (best.distance > maxDistance || similarity < 0.72) continue;
+    if (best.distance >= secondDistance) continue;
+
+    final id = best.employee.id?.trim() ?? '';
+    if (id.isEmpty) continue;
+    claimedIds.add(id);
+    matched.add(best.employee);
+    rawTokens.add(raw);
+  }
+
+  return _FuzzyEmployeeResult(matched, rawTokens);
+}
+
+const _fuzzyStopWords = <String>{
+  'сегодня',
+  'завтра',
+  'задача',
+  'работа',
+  'работы',
+  'армирование',
+  'арматура',
+  'опалубка',
+  'бетонирование',
+  'бетон',
+  'колонна',
+  'колонны',
+  'стена',
+  'стены',
+  'перекрытие',
+  'плита',
+  'фундамент',
+  'ростверк',
+  'ригель',
+  'балка',
+  'лестница',
+  'захватка',
+  'секция',
+  'этаж',
+  'монтаж',
+  'демонтаж',
+  'закончить',
+  'выполнить',
+  'подготовить',
+  'исполнитель',
+  'исполнители',
+};
+
+int _editDistance(String left, String right) {
+  if (left == right) return 0;
+  if (left.isEmpty) return right.length;
+  if (right.isEmpty) return left.length;
+
+  var previous = List<int>.generate(right.length + 1, (index) => index);
+  for (var i = 0; i < left.length; i += 1) {
+    final current = List<int>.filled(right.length + 1, 0);
+    current[0] = i + 1;
+    for (var j = 0; j < right.length; j += 1) {
+      final substitution = previous[j] + (left[i] == right[j] ? 0 : 1);
+      final insertion = current[j] + 1;
+      final deletion = previous[j + 1] + 1;
+      current[j + 1] = _min3(substitution, insertion, deletion);
+    }
+    previous = current;
+  }
+  return previous.last;
+}
+
+int _min3(int first, int second, int third) {
+  var result = first < second ? first : second;
+  if (third < result) result = third;
+  return result;
+}
+
+String _removeLooseWord(String source, String raw) {
+  final word = raw.trim();
+  if (word.isEmpty) return source;
+  return source
+      .replaceAll(
+        RegExp(
+          '(^|[^А-Яа-яЁё])${RegExp.escape(word)}(?=\$|[^А-Яа-яЁё])',
+          caseSensitive: false,
+        ),
+        ' ',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+String _normalize(String value) => value
+    .toLowerCase()
+    .replaceAll('ё', 'е')
+    .replaceAll(RegExp(r'[^а-яa-z0-9]+'), ' ')
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
 
 class _SpokenAxes {
   final String value;

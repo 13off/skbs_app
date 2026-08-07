@@ -4,7 +4,10 @@ const MethodChannel _taskVoiceChannel = MethodChannel(
   'ru.appstroy.skbs/task_voice',
 );
 
-Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) async {
+Future<String> recognizeTaskVoice({
+  List<String> hints = const <String>[],
+  void Function(String transcript)? onPartial,
+}) async {
   try {
     final value = await _taskVoiceChannel.invokeMethod<String>(
       'recognizeTask',
@@ -17,6 +20,7 @@ Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) async
     if (text.isEmpty) {
       throw Exception('Речь не распознана. Попробуйте сказать задачу ещё раз.');
     }
+    onPartial?.call(text);
     return text;
   } on PlatformException catch (error) {
     throw Exception(

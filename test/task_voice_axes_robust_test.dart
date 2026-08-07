@@ -11,6 +11,13 @@ void main() {
       id: 'dementev',
       objectName: 'Мурманск',
     ),
+    const Employee(
+      'Иванов Иван Сергеевич',
+      'Арматурщик',
+      '',
+      id: 'ivanov',
+      objectName: 'Мурманск',
+    ),
   ];
 
   test('чинит реальную фразу с экрана: один два 6 означает 1–2 / Б', () {
@@ -61,5 +68,29 @@ void main() {
 
     expect(result.axes, '5–8 / А–Г');
     expect(result.assigneeIds, <String>['dementev']);
+  });
+
+  test('сопоставляет слегка искаженную браузером фамилию с сотрудником объекта', () {
+    final result = parseForemanTaskVoice(
+      transcript:
+          'Сегодня оси один два бэ вид работ армирование исполнители Дементиев',
+      now: DateTime(2026, 8, 7),
+      employees: employees,
+    );
+
+    expect(result.assigneeIds, <String>['dementev']);
+    expect(result.assigneeNames, <String>['Дементьев Борис Викторович']);
+    expect(result.work, 'Армирование');
+  });
+
+  test('не подбирает далекую фамилию только ради заполнения исполнителя', () {
+    final result = parseForemanTaskVoice(
+      transcript:
+          'Сегодня оси один два бэ вид работ армирование исполнители Сидоров',
+      now: DateTime(2026, 8, 7),
+      employees: employees,
+    );
+
+    expect(result.assigneeIds, isEmpty);
   });
 }
