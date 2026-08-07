@@ -29,9 +29,13 @@ void main() {
         contains('if (kIsWeb) return LocationPermission.whileInUse'),
       );
       expect(runtime, contains('WebSettings('));
-      expect(runtime, contains('maximumAge: Duration(seconds: 30)'));
+      expect(runtime, contains('maximumAge: Duration(minutes: 2)'));
+      expect(runtime, contains('maximumAge: Duration(minutes: 5)'));
+      expect(runtime, contains('accuracy: LocationAccuracy.medium'));
+      expect(runtime, contains('accuracy: LocationAccuracy.low'));
       expect(runtime, contains('on TimeoutException'));
       expect(runtime, contains('final position = await _requiredPosition()'));
+      expect(runtime, contains('Timer.periodic(_captureInterval'));
     },
   );
 
