@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('August what is new uses animated navigable slides', () {
+  test('major what is new uses dark animated navigable scenes', () {
     final source = File(
       'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart',
     ).readAsStringSync();
@@ -14,14 +14,20 @@ void main() {
     expect(source, contains('class _AnimatedUpdatePreview'));
     expect(source, contains('AnimationController'));
     expect(source, contains('disableAnimations'));
+    expect(source, contains('BackdropFilter'));
+    expect(source, contains('ImageFilter.blur'));
     expect(source, contains('_UpdatePreviewKind.employee'));
     expect(source, contains('_UpdatePreviewKind.route'));
-    expect(source, contains('_UpdatePreviewKind.maxLogin'));
     expect(source, contains('_UpdatePreviewKind.procurement'));
-    expect(source, contains('_UpdatePreviewKind.pwa'));
+    expect(source, contains('_UpdatePreviewKind.employment'));
+    expect(source, contains('_UpdatePreviewKind.documents'));
+    expect(source, contains('_UpdatePreviewKind.flights'));
+    expect(source, contains('_UpdatePreviewKind.brand'));
+    expect(source, contains('_UpdatePreviewKind.performance'));
+    expect(source, contains('_UpdatePreviewKind.bugs'));
     expect(
       source,
-      contains('mobile-2026-08-05-employee-workspace-and-procurement-v1'),
+      contains('mobile-2026-08-07-role-aware-major-update-v1'),
     );
   });
 }
