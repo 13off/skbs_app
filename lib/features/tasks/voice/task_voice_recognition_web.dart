@@ -9,14 +9,23 @@ class _WebVoiceSession {
   final Completer<String> completer = Completer<String>();
   final List<String> hints;
   final List<String> segments = <String>[];
+  final void Function(String transcript)? onPartial;
 
   String interim = '';
+  String lastPublished = '';
   bool stopRequested = false;
 
-  _WebVoiceSession({required this.recognition, required this.hints});
+  _WebVoiceSession({
+    required this.recognition,
+    required this.hints,
+    required this.onPartial,
+  });
 }
 
-Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) {
+Future<String> recognizeTaskVoice({
+  List<String> hints = const <String>[],
+  void Function(String transcript)? onPartial,
+}) {
   if (_activeSession != null) {
     throw Exception('Голосовой ввод уже запущен.');
   }
@@ -33,6 +42,7 @@ Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) {
   final session = _WebVoiceSession(
     recognition: recognition,
     hints: cleanHints,
+    onPartial: onPartial,
   );
   _activeSession = session;
 
@@ -72,6 +82,7 @@ Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) {
         session.interim = text;
       }
     }
+    _publishPartial(session);
   }
 
   void handleError(JSAny? eventValue) {
@@ -92,6 +103,7 @@ Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) {
   void handleEnd() {
     if (_activeSession != session || session.completer.isCompleted) return;
     _commitInterim(session);
+    _publishPartial(session);
 
     if (session.stopRequested) {
       _finishSuccess(session);
@@ -184,7 +196,7 @@ void _applySpeechGrammar(JSObject recognition, List<String> hints) {
     // ignore: invalid_runtime_check_with_js_interop_types
     final function = constructor as JSFunction;
     final grammars = function.callAsConstructor<JSObject>();
-    final alternatives = hints.take(120).join(' | ');
+    final alternatives = hints.take(160).join(' | ');
     final grammar =
         '#JSGF V1.0; grammar appstroy; public <term> = $alternatives ;';
     grammars.callMethod<JSAny?>(
@@ -208,7 +220,7 @@ List<String> _normalizeHints(List<String> hints) {
         .replaceAll(RegExp(r'[^а-яa-z0-9 ]+'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    if (clean.length >= 3) values.add(clean);
+    if (clean.length >= 2) values.add(clean);
   }
   return values.toList(growable: false);
 }
@@ -269,6 +281,22 @@ double _hintScore(String transcript, List<String> hints) {
   return score > 0.8 ? 0.8 : score;
 }
 
+String _liveTranscript(_WebVoiceSession session) => <String>[
+  ...session.segments,
+  if (session.interim.trim().isNotEmpty) session.interim.trim(),
+].join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+
+void _publishPartial(_WebVoiceSession session) {
+  final text = _liveTranscript(session);
+  if (text.isEmpty || text == session.lastPublished) return;
+  session.lastPublished = text;
+  try {
+    session.onPartial?.call(text);
+  } catch (_) {
+    // Ошибка UI-предпросмотра не должна останавливать микрофон.
+  }
+}
+
 void _commitInterim(_WebVoiceSession session) {
   final text = session.interim.trim();
   session.interim = '';
@@ -281,6 +309,7 @@ void _commitInterim(_WebVoiceSession session) {
 void _finishSuccess(_WebVoiceSession session) {
   if (session.completer.isCompleted) return;
   _commitInterim(session);
+  _publishPartial(session);
   final text = session.segments.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
   if (_activeSession == session) _activeSession = null;
   if (text.isEmpty) {
