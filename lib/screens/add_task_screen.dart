@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import '../app/app_adaptive_palette.dart';
 import '../data/employee_repository.dart';
 import '../data/task_repository.dart';
@@ -10,14 +9,15 @@ import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/presentation/task_assignee_controls.dart';
 import '../features/tasks/presentation/task_photo_grid.dart';
 import '../features/tasks/task_draft_support.dart';
+import '../features/tasks/voice/task_voice_parser.dart';
+import '../features/tasks/voice/task_voice_recognition.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
-
 part 'task_create/task_create_actions.dart';
 part 'task_create/task_create_loading.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
-
+part 'task_create/task_create_voice.dart';
 class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
@@ -71,7 +71,6 @@ class AddTaskScreen extends StatefulWidget {
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController axesController = TextEditingController();
   final TextEditingController workController = TextEditingController();
-
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];
@@ -85,8 +84,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   bool isLoadingEmployees = false;
   bool isPickingPhotos = false;
   bool isLoadingPolicy = true;
+  bool isListeningVoice = false;
+  bool voiceHasWarning = false;
   TaskPolicy policy = TaskPolicy.defaults;
   String? errorText;
+  String? voiceTranscript;
+  String? voiceMessage;
 
   bool get requiresBeforePhoto =>
       policy.requireBeforePhoto || widget.initialRequireBeforePhoto;
