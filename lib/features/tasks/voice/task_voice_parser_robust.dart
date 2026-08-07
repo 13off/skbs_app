@@ -43,7 +43,7 @@ class _SpokenAxes {
 
 _SpokenAxes? _extractSpokenAxes(String source) {
   final marker = RegExp(
-    r'\b(?:оси?|по\s+осям)\b',
+    r'(?:оси?|по\s+осям)',
     caseSensitive: false,
   ).firstMatch(source);
   if (marker == null) return null;
@@ -252,14 +252,14 @@ const _axisLetters = <String, String>{
 
 String _extractLabeledWork(String source) {
   final marker = RegExp(
-    r'\bвид\s+работ(?:ы)?\b',
+    r'вид\s+работ(?:ы)?',
     caseSensitive: false,
   ).firstMatch(source);
   if (marker == null) return '';
 
   final tail = source.substring(marker.end);
   final assigneeMarker = RegExp(
-    r'\bисполнител(?:ь|и|ей|ям|я)?\b',
+    r'исполнител(?:ь|и|ей|ям|я)?',
     caseSensitive: false,
   ).firstMatch(tail);
   final raw = assigneeMarker == null
