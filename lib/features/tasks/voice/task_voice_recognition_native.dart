@@ -4,11 +4,14 @@ const MethodChannel _taskVoiceChannel = MethodChannel(
   'ru.appstroy.skbs/task_voice',
 );
 
-Future<String> recognizeTaskVoice() async {
+Future<String> recognizeTaskVoice({List<String> hints = const <String>[]}) async {
   try {
     final value = await _taskVoiceChannel.invokeMethod<String>(
       'recognizeTask',
-      const <String, Object>{'locale': 'ru-RU'},
+      <String, Object>{
+        'locale': 'ru-RU',
+        'hints': hints,
+      },
     );
     final text = value?.trim() ?? '';
     if (text.isEmpty) {
@@ -23,5 +26,14 @@ Future<String> recognizeTaskVoice() async {
     );
   } on MissingPluginException {
     throw Exception('Голосовой ввод пока недоступен на этом устройстве.');
+  }
+}
+
+Future<void> stopTaskVoiceRecognition() async {
+  try {
+    await _taskVoiceChannel.invokeMethod<void>('stopTask');
+  } on MissingPluginException {
+    // Старые мобильные сборки не знают ручную остановку. PWA использует
+    // собственную реализацию; новая мобильная сборка получит канал отдельно.
   }
 }
