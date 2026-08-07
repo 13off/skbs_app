@@ -21,6 +21,27 @@ void main() {
     expect(voice, contains('selectedDate = nextDate'));
   });
 
+  test('PWA слушает до ручного Стоп и использует подсказки', () {
+    final voice = File(
+      'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final web = File(
+      'lib/features/tasks/voice/task_voice_recognition_web.dart',
+    ).readAsStringSync();
+
+    expect(voice, contains("? 'Стоп'"));
+    expect(voice, contains('stopTaskVoiceRecognition()'));
+    expect(voice, contains('_taskVoiceDomainHints'));
+    expect(voice, contains('employee.name.trim()'));
+    expect(web, contains("setProperty('continuous'.toJS, true.toJS)"));
+    expect(web, contains("setProperty('interimResults'.toJS, true.toJS)"));
+    expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
+    expect(web, contains('_applySpeechGrammar'));
+    expect(web, contains('session.stopRequested'));
+    expect(web, contains("callMethod<JSAny?>('stop'.toJS)"));
+    expect(web, isNot(contains('Duration(seconds: 18)')));
+  });
+
   test('Android и iOS запрашивают только нужные голосовые разрешения', () {
     final androidManifest = File(
       'android/app/src/main/AndroidManifest.xml',
