@@ -6,6 +6,23 @@ part of '../add_task_screen.dart';
 
 const _taskVoiceDomainHints = <String>[
   'оси',
+  'ось',
+  'по осям',
+  'один',
+  'два',
+  'три',
+  'четыре',
+  'пять',
+  'шесть',
+  'семь',
+  'восемь',
+  'девять',
+  'десять',
+  'а',
+  'бэ',
+  'вэ',
+  'гэ',
+  'дэ',
   'армирование',
   'арматура',
   'опалубка',
@@ -30,6 +47,8 @@ const _taskVoiceDomainHints = <String>[
   'закончить',
   'выполнить',
   'подготовить',
+  'вид работ',
+  'исполнители',
 ];
 
 extension _TaskCreateVoice on _AddTaskScreenState {
@@ -165,7 +184,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
             if (employee.name.trim().isNotEmpty) employee.name.trim(),
         ],
       );
-      final parsed = parseTaskVoice(
+      final parsed = parseForemanTaskVoice(
         transcript: transcript,
         now: DateTime.now(),
         employees: employees,
