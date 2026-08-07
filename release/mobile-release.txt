@@ -1,11 +1,11 @@
 AppСтрой mobile release
-version: 1.3.6+10
-previous mobile release: 1.3.5+9
-release date: 2026-08-06
+version: 1.3.7+11
+previous mobile release: 1.3.6+10
+release date: 2026-08-07
 release attempt: 1
-accepted application commit: ec3d4e31cf84c03caa3602e96a85deab66722873
+accepted application commit: ee23b528c8833e5a5862c1ff4db376d604e1484d
 release version commit: pending merge
-features: employee route sampling reduced to at most one point every 10 minutes; PWA uses timed polling; Android and iOS use battery-saving location settings
-backend: no database schema, RLS or company-isolation changes
+features: role-aware animated major What’s New release; all current AppСтрой web/mobile fixes through ee23b528; employee route sampling remains battery-saving at up to one point every 10 minutes
+backend: no database schema, RLS or company-isolation changes in this release bump
 mobile: Android release APK and unsigned verification iOS IPA
-quality gates: Android and iOS workflows run full release validation; web deployment runs tests, strict analyzer and browser smoke
+quality gates: Android and iOS workflows run full release validation; web deployment remains independently validated
