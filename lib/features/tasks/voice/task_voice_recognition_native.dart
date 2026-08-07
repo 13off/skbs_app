@@ -12,10 +12,7 @@ Future<String> recognizeTaskVoice() async {
     );
     final text = value?.trim() ?? '';
     if (text.isEmpty) {
-      throw const PlatformException(
-        code: 'empty_speech',
-        message: 'Речь не распознана. Попробуйте сказать задачу ещё раз.',
-      );
+      throw Exception('Речь не распознана. Попробуйте сказать задачу ещё раз.');
     }
     return text;
   } on PlatformException catch (error) {
