@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import '../app/app_adaptive_palette.dart';
 import '../data/employee_repository.dart';
 import '../data/task_repository.dart';
@@ -74,7 +73,6 @@ class AddTaskScreen extends StatefulWidget {
 class _AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController axesController = TextEditingController();
   final TextEditingController workController = TextEditingController();
-
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];
