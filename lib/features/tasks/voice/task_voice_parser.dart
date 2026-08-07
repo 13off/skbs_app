@@ -31,14 +31,16 @@ TaskVoiceDraft parseTaskVoice({
 }) {
   var remaining = transcript.trim();
 
-  final date = _extractDate(remaining, now);
-  if (date != null) {
-    remaining = _removeSpan(remaining, date.start, date.end);
-  }
-
+  // Оси разбираем раньше даты: диапазон вроде «оси 3-5» не должен
+  // восприниматься как календарная дата 3 мая.
   final axes = _extractAxes(remaining);
   if (axes != null) {
     remaining = _removeSpan(remaining, axes.start, axes.end);
+  }
+
+  final date = _extractDate(remaining, now);
+  if (date != null) {
+    remaining = _removeSpan(remaining, date.start, date.end);
   }
 
   final matched = _matchEmployees(remaining, employees);
@@ -89,21 +91,6 @@ _TextSpanValue<DateTime>? _extractDate(String source, DateTime now) {
     }
   }
 
-  final numeric = RegExp(
-    r'(?:на\s+)?(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?',
-    caseSensitive: false,
-  ).firstMatch(source);
-  if (numeric != null) {
-    final day = int.tryParse(numeric.group(1) ?? '');
-    final month = int.tryParse(numeric.group(2) ?? '');
-    var year = int.tryParse(numeric.group(3) ?? '') ?? today.year;
-    if (year < 100) year += 2000;
-    final value = _validDate(year, month, day);
-    if (value != null) {
-      return _TextSpanValue<DateTime>(value, numeric.start, numeric.end);
-    }
-  }
-
   const months = <String, int>{
     'января': 1,
     'февраля': 2,
@@ -136,6 +123,21 @@ _TextSpanValue<DateTime>? _extractDate(String source, DateTime now) {
         spokenDate.start,
         spokenDate.end,
       );
+    }
+  }
+
+  final numeric = RegExp(
+    r'(?:на\s+)?(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?',
+    caseSensitive: false,
+  ).firstMatch(source);
+  if (numeric != null) {
+    final day = int.tryParse(numeric.group(1) ?? '');
+    final month = int.tryParse(numeric.group(2) ?? '');
+    var year = int.tryParse(numeric.group(3) ?? '') ?? today.year;
+    if (year < 100) year += 2000;
+    final value = _validDate(year, month, day);
+    if (value != null) {
+      return _TextSpanValue<DateTime>(value, numeric.start, numeric.end);
     }
   }
 
