@@ -126,10 +126,9 @@ _TextSpanValue<DateTime>? _extractDate(String source, DateTime now) {
   if (spokenDate != null) {
     final day = int.tryParse(spokenDate.group(1) ?? '');
     final month = months[(spokenDate.group(2) ?? '').toLowerCase()];
-    var year = today.year;
-    var value = _validDate(year, month, day);
+    var value = _validDate(today.year, month, day);
     if (value != null && value.isBefore(today)) {
-      value = _validDate(year + 1, month, day);
+      value = _validDate(today.year + 1, month, day);
     }
     if (value != null) {
       return _TextSpanValue<DateTime>(
@@ -304,22 +303,22 @@ Set<String> _variants(String word) {
   if (clean.endsWith('а')) {
     final stem = clean.substring(0, clean.length - 1);
     values
-      ..add('${stem}у')
-      ..add('${stem}ой');
+      ..add('$stemу')
+      ..add('$stemой');
   } else if (clean.endsWith('я')) {
     final stem = clean.substring(0, clean.length - 1);
     values
-      ..add('${stem}ю')
-      ..add('${stem}ей');
+      ..add('$stemю')
+      ..add('$stemей');
   } else if (clean.endsWith('ий')) {
     final stem = clean.substring(0, clean.length - 2);
     values
-      ..add('${stem}ию')
-      ..add('${stem}ия');
+      ..add('$stemию')
+      ..add('$stemия');
   } else if (clean.length >= 3) {
     values
-      ..add('${clean}у')
-      ..add('${clean}а');
+      ..add('$cleanу')
+      ..add('$cleanа');
   }
   return values;
 }
@@ -341,7 +340,7 @@ String _removeEmployeeName(String source, Employee employee) {
 String _removeWord(String source, String word) {
   final escaped = RegExp.escape(word);
   final expression = RegExp(
-    '(^|[^А-Яа-яЁёA-Za-z0-9])$escaped(?=\\\$|[^А-Яа-яЁёA-Za-z0-9])',
+    '(^|[^А-Яа-яЁёA-Za-z0-9])$escaped(?=\$|[^А-Яа-яЁёA-Za-z0-9])',
     caseSensitive: false,
   );
   return source.replaceAllMapped(expression, (match) => match.group(1) ?? '');
