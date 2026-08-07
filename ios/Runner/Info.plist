@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AppСтрой использует микрофон только после нажатия кнопки, чтобы прораб мог заполнить задачу голосом.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>AppСтрой распознаёт произнесённую задачу и заполняет дату, оси, вид работ и исполнителей.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>AppСтрой использует геопозицию для проверки начала и завершения рабочей смены на объекте.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
