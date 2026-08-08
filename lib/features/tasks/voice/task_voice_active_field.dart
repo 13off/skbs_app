@@ -25,8 +25,11 @@ TaskVoiceField? resolveTaskVoiceActiveField({
     r'(?:начн[её]м\s+заново|начать\s+заново)',
     caseSensitive: false,
   );
-  var effectiveCurrent = reset.hasMatch(source) ? null : currentField;
-  final resetMatch = reset.allMatches(source).lastOrNull;
+  final effectiveCurrent = reset.hasMatch(source) ? null : currentField;
+  RegExpMatch? resetMatch;
+  for (final match in reset.allMatches(source)) {
+    resetMatch = match;
+  }
   final searchSource = resetMatch == null
       ? source
       : source.substring(resetMatch.end).trim();
@@ -106,8 +109,4 @@ bool _isTaskVoiceControlOnly(String source) {
   return RegExp(
     r'^(?:все\s+готово|готово|стоп|закончил(?:а|и)?|начнем\s+заново|начать\s+заново)$',
   ).hasMatch(normalized);
-}
-
-extension<T> on Iterable<T> {
-  T? get lastOrNull => isEmpty ? null : last;
 }
