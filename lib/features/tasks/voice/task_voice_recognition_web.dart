@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
+import 'task_voice_axis_hearing.dart';
+
 _WebVoiceSession? _activeSession;
 
 class _WebVoiceSession {
@@ -212,7 +214,7 @@ void _applySpeechGrammar(JSObject recognition, List<String> hints) {
 }
 
 List<String> _normalizeHints(List<String> hints) {
-  final values = <String>{};
+  final values = <String>{..._axisSpeechHints};
   for (final hint in hints) {
     final clean = hint
         .toLowerCase()
@@ -247,7 +249,8 @@ String _bestAlternative(JSObject result, List<String> hints) {
     final confidence = _readDouble(
       alternative.getProperty<JSAny?>('confidence'.toJS),
     );
-    final score = confidence + _hintScore(text, hints);
+    final axisScore = scoreTaskVoiceAxesCandidate(text) * 0.45;
+    final score = confidence + _hintScore(text, hints) + axisScore;
     if (score > bestScore) {
       bestScore = score;
       bestText = text;
@@ -280,6 +283,37 @@ double _hintScore(String transcript, List<String> hints) {
   }
   return score > 0.8 ? 0.8 : score;
 }
+
+const _axisSpeechHints = <String>{
+  'оси',
+  'по осям',
+  'бэ',
+  'бе',
+  'вэ',
+  'ве',
+  'гэ',
+  'ге',
+  'дэ',
+  'де',
+  'жэ',
+  'же',
+  'ка',
+  'эль',
+  'эм',
+  'эн',
+  'пэ',
+  'пе',
+  'эр',
+  'эс',
+  'тэ',
+  'те',
+  'бэгэ',
+  'беге',
+  'беги',
+  'вэгэ',
+  'веге',
+  'бэдэ',
+};
 
 String _liveTranscript(_WebVoiceSession session) => <String>[
   ...session.segments,
