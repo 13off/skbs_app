@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../role_preview/role_preview_controller.dart';
-import 'global_voice_assistant_layer.dart';
+import 'global_voice_assistant_layer_v2.dart';
 
 /// Auth-aware host for the global voice layer.
 ///
@@ -94,7 +94,7 @@ class _GlobalVoiceAssistantAuthOverlayState
       valueListenable: RolePreviewController.state,
       builder: (context, preview, _) {
         final effective = _effectiveProfile(profile, preview);
-        return GlobalVoiceAssistantLayer(
+        return GlobalVoiceAssistantLayerV2(
           key: ValueKey<String>(
             'global-voice:${effective.id}:${effective.role}:${effective.activeCompanyId}',
           ),
