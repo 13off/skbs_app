@@ -13,7 +13,7 @@ class TaskVoiceAxisNormalization {
 }
 
 TaskVoiceAxisNormalization normalizeTaskVoiceAxes(String source) {
-  var clean = source
+  final clean = source
       .toLowerCase()
       .replaceAll('ё', 'е')
       .replaceAll(
@@ -56,11 +56,10 @@ TaskVoiceAxisNormalization normalizeTaskVoiceAxes(String source) {
       continue;
     }
 
-    final isNumber = _isAxisNumber(rawToken);
-    if (isNumber) {
+    if (_isAxisNumber(rawToken)) {
       // В контексте осей после двух числовых координат короткая «Б» часто
-      // приходит из Web Speech как цифра 6. Для формата осей третье число нам
-      // всё равно не нужно, поэтому здесь безопаснее трактовать 6 как «Б».
+      // приходит из Web Speech как цифра 6. Третье число формат осей не ждёт,
+      // поэтому здесь безопаснее трактовать такой 6 как «Б».
       if (rawToken == '6' && numberCount >= 2 && letterCount == 0) {
         output.add('бэ');
         letterCount += 1;
@@ -72,7 +71,7 @@ TaskVoiceAxisNormalization normalizeTaskVoiceAxes(String source) {
     }
 
     // В активном поле «Оси» допускаем до двух посторонних слов/обрывков.
-    // Это закрывает «эээ», шумовые куски и случайные вставки распознавателя.
+    // Это закрывает шум, «эээ» и случайные вставки распознавателя.
     if (ignored < 2) {
       ignored += 1;
       continue;
@@ -131,7 +130,6 @@ const _axisConnectors = <String>{
 const _axisFillers = <String>{
   'ээ',
   'эээ',
-  'эм',
   'мм',
   'ну',
   'так',
@@ -166,7 +164,6 @@ List<String> _splitKnownAxisLetters(String token) {
 }
 
 const _knownGluedAxisErrors = <String, List<String>>{
-  'беги': <String>['бэ', 'гэ'],
   'беги': <String>['бэ', 'гэ'],
   'бэги': <String>['бэ', 'гэ'],
   'веги': <String>['вэ', 'гэ'],
@@ -220,7 +217,6 @@ const _axisLetterAliases = <String, String>{
   'де': 'дэ',
   'ди': 'дэ',
   'е': 'е',
-  'ё': 'е',
   'ж': 'жэ',
   'жэ': 'жэ',
   'же': 'жэ',
