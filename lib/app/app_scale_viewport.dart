@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/ai/presentation/global_voice_assistant_auth_overlay.dart';
+
 /// Масштабирует весь Flutter-интерфейс, а не только текст.
 ///
 /// Значение 100% соответствует новому базовому размеру интерфейса. Визуально
@@ -62,7 +64,7 @@ class AppScaleViewport extends StatelessWidget {
                   effectiveScale,
                 ),
               ),
-              child: child,
+              child: GlobalVoiceAssistantAuthOverlay(child: child),
             ),
           ),
         ),
