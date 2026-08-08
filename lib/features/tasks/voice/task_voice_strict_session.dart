@@ -124,6 +124,8 @@ TaskVoiceSessionResult applyForemanVoiceSession({
           changed.add('исполнители');
         }
         break;
+      default:
+        break;
     }
   }
 
@@ -266,14 +268,14 @@ List<_StrictVoiceMarker> _findStrictMarkers(String source) {
   collect(
     'дата',
     RegExp(
-      r'(^|[^А-Яа-яЁё])(дат(?:а|у|е|ой))(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(дата|дату)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
   collect(
     'оси',
     RegExp(
-      r'(^|[^А-Яа-яЁё])(по\s+осям|оси|ось)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(оси)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
@@ -287,7 +289,7 @@ List<_StrictVoiceMarker> _findStrictMarkers(String source) {
   collect(
     'исполнители',
     RegExp(
-      r'(^|[^А-Яа-яЁё])(исполнител(?:ь|и|ей|ям|я)?)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(исполнитель|исполнители)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
@@ -298,7 +300,7 @@ List<_StrictVoiceMarker> _findStrictMarkers(String source) {
 RegExpMatch? _lastResetMatch(String source) {
   RegExpMatch? result;
   final expression = RegExp(
-    r'(?:начн[её]м\s+заново|начать\s+заново|сначала)',
+    r'(?:начн[её]м\s+заново|начать\s+заново)',
     caseSensitive: false,
   );
   for (final match in expression.allMatches(source)) {
