@@ -1,3 +1,5 @@
+import 'task_voice_axis_hearing.dart';
+
 enum TaskVoiceField { date, axes, work, assignees }
 
 String taskVoiceFieldTitle(TaskVoiceField field) => switch (field) {
@@ -44,9 +46,23 @@ String routeTaskVoiceTranscript({
   required TaskVoiceField? activeField,
 }) {
   final source = transcript.trim();
-  if (source.isEmpty || activeField == null) return transcript;
-  if (_findTaskVoiceFieldMarkers(source).isNotEmpty) return transcript;
+  if (source.isEmpty) return transcript;
   if (_isTaskVoiceControlOnly(source)) return transcript;
+
+  final markers = _findTaskVoiceFieldMarkers(source);
+  if (markers.isNotEmpty) {
+    if (markers.length == 1 && markers.first.field == TaskVoiceField.axes) {
+      final normalized = normalizeTaskVoiceAxesValue(source);
+      return normalized.isEmpty ? transcript : 'оси $normalized';
+    }
+    return transcript;
+  }
+
+  if (activeField == null) return transcript;
+  if (activeField == TaskVoiceField.axes) {
+    final normalized = normalizeTaskVoiceAxesValue(source);
+    return 'оси ${normalized.isEmpty ? source : normalized}';
+  }
   return '${taskVoiceFieldMarker(activeField)} $source';
 }
 
