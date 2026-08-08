@@ -73,6 +73,12 @@ extension _TaskCreateLoading on _AddTaskScreenState {
         setState(() {
           isLoadingEmployees = false;
         });
+        if (widget.startVoiceImmediately && !voiceAutoStartConsumed) {
+          voiceAutoStartConsumed = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !isListeningVoice) captureVoiceTask();
+          });
+        }
       }
     }
   }
