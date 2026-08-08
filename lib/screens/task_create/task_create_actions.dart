@@ -140,9 +140,6 @@ extension _TaskCreateActions on _AddTaskScreenState {
           : List<TaskPhotoFile>.from(selectedPhotos),
       saveAsDraft: asDraft,
       sourceDraftId: widget.sourceDraftId,
-      additionalTasks: asDraft
-          ? const <TaskCreateDraft>[]
-          : buildVoiceAdditionalResults(),
     );
   }
 
@@ -157,7 +154,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
     Navigator.pop(context, buildResult(asDraft: true));
   }
 
-  void saveTask() {
+  Future<void> saveTask() async {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
     final linkedToGoal = isGoalTask;
@@ -194,25 +191,42 @@ extension _TaskCreateActions on _AddTaskScreenState {
       return;
     }
 
-    if (voiceBatchDrafts.length > 1) {
+    final additional = buildVoiceAdditionalResults();
+    if (additional.isNotEmpty) {
       if (requiresBeforePhoto) {
         showValidationError(
           'На объекте обязательны фото «До». Пакет из нескольких задач сохраните по одной, чтобы у каждой были свои фото.',
         );
         return;
       }
-      for (var index = 1; index < voiceBatchDrafts.length; index += 1) {
-        final batch = voiceBatchDrafts[index];
+      for (var index = 0; index < additional.length; index += 1) {
+        final draft = additional[index];
         final error = TaskDraftValidation.coreFields(
-          axes: batch.axes.trim(),
-          work: normalizeTaskVoiceWork(batch.work),
+          axes: draft.task.axes.trim(),
+          work: draft.task.work.trim(),
           linkedToGoal: false,
         );
         if (error != null) {
-          showValidationError('Задача ${index + 1}: $error');
+          showValidationError('Задача ${index + 2}: $error');
           return;
         }
       }
+
+      try {
+        for (final draft in additional) {
+          await TaskRepository.addTaskWithDetails(
+            draft.task,
+            objectName: widget.objectName,
+            assigneeIds: draft.assigneeIds,
+            photos: const <TaskPhotoFile>[],
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        showValidationError('Не удалось сохранить пакет задач: $error');
+        return;
+      }
+      if (!mounted) return;
     }
 
     Navigator.pop(context, buildResult(asDraft: false));
