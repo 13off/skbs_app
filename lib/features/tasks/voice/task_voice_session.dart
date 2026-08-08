@@ -428,29 +428,29 @@ String normalizeTaskVoiceWork(String source) {
         ),
         '',
       )
-      .replaceAll(RegExp(r'\bкороче\b', caseSensitive: false), ' ')
+      .replaceAll(RegExp(r'короче', caseSensitive: false), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
   if (value.isEmpty) return '';
 
   value = value
       .replaceAll(
-        RegExp(r'\bдоармировать\b', caseSensitive: false),
+        RegExp(r'доармировать', caseSensitive: false),
         'завершить армирование',
       )
       .replaceAll(
-        RegExp(r'\bдобить\s+опалубку\b', caseSensitive: false),
+        RegExp(r'добить\s+опалубку', caseSensitive: false),
         'завершить опалубку',
       )
       .replaceAllMapped(
         RegExp(
-          r'\bзалить\s+(плиту|стену|колонну|колонны|ростверк|ригель|балку)\b',
+          r'залить\s+(плиту|стену|колонну|колонны|ростверк|ригель|балку)',
           caseSensitive: false,
         ),
         (match) => 'забетонировать ${match.group(1) ?? ''}',
       )
       .replaceAll(
-        RegExp(r'\bдобить\s+армирование\b', caseSensitive: false),
+        RegExp(r'добить\s+армирование', caseSensitive: false),
         'завершить армирование',
       )
       .replaceAll(RegExp(r'\s+'), ' ')
