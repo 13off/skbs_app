@@ -47,6 +47,7 @@ extension _TaskCreateLoading on _AddTaskScreenState {
   }
 
   Future<void> loadEmployees() async {
+    var loadedSuccessfully = false;
     setState(() {
       isLoadingEmployees = true;
       errorText = null;
@@ -63,6 +64,7 @@ extension _TaskCreateLoading on _AddTaskScreenState {
           return employee.id != null && employee.id!.isNotEmpty;
         }).toList();
       });
+      loadedSuccessfully = true;
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -73,7 +75,9 @@ extension _TaskCreateLoading on _AddTaskScreenState {
         setState(() {
           isLoadingEmployees = false;
         });
-        if (widget.startVoiceImmediately && !voiceAutoStartConsumed) {
+        if (loadedSuccessfully &&
+            widget.startVoiceImmediately &&
+            !voiceAutoStartConsumed) {
           voiceAutoStartConsumed = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !isListeningVoice) captureVoiceTask();
