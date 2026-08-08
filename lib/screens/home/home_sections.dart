@@ -138,7 +138,7 @@ extension _HomeSections on _HomeScreenState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildHeader(context, today),
-                    if (widget.profile.isForeman || widget.profile.isAdmin) ...[
+                    if (widget.profile.isForeman) ...[
                       const SizedBox(height: 14),
                       buildVoiceTaskQuickAction(),
                     ],
