@@ -42,7 +42,7 @@ void main() {
       'lib/features/ai/actions/global_voice_action_execution_coordinator.dart',
     ).readAsStringSync();
     final edge = File(
-      'supabase/functions/ai-global-command/index.ts',
+      'supabase/functions/ai-global-command/bulk_timesheet.ts',
     ).readAsStringSync();
 
     expect(edge, contains('bulk_timesheet_update'));
@@ -59,12 +59,17 @@ void main() {
     final router = File(
       'lib/features/ai/actions/global_voice_action_router.dart',
     ).readAsStringSync();
+    final edgeNavigation = File(
+      'supabase/functions/ai-global-command/navigation.ts',
+    ).readAsStringSync();
 
     expect(router, contains("action.type == 'open_screen'"));
     expect(router, contains('profile.isHr'));
     expect(router, contains('profile.isLawyer'));
     expect(router, contains('profile.isProcurement'));
     expect(router, contains('profile.isAccountant'));
+    expect(edgeNavigation, contains('canOpenScreen'));
+    expect(edgeNavigation, contains('role === "employee"'));
   });
 
   test('global voice stops after a natural speech pause', () {
