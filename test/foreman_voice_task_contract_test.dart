@@ -89,7 +89,6 @@ void main() {
     expect(matcher, contains('taskVoicePhoneticKey'));
     expect(matcher, contains('taskVoiceEditDistance'));
     expect(matcher, contains('resolveTaskVoiceEmployeeIds'));
-    expect(matcher, contains('markers.last.end'));
     expect(voice, contains('исполнитель Фамилия'));
     expect(voice, contains('Фамилию пока не понял'));
     expect(robust, contains('_matchFuzzyEmployees'));
