@@ -1,0 +1,127 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+import {
+  buildBulkTimesheetResult,
+  bulkTimesheetIntent,
+} from "./bulk_timesheet.ts";
+import {
+  buildNavigationResult,
+  navigationTarget,
+} from "./navigation.ts";
+import {
+  baseDate,
+  clean,
+  corsHeaders,
+  json,
+  requestedDate,
+} from "./shared.ts";
+
+Deno.serve(async (request: Request) => {
+  if (request.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  if (request.method !== "POST") {
+    return json({ error: "Метод не поддерживается" }, 405);
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const publishable =
+      Deno.env.get("SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+      "";
+    const authorization = request.headers.get("Authorization") ?? "";
+    if (!supabaseUrl || !publishable || !authorization) {
+      return json({ error: "Сервис голосовых команд не настроен" }, 500);
+    }
+
+    const client = createClient(supabaseUrl, publishable, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const {
+      data: { user },
+      error: userError,
+    } = await client.auth.getUser();
+    if (userError || !user) {
+      return json({ error: "Требуется повторный вход" }, 401);
+    }
+
+    const input = await request.json().catch(() => ({}));
+    const companyId = clean(input.company_id, 80);
+    const requestedObject = clean(input.object_name, 180);
+    const prompt = clean(input.prompt, 4000);
+    const base = baseDate(input.date);
+    if (!companyId || !prompt) {
+      return json({ error: "Недостаточно данных запроса" }, 400);
+    }
+
+    const { data: profile, error: profileError } = await client
+      .from("user_profiles")
+      .select("object_name, active_company_id, is_active")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile || profile.is_active !== true) {
+      return json({ error: "Профиль пользователя недоступен" }, 403);
+    }
+    if (clean(profile.active_company_id, 80) !== companyId) {
+      return json({ error: "Команда работает только с активной компанией" }, 403);
+    }
+
+    const { data: membership, error: membershipError } = await client
+      .from("company_memberships")
+      .select("role")
+      .eq("company_id", companyId)
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (membershipError) throw membershipError;
+    if (!membership) {
+      return json({ error: "Нет доступа к выбранной компании" }, 403);
+    }
+
+    // Membership is the authoritative role for company-scoped commands.
+    const role = clean(membership.role, 30);
+    const assignedObject = clean(profile.object_name, 180);
+    const date = requestedDate(prompt, base);
+
+    const navigation = navigationTarget(prompt);
+    if (navigation != null) {
+      const result = buildNavigationResult({
+        target: navigation,
+        role,
+        date,
+        objectName: role === "foreman" ? assignedObject : requestedObject,
+        prompt,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (bulkTimesheetIntent(prompt)) {
+      const result = await buildBulkTimesheetResult({
+        client,
+        companyId,
+        role,
+        assignedObject,
+        requestedObject,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    // Existing task/payment/document/read-only intents remain on the established
+    // assistant endpoints until a dedicated global tool explicitly owns them.
+    return json({ fallback: true });
+  } catch (error) {
+    console.error("ai-global-command failed", error);
+    return json(
+      { error: error instanceof Error ? error.message : String(error) },
+      500,
+    );
+  }
+});
