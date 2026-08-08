@@ -72,6 +72,24 @@ extension _HomeSections on _HomeScreenState {
     );
   }
 
+  Widget buildVoiceTaskQuickAction() {
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(12),
+      child: SizedBox(
+        height: 58,
+        child: FilledButton.icon(
+          onPressed: openVoiceTaskFromHome,
+          icon: const Icon(Icons.mic_rounded, size: 24),
+          label: const Text(
+            'Поставить задачу голосом',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildDashboard({
     required BuildContext context,
     required DateTime today,
@@ -120,6 +138,10 @@ extension _HomeSections on _HomeScreenState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildHeader(context, today),
+                    if (widget.profile.isForeman || widget.profile.isAdmin) ...[
+                      const SizedBox(height: 14),
+                      buildVoiceTaskQuickAction(),
+                    ],
                     if (hasError) ...[
                       const SizedBox(height: 14),
                       const _SystemMessage(
@@ -163,7 +185,9 @@ extension _HomeSections on _HomeScreenState {
                       _FinanceSummaryCard(
                         title: 'Выплаты ${financePeriod.title()}',
                         objectTitle: objectTitle,
-                        finance: isLoading ? FinanceSummaryData.empty : finance,
+                        finance: isLoading
+                            ? FinanceSummaryData.empty
+                            : finance,
                         isLoading: isLoading,
                         onPeriodTap: () => showFinancePeriodPicker(context),
                       ),
