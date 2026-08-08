@@ -19,6 +19,8 @@ import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
 import 'global_voice_action_execution_coordinator.dart';
 
+export 'ai_action_execution_coordinator.dart' show AiActionExecutionResult;
+
 class GlobalVoiceActionRouter {
   GlobalVoiceActionRouter._();
 
