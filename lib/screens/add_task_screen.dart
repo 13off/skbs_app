@@ -9,6 +9,7 @@ import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/presentation/task_assignee_controls.dart';
 import '../features/tasks/presentation/task_photo_grid.dart';
 import '../features/tasks/task_draft_support.dart';
+import '../features/tasks/voice/task_voice_active_field.dart';
 import '../features/tasks/voice/task_voice_employee_matcher.dart';
 import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
@@ -82,6 +83,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   bool isListeningVoice = false, voiceHasWarning = false, voiceAutoStartConsumed = false;
   TaskPolicy policy = TaskPolicy.defaults;
   String? errorText, voiceTranscript, voiceMessage;
+  TaskVoiceField? voiceActiveField;
 
   DateTime? voiceSessionInitialDate;
   String voiceSessionInitialAxes = '', voiceSessionInitialWork = '';

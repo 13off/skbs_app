@@ -32,6 +32,8 @@ extension _TaskCreateSections on _AddTaskScreenState {
   }
 
   Widget buildTaskFields() {
+    final axesActive = isVoiceFieldActive(TaskVoiceField.axes);
+    final workActive = isVoiceFieldActive(TaskVoiceField.work);
     return Column(
       children: [
         TextField(
@@ -39,7 +41,23 @@ extension _TaskCreateSections on _AddTaskScreenState {
           decoration: InputDecoration(
             labelText: 'Оси',
             hintText: 'Например: Оси 1-4 / А-Б',
+            prefixIcon: axesActive
+                ? Icon(Icons.mic_rounded, color: AppAdaptivePalette.accent)
+                : null,
+            filled: axesActive,
+            fillColor: axesActive
+                ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
+                : null,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: axesActive
+                    ? AppAdaptivePalette.accent
+                    : AppAdaptivePalette.border,
+                width: axesActive ? 2 : 1,
+              ),
+            ),
           ),
         ),
         if (!isGoalTask) ...[
@@ -51,8 +69,24 @@ extension _TaskCreateSections on _AddTaskScreenState {
             decoration: InputDecoration(
               labelText: 'Вид работ',
               hintText: 'Например: Армирование плиты',
+              prefixIcon: workActive
+                  ? Icon(Icons.mic_rounded, color: AppAdaptivePalette.accent)
+                  : null,
+              filled: workActive,
+              fillColor: workActive
+                  ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
+                  : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: workActive
+                      ? AppAdaptivePalette.accent
+                      : AppAdaptivePalette.border,
+                  width: workActive ? 2 : 1,
+                ),
               ),
             ),
           ),
@@ -62,11 +96,26 @@ extension _TaskCreateSections on _AddTaskScreenState {
   }
 
   Widget buildAssigneesBlock() {
-    return TaskAssigneeSummaryCard(
-      title: isLoadingEmployees ? 'Загружаем сотрудников...' : assigneeTitle(),
-      subtitle: selectedEmployeeNames(),
-      enabled: !isLoadingEmployees,
-      onTap: openAssigneesPicker,
+    final active = isVoiceFieldActive(TaskVoiceField.assignees);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.all(active ? 2 : 0),
+      decoration: BoxDecoration(
+        color: active
+            ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: active ? AppAdaptivePalette.accent : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: TaskAssigneeSummaryCard(
+        title: isLoadingEmployees ? 'Загружаем сотрудников...' : assigneeTitle(),
+        subtitle: selectedEmployeeNames(),
+        enabled: !isLoadingEmployees,
+        onTap: openAssigneesPicker,
+      ),
     );
   }
 

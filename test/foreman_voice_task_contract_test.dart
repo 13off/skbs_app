@@ -51,12 +51,15 @@ void main() {
     expect(web, isNot(contains('Duration(seconds: 18)')));
   });
 
-  test('PWA обновляет только явно выбранное поле прямо во время речи', () {
+  test('PWA обновляет только выбранное активное поле прямо во время речи', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
     ).readAsStringSync();
     final strict = File(
       'lib/features/tasks/voice/task_voice_strict_session.dart',
+    ).readAsStringSync();
+    final active = File(
+      'lib/features/tasks/voice/task_voice_active_field.dart',
     ).readAsStringSync();
     final recognition = File(
       'lib/features/tasks/voice/task_voice_recognition.dart',
@@ -68,10 +71,14 @@ void main() {
     expect(recognition, contains('void Function(String transcript)? onPartial'));
     expect(voice, contains('onPartial: applyVoicePartial'));
     expect(voice, contains('void applyVoicePartial(String transcript)'));
-    expect(voice, contains('Пока поле не названо, речь никуда не записывается'));
-    expect(voice, contains('Каждая команда меняет только выбранное поле'));
+    expect(voice, contains('После этого все следующие фразы будут вводиться только в него'));
+    expect(voice, contains('Активное поле:'));
+    expect(voice, contains('routeTaskVoiceTranscript('));
+    expect(voice, contains('resolveTaskVoiceActiveField('));
     expect(voice, contains('Все четыре поля распознаны'));
     expect(voice, contains('Ещё нужно:'));
+    expect(active, contains('TaskVoiceField'));
+    expect(active, contains('taskVoiceFieldMarker'));
     expect(strict, contains('_findStrictMarkers'));
     expect(strict, contains('Сначала выберите поле голосом'));
     expect(web, contains('_publishPartial(session)'));
@@ -97,7 +104,7 @@ void main() {
     expect(matcher, contains('taskVoicePhoneticKey'));
     expect(matcher, contains('taskVoiceEditDistance'));
     expect(matcher, contains('resolveTaskVoiceEmployeeIds'));
-    expect(voice, contains('исполнитель Фамилия'));
+    expect(voice, contains('Поле «Исполнитель» остаётся активным'));
     expect(voice, contains('Фамилию пока не понял'));
     expect(robust, contains('_matchFuzzyEmployees'));
   });
