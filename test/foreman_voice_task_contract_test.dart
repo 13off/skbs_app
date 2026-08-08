@@ -104,7 +104,7 @@ void main() {
     expect(matcher, contains('taskVoicePhoneticKey'));
     expect(matcher, contains('taskVoiceEditDistance'));
     expect(matcher, contains('resolveTaskVoiceEmployeeIds'));
-    expect(voice, contains('поле «Исполнитель» остаётся активным'));
+    expect(voice, contains('Поле «Исполнитель» остаётся активным'));
     expect(voice, contains('Фамилию пока не понял'));
     expect(robust, contains('_matchFuzzyEmployees'));
   });
