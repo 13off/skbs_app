@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
 import '../../../models/app_user_profile.dart';
-import '../../../models/employee.dart';
 import '../data/ai_action_audit_repository.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
@@ -30,6 +29,10 @@ class GlobalVoiceActionExecutionCoordinator {
       companyId: profile.activeCompanyId,
       action: action,
     );
+    if (!context.mounted) {
+      await AiActionAuditRepository.markCancelled(audit.id);
+      return const AiActionExecutionResult.cancelled();
+    }
     try {
       final confirmed = await _confirmBulkTimesheet(context, action);
       if (!confirmed) {
@@ -284,7 +287,10 @@ class _ConfirmRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),
