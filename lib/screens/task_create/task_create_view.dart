@@ -4,6 +4,7 @@ extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
     final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
+    final dateActive = isVoiceFieldActive(TaskVoiceField.date);
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -29,7 +30,21 @@ extension _TaskCreateView on _AddTaskScreenState {
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: widget.allowAnyDate ? pickDate : null,
-            icon: const Icon(Icons.calendar_month),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: dateActive
+                    ? AppAdaptivePalette.accent
+                    : AppAdaptivePalette.border,
+                width: dateActive ? 2 : 1,
+              ),
+              backgroundColor: dateActive
+                  ? AppAdaptivePalette.accent.withValues(alpha: 0.06)
+                  : null,
+            ),
+            icon: Icon(
+              dateActive ? Icons.mic_rounded : Icons.calendar_month,
+              color: dateActive ? AppAdaptivePalette.accent : null,
+            ),
             label: Text('Дата задачи: ${formatDate(selectedDate)}'),
           ),
           const SizedBox(height: 16),
