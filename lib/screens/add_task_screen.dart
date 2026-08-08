@@ -9,8 +9,10 @@ import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/presentation/task_assignee_controls.dart';
 import '../features/tasks/presentation/task_photo_grid.dart';
 import '../features/tasks/task_draft_support.dart';
-import '../features/tasks/voice/task_voice_parser_robust.dart';
+import '../features/tasks/voice/task_voice_employee_matcher.dart';
+import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
+import '../features/tasks/voice/task_voice_session.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
@@ -18,12 +20,14 @@ part 'task_create/task_create_loading.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
 part 'task_create/task_create_voice.dart';
+
 class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
   final List<TaskPhotoFile> photos;
   final bool saveAsDraft;
   final String? sourceDraftId;
+  final List<TaskCreateDraft> additionalTasks;
 
   const TaskCreateDraft({
     required this.task,
@@ -31,37 +35,32 @@ class TaskCreateDraft {
     required this.photos,
     this.saveAsDraft = false,
     this.sourceDraftId,
+    this.additionalTasks = const <TaskCreateDraft>[],
   });
+
+  List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[this, ...additionalTasks];
 }
 
 class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
-  final String? initialMilestoneId;
-  final String? initialChecklistItemId;
-  final String? initialChecklistTitle;
+  final String? initialMilestoneId, initialChecklistItemId, initialChecklistTitle;
   final String initialAxes;
   final String initialWork;
   final List<String> initialAssigneeIds;
-  final bool initialRequireBeforePhoto;
-  final bool allowAnyDate;
-  final bool allowDraft;
+  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately;
   final String? sourceDraftId;
 
   const AddTaskScreen({
     super.key,
     required this.initialDate,
     required this.objectName,
-    this.initialMilestoneId,
-    this.initialChecklistItemId,
-    this.initialChecklistTitle,
-    this.initialAxes = '',
-    this.initialWork = '',
+    this.initialMilestoneId, this.initialChecklistItemId, this.initialChecklistTitle,
+    this.initialAxes = '', this.initialWork = '',
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
-    this.allowAnyDate = false,
-    this.allowDraft = false,
-    this.sourceDraftId,
+    this.allowAnyDate = false, this.allowDraft = false,
+    this.sourceDraftId, this.startVoiceImmediately = false,
   });
 
   @override
@@ -69,27 +68,25 @@ class AddTaskScreen extends StatefulWidget {
 }
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
-  final TextEditingController axesController = TextEditingController();
-  final TextEditingController workController = TextEditingController();
+  final TextEditingController axesController = TextEditingController(),
+      workController = TextEditingController();
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];
   final Set<String> selectedAssigneeIds = <String>{};
   final List<TaskPhotoFile> selectedPhotos = <TaskPhotoFile>[];
-  String? selectedMilestoneId;
-  String? selectedChecklistItemId;
-  String? selectedChecklistTitle;
+  String? selectedMilestoneId, selectedChecklistItemId, selectedChecklistTitle;
   bool isGoalTask = false;
 
-  bool isLoadingEmployees = false;
-  bool isPickingPhotos = false;
-  bool isLoadingPolicy = true;
-  bool isListeningVoice = false;
-  bool voiceHasWarning = false;
+  bool isLoadingEmployees = false, isPickingPhotos = false, isLoadingPolicy = true;
+  bool isListeningVoice = false, voiceHasWarning = false, voiceAutoStartConsumed = false;
   TaskPolicy policy = TaskPolicy.defaults;
-  String? errorText;
-  String? voiceTranscript;
-  String? voiceMessage;
+  String? errorText, voiceTranscript, voiceMessage;
+
+  DateTime? voiceSessionInitialDate;
+  String voiceSessionInitialAxes = '', voiceSessionInitialWork = '';
+  List<String> voiceSessionInitialAssigneeIds = const <String>[];
+  List<TaskVoiceDraft> voiceBatchDrafts = const <TaskVoiceDraft>[];
 
   bool get requiresBeforePhoto =>
       policy.requireBeforePhoto || widget.initialRequireBeforePhoto;

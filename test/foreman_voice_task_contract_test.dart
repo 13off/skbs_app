@@ -14,16 +14,19 @@ void main() {
     expect(view, contains('if (widget.allowDraft)'));
     expect(view, contains('buildVoiceAssistantCard()'));
     expect(voice, contains('Дата • оси • задача • исполнители'));
-    expect(voice, contains('parseForemanTaskVoice('));
+    expect(voice, contains('applyForemanVoiceSession('));
     expect(voice, contains('selectedAssigneeIds'));
     expect(voice, contains('axesController.text'));
     expect(voice, contains('workController.text'));
-    expect(voice, contains('selectedDate = nextDate'));
+    expect(voice, contains('selectedDate = result.date'));
   });
 
-  test('PWA слушает до ручного Стоп и использует подсказки', () {
+  test('PWA слушает до Стоп или голосового готово и использует подсказки', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final session = File(
+      'lib/features/tasks/voice/task_voice_session.dart',
     ).readAsStringSync();
     final web = File(
       'lib/features/tasks/voice/task_voice_recognition_web.dart',
@@ -31,8 +34,12 @@ void main() {
 
     expect(voice, contains("? 'Стоп'"));
     expect(voice, contains('stopTaskVoiceRecognition()'));
-    expect(voice, contains('_buildTaskVoiceHints(employees)'));
-    expect(voice, contains('employee.name.trim()'));
+    expect(voice, contains('buildTaskVoiceHints('));
+    expect(voice, contains("'дату'"));
+    expect(voice, contains("'добавь ещё'"));
+    expect(voice, contains("'начнём заново'"));
+    expect(session, contains('_hasStopCommand'));
+    expect(session, contains('вс[её]\\s+готово'));
     expect(web, contains("setProperty('continuous'.toJS, true.toJS)"));
     expect(web, contains("setProperty('interimResults'.toJS, true.toJS)"));
     expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
@@ -64,35 +71,62 @@ void main() {
     expect(web, contains('session.interim'));
   });
 
-  test('фамилии получают приоритет, фонетическое сравнение и живую коррекцию', () {
+  test('фамилии вынесены в отдельный фонетический matcher', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final matcher = File(
+      'lib/features/tasks/voice/task_voice_employee_matcher.dart',
     ).readAsStringSync();
     final robust = File(
       'lib/features/tasks/voice/task_voice_parser_robust.dart',
     ).readAsStringSync();
 
-    expect(voice, contains('final surnames = <String>[]'));
-    expect(voice, contains('...surnames'));
-    expect(voice, contains('...fullNames'));
-    expect(voice, contains('_voicePhoneticKey'));
-    expect(voice, contains('_voiceEditDistance'));
-    expect(voice, contains('_resolveVoiceEmployeeIds'));
-    expect(voice, contains('markers.last.end'));
+    expect(voice, contains('buildTaskVoiceHints('));
+    expect(matcher, contains('final surnames = <String>[]'));
+    expect(matcher, contains('...surnames'));
+    expect(matcher, contains('...fullNames'));
+    expect(matcher, contains('taskVoicePhoneticKey'));
+    expect(matcher, contains('taskVoiceEditDistance'));
+    expect(matcher, contains('resolveTaskVoiceEmployeeIds'));
     expect(voice, contains('исполнитель Фамилия'));
     expect(voice, contains('Фамилию пока не понял'));
     expect(robust, contains('_matchFuzzyEmployees'));
   });
 
-  test('приоритет фамилий идёт раньше общего строительного словаря', () {
-    final voice = File(
-      'lib/screens/task_create/task_create_voice.dart',
+  test('Voice Assistant v2 умеет команды и пакетные задачи с ручным сохранением', () {
+    final session = File(
+      'lib/features/tasks/voice/task_voice_session.dart',
+    ).readAsStringSync();
+    final actions = File(
+      'lib/screens/task_create/task_create_actions.dart',
+    ).readAsStringSync();
+    final view = File(
+      'lib/screens/task_create/task_create_view.dart',
     ).readAsStringSync();
 
-    final surnames = voice.indexOf('...surnames');
-    final domain = voice.indexOf('..._taskVoiceDomainHints');
-    expect(surnames, greaterThanOrEqualTo(0));
-    expect(domain, greaterThan(surnames));
+    expect(session, contains('добавь'));
+    expect(session, contains('убери'));
+    expect(session, contains('оставь'));
+    expect(session, contains('очисти'));
+    expect(session, contains('parseForemanTaskVoiceBatch'));
+    expect(session, contains('normalizeTaskVoiceWork'));
+    expect(actions, contains('buildVoiceAdditionalResults'));
+    expect(actions, contains('TaskRepository.addTaskWithDetails'));
+    expect(view, contains(r'Сохранить $batchCount задачи'));
+  });
+
+  test('на Главной есть быстрый голосовой вход без автосохранения', () {
+    final sections = File(
+      'lib/screens/home/home_sections.dart',
+    ).readAsStringSync();
+    final actions = File(
+      'lib/screens/home/home_actions.dart',
+    ).readAsStringSync();
+
+    expect(sections, contains('Поставить задачу голосом'));
+    expect(actions, contains('startVoiceImmediately: true'));
+    expect(actions, contains('Navigator.push<TaskCreateDraft>'));
   });
 
   test('Android и iOS запрашивают только нужные голосовые разрешения', () {

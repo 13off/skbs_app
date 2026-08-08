@@ -83,6 +83,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
       selectedChecklistItemId = next.checklistItemId;
       selectedChecklistTitle = next.checklistTitle;
       workController.text = next.workText;
+      if (isGoalTask) voiceBatchDrafts = const <TaskVoiceDraft>[];
     });
   }
 
@@ -90,6 +91,30 @@ extension _TaskCreateActions on _AddTaskScreenState {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  List<TaskCreateDraft> buildVoiceAdditionalResults() {
+    if (voiceBatchDrafts.length <= 1 || isGoalTask) {
+      return const <TaskCreateDraft>[];
+    }
+    return voiceBatchDrafts.skip(1).map((voiceDraft) {
+      final voiceDate = voiceDraft.date;
+      final taskDate = widget.allowAnyDate && voiceDate != null
+          ? voiceDate
+          : selectedDate;
+      final task = TaskItemData(
+        voiceDraft.axes.trim(),
+        normalizeTaskVoiceWork(voiceDraft.work),
+        'Запланировано',
+        taskDate,
+        objectName: widget.objectName,
+      );
+      return TaskCreateDraft(
+        task: task,
+        assigneeIds: List<String>.from(voiceDraft.assigneeIds),
+        photos: const <TaskPhotoFile>[],
+      );
+    }).toList(growable: false);
   }
 
   TaskCreateDraft buildResult({required bool asDraft}) {
@@ -129,7 +154,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
     Navigator.pop(context, buildResult(asDraft: true));
   }
 
-  void saveTask() {
+  Future<void> saveTask() async {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
     final linkedToGoal = isGoalTask;
@@ -164,6 +189,44 @@ extension _TaskCreateActions on _AddTaskScreenState {
     if (goalError != null) {
       showValidationError(goalError);
       return;
+    }
+
+    final additional = buildVoiceAdditionalResults();
+    if (additional.isNotEmpty) {
+      if (requiresBeforePhoto) {
+        showValidationError(
+          'На объекте обязательны фото «До». Пакет из нескольких задач сохраните по одной, чтобы у каждой были свои фото.',
+        );
+        return;
+      }
+      for (var index = 0; index < additional.length; index += 1) {
+        final draft = additional[index];
+        final error = TaskDraftValidation.coreFields(
+          axes: draft.task.axes.trim(),
+          work: draft.task.work.trim(),
+          linkedToGoal: false,
+        );
+        if (error != null) {
+          showValidationError('Задача ${index + 2}: $error');
+          return;
+        }
+      }
+
+      try {
+        for (final draft in additional) {
+          await TaskRepository.addTaskWithDetails(
+            draft.task,
+            objectName: widget.objectName,
+            assigneeIds: draft.assigneeIds,
+            photos: const <TaskPhotoFile>[],
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        showValidationError('Не удалось сохранить пакет задач: $error');
+        return;
+      }
+      if (!mounted) return;
     }
 
     Navigator.pop(context, buildResult(asDraft: false));

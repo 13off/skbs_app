@@ -3,6 +3,7 @@ part of '../add_task_screen.dart';
 extension _TaskCreateView on _AddTaskScreenState {
   Widget buildTaskCreateView() {
     final editingDraft = widget.sourceDraftId?.trim().isNotEmpty == true;
+    final batchCount = voiceBatchDrafts.length > 1 ? voiceBatchDrafts.length : 1;
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
@@ -14,6 +15,8 @@ extension _TaskCreateView on _AddTaskScreenState {
           Text(
             editingDraft
                 ? 'Продолжите заполнение черновика'
+                : batchCount > 1
+                ? 'Прораб создаёт $batchCount задачи'
                 : 'Прораб добавляет задачу на объект',
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
@@ -76,7 +79,11 @@ extension _TaskCreateView on _AddTaskScreenState {
             child: FilledButton.icon(
               onPressed: isLoadingPolicy ? null : saveTask,
               icon: const Icon(Icons.save),
-              label: const Text('Сохранить задачу'),
+              label: Text(
+                batchCount > 1
+                    ? 'Сохранить $batchCount задачи'
+                    : 'Сохранить задачу',
+              ),
             ),
           ),
         ],

@@ -33,7 +33,7 @@ void main() {
     expect(actions, contains('Future<void> openAssigneesPicker()'));
     expect(actions, contains('Future<void> pickPhotos()'));
     expect(actions, contains('void changeMilestone('));
-    expect(actions, contains('void saveTask()'));
+    expect(actions, contains('Future<void> saveTask()'));
     expect(sections, contains('Widget buildAssigneesBlock()'));
     expect(sections, contains('Widget buildPhotosBlock()'));
     expect(view, contains('Widget buildTaskCreateView()'));

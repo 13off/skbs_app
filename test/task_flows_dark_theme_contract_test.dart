@@ -29,7 +29,9 @@ void main() {
     expect(actions, contains('List<TaskPhotoFile>.from(selectedPhotos)'));
     expect(actions, contains('saveAsDraft: asDraft'));
     expect(actions, contains('required: requiresBeforePhoto'));
-    expect(view, contains("label: const Text('Сохранить задачу')"));
+    expect(view, contains("'Сохранить задачу'"));
+    expect(view, contains("'Сохранить \$batchCount задачи'"));
+    expect(view, contains('batchCount > 1'));
     expect(view, contains("Icons.drafts_outlined"));
     expect(sections, contains("label: const Text('Добавить фото «До»')"));
 
