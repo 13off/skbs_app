@@ -44,33 +44,22 @@ class TaskCreateDraft {
 class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
-  final String? initialMilestoneId;
-  final String? initialChecklistItemId;
-  final String? initialChecklistTitle;
-  final String initialAxes;
-  final String initialWork;
+  final String? initialMilestoneId, initialChecklistItemId, initialChecklistTitle;
+  final String initialAxes, initialWork;
   final List<String> initialAssigneeIds;
-  final bool initialRequireBeforePhoto;
-  final bool allowAnyDate;
-  final bool allowDraft;
+  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately;
   final String? sourceDraftId;
-  final bool startVoiceImmediately;
 
   const AddTaskScreen({
     super.key,
     required this.initialDate,
     required this.objectName,
-    this.initialMilestoneId,
-    this.initialChecklistItemId,
-    this.initialChecklistTitle,
-    this.initialAxes = '',
-    this.initialWork = '',
+    this.initialMilestoneId, this.initialChecklistItemId, this.initialChecklistTitle,
+    this.initialAxes = '', this.initialWork = '',
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
-    this.allowAnyDate = false,
-    this.allowDraft = false,
-    this.sourceDraftId,
-    this.startVoiceImmediately = false,
+    this.allowAnyDate = false, this.allowDraft = false,
+    this.sourceDraftId, this.startVoiceImmediately = false,
   });
 
   @override
@@ -78,32 +67,23 @@ class AddTaskScreen extends StatefulWidget {
 }
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
-  final TextEditingController axesController = TextEditingController();
-  final TextEditingController workController = TextEditingController();
+  final TextEditingController axesController = TextEditingController(),
+      workController = TextEditingController();
   late DateTime selectedDate;
 
   List<Employee> employees = <Employee>[];
   final Set<String> selectedAssigneeIds = <String>{};
   final List<TaskPhotoFile> selectedPhotos = <TaskPhotoFile>[];
-  String? selectedMilestoneId;
-  String? selectedChecklistItemId;
-  String? selectedChecklistTitle;
+  String? selectedMilestoneId, selectedChecklistItemId, selectedChecklistTitle;
   bool isGoalTask = false;
 
-  bool isLoadingEmployees = false;
-  bool isPickingPhotos = false;
-  bool isLoadingPolicy = true;
-  bool isListeningVoice = false;
-  bool voiceHasWarning = false;
-  bool voiceAutoStartConsumed = false;
+  bool isLoadingEmployees = false, isPickingPhotos = false, isLoadingPolicy = true;
+  bool isListeningVoice = false, voiceHasWarning = false, voiceAutoStartConsumed = false;
   TaskPolicy policy = TaskPolicy.defaults;
-  String? errorText;
-  String? voiceTranscript;
-  String? voiceMessage;
+  String? errorText, voiceTranscript, voiceMessage;
 
   DateTime? voiceSessionInitialDate;
-  String voiceSessionInitialAxes = '';
-  String voiceSessionInitialWork = '';
+  String voiceSessionInitialAxes = '', voiceSessionInitialWork = '';
   List<String> voiceSessionInitialAssigneeIds = const <String>[];
   List<TaskVoiceDraft> voiceBatchDrafts = const <TaskVoiceDraft>[];
 
