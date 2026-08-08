@@ -83,6 +83,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
       selectedChecklistItemId = next.checklistItemId;
       selectedChecklistTitle = next.checklistTitle;
       workController.text = next.workText;
+      if (isGoalTask) voiceBatchDrafts = const <TaskVoiceDraft>[];
     });
   }
 
@@ -90,6 +91,30 @@ extension _TaskCreateActions on _AddTaskScreenState {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  List<TaskCreateDraft> buildVoiceAdditionalResults() {
+    if (voiceBatchDrafts.length <= 1 || isGoalTask) {
+      return const <TaskCreateDraft>[];
+    }
+    return voiceBatchDrafts.skip(1).map((voiceDraft) {
+      final voiceDate = voiceDraft.date;
+      final taskDate = widget.allowAnyDate && voiceDate != null
+          ? voiceDate
+          : selectedDate;
+      final task = TaskItemData(
+        voiceDraft.axes.trim(),
+        normalizeTaskVoiceWork(voiceDraft.work),
+        'Запланировано',
+        taskDate,
+        objectName: widget.objectName,
+      );
+      return TaskCreateDraft(
+        task: task,
+        assigneeIds: List<String>.from(voiceDraft.assigneeIds),
+        photos: const <TaskPhotoFile>[],
+      );
+    }).toList(growable: false);
   }
 
   TaskCreateDraft buildResult({required bool asDraft}) {
@@ -115,6 +140,9 @@ extension _TaskCreateActions on _AddTaskScreenState {
           : List<TaskPhotoFile>.from(selectedPhotos),
       saveAsDraft: asDraft,
       sourceDraftId: widget.sourceDraftId,
+      additionalTasks: asDraft
+          ? const <TaskCreateDraft>[]
+          : buildVoiceAdditionalResults(),
     );
   }
 
@@ -164,6 +192,27 @@ extension _TaskCreateActions on _AddTaskScreenState {
     if (goalError != null) {
       showValidationError(goalError);
       return;
+    }
+
+    if (voiceBatchDrafts.length > 1) {
+      if (requiresBeforePhoto) {
+        showValidationError(
+          'На объекте обязательны фото «До». Пакет из нескольких задач сохраните по одной, чтобы у каждой были свои фото.',
+        );
+        return;
+      }
+      for (var index = 1; index < voiceBatchDrafts.length; index += 1) {
+        final batch = voiceBatchDrafts[index];
+        final error = TaskDraftValidation.coreFields(
+          axes: batch.axes.trim(),
+          work: normalizeTaskVoiceWork(batch.work),
+          linkedToGoal: false,
+        );
+        if (error != null) {
+          showValidationError('Задача ${index + 1}: $error');
+          return;
+        }
+      }
     }
 
     Navigator.pop(context, buildResult(asDraft: false));
