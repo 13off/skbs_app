@@ -74,6 +74,9 @@ const _taskVoiceDomainHints = <String>[
 extension _TaskCreateVoice on _AddTaskScreenState {
   Widget buildVoiceAssistantCard() {
     final canUseVoice = !isLoadingEmployees;
+    final activeTitle = voiceActiveField == null
+        ? null
+        : taskVoiceFieldTitle(voiceActiveField!);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -128,14 +131,52 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           const SizedBox(height: 12),
           Text(
             isListeningVoice
-                ? 'Сначала назовите поле, потом значение: «дата послезавтра», «оси 7–10 Б–Д», «вид работ бетонирование», «исполнитель Иванов». Пока поле не названо, речь никуда не записывается.'
-                : 'Говорите по полям: «оси 5–8 А–Г», затем «вид работ армирование стены», затем «исполнитель Ахмедов». Для даты: «дата завтра». Каждая команда меняет только выбранное поле.',
+                ? 'Назовите поле отдельно — например «оси». После этого все следующие фразы будут вводиться только в него, пока вы не назовёте другое поле.'
+                : 'Сценарий простой: «оси» → «пять-восемь, Б–Г» → «вид работ» → «армирование стены» → «исполнитель» → «Иванов».',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (isListeningVoice) ...[
+            const SizedBox(height: 10),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppAdaptivePalette.accent.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    activeTitle == null
+                        ? Icons.touch_app_rounded
+                        : Icons.mic_rounded,
+                    size: 18,
+                    color: AppAdaptivePalette.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      activeTitle == null
+                          ? 'Жду выбор поля: дата, оси, вид работ или исполнитель'
+                          : 'Активное поле: $activeTitle',
+                      style: TextStyle(
+                        color: AppAdaptivePalette.accent,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -228,6 +269,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     );
   }
 
+  bool isVoiceFieldActive(TaskVoiceField field) =>
+      isListeningVoice && voiceActiveField == field;
+
   String _voiceBatchAssigneeTitle(TaskVoiceDraft draft) {
     if (draft.assigneeNames.isNotEmpty) return draft.assigneeNames.join(', ');
     final names = employees
@@ -246,8 +290,12 @@ extension _TaskCreateVoice on _AddTaskScreenState {
   }
 
   TaskVoiceSessionResult _parseVoiceSession(String transcript) {
-    return applyForemanVoiceSession(
+    final routed = routeTaskVoiceTranscript(
       transcript: transcript,
+      activeField: voiceActiveField,
+    );
+    return applyForemanVoiceSession(
+      transcript: routed,
       now: DateTime.now(),
       employees: employees,
       initialDate: voiceSessionInitialDate ?? selectedDate,
@@ -270,6 +318,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
 
   String _voiceStatusMessage(
     TaskVoiceSessionResult result, {
+    TaskVoiceField? activeField,
     int batchCount = 0,
   }) {
     if (result.warning?.trim().isNotEmpty == true) return result.warning!.trim();
@@ -277,19 +326,29 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       return 'Разобрал речь на $batchCount задачи. Проверьте список ниже. Ничего не сохранится, пока вы не нажмёте кнопку сохранения.';
     }
     if (result.resetRequested && result.missingFields.isNotEmpty) {
-      return 'Начали заново. Ещё нужно: ${result.missingFields.join(' • ')}.';
+      return 'Начали заново. Сначала выберите поле голосом.';
+    }
+    if (activeField != null && result.changedFields.isEmpty) {
+      return 'Выбрано поле «${taskVoiceFieldTitle(activeField)}». Теперь говорите только значение.';
+    }
+    if (activeField != null && result.changedFields.isNotEmpty) {
+      final title = taskVoiceFieldTitle(activeField);
+      if (result.missingFields.isEmpty) {
+        return 'Значение поля «$title» обновлено. Все нужные поля заполнены. Можно назвать другое поле или сказать «готово».';
+      }
+      return 'Значение поля «$title» обновлено. Оно остаётся активным; можно продолжить или назвать другое поле.';
     }
     if (result.missingFields.isEmpty) {
       return 'Все четыре поля распознаны. Можно сказать «готово» или нажать «Стоп». Сохранение останется ручным.';
     }
     final first = result.missingFields.first;
     final hint = switch (first) {
-      'оси' => 'Скажите: «оси 5–8 А–Г»',
-      'задача' => 'Скажите: «вид работ армирование стены»',
-      'исполнители' => 'Скажите: «исполнитель Фамилия»',
+      'оси' => 'Скажите «оси», затем отдельной фразой значение',
+      'задача' => 'Скажите «вид работ», затем отдельной фразой значение',
+      'исполнители' => 'Скажите «исполнитель», затем фамилию',
       _ => 'Назовите недостающее поле',
     };
-    return 'Готово частично. Ещё нужно: ${result.missingFields.join(' • ')}. $hint — запись продолжается.';
+    return 'Готово частично. Ещё нужно: ${result.missingFields.join(' • ')}. $hint.';
   }
 
   Future<void> captureVoiceTask() async {
@@ -298,8 +357,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     setState(() {
       isListeningVoice = true;
       voiceTranscript = null;
-      voiceMessage =
-          'Слушаю. Сначала скажите название поля: «оси», «вид работ», «исполнитель» или «дата».';
+      voiceMessage = voiceActiveField == null
+          ? 'Слушаю. Сначала скажите название поля: «оси», «вид работ», «исполнитель» или «дата».'
+          : 'Слушаю. Активное поле: «${taskVoiceFieldTitle(voiceActiveField!)}». Говорите значение или назовите другое поле.';
       voiceHasWarning = false;
       voiceBatchDrafts = const <TaskVoiceDraft>[];
       errorText = null;
@@ -312,6 +372,10 @@ extension _TaskCreateVoice on _AddTaskScreenState {
         ),
         onPartial: applyVoicePartial,
       );
+      final nextActiveField = resolveTaskVoiceActiveField(
+        transcript: transcript,
+        currentField: voiceActiveField,
+      );
       final session = _parseVoiceSession(transcript);
       final batch = isGoalTask
           ? const <TaskVoiceDraft>[]
@@ -323,15 +387,21 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       if (!mounted) return;
 
       setState(() {
+        voiceActiveField = nextActiveField;
         _applyVoiceSessionResult(session);
         voiceTranscript = transcript;
         voiceBatchDrafts = batch.length > 1 ? batch : const <TaskVoiceDraft>[];
-        final askedForAssignee = taskVoiceAssigneeMarker.hasMatch(transcript);
-        final surnameMissing = askedForAssignee && session.assigneeIds.isEmpty;
+        final surnameMissing = nextActiveField == TaskVoiceField.assignees &&
+            taskVoiceAssigneeMarker.hasMatch(transcript) &&
+            session.assigneeIds.isEmpty;
         voiceHasWarning = session.warning != null || surnameMissing;
         voiceMessage = surnameMissing
-            ? 'Фамилию пока не понял. Повторите «исполнитель Фамилия» или выберите сотрудника вручную.'
-            : _voiceStatusMessage(session, batchCount: batch.length);
+            ? 'Фамилию пока не понял. Поле «Исполнитель» остаётся активным — повторите фамилию.'
+            : _voiceStatusMessage(
+                session,
+                activeField: nextActiveField,
+                batchCount: batch.length,
+              );
       });
 
       final duplicate = await _findVoiceDuplicate();
@@ -360,12 +430,20 @@ extension _TaskCreateVoice on _AddTaskScreenState {
 
   void applyVoicePartial(String transcript) {
     if (!mounted || !isListeningVoice || transcript.trim().isEmpty) return;
+    final nextActiveField = resolveTaskVoiceActiveField(
+      transcript: transcript,
+      currentField: voiceActiveField,
+    );
     final session = _parseVoiceSession(transcript);
     setState(() {
+      voiceActiveField = nextActiveField;
       _applyVoiceSessionResult(session);
       voiceTranscript = transcript;
       voiceHasWarning = session.warning != null;
-      voiceMessage = _voiceStatusMessage(session);
+      voiceMessage = _voiceStatusMessage(
+        session,
+        activeField: nextActiveField,
+      );
     });
     if (session.shouldStop) {
       Future<void>.microtask(stopVoiceTask);
