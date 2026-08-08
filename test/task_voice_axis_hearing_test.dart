@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/tasks/voice/task_voice_active_field.dart';
 import 'package:skbs_app/features/tasks/voice/task_voice_axis_hearing.dart';
 import 'package:skbs_app/features/tasks/voice/task_voice_strict_session.dart';
+import 'package:skbs_app/models/employee.dart';
 
 void main() {
   final now = DateTime(2026, 8, 8, 12);
@@ -36,7 +37,7 @@ void main() {
 
   test('до двух шумовых слов внутри осей не обрывают разбор', () {
     expect(
-      normalizeTaskVoiceAxesValue('пять восемь какой-то шум бэ гэ'),
+      normalizeTaskVoiceAxesValue('пять восемь помеха шум бэ гэ'),
       'пять восемь бэ гэ',
     );
     expect(
@@ -62,7 +63,7 @@ void main() {
     final result = applyForemanVoiceSession(
       transcript: routed,
       now: now,
-      employees: const [],
+      employees: const <Employee>[],
       initialDate: DateTime(2026, 8, 8),
       initialAxes: '',
       initialWork: 'Армирование стены',
