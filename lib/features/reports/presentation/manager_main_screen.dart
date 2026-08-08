@@ -18,6 +18,7 @@ import '../../../screens/profile_screen.dart';
 import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../ai/data/global_voice_context_controller.dart';
 import '../../company/presentation/company_setup_recommendation_card.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/manager_reports_repository.dart';
@@ -48,6 +49,10 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     tabs = PersistentTabController(pageCount: pageCount);
     selectedObjectNameNotifier = ValueNotifier<String?>(null);
     ManagerReportsRepository.setPreferredObjectName(null);
+    GlobalVoiceContextController.setObjectName(
+      companyId: widget.profile.activeCompanyId,
+      objectName: null,
+    );
     startDataSync();
   }
 
@@ -58,6 +63,13 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
       objectSelectionToken++;
       selectedObjectNameNotifier.value = null;
       ManagerReportsRepository.setPreferredObjectName(null);
+      GlobalVoiceContextController.clear(
+        companyId: oldWidget.profile.activeCompanyId,
+      );
+      GlobalVoiceContextController.setObjectName(
+        companyId: widget.profile.activeCompanyId,
+        objectName: null,
+      );
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
       startDataSync();
     }
@@ -75,6 +87,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     WidgetsBinding.instance.removeObserver(this);
     AppDataSync.stop(companyId: widget.profile.activeCompanyId);
     ManagerReportsRepository.setPreferredObjectName(null);
+    GlobalVoiceContextController.clear(
+      companyId: widget.profile.activeCompanyId,
+    );
     tabs.dispose();
     selectedObjectNameNotifier.dispose();
     super.dispose();
@@ -98,6 +113,10 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
 
     final token = ++objectSelectionToken;
     ManagerReportsRepository.setPreferredObjectName(next);
+    GlobalVoiceContextController.setObjectName(
+      companyId: widget.profile.activeCompanyId,
+      objectName: next,
+    );
 
     void applySelection() {
       if (!mounted || token != objectSelectionToken) return;
