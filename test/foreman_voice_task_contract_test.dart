@@ -114,7 +114,7 @@ void main() {
     expect(session, contains('normalizeTaskVoiceWork'));
     expect(actions, contains('buildVoiceAdditionalResults'));
     expect(actions, contains('TaskRepository.addTaskWithDetails'));
-    expect(view, contains('Сохранить $batchCount задачи'));
+    expect(view, contains(r'Сохранить $batchCount задачи'));
   });
 
   test('на Главной есть быстрый голосовой вход без автосохранения', () {
