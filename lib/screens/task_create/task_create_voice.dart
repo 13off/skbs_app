@@ -117,7 +117,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'Дата • оси • задача • исполнители',
+                      'Дата • оси • вид работ • исполнитель',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ],
@@ -128,8 +128,8 @@ extension _TaskCreateVoice on _AddTaskScreenState {
           const SizedBox(height: 12),
           Text(
             isListeningVoice
-                ? 'Поля заполняются сразу. Можно сказать: «дату послезавтра», «оси 7–10 Б–Д», «добавь ещё Иванова», «убери Дементьева», «вид работ бетонирование» или «начнём заново».'
-                : 'Например: «На завтра, оси 5–8 А–Г, закончить армирование стены, исполнители Ахмедов и Иванов». Можно исправлять поля прямо в той же записи.',
+                ? 'Сначала назовите поле, потом значение: «дата послезавтра», «оси 7–10 Б–Д», «вид работ бетонирование», «исполнитель Иванов». Пока поле не названо, речь никуда не записывается.'
+                : 'Говорите по полям: «оси 5–8 А–Г», затем «вид работ армирование стены», затем «исполнитель Ахмедов». Для даты: «дата завтра». Каждая команда меняет только выбранное поле.',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
               height: 1.35,
@@ -298,7 +298,8 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     setState(() {
       isListeningVoice = true;
       voiceTranscript = null;
-      voiceMessage = 'Слушаю. Можно говорить задачу и сразу исправлять себя.';
+      voiceMessage =
+          'Слушаю. Сначала скажите название поля: «оси», «вид работ», «исполнитель» или «дата».';
       voiceHasWarning = false;
       voiceBatchDrafts = const <TaskVoiceDraft>[];
       errorText = null;
