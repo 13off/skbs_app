@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import '../features/ai/presentation/global_voice_assistant_auth_overlay.dart';
-
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 typedef AppBackHandler = Future<bool> Function();
@@ -41,7 +39,5 @@ class _AppBrowserBackBridgeState extends State<AppBrowserBackBridge> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return GlobalVoiceAssistantAuthOverlay(child: widget.child);
-  }
+  Widget build(BuildContext context) => widget.child;
 }
