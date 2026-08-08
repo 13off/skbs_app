@@ -34,6 +34,16 @@ import {
   json,
   requestedDate,
 } from "./shared.ts";
+import {
+  archiveRestoreIntent,
+  buildArchiveRestore,
+  buildChatMessage,
+  buildEmployeeWorkflow,
+  buildFlightWorkflow,
+  chatMessageIntent,
+  employeeWorkflowIntent,
+  flightWorkflowIntent,
+} from "./workflow_actions.ts";
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") {
@@ -106,6 +116,56 @@ Deno.serve(async (request: Request) => {
 
     if (uiSettingIntent(prompt)) {
       const result = buildUiSetting({ prompt, date });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (employeeWorkflowIntent(prompt)) {
+      const result = await buildEmployeeWorkflow({
+        client,
+        companyId,
+        role,
+        userId: user.id,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (chatMessageIntent(prompt)) {
+      const result = await buildChatMessage({
+        client,
+        companyId,
+        role,
+        userId: user.id,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (flightWorkflowIntent(prompt)) {
+      const result = await buildFlightWorkflow({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (archiveRestoreIntent(prompt)) {
+      const result = await buildArchiveRestore({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
       if ("error" in result) return json({ error: result.error }, result.status);
       return json(result.body, result.status);
     }

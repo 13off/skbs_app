@@ -20,6 +20,7 @@ import 'ai_action_execution_coordinator.dart';
 import 'global_voice_action_execution_coordinator.dart';
 import 'global_voice_management_action_coordinator.dart';
 import 'global_voice_professional_action_coordinator.dart';
+import 'global_voice_workflow_action_coordinator.dart';
 
 export 'ai_action_execution_coordinator.dart' show AiActionExecutionResult;
 
@@ -33,6 +34,15 @@ class GlobalVoiceActionRouter {
   }) async {
     if (action.type == 'open_screen') {
       return _openScreen(context, profile, action);
+    }
+    if (GlobalVoiceWorkflowActionCoordinator.supportedTypes.contains(
+      action.type,
+    )) {
+      return GlobalVoiceWorkflowActionCoordinator.execute(
+        context: context,
+        profile: profile,
+        action: action,
+      );
     }
     if (GlobalVoiceManagementActionCoordinator.supportedTypes.contains(
       action.type,
