@@ -9,8 +9,11 @@ import '../features/milestones/presentation/task_milestone_picker.dart';
 import '../features/tasks/presentation/task_assignee_controls.dart';
 import '../features/tasks/presentation/task_photo_grid.dart';
 import '../features/tasks/task_draft_support.dart';
+import '../features/tasks/voice/task_voice_employee_matcher.dart';
+import '../features/tasks/voice/task_voice_parser.dart';
 import '../features/tasks/voice/task_voice_parser_robust.dart';
 import '../features/tasks/voice/task_voice_recognition.dart';
+import '../features/tasks/voice/task_voice_session.dart';
 import '../models/employee.dart';
 import '../models/task_item_data.dart';
 part 'task_create/task_create_actions.dart';
@@ -18,12 +21,14 @@ part 'task_create/task_create_loading.dart';
 part 'task_create/task_create_sections.dart';
 part 'task_create/task_create_view.dart';
 part 'task_create/task_create_voice.dart';
+
 class TaskCreateDraft {
   final TaskItemData task;
   final List<String> assigneeIds;
   final List<TaskPhotoFile> photos;
   final bool saveAsDraft;
   final String? sourceDraftId;
+  final List<TaskCreateDraft> additionalTasks;
 
   const TaskCreateDraft({
     required this.task,
@@ -31,7 +36,10 @@ class TaskCreateDraft {
     required this.photos,
     this.saveAsDraft = false,
     this.sourceDraftId,
+    this.additionalTasks = const <TaskCreateDraft>[],
   });
+
+  List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[this, ...additionalTasks];
 }
 
 class AddTaskScreen extends StatefulWidget {
@@ -47,6 +55,7 @@ class AddTaskScreen extends StatefulWidget {
   final bool allowAnyDate;
   final bool allowDraft;
   final String? sourceDraftId;
+  final bool startVoiceImmediately;
 
   const AddTaskScreen({
     super.key,
@@ -62,6 +71,7 @@ class AddTaskScreen extends StatefulWidget {
     this.allowAnyDate = false,
     this.allowDraft = false,
     this.sourceDraftId,
+    this.startVoiceImmediately = false,
   });
 
   @override
@@ -86,10 +96,17 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   bool isLoadingPolicy = true;
   bool isListeningVoice = false;
   bool voiceHasWarning = false;
+  bool voiceAutoStartConsumed = false;
   TaskPolicy policy = TaskPolicy.defaults;
   String? errorText;
   String? voiceTranscript;
   String? voiceMessage;
+
+  DateTime? voiceSessionInitialDate;
+  String voiceSessionInitialAxes = '';
+  String voiceSessionInitialWork = '';
+  List<String> voiceSessionInitialAssigneeIds = const <String>[];
+  List<TaskVoiceDraft> voiceBatchDrafts = const <TaskVoiceDraft>[];
 
   bool get requiresBeforePhoto =>
       policy.requireBeforePhoto || widget.initialRequireBeforePhoto;
