@@ -10,15 +10,17 @@ void main() {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
     ).readAsStringSync();
+    final shell = File('lib/screens/add_task_screen.dart').readAsStringSync();
 
     expect(view, contains('if (widget.allowDraft)'));
     expect(view, contains('buildVoiceAssistantCard()'));
-    expect(voice, contains('Дата • оси • задача • исполнители'));
+    expect(voice, contains('Дата • оси • вид работ • исполнитель'));
     expect(voice, contains('applyForemanVoiceSession('));
     expect(voice, contains('selectedAssigneeIds'));
     expect(voice, contains('axesController.text'));
     expect(voice, contains('workController.text'));
     expect(voice, contains('selectedDate = result.date'));
+    expect(shell, contains('task_voice_strict_session.dart'));
   });
 
   test('PWA слушает до Стоп или голосового готово и использует подсказки', () {
@@ -49,9 +51,12 @@ void main() {
     expect(web, isNot(contains('Duration(seconds: 18)')));
   });
 
-  test('PWA обновляет поля задачи прямо во время речи', () {
+  test('PWA обновляет только явно выбранное поле прямо во время речи', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final strict = File(
+      'lib/features/tasks/voice/task_voice_strict_session.dart',
     ).readAsStringSync();
     final recognition = File(
       'lib/features/tasks/voice/task_voice_recognition.dart',
@@ -63,9 +68,12 @@ void main() {
     expect(recognition, contains('void Function(String transcript)? onPartial'));
     expect(voice, contains('onPartial: applyVoicePartial'));
     expect(voice, contains('void applyVoicePartial(String transcript)'));
-    expect(voice, contains('Поля заполняются сразу'));
+    expect(voice, contains('Пока поле не названо, речь никуда не записывается'));
+    expect(voice, contains('Каждая команда меняет только выбранное поле'));
     expect(voice, contains('Все четыре поля распознаны'));
     expect(voice, contains('Ещё нужно:'));
+    expect(strict, contains('_findStrictMarkers'));
+    expect(strict, contains('Сначала выберите поле голосом'));
     expect(web, contains('_publishPartial(session)'));
     expect(web, contains('session.onPartial?.call(text)'));
     expect(web, contains('session.interim'));
@@ -98,6 +106,9 @@ void main() {
     final session = File(
       'lib/features/tasks/voice/task_voice_session.dart',
     ).readAsStringSync();
+    final strict = File(
+      'lib/features/tasks/voice/task_voice_strict_session.dart',
+    ).readAsStringSync();
     final actions = File(
       'lib/screens/task_create/task_create_actions.dart',
     ).readAsStringSync();
@@ -105,12 +116,10 @@ void main() {
       'lib/screens/task_create/task_create_view.dart',
     ).readAsStringSync();
 
-    expect(session, contains('добавь'));
-    expect(session, contains('убери'));
-    expect(session, contains('оставь'));
-    expect(session, contains('очисти'));
-    expect(session, contains('parseForemanTaskVoiceBatch'));
     expect(session, contains('normalizeTaskVoiceWork'));
+    expect(strict, contains('добавь'));
+    expect(strict, contains('убери'));
+    expect(strict, contains('parseForemanTaskVoiceBatch'));
     expect(actions, contains('buildVoiceAdditionalResults'));
     expect(actions, contains('TaskRepository.addTaskWithDetails'));
     expect(view, contains(r'Сохранить $batchCount задачи'));
