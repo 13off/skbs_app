@@ -6,6 +6,16 @@ import {
   bulkTimesheetIntent,
 } from "./bulk_timesheet.ts";
 import {
+  buildMilestoneManagement,
+  buildObjectManagement,
+  buildSupplierManagement,
+  buildUiSetting,
+  milestoneManagementIntent,
+  objectManagementIntent,
+  supplierManagementIntent,
+  uiSettingIntent,
+} from "./management_actions.ts";
+import {
   buildNavigationResult,
   navigationTarget,
 } from "./navigation.ts";
@@ -94,6 +104,12 @@ Deno.serve(async (request: Request) => {
     const assignedObject = clean(profile.object_name, 180);
     const date = requestedDate(prompt, base);
 
+    if (uiSettingIntent(prompt)) {
+      const result = buildUiSetting({ prompt, date });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
     const navigation = navigationTarget(prompt);
     if (navigation != null) {
       const result = buildNavigationResult({
@@ -102,6 +118,43 @@ Deno.serve(async (request: Request) => {
         date,
         objectName: role === "foreman" ? assignedObject : requestedObject,
         prompt,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (objectManagementIntent(prompt)) {
+      const result = await buildObjectManagement({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (milestoneManagementIntent(prompt)) {
+      const result = await buildMilestoneManagement({
+        client,
+        role,
+        assignedObject,
+        requestedObject,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (supplierManagementIntent(prompt)) {
+      const result = await buildSupplierManagement({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
       });
       if ("error" in result) return json({ error: result.error }, result.status);
       return json(result.body, result.status);
