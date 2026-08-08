@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_brace_in_string_interps
+
 import '../../../models/employee.dart';
 
 final taskVoiceAssigneeMarker = RegExp(
