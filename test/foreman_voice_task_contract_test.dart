@@ -116,17 +116,13 @@ void main() {
     expect(view, contains(r'Сохранить $batchCount задачи'));
   });
 
-  test('на Главной есть быстрый голосовой вход без автосохранения', () {
+  test('на Главной нет отдельной кнопки голосовой записи', () {
     final sections = File(
       'lib/screens/home/home_sections.dart',
     ).readAsStringSync();
-    final actions = File(
-      'lib/screens/home/home_actions.dart',
-    ).readAsStringSync();
 
-    expect(sections, contains('Поставить задачу голосом'));
-    expect(actions, contains('startVoiceImmediately: true'));
-    expect(actions, contains('Navigator.push<TaskCreateDraft>'));
+    expect(sections, isNot(contains('Поставить задачу голосом')));
+    expect(sections, isNot(contains('buildVoiceTaskQuickAction()')));
   });
 
   test('Android и iOS запрашивают только нужные голосовые разрешения', () {
