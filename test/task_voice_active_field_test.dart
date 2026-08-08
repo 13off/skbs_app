@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/tasks/voice/task_voice_active_field.dart';
+import 'package:skbs_app/features/tasks/voice/task_voice_strict_session.dart';
+import 'package:skbs_app/models/employee.dart';
 
 void main() {
   test('маркер выбирает активное поле без значения', () {
@@ -43,6 +45,29 @@ void main() {
       ),
       'исполнитель Иванов',
     );
+  });
+
+  test('отдельная фраза реально меняет только активные оси', () {
+    final routed = routeTaskVoiceTranscript(
+      transcript: 'пять восемь бэ гэ',
+      activeField: TaskVoiceField.axes,
+    );
+    final result = applyForemanVoiceSession(
+      transcript: routed,
+      now: DateTime(2026, 8, 8),
+      employees: const <Employee>[],
+      initialDate: DateTime(2026, 8, 8),
+      initialAxes: '1–2 / А–Б',
+      initialWork: 'Опалубка стены',
+      initialAssigneeIds: const <String>['petrov'],
+      allowDateChange: true,
+      goalTask: false,
+    );
+
+    expect(result.axes, '5–8 / Б–Г');
+    expect(result.work, 'Опалубка стены');
+    expect(result.assigneeIds, <String>['petrov']);
+    expect(result.changedFields, <String>{'оси'});
   });
 
   test('явный новый маркер переключает поле и не получает старый префикс', () {
