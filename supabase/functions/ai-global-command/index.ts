@@ -10,6 +10,14 @@ import {
   navigationTarget,
 } from "./navigation.ts";
 import {
+  buildHrStageMove,
+  buildLegalDecision,
+  buildProcurementStatus,
+  hrStageMoveIntent,
+  legalDecisionIntent,
+  procurementStatusIntent,
+} from "./professional_actions.ts";
+import {
   baseDate,
   clean,
   corsHeaders,
@@ -82,7 +90,6 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Нет доступа к выбранной компании" }, 403);
     }
 
-    // Membership is the authoritative role for company-scoped commands.
     const role = clean(membership.role, 30);
     const assignedObject = clean(profile.object_name, 180);
     const date = requestedDate(prompt, base);
@@ -114,8 +121,43 @@ Deno.serve(async (request: Request) => {
       return json(result.body, result.status);
     }
 
-    // Existing task/payment/document/read-only intents remain on the established
-    // assistant endpoints until a dedicated global tool explicitly owns them.
+    if (hrStageMoveIntent(prompt)) {
+      const result = await buildHrStageMove({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (legalDecisionIntent(prompt)) {
+      const result = await buildLegalDecision({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (procurementStatusIntent(prompt)) {
+      const result = await buildProcurementStatus({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+        requestedObject,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
     return json({ fallback: true });
   } catch (error) {
     console.error("ai-global-command failed", error);
