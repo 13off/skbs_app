@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skbs_app/features/tasks/voice/task_voice_employee_matcher.dart';
 import 'package:skbs_app/features/tasks/voice/task_voice_session.dart';
 import 'package:skbs_app/models/employee.dart';
 
@@ -102,6 +103,35 @@ void main() {
 
     expect(result.assigneeIds, isEmpty);
     expect(result.missingFields, contains('исполнители'));
+  });
+
+  test('последний явный маркер исполнителя заменяет предыдущий', () {
+    final ids = resolveTaskVoiceEmployeeIds(
+      transcript: 'исполнитель Иванов, исполнитель Петров',
+      employees: employees,
+    );
+
+    expect(ids, <String>['petrov']);
+  });
+
+  test('начнём заново может сразу принять новую задачу', () {
+    final result = applyForemanVoiceSession(
+      transcript:
+          'Начнём заново, оси 9 12 б д, вид работ поставить опалубку, исполнитель Петров',
+      now: now,
+      employees: employees,
+      initialDate: DateTime(2026, 8, 8),
+      initialAxes: '1–2 / А–Б',
+      initialWork: 'Старая работа',
+      initialAssigneeIds: const <String>['ivanov'],
+      allowDateChange: false,
+      goalTask: false,
+    );
+
+    expect(result.resetRequested, isTrue);
+    expect(result.axes, '9–12 / Б–Д');
+    expect(result.work.toLowerCase(), contains('поставить опалубку'));
+    expect(result.assigneeIds, <String>['petrov']);
   });
 
   test('строительная разговорная формулировка нормализуется', () {
