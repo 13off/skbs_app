@@ -4,6 +4,7 @@ import '../../../app/theme_controller.dart';
 import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../milestones/data/milestone_repository.dart';
+import '../../milestones/models/milestone_models.dart';
 import '../../procurement/data/procurement_repository.dart';
 import '../data/ai_action_audit_repository.dart';
 import '../data/global_voice_context_controller.dart';
@@ -282,7 +283,10 @@ class GlobalVoiceManagementActionCoordinator {
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 12),
-                  Text(_summary(action), style: const TextStyle(height: 1.45, fontWeight: FontWeight.w700)),
+                  Text(
+                    _summary(action),
+                    style: const TextStyle(height: 1.45, fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(13),
