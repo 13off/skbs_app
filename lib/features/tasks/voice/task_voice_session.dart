@@ -59,7 +59,7 @@ TaskVoiceSessionResult applyForemanVoiceSession({
 
   for (var index = 0; index < segments.length; index += 1) {
     final segment = segments[index];
-    final text = segment.text.trim();
+    var text = segment.text.trim();
     if (text.isEmpty) continue;
 
     if (_isResetCommand(text)) {
@@ -69,7 +69,8 @@ TaskVoiceSessionResult applyForemanVoiceSession({
       assigneeIds = <String>[];
       changed.addAll(<String>{'дата', 'оси', 'задача', 'исполнители'});
       resetRequested = true;
-      continue;
+      text = _removeResetCommand(text);
+      if (text.isEmpty) continue;
     }
 
     final parsed = parseForemanTaskVoice(
@@ -79,10 +80,7 @@ TaskVoiceSessionResult applyForemanVoiceSession({
     );
     final isCorrection = segment.correction || index > 0;
 
-    final asksToKeepDate = RegExp(
-      r'оставь\s+дат',
-      caseSensitive: false,
-    ).hasMatch(text);
+    final asksToKeepDate = _normalizeCommandText(text).contains('оставь дату');
     final hasDateIntent = !asksToKeepDate &&
         parsed.date != null &&
         (!isCorrection || _mentionsDate(text));
@@ -135,6 +133,28 @@ TaskVoiceSessionResult applyForemanVoiceSession({
     }
   }
 
+  // Дата — единственное поле, где обычный парсер может раньше встретить
+  // «на завтра», чем последующую фразу «дату послезавтра». Усиленный парсер
+  // уже применяет правило «последняя явно названная дата побеждает», поэтому
+  // поверх последовательной сессии применяем только действительно подписанную
+  // команду вида «дату послезавтра». «Оставь дату» сюда не попадает.
+  if (_hasLabeledDateValue(source)) {
+    final finalParsed = parseForemanTaskVoice(
+      transcript: source,
+      now: now,
+      employees: const <Employee>[],
+    );
+    final nextDate = finalParsed.date;
+    if (nextDate != null) {
+      if (allowDateChange || _sameDate(nextDate, initialDate)) {
+        date = nextDate;
+        changed.add('дата');
+      } else {
+        warning = 'Дату менять нельзя по правилам объекта.';
+      }
+    }
+  }
+
   final missing = <String>[];
   if (axes.trim().isEmpty) missing.add('оси');
   if (!goalTask && work.trim().isEmpty) missing.add('задача');
@@ -168,19 +188,20 @@ _AssigneeSegmentResult _applyAssigneeSegment({
   required bool correction,
 }) {
   final current = <String>{...currentIds};
-  final clearAll = RegExp(
-    r'(?:очисти\s+исполнител|убери\s+всех\s+исполнител|удали\s+всех\s+исполнител)',
-    caseSensitive: false,
-  ).hasMatch(text);
+  final command = _normalizeCommandText(text);
+
+  final clearAll = command.contains('очисти исполнител') ||
+      command.contains('убери всех исполнител') ||
+      command.contains('удали всех исполнител');
   if (clearAll) {
     return const _AssigneeSegmentResult(<String>[], true);
   }
 
-  final add = RegExp(
-    r'(?:добавь|добавить)\s+(?:ещ[её]\s+)?',
-    caseSensitive: false,
-  ).hasMatch(text);
-  if (add && !RegExp(r'добавь\s+задач', caseSensitive: false).hasMatch(text)) {
+  final add = command.startsWith('добавь ') ||
+      command.startsWith('добавить ') ||
+      command.contains(' добавь еще ') ||
+      command.contains(' добавить еще ');
+  if (add && !command.contains('добавь задач')) {
     final ids = resolveTaskVoiceEmployeeIds(
       transcript: text,
       employees: employees,
@@ -191,10 +212,12 @@ _AssigneeSegmentResult _applyAssigneeSegment({
     return _AssigneeSegmentResult(current.toList(growable: false), ids.isNotEmpty);
   }
 
-  final remove = RegExp(
-    r'(?:убери|удали|сними)\s+',
-    caseSensitive: false,
-  ).hasMatch(text);
+  final remove = command.startsWith('убери ') ||
+      command.startsWith('удали ') ||
+      command.startsWith('сними ') ||
+      command.contains(' убери ') ||
+      command.contains(' удали ') ||
+      command.contains(' сними ');
   if (remove) {
     final ids = resolveTaskVoiceEmployeeIds(
       transcript: text,
@@ -265,14 +288,12 @@ List<TaskVoiceDraft> parseForemanTaskVoiceBatch({
     if (parsed.length > 1) return parsed;
   }
 
+  // «исполнители Иванов и Петров» — одна задача с двумя людьми, а не две.
   if (taskVoiceAssigneeMarker.hasMatch(source)) {
     return const <TaskVoiceDraft>[];
   }
 
-  final mentions = findTaskVoiceEmployeeMentions(
-    transcript: source,
-    employees: employees,
-  );
+  final mentions = _findExactBatchEmployeeMentions(source, employees);
   final uniqueOrdered = <TaskVoiceEmployeeMention>[];
   final seen = <String>{};
   for (final mention in mentions) {
@@ -280,32 +301,93 @@ List<TaskVoiceDraft> parseForemanTaskVoiceBatch({
   }
   if (uniqueOrdered.length < 2) return const <TaskVoiceDraft>[];
 
-  final chunks = <String>[];
+  final result = <TaskVoiceDraft>[];
+  DateTime? inheritedDate;
   for (var index = 0; index < uniqueOrdered.length; index += 1) {
-    final start = index == 0 ? 0 : uniqueOrdered[index].start;
+    final mention = uniqueOrdered[index];
+    final start = index == 0 ? 0 : mention.start;
     final end = index + 1 < uniqueOrdered.length
         ? uniqueOrdered[index + 1].start
         : source.length;
     final chunk = source.substring(start, end).trim();
-    if (chunk.isNotEmpty) chunks.add(chunk);
+    if (chunk.isEmpty) continue;
+
+    final draft = parseForemanTaskVoice(
+      transcript: chunk,
+      now: now,
+      employees: employees,
+    );
+    final work = normalizeTaskVoiceWork(draft.work);
+    if (work.isEmpty) continue;
+    inheritedDate ??= draft.date;
+
+    final employee = employees.cast<Employee?>().firstWhere(
+      (item) => item?.id == mention.employeeId,
+      orElse: () => null,
+    );
+    result.add(
+      TaskVoiceDraft(
+        date: draft.date ?? inheritedDate,
+        axes: draft.axes,
+        work: work,
+        assigneeIds: <String>[mention.employeeId],
+        assigneeNames: employee == null || employee.name.trim().isEmpty
+            ? const <String>[]
+            : <String>[employee.name.trim()],
+      ),
+    );
   }
-  if (chunks.length < 2) return const <TaskVoiceDraft>[];
 
-  final parsed = _parseBatchChunks(chunks, now, employees);
-  if (parsed.length < 2) return const <TaskVoiceDraft>[];
+  return result.length > 1 ? result : const <TaskVoiceDraft>[];
+}
 
-  final firstDate = parsed.first.date;
-  return parsed
-      .map(
-        (draft) => TaskVoiceDraft(
-          date: draft.date ?? firstDate,
-          axes: draft.axes,
-          work: normalizeTaskVoiceWork(draft.work),
-          assigneeIds: draft.assigneeIds,
-          assigneeNames: draft.assigneeNames,
-        ),
-      )
-      .toList(growable: false);
+List<TaskVoiceEmployeeMention> _findExactBatchEmployeeMentions(
+  String source,
+  List<Employee> employees,
+) {
+  final surnameCounts = <String, int>{};
+  final formsById = <String, Set<String>>{};
+  for (final employee in employees) {
+    final id = employee.id?.trim() ?? '';
+    final normalized = normalizeTaskVoiceName(employee.name);
+    if (id.isEmpty || normalized.isEmpty) continue;
+    final surname = normalized.split(' ').first;
+    if (surname.length < 3) continue;
+    surnameCounts[surname] = (surnameCounts[surname] ?? 0) + 1;
+    formsById[id] = taskVoiceNameForms(surname);
+  }
+
+  final mentions = <TaskVoiceEmployeeMention>[];
+  for (final tokenMatch in RegExp(r'[А-Яа-яЁё]{3,}').allMatches(source)) {
+    final raw = tokenMatch.group(0) ?? '';
+    final token = normalizeTaskVoiceName(raw);
+    if (token.isEmpty) continue;
+
+    String? matchedId;
+    var ambiguous = false;
+    for (final employee in employees) {
+      final id = employee.id?.trim() ?? '';
+      final normalized = normalizeTaskVoiceName(employee.name);
+      if (id.isEmpty || normalized.isEmpty) continue;
+      final surname = normalized.split(' ').first;
+      if (surnameCounts[surname] != 1) continue;
+      if (!(formsById[id] ?? const <String>{}).contains(token)) continue;
+      if (matchedId != null && matchedId != id) {
+        ambiguous = true;
+        break;
+      }
+      matchedId = id;
+    }
+    if (matchedId == null || ambiguous) continue;
+    mentions.add(
+      TaskVoiceEmployeeMention(
+        employeeId: matchedId,
+        start: tokenMatch.start,
+        end: tokenMatch.end,
+      ),
+    );
+  }
+  return mentions;
 }
 
 List<TaskVoiceDraft> _parseBatchChunks(
@@ -388,15 +470,14 @@ List<_VoiceSegment> _splitVoiceSegments(String source) {
 
   final result = <_VoiceSegment>[];
   var cursor = 0;
-  for (final match in matches) {
+  for (var index = 0; index < matches.length; index += 1) {
+    final match = matches[index];
     if (match.start > cursor) {
       final plain = source.substring(cursor, match.start).trim();
       if (plain.isNotEmpty) result.add(_VoiceSegment(plain, false));
     }
-    final start = match.start;
-    final nextIndex = matches.indexOf(match) + 1;
-    final end = nextIndex < matches.length ? matches[nextIndex].start : source.length;
-    final correction = source.substring(start, end).trim();
+    final end = index + 1 < matches.length ? matches[index + 1].start : source.length;
+    final correction = source.substring(match.start, end).trim();
     if (correction.isNotEmpty) result.add(_VoiceSegment(correction, true));
     cursor = end;
   }
@@ -406,6 +487,11 @@ List<_VoiceSegment> _splitVoiceSegments(String source) {
   }
   return result;
 }
+
+bool _hasLabeledDateValue(String value) => RegExp(
+      r'дат(?:а|у|е|ой)\s*(?:на\s+)?(?:сегодня|завтра|послезавтра|понедельник(?:а)?|вторник(?:а)?|сред[ау]|четверг(?:а)?|пятниц[ау]|суббот[ау]|воскресенье|\d{1,2}(?:[./-]\d{1,2}|\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)))',
+      caseSensitive: false,
+    ).hasMatch(value);
 
 bool _mentionsDate(String value) => RegExp(
       r'(?:дат(?:а|у|е|ой)|сегодня|завтра|послезавтра|понедельник|вторник|сред[ау]|четверг|пятниц[ау]|суббот[ау]|воскресенье|\d{1,2}[./-]\d{1,2})',
@@ -422,15 +508,23 @@ bool _mentionsWork(String value) => RegExp(
       caseSensitive: false,
     ).hasMatch(value);
 
-bool _clearsAxes(String value) => RegExp(
-      r'(?:очисти|убери|удали)\s+(?:ось|оси)',
-      caseSensitive: false,
-    ).hasMatch(value);
+bool _clearsAxes(String value) {
+  final command = _normalizeCommandText(value);
+  return command.contains('очисти ос') ||
+      command.contains('убери ос') ||
+      command.contains('удали ос');
+}
 
-bool _clearsWork(String value) => RegExp(
-      r'(?:очисти|убери|удали)\s+(?:задачу|работу|вид\s+работ)',
-      caseSensitive: false,
-    ).hasMatch(value);
+bool _clearsWork(String value) {
+  final command = _normalizeCommandText(value);
+  return command.contains('очисти задачу') ||
+      command.contains('убери задачу') ||
+      command.contains('удали задачу') ||
+      command.contains('очисти работу') ||
+      command.contains('убери работу') ||
+      command.contains('удали работу') ||
+      command.contains('очисти вид работ');
+}
 
 String _correctionWork(String source, String fallback) {
   final marker = RegExp(
@@ -455,6 +549,17 @@ bool _isResetCommand(String value) => RegExp(
       caseSensitive: false,
     ).hasMatch(value);
 
+String _removeResetCommand(String value) => value
+    .replaceFirst(
+      RegExp(
+        r'(?:начн(?:ем|ём)\s+заново|сначала|очисти\s+(?:все|всё))',
+        caseSensitive: false,
+      ),
+      ' ',
+    )
+    .replaceAll(RegExp(r'^[\s,;:.-]+'), '')
+    .trim();
+
 bool _hasStopCommand(String value) => RegExp(
       r'(?:вс[её]\s+готово|готово|закончил|стоп)',
       caseSensitive: false,
@@ -468,6 +573,13 @@ String _stripStopCommands(String value) => value
       ),
       ' ',
     )
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
+
+String _normalizeCommandText(String value) => value
+    .toLowerCase()
+    .replaceAll('ё', 'е')
+    .replaceAll(RegExp(r'[^а-я0-9]+'), ' ')
     .replaceAll(RegExp(r'\s+'), ' ')
     .trim();
 
