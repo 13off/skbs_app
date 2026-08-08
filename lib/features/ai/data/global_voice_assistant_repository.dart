@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/ai_assistant_result.dart';
 import 'ai_assistant_repository.dart';
+import 'global_voice_context_controller.dart';
 
 /// Dedicated router for the floating microphone.
 ///
@@ -26,12 +27,19 @@ class GlobalVoiceAssistantRepository {
       throw Exception('Голосовая команда пустая');
     }
 
+    final contextObject = GlobalVoiceContextController.objectNameFor(
+      cleanCompanyId,
+    );
+    final explicitObject = objectName?.trim() ?? '';
+    final effectiveObject = explicitObject.isNotEmpty
+        ? explicitObject
+        : contextObject;
     final requestDate = date ?? DateTime.now();
     final response = await _client.functions.invoke(
       'ai-global-command',
       body: <String, dynamic>{
         'company_id': cleanCompanyId,
-        'object_name': objectName?.trim(),
+        'object_name': effectiveObject,
         'date': _dateKey(requestDate),
         'prompt': cleanPrompt,
       },
@@ -42,7 +50,7 @@ class GlobalVoiceAssistantRepository {
       return AiAssistantRepository.request(
         mode: 'chat',
         companyId: cleanCompanyId,
-        objectName: objectName,
+        objectName: effectiveObject,
         date: requestDate,
         prompt: cleanPrompt,
       );
