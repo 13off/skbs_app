@@ -6,6 +6,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../navigation/web_back_navigation.dart';
 import '../../ai/actions/ai_action_execution_coordinator.dart';
 import '../../ai/data/ai_assistant_repository.dart';
 import '../../ai/models/ai_assistant_result.dart';
@@ -31,6 +32,7 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
   bool isPreparing = false;
   bool isListening = false;
   bool isProcessing = false;
+  bool isResultOpen = false;
   String liveTranscript = '';
 
   bool get canExecuteActions =>
@@ -41,6 +43,9 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
     return value.isEmpty ? null : value;
   }
 
+  BuildContext? get navigationContext =>
+      appNavigatorKey.currentState?.overlay?.context;
+
   @override
   void dispose() {
     if (isListening) unawaited(stopAppVoiceRecognition());
@@ -48,7 +53,7 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
   }
 
   Future<void> toggleVoice() async {
-    if (isProcessing || isPreparing) return;
+    if (isProcessing || isPreparing || isResultOpen) return;
     if (isListening) {
       await stopAppVoiceRecognition();
       return;
@@ -91,7 +96,7 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
   }
 
   Future<void> startVoice() async {
-    if (isListening || isPreparing || isProcessing) return;
+    if (isListening || isPreparing || isProcessing || isResultOpen) return;
     setState(() {
       isPreparing = true;
       liveTranscript = '';
@@ -164,9 +169,15 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
       return;
     }
 
+    final targetContext = navigationContext;
+    if (targetContext == null) {
+      showMessage('Не удалось открыть проверку действия. Повторите команду.');
+      return;
+    }
+
     try {
       final result = await AiActionExecutionCoordinator.execute(
-        context: context,
+        context: targetContext,
         profile: widget.profile,
         action: action,
       );
@@ -179,147 +190,163 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
   }
 
   Future<void> showResult(String transcript, AiAssistantResult result) async {
+    final targetContext = navigationContext;
+    if (targetContext == null) {
+      showMessage('Не удалось открыть результат голосового помощника.');
+      return;
+    }
+
     final action = result.action;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final colors = Theme.of(sheetContext).colorScheme;
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.82,
-          ),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.outlineVariant,
-                      borderRadius: BorderRadius.circular(99),
+    setState(() => isResultOpen = true);
+    try {
+      await showModalBottomSheet<void>(
+        context: targetContext,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) {
+          final colors = Theme.of(sheetContext).colorScheme;
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.82,
+            ),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colors.outlineVariant,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Icon(Icons.mic_rounded, color: colors.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Голосовой помощник AppСтрой',
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Icon(Icons.mic_rounded, color: colors.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Голосовой помощник AppСтрой',
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _VoiceSection(
-                  title: 'Распознано',
-                  child: SelectableText(
-                    transcript,
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  result.title,
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontSize: 22,
-                    height: 1.15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  result.scopeLabel,
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (result.summary.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  SelectableText(
-                    result.summary,
-                    style: TextStyle(
-                      color: colors.onSurface,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                if (result.highlights.isNotEmpty)
-                  _VoiceListSection(title: 'Главное', items: result.highlights),
-                if (result.warnings.isNotEmpty)
-                  _VoiceListSection(
-                    title: 'Требует внимания',
-                    items: result.warnings,
-                    warning: true,
-                  ),
-                if (result.nextSteps.isNotEmpty)
-                  _VoiceListSection(
-                    title: 'Следующие шаги',
-                    items: result.nextSteps,
-                  ),
-                if (action != null) ...[
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: canExecuteActions
-                        ? () {
-                            Navigator.of(sheetContext).pop();
-                            unawaited(runAction(action));
-                          }
-                        : null,
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: Text(action.buttonLabel),
-                  ),
-                  if (!canExecuteActions) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.profile.isRolePreview
-                          ? 'Просмотр роли: изменение показано только для проверки.'
-                          : 'Для сотрудника этот тип изменения пока недоступен голосом.',
-                      textAlign: TextAlign.center,
+                  _VoiceSection(
+                    title: 'Распознано',
+                    child: SelectableText(
+                      transcript,
                       style: TextStyle(
                         color: colors.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    result.title,
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 22,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    result.scopeLabel,
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (result.summary.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    SelectableText(
+                      result.summary,
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
+                  if (result.highlights.isNotEmpty)
+                    _VoiceListSection(
+                      title: 'Главное',
+                      items: result.highlights,
+                    ),
+                  if (result.warnings.isNotEmpty)
+                    _VoiceListSection(
+                      title: 'Требует внимания',
+                      items: result.warnings,
+                      warning: true,
+                    ),
+                  if (result.nextSteps.isNotEmpty)
+                    _VoiceListSection(
+                      title: 'Следующие шаги',
+                      items: result.nextSteps,
+                    ),
+                  if (action != null) ...[
+                    const SizedBox(height: 18),
+                    FilledButton.icon(
+                      onPressed: canExecuteActions
+                          ? () {
+                              Navigator.of(sheetContext).pop();
+                              unawaited(runAction(action));
+                            }
+                          : null,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: Text(action.buttonLabel),
+                    ),
+                    if (!canExecuteActions) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.profile.isRolePreview
+                            ? 'Просмотр роли: изменение показано только для проверки.'
+                            : 'Для сотрудника этот тип изменения пока недоступен голосом.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      if (mounted) setState(() => isResultOpen = false);
+    }
   }
 
   void showMessage(String message) {
     if (!mounted || message.trim().isEmpty) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    final targetContext = navigationContext ?? context;
+    ScaffoldMessenger.maybeOf(targetContext)?.showSnackBar(
       SnackBar(content: Text(message.trim())),
     );
   }
@@ -354,102 +381,103 @@ class _GlobalVoiceAssistantLayerState extends State<GlobalVoiceAssistantLayer> {
       fit: StackFit.expand,
       children: [
         widget.child,
-        Positioned(
-          right: 16,
-          bottom: bottom,
-          child: Material(
-            color: Colors.transparent,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isListening && liveTranscript.isNotEmpty)
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppAdaptivePalette.surfaceElevated,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppAdaptivePalette.border),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(
-                          blurRadius: 18,
-                          offset: Offset(0, 8),
-                          color: Color(0x24000000),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      liveTranscript,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppAdaptivePalette.textPrimary,
-                        fontSize: 12,
-                        height: 1.3,
-                        fontWeight: FontWeight.w700,
+        if (!isResultOpen)
+          Positioned(
+            right: 16,
+            bottom: bottom,
+            child: Material(
+              color: Colors.transparent,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isListening && liveTranscript.isNotEmpty)
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 260),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
                       ),
-                    ),
-                  ),
-                Tooltip(
-                  message: isListening
-                      ? 'Остановить и выполнить'
-                      : 'Голосовой помощник AppСтрой',
-                  child: InkWell(
-                    onTap: isProcessing || isPreparing ? null : toggleVoice,
-                    customBorder: const CircleBorder(),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: 58,
-                      height: 58,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isListening
-                            ? AppAdaptivePalette.accent
-                            : AppAdaptivePalette.surfaceElevated,
-                        border: Border.all(
-                          color: isListening
-                              ? AppAdaptivePalette.accent
-                              : AppAdaptivePalette.border,
-                        ),
+                        color: AppAdaptivePalette.surfaceElevated,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppAdaptivePalette.border),
                         boxShadow: const <BoxShadow>[
                           BoxShadow(
-                            blurRadius: 22,
-                            offset: Offset(0, 10),
-                            color: Color(0x30000000),
+                            blurRadius: 18,
+                            offset: Offset(0, 8),
+                            color: Color(0x24000000),
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: isPreparing || isProcessing
-                            ? SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: AppAdaptivePalette.accent,
+                      child: Text(
+                        liveTranscript,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textPrimary,
+                          fontSize: 12,
+                          height: 1.3,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  Tooltip(
+                    message: isListening
+                        ? 'Остановить и выполнить'
+                        : 'Голосовой помощник AppСтрой',
+                    child: InkWell(
+                      onTap: isProcessing || isPreparing ? null : toggleVoice,
+                      customBorder: const CircleBorder(),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isListening
+                              ? AppAdaptivePalette.accent
+                              : AppAdaptivePalette.surfaceElevated,
+                          border: Border.all(
+                            color: isListening
+                                ? AppAdaptivePalette.accent
+                                : AppAdaptivePalette.border,
+                          ),
+                          boxShadow: const <BoxShadow>[
+                            BoxShadow(
+                              blurRadius: 22,
+                              offset: Offset(0, 10),
+                              color: Color(0x30000000),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: isPreparing || isProcessing
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: AppAdaptivePalette.accent,
+                                  ),
+                                )
+                              : Icon(
+                                  isListening
+                                      ? Icons.graphic_eq_rounded
+                                      : Icons.mic_rounded,
+                                  color: isListening
+                                      ? Colors.white
+                                      : AppAdaptivePalette.accent,
+                                  size: 27,
                                 ),
-                              )
-                            : Icon(
-                                isListening
-                                    ? Icons.graphic_eq_rounded
-                                    : Icons.mic_rounded,
-                                color: isListening
-                                    ? Colors.white
-                                    : AppAdaptivePalette.accent,
-                                size: 27,
-                              ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
