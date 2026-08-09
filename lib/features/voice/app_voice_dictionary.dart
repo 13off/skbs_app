@@ -266,9 +266,16 @@ List<String> buildAppVoiceHints({
 
   if (profile.isDeveloper) hints.addAll(_developerHints);
 
-  hints
-    ..addAll(objectNames)
-    ..addAll(employeeNames);
+  hints.addAll(objectNames);
+  for (final rawName in employeeNames) {
+    final name = rawName.trim();
+    if (name.isEmpty) continue;
+    hints.add(name);
+    final parts = name.split(RegExp(r'\s+'));
+    for (final part in parts.take(2)) {
+      if (part.length >= 3) hints.add(part);
+    }
+  }
 
   final ownObject = profile.objectName.trim();
   if (ownObject.isNotEmpty) hints.add(ownObject);
