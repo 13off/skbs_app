@@ -76,6 +76,9 @@ void main() {
     final dictionary = File(
       'lib/features/voice/app_voice_dictionary.dart',
     ).readAsStringSync();
+    final shared = File(
+      'supabase/functions/ai-global-command/shared.ts',
+    ).readAsStringSync();
 
     expect(repository, contains('_rewriteCorrection'));
     expect(repository, contains('_rewriteReplay'));
@@ -84,7 +87,7 @@ void main() {
     expect(repository, contains('20\\d{2}-\\d{1,2}-\\d{1,2}'));
     expect(repository, contains('lastCommandPrompt'));
     expect(repository, contains('lastAction'));
-    expect(repository, contains('оставшиеся'));
+    expect(repository.toLowerCase(), contains('оставшиеся'));
     expect(
       repository,
       contains('Изменение данных всё равно требует финального подтверждения'),
@@ -92,5 +95,8 @@ void main() {
     expect(dictionary, contains("'то же самое'"));
     expect(dictionary, contains("'подтверждай'"));
     expect(dictionary, contains("'второй объект'"));
+    expect(shared, contains('russianNameStem'));
+    expect(shared, contains('nameTokenMatches'));
+    expect(shared, contains('leftStem === rightStem'));
   });
 }
