@@ -9,6 +9,11 @@ import 'global_voice_context_controller.dart';
 /// Global-only commands are resolved by `ai-global-command`. Anything that the
 /// global endpoint does not own falls back to the existing assistant router, so
 /// typed AI chat and the already proven action pipeline keep their behaviour.
+///
+/// The repository also owns two conversation-level behaviours which should not
+/// be duplicated inside every domain parser:
+/// - a short clarification memory for ambiguous/incomplete commands;
+/// - explicit multi-step commands separated by «потом», «затем», «далее» or `;`.
 class GlobalVoiceAssistantRepository {
   static final SupabaseClient _client = Supabase.instance.client;
 
@@ -36,11 +41,142 @@ class GlobalVoiceAssistantRepository {
         ? null
         : contextObject;
     final requestDate = date ?? DateTime.now();
+    final pendingPrompt = snapshot?.pendingClarificationPrompt.trim() ?? '';
+
+    if (pendingPrompt.isNotEmpty) {
+      final mergedPrompt = _mergeClarification(pendingPrompt, cleanPrompt);
+      return _requestSingle(
+        companyId: cleanCompanyId,
+        objectName: effectiveObject,
+        date: requestDate,
+        prompt: mergedPrompt,
+      );
+    }
+
+    final commands = _splitCompoundCommands(cleanPrompt);
+    if (commands.length > 1) {
+      return _requestCompound(
+        companyId: cleanCompanyId,
+        objectName: effectiveObject,
+        date: requestDate,
+        commands: commands,
+      );
+    }
+
+    return _requestSingle(
+      companyId: cleanCompanyId,
+      objectName: effectiveObject,
+      date: requestDate,
+      prompt: cleanPrompt,
+    );
+  }
+
+  static Future<AiAssistantResult> _requestCompound({
+    required String companyId,
+    required String? objectName,
+    required DateTime date,
+    required List<String> commands,
+  }) async {
+    final results = <AiAssistantResult>[];
+
+    for (var index = 0; index < commands.length; index++) {
+      final result = await _requestSingle(
+        companyId: companyId,
+        objectName: objectName,
+        date: date,
+        prompt: commands[index],
+      );
+      results.add(result);
+
+      if (_isClarificationResult(result)) {
+        return AiAssistantResult(
+          title: 'Нужно уточнение в шаге ${index + 1}',
+          summary: result.summary,
+          highlights: <String>[
+            'Исходный шаг: ${commands[index]}',
+            ...result.highlights,
+          ],
+          warnings: result.warnings,
+          nextSteps: <String>[
+            ...result.nextSteps,
+            'После уточнения помощник продолжит этот шаг. Остальные шаги можно повторить одной фразой.',
+          ],
+          scopeLabel: _scopeLabel(objectName, date),
+          preliminary: true,
+          aiUsed: results.any((item) => item.aiUsed),
+        );
+      }
+    }
+
+    final actions = results
+        .map((result) => result.action)
+        .whereType<AiAssistantAction>()
+        .toList(growable: false);
+    final highlights = <String>[];
+    for (var index = 0; index < results.length; index++) {
+      final result = results[index];
+      final description = result.summary.isNotEmpty
+          ? result.summary
+          : result.title;
+      highlights.add('${index + 1}. ${commands[index]} — $description');
+    }
+
+    final AiAssistantAction? action;
+    if (actions.isEmpty) {
+      action = null;
+    } else if (actions.length == 1) {
+      action = actions.single;
+    } else {
+      action = AiAssistantAction(
+        id: 'voice_compound_${DateTime.now().microsecondsSinceEpoch}',
+        type: 'voice_compound_batch',
+        title: 'Выполнить ${actions.length} действий по очереди',
+        buttonLabel: 'Проверить ${actions.length} действий',
+        confirmationRequired: true,
+        payload: <String, dynamic>{
+          'actions': actions.map(_actionMap).toList(growable: false),
+          'source_prompts': commands,
+        },
+      );
+    }
+
+    return AiAssistantResult(
+      title: 'Составная голосовая команда',
+      summary: actions.isEmpty
+          ? 'Разобрал и выполнил ${commands.length} информационных шага.'
+          : 'Разобрал ${commands.length} шага. Изменения ещё не внесены: каждое действие пройдёт штатную проверку и подтверждение.',
+      highlights: highlights,
+      warnings: actions.isEmpty
+          ? const <String>[]
+          : const <String>[
+              'Если один из шагов отменить, пакет остановится и следующие изменения не выполнятся.',
+            ],
+      nextSteps: actions.isEmpty
+          ? const <String>[]
+          : <String>[
+              actions.length == 1
+                  ? 'Проверьте подготовленное действие.'
+                  : 'Нажмите «Проверить ${actions.length} действий» и подтвердите нужные шаги по очереди.',
+            ],
+      scopeLabel: _scopeLabel(objectName, date),
+      preliminary: true,
+      aiUsed: results.any((result) => result.aiUsed),
+      action: action,
+    );
+  }
+
+  static Future<AiAssistantResult> _requestSingle({
+    required String companyId,
+    required String? objectName,
+    required DateTime date,
+    required String prompt,
+  }) async {
+    final snapshot = GlobalVoiceContextController.snapshotFor(companyId);
     final body = <String, dynamic>{
-      'company_id': cleanCompanyId,
-      'object_name': effectiveObject,
-      'date': _dateKey(requestDate),
-      'prompt': cleanPrompt,
+      'company_id': companyId,
+      'object_name': objectName,
+      'date': _dateKey(date),
+      'prompt': prompt,
     };
     if (snapshot != null && snapshot.conversationTopic.trim().isNotEmpty) {
       body['conversation_context'] = <String, dynamic>{
@@ -59,25 +195,113 @@ class GlobalVoiceAssistantRepository {
     final data = _map(response.data);
 
     if (data['fallback'] == true) {
-      GlobalVoiceContextController.clearConversation(companyId: cleanCompanyId);
-      return AiAssistantRepository.request(
+      GlobalVoiceContextController.clearConversation(companyId: companyId);
+      final result = await AiAssistantRepository.request(
         mode: 'chat',
-        companyId: cleanCompanyId,
-        objectName: effectiveObject,
-        date: requestDate,
-        prompt: cleanPrompt,
+        companyId: companyId,
+        objectName: objectName,
+        date: date,
+        prompt: prompt,
       );
+      GlobalVoiceContextController.clearClarification(companyId: companyId);
+      return result;
     }
 
     final error = data['error']?.toString().trim() ?? '';
     if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
-      throw Exception(
-        error.isNotEmpty ? error : 'Глобальная голосовая команда недоступна',
-      );
+      final message = error.isNotEmpty
+          ? error
+          : 'Глобальная голосовая команда недоступна';
+      if (_needsClarification(response.status, message)) {
+        GlobalVoiceContextController.setClarification(
+          companyId: companyId,
+          prompt: prompt,
+          question: message,
+        );
+        return _clarificationResult(
+          message: message,
+          objectName: objectName,
+          date: date,
+        );
+      }
+      throw Exception(message);
     }
 
-    _rememberConversation(data, cleanCompanyId);
+    GlobalVoiceContextController.clearClarification(companyId: companyId);
+    _rememberConversation(data, companyId);
     return AiAssistantResult.fromMap(data);
+  }
+
+  static AiAssistantResult _clarificationResult({
+    required String message,
+    required String? objectName,
+    required DateTime date,
+  }) {
+    return AiAssistantResult(
+      title: 'Нужно уточнение',
+      summary: message,
+      highlights: const <String>[],
+      warnings: const <String>[
+        'Исходную команду повторять не нужно — помощник уже её запомнил.',
+      ],
+      nextSteps: const <String>[
+        'Нажмите микрофон ещё раз и скажите только недостающую деталь: имя, объект, количество, срок или нужный вариант.',
+      ],
+      scopeLabel: _scopeLabel(objectName, date),
+      preliminary: true,
+      aiUsed: false,
+    );
+  }
+
+  static bool _isClarificationResult(AiAssistantResult result) {
+    return result.title == 'Нужно уточнение';
+  }
+
+  static bool _needsClarification(int status, String message) {
+    if (status != 400 && status != 409) return false;
+    final value = message.toLowerCase().replaceAll('ё', 'е');
+    return RegExp(
+      r'(уточн|неоднознач|несколько|не хватает|не указан|не указана|не указано|укажите|не найден|не найдена|кого именно|какой именно|какую именно|какое именно)',
+    ).hasMatch(value);
+  }
+
+  static List<String> _splitCompoundCommands(String prompt) {
+    var value = prompt.replaceAll(RegExp(r'\s+'), ' ').trim();
+    value = value
+        .replaceAll(RegExp(r'\s*;\s*'), '|||')
+        .replaceAll(
+          RegExp(r'\s+(?:и\s+)?потом\s+', caseSensitive: false),
+          '|||',
+        )
+        .replaceAll(RegExp(r'\s+затем\s+', caseSensitive: false), '|||')
+        .replaceAll(RegExp(r'\s+далее\s+', caseSensitive: false), '|||')
+        .replaceAll(
+          RegExp(r'\s+после\s+этого\s+', caseSensitive: false),
+          '|||',
+        );
+    final commands = value
+        .split('|||')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    return commands.isEmpty ? <String>[prompt.trim()] : commands;
+  }
+
+  static String _mergeClarification(String prompt, String clarification) {
+    return '$prompt ${clarification.trim()}'
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  static Map<String, dynamic> _actionMap(AiAssistantAction action) {
+    return <String, dynamic>{
+      'id': action.id,
+      'type': action.type,
+      'title': action.title,
+      'button_label': action.buttonLabel,
+      'confirmation_required': action.confirmationRequired,
+      'payload': action.payload,
+    };
   }
 
   static void _rememberConversation(
@@ -111,10 +335,18 @@ class GlobalVoiceAssistantRepository {
     return <String, dynamic>{};
   }
 
+  static String _scopeLabel(String? objectName, DateTime date) {
+    final cleanObject = objectName?.trim() ?? '';
+    return <String>[
+      cleanObject.isEmpty ? 'Все доступные объекты' : cleanObject,
+      _dateKey(date),
+    ].join(' • ');
+  }
+
   static String _dateKey(DateTime value) {
-    final date = DateTime(value.year, value.month, value.day);
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
+    final cleanDate = DateTime(value.year, value.month, value.day);
+    final month = cleanDate.month.toString().padLeft(2, '0');
+    final day = cleanDate.day.toString().padLeft(2, '0');
+    return '${cleanDate.year}-$month-$day';
   }
 }
