@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
 import 'task_voice_axis_hearing.dart';
+import 'task_voice_dictionaries.dart';
 
 _WebVoiceSession? _activeSession;
 
@@ -12,6 +13,7 @@ class _WebVoiceSession {
   final List<String> hints;
   final List<String> segments = <String>[];
   final void Function(String transcript)? onPartial;
+  final bool prioritizeAxes;
 
   String interim = '';
   String lastPublished = '';
@@ -21,12 +23,14 @@ class _WebVoiceSession {
     required this.recognition,
     required this.hints,
     required this.onPartial,
+    required this.prioritizeAxes,
   });
 }
 
 Future<String> recognizeTaskVoice({
   List<String> hints = const <String>[],
   void Function(String transcript)? onPartial,
+  bool prioritizeAxes = false,
 }) {
   if (_activeSession != null) {
     throw Exception('Голосовой ввод уже запущен.');
@@ -40,11 +44,12 @@ Future<String> recognizeTaskVoice({
   }
 
   final recognition = constructor.callAsConstructor<JSObject>();
-  final cleanHints = _normalizeHints(hints);
+  final cleanHints = normalizeTaskVoiceRecognitionHints(hints);
   final session = _WebVoiceSession(
     recognition: recognition,
     hints: cleanHints,
     onPartial: onPartial,
+    prioritizeAxes: prioritizeAxes,
   );
   _activeSession = session;
 
@@ -71,7 +76,11 @@ Future<String> recognizeTaskVoice({
       final resultValue = results.getProperty<JSAny?>(index.toString().toJS);
       if (resultValue == null || resultValue.isUndefinedOrNull) continue;
       final result = resultValue as JSObject;
-      final text = _bestAlternative(result, session.hints);
+      final text = _bestAlternative(
+        result,
+        session.hints,
+        prioritizeAxes: session.prioritizeAxes,
+      );
       if (text.isEmpty) continue;
 
       final isFinal = _readBool(result.getProperty<JSAny?>('isFinal'.toJS));
@@ -113,8 +122,8 @@ Future<String> recognizeTaskVoice({
     }
 
     // Safari/Chrome могут завершить одну сессию после паузы даже при
-    // continuous=true. Пока прораб сам не нажал «Стоп», запускаем слушание
-    // снова и продолжаем собирать тот же текст.
+    // continuous=true. Пока пользователь сам не нажал «Стоп», запускаем
+    // слушание снова и продолжаем собирать тот же текст.
     unawaited(
       Future<void>.delayed(const Duration(milliseconds: 220), () {
         if (_activeSession != session ||
@@ -213,21 +222,11 @@ void _applySpeechGrammar(JSObject recognition, List<String> hints) {
   }
 }
 
-List<String> _normalizeHints(List<String> hints) {
-  final values = <String>{..._axisSpeechHints};
-  for (final hint in hints) {
-    final clean = hint
-        .toLowerCase()
-        .replaceAll('ё', 'е')
-        .replaceAll(RegExp(r'[^а-яa-z0-9 ]+'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    if (clean.length >= 2) values.add(clean);
-  }
-  return values.toList(growable: false);
-}
-
-String _bestAlternative(JSObject result, List<String> hints) {
+String _bestAlternative(
+  JSObject result,
+  List<String> hints, {
+  required bool prioritizeAxes,
+}) {
   final length = _readInt(result.getProperty<JSAny?>('length'.toJS));
   final alternatives = length <= 0 ? 1 : (length > 3 ? 3 : length);
   var bestText = '';
@@ -249,8 +248,10 @@ String _bestAlternative(JSObject result, List<String> hints) {
     final confidence = _readDouble(
       alternative.getProperty<JSAny?>('confidence'.toJS),
     );
-    final axisScore = scoreTaskVoiceAxesCandidate(text) * 0.45;
-    final score = confidence + _hintScore(text, hints) + axisScore;
+    final axisContext = prioritizeAxes || _containsExplicitAxisMarker(text);
+    final axisScore = axisContext ? scoreTaskVoiceAxesCandidate(text) * 0.45 : 0.0;
+    final score =
+        confidence + scoreTaskVoiceRecognitionHints(text, hints) + axisScore;
     if (score > bestScore) {
       bestScore = score;
       bestText = text;
@@ -260,60 +261,10 @@ String _bestAlternative(JSObject result, List<String> hints) {
   return bestText;
 }
 
-double _hintScore(String transcript, List<String> hints) {
-  if (hints.isEmpty) return 0;
-  final normalized = transcript
-      .toLowerCase()
-      .replaceAll('ё', 'е')
-      .replaceAll(RegExp(r'[^а-яa-z0-9 ]+'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-  if (normalized.isEmpty) return 0;
-
-  final tokens = normalized.split(' ').toSet();
-  var score = 0.0;
-  for (final hint in hints) {
-    if (normalized.contains(hint)) {
-      score += 0.32;
-      continue;
-    }
-    for (final token in hint.split(' ')) {
-      if (token.length >= 4 && tokens.contains(token)) score += 0.025;
-    }
-  }
-  return score > 0.8 ? 0.8 : score;
-}
-
-const _axisSpeechHints = <String>{
-  'оси',
-  'по осям',
-  'бэ',
-  'бе',
-  'вэ',
-  'ве',
-  'гэ',
-  'ге',
-  'дэ',
-  'де',
-  'жэ',
-  'же',
-  'ка',
-  'эль',
-  'эм',
-  'эн',
-  'пэ',
-  'пе',
-  'эр',
-  'эс',
-  'тэ',
-  'те',
-  'бэгэ',
-  'беге',
-  'беги',
-  'вэгэ',
-  'веге',
-  'бэдэ',
-};
+bool _containsExplicitAxisMarker(String value) => RegExp(
+      r'(^|[^А-Яа-яЁё])(ось|оси|по\s+осям)(?=$|[^А-Яа-яЁё])',
+      caseSensitive: false,
+    ).hasMatch(value);
 
 String _liveTranscript(_WebVoiceSession session) => <String>[
   ...session.segments,
