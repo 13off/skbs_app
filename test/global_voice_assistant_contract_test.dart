@@ -41,7 +41,7 @@ void main() {
     expect(authOverlay, contains('_globalVoiceBottomClearance = 128.0'));
     expect(authOverlay, contains('bottom: _globalVoiceBottomClearance'));
     expect(chatShell, contains('padding.bottom + 92'));
-    expect(chatShell, contains('dimension: 54'));
+    expect(chatShell, contains('const dimension = 54.0'));
     expect(voiceLayer, contains('constraints.maxHeight - buttonSize - 92'));
   });
 
