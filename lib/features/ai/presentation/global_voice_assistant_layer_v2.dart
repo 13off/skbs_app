@@ -3,25 +3,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../data/employee_repository.dart';
+import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/web_back_navigation.dart';
 import '../../tasks/voice/task_voice_recognition.dart';
+import '../../voice/app_voice_dictionary.dart';
 import '../actions/global_voice_action_router.dart';
 import '../data/global_voice_assistant_repository.dart';
 import '../models/ai_assistant_result.dart';
-
-const _globalVoiceHintsV2 = <String>[
-  'сотрудник', 'сотрудники', 'табель', 'смена', 'смены', 'всем',
-  'единичку', 'ноль', 'половину', 'сегодня', 'вчера', 'завтра',
-  'задача', 'задачи', 'выплата', 'аванс', 'зарплата', 'штраф',
-  'чек', 'чеки', 'документ', 'договор', 'акт', 'кандидат',
-  'кандидаты', 'оформление', 'объект', 'объекты', 'напомни',
-  'проверь', 'покажи', 'найди', 'создай', 'добавь', 'измени',
-  'поставь', 'назначь', 'открой', 'сколько', 'кто', 'кому',
-  'должны', 'долг', 'остаток', 'просрочено', 'без чека',
-  'не вышел', 'сводка', 'отчет', 'аудит', 'настройки',
-  'уведомления', 'снабжение', 'поставщики', 'доставки', 'цели',
-];
 
 /// Root-safe floating voice interface. The widget itself lives above the root
 /// Navigator, while sheets/forms are opened through appNavigatorKey so all
@@ -58,6 +48,40 @@ class _GlobalVoiceAssistantLayerV2State
   String? get _objectName {
     final value = profile.objectName.trim();
     return value.isEmpty ? null : value;
+  }
+
+  Future<List<String>> _loadVoiceHints() async {
+    final employeeNames = <String>[];
+    final objectNames = <String>[];
+
+    if (!profile.isEmployee) {
+      try {
+        final employees = await EmployeeRepository.fetchEmployees(
+          objectName: profile.isForeman ? _objectName : null,
+          includeFired: false,
+        );
+        employeeNames.addAll(
+          employees
+              .map((employee) => employee.name.trim())
+              .where((name) => name.isNotEmpty),
+        );
+      } catch (_) {
+        // Динамические ФИО улучшают распознавание, но не должны блокировать
+        // голос при временной ошибке загрузки сотрудников.
+      }
+
+      try {
+        objectNames.addAll(await ObjectRepository.fetchObjectNames());
+      } catch (_) {
+        // Названия объектов также являются только подсказкой распознаванию.
+      }
+    }
+
+    return buildAppVoiceHints(
+      profile: profile,
+      employeeNames: employeeNames,
+      objectNames: objectNames,
+    );
   }
 
   @override
@@ -114,13 +138,20 @@ class _GlobalVoiceAssistantLayerV2State
     }
 
     setState(() {
-      _listening = true;
+      _processing = true;
       _transcript = '';
     });
     try {
+      final hints = await _loadVoiceHints();
+      if (!mounted) return;
+      setState(() {
+        _processing = false;
+        _listening = true;
+      });
       final transcript = await recognizeTaskVoice(
-        hints: _globalVoiceHintsV2,
+        hints: hints,
         onPartial: _partial,
+        prioritizeAxes: false,
       );
       if (!mounted) return;
       final clean = transcript.trim();
