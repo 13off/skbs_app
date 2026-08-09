@@ -20,6 +20,18 @@ void main() {
     expect(repository, contains('_needsClarification'));
   });
 
+  test('supabase non-2xx errors can become voice clarifications', () {
+    final repository = File(
+      'lib/features/ai/data/global_voice_assistant_repository.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains('on FunctionException catch (error)'));
+    expect(repository, contains('error.status'));
+    expect(repository, contains('error.details'));
+    expect(repository, contains("details['error']"));
+    expect(repository, contains('_rememberClarification'));
+  });
+
   test('explicit multi-step speech is split without splitting ordinary and', () {
     final repository = File(
       'lib/features/ai/data/global_voice_assistant_repository.dart',
