@@ -10,17 +10,26 @@ export function employeeWorkflowIntentGuard(prompt: string): boolean {
 export function flightWorkflowIntentGuard(prompt: string): boolean {
   const value = normalized(prompt);
   const reminder = /(?:напомн).*(?:вылет|рейс)/.test(value);
-  const status =
+  const explicitStatus =
     /(?:прибыл|прилетел|вылетел|улетел|регистрац).*(?:статус|рейс|вылет)/.test(
       value,
     ) ||
     /(?:статус|рейс|вылет).*(?:прибыл|прилетел|вылетел|улетел|регистрац)/.test(
       value,
     );
+  // Короткая живая команда с именем: «приземлился Иванов» после
+  // conversational normalization становится «прилетел Иванов».
+  const naturalPersonStatus =
+    /^(?:прибыл|прилетел|вылетел|улетел)\s+[а-яa-z][а-яa-z-]{2,}(?:\s+[а-яa-z][а-яa-z-]{2,}){0,2}$/.test(
+      value,
+    );
+  const registration =
+    /(?:регистрац).*(?:кандидат|сотрудник|рейс|вылет)/.test(value) ||
+    /(?:кандидат|сотрудник|рейс|вылет).*(?:регистрац)/.test(value);
   const cancellation =
     /(?:отмен).*(?:рейс|вылет)/.test(value) ||
     /(?:рейс|вылет).*(?:отмен)/.test(value);
-  return reminder || status || cancellation;
+  return reminder || explicitStatus || naturalPersonStatus || registration || cancellation;
 }
 
 export function chatMessageIntentGuard(prompt: string): boolean {
@@ -33,7 +42,7 @@ export function chatMessageIntentGuard(prompt: string): boolean {
 }
 
 export function archiveRestoreIntentGuard(prompt: string): boolean {
-  return /(?:восстанов).*(?:сотрудник|архив)|(?:сотрудник).*(?:из\s+архив|восстанов)/.test(
+  return /(?:восстанов).*(?:сотрудник|работник|архив)|(?:сотрудник|работник).*(?:из\s+архив|восстанов)/.test(
     normalized(prompt),
   );
 }
