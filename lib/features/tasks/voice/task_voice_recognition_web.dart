@@ -10,10 +10,10 @@ _WebVoiceSession? _activeSession;
 class _WebVoiceSession {
   final JSObject recognition;
   final Completer<String> completer = Completer<String>();
-  final List<String> hints;
+  List<String> hints;
   final List<String> segments = <String>[];
   final void Function(String transcript)? onPartial;
-  final bool prioritizeAxes;
+  bool prioritizeAxes;
 
   String interim = '';
   String lastPublished = '';
@@ -156,6 +156,22 @@ Future<String> recognizeTaskVoice({
   }
 
   return session.completer.future;
+}
+
+void updateTaskVoiceRecognitionContext({
+  List<String> hints = const <String>[],
+  bool prioritizeAxes = false,
+}) {
+  final session = _activeSession;
+  if (session == null || session.completer.isCompleted) return;
+
+  final cleanHints = normalizeTaskVoiceRecognitionHints(hints);
+  session.hints = cleanHints;
+  session.prioritizeAxes = prioritizeAxes;
+
+  // Даже если браузер не применяет обновлённый JSGF до следующего сегмента,
+  // новый список подсказок сразу используется нашим выбором альтернатив.
+  _applySpeechGrammar(session.recognition, cleanHints);
 }
 
 Future<void> stopTaskVoiceRecognition() async {
