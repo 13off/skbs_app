@@ -48,7 +48,7 @@ class GlobalVoiceAssistantRepository {
         'query_mode': snapshot.conversationMode,
         'date': snapshot.conversationDate,
         'prompt': snapshot.conversationPrompt,
-        'object_name': snapshot.objectName,
+        'object_name': snapshot.conversationObjectName,
       };
     }
 
