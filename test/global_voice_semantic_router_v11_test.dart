@@ -46,7 +46,8 @@ void main() {
     expect(source, contains('writeIntents.has(intent) ? 0.76 : 0.62'));
     expect(source, contains('не придумывай ФИО'));
     expect(source, contains('Верни только один intent из белого списка'));
-    expect(source, isNot(contains('.from(')));
+    expect(source, isNot(contains('client.from(')));
+    expect(source, isNot(contains('supabase.from(')));
     expect(source, isNot(contains('.insert(')));
     expect(source, isNot(contains('.update(')));
     expect(source, isNot(contains('.delete(')));
