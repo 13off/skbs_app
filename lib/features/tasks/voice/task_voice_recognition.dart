@@ -11,4 +11,12 @@ Future<String> recognizeTaskVoice({
   prioritizeAxes: prioritizeAxes,
 );
 
+void updateTaskVoiceRecognitionContext({
+  List<String> hints = const <String>[],
+  bool prioritizeAxes = false,
+}) => platform.updateTaskVoiceRecognitionContext(
+  hints: hints,
+  prioritizeAxes: prioritizeAxes,
+);
+
 Future<void> stopTaskVoiceRecognition() => platform.stopTaskVoiceRecognition();
