@@ -18,6 +18,7 @@ import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
+import '../features/voice/presentation/global_voice_assistant_layer.dart';
 import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
@@ -184,13 +185,23 @@ class _MainScreenState extends State<MainScreen> {
                     employeeName: preview.employeeName,
                     child: platform,
                   );
-            if (profile.isEmployee) return content;
-            return CompanyChatShell(
+
+            final shell = profile.isEmployee
+                ? content
+                : CompanyChatShell(
+                    key: ValueKey<String>(
+                      'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
+                    ),
+                    profile: profile,
+                    child: content,
+                  );
+
+            return GlobalVoiceAssistantLayer(
               key: ValueKey<String>(
-                'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
+                'global-voice:${profile.id}:${profile.role}:${profile.activeCompanyId}:${profile.objectName}',
               ),
               profile: profile,
-              child: content,
+              child: shell,
             );
           },
         );
