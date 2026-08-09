@@ -10,6 +10,8 @@ class GlobalVoiceContextSnapshot {
   final String conversationDate;
   final String conversationPrompt;
   final String conversationObjectName;
+  final String pendingClarificationPrompt;
+  final String pendingClarificationQuestion;
 
   const GlobalVoiceContextSnapshot({
     this.companyId = '',
@@ -21,6 +23,8 @@ class GlobalVoiceContextSnapshot {
     this.conversationDate = '',
     this.conversationPrompt = '',
     this.conversationObjectName = '',
+    this.pendingClarificationPrompt = '',
+    this.pendingClarificationQuestion = '',
   });
 
   GlobalVoiceContextSnapshot copyWith({
@@ -33,6 +37,8 @@ class GlobalVoiceContextSnapshot {
     String? conversationDate,
     String? conversationPrompt,
     String? conversationObjectName,
+    String? pendingClarificationPrompt,
+    String? pendingClarificationQuestion,
   }) {
     return GlobalVoiceContextSnapshot(
       companyId: companyId ?? this.companyId,
@@ -45,6 +51,10 @@ class GlobalVoiceContextSnapshot {
       conversationPrompt: conversationPrompt ?? this.conversationPrompt,
       conversationObjectName:
           conversationObjectName ?? this.conversationObjectName,
+      pendingClarificationPrompt:
+          pendingClarificationPrompt ?? this.pendingClarificationPrompt,
+      pendingClarificationQuestion:
+          pendingClarificationQuestion ?? this.pendingClarificationQuestion,
     );
   }
 }
@@ -55,6 +65,11 @@ class GlobalVoiceContextSnapshot {
 /// current user. The server still performs its own authorization and scoping.
 /// The same snapshot also keeps a short-lived conversational thread so a
 /// follow-up such as «кто именно?» can refer to the previous voice result.
+///
+/// Clarification context is separate from read-only conversation context: if a
+/// command is ambiguous or incomplete, the original command is remembered and
+/// the next short utterance is appended to it instead of forcing the user to
+/// repeat the whole instruction.
 class GlobalVoiceContextController {
   GlobalVoiceContextController._();
 
@@ -81,6 +96,10 @@ class GlobalVoiceContextController {
       conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
       conversationObjectName:
           sameCompany ? state.value.conversationObjectName : '',
+      pendingClarificationPrompt:
+          sameCompany ? state.value.pendingClarificationPrompt : '',
+      pendingClarificationQuestion:
+          sameCompany ? state.value.pendingClarificationQuestion : '',
     );
   }
 
@@ -103,6 +122,10 @@ class GlobalVoiceContextController {
       conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
       conversationObjectName:
           sameCompany ? state.value.conversationObjectName : '',
+      pendingClarificationPrompt:
+          sameCompany ? state.value.pendingClarificationPrompt : '',
+      pendingClarificationQuestion:
+          sameCompany ? state.value.pendingClarificationQuestion : '',
     );
   }
 
@@ -126,6 +149,33 @@ class GlobalVoiceContextController {
       conversationDate: date.trim(),
       conversationPrompt: prompt.trim(),
       conversationObjectName: objectName?.trim() ?? '',
+      pendingClarificationPrompt:
+          sameCompany ? state.value.pendingClarificationPrompt : '',
+      pendingClarificationQuestion:
+          sameCompany ? state.value.pendingClarificationQuestion : '',
+    );
+  }
+
+  static void setClarification({
+    required String companyId,
+    required String prompt,
+    required String question,
+  }) {
+    final cleanCompany = companyId.trim();
+    final sameCompany = state.value.companyId == cleanCompany;
+    state.value = GlobalVoiceContextSnapshot(
+      companyId: cleanCompany,
+      objectName: sameCompany ? state.value.objectName : '',
+      entityType: sameCompany ? state.value.entityType : '',
+      entityId: sameCompany ? state.value.entityId : '',
+      conversationTopic: sameCompany ? state.value.conversationTopic : '',
+      conversationMode: sameCompany ? state.value.conversationMode : '',
+      conversationDate: sameCompany ? state.value.conversationDate : '',
+      conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
+      conversationObjectName:
+          sameCompany ? state.value.conversationObjectName : '',
+      pendingClarificationPrompt: prompt.trim(),
+      pendingClarificationQuestion: question.trim(),
     );
   }
 
@@ -150,6 +200,15 @@ class GlobalVoiceContextController {
       conversationDate: '',
       conversationPrompt: '',
       conversationObjectName: '',
+    );
+  }
+
+  static void clearClarification({required String companyId}) {
+    final snapshot = snapshotFor(companyId);
+    if (snapshot == null) return;
+    state.value = snapshot.copyWith(
+      pendingClarificationPrompt: '',
+      pendingClarificationQuestion: '',
     );
   }
 
