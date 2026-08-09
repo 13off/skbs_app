@@ -44,10 +44,16 @@ import {
   procurementStatusIntent,
 } from "./professional_actions.ts";
 import {
+  dispatchSemanticVoice,
+  semanticResultBody,
+} from "./semantic_dispatch.ts";
+import { resolveSemanticVoiceIntent } from "./semantic_router.ts";
+import {
   baseDate,
   clean,
   corsHeaders,
   json,
+  normalized,
   requestedDate,
 } from "./shared.ts";
 import {
@@ -350,6 +356,63 @@ Deno.serve(async (request: Request) => {
       });
       if ("error" in result) return json({ error: result.error }, result.status);
       return json(result.body, result.status);
+    }
+
+    // Everything above is the established fast and deterministic router.
+    // Only a phrase that it did not understand reaches semantic interpretation.
+    const semanticValue = normalized(prompt);
+    const absenceWrite =
+      /(?:постав|отмет|исправ|поправ|измени|сдел).*(?:не выш|не явил|отсутств|прогул)/.test(
+        semanticValue,
+      ) ||
+      /(?:не выш|не явил|отсутств|прогул).*(?:постав|отмет|исправ|поправ|измени|сдел)/.test(
+        semanticValue,
+      );
+    const semanticInput = absenceWrite ? `${prompt} табель смены` : prompt;
+    const semanticRoute = await resolveSemanticVoiceIntent({
+      prompt: semanticInput,
+      role,
+      context: {
+        topic: conversationContext.topic,
+        queryMode: conversationContext.queryMode,
+        objectName: requestedObject,
+        previousPrompt: conversationContext.prompt,
+      },
+    });
+
+    if (semanticRoute.intent !== "fallback") {
+      const semanticResult = await dispatchSemanticVoice({
+        route: semanticRoute,
+        client,
+        companyId,
+        role,
+        userId: user.id,
+        assignedObject,
+        requestedObject,
+        date,
+        originalPrompt: absenceWrite ? `${prompt} 0 смен` : prompt,
+        supabaseUrl,
+        publishable,
+        authorization,
+      });
+      if (semanticResult != null) {
+        const decorated = semanticResultBody(semanticResult, semanticRoute);
+        if ("error" in decorated) {
+          return json(
+            {
+              error: decorated.error,
+              semantic_route: {
+                intent: semanticRoute.intent,
+                subtype: semanticRoute.subtype,
+                confidence: semanticRoute.confidence,
+                source: semanticRoute.source,
+              },
+            },
+            decorated.status,
+          );
+        }
+        return json(decorated.body, decorated.status);
+      }
     }
 
     return json({ fallback: true });
