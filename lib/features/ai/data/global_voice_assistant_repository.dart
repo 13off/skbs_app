@@ -41,7 +41,7 @@ class GlobalVoiceAssistantRepository {
     final snapshot = GlobalVoiceContextController.snapshotFor(cleanCompanyId);
     final contextObject = snapshot?.objectName.trim() ?? '';
     final explicitObject = objectName?.trim() ?? '';
-    final effectiveObject = explicitObject.isNotEmpty
+    var requestObject = explicitObject.isNotEmpty
         ? explicitObject
         : contextObject.isEmpty
         ? null
@@ -57,7 +57,7 @@ class GlobalVoiceAssistantRepository {
         return _localResult(
           title: 'Уточнение отменено',
           summary: 'Предыдущую незавершённую команду не продолжаю.',
-          objectName: effectiveObject,
+          objectName: requestObject,
           date: requestDate,
         );
       }
@@ -68,10 +68,15 @@ class GlobalVoiceAssistantRepository {
       final after = List<String>.from(
         snapshot?.pendingClarificationAfter ?? const <String>[],
       );
+      final clarificationObject = _clarificationTargetsObject(
+        snapshot?.pendingClarificationQuestion ?? '',
+      )
+          ? null
+          : requestObject;
       final mergedPrompt = _mergeClarification(pendingPrompt, cleanPrompt);
       final clarified = await _requestSingle(
         companyId: cleanCompanyId,
-        objectName: effectiveObject,
+        objectName: clarificationObject,
         date: requestDate,
         prompt: mergedPrompt,
       );
@@ -90,7 +95,7 @@ class GlobalVoiceAssistantRepository {
       if (before.isNotEmpty || after.isNotEmpty) {
         return _requestCompound(
           companyId: cleanCompanyId,
-          objectName: effectiveObject,
+          objectName: clarificationObject,
           date: requestDate,
           commands: <String>[...before, mergedPrompt, ...after],
         );
@@ -136,6 +141,7 @@ class GlobalVoiceAssistantRepository {
       if (corrected != null) {
         resolvedPrompt = corrected;
       } else if (_isReplayFollowUp(cleanPrompt)) {
+        final replayChangesObject = _objectModifier(cleanPrompt).isNotEmpty;
         final replay = _rewriteReplay(
           basePrompt: snapshot.lastCommandPrompt,
           followUp: cleanPrompt,
@@ -150,11 +156,12 @@ class GlobalVoiceAssistantRepository {
           );
           return _clarificationResult(
             message: replay.clarification,
-            objectName: effectiveObject,
+            objectName: replayChangesObject ? null : requestObject,
             date: requestDate,
           );
         }
         if (replay.prompt.isNotEmpty) resolvedPrompt = replay.prompt;
+        if (replayChangesObject) requestObject = null;
       }
     }
 
@@ -162,7 +169,7 @@ class GlobalVoiceAssistantRepository {
     if (commands.length > 1) {
       return _requestCompound(
         companyId: cleanCompanyId,
-        objectName: effectiveObject,
+        objectName: requestObject,
         date: requestDate,
         commands: commands,
       );
@@ -170,7 +177,7 @@ class GlobalVoiceAssistantRepository {
 
     return _requestSingle(
       companyId: cleanCompanyId,
-      objectName: effectiveObject,
+      objectName: requestObject,
       date: requestDate,
       prompt: resolvedPrompt,
     );
@@ -551,6 +558,13 @@ class GlobalVoiceAssistantRepository {
     if (value.length > 48) return false;
     return RegExp(
       r'^(?:нет|не надо|отмена|отмени|забудь|не делай|стоп|отбой)(?:\s+(?:это|его|ее|их|действие))?$',
+    ).hasMatch(value);
+  }
+
+  static bool _clarificationTargetsObject(String question) {
+    final value = _normalizedSpeech(question);
+    return RegExp(
+      r'(?:второй|второго|другой|другого)\s+объект|объект\s+по\s+имени',
     ).hasMatch(value);
   }
 
