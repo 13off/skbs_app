@@ -7,6 +7,7 @@ const MethodChannel _taskVoiceChannel = MethodChannel(
 Future<String> recognizeTaskVoice({
   List<String> hints = const <String>[],
   void Function(String transcript)? onPartial,
+  bool prioritizeAxes = false,
 }) async {
   try {
     final value = await _taskVoiceChannel.invokeMethod<String>(
@@ -14,6 +15,7 @@ Future<String> recognizeTaskVoice({
       <String, Object>{
         'locale': 'ru-RU',
         'hints': hints,
+        'prioritize_axes': prioritizeAxes,
       },
     );
     final text = value?.trim() ?? '';
