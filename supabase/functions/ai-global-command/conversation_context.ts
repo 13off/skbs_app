@@ -8,7 +8,13 @@ export type GlobalVoiceConversationContext = {
   objectName: string;
 };
 
-const supportedTopics = new Set(["employees", "tasks", "candidates", "procurement"]);
+const supportedTopics = new Set([
+  "employees",
+  "tasks",
+  "candidates",
+  "procurement",
+  "absence_today",
+]);
 const supportedModes = new Set(["count", "list"]);
 
 export function parseGlobalVoiceConversationContext(
@@ -82,6 +88,14 @@ export function resolveGlobalVoiceConversationPrompt({
   const raw = clean(prompt, 4000);
   const value = normalized(raw);
   if (!raw || !context.topic || explicitTopic(value) || !shortFollowUp(value)) {
+    return { prompt: raw, inherited: false };
+  }
+
+  // Ссылочные действия по результату аналитики (например «поставь им нули»)
+  // обрабатываются отдельным reference router и сюда не попадают. Для
+  // absence_today сохраняем контекст, но не пытаемся превращать его в обычный
+  // count/list запрос.
+  if (context.topic === "absence_today") {
     return { prompt: raw, inherited: false };
   }
 
