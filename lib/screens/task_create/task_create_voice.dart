@@ -249,6 +249,16 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       ..addAll(result.assigneeIds);
   }
 
+  void _updateVoiceRecognitionField(TaskVoiceField? field) {
+    updateTaskVoiceRecognitionContext(
+      hints: buildTaskVoiceContextHints(
+        activeField: field,
+        employees: employees,
+      ),
+      prioritizeAxes: field == TaskVoiceField.axes,
+    );
+  }
+
   String _voiceStatusMessage(
     TaskVoiceSessionResult result, {
     TaskVoiceField? activeField,
@@ -369,6 +379,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       transcript: transcript,
       currentField: voiceActiveField,
     );
+    if (nextActiveField != voiceActiveField) {
+      _updateVoiceRecognitionField(nextActiveField);
+    }
     final session = _parseVoiceSession(transcript);
     setState(() {
       voiceActiveField = nextActiveField;
