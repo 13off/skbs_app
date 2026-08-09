@@ -18,6 +18,7 @@ import '../../tools/presentation/company_tools_screen.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
 import 'global_voice_action_execution_coordinator.dart';
+import 'global_voice_extended_action_coordinator.dart';
 import 'global_voice_management_action_coordinator.dart';
 import 'global_voice_professional_action_coordinator.dart';
 import 'global_voice_workflow_action_coordinator.dart';
@@ -57,6 +58,15 @@ class GlobalVoiceActionRouter {
       action.type,
     )) {
       return GlobalVoiceProfessionalActionCoordinator.execute(
+        context: context,
+        profile: profile,
+        action: action,
+      );
+    }
+    if (GlobalVoiceExtendedActionCoordinator.supportedTypes.contains(
+      action.type,
+    )) {
+      return GlobalVoiceExtendedActionCoordinator.execute(
         context: context,
         profile: profile,
         action: action,
