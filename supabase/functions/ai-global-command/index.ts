@@ -36,6 +36,10 @@ import {
   operationalQueryIntent,
 } from "./operational_queries.ts";
 import {
+  buildExtendedOperationalQuery,
+  extendedOperationalQueryIntent,
+} from "./operational_queries_extended.ts";
+import {
   buildHrStageMove,
   buildLegalDecision,
   buildProcurementStatus,
@@ -229,6 +233,20 @@ Deno.serve(async (request: Request) => {
         client,
         companyId,
         role,
+        requestedObject,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (extendedOperationalQueryIntent(prompt)) {
+      const result = await buildExtendedOperationalQuery({
+        client,
+        companyId,
+        role,
+        assignedObject,
         requestedObject,
         prompt,
         date,
