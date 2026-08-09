@@ -67,14 +67,20 @@ void main() {
     expect(hints, contains('талнах'));
   });
 
-  test('MainScreen монтирует один глобальный голосовой слой над всеми ролями', () {
+  test('глобальный микрофон монтируется выше Navigator и не пропадает на route', () {
+    final app = File('lib/main.dart').readAsStringSync();
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
+    final root = File(
+      'lib/features/voice/presentation/global_voice_root_layer.dart',
+    ).readAsStringSync();
 
-    expect(main, contains('global_voice_assistant_layer.dart'));
-    expect(main, contains('return GlobalVoiceAssistantLayer('));
+    expect(app, contains('GlobalVoiceRootLayer('));
+    expect(app, contains('builder: (context, child) => AppScaleViewport('));
+    expect(root, contains('GlobalVoiceAssistantLayer('));
+    expect(root, contains('AppVoiceProfileController.state'));
+    expect(main, contains('AppVoiceProfileController.configure(profile)'));
     expect(main, contains('profile.isEmployee'));
     expect(main, contains('CompanyChatShell('));
-    expect(main, contains("'global-voice:"));
   });
 
   test('глобальный голос использует общий ИИ и штатное подтверждение действий', () {
