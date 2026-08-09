@@ -10,7 +10,12 @@ import 'global_voice_assistant_layer_v2.dart';
 
 /// Keeps the global voice control clear of the floating company-chat button
 /// and the bottom navigation zone without moving or shrinking app content.
-const _globalVoiceBottomClearance = 88.0;
+///
+/// CompanyChatShell places a 54 px launcher at viewPadding.bottom + 92. The
+/// voice layer itself keeps its button 92 px above its own bottom edge, so a
+/// 128 px overlay clearance leaves a visible gap between both buttons on
+/// iPhone safe-area layouts and keeps drag gestures out of the chat zone.
+const _globalVoiceBottomClearance = 128.0;
 
 /// Auth-aware host for the global voice layer.
 ///
