@@ -37,13 +37,13 @@ function explicitTopic(value: string): boolean {
 
 function shortFollowUp(value: string): boolean {
   if (value.length > 90) return false;
-  return /^(?:а\s+)?(?:сколько(?:\s+их)?|их\s+сколько|кто(?:\s+именно)?|какие(?:\s+именно)?|перечисли(?:\s+их)?|покажи\s+их|а\s+они|а\s+их|на\s+(?:сегодня|завтра|послезавтра)|а\s+(?:сегодня|завтра|послезавтра)|а\s+на\s+(?:сегодня|завтра|послезавтра)|что\s+по\s+ним)[?!.\s]*$/.test(
+  return /^(?:а\s+)?(?:сколько(?:\s+их)?|их\s+сколько|кто(?:\s+именно)?|какие(?:\s+именно)?|перечисли(?:\s+их)?|открой\s+их|а\s+они|а\s+их|на\s+(?:сегодня|завтра|послезавтра)|а\s+(?:сегодня|завтра|послезавтра)|а\s+на\s+(?:сегодня|завтра|послезавтра)|что\s+по\s+ним)[?!.\s]*$/.test(
     value,
   );
 }
 
 function requestedMode(value: string, fallback: string): string {
-  if (/(?:кто|какие|перечисли|покажи\s+их|что\s+по\s+ним)/.test(value)) {
+  if (/(?:кто|какие|перечисли|открой\s+их|что\s+по\s+ним)/.test(value)) {
     return "list";
   }
   if (/(?:сколько|их\s+сколько)/.test(value)) return "count";
@@ -90,14 +90,9 @@ export function resolveGlobalVoiceConversationPrompt({
   if (!resolved) return { prompt: raw, inherited: false };
 
   if (context.topic === "tasks") {
-    finalDate: {
-      const relative = relativeDate(value);
-      if (relative) {
-        resolved += ` ${relative}`;
-        break finalDate;
-      }
-      if (context.date) resolved += ` ${context.date}`;
-    }
+    const relative = relativeDate(value);
+    if (relative) resolved += ` ${relative}`;
+    else if (context.date) resolved += ` ${context.date}`;
   }
 
   return { prompt: resolved, inherited: true };
