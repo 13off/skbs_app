@@ -20,7 +20,7 @@ void main() {
     ).readAsStringSync();
 
     expect(shared, contains('пол\\s*дня|полдня'));
-    expect(shared, contains('поставь $2'));
+    expect(shared, contains(r'поставь $2'));
     expect(shared, contains('начал|начала'));
     expect(shared, contains('заверши рабочий день'));
   });
@@ -30,9 +30,9 @@ void main() {
       'supabase/functions/ai-global-command/shared.ts',
     ).readAsStringSync();
 
-    expect(shared, contains('переведи кандидата $1 на билеты'));
-    expect(shared, contains('напиши $1:'));
-    expect(shared, contains('создай заявку на снабжение $1'));
+    expect(shared, contains(r'переведи кандидата $1 на билеты'));
+    expect(shared, contains(r'напиши $1:'));
+    expect(shared, contains(r'создай заявку на снабжение $1'));
     expect(shared, contains('создай юридический вопрос'));
     expect(shared, contains('достань|достать'));
     expect(shared, contains('разархивируй'));
