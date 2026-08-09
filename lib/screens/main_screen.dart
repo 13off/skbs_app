@@ -41,7 +41,6 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     PersonalProfileController.configure(widget.profile);
-    AppVoiceProfileController.configure(widget.profile);
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
@@ -56,7 +55,6 @@ class _MainScreenState extends State<MainScreen> {
     final companyChanged =
         oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId;
     if (identityChanged) PersonalProfileController.configure(widget.profile);
-    AppVoiceProfileController.configure(widget.profile);
     if (!identityChanged && !companyChanged) return;
 
     warmupToken++;
@@ -70,7 +68,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     warmupToken++;
-    AppVoiceProfileController.clearIfUser(widget.profile.id);
+    final userId = widget.profile.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppVoiceProfileController.clearIfUser(userId);
+    });
     super.dispose();
   }
 
