@@ -4,73 +4,6 @@
 
 part of '../add_task_screen.dart';
 
-const _taskVoiceDomainHints = <String>[
-  'дата',
-  'дату',
-  'сегодня',
-  'завтра',
-  'послезавтра',
-  'оси',
-  'ось',
-  'по осям',
-  'один',
-  'два',
-  'три',
-  'четыре',
-  'пять',
-  'шесть',
-  'семь',
-  'восемь',
-  'девять',
-  'десять',
-  'а',
-  'бэ',
-  'вэ',
-  'гэ',
-  'дэ',
-  'армирование',
-  'арматура',
-  'опалубка',
-  'бетонирование',
-  'бетон',
-  'колонна',
-  'колонны',
-  'стена',
-  'стены',
-  'перекрытие',
-  'плита',
-  'фундамент',
-  'ростверк',
-  'ригель',
-  'балка',
-  'лестница',
-  'захватка',
-  'секция',
-  'этаж',
-  'монтаж',
-  'демонтаж',
-  'доармировать',
-  'добить опалубку',
-  'залить плиту',
-  'закончить',
-  'выполнить',
-  'подготовить',
-  'вид работ',
-  'исполнитель',
-  'исполнители',
-  'добавь ещё',
-  'убери',
-  'замени',
-  'поменяй',
-  'исправь',
-  'оставь',
-  'очисти',
-  'начнём заново',
-  'всё готово',
-  'готово',
-  'стоп',
-];
-
 extension _TaskCreateVoice on _AddTaskScreenState {
   Widget buildVoiceAssistantCard() {
     final canUseVoice = !isLoadingEmployees;
@@ -316,6 +249,16 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       ..addAll(result.assigneeIds);
   }
 
+  void _updateVoiceRecognitionField(TaskVoiceField? field) {
+    updateTaskVoiceRecognitionContext(
+      hints: buildTaskVoiceContextHints(
+        activeField: field,
+        employees: employees,
+      ),
+      prioritizeAxes: field == TaskVoiceField.axes,
+    );
+  }
+
   String _voiceStatusMessage(
     TaskVoiceSessionResult result, {
     TaskVoiceField? activeField,
@@ -354,6 +297,7 @@ extension _TaskCreateVoice on _AddTaskScreenState {
   Future<void> captureVoiceTask() async {
     if (isListeningVoice) return;
     _snapshotVoiceSession();
+    final recognitionField = voiceActiveField;
     setState(() {
       isListeningVoice = true;
       voiceTranscript = null;
@@ -366,10 +310,11 @@ extension _TaskCreateVoice on _AddTaskScreenState {
     });
     try {
       final transcript = await recognizeTaskVoice(
-        hints: buildTaskVoiceHints(
-          employees,
-          domainHints: _taskVoiceDomainHints,
+        hints: buildTaskVoiceContextHints(
+          activeField: recognitionField,
+          employees: employees,
         ),
+        prioritizeAxes: recognitionField == TaskVoiceField.axes,
         onPartial: applyVoicePartial,
       );
       final nextActiveField = resolveTaskVoiceActiveField(
@@ -434,6 +379,9 @@ extension _TaskCreateVoice on _AddTaskScreenState {
       transcript: transcript,
       currentField: voiceActiveField,
     );
+    if (nextActiveField != voiceActiveField) {
+      _updateVoiceRecognitionField(nextActiveField);
+    }
     final session = _parseVoiceSession(transcript);
     setState(() {
       voiceActiveField = nextActiveField;

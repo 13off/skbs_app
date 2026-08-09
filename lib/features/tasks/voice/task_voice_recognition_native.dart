@@ -7,6 +7,7 @@ const MethodChannel _taskVoiceChannel = MethodChannel(
 Future<String> recognizeTaskVoice({
   List<String> hints = const <String>[],
   void Function(String transcript)? onPartial,
+  bool prioritizeAxes = false,
 }) async {
   try {
     final value = await _taskVoiceChannel.invokeMethod<String>(
@@ -14,6 +15,7 @@ Future<String> recognizeTaskVoice({
       <String, Object>{
         'locale': 'ru-RU',
         'hints': hints,
+        'prioritize_axes': prioritizeAxes,
       },
     );
     final text = value?.trim() ?? '';
@@ -31,6 +33,15 @@ Future<String> recognizeTaskVoice({
   } on MissingPluginException {
     throw Exception('Голосовой ввод пока недоступен на этом устройстве.');
   }
+}
+
+void updateTaskVoiceRecognitionContext({
+  List<String> hints = const <String>[],
+  bool prioritizeAxes = false,
+}) {
+  // Мобильные системные распознаватели получают словарь при запуске сессии.
+  // PWA умеет менять подсказки прямо во время непрерывной записи; на native
+  // новый контекст безопасно применится при следующем запуске микрофона.
 }
 
 Future<void> stopTaskVoiceRecognition() async {

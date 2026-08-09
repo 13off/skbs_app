@@ -21,14 +21,18 @@ void main() {
     expect(voice, contains('workController.text'));
     expect(voice, contains('selectedDate = result.date'));
     expect(shell, contains('task_voice_strict_session.dart'));
+    expect(shell, contains('task_voice_dictionaries.dart'));
   });
 
-  test('PWA слушает до Стоп или голосового готово и использует подсказки', () {
+  test('PWA слушает до Стоп или голосового готово и использует контекстные подсказки', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
     ).readAsStringSync();
     final session = File(
       'lib/features/tasks/voice/task_voice_session.dart',
+    ).readAsStringSync();
+    final dictionaries = File(
+      'lib/features/tasks/voice/task_voice_dictionaries.dart',
     ).readAsStringSync();
     final web = File(
       'lib/features/tasks/voice/task_voice_recognition_web.dart',
@@ -36,16 +40,20 @@ void main() {
 
     expect(voice, contains("? 'Стоп'"));
     expect(voice, contains('stopTaskVoiceRecognition()'));
-    expect(voice, contains('buildTaskVoiceHints('));
-    expect(voice, contains("'дату'"));
-    expect(voice, contains("'добавь ещё'"));
-    expect(voice, contains("'начнём заново'"));
+    expect(voice, contains('buildTaskVoiceContextHints('));
+    expect(voice, contains('activeField: recognitionField'));
+    expect(dictionaries, contains("'дату'"));
+    expect(dictionaries, contains("'добавь'"));
+    expect(dictionaries, contains("'начнем заново'"));
+    expect(dictionaries, contains('_workHints'));
+    expect(dictionaries, contains('_axisHints'));
     expect(session, contains('_hasStopCommand'));
     expect(session, contains('вс[её]\\s+готово'));
     expect(web, contains("setProperty('continuous'.toJS, true.toJS)"));
     expect(web, contains("setProperty('interimResults'.toJS, true.toJS)"));
     expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
     expect(web, contains('_applySpeechGrammar'));
+    expect(web, contains('scoreTaskVoiceRecognitionHints(text, hints)'));
     expect(web, contains('session.stopRequested'));
     expect(web, contains("callMethod<JSAny?>('stop'.toJS)"));
     expect(web, isNot(contains('Duration(seconds: 18)')));
@@ -86,9 +94,12 @@ void main() {
     expect(web, contains('session.interim'));
   });
 
-  test('фамилии вынесены в отдельный фонетический matcher', () {
+  test('фамилии вынесены в отдельный фонетический matcher и контекстный словарь', () {
     final voice = File(
       'lib/screens/task_create/task_create_voice.dart',
+    ).readAsStringSync();
+    final dictionaries = File(
+      'lib/features/tasks/voice/task_voice_dictionaries.dart',
     ).readAsStringSync();
     final matcher = File(
       'lib/features/tasks/voice/task_voice_employee_matcher.dart',
@@ -97,7 +108,11 @@ void main() {
       'lib/features/tasks/voice/task_voice_parser_robust.dart',
     ).readAsStringSync();
 
-    expect(voice, contains('buildTaskVoiceHints('));
+    expect(voice, contains('buildTaskVoiceContextHints('));
+    expect(voice, contains('employees: employees'));
+    expect(dictionaries, contains('List<String> _employeeHints'));
+    expect(dictionaries, contains('employee.name.trim()'));
+    expect(dictionaries, contains('TaskVoiceField.assignees => employeeHints'));
     expect(matcher, contains('final surnames = <String>[]'));
     expect(matcher, contains('...surnames'));
     expect(matcher, contains('...fullNames'));
