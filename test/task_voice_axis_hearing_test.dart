@@ -35,6 +35,17 @@ void main() {
     );
   });
 
+  test('фонетические имена букв разбираются как оси', () {
+    expect(
+      normalizeTaskVoiceAxesValue('пять восемь Борис Григорий'),
+      'пять восемь бэ гэ',
+    );
+    expect(
+      normalizeTaskVoiceAxesValue('7 10 Виктор Дмитрий'),
+      '7 10 вэ дэ',
+    );
+  });
+
   test('до двух шумовых слов внутри осей не обрывают разбор', () {
     expect(
       normalizeTaskVoiceAxesValue('пять восемь помеха шум бэ гэ'),
@@ -85,15 +96,15 @@ void main() {
     );
   });
 
-  test('Web Speech оценивает три гипотезы с приоритетом осевого шаблона', () {
+  test('Web Speech оценивает осевой шаблон только в осевом контексте', () {
     final web = File(
       'lib/features/tasks/voice/task_voice_recognition_web.dart',
     ).readAsStringSync();
 
     expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
     expect(web, contains('scoreTaskVoiceAxesCandidate(text)'));
-    expect(web, contains('_axisSpeechHints'));
-    expect(web, contains("'беги'"));
-    expect(web, contains("'беге'"));
+    expect(web, contains('prioritizeAxes'));
+    expect(web, contains('scoreTaskVoiceRecognitionHints(text, hints)'));
+    expect(web, isNot(contains('_axisSpeechHints')));
   });
 }
