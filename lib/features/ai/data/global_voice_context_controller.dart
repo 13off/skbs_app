@@ -12,6 +12,14 @@ class GlobalVoiceContextSnapshot {
   final String conversationObjectName;
   final String pendingClarificationPrompt;
   final String pendingClarificationQuestion;
+  final List<String> pendingClarificationBefore;
+  final List<String> pendingClarificationAfter;
+  final String lastCommandPrompt;
+  final String lastCommandObjectName;
+  final String lastCommandDate;
+  final String lastResultTitle;
+  final String lastResultSummary;
+  final Map<String, dynamic> lastAction;
 
   const GlobalVoiceContextSnapshot({
     this.companyId = '',
@@ -25,6 +33,14 @@ class GlobalVoiceContextSnapshot {
     this.conversationObjectName = '',
     this.pendingClarificationPrompt = '',
     this.pendingClarificationQuestion = '',
+    this.pendingClarificationBefore = const <String>[],
+    this.pendingClarificationAfter = const <String>[],
+    this.lastCommandPrompt = '',
+    this.lastCommandObjectName = '',
+    this.lastCommandDate = '',
+    this.lastResultTitle = '',
+    this.lastResultSummary = '',
+    this.lastAction = const <String, dynamic>{},
   });
 
   GlobalVoiceContextSnapshot copyWith({
@@ -39,6 +55,14 @@ class GlobalVoiceContextSnapshot {
     String? conversationObjectName,
     String? pendingClarificationPrompt,
     String? pendingClarificationQuestion,
+    List<String>? pendingClarificationBefore,
+    List<String>? pendingClarificationAfter,
+    String? lastCommandPrompt,
+    String? lastCommandObjectName,
+    String? lastCommandDate,
+    String? lastResultTitle,
+    String? lastResultSummary,
+    Map<String, dynamic>? lastAction,
   }) {
     return GlobalVoiceContextSnapshot(
       companyId: companyId ?? this.companyId,
@@ -55,6 +79,17 @@ class GlobalVoiceContextSnapshot {
           pendingClarificationPrompt ?? this.pendingClarificationPrompt,
       pendingClarificationQuestion:
           pendingClarificationQuestion ?? this.pendingClarificationQuestion,
+      pendingClarificationBefore:
+          pendingClarificationBefore ?? this.pendingClarificationBefore,
+      pendingClarificationAfter:
+          pendingClarificationAfter ?? this.pendingClarificationAfter,
+      lastCommandPrompt: lastCommandPrompt ?? this.lastCommandPrompt,
+      lastCommandObjectName:
+          lastCommandObjectName ?? this.lastCommandObjectName,
+      lastCommandDate: lastCommandDate ?? this.lastCommandDate,
+      lastResultTitle: lastResultTitle ?? this.lastResultTitle,
+      lastResultSummary: lastResultSummary ?? this.lastResultSummary,
+      lastAction: lastAction ?? this.lastAction,
     );
   }
 }
@@ -63,13 +98,13 @@ class GlobalVoiceContextSnapshot {
 ///
 /// Professional shells publish only context that is already visible to the
 /// current user. The server still performs its own authorization and scoping.
-/// The same snapshot also keeps a short-lived conversational thread so a
-/// follow-up such as «кто именно?» can refer to the previous voice result.
+/// Besides read-only query context, the snapshot keeps two short-lived layers:
 ///
-/// Clarification context is separate from read-only conversation context: if a
-/// command is ambiguous or incomplete, the original command is remembered and
-/// the next short utterance is appended to it instead of forcing the user to
-/// repeat the whole instruction.
+/// - clarification memory for an incomplete/ambiguous command, including the
+///   steps before and after it inside a compound command;
+/// - the last successful voice turn so natural follow-ups such as
+///   «не Иванову, а Петрову», «то же самое на завтра» or «да, подтверждай» can
+///   reuse the previous command without bypassing the established action flow.
 class GlobalVoiceContextController {
   GlobalVoiceContextController._();
 
@@ -78,28 +113,21 @@ class GlobalVoiceContextController {
         const GlobalVoiceContextSnapshot(),
       );
 
+  static GlobalVoiceContextSnapshot _forCompany(String companyId) {
+    final cleanCompany = companyId.trim();
+    final current = state.value;
+    if (current.companyId == cleanCompany) return current;
+    return GlobalVoiceContextSnapshot(companyId: cleanCompany);
+  }
+
   static void setObjectName({
     required String companyId,
     String? objectName,
   }) {
     final cleanCompany = companyId.trim();
-    final cleanObject = objectName?.trim() ?? '';
-    final sameCompany = state.value.companyId == cleanCompany;
-    state.value = GlobalVoiceContextSnapshot(
+    state.value = _forCompany(cleanCompany).copyWith(
       companyId: cleanCompany,
-      objectName: cleanObject,
-      entityType: sameCompany ? state.value.entityType : '',
-      entityId: sameCompany ? state.value.entityId : '',
-      conversationTopic: sameCompany ? state.value.conversationTopic : '',
-      conversationMode: sameCompany ? state.value.conversationMode : '',
-      conversationDate: sameCompany ? state.value.conversationDate : '',
-      conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
-      conversationObjectName:
-          sameCompany ? state.value.conversationObjectName : '',
-      pendingClarificationPrompt:
-          sameCompany ? state.value.pendingClarificationPrompt : '',
-      pendingClarificationQuestion:
-          sameCompany ? state.value.pendingClarificationQuestion : '',
+      objectName: objectName?.trim() ?? '',
     );
   }
 
@@ -110,22 +138,12 @@ class GlobalVoiceContextController {
     String? objectName,
   }) {
     final cleanCompany = companyId.trim();
-    final sameCompany = state.value.companyId == cleanCompany;
-    state.value = GlobalVoiceContextSnapshot(
+    final current = _forCompany(cleanCompany);
+    state.value = current.copyWith(
       companyId: cleanCompany,
-      objectName: objectName?.trim() ?? (sameCompany ? state.value.objectName : ''),
+      objectName: objectName?.trim() ?? current.objectName,
       entityType: entityType.trim(),
       entityId: entityId.trim(),
-      conversationTopic: sameCompany ? state.value.conversationTopic : '',
-      conversationMode: sameCompany ? state.value.conversationMode : '',
-      conversationDate: sameCompany ? state.value.conversationDate : '',
-      conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
-      conversationObjectName:
-          sameCompany ? state.value.conversationObjectName : '',
-      pendingClarificationPrompt:
-          sameCompany ? state.value.pendingClarificationPrompt : '',
-      pendingClarificationQuestion:
-          sameCompany ? state.value.pendingClarificationQuestion : '',
     );
   }
 
@@ -138,21 +156,13 @@ class GlobalVoiceContextController {
     String? objectName,
   }) {
     final cleanCompany = companyId.trim();
-    final sameCompany = state.value.companyId == cleanCompany;
-    state.value = GlobalVoiceContextSnapshot(
+    state.value = _forCompany(cleanCompany).copyWith(
       companyId: cleanCompany,
-      objectName: sameCompany ? state.value.objectName : '',
-      entityType: sameCompany ? state.value.entityType : '',
-      entityId: sameCompany ? state.value.entityId : '',
       conversationTopic: topic.trim(),
       conversationMode: mode.trim(),
       conversationDate: date.trim(),
       conversationPrompt: prompt.trim(),
       conversationObjectName: objectName?.trim() ?? '',
-      pendingClarificationPrompt:
-          sameCompany ? state.value.pendingClarificationPrompt : '',
-      pendingClarificationQuestion:
-          sameCompany ? state.value.pendingClarificationQuestion : '',
     );
   }
 
@@ -160,22 +170,43 @@ class GlobalVoiceContextController {
     required String companyId,
     required String prompt,
     required String question,
+    Iterable<String> before = const <String>[],
+    Iterable<String> after = const <String>[],
   }) {
     final cleanCompany = companyId.trim();
-    final sameCompany = state.value.companyId == cleanCompany;
-    state.value = GlobalVoiceContextSnapshot(
+    state.value = _forCompany(cleanCompany).copyWith(
       companyId: cleanCompany,
-      objectName: sameCompany ? state.value.objectName : '',
-      entityType: sameCompany ? state.value.entityType : '',
-      entityId: sameCompany ? state.value.entityId : '',
-      conversationTopic: sameCompany ? state.value.conversationTopic : '',
-      conversationMode: sameCompany ? state.value.conversationMode : '',
-      conversationDate: sameCompany ? state.value.conversationDate : '',
-      conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
-      conversationObjectName:
-          sameCompany ? state.value.conversationObjectName : '',
       pendingClarificationPrompt: prompt.trim(),
       pendingClarificationQuestion: question.trim(),
+      pendingClarificationBefore: before
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+      pendingClarificationAfter: after
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+    );
+  }
+
+  static void rememberTurn({
+    required String companyId,
+    required String prompt,
+    required String objectName,
+    required String date,
+    required String resultTitle,
+    required String resultSummary,
+    Map<String, dynamic> action = const <String, dynamic>{},
+  }) {
+    final cleanCompany = companyId.trim();
+    state.value = _forCompany(cleanCompany).copyWith(
+      companyId: cleanCompany,
+      lastCommandPrompt: prompt.trim(),
+      lastCommandObjectName: objectName.trim(),
+      lastCommandDate: date.trim(),
+      lastResultTitle: resultTitle.trim(),
+      lastResultSummary: resultSummary.trim(),
+      lastAction: Map<String, dynamic>.from(action),
     );
   }
 
@@ -209,6 +240,21 @@ class GlobalVoiceContextController {
     state.value = snapshot.copyWith(
       pendingClarificationPrompt: '',
       pendingClarificationQuestion: '',
+      pendingClarificationBefore: const <String>[],
+      pendingClarificationAfter: const <String>[],
+    );
+  }
+
+  static void clearLastTurn({required String companyId}) {
+    final snapshot = snapshotFor(companyId);
+    if (snapshot == null) return;
+    state.value = snapshot.copyWith(
+      lastCommandPrompt: '',
+      lastCommandObjectName: '',
+      lastCommandDate: '',
+      lastResultTitle: '',
+      lastResultSummary: '',
+      lastAction: const <String, dynamic>{},
     );
   }
 

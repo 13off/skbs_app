@@ -174,15 +174,57 @@ export function nameTokens(fullName: string): string[] {
   return tokens(fullName).filter((token) => token.length >= 3);
 }
 
+function russianNameStem(token: string): string {
+  if (!/^[а-я]+$/.test(token) || token.length < 4) return token;
+  const suffixes = [
+    "иями",
+    "ями",
+    "ами",
+    "ого",
+    "ему",
+    "ому",
+    "ией",
+    "ей",
+    "ой",
+    "ам",
+    "ям",
+    "ах",
+    "ях",
+    "ы",
+    "и",
+    "е",
+    "у",
+    "ю",
+    "а",
+    "я",
+  ];
+  for (const suffix of suffixes) {
+    if (!token.endsWith(suffix)) continue;
+    const stem = token.slice(0, -suffix.length);
+    if (stem.length >= 3) return stem;
+  }
+  return token;
+}
+
+function nameTokenMatches(left: string, right: string): boolean {
+  if (left === right) return true;
+  if (
+    Math.min(left.length, right.length) >= 5 &&
+    (left.startsWith(right) || right.startsWith(left))
+  ) return true;
+
+  const leftStem = russianNameStem(left);
+  const rightStem = russianNameStem(right);
+  return leftStem.length >= 3 &&
+    rightStem.length >= 3 &&
+    leftStem === rightStem;
+}
+
 export function nameMatches(prompt: string, fullName: string): boolean {
   const promptTokens = new Set(tokens(prompt));
   return nameTokens(fullName).some((nameToken) => {
     for (const promptToken of promptTokens) {
-      if (promptToken === nameToken) return true;
-      if (
-        Math.min(promptToken.length, nameToken.length) >= 5 &&
-        (promptToken.startsWith(nameToken) || nameToken.startsWith(promptToken))
-      ) return true;
+      if (nameTokenMatches(promptToken, nameToken)) return true;
     }
     return false;
   });
