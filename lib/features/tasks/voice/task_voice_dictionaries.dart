@@ -76,6 +76,24 @@ const _numberHints = <String>[
   'двадцать',
 ];
 
+const _axisCoreHints = <String>[
+  'бэ',
+  'бе',
+  'вэ',
+  'ве',
+  'гэ',
+  'ге',
+  'дэ',
+  'де',
+  'бэгэ',
+  'беге',
+  'беги',
+  'вэгэ',
+  'веге',
+  'бэдэ',
+  'беде',
+];
+
 const _axisHints = <String>[
   ..._numberHints,
   'а',
@@ -107,13 +125,7 @@ const _axisHints = <String>[
   'эс',
   'тэ',
   'те',
-  'бэгэ',
-  'беге',
-  'беги',
-  'вэгэ',
-  'веге',
-  'бэдэ',
-  'беде',
+  ..._axisCoreHints,
   'борис',
   'виктор',
   'григорий',
@@ -209,36 +221,25 @@ List<String> buildTaskVoiceContextHints({
   required TaskVoiceField? activeField,
   required List<Employee> employees,
 }) {
-  final hints = <String>[..._commonHints];
+  final employeeHints = _employeeHints(employees);
+  final fieldHints = switch (activeField) {
+    TaskVoiceField.date => <String>[..._dateHints, ..._numberHints],
+    TaskVoiceField.axes => _axisHints,
+    TaskVoiceField.work => _workHints,
+    TaskVoiceField.assignees => employeeHints,
+    null => <String>[
+        ..._dateHints.take(4),
+        ..._numberHints,
+        ..._axisCoreHints,
+        ..._workHints.take(24),
+        ...employeeHints.take(24),
+      ],
+  };
 
-  switch (activeField) {
-    case TaskVoiceField.date:
-      hints.addAll(_dateHints);
-      hints.addAll(_numberHints);
-    case TaskVoiceField.axes:
-      hints.addAll(_axisHints);
-    case TaskVoiceField.work:
-      hints.addAll(_workHints);
-    case TaskVoiceField.assignees:
-      hints.addAll(_employeeHints(employees));
-    case null:
-      // До выбора поля нужны только маркеры и самые характерные слова,
-      // чтобы первая фраза «оси», «вид работ», «исполнитель» распознавалась
-      // без конкуренции сотен нерелевантных терминов.
-      hints.addAll(const <String>[
-        'армирование',
-        'опалубка',
-        'бетонирование',
-        'сегодня',
-        'завтра',
-        'бэ',
-        'вэ',
-        'гэ',
-        'дэ',
-      ]);
-  }
-
-  return normalizeTaskVoiceRecognitionHints(hints).take(150).toList(growable: false);
+  return normalizeTaskVoiceRecognitionHints(<String>[
+    ..._commonHints,
+    ...fieldHints,
+  ]).take(150).toList(growable: false);
 }
 
 List<String> _employeeHints(List<Employee> employees) {
