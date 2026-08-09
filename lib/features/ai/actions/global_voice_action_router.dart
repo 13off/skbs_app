@@ -33,6 +33,9 @@ class GlobalVoiceActionRouter {
     required AppUserProfile profile,
     required AiAssistantAction action,
   }) async {
+    if (action.type == 'voice_compound_batch') {
+      return _executeCompound(context, profile, action);
+    }
     if (action.type == 'open_screen') {
       return _openScreen(context, profile, action);
     }
@@ -76,6 +79,64 @@ class GlobalVoiceActionRouter {
       context: context,
       profile: profile,
       action: action,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _executeCompound(
+    BuildContext context,
+    AppUserProfile profile,
+    AiAssistantAction action,
+  ) async {
+    final rawActions = action.payload['actions'];
+    if (rawActions is! List) {
+      throw StateError('Составная голосовая команда повреждена');
+    }
+
+    final steps = rawActions
+        .whereType<Map>()
+        .map(
+          (raw) => AiAssistantAction.fromMap(
+            Map<String, dynamic>.from(raw),
+          ),
+        )
+        .where((step) => step.type.isNotEmpty)
+        .toList(growable: false);
+    if (steps.isEmpty) {
+      throw StateError('В составной голосовой команде нет действий');
+    }
+    if (steps.any((step) => step.type == 'voice_compound_batch')) {
+      throw StateError('Вложенные составные голосовые команды запрещены');
+    }
+
+    var completed = 0;
+    for (var index = 0; index < steps.length; index++) {
+      if (!context.mounted) {
+        return AiActionExecutionResult(
+          completed: false,
+          message: 'Пакет остановлен: экран приложения был закрыт',
+        );
+      }
+
+      final result = await execute(
+        context: context,
+        profile: profile,
+        action: steps[index],
+      );
+      if (!result.completed) {
+        return AiActionExecutionResult(
+          completed: false,
+          message:
+              'Пакет остановлен на шаге ${index + 1} из ${steps.length}: ${result.message}',
+        );
+      }
+      completed += 1;
+    }
+
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Готово: выполнено $completed из ${steps.length} действий',
+      targetEntityType: 'voice_compound_batch',
+      targetEntityId: action.id,
     );
   }
 
