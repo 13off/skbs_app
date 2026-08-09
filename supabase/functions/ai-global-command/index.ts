@@ -10,6 +10,14 @@ import {
   resolveGlobalVoiceConversationPrompt,
 } from "./conversation_context.ts";
 import {
+  buildCandidateResponsible,
+  buildCreateLegalMatter,
+  buildCreateProcurementRequest,
+  candidateResponsibleIntent,
+  createLegalMatterIntent,
+  createProcurementRequestIntent,
+} from "./extended_actions.ts";
+import {
   buildMilestoneManagement,
   buildObjectManagement,
   buildSupplierManagement,
@@ -183,6 +191,45 @@ Deno.serve(async (request: Request) => {
         client,
         companyId,
         role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (candidateResponsibleIntent(prompt)) {
+      const result = await buildCandidateResponsible({
+        client,
+        companyId,
+        role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (createProcurementRequestIntent(prompt)) {
+      const result = await buildCreateProcurementRequest({
+        client,
+        companyId,
+        role,
+        assignedObject,
+        requestedObject,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (createLegalMatterIntent(prompt)) {
+      const result = await buildCreateLegalMatter({
+        client,
+        companyId,
+        role,
+        requestedObject,
         prompt,
         date,
       });
