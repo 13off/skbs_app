@@ -18,6 +18,7 @@ import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
+import '../features/voice/app_voice_profile_controller.dart';
 import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
@@ -67,6 +68,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     warmupToken++;
+    final userId = widget.profile.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppVoiceProfileController.clearIfUser(userId);
+    });
     super.dispose();
   }
 
@@ -121,6 +126,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void syncVoiceProfile(AppUserProfile profile) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      AppVoiceProfileController.configure(profile);
+    });
+  }
+
   Widget platformFor(
     AppUserProfile profile, {
     String previewEmployeeId = '',
@@ -166,6 +178,7 @@ class _MainScreenState extends State<MainScreen> {
           valueListenable: RolePreviewController.state,
           builder: (context, preview, _) {
             final profile = effectiveProfile(liveBaseProfile, preview);
+            syncVoiceProfile(profile);
             final platform = KeyedSubtree(
               key: ValueKey<String>(
                 'platform:${profile.role}:${profile.objectName}:${preview.employeeId}:${profile.activeCompanyId}',
@@ -184,6 +197,7 @@ class _MainScreenState extends State<MainScreen> {
                     employeeName: preview.employeeName,
                     child: platform,
                   );
+
             if (profile.isEmployee) return content;
             return CompanyChatShell(
               key: ValueKey<String>(
