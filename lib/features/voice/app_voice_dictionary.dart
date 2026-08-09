@@ -455,57 +455,57 @@ Iterable<String> _russianCaseForms(String rawWord) sync* {
 
   if (word.endsWith('ий')) {
     final stem = word.substring(0, word.length - 2);
-    yield '${stem}ия';
-    yield '${stem}ию';
-    yield '${stem}ием';
-    yield '${stem}ии';
+    yield stem + 'ия';
+    yield stem + 'ию';
+    yield stem + 'ием';
+    yield stem + 'ии';
     return;
   }
   if (word.endsWith('ей')) {
     final stem = word.substring(0, word.length - 2);
-    yield '${stem}ея';
-    yield '${stem}ею';
-    yield '${stem}еем';
-    yield '${stem}ее';
+    yield stem + 'ея';
+    yield stem + 'ею';
+    yield stem + 'еем';
+    yield stem + 'ее';
     return;
   }
   if (word.endsWith('й')) {
     final stem = word.substring(0, word.length - 1);
-    yield '${stem}я';
-    yield '${stem}ю';
-    yield '${stem}ем';
-    yield '${stem}е';
+    yield stem + 'я';
+    yield stem + 'ю';
+    yield stem + 'ем';
+    yield stem + 'е';
     return;
   }
   if (word.endsWith('ь')) {
     final stem = word.substring(0, word.length - 1);
-    yield '${stem}я';
-    yield '${stem}ю';
-    yield '${stem}ем';
-    yield '${stem}е';
+    yield stem + 'я';
+    yield stem + 'ю';
+    yield stem + 'ем';
+    yield stem + 'е';
     return;
   }
   if (word.endsWith('а')) {
     final stem = word.substring(0, word.length - 1);
-    yield '${stem}ы';
-    yield '${stem}е';
-    yield '${stem}у';
-    yield '${stem}ой';
+    yield stem + 'ы';
+    yield stem + 'е';
+    yield stem + 'у';
+    yield stem + 'ой';
     return;
   }
   if (word.endsWith('я')) {
     final stem = word.substring(0, word.length - 1);
-    yield '${stem}и';
-    yield '${stem}е';
-    yield '${stem}ю';
-    yield '${stem}ей';
+    yield stem + 'и';
+    yield stem + 'е';
+    yield stem + 'ю';
+    yield stem + 'ей';
     return;
   }
   if (RegExp(r'[бвгджзклмнпрстфхцчшщ]$').hasMatch(word)) {
-    yield '${word}а';
-    yield '${word}у';
-    yield '${word}ом';
-    yield '${word}е';
+    yield word + 'а';
+    yield word + 'у';
+    yield word + 'ом';
+    yield word + 'е';
   }
 }
 
