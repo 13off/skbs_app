@@ -79,6 +79,7 @@ void main() {
     expect(root, contains('GlobalVoiceAssistantLayer('));
     expect(root, contains('AppVoiceProfileController.state'));
     expect(main, contains('AppVoiceProfileController.configure(profile)'));
+    expect(main, contains('addPostFrameCallback'));
     expect(main, contains('profile.isEmployee'));
     expect(main, contains('CompanyChatShell('));
   });
@@ -97,6 +98,8 @@ void main() {
     expect(layer, contains('loadHints()'));
     expect(layer, contains('EmployeeRepository.fetchEmployees('));
     expect(layer, contains('ObjectRepository.fetchObjectNames()'));
+    expect(layer, contains('appNavigatorKey.currentState?.overlay?.context'));
+    expect(layer, contains('useRootNavigator: true'));
     expect(recognition, contains('prioritizeAxes: false'));
   });
 
