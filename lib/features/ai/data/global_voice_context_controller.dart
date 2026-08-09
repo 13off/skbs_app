@@ -9,6 +9,7 @@ class GlobalVoiceContextSnapshot {
   final String conversationMode;
   final String conversationDate;
   final String conversationPrompt;
+  final String conversationObjectName;
 
   const GlobalVoiceContextSnapshot({
     this.companyId = '',
@@ -19,6 +20,7 @@ class GlobalVoiceContextSnapshot {
     this.conversationMode = '',
     this.conversationDate = '',
     this.conversationPrompt = '',
+    this.conversationObjectName = '',
   });
 
   GlobalVoiceContextSnapshot copyWith({
@@ -30,6 +32,7 @@ class GlobalVoiceContextSnapshot {
     String? conversationMode,
     String? conversationDate,
     String? conversationPrompt,
+    String? conversationObjectName,
   }) {
     return GlobalVoiceContextSnapshot(
       companyId: companyId ?? this.companyId,
@@ -40,6 +43,8 @@ class GlobalVoiceContextSnapshot {
       conversationMode: conversationMode ?? this.conversationMode,
       conversationDate: conversationDate ?? this.conversationDate,
       conversationPrompt: conversationPrompt ?? this.conversationPrompt,
+      conversationObjectName:
+          conversationObjectName ?? this.conversationObjectName,
     );
   }
 }
@@ -74,6 +79,8 @@ class GlobalVoiceContextController {
       conversationMode: sameCompany ? state.value.conversationMode : '',
       conversationDate: sameCompany ? state.value.conversationDate : '',
       conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
+      conversationObjectName:
+          sameCompany ? state.value.conversationObjectName : '',
     );
   }
 
@@ -94,6 +101,8 @@ class GlobalVoiceContextController {
       conversationMode: sameCompany ? state.value.conversationMode : '',
       conversationDate: sameCompany ? state.value.conversationDate : '',
       conversationPrompt: sameCompany ? state.value.conversationPrompt : '',
+      conversationObjectName:
+          sameCompany ? state.value.conversationObjectName : '',
     );
   }
 
@@ -109,13 +118,14 @@ class GlobalVoiceContextController {
     final sameCompany = state.value.companyId == cleanCompany;
     state.value = GlobalVoiceContextSnapshot(
       companyId: cleanCompany,
-      objectName: objectName?.trim() ?? (sameCompany ? state.value.objectName : ''),
+      objectName: sameCompany ? state.value.objectName : '',
       entityType: sameCompany ? state.value.entityType : '',
       entityId: sameCompany ? state.value.entityId : '',
       conversationTopic: topic.trim(),
       conversationMode: mode.trim(),
       conversationDate: date.trim(),
       conversationPrompt: prompt.trim(),
+      conversationObjectName: objectName?.trim() ?? '',
     );
   }
 
@@ -139,6 +149,7 @@ class GlobalVoiceContextController {
       conversationMode: '',
       conversationDate: '',
       conversationPrompt: '',
+      conversationObjectName: '',
     );
   }
 
