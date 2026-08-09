@@ -11,7 +11,6 @@ import 'app/app_typography.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'app/theme_controller.dart';
-import 'features/voice/presentation/global_voice_root_layer.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
@@ -164,9 +163,7 @@ class _SkbsAppState extends State<SkbsApp> {
           themeAnimationCurve: Curves.easeOutCubic,
           builder: (context, child) => AppScaleViewport(
             scale: themeController.uiScale,
-            child: GlobalVoiceRootLayer(
-              child: child ?? const SizedBox.shrink(),
-            ),
+            child: child ?? const SizedBox.shrink(),
           ),
           home: widget.startupError == null
               ? const AppBrowserBackBridge(child: AuthGate())
