@@ -92,8 +92,8 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('const absenceWrite ='));
-    expect(source, contains('`${prompt} табель смены`'));
-    expect(source, contains('`${prompt} 0 смен`'));
+    expect(source, contains(r'`${prompt} табель смены`'));
+    expect(source, contains(r'`${prompt} 0 смен`'));
     expect(source, contains('originalPrompt: absenceWrite'));
   });
 
