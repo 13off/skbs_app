@@ -35,6 +35,12 @@ function hasReferencePhrase(prompt: string): boolean {
   );
 }
 
+function hasExplicitDate(prompt: string): boolean {
+  return /(?:сегодня|завтра|послезавтра|вчера|\b20\d{2}-\d{1,2}-\d{1,2}\b|\b\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?\b)/i.test(
+    prompt,
+  );
+}
+
 function ordinalIndex(prompt: string): number | null {
   const value = normalized(prompt);
   if (/\bперв\w*\b/.test(value)) return 0;
@@ -478,6 +484,9 @@ export async function buildReferencedFollowUp({
   }
   const selected = selection.entities;
   const value = normalized(prompt);
+  const effectiveDate = hasExplicitDate(prompt)
+    ? date
+    : conversationContext.date || date;
 
   if (referenceSet.type === "employee" && referencedTimesheetIntent(prompt)) {
     if (!managerRole(role) && role !== "foreman") {
@@ -491,14 +500,14 @@ export async function buildReferencedFollowUp({
     if (safe.length !== selected.length) {
       return { error: "Прораб может менять табель только своего объекта", status: 403 };
     }
-    const actions = safe.map((entity) => timesheetAction(entity, shifts, date));
+    const actions = safe.map((entity) => timesheetAction(entity, shifts, effectiveDate));
     return {
       body: compoundBody({
         title: "Табель по предыдущему результату подготовлен",
-        summary: `${safe.length} сотрудников → ${shifts} смены за ${date}.`,
+        summary: `${safe.length} сотрудников → ${shifts} смены за ${effectiveDate}.`,
         actions,
         labels: safe.map((entity) => `${entity.label}: ${shifts}`),
-        date,
+        date: effectiveDate,
       }),
       status: 200,
     };
@@ -510,7 +519,7 @@ export async function buildReferencedFollowUp({
         client,
         companyId,
         role,
-        date,
+        date: effectiveDate,
         prompt,
         selected,
         stage: false,
@@ -521,7 +530,7 @@ export async function buildReferencedFollowUp({
         client,
         companyId,
         role,
-        date,
+        date: effectiveDate,
         prompt,
         selected,
         stage: true,
@@ -537,7 +546,7 @@ export async function buildReferencedFollowUp({
       client,
       companyId,
       role,
-      date,
+      date: effectiveDate,
       prompt,
       selected,
     });
