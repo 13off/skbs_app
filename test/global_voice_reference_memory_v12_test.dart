@@ -41,6 +41,7 @@ void main() {
 
     expect(source, contains('export function referenceWords'));
     expect(source, contains(r'.replace(/[^а-яa-z0-9.,]+/g, " ")'));
+    expect(source, contains(r'.map((word) => word.replace(/^[.,]+|[.,]+$/g, ""))'));
     expect(source, contains('word.startsWith(root)'));
     expect(source, contains('pluralPronouns.has(word)'));
     expect(source, isNot(contains(r'/\b(?:им|их')));
