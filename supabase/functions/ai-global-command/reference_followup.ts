@@ -49,11 +49,13 @@ function managerRole(role: string) {
 }
 
 // JavaScript \b/\w are ASCII-oriented and are unsafe as Russian word
-// boundaries. All reference parsing is therefore lexeme-based.
+// boundaries. All reference parsing is therefore lexeme-based. Leading and
+// trailing punctuation is stripped while decimal punctuation inside 0,5 stays.
 export function referenceWords(prompt: string): string[] {
   return normalized(prompt)
     .replace(/[^а-яa-z0-9.,]+/g, " ")
     .split(/\s+/)
+    .map((word) => word.replace(/^[.,]+|[.,]+$/g, ""))
     .filter(Boolean);
 }
 
