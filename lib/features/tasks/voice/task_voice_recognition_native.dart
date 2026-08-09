@@ -35,6 +35,15 @@ Future<String> recognizeTaskVoice({
   }
 }
 
+void updateTaskVoiceRecognitionContext({
+  List<String> hints = const <String>[],
+  bool prioritizeAxes = false,
+}) {
+  // Мобильные системные распознаватели получают словарь при запуске сессии.
+  // PWA умеет менять подсказки прямо во время непрерывной записи; на native
+  // новый контекст безопасно применится при следующем запуске микрофона.
+}
+
 Future<void> stopTaskVoiceRecognition() async {
   try {
     await _taskVoiceChannel.invokeMethod<void>('stopTask');
