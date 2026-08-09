@@ -43,6 +43,7 @@ import {
   legalDecisionIntent,
   procurementStatusIntent,
 } from "./professional_actions.ts";
+import { buildReferencedFollowUp } from "./reference_followup.ts";
 import {
   dispatchSemanticVoice,
   semanticResultBody,
@@ -147,6 +148,26 @@ Deno.serve(async (request: Request) => {
     const role = clean(membership.role, 30);
     const assignedObject = clean(profile.object_name, 180);
     const date = requestedDate(prompt, base);
+
+    // Reference follow-up is deliberately evaluated before ordinary intent
+    // parsers. It does not trust client-side entity IDs: the previous visible
+    // result is reconstructed from the current company and role, then an
+    // ordinal/pronoun such as «им», «второму» or «последнюю» is resolved.
+    const referenced = await buildReferencedFollowUp({
+      client,
+      companyId,
+      role,
+      assignedObject,
+      prompt: rawPrompt,
+      date,
+      conversationContext,
+    });
+    if (referenced != null) {
+      if ("error" in referenced) {
+        return json({ error: referenced.error }, referenced.status);
+      }
+      return json(referenced.body, referenced.status);
+    }
 
     if (uiSettingIntent(prompt)) {
       const result = buildUiSetting({ prompt, date });
