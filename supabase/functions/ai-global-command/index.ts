@@ -6,6 +6,10 @@ import {
   bulkTimesheetIntent,
 } from "./bulk_timesheet.ts";
 import {
+  parseGlobalVoiceConversationContext,
+  resolveGlobalVoiceConversationPrompt,
+} from "./conversation_context.ts";
+import {
   buildMilestoneManagement,
   buildObjectManagement,
   buildSupplierManagement,
@@ -84,8 +88,18 @@ Deno.serve(async (request: Request) => {
 
     const input = await request.json().catch(() => ({}));
     const companyId = clean(input.company_id, 80);
-    const requestedObject = clean(input.object_name, 180);
-    const prompt = clean(input.prompt, 4000);
+    const rawPrompt = clean(input.prompt, 4000);
+    const conversationContext = parseGlobalVoiceConversationContext(
+      input.conversation_context,
+    );
+    const resolvedConversation = resolveGlobalVoiceConversationPrompt({
+      prompt: rawPrompt,
+      context: conversationContext,
+    });
+    const prompt = resolvedConversation.prompt;
+    const selectedObject = clean(input.object_name, 180);
+    const requestedObject = selectedObject ||
+      (resolvedConversation.inherited ? conversationContext.objectName : "");
     const base = baseDate(input.date);
     if (!companyId || !prompt) {
       return json({ error: "Недостаточно данных запроса" }, 400);
