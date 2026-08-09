@@ -80,6 +80,8 @@ void main() {
     expect(repository, contains('_rewriteCorrection'));
     expect(repository, contains('_rewriteReplay'));
     expect(repository, contains('_stripKnownObject'));
+    expect(repository, contains('_objectLikePattern'));
+    expect(repository, contains('20\\d{2}-\\d{1,2}-\\d{1,2}'));
     expect(repository, contains('lastCommandPrompt'));
     expect(repository, contains('lastAction'));
     expect(repository, contains('оставшиеся'));
