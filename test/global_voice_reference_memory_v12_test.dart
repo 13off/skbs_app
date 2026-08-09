@@ -34,6 +34,19 @@ void main() {
     expect(source, contains('role === "foreman"'));
   });
 
+  test('русские ссылки разбираются лексемами без ASCII word boundary', () {
+    final source = File(
+      'supabase/functions/ai-global-command/reference_followup.ts',
+    ).readAsStringSync();
+
+    expect(source, contains('export function referenceWords'));
+    expect(source, contains(r'.replace(/[^а-яa-z0-9.,]+/g, " ")'));
+    expect(source, contains('word.startsWith(root)'));
+    expect(source, contains('pluralPronouns.has(word)'));
+    expect(source, isNot(contains(r'/\b(?:им|их')));
+    expect(source, isNot(contains(r'перв\w*')));
+  });
+
   test('местоимения и порядковые ссылки поддерживаются явно', () {
     final source = File(
       'supabase/functions/ai-global-command/reference_followup.ts',
@@ -44,6 +57,7 @@ void main() {
       'их',
       'этому',
       'ему',
+      'перв',
       'втор',
       'трет',
       'последн',
@@ -51,6 +65,20 @@ void main() {
       expect(source, contains(token));
     }
     expect(source, contains('entities.length > 30'));
+  });
+
+  test('значения смен используют русские лексемы и десятичные формы', () {
+    final source = File(
+      'supabase/functions/ai-global-command/reference_followup.ts',
+    ).readAsStringSync();
+
+    expect(source, contains('export function shiftValue'));
+    expect(source, contains('"нули"'));
+    expect(source, contains('"0,5"'));
+    expect(source, contains('"1,5"'));
+    expect(source, contains('"2,5"'));
+    expect(source, contains('prefix(["нулев"])'));
+    expect(source, isNot(contains(r'/\b(?:ноль|нули')));
   });
 
   test('невыход становится ссылочным списком разговора', () {
