@@ -23,6 +23,40 @@ void main() {
     );
   });
 
+  test('разговорные названия тоже выбирают поле и становятся каноническими', () {
+    expect(
+      resolveTaskVoiceActiveField(transcript: 'ось', currentField: null),
+      TaskVoiceField.axes,
+    );
+    expect(
+      resolveTaskVoiceActiveField(transcript: 'задача', currentField: null),
+      TaskVoiceField.work,
+    );
+    expect(
+      resolveTaskVoiceActiveField(transcript: 'кто делает', currentField: null),
+      TaskVoiceField.assignees,
+    );
+    expect(
+      resolveTaskVoiceActiveField(transcript: 'когда', currentField: null),
+      TaskVoiceField.date,
+    );
+
+    expect(
+      routeTaskVoiceTranscript(
+        transcript: 'работа армирование стены',
+        activeField: null,
+      ),
+      'вид работ армирование стены',
+    );
+    expect(
+      routeTaskVoiceTranscript(
+        transcript: 'кто делает Иванов',
+        activeField: null,
+      ),
+      'исполнитель Иванов',
+    );
+  });
+
   test('следующая фраза маршрутизируется только в активное поле', () {
     expect(
       routeTaskVoiceTranscript(
@@ -68,6 +102,25 @@ void main() {
     expect(result.work, 'Опалубка стены');
     expect(result.assigneeIds, <String>['petrov']);
     expect(result.changedFields, <String>{'оси'});
+  });
+
+  test('оси понимают шум, разговорные буквы и слепленные пары', () {
+    final noisy = routeTaskVoiceTranscript(
+      transcript: 'пять восемь эээ бешка гешка',
+      activeField: TaskVoiceField.axes,
+    );
+    final glued = routeTaskVoiceTranscript(
+      transcript: 'пять восемь бэгэ',
+      activeField: TaskVoiceField.axes,
+    );
+    final latin = routeTaskVoiceTranscript(
+      transcript: 'пять восемь b g',
+      activeField: TaskVoiceField.axes,
+    );
+
+    expect(noisy, 'оси пять восемь бэ гэ');
+    expect(glued, 'оси пять восемь бэ гэ');
+    expect(latin, 'оси пять восемь бэ гэ');
   });
 
   test('явный новый маркер переключает поле и не получает старый префикс', () {

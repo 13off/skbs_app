@@ -20,6 +20,10 @@ import {
   navigationTarget,
 } from "./navigation.ts";
 import {
+  buildOperationalQuery,
+  operationalQueryIntent,
+} from "./operational_queries.ts";
+import {
   buildHrStageMove,
   buildLegalDecision,
   buildProcurementStatus,
@@ -163,6 +167,20 @@ Deno.serve(async (request: Request) => {
         client,
         companyId,
         role,
+        prompt,
+        date,
+      });
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result.body, result.status);
+    }
+
+    if (operationalQueryIntent(prompt)) {
+      const result = await buildOperationalQuery({
+        client,
+        companyId,
+        role,
+        assignedObject,
+        requestedObject,
         prompt,
         date,
       });

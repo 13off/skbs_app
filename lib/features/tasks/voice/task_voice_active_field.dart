@@ -51,9 +51,21 @@ String routeTaskVoiceTranscript({
 
   final markers = _findTaskVoiceFieldMarkers(source);
   if (markers.isNotEmpty) {
-    if (markers.length == 1 && markers.first.field == TaskVoiceField.axes) {
-      final normalized = normalizeTaskVoiceAxesValue(source);
-      return normalized.isEmpty ? transcript : 'оси $normalized';
+    if (markers.length == 1) {
+      final marker = markers.first;
+      final prefix = source.substring(0, marker.start).trim();
+      final value = source.substring(marker.end).trim();
+
+      // Когда пользователь начинает фразу сразу с разговорного названия поля,
+      // превращаем его в канонический маркер строгого роутера.
+      if (prefix.isEmpty) {
+        if (marker.field == TaskVoiceField.axes) {
+          final normalized = normalizeTaskVoiceAxesValue(value);
+          return normalized.isEmpty ? 'оси' : 'оси $normalized';
+        }
+        final canonical = taskVoiceFieldMarker(marker.field);
+        return value.isEmpty ? canonical : '$canonical $value';
+      }
     }
     return transcript;
   }
@@ -69,8 +81,9 @@ String routeTaskVoiceTranscript({
 class _TaskVoiceFieldMarker {
   final TaskVoiceField field;
   final int start;
+  final int end;
 
-  const _TaskVoiceFieldMarker(this.field, this.start);
+  const _TaskVoiceFieldMarker(this.field, this.start, this.end);
 }
 
 List<_TaskVoiceFieldMarker> _findTaskVoiceFieldMarkers(String source) {
@@ -79,35 +92,37 @@ List<_TaskVoiceFieldMarker> _findTaskVoiceFieldMarkers(String source) {
   void collect(TaskVoiceField field, RegExp expression) {
     for (final match in expression.allMatches(source)) {
       final prefix = match.group(1) ?? '';
-      markers.add(_TaskVoiceFieldMarker(field, match.start + prefix.length));
+      final value = match.group(2) ?? '';
+      final start = match.start + prefix.length;
+      markers.add(_TaskVoiceFieldMarker(field, start, start + value.length));
     }
   }
 
   collect(
     TaskVoiceField.date,
     RegExp(
-      r'(^|[^А-Яа-яЁё])(дата|дату)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(дата|дату|когда)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
   collect(
     TaskVoiceField.axes,
     RegExp(
-      r'(^|[^А-Яа-яЁё])(оси)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(ось|оси|по\s+осям)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
   collect(
     TaskVoiceField.work,
     RegExp(
-      r'(^|[^А-Яа-яЁё])(вид\s+работ(?:ы)?)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(вид\s+работ(?:ы)?|работа|задача)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
   collect(
     TaskVoiceField.assignees,
     RegExp(
-      r'(^|[^А-Яа-яЁё])(исполнитель|исполнители)(?=$|[^А-Яа-яЁё])',
+      r'(^|[^А-Яа-яЁё])(исполнитель|исполнители|кто\s+делает)(?=$|[^А-Яа-яЁё])',
       caseSensitive: false,
     ),
   );
