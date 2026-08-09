@@ -445,6 +445,8 @@ Iterable<String> _employeeEntityHints(Iterable<String> names) sync* {
   }
 }
 
+String _withEnding(String stem, String ending) => '$stem$ending';
+
 Iterable<String> _russianCaseForms(String rawWord) sync* {
   final word = rawWord
       .trim()
@@ -455,57 +457,57 @@ Iterable<String> _russianCaseForms(String rawWord) sync* {
 
   if (word.endsWith('ий')) {
     final stem = word.substring(0, word.length - 2);
-    yield '$stemия';
-    yield '$stemию';
-    yield '$stemием';
-    yield '$stemии';
+    yield _withEnding(stem, 'ия');
+    yield _withEnding(stem, 'ию');
+    yield _withEnding(stem, 'ием');
+    yield _withEnding(stem, 'ии');
     return;
   }
   if (word.endsWith('ей')) {
     final stem = word.substring(0, word.length - 2);
-    yield '$stemея';
-    yield '$stemею';
-    yield '$stemеем';
-    yield '$stemее';
+    yield _withEnding(stem, 'ея');
+    yield _withEnding(stem, 'ею');
+    yield _withEnding(stem, 'еем');
+    yield _withEnding(stem, 'ее');
     return;
   }
   if (word.endsWith('й')) {
     final stem = word.substring(0, word.length - 1);
-    yield '$stemя';
-    yield '$stemю';
-    yield '$stemем';
-    yield '$stemе';
+    yield _withEnding(stem, 'я');
+    yield _withEnding(stem, 'ю');
+    yield _withEnding(stem, 'ем');
+    yield _withEnding(stem, 'е');
     return;
   }
   if (word.endsWith('ь')) {
     final stem = word.substring(0, word.length - 1);
-    yield '$stemя';
-    yield '$stemю';
-    yield '$stemем';
-    yield '$stemе';
+    yield _withEnding(stem, 'я');
+    yield _withEnding(stem, 'ю');
+    yield _withEnding(stem, 'ем');
+    yield _withEnding(stem, 'е');
     return;
   }
   if (word.endsWith('а')) {
     final stem = word.substring(0, word.length - 1);
-    yield '$stemы';
-    yield '$stemе';
-    yield '$stemу';
-    yield '$stemой';
+    yield _withEnding(stem, 'ы');
+    yield _withEnding(stem, 'е');
+    yield _withEnding(stem, 'у');
+    yield _withEnding(stem, 'ой');
     return;
   }
   if (word.endsWith('я')) {
     final stem = word.substring(0, word.length - 1);
-    yield '$stemи';
-    yield '$stemе';
-    yield '$stemю';
-    yield '$stemей';
+    yield _withEnding(stem, 'и');
+    yield _withEnding(stem, 'е');
+    yield _withEnding(stem, 'ю');
+    yield _withEnding(stem, 'ей');
     return;
   }
   if (RegExp(r'[бвгджзклмнпрстфхцчшщ]$').hasMatch(word)) {
-    yield '$wordа';
-    yield '$wordу';
-    yield '$wordом';
-    yield '$wordе';
+    yield _withEnding(word, 'а');
+    yield _withEnding(word, 'у');
+    yield _withEnding(word, 'ом');
+    yield _withEnding(word, 'е');
   }
 }
 
