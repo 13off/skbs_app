@@ -188,37 +188,62 @@ class GlobalVoiceAssistantRepository {
       };
     }
 
-    final response = await _client.functions.invoke(
-      'ai-global-command',
-      body: body,
-    );
-    final data = _map(response.data);
-
-    if (data['fallback'] == true) {
-      GlobalVoiceContextController.clearConversation(companyId: companyId);
-      final result = await AiAssistantRepository.request(
-        mode: 'chat',
-        companyId: companyId,
-        objectName: objectName,
-        date: date,
-        prompt: prompt,
+    try {
+      final response = await _client.functions.invoke(
+        'ai-global-command',
+        body: body,
       );
-      GlobalVoiceContextController.clearClarification(companyId: companyId);
-      return result;
-    }
+      final data = _map(response.data);
 
-    final error = data['error']?.toString().trim() ?? '';
-    if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
-      final message = error.isNotEmpty
-          ? error
+      if (data['fallback'] == true) {
+        GlobalVoiceContextController.clearConversation(companyId: companyId);
+        final result = await AiAssistantRepository.request(
+          mode: 'chat',
+          companyId: companyId,
+          objectName: objectName,
+          date: date,
+          prompt: prompt,
+        );
+        GlobalVoiceContextController.clearClarification(companyId: companyId);
+        return result;
+      }
+
+      final error = data['error']?.toString().trim() ?? '';
+      if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
+        final message = error.isNotEmpty
+            ? error
+            : 'Глобальная голосовая команда недоступна';
+        if (_needsClarification(response.status, message)) {
+          return _rememberClarification(
+            companyId: companyId,
+            prompt: prompt,
+            message: message,
+            objectName: objectName,
+            date: date,
+          );
+        }
+        throw Exception(message);
+      }
+
+      GlobalVoiceContextController.clearClarification(companyId: companyId);
+      _rememberConversation(data, companyId);
+      return AiAssistantResult.fromMap(data);
+    } on FunctionException catch (error) {
+      final details = _map(error.details);
+      final mappedMessage = details['error']?.toString().trim() ?? '';
+      final rawDetails = error.details?.toString().trim() ?? '';
+      final message = mappedMessage.isNotEmpty
+          ? mappedMessage
+          : rawDetails.isNotEmpty
+          ? rawDetails
+          : error.reasonPhrase?.trim().isNotEmpty == true
+          ? error.reasonPhrase!.trim()
           : 'Глобальная голосовая команда недоступна';
-      if (_needsClarification(response.status, message)) {
-        GlobalVoiceContextController.setClarification(
+
+      if (_needsClarification(error.status, message)) {
+        return _rememberClarification(
           companyId: companyId,
           prompt: prompt,
-          question: message,
-        );
-        return _clarificationResult(
           message: message,
           objectName: objectName,
           date: date,
@@ -226,10 +251,25 @@ class GlobalVoiceAssistantRepository {
       }
       throw Exception(message);
     }
+  }
 
-    GlobalVoiceContextController.clearClarification(companyId: companyId);
-    _rememberConversation(data, companyId);
-    return AiAssistantResult.fromMap(data);
+  static AiAssistantResult _rememberClarification({
+    required String companyId,
+    required String prompt,
+    required String message,
+    required String? objectName,
+    required DateTime date,
+  }) {
+    GlobalVoiceContextController.setClarification(
+      companyId: companyId,
+      prompt: prompt,
+      question: message,
+    );
+    return _clarificationResult(
+      message: message,
+      objectName: objectName,
+      date: date,
+    );
   }
 
   static AiAssistantResult _clarificationResult({
