@@ -13,10 +13,7 @@ import {
   buildLegalDecision,
   buildProcurementStatus,
 } from "./professional_actions.ts";
-import {
-  type SemanticRoute,
-  semanticPrompt,
-} from "./semantic_router.ts";
+import { type SemanticRoute, semanticPrompt } from "./semantic_router.ts";
 
 type DispatchResult =
   | { body: Record<string, unknown>; status: number }
@@ -29,6 +26,47 @@ function clean(value: unknown, max = 1000): string {
 function isBuilderError(value: unknown): value is { error: string; status: number } {
   if (!value || typeof value !== "object") return false;
   return "error" in (value as Record<string, unknown>);
+}
+
+function queryPrompt(route: SemanticRoute, originalPrompt: string): string {
+  const canonical = semanticPrompt(route, "")
+    .replace(/^\s+|\s+$/g, "")
+    .replace(/^Системная семантическая подсказка:\s*/i, "")
+    .replace(/\.$/, "");
+  return canonical ? `${canonical}. ${originalPrompt}` : originalPrompt;
+}
+
+function procurementStatusPrompt(route: SemanticRoute, originalPrompt: string): string {
+  const marker: Record<string, string> = {
+    delivered: "доставлено",
+    in_delivery: "в доставке",
+    ordered: "заказано",
+    approved: "согласовано",
+    canceled: "отменено",
+  };
+  const status = marker[route.subtype];
+  return status ? `${originalPrompt}. Статус заявки снабжения: ${status}.` : originalPrompt;
+}
+
+function legalDecisionPrompt(route: SemanticRoute, originalPrompt: string): string {
+  if (route.subtype === "reject") {
+    return `${originalPrompt}. Отклони юридический вопрос.`;
+  }
+  if (route.subtype === "approve") {
+    return `${originalPrompt}. Согласуй юридический вопрос.`;
+  }
+  return originalPrompt;
+}
+
+function operationalInsightPrompt(route: SemanticRoute, originalPrompt: string): string {
+  const marker: Record<string, string> = {
+    absence: "кто не вышел сегодня",
+    unpaid: "кому не выплатили задолженность",
+    expiring_documents: "у кого истекают документы",
+    weekly_report: "сводка за неделю",
+  };
+  const canonical = marker[route.subtype];
+  return canonical ? `${canonical}. ${originalPrompt}` : originalPrompt;
 }
 
 async function invokeAssistantFunction({
@@ -110,8 +148,8 @@ export async function dispatchSemanticVoice({
   publishable: string;
   authorization: string;
 }): Promise<DispatchResult | null> {
-  const prompt = semanticPrompt(route, originalPrompt);
-
+  // Semantic routing decides WHAT the user means. Existing builders still
+  // decide WHO/WHERE/WHEN/HOW MUCH from the original phrase and database.
   switch (route.intent) {
     case "query_employees":
     case "query_tasks":
@@ -123,19 +161,25 @@ export async function dispatchSemanticVoice({
         role,
         assignedObject,
         requestedObject,
-        prompt,
+        prompt: queryPrompt(route, originalPrompt),
         date,
       });
     }
     case "hr_stage_move": {
-      return await buildHrStageMove({ client, companyId, role, prompt, date });
+      return await buildHrStageMove({
+        client,
+        companyId,
+        role,
+        prompt: originalPrompt,
+        date,
+      });
     }
     case "candidate_responsible": {
       return await buildCandidateResponsible({
         client,
         companyId,
         role,
-        prompt,
+        prompt: originalPrompt,
         date,
       });
     }
@@ -146,7 +190,7 @@ export async function dispatchSemanticVoice({
         role,
         assignedObject,
         requestedObject,
-        prompt,
+        prompt: originalPrompt,
         date,
       });
     }
@@ -155,7 +199,7 @@ export async function dispatchSemanticVoice({
         client,
         companyId,
         role,
-        prompt,
+        prompt: procurementStatusPrompt(route, originalPrompt),
         date,
         requestedObject,
       });
@@ -166,12 +210,18 @@ export async function dispatchSemanticVoice({
         companyId,
         role,
         requestedObject,
-        prompt,
+        prompt: `создай юридический вопрос: ${originalPrompt}`,
         date,
       });
     }
     case "legal_decision": {
-      return await buildLegalDecision({ client, companyId, role, prompt, date });
+      return await buildLegalDecision({
+        client,
+        companyId,
+        role,
+        prompt: legalDecisionPrompt(route, originalPrompt),
+        date,
+      });
     }
     case "timesheet_bulk": {
       return await buildBulkTimesheetResult({
@@ -180,19 +230,20 @@ export async function dispatchSemanticVoice({
         role,
         assignedObject,
         requestedObject,
-        prompt,
+        prompt: originalPrompt,
         date,
       });
     }
     case "navigation": {
-      const target = navigationTarget(prompt);
+      const navigationPrompt = semanticPrompt(route, originalPrompt);
+      const target = navigationTarget(navigationPrompt);
       if (target == null) return null;
       return buildNavigationResult({
         target,
         role,
         date,
         objectName: role === "foreman" ? assignedObject : requestedObject,
-        prompt,
+        prompt: originalPrompt,
       });
     }
     case "timesheet_update": {
@@ -204,7 +255,7 @@ export async function dispatchSemanticVoice({
         companyId,
         objectName: requestedObject || assignedObject,
         date,
-        prompt,
+        prompt: `${originalPrompt} исправь табель смены`,
       });
     }
     case "task_create": {
@@ -216,7 +267,7 @@ export async function dispatchSemanticVoice({
         companyId,
         objectName: requestedObject || assignedObject,
         date,
-        prompt,
+        prompt: `${originalPrompt} создай задачу`,
       });
     }
     case "document_draft": {
@@ -228,7 +279,7 @@ export async function dispatchSemanticVoice({
         companyId,
         objectName: requestedObject || assignedObject,
         date,
-        prompt,
+        prompt: originalPrompt,
       });
     }
     case "operational_insight": {
@@ -240,7 +291,7 @@ export async function dispatchSemanticVoice({
         companyId,
         objectName: requestedObject || assignedObject,
         date,
-        prompt,
+        prompt: operationalInsightPrompt(route, originalPrompt),
       });
     }
     case "universal_search": {
@@ -252,14 +303,13 @@ export async function dispatchSemanticVoice({
         companyId,
         objectName: requestedObject || assignedObject,
         date,
-        prompt,
+        prompt: originalPrompt,
       });
     }
     case "fallback":
       return null;
   }
 
-  // Exhaustive fallback for future intent additions.
   void userId;
   return null;
 }
