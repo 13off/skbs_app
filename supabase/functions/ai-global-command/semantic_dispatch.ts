@@ -69,6 +69,46 @@ function operationalInsightPrompt(route: SemanticRoute, originalPrompt: string):
   return canonical ? `${canonical}. ${originalPrompt}` : originalPrompt;
 }
 
+function insightConversationTopic(route: SemanticRoute): string {
+  switch (route.subtype) {
+    case "absence":
+      return "absence_today";
+    default:
+      return "";
+  }
+}
+
+function attachInsightConversation({
+  result,
+  route,
+  originalPrompt,
+  objectName,
+  date,
+}: {
+  result: DispatchResult;
+  route: SemanticRoute;
+  originalPrompt: string;
+  objectName: string;
+  date: string;
+}): DispatchResult {
+  if (isBuilderError(result)) return result;
+  const topic = insightConversationTopic(route);
+  if (!topic) return result;
+  return {
+    status: result.status,
+    body: {
+      ...result.body,
+      conversation: {
+        topic,
+        query_mode: "list",
+        object_name: objectName,
+        date,
+        prompt: originalPrompt,
+      },
+    },
+  };
+}
+
 async function invokeAssistantFunction({
   functionName,
   supabaseUrl,
@@ -283,15 +323,23 @@ export async function dispatchSemanticVoice({
       });
     }
     case "operational_insight": {
-      return await invokeAssistantFunction({
+      const objectName = requestedObject || assignedObject;
+      const result = await invokeAssistantFunction({
         functionName: "ai-operational-insights",
         supabaseUrl,
         publishable,
         authorization,
         companyId,
-        objectName: requestedObject || assignedObject,
+        objectName,
         date,
         prompt: operationalInsightPrompt(route, originalPrompt),
+      });
+      return attachInsightConversation({
+        result,
+        route,
+        originalPrompt,
+        objectName,
+        date,
       });
     }
     case "universal_search": {
