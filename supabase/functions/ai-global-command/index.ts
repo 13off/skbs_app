@@ -39,15 +39,17 @@ import {
   requestedDate,
 } from "./shared.ts";
 import {
-  archiveRestoreIntent,
   buildArchiveRestore,
   buildChatMessage,
   buildEmployeeWorkflow,
   buildFlightWorkflow,
-  chatMessageIntent,
-  employeeWorkflowIntent,
-  flightWorkflowIntent,
 } from "./workflow_actions.ts";
+import {
+  archiveRestoreIntentGuard,
+  chatMessageIntentGuard,
+  employeeWorkflowIntentGuard,
+  flightWorkflowIntentGuard,
+} from "./workflow_intent_guards.ts";
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") {
@@ -124,7 +126,7 @@ Deno.serve(async (request: Request) => {
       return json(result.body, result.status);
     }
 
-    if (employeeWorkflowIntent(prompt)) {
+    if (employeeWorkflowIntentGuard(prompt)) {
       const result = await buildEmployeeWorkflow({
         client,
         companyId,
@@ -137,7 +139,7 @@ Deno.serve(async (request: Request) => {
       return json(result.body, result.status);
     }
 
-    if (chatMessageIntent(prompt)) {
+    if (chatMessageIntentGuard(prompt)) {
       const result = await buildChatMessage({
         client,
         companyId,
@@ -150,7 +152,7 @@ Deno.serve(async (request: Request) => {
       return json(result.body, result.status);
     }
 
-    if (flightWorkflowIntent(prompt)) {
+    if (flightWorkflowIntentGuard(prompt)) {
       const result = await buildFlightWorkflow({
         client,
         companyId,
@@ -162,7 +164,7 @@ Deno.serve(async (request: Request) => {
       return json(result.body, result.status);
     }
 
-    if (archiveRestoreIntent(prompt)) {
+    if (archiveRestoreIntentGuard(prompt)) {
       const result = await buildArchiveRestore({
         client,
         companyId,
