@@ -71,6 +71,21 @@ void main() {
     expect(source, contains('ai-search'));
   });
 
+  test('смысл не загрязняет ФИО материал количество и объект', () {
+    final source = File(
+      'supabase/functions/ai-global-command/semantic_dispatch.ts',
+    ).readAsStringSync();
+
+    expect(source, contains('prompt: originalPrompt'));
+    expect(source, contains(r'prompt: `${originalPrompt} создай задачу`'));
+    expect(source, contains(r'prompt: `${originalPrompt} исправь табель смены`'));
+    expect(source, contains(r'prompt: `создай юридический вопрос: ${originalPrompt}`'));
+    expect(
+      source,
+      contains('Semantic routing decides WHAT the user means.'),
+    );
+  });
+
   test('невыход безопасно канонизируется в ноль смен без общего угадывания', () {
     final source = File(
       'supabase/functions/ai-global-command/index.ts',
@@ -88,7 +103,10 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('semanticPrompt'));
-    expect(source, contains(r'${originalPrompt}\n\nСистемная семантическая подсказка'));
+    expect(
+      source,
+      contains(r'${originalPrompt}\n\nСистемная семантическая подсказка'),
+    );
     expect(source, contains('source: "llm"'));
     expect(source, contains('return llm ?? local'));
   });
