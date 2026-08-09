@@ -27,26 +27,39 @@ class GlobalVoiceAssistantRepository {
       throw Exception('Голосовая команда пустая');
     }
 
-    final contextObject = GlobalVoiceContextController.objectNameFor(
-      cleanCompanyId,
-    );
+    final snapshot = GlobalVoiceContextController.snapshotFor(cleanCompanyId);
+    final contextObject = snapshot?.objectName.trim() ?? '';
     final explicitObject = objectName?.trim() ?? '';
     final effectiveObject = explicitObject.isNotEmpty
         ? explicitObject
+        : contextObject.isEmpty
+        ? null
         : contextObject;
     final requestDate = date ?? DateTime.now();
+    final body = <String, dynamic>{
+      'company_id': cleanCompanyId,
+      'object_name': effectiveObject,
+      'date': _dateKey(requestDate),
+      'prompt': cleanPrompt,
+    };
+    if (snapshot != null && snapshot.conversationTopic.trim().isNotEmpty) {
+      body['conversation_context'] = <String, dynamic>{
+        'topic': snapshot.conversationTopic,
+        'query_mode': snapshot.conversationMode,
+        'date': snapshot.conversationDate,
+        'prompt': snapshot.conversationPrompt,
+        'object_name': snapshot.objectName,
+      };
+    }
+
     final response = await _client.functions.invoke(
       'ai-global-command',
-      body: <String, dynamic>{
-        'company_id': cleanCompanyId,
-        'object_name': effectiveObject,
-        'date': _dateKey(requestDate),
-        'prompt': cleanPrompt,
-      },
+      body: body,
     );
     final data = _map(response.data);
 
     if (data['fallback'] == true) {
+      GlobalVoiceContextController.clearConversation(companyId: cleanCompanyId);
       return AiAssistantRepository.request(
         mode: 'chat',
         companyId: cleanCompanyId,
@@ -63,7 +76,33 @@ class GlobalVoiceAssistantRepository {
       );
     }
 
+    _rememberConversation(data, cleanCompanyId);
     return AiAssistantResult.fromMap(data);
+  }
+
+  static void _rememberConversation(
+    Map<String, dynamic> data,
+    String companyId,
+  ) {
+    final raw = data['conversation'];
+    if (raw is! Map) {
+      GlobalVoiceContextController.clearConversation(companyId: companyId);
+      return;
+    }
+    final conversation = Map<String, dynamic>.from(raw);
+    final topic = conversation['topic']?.toString().trim() ?? '';
+    if (topic.isEmpty) {
+      GlobalVoiceContextController.clearConversation(companyId: companyId);
+      return;
+    }
+    GlobalVoiceContextController.setConversation(
+      companyId: companyId,
+      topic: topic,
+      mode: conversation['query_mode']?.toString().trim() ?? '',
+      date: conversation['date']?.toString().trim() ?? '',
+      prompt: conversation['prompt']?.toString().trim() ?? '',
+      objectName: conversation['object_name']?.toString(),
+    );
   }
 
   static Map<String, dynamic> _map(dynamic value) {
