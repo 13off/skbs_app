@@ -1,8 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:skbs_app/features/ai/data/global_voice_context_controller.dart';
 
 void main() {
+  tearDown(() {
+    GlobalVoiceContextController.clear();
+  });
+
   test('ссылочный follow-up выполняется до обычных intent parser-ов', () {
     final source = File(
       'supabase/functions/ai-global-command/index.ts',
@@ -62,6 +67,16 @@ void main() {
     expect(semantic, contains('query_mode: "list"'));
   });
 
+  test('ссылочная запись наследует дату исходного результата', () {
+    final source = File(
+      'supabase/functions/ai-global-command/reference_followup.ts',
+    ).readAsStringSync();
+
+    expect(source, contains('hasExplicitDate(prompt)'));
+    expect(source, contains('conversationContext.date || date'));
+    expect(source, contains('timesheetAction(entity, shifts, effectiveDate)'));
+  });
+
   test('массовая ссылочная запись остаётся пакетом подтверждаемых действий', () {
     final source = File(
       'supabase/functions/ai-global-command/reference_followup.ts',
@@ -73,5 +88,45 @@ void main() {
     expect(source, contains('buildCandidateResponsible'));
     expect(source, contains('buildHrStageMove'));
     expect(source, contains('buildProcurementStatus'));
+  });
+
+  test('разговорный список протухает через 30 минут', () {
+    final old = DateTime.now()
+        .subtract(const Duration(minutes: 31))
+        .millisecondsSinceEpoch;
+    GlobalVoiceContextController.state.value = GlobalVoiceContextSnapshot(
+      companyId: 'company-1',
+      conversationTopic: 'employees',
+      conversationMode: 'list',
+      conversationPrompt: 'кто сотрудники',
+      conversationUpdatedAtMs: old,
+    );
+
+    final snapshot = GlobalVoiceContextController.snapshotFor('company-1');
+    expect(snapshot, isNotNull);
+    expect(snapshot!.conversationTopic, isEmpty);
+    expect(snapshot.conversationPrompt, isEmpty);
+    expect(snapshot.conversationUpdatedAtMs, 0);
+  });
+
+  test('уточнение и подготовленное действие протухают через 15 минут', () {
+    final old = DateTime.now()
+        .subtract(const Duration(minutes: 16))
+        .millisecondsSinceEpoch;
+    GlobalVoiceContextController.state.value = GlobalVoiceContextSnapshot(
+      companyId: 'company-1',
+      pendingClarificationPrompt: 'поставь им нули',
+      pendingClarificationQuestion: 'Кому именно?',
+      clarificationUpdatedAtMs: old,
+      lastCommandPrompt: 'создай заявку',
+      lastAction: const <String, dynamic>{'type': 'create_procurement_request'},
+      lastTurnUpdatedAtMs: old,
+    );
+
+    final snapshot = GlobalVoiceContextController.snapshotFor('company-1');
+    expect(snapshot, isNotNull);
+    expect(snapshot!.pendingClarificationPrompt, isEmpty);
+    expect(snapshot.lastCommandPrompt, isEmpty);
+    expect(snapshot.lastAction, isEmpty);
   });
 }
