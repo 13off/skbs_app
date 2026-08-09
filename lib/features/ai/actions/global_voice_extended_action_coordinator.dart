@@ -69,14 +69,19 @@ class GlobalVoiceExtendedActionCoordinator {
         if (!profile.isAdmin && !profile.isHr && !profile.isDeveloper) {
           throw StateError('Назначение ответственного кандидату недоступно текущей роли');
         }
+        return;
       case 'create_procurement_request':
         if (!profile.isAdmin && !profile.isProcurement && !profile.isDeveloper) {
           throw StateError('Создание заявки снабжения недоступно текущей роли');
         }
+        return;
       case 'create_legal_matter':
         if (!profile.isAdmin && !profile.isLawyer && !profile.isDeveloper) {
           throw StateError('Создание юридического вопроса недоступно текущей роли');
         }
+        return;
+      default:
+        throw UnsupportedError(action.type);
     }
   }
 
