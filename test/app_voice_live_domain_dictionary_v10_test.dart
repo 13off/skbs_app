@@ -9,6 +9,7 @@ AppUserProfile _profile(String role) => AppUserProfile(
   email: 'voice@appstroy.test',
   fullName: 'Тестовый Пользователь',
   role: role,
+  objectName: '',
   activeCompanyId: 'company-1',
   isActive: true,
 );
