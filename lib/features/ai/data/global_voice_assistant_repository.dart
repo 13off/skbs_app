@@ -621,9 +621,7 @@ class GlobalVoiceAssistantRepository {
     var result = basePrompt.trim();
     final objectTarget = _objectModifier(modifier);
     if (objectTarget.isNotEmpty) {
-      final oldObjectPattern = lastObjectName.trim().isEmpty
-          ? null
-          : RegExp(RegExp.escape(lastObjectName.trim()), caseSensitive: false);
+      final oldObjectPattern = _objectLikePattern(lastObjectName);
       if (oldObjectPattern != null && oldObjectPattern.hasMatch(result)) {
         result = result.replaceFirst(oldObjectPattern, objectTarget);
       } else {
@@ -633,12 +631,12 @@ class GlobalVoiceAssistantRepository {
 
     final dateModifier = _dateModifier(modifier);
     if (dateModifier.isNotEmpty) {
-      final relativeDate = RegExp(
-        r'\b(?:сегодня|завтра|послезавтра|вчера)\b',
+      final anyDate = RegExp(
+        r'\b(?:сегодня|завтра|послезавтра|вчера|20\d{2}-\d{1,2}-\d{1,2}|\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)\b',
         caseSensitive: false,
       );
-      if (relativeDate.hasMatch(result)) {
-        result = result.replaceFirst(relativeDate, dateModifier);
+      if (anyDate.hasMatch(result)) {
+        result = result.replaceFirst(anyDate, dateModifier);
       } else if (lastDate.isNotEmpty && result.contains(lastDate)) {
         result = result.replaceFirst(lastDate, dateModifier);
       } else {
@@ -654,14 +652,21 @@ class GlobalVoiceAssistantRepository {
     return _PromptRewrite(prompt: result);
   }
 
-  static String _stripKnownObject(String prompt, String objectName) {
+  static RegExp? _objectLikePattern(String objectName) {
     final cleanObject = objectName.trim();
-    if (cleanObject.isEmpty) return prompt.trim();
+    if (cleanObject.isEmpty) return null;
+    final escaped = cleanObject
+        .split(RegExp(r'\s+'))
+        .map(RegExp.escape)
+        .join(r'\s+');
+    return RegExp('$escaped[а-яa-z]*', caseSensitive: false);
+  }
+
+  static String _stripKnownObject(String prompt, String objectName) {
+    final pattern = _objectLikePattern(objectName);
+    if (pattern == null) return prompt.trim();
     return prompt
-        .replaceFirst(
-          RegExp(RegExp.escape(cleanObject), caseSensitive: false),
-          '',
-        )
+        .replaceFirst(pattern, '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
