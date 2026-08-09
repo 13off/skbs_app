@@ -20,13 +20,11 @@ export type SemanticIntent =
   | "universal_search"
   | "fallback";
 
-export type SemanticSource = "local" | "llm";
-
 export type SemanticRoute = {
   intent: SemanticIntent;
   subtype: string;
   confidence: number;
-  source: SemanticSource;
+  source: "local" | "llm";
   clarification: string;
 };
 
@@ -91,22 +89,18 @@ function words(value: string): string[] {
 function editDistance(first: string, second: string): number {
   const a = first.slice(0, 32);
   const b = second.slice(0, 32);
-  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
   for (let i = 1; i <= a.length; i += 1) {
-    let diagonal = previous[0];
-    previous[0] = i;
+    let diagonal = row[0];
+    row[0] = i;
     for (let j = 1; j <= b.length; j += 1) {
-      const old = previous[j];
+      const old = row[j];
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      previous[j] = Math.min(
-        previous[j] + 1,
-        previous[j - 1] + 1,
-        diagonal + cost,
-      );
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + cost);
       diagonal = old;
     }
   }
-  return previous[b.length];
+  return row[b.length];
 }
 
 function tokenLike(token: string, root: string): boolean {
@@ -122,35 +116,51 @@ function hasAny(value: string, roots: string[]): boolean {
 }
 
 function hasPhrase(value: string, patterns: RegExp[]): boolean {
-  const normalized = normalize(value);
-  return patterns.some((pattern) => pattern.test(normalized));
+  const text = normalize(value);
+  return patterns.some((pattern) => pattern.test(text));
 }
 
-function addCandidate(
-  list: CandidateRoute[],
+function add(
+  routes: CandidateRoute[],
   intent: SemanticIntent,
   score: number,
   subtype = "",
-  clarification = "",
 ) {
-  if (score <= 0) return;
-  list.push({
+  routes.push({
     intent,
     subtype,
     score,
-    confidence: Math.max(0, Math.min(0.97, 0.5 + score / 10)),
+    confidence: Math.min(0.97, 0.5 + score / 10),
     source: "local",
-    clarification,
+    clarification: "",
   });
 }
 
-function localSemanticRoute(
+function navigationSubtype(value: string): string {
+  const groups: Array<[string, string[]]> = [
+    ["timesheet", ["табел", "смен", "выход"]],
+    ["employees", ["сотрудник", "работник", "люди"]],
+    ["tasks", ["задач", "наряд", "работ"]],
+    ["payments", ["выплат", "деньги", "зарплат", "аванс"]],
+    ["recruitment", ["кандидат", "подбор", "кадр", "воронка"]],
+    ["procurement", ["снабжен", "закуп", "заявк"]],
+    ["legal", ["юрист", "юрид", "претенз"]],
+    ["objects", ["объект", "стройка", "площадка"]],
+    ["chat", ["чат", "сообщен", "перепис"]],
+    ["settings", ["настройк", "профил"]],
+  ];
+  for (const [target, roots] of groups) {
+    if (hasAny(value, roots)) return target;
+  }
+  return "";
+}
+
+function localRoute(
   prompt: string,
   context: SemanticConversationContext,
 ): SemanticRoute {
   const value = normalize(prompt);
-  const candidates: CandidateRoute[] = [];
-
+  const routes: CandidateRoute[] = [];
   const employee = hasAny(value, [
     "сотрудник",
     "работник",
@@ -165,8 +175,8 @@ function localSemanticRoute(
     "кандидат",
     "соискател",
     "анкета",
-    "кадр",
     "резюме",
+    "кадр",
   ]) || context.topic === "candidates";
   const procurement = hasAny(value, [
     "снабжен",
@@ -188,8 +198,6 @@ function localSemanticRoute(
     "договор",
     "правов",
     "суд",
-    "решен",
-    "согласован",
   ]);
   const timesheet = hasAny(value, [
     "табел",
@@ -210,7 +218,6 @@ function localSemanticRoute(
     "демонтаж",
     "залив",
   ]);
-
   const question = hasAny(value, [
     "кто",
     "что",
@@ -259,27 +266,9 @@ function localSemanticRoute(
     "простав",
     "заполн",
   ]);
-  const approve = hasAny(value, [
-    "соглас",
-    "одобр",
-    "утверд",
-    "приним",
-    "разреш",
-  ]);
-  const reject = hasAny(value, [
-    "отклон",
-    "откаж",
-    "отмен",
-    "запрет",
-    "неприним",
-  ]);
-  const everyone = hasAny(value, [
-    "всем",
-    "всех",
-    "каждому",
-    "бригада",
-    "целиком",
-  ]);
+  const approve = hasAny(value, ["соглас", "одобр", "утверд", "разреш"]);
+  const reject = hasAny(value, ["отклон", "откаж", "отмен", "запрет"]);
+  const everyone = hasAny(value, ["всем", "всех", "каждому", "бригада", "целиком"]);
   const status = hasAny(value, [
     "статус",
     "этап",
@@ -289,36 +278,27 @@ function localSemanticRoute(
     "достав",
     "привез",
     "получен",
-    "согласован",
   ]);
 
-  if (candidate && move) addCandidate(candidates, "hr_stage_move", 8.5);
-  if (candidate && assign) addCandidate(candidates, "candidate_responsible", 8.4);
-
-  if (procurement && create && !status) {
-    addCandidate(candidates, "procurement_create", 7.8);
-  }
+  if (candidate && move) add(routes, "hr_stage_move", 8.5);
+  if (candidate && assign) add(routes, "candidate_responsible", 8.4);
+  if (procurement && create && !status) add(routes, "procurement_create", 7.8);
   if (procurement && (move || status || approve || reject)) {
     let subtype = "";
     if (hasAny(value, ["доставлен", "привез", "получен"])) subtype = "delivered";
     else if (hasPhrase(value, [/в доставк/, /едет/, /в пути/])) subtype = "in_delivery";
     else if (hasAny(value, ["заказан", "заказали"])) subtype = "ordered";
-    else if (reject || hasAny(value, ["отмен", "аннулир"])) subtype = "canceled";
+    else if (reject || hasAny(value, ["аннулир"])) subtype = "canceled";
     else if (approve) subtype = "approved";
-    addCandidate(candidates, "procurement_status", 7.7, subtype);
+    add(routes, "procurement_status", 7.7, subtype);
   }
-
   if (legal && (approve || reject)) {
-    addCandidate(candidates, "legal_decision", 8.2, reject ? "reject" : "approve");
+    add(routes, "legal_decision", 8.2, reject ? "reject" : "approve");
   } else if (legal && create) {
-    addCandidate(candidates, "legal_create", 7.6);
+    add(routes, "legal_create", 7.6);
   }
-
-  if (timesheet && everyone && change) {
-    addCandidate(candidates, "timesheet_bulk", 8.1);
-  } else if (timesheet && change) {
-    addCandidate(candidates, "timesheet_update", 7.7);
-  }
+  if (timesheet && everyone && change) add(routes, "timesheet_bulk", 8.1);
+  else if (timesheet && change) add(routes, "timesheet_update", 7.7);
 
   const absent = hasPhrase(value, [
     /не\s*(?:выш|пришел|явил)/,
@@ -330,22 +310,25 @@ function localSemanticRoute(
   const expiring = hasAny(value, ["истека", "заканч", "просроч"]);
   const weekly = hasPhrase(value, [/за неделю/, /недельн/, /семь дней/, /7 дней/]);
   if ((absent || unpaid || expiring || weekly) && question) {
-    const subtype = absent
-      ? "absence"
-      : unpaid
-      ? "unpaid"
-      : expiring
-      ? "expiring_documents"
-      : "weekly_report";
-    addCandidate(candidates, "operational_insight", 8.3, subtype);
+    add(
+      routes,
+      "operational_insight",
+      8.3,
+      absent
+        ? "absence"
+        : unpaid
+        ? "unpaid"
+        : expiring
+        ? "expiring_documents"
+        : "weekly_report",
+    );
   }
 
-  if (question && employee) addCandidate(candidates, "query_employees", 6.8);
-  if (question && task) addCandidate(candidates, "query_tasks", 6.8);
-  if (question && candidate) addCandidate(candidates, "query_candidates", 7.0);
-  if (question && procurement) addCandidate(candidates, "query_procurement", 7.0);
-
-  if (task && create && !question) addCandidate(candidates, "task_create", 6.9);
+  if (question && employee) add(routes, "query_employees", 6.8);
+  if (question && task) add(routes, "query_tasks", 6.8);
+  if (question && candidate) add(routes, "query_candidates", 7.0);
+  if (question && procurement) add(routes, "query_procurement", 7.0);
+  if (task && create && !question) add(routes, "task_create", 6.9);
 
   const document = hasAny(value, [
     "документ",
@@ -353,28 +336,19 @@ function localSemanticRoute(
     "письм",
     "служеб",
     "акт",
-    "соглас",
     "объяснител",
   ]);
-  if (document && create && !candidate) addCandidate(candidates, "document_draft", 6.9);
+  if (document && create && !candidate) add(routes, "document_draft", 6.9);
 
-  const open = hasAny(value, [
-    "открой",
-    "открыт",
-    "зайди",
-    "перейд",
-    "кинь",
-    "перекин",
-    "веди",
-  ]);
+  const open = hasAny(value, ["открой", "зайди", "перейд", "кинь", "перекин", "веди"]);
   const navTarget = navigationSubtype(value);
-  if (open && navTarget) addCandidate(candidates, "navigation", 7.4, navTarget);
+  if (open && navTarget) add(routes, "navigation", 7.4, navTarget);
 
   const search = hasAny(value, ["найди", "поищи", "отыщи", "где", "покажи", "посмотри"]);
-  if (search && candidates.length === 0) addCandidate(candidates, "universal_search", 5.8);
+  if (search && routes.length === 0) add(routes, "universal_search", 5.8);
 
-  candidates.sort((first, second) => second.score - first.score);
-  const best = candidates[0];
+  routes.sort((first, second) => second.score - first.score);
+  const best = routes[0];
   if (best == null) {
     return {
       intent: "fallback",
@@ -384,8 +358,7 @@ function localSemanticRoute(
       clarification: "",
     };
   }
-
-  const runnerUp = candidates[1];
+  const runnerUp = routes[1];
   if (runnerUp && Math.abs(best.score - runnerUp.score) < 0.35 && best.intent !== runnerUp.intent) {
     return {
       intent: "fallback",
@@ -395,68 +368,40 @@ function localSemanticRoute(
       clarification: "",
     };
   }
-
   return best;
 }
 
-function navigationSubtype(value: string): string {
-  const groups: Array<[string, string[]]> = [
-    ["timesheet", ["табел", "смен", "выход"]],
-    ["employees", ["сотрудник", "работник", "люди"]],
-    ["tasks", ["задач", "наряд", "работы"]],
-    ["payments", ["выплат", "деньги", "зарплат", "аванс"]],
-    ["recruitment", ["кандидат", "подбор", "кадры", "воронка"]],
-    ["procurement", ["снабжен", "закуп", "заявки"]],
-    ["legal", ["юрист", "юрид", "претенз"]],
-    ["objects", ["объект", "стройка", "площадка"]],
-    ["chat", ["чат", "сообщен", "перепис"]],
-    ["settings", ["настройк", "профил"]],
-  ];
-  for (const [target, roots] of groups) if (hasAny(value, roots)) return target;
-  return "";
-}
-
-function jsonObjectFromText(value: string): Record<string, unknown> | null {
-  const trimmed = value.trim();
-  const fenced = trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-  const first = fenced.indexOf("{");
-  const last = fenced.lastIndexOf("}");
+function extractJson(value: string): Record<string, unknown> | null {
+  const clean = value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
   if (first < 0 || last <= first) return null;
   try {
-    const parsed = JSON.parse(fenced.slice(first, last + 1));
+    const parsed = JSON.parse(clean.slice(first, last + 1));
     return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
   } catch (_) {
     return null;
   }
 }
 
-function llmText(output: unknown): string {
+function outputText(output: unknown): string {
   if (typeof output === "string") return output;
   if (!output || typeof output !== "object") return "";
   const map = output as Record<string, unknown>;
   if (typeof map.response === "string") return map.response;
-  const message = map.message;
-  if (message && typeof message === "object") {
-    const content = (message as Record<string, unknown>).content;
-    if (typeof content === "string") return content;
-  }
+  const message = map.message as Record<string, unknown> | undefined;
+  if (typeof message?.content === "string") return message.content;
   const choices = map.choices;
   if (Array.isArray(choices) && choices.length > 0) {
-    const choice = choices[0];
-    if (choice && typeof choice === "object") {
-      const choiceMessage = (choice as Record<string, unknown>).message;
-      if (choiceMessage && typeof choiceMessage === "object") {
-        const content = (choiceMessage as Record<string, unknown>).content;
-        if (typeof content === "string") return content;
-      }
-      const text = (choice as Record<string, unknown>).text;
-      if (typeof text === "string") return text;
-    }
+    const first = choices[0] as Record<string, unknown>;
+    const choiceMessage = first.message as Record<string, unknown> | undefined;
+    if (typeof choiceMessage?.content === "string") return choiceMessage.content;
+    if (typeof first.text === "string") return first.text;
   }
   return "";
 }
 
-async function llmSemanticRoute({
+async function llmRoute({
   prompt,
   role,
   context,
@@ -465,47 +410,43 @@ async function llmSemanticRoute({
   role: string;
   context: SemanticConversationContext;
 }): Promise<SemanticRoute | null> {
-  const host = Deno.env.get("AI_INFERENCE_API_HOST")?.trim() ?? "";
-  if (!host) return null;
-
+  if (!(Deno.env.get("AI_INFERENCE_API_HOST")?.trim())) return null;
   const runtime = (globalThis as unknown as { Supabase?: any }).Supabase;
   const Session = runtime?.ai?.Session;
   if (typeof Session !== "function") return null;
-
   const model = Deno.env.get("AI_SEMANTIC_MODEL")?.trim() || "mistral";
-  const requestedMode = Deno.env.get("AI_SEMANTIC_MODE")?.trim().toLowerCase();
-  const mode = requestedMode === "openaicompatible" ? "openaicompatible" : "ollama";
-  const session = new Session(model);
+  const configuredMode = Deno.env.get("AI_SEMANTIC_MODE")?.trim().toLowerCase();
+  const mode = configuredMode === "openaicompatible" ? "openaicompatible" : "ollama";
   const system = [
-    "Ты семантический маршрутизатор голосового помощника AppСтрой.",
-    "Пойми намерение по смыслу, даже если пользователь говорит разговорно, с ошибками, жаргоном или без слов из интерфейса.",
-    "Ты НЕ выполняешь действие и НЕ придумываешь ФИО, объект, дату, количество, сумму, статус или материал.",
-    "Выбери только один intent из белого списка.",
-    "Для непонятной команды выбери fallback.",
+    "Ты маршрутизатор голосового помощника AppСтрой.",
+    "Определи намерение по СМЫСЛУ, включая разговорную речь, жаргон, ошибки и непривычные формулировки.",
+    "Не выполняй действие и не придумывай ФИО, объект, дату, количество, сумму, статус или материал.",
+    "Верни только один intent из белого списка.",
     "Белый список: query_employees, query_tasks, query_candidates, query_procurement, hr_stage_move, candidate_responsible, procurement_create, procurement_status, legal_create, legal_decision, timesheet_bulk, timesheet_update, task_create, document_draft, operational_insight, navigation, universal_search, fallback.",
-    "subtype используй только когда очевидно: operational_insight = absence|unpaid|expiring_documents|weekly_report; legal_decision = approve|reject; procurement_status = approved|ordered|in_delivery|delivered|canceled; navigation = timesheet|employees|tasks|payments|recruitment|procurement|legal|objects|chat|settings.",
-    "Верни только JSON вида {\"intent\":\"...\",\"subtype\":\"\",\"confidence\":0.0,\"clarification\":\"\"}.",
+    "subtype только если очевидно: operational_insight=absence|unpaid|expiring_documents|weekly_report; legal_decision=approve|reject; procurement_status=approved|ordered|in_delivery|delivered|canceled; navigation=timesheet|employees|tasks|payments|recruitment|procurement|legal|objects|chat|settings.",
+    "JSON: {\"intent\":\"...\",\"subtype\":\"\",\"confidence\":0.0,\"clarification\":\"\"}",
   ].join("\n");
-  const contextual = [
+  const user = [
     `Роль: ${role}`,
-    context.topic ? `Тема прошлого запроса: ${context.topic}` : "",
-    context.queryMode ? `Режим прошлого запроса: ${context.queryMode}` : "",
+    context.topic ? `Предыдущая тема: ${context.topic}` : "",
+    context.queryMode ? `Предыдущий режим: ${context.queryMode}` : "",
     context.objectName ? `Текущий объект: ${context.objectName}` : "",
     context.previousPrompt ? `Предыдущая реплика: ${context.previousPrompt.slice(0, 500)}` : "",
-    `Фраза пользователя: ${prompt}`,
+    `Фраза: ${prompt}`,
   ].filter(Boolean).join("\n");
 
   try {
+    const session = new Session(model);
     const output = await session.run(
       {
         messages: [
           { role: "system", content: system },
-          { role: "user", content: contextual },
+          { role: "user", content: user },
         ],
       },
       { mode, stream: false, timeout: 8 },
     );
-    const parsed = jsonObjectFromText(llmText(output));
+    const parsed = extractJson(outputText(output));
     if (parsed == null) return null;
     const intent = String(parsed.intent ?? "") as SemanticIntent;
     if (!allowedIntents.has(intent)) return null;
@@ -513,16 +454,15 @@ async function llmSemanticRoute({
     const confidence = Number.isFinite(rawConfidence)
       ? Math.max(0, Math.min(1, rawConfidence))
       : 0;
-    const route: SemanticRoute = {
+    const minimum = writeIntents.has(intent) ? 0.76 : 0.62;
+    if (confidence < minimum) return null;
+    return {
       intent,
       subtype: String(parsed.subtype ?? "").trim().slice(0, 80),
       confidence,
       source: "llm",
       clarification: String(parsed.clarification ?? "").trim().slice(0, 400),
     };
-    const minimum = writeIntents.has(intent) ? 0.76 : 0.62;
-    if (route.confidence < minimum) return null;
-    return route;
   } catch (error) {
     console.warn("semantic llm route unavailable", error);
     return null;
@@ -538,33 +478,21 @@ export async function resolveSemanticVoiceIntent({
   role: string;
   context?: SemanticConversationContext;
 }): Promise<SemanticRoute> {
-  const local = localSemanticRoute(prompt, context);
-
-  // Точные правила основного роутера уже не сработали, поэтому при наличии
-  // LLM даём ему шанс понять непривычную формулировку. Локальный результат
-  // остаётся быстрым и надёжным резервом, если модель не подключена/не ответила.
-  const llm = await llmSemanticRoute({ prompt, role, context });
-  if (llm != null) return llm;
-  return local;
+  const local = localRoute(prompt, context);
+  const llm = await llmRoute({ prompt, role, context });
+  return llm ?? local;
 }
 
 export function semanticPrompt(route: SemanticRoute, originalPrompt: string): string {
   const hint = (() => {
     switch (route.intent) {
-      case "query_employees":
-        return "перечисли сотрудников";
-      case "query_tasks":
-        return "какие открытые задачи";
-      case "query_candidates":
-        return "какие кандидаты";
-      case "query_procurement":
-        return "какие заявки снабжения";
-      case "hr_stage_move":
-        return "переведи кандидата на этап";
-      case "candidate_responsible":
-        return "назначь ответственного кандидату";
-      case "procurement_create":
-        return "создай заявку на снабжение";
+      case "query_employees": return "перечисли сотрудников";
+      case "query_tasks": return "какие открытые задачи";
+      case "query_candidates": return "какие кандидаты";
+      case "query_procurement": return "какие заявки снабжения";
+      case "hr_stage_move": return "переведи кандидата на этап";
+      case "candidate_responsible": return "назначь ответственного кандидату";
+      case "procurement_create": return "создай заявку на снабжение";
       case "procurement_status":
         if (route.subtype === "delivered") return "отметь заявку снабжения как доставлено";
         if (route.subtype === "in_delivery") return "переведи заявку снабжения в доставку";
@@ -572,36 +500,29 @@ export function semanticPrompt(route: SemanticRoute, originalPrompt: string): st
         if (route.subtype === "approved") return "согласуй заявку снабжения";
         if (route.subtype === "canceled") return "отмени заявку снабжения";
         return "переведи заявку снабжения дальше";
-      case "legal_create":
-        return "создай юридическую задачу";
+      case "legal_create": return "создай юридическую задачу";
       case "legal_decision":
         return route.subtype === "reject"
           ? "отклони юридический вопрос"
           : "согласуй юридический вопрос";
-      case "timesheet_bulk":
-        return "массово поставь всем смены в табеле";
-      case "timesheet_update":
-        return "исправь табель и смены сотрудника";
-      case "task_create":
-        return "создай рабочую задачу";
-      case "document_draft":
-        return "подготовь рабочий документ";
+      case "timesheet_bulk": return "массово поставь всем смены в табеле";
+      case "timesheet_update": return "исправь табель и смены сотрудника";
+      case "task_create": return "создай рабочую задачу";
+      case "document_draft": return "подготовь рабочий документ";
       case "operational_insight":
         if (route.subtype === "absence") return "кто не вышел сегодня";
         if (route.subtype === "unpaid") return "кому не выплатили задолженность";
         if (route.subtype === "expiring_documents") return "у кого истекают документы";
         if (route.subtype === "weekly_report") return "сводка за неделю";
         return "операционная сводка";
-      case "navigation":
-        return `открой ${navigationHint(route.subtype)}`;
-      case "universal_search":
-        return "найди по данным приложения";
-      case "fallback":
-        return "";
+      case "navigation": return `открой ${navigationHint(route.subtype)}`;
+      case "universal_search": return "найди по данным приложения";
+      case "fallback": return "";
     }
   })();
-  if (!hint) return originalPrompt;
-  return `${originalPrompt}\n\nСистемная семантическая подсказка: ${hint}.`;
+  return hint
+    ? `${originalPrompt}\n\nСистемная семантическая подсказка: ${hint}.`
+    : originalPrompt;
 }
 
 function navigationHint(subtype: string): string {
@@ -617,5 +538,5 @@ function navigationHint(subtype: string): string {
     chat: "чат",
     settings: "настройки",
   };
-  return labels[subtype] ?? subtype || "главный раздел";
+  return labels[subtype] ?? (subtype || "главный раздел");
 }
