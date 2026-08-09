@@ -24,42 +24,68 @@ type BuilderResult =
   | { body: Record<string, unknown>; status: number }
   | { error: string; status: number };
 
+const pluralPronouns = new Set(["им", "их", "ими", "этим", "этих"]);
+const singularPronouns = new Set([
+  "этому",
+  "этой",
+  "этого",
+  "эту",
+  "ему",
+  "ей",
+  "его",
+  "ее",
+]);
+const ordinalRoots: Array<[string, number]> = [
+  ["перв", 0],
+  ["втор", 1],
+  ["трет", 2],
+  ["четверт", 3],
+  ["пят", 4],
+  ["последн", -1],
+];
+
 function managerRole(role: string) {
   return role === "admin" || role === "owner" || role === "developer";
 }
 
+// JavaScript \b/\w are ASCII-oriented and are unsafe as Russian word
+// boundaries. All reference parsing is therefore lexeme-based.
+export function referenceWords(prompt: string): string[] {
+  return normalized(prompt)
+    .replace(/[^а-яa-z0-9.,]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
 function hasReferencePhrase(prompt: string): boolean {
-  const value = normalized(prompt);
-  return /\b(?:им|их|ими|этим|этих|этому|этой|этого|эту|ему|ей|его|ее|перв\w*|втор\w*|трет\w*|четверт\w*|пят\w*|последн\w*)\b/.test(
-    value,
+  const words = referenceWords(prompt);
+  return words.some((word) =>
+    pluralPronouns.has(word) ||
+    singularPronouns.has(word) ||
+    ordinalRoots.some(([root]) => word.startsWith(root))
   );
 }
 
 function hasExplicitDate(prompt: string): boolean {
-  return /(?:сегодня|завтра|послезавтра|вчера|\b20\d{2}-\d{1,2}-\d{1,2}\b|\b\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?\b)/i.test(
+  return /(?:сегодня|завтра|послезавтра|вчера|(?:^|\s)20\d{2}-\d{1,2}-\d{1,2}(?=\s|$)|(?:^|\s)\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?(?=\s|$))/i.test(
     prompt,
   );
 }
 
 function ordinalIndex(prompt: string): number | null {
-  const value = normalized(prompt);
-  if (/\bперв\w*\b/.test(value)) return 0;
-  if (/\bвтор\w*\b/.test(value)) return 1;
-  if (/\bтрет\w*\b/.test(value)) return 2;
-  if (/\bчетверт\w*\b/.test(value)) return 3;
-  if (/\bпят\w*\b/.test(value)) return 4;
-  if (/\bпоследн\w*\b/.test(value)) return -1;
+  const words = referenceWords(prompt);
+  for (const [root, index] of ordinalRoots) {
+    if (words.some((word) => word.startsWith(root))) return index;
+  }
   return null;
 }
 
 function pluralReference(prompt: string): boolean {
-  const value = normalized(prompt);
-  return /\b(?:им|их|ими|этим|этих)\b/.test(value);
+  return referenceWords(prompt).some((word) => pluralPronouns.has(word));
 }
 
 function singularReference(prompt: string): boolean {
-  const value = normalized(prompt);
-  return /\b(?:этому|этой|этого|эту|ему|ей|его|ее)\b/.test(value);
+  return referenceWords(prompt).some((word) => singularPronouns.has(word));
 }
 
 function selectEntities(
@@ -282,15 +308,21 @@ async function loadReferenceSet(args: {
   return null;
 }
 
-function shiftValue(prompt: string): number | null {
+export function shiftValue(prompt: string): number | null {
   const value = normalized(prompt);
-  if (/\b(?:ноль|нули|нолик|нулев\w*|0)\b/.test(value)) return 0;
-  if (/\b(?:полсмен|пол\s+смен|0[.,]5)\b/.test(value)) return 0.5;
-  if (/\b(?:один|одну|единиц\w*|1)\b/.test(value)) return 1;
-  if (/\b(?:полтор\w*|1[.,]5)\b/.test(value)) return 1.5;
-  if (/\b(?:два|две|двойк\w*|2)\b/.test(value)) return 2;
-  if (/\b(?:два\s+с\s+половин\w*|2[.,]5)\b/.test(value)) return 2.5;
-  if (/\b(?:три|тройк\w*|3)\b/.test(value)) return 3;
+  const words = referenceWords(prompt);
+  const exact = (candidates: string[]) => candidates.some((item) => words.includes(item));
+  const prefix = (roots: string[]) => roots.some((root) =>
+    words.some((word) => word.startsWith(root))
+  );
+
+  if (exact(["0", "ноль", "нули", "нолик"]) || prefix(["нулев"])) return 0;
+  if (exact(["0.5", "0,5", "полсмены"]) || /пол\s+смен/.test(value)) return 0.5;
+  if (exact(["1", "один", "одну"]) || prefix(["единиц", "единичк"])) return 1;
+  if (exact(["1.5", "1,5"]) || prefix(["полтор"])) return 1.5;
+  if (exact(["2", "два", "две"]) || prefix(["двойк"])) return 2;
+  if (exact(["2.5", "2,5"]) || /два\s+с\s+половин/.test(value)) return 2.5;
+  if (exact(["3", "три"]) || prefix(["тройк"])) return 3;
   if (/(?:не\s+выш|не\s+явил|отсутств|прогул)/.test(value)) return 0;
   return null;
 }
@@ -298,7 +330,7 @@ function shiftValue(prompt: string): number | null {
 function referencedTimesheetIntent(prompt: string): boolean {
   const value = normalized(prompt);
   return /(?:постав|простав|отмет|исправ|поправ|измени|сдел)/.test(value) &&
-    shiftValue(value) != null;
+    shiftValue(prompt) != null;
 }
 
 function timesheetAction(entity: ReferenceEntity, shifts: number, date: string) {
