@@ -455,57 +455,57 @@ Iterable<String> _russianCaseForms(String rawWord) sync* {
 
   if (word.endsWith('ий')) {
     final stem = word.substring(0, word.length - 2);
-    yield stem + 'ия';
-    yield stem + 'ию';
-    yield stem + 'ием';
-    yield stem + 'ии';
+    yield '$stemия';
+    yield '$stemию';
+    yield '$stemием';
+    yield '$stemии';
     return;
   }
   if (word.endsWith('ей')) {
     final stem = word.substring(0, word.length - 2);
-    yield stem + 'ея';
-    yield stem + 'ею';
-    yield stem + 'еем';
-    yield stem + 'ее';
+    yield '$stemея';
+    yield '$stemею';
+    yield '$stemеем';
+    yield '$stemее';
     return;
   }
   if (word.endsWith('й')) {
     final stem = word.substring(0, word.length - 1);
-    yield stem + 'я';
-    yield stem + 'ю';
-    yield stem + 'ем';
-    yield stem + 'е';
+    yield '$stemя';
+    yield '$stemю';
+    yield '$stemем';
+    yield '$stemе';
     return;
   }
   if (word.endsWith('ь')) {
     final stem = word.substring(0, word.length - 1);
-    yield stem + 'я';
-    yield stem + 'ю';
-    yield stem + 'ем';
-    yield stem + 'е';
+    yield '$stemя';
+    yield '$stemю';
+    yield '$stemем';
+    yield '$stemе';
     return;
   }
   if (word.endsWith('а')) {
     final stem = word.substring(0, word.length - 1);
-    yield stem + 'ы';
-    yield stem + 'е';
-    yield stem + 'у';
-    yield stem + 'ой';
+    yield '$stemы';
+    yield '$stemе';
+    yield '$stemу';
+    yield '$stemой';
     return;
   }
   if (word.endsWith('я')) {
     final stem = word.substring(0, word.length - 1);
-    yield stem + 'и';
-    yield stem + 'е';
-    yield stem + 'ю';
-    yield stem + 'ей';
+    yield '$stemи';
+    yield '$stemе';
+    yield '$stemю';
+    yield '$stemей';
     return;
   }
   if (RegExp(r'[бвгджзклмнпрстфхцчшщ]$').hasMatch(word)) {
-    yield word + 'а';
-    yield word + 'у';
-    yield word + 'ом';
-    yield word + 'е';
+    yield '$wordа';
+    yield '$wordу';
+    yield '$wordом';
+    yield '$wordе';
   }
 }
 
