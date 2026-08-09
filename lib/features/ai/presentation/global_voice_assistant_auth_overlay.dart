@@ -8,6 +8,10 @@ import '../../../models/app_user_profile.dart';
 import '../../role_preview/role_preview_controller.dart';
 import 'global_voice_assistant_layer_v2.dart';
 
+/// Keeps the global voice control clear of the floating company-chat button
+/// and the bottom navigation zone without moving or shrinking app content.
+const _globalVoiceBottomClearance = 88.0;
+
 /// Auth-aware host for the global voice layer.
 ///
 /// It is intentionally mounted above the application shell so the microphone
@@ -94,12 +98,21 @@ class _GlobalVoiceAssistantAuthOverlayState
       valueListenable: RolePreviewController.state,
       builder: (context, preview, _) {
         final effective = _effectiveProfile(profile, preview);
-        return GlobalVoiceAssistantLayerV2(
-          key: ValueKey<String>(
-            'global-voice:${effective.id}:${effective.role}:${effective.activeCompanyId}',
-          ),
-          profile: effective,
-          child: widget.child,
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            widget.child,
+            Positioned.fill(
+              bottom: _globalVoiceBottomClearance,
+              child: GlobalVoiceAssistantLayerV2(
+                key: ValueKey<String>(
+                  'global-voice:${effective.id}:${effective.role}:${effective.activeCompanyId}',
+                ),
+                profile: effective,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
         );
       },
     );
