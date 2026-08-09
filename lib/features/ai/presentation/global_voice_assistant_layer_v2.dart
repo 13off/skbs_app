@@ -7,6 +7,8 @@ import '../../../data/employee_repository.dart';
 import '../../../data/object_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../navigation/web_back_navigation.dart';
+import '../../procurement/data/procurement_repository.dart';
+import '../../recruitment/data/recruitment_repository.dart';
 import '../../tasks/voice/task_voice_recognition.dart';
 import '../../voice/app_voice_dictionary.dart';
 import '../actions/global_voice_action_router.dart';
@@ -51,36 +53,97 @@ class _GlobalVoiceAssistantLayerV2State
   }
 
   Future<List<String>> _loadVoiceHints() async {
-    final employeeNames = <String>[];
-    final objectNames = <String>[];
-
-    if (!profile.isEmployee) {
+    Future<List<String>> loadEmployees() async {
+      if (profile.isEmployee) return const <String>[];
       try {
         final employees = await EmployeeRepository.fetchEmployees(
           objectName: profile.isForeman ? _objectName : null,
           includeFired: false,
         );
-        employeeNames.addAll(
-          employees
-              .map((employee) => employee.name.trim())
-              .where((name) => name.isNotEmpty),
-        );
+        return employees
+            .map((employee) => employee.name.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
       } catch (_) {
-        // Динамические ФИО улучшают распознавание, но не должны блокировать
-        // голос при временной ошибке загрузки сотрудников.
-      }
-
-      try {
-        objectNames.addAll(await ObjectRepository.fetchObjectNames());
-      } catch (_) {
-        // Названия объектов также являются только подсказкой распознаванию.
+        return const <String>[];
       }
     }
 
+    Future<List<String>> loadObjects() async {
+      if (profile.isEmployee) return const <String>[];
+      try {
+        return (await ObjectRepository.fetchObjectNames())
+            .map((name) => name.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
+      } catch (_) {
+        return const <String>[];
+      }
+    }
+
+    Future<List<String>> loadCandidates() async {
+      if (!profile.isAdmin && !profile.isHr) return const <String>[];
+      try {
+        final applications = await RecruitmentRepository.fetchApplications(
+          companyId: profile.activeCompanyId,
+        );
+        return applications
+            .map((application) => application.fullName.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
+      } catch (_) {
+        return const <String>[];
+      }
+    }
+
+    Future<List<String>> loadSuppliers() async {
+      if (!profile.isAdmin && !profile.isProcurement) return const <String>[];
+      try {
+        final suppliers = await ProcurementRepository.fetchSuppliers(
+          companyId: profile.activeCompanyId,
+        );
+        return suppliers
+            .map((supplier) => supplier.name.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
+      } catch (_) {
+        return const <String>[];
+      }
+    }
+
+    Future<List<String>> loadMaterials() async {
+      if (!profile.isAdmin && !profile.isProcurement) return const <String>[];
+      try {
+        final requests = await ProcurementRepository.fetchRequests(
+          companyId: profile.activeCompanyId,
+        );
+        return requests
+            .where((request) => !request.isClosed)
+            .expand((request) => request.items)
+            .map((item) => item.name.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList(growable: false);
+      } catch (_) {
+        return const <String>[];
+      }
+    }
+
+    final values = await Future.wait<List<String>>(<Future<List<String>>>[
+      loadEmployees(),
+      loadObjects(),
+      loadCandidates(),
+      loadSuppliers(),
+      loadMaterials(),
+    ]);
+
     return buildAppVoiceHints(
       profile: profile,
-      employeeNames: employeeNames,
-      objectNames: objectNames,
+      employeeNames: values[0],
+      objectNames: values[1],
+      candidateNames: values[2],
+      supplierNames: values[3],
+      materialNames: values[4],
     );
   }
 

@@ -92,12 +92,12 @@ void main() {
     expect(hints, contains('талнах'));
   });
 
-  test('обычный сотрудник не загружает список сотрудников и объектов', () {
+  test('обычный сотрудник не загружает списки компании для голосового словаря', () {
     final source = File(
       'lib/features/ai/presentation/global_voice_assistant_layer_v2.dart',
     ).readAsStringSync();
 
-    expect(source, contains('if (!profile.isEmployee)'));
+    expect(source, contains('if (profile.isEmployee) return const <String>[];'));
     expect(source, contains('buildAppVoiceHints('));
   });
 }

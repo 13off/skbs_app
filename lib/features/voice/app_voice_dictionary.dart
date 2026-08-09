@@ -4,10 +4,11 @@ import '../../models/app_user_profile.dart';
 /// Поэтому здесь важен не размер словаря, а порядок: сначала живые сущности,
 /// затем самые полезные команды и только потом широкий профессиональный словарь.
 const _browserGrammarBudget = 160;
-const _objectHintBudget = 24;
-const _employeeHintBudget = 64;
-const _commonHintBudget = 24;
-const _roleHintBudget = 48;
+const _objectHintBudget = 18;
+const _employeeHintBudget = 48;
+const _domainHintBudget = 30;
+const _commonHintBudget = 38;
+const _roleHintBudget = 26;
 
 const _commonHints = <String>[
   'AppСтрой',
@@ -23,6 +24,38 @@ const _commonHints = <String>[
   'сегодня',
   'завтра',
   'вчера',
+  'отмена',
+  'не надо',
+  'стоп',
+  'то же самое',
+  'так же',
+  'еще раз',
+  'повтори',
+  'другой объект',
+  'второй объект',
+  'на этом объекте',
+  'этот сотрудник',
+  'эта заявка',
+  'этот кандидат',
+  'ему',
+  'ей',
+  'им',
+  'их',
+  'его',
+  'не это',
+  'вместо',
+  'подтверди',
+  'подтверждай',
+  'выполняй',
+  'потом',
+  'после этого',
+  'затем',
+  'тот объект',
+  'последний',
+  'предыдущий',
+  'первый',
+  'второй',
+  'ее',
   'объект',
   'сотрудник',
   'задача',
@@ -32,38 +65,6 @@ const _commonHints = <String>[
   'документы',
   'чат',
   'сообщение',
-  'отмена',
-  'то же самое',
-  'так же',
-  'еще раз',
-  'повтори',
-  'не это',
-  'вместо',
-  'подтверди',
-  'подтверждай',
-  'выполняй',
-  'не надо',
-  'стоп',
-  'потом',
-  'затем',
-  'после этого',
-  'другой объект',
-  'второй объект',
-  'на этом объекте',
-  'тот объект',
-  'этот сотрудник',
-  'эта заявка',
-  'этот кандидат',
-  'последний',
-  'предыдущий',
-  'первый',
-  'второй',
-  'ему',
-  'ей',
-  'им',
-  'их',
-  'его',
-  'ее',
   'сводка',
   'отчет',
   'уведомления',
@@ -83,6 +84,7 @@ const _managerHints = <String>[
   'цель',
   'прогресс',
   'кадры',
+  'собеседование',
   'снабжение',
   'бухгалтерия',
   'юристы',
@@ -321,6 +323,9 @@ List<String> buildAppVoiceHints({
   required AppUserProfile profile,
   Iterable<String> employeeNames = const <String>[],
   Iterable<String> objectNames = const <String>[],
+  Iterable<String> candidateNames = const <String>[],
+  Iterable<String> supplierNames = const <String>[],
+  Iterable<String> materialNames = const <String>[],
 }) {
   final objectHints = _normalizeHints(
     _objectEntityHints(<String>[
@@ -328,7 +333,13 @@ List<String> buildAppVoiceHints({
       ...objectNames,
     ]),
   );
-  final employeeHints = _normalizeHints(_employeeEntityHints(employeeNames));
+  final employeeHints = _normalizeHints(_personEntityHints(employeeNames));
+  final candidateHints = _normalizeHints(_personEntityHints(candidateNames));
+  final supplierHints = _normalizeHints(_genericEntityHints(supplierNames));
+  final materialHints = _normalizeHints(_genericEntityHints(materialNames));
+  final domainHints = _normalizeHints(
+    _roundRobin(<List<String>>[candidateHints, supplierHints, materialHints]),
+  );
   final commonHints = _normalizeHints(<String>[
     ..._commonHints,
     if (profile.profession.trim().isNotEmpty) profile.profession,
@@ -348,18 +359,19 @@ List<String> buildAppVoiceHints({
     }
   }
 
-  // Живые имена и объекты важнее общих слов: именно их Web Speech чаще
-  // искажает, а сервер после распознавания уже умеет проверять неоднозначность.
+  // Живые сущности важнее общих слов: именно их Web Speech чаще искажает,
+  // а после распознавания сервер всё равно проверяет роль и неоднозначность.
   addBucket(objectHints, _objectHintBudget);
   addBucket(employeeHints, _employeeHintBudget);
+  addBucket(domainHints, _domainHintBudget);
   addBucket(commonHints, _commonHintBudget);
   addBucket(roleHints, _roleHintBudget);
 
-  // Если один из бакетов оказался маленьким, не теряем свободное место.
-  // Повторяем их в том же приоритетном порядке; seen не даст дублей.
+  // Если какой-либо бакет оказался маленьким, не теряем свободное место.
   for (final bucket in <List<String>>[
     objectHints,
     employeeHints,
+    domainHints,
     roleHints,
     commonHints,
   ]) {
@@ -423,10 +435,10 @@ Iterable<String> _objectEntityHints(Iterable<String> names) sync* {
   }
 }
 
-Iterable<String> _employeeEntityHints(Iterable<String> names) sync* {
-  // Сначала полный ФИО + фамилия для максимально большого числа людей.
+Iterable<String> _personEntityHints(Iterable<String> names) sync* {
+  // Сначала полное ФИО + фамилия для максимально большого числа людей.
   // Имена и падежные варианты идут вторым кругом и заполняют только
-  // оставшийся бюджет, не вытесняя сотрудников из конца списка.
+  // оставшийся бюджет, не вытесняя людей из конца списка.
   final prepared = <List<String>>[];
   for (final rawName in names) {
     final name = rawName.trim();
@@ -441,6 +453,28 @@ Iterable<String> _employeeEntityHints(Iterable<String> names) sync* {
     if (parts.length > 1 && parts[1].length >= 3) yield parts[1];
     if (parts.isNotEmpty && parts.first.length >= 4) {
       yield* _russianCaseForms(parts.first).take(2);
+    }
+  }
+}
+
+Iterable<String> _genericEntityHints(Iterable<String> values) sync* {
+  const ignoredTokens = <String>{'ооо', 'ао', 'пао', 'ип'};
+  for (final rawValue in values) {
+    final value = rawValue.trim();
+    if (value.isEmpty) continue;
+    yield value;
+
+    final parts = value.split(RegExp(r'\s+'));
+    for (final rawPart in parts) {
+      final part = rawPart
+          .toLowerCase()
+          .replaceAll('ё', 'е')
+          .replaceAll(RegExp(r'[^а-яa-z0-9-]'), '');
+      if (part.length < 3 || ignoredTokens.contains(part)) continue;
+      yield part;
+      if (RegExp(r'^[а-я-]+$').hasMatch(part) && part.length >= 4) {
+        yield* _russianCaseForms(part).take(2);
+      }
     }
   }
 }
