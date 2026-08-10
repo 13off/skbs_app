@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 
 import 'task_voice_axis_hearing.dart';
 import 'task_voice_dictionaries.dart';
+import 'task_voice_fuzzy_reranker.dart';
 
 _WebVoiceSession? _activeSession;
 
@@ -57,7 +58,7 @@ Future<String> recognizeTaskVoice({
     ..setProperty('lang'.toJS, 'ru-RU'.toJS)
     ..setProperty('continuous'.toJS, true.toJS)
     ..setProperty('interimResults'.toJS, true.toJS)
-    ..setProperty('maxAlternatives'.toJS, 3.toJS);
+    ..setProperty('maxAlternatives'.toJS, 5.toJS);
   _applySpeechGrammar(recognition, cleanHints);
 
   void handleResult(JSAny? eventValue) {
@@ -244,7 +245,7 @@ String _bestAlternative(
   required bool prioritizeAxes,
 }) {
   final length = _readInt(result.getProperty<JSAny?>('length'.toJS));
-  final alternatives = length <= 0 ? 1 : (length > 3 ? 3 : length);
+  final alternatives = length <= 0 ? 1 : (length > 5 ? 5 : length);
   var bestText = '';
   var bestScore = double.negativeInfinity;
 
@@ -258,6 +259,8 @@ String _bestAlternative(
         !transcriptValue.isA<JSString>()) {
       continue;
     }
+    // Сохраняем именно одну из сырых альтернатив браузера. Fuzzy-слой ниже
+    // только ранжирует варианты и никогда не переписывает текст для аудита.
     final text = (transcriptValue as JSString).toDart.trim();
     if (text.isEmpty) continue;
 
@@ -266,8 +269,9 @@ String _bestAlternative(
     );
     final axisContext = prioritizeAxes || _containsExplicitAxisMarker(text);
     final axisScore = axisContext ? scoreTaskVoiceAxesCandidate(text) * 0.45 : 0.0;
-    final score =
-        confidence + scoreTaskVoiceRecognitionHints(text, hints) + axisScore;
+    final exactHintScore = scoreTaskVoiceRecognitionHints(text, hints);
+    final fuzzyHintScore = scoreTaskVoiceFuzzyHints(text, hints);
+    final score = confidence + exactHintScore + fuzzyHintScore + axisScore;
     if (score > bestScore) {
       bestScore = score;
       bestText = text;
