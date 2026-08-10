@@ -20,6 +20,7 @@ import {
 } from "./extended_actions.ts";
 import { buildGroupReferencedFollowUp } from "./group_reference_followup.ts";
 import { buildMultiStepVoicePlan } from "./multi_step_plan.ts";
+import { normalizePlannerPrompt } from "./planner_prompt_normalizer.ts";
 import {
   buildMilestoneManagement,
   buildObjectManagement,
@@ -173,16 +174,16 @@ Deno.serve(async (request: Request) => {
     }
 
     // v15 turns one explicit voice request into a deterministic read/filter ->
-    // select -> prepare-action plan. The planner never writes the database and
-    // never treats selected IDs as permissions: existing confirmed action
-    // coordinators remain the only write path.
+    // select -> prepare-action plan. A tiny v15.1 surface normalizer repairs
+    // Russian inflections/passive selector wording without resolving entities.
+    const plannerPrompt = normalizePlannerPrompt(rawPrompt);
     const multiStepPlan = await buildMultiStepVoicePlan({
       client,
       companyId,
       role,
       assignedObject,
       requestedObject,
-      prompt: rawPrompt,
+      prompt: plannerPrompt,
       date,
     });
     if (multiStepPlan != null) {
