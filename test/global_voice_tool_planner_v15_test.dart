@@ -8,7 +8,7 @@ void main() {
 
   setUpAll(() {
     planner = File(
-      'supabase/functions/ai-global-command/multi_step_plan.ts',
+      'supabase/functions/ai-global-command/multi_step_plan_v15.ts',
     ).readAsStringSync();
     index = File(
       'supabase/functions/ai-global-command/index.ts',
