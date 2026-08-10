@@ -1,0 +1,6 @@
+employees + attendance -> presence/absence timesheet plans
+recruitment_applications + recruitment_documents -> missing responsibility/documents
+recruitment_messages -> last outbound newer than last inbound
+recruitment_flights -> departure date filters
+procurement_requests -> overdue/priority/source-status filters
+objects -> explicit company-scoped object resolution
