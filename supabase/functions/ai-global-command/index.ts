@@ -173,9 +173,9 @@ Deno.serve(async (request: Request) => {
       return json(actionTraceFollowUp.body, actionTraceFollowUp.status);
     }
 
-    // v15 turns one explicit voice request into a deterministic read/filter ->
-    // select -> prepare-action plan. A tiny v15.1 surface normalizer repairs
-    // Russian inflections/passive selector wording without resolving entities.
+    // v16 adds goal-oriented multi-domain diagnosis above the frozen v15
+    // planner. The live conversation context is passed only as natural-language
+    // goal metadata; all entities are still re-read from the active company.
     const plannerPrompt = normalizePlannerPrompt(rawPrompt);
     const multiStepPlan = await buildMultiStepVoicePlan({
       client,
@@ -185,6 +185,8 @@ Deno.serve(async (request: Request) => {
       requestedObject,
       prompt: plannerPrompt,
       date,
+      baseDate: base.toISOString().slice(0, 10),
+      conversationContext,
     });
     if (multiStepPlan != null) {
       if ("error" in multiStepPlan) {
