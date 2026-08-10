@@ -1,0 +1,1 @@
+Candidate messages are only prepared when source is telegram with external_chat_id or max with external_user_id.
