@@ -1,0 +1,1 @@
+Foreman attendance plans are always forced to profile.object_name/object scope. Admin/HR/procurement planners resolve an explicitly named active company object and clarify ambiguous matches.
