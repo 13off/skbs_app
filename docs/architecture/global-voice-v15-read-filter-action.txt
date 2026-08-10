@@ -1,0 +1,7 @@
+READ current role-scoped data
+FILTER deterministically from explicit spoken conditions
+SELECT a bounded subset
+PREPARE existing action payloads
+CONFIRM in existing client coordinators
+AUDIT with existing AI action audit
+EXECUTE through existing repositories
