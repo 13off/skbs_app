@@ -13,6 +13,8 @@ import '../../milestones/presentation/milestones_screen.dart';
 import '../../procurement/presentation/procurement_deliveries_screen.dart';
 import '../../procurement/presentation/procurement_requests_screen.dart';
 import '../../procurement/presentation/procurement_suppliers_screen.dart';
+import '../../recruitment/data/recruitment_repository.dart';
+import '../../recruitment/presentation/recruitment_application_detail_screen.dart';
 import '../../recruitment/presentation/recruitment_applications_screen.dart';
 import '../../tools/presentation/company_tools_screen.dart';
 import '../models/ai_assistant_result.dart';
@@ -35,6 +37,9 @@ class GlobalVoiceActionRouter {
   }) async {
     if (action.type == 'voice_compound_batch') {
       return _executeCompound(context, profile, action);
+    }
+    if (action.type == 'open_candidate_detail') {
+      return _openCandidateDetail(context, profile, action);
     }
     if (action.type == 'open_screen') {
       return _openScreen(context, profile, action);
@@ -137,6 +142,52 @@ class GlobalVoiceActionRouter {
       message: 'Готово: выполнено $completed из ${steps.length} действий',
       targetEntityType: 'voice_compound_batch',
       targetEntityId: action.id,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _openCandidateDetail(
+    BuildContext context,
+    AppUserProfile profile,
+    AiAssistantAction action,
+  ) async {
+    if (!profile.isAdmin && !profile.isHr && !profile.isDeveloper) {
+      throw StateError('Карточки кандидатов недоступны текущей роли');
+    }
+    final applicationId = action.text('application_id');
+    if (applicationId.isEmpty) {
+      throw StateError('Не указан кандидат для открытия');
+    }
+
+    // Даже после серверной проверки перечитываем HR workspace перед
+    // навигацией: карточка не откроется по устаревшему/чужому идентификатору.
+    final workspace = await RecruitmentRepository.fetchWorkspace(
+      companyId: profile.activeCompanyId,
+    );
+    final matches = workspace.applications
+        .where((application) => application.id == applicationId)
+        .toList(growable: false);
+    if (matches.length != 1) {
+      throw StateError('Кандидат уже недоступен в активной компании');
+    }
+    if (!context.mounted) {
+      return const AiActionExecutionResult.cancelled();
+    }
+
+    final application = matches.single;
+    await Navigator.of(context).push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => RecruitmentApplicationDetailScreen(
+          profile: profile,
+          application: application,
+          configuration: workspace.configuration,
+        ),
+      ),
+    );
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Открыта карточка: ${application.fullName}',
+      targetEntityType: 'recruitment_application',
+      targetEntityId: application.id,
     );
   }
 

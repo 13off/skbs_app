@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+import { buildActionTraceFollowUp } from "./action_trace_followup.ts";
 import {
   buildBulkTimesheetResult,
   bulkTimesheetIntent,
@@ -149,6 +150,26 @@ Deno.serve(async (request: Request) => {
     const role = clean(membership.role, 30);
     const assignedObject = clean(profile.object_name, 180);
     const date = requestedDate(prompt, base);
+
+    // v14 consumes the compact trace of the previous prepared action before
+    // list-reference routers. The trace only points to candidates/employees/
+    // requests; every target is re-read from the active company and role before
+    // a new action is prepared.
+    const actionTraceFollowUp = await buildActionTraceFollowUp({
+      client,
+      companyId,
+      role,
+      assignedObject,
+      prompt: rawPrompt,
+      date,
+      conversationContext,
+    });
+    if (actionTraceFollowUp != null) {
+      if ("error" in actionTraceFollowUp) {
+        return json({ error: actionTraceFollowUp.error }, actionTraceFollowUp.status);
+      }
+      return json(actionTraceFollowUp.body, actionTraceFollowUp.status);
+    }
 
     // v13 only handles explicit group/range references and same-as-yesterday
     // follow-ups. The proven v12 single-reference router stays unchanged below.

@@ -5,6 +5,7 @@ import '../../legal/data/legal_repository.dart';
 import '../../procurement/data/procurement_repository.dart';
 import '../../procurement/models/procurement_models.dart';
 import '../../recruitment/data/recruitment_crm_workspace_repository.dart';
+import '../../recruitment/data/recruitment_repository.dart';
 import '../data/ai_action_audit_repository.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
@@ -16,6 +17,7 @@ class GlobalVoiceExtendedActionCoordinator {
     'assign_candidate_responsible',
     'create_procurement_request',
     'create_legal_matter',
+    'send_candidate_message',
   };
 
   static Future<AiActionExecutionResult> execute({
@@ -49,6 +51,7 @@ class GlobalVoiceExtendedActionCoordinator {
         'assign_candidate_responsible' => await _assignCandidate(action),
         'create_procurement_request' => await _createProcurement(action),
         'create_legal_matter' => await _createLegalMatter(action),
+        'send_candidate_message' => await _sendCandidateMessage(action),
         _ => throw UnsupportedError(action.type),
       };
       await AiActionAuditRepository.markCompleted(
@@ -66,8 +69,13 @@ class GlobalVoiceExtendedActionCoordinator {
   static void _checkRole(AppUserProfile profile, AiAssistantAction action) {
     switch (action.type) {
       case 'assign_candidate_responsible':
+      case 'send_candidate_message':
         if (!profile.isAdmin && !profile.isHr && !profile.isDeveloper) {
-          throw StateError('Назначение ответственного кандидату недоступно текущей роли');
+          throw StateError(
+            action.type == 'send_candidate_message'
+                ? 'Сообщения кандидатам недоступны текущей роли'
+                : 'Назначение ответственного кандидату недоступно текущей роли',
+          );
         }
         return;
       case 'create_procurement_request':
@@ -101,6 +109,32 @@ class GlobalVoiceExtendedActionCoordinator {
       completed: true,
       message:
           '${action.text('candidate_name')}: ответственный ${action.text('responsible_name')}',
+      targetEntityType: 'recruitment_application',
+      targetEntityId: applicationId,
+    );
+  }
+
+  static Future<AiActionExecutionResult> _sendCandidateMessage(
+    AiAssistantAction action,
+  ) async {
+    final applicationId = action.text('application_id');
+    final body = action.text('body');
+    final source = action.text('source').toLowerCase();
+    if (applicationId.isEmpty || body.isEmpty) {
+      throw StateError('Не хватает кандидата или текста сообщения');
+    }
+    if (source != 'telegram' && source != 'max') {
+      throw StateError('У кандидата нет поддерживаемого канала Telegram/MAX');
+    }
+
+    await RecruitmentRepository.sendCandidateMessage(
+      applicationId: applicationId,
+      message: body,
+      source: source,
+    );
+    return AiActionExecutionResult(
+      completed: true,
+      message: 'Сообщение отправлено: ${action.text('candidate_name')}',
       targetEntityType: 'recruitment_application',
       targetEntityId: applicationId,
     );
@@ -266,6 +300,12 @@ class GlobalVoiceExtendedActionCoordinator {
         return <(String, String)>[
           ('Кандидат', action.text('candidate_name')),
           ('Ответственный', action.text('responsible_name')),
+        ];
+      case 'send_candidate_message':
+        return <(String, String)>[
+          ('Кандидат', action.text('candidate_name')),
+          ('Канал', action.text('source').toUpperCase()),
+          ('Сообщение', action.text('body')),
         ];
       case 'create_procurement_request':
         return <(String, String)>[

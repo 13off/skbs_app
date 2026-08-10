@@ -14,8 +14,9 @@ const supportedTopics = new Set([
   "candidates",
   "procurement",
   "absence_today",
+  "action_trace",
 ]);
-const supportedModes = new Set(["count", "list"]);
+const supportedModes = new Set(["count", "list", "action"]);
 
 export function parseGlobalVoiceConversationContext(
   value: unknown,
@@ -26,11 +27,16 @@ export function parseGlobalVoiceConversationContext(
   const topicRaw = clean(raw.topic, 40);
   const modeRaw = clean(raw.query_mode, 20);
   const dateRaw = clean(raw.date, 10);
+  const topic = supportedTopics.has(topicRaw) ? topicRaw : "";
   return {
-    topic: supportedTopics.has(topicRaw) ? topicRaw : "",
+    topic,
     queryMode: supportedModes.has(modeRaw) ? modeRaw : "",
     date: /^20\d{2}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : "",
-    prompt: clean(raw.prompt, 800),
+    // action_trace is a server-issued compact JSON envelope echoed by the
+    // client. It may contain up to 30 tiny action steps, so it needs a larger
+    // budget than a normal conversational phrase. It is still revalidated
+    // against the current company/role before use.
+    prompt: clean(raw.prompt, topic === "action_trace" ? 8000 : 800),
     objectName: clean(raw.object_name, 180),
   };
 }
@@ -87,6 +93,13 @@ export function resolveGlobalVoiceConversationPrompt({
 }): { prompt: string; inherited: boolean } {
   const raw = clean(prompt, 4000);
   const value = normalized(raw);
+
+  // action_trace is not a natural-language query to be rewritten. A dedicated
+  // follow-up router consumes it before legacy and semantic intent parsing.
+  if (context.topic === "action_trace") {
+    return { prompt: raw, inherited: false };
+  }
+
   if (!raw || !context.topic || explicitTopic(value) || !shortFollowUp(value)) {
     return { prompt: raw, inherited: false };
   }

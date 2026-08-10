@@ -101,10 +101,11 @@ void main() {
       'lib/features/tasks/voice/task_voice_recognition_web.dart',
     ).readAsStringSync();
 
-    expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
+    expect(web, contains("setProperty('maxAlternatives'.toJS, 5.toJS)"));
     expect(web, contains('scoreTaskVoiceAxesCandidate(text)'));
     expect(web, contains('prioritizeAxes'));
     expect(web, contains('scoreTaskVoiceRecognitionHints(text, hints)'));
+    expect(web, contains('scoreTaskVoiceFuzzyHints(text, hints)'));
     expect(web, isNot(contains('_axisSpeechHints')));
   });
 }
