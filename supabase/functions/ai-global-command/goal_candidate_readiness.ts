@@ -370,7 +370,7 @@ export async function buildCandidateReadinessGoal({
   const summary = flightOnly
     ? `На ${effectiveDate} найдено вылетов кандидатов: ${departures}. Без замечаний: ${ready}. С проблемами по выбранным проверкам: ${issues.length}.`
     : `Проверено кандидатов: ${assessments.length}. Без замечаний: ${ready}. С проблемами по выбранным проверкам: ${issues.length}.`;
-  const nextSteps = <string>[];
+  const nextSteps: string[] = [];
   if (issues.some((item) => item.missingDocs.length > 0)) {
     nextSteps.push("Можно сказать «подготовь сообщения им» — помощник подготовит напоминания только тем, у кого есть подтверждённый Telegram/MAX-канал.");
   }
