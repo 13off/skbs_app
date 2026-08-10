@@ -17,6 +17,7 @@ import {
   createLegalMatterIntent,
   createProcurementRequestIntent,
 } from "./extended_actions.ts";
+import { buildGroupReferencedFollowUp } from "./group_reference_followup.ts";
 import {
   buildMilestoneManagement,
   buildObjectManagement,
@@ -148,6 +149,24 @@ Deno.serve(async (request: Request) => {
     const role = clean(membership.role, 30);
     const assignedObject = clean(profile.object_name, 180);
     const date = requestedDate(prompt, base);
+
+    // v13 only handles explicit group/range references and same-as-yesterday
+    // follow-ups. The proven v12 single-reference router stays unchanged below.
+    const groupedReference = await buildGroupReferencedFollowUp({
+      client,
+      companyId,
+      role,
+      assignedObject,
+      prompt: rawPrompt,
+      date,
+      conversationContext,
+    });
+    if (groupedReference != null) {
+      if ("error" in groupedReference) {
+        return json({ error: groupedReference.error }, groupedReference.status);
+      }
+      return json(groupedReference.body, groupedReference.status);
+    }
 
     // Reference follow-up is deliberately evaluated before ordinary intent
     // parsers. It does not trust client-side entity IDs: the previous visible
