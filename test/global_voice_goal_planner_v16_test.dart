@@ -9,6 +9,8 @@ void main() {
   late String candidate;
   late String operational;
   late String frozenV15;
+  late String conversation;
+  late String index;
 
   setUpAll(() {
     wrapper = File(
@@ -28,6 +30,12 @@ void main() {
     ).readAsStringSync();
     frozenV15 = File(
       'supabase/functions/ai-global-command/multi_step_plan_v15.ts',
+    ).readAsStringSync();
+    conversation = File(
+      'supabase/functions/ai-global-command/conversation_context.ts',
+    ).readAsStringSync();
+    index = File(
+      'supabase/functions/ai-global-command/index.ts',
     ).readAsStringSync();
   });
 
@@ -121,5 +129,24 @@ void main() {
     expect(operational, isNot(contains('buildProcurementStatus')));
     expect(operational, isNot(contains('prepare_timesheet_correction')));
     expect(operational, contains('Goal planner ничего не закрывает и не двигает автоматически'));
+  });
+
+  test('цель сохраняется между репликами без доверенных entity ids', () {
+    expect(conversation, contains('"goal_candidate_readiness"'));
+    expect(conversation, contains('"goal_operational_risk"'));
+    expect(conversation, contains('goalTopic(context.topic)'));
+    expect(conversation, contains('goalTopic(topic) ? 1500 : 800'));
+    expect(wrapper, contains('conversationContext = emptyConversationContext'));
+    expect(index, contains('conversationContext,'));
+    expect(index, contains('baseDate: base.toISOString().slice(0, 10)'));
+    expect(goal, contains('shortGoalFollowUp'));
+    expect(goal, contains('contextGoalKind'));
+  });
+
+  test('короткие drill-down реплики остаются в том же goal router', () {
+    expect(goal, contains('только|лишь|покажи\\s+только|оставь\\s+только'));
+    expect(goal, contains('подготовь|напомни|напиши|сделай\\s+что\\s+мож'));
+    expect(candidate, contains('conversationContext.topic === "goal_candidate_readiness"'));
+    expect(operational, contains('conversationContext.topic === "goal_operational_risk"'));
   });
 }
