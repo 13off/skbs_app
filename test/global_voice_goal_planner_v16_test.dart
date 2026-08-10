@@ -135,7 +135,8 @@ void main() {
     expect(conversation, contains('"goal_candidate_readiness"'));
     expect(conversation, contains('"goal_operational_risk"'));
     expect(conversation, contains('goalTopic(context.topic)'));
-    expect(conversation, contains('goalTopic(topic) ? 1500 : 800'));
+    expect(conversation, contains('topic === "action_trace" ? 8000 : 800'));
+    expect(conversation, contains('goalTopic(topic) ? 1500 : legacyPromptBudget'));
     expect(wrapper, contains('conversationContext = emptyConversationContext'));
     expect(index, contains('conversationContext,'));
     expect(index, contains('baseDate: base.toISOString().slice(0, 10)'));
