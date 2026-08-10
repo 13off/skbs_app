@@ -28,8 +28,11 @@ function currentDateKey(): string {
 /// Every other phrase is delegated to the exact v15 implementation copied to
 /// multi_step_plan_v15.ts, so the established direct command surface remains
 /// unchanged.
-export function multiStepPlanIntent(prompt: string): boolean {
-  return goalPlannerIntent(prompt, emptyConversationContext) ||
+export function multiStepPlanIntent(
+  prompt: string,
+  conversationContext: GlobalVoiceConversationContext = emptyConversationContext,
+): boolean {
+  return goalPlannerIntent(prompt, conversationContext) ||
     v15MultiStepPlanIntent(prompt);
 }
 
@@ -41,6 +44,8 @@ export async function buildMultiStepVoicePlan({
   requestedObject,
   prompt,
   date,
+  baseDate,
+  conversationContext = emptyConversationContext,
 }: {
   client: SupabaseClient;
   companyId: string;
@@ -49,6 +54,8 @@ export async function buildMultiStepVoicePlan({
   requestedObject: string;
   prompt: string;
   date: string;
+  baseDate?: string;
+  conversationContext?: GlobalVoiceConversationContext;
 }): Promise<BuilderResult | null> {
   const goal = await buildGoalVoicePlan({
     client,
@@ -58,8 +65,8 @@ export async function buildMultiStepVoicePlan({
     requestedObject,
     prompt,
     date,
-    baseDate: currentDateKey(),
-    conversationContext: emptyConversationContext,
+    baseDate: baseDate || currentDateKey(),
+    conversationContext,
   });
   if (goal != null) return goal;
 
