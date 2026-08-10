@@ -46,7 +46,10 @@ export function parseGlobalVoiceConversationContext(
   const modeRaw = clean(raw.query_mode, 20);
   const dateRaw = clean(raw.date, 10);
   const topic = supportedTopics.has(topicRaw) ? topicRaw : "";
-  const promptBudget = topic === "action_trace" ? 8000 : goalTopic(topic) ? 1500 : 800;
+  // Keep the established v14 trace budget as an explicit invariant. v16 adds
+  // a larger natural-language budget only for goal topics on top of it.
+  const legacyPromptBudget = topic === "action_trace" ? 8000 : 800;
+  const promptBudget = goalTopic(topic) ? 1500 : legacyPromptBudget;
   return {
     topic,
     queryMode: supportedModes.has(modeRaw) ? modeRaw : "",
