@@ -1,3 +1,5 @@
+import { buildActionConversation } from "./action_trace.ts";
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -247,6 +249,7 @@ export function resultWithAction({
   date: string;
   action: Record<string, unknown>;
 }) {
+  const conversation = buildActionConversation({ action, date, objectName });
   return {
     ok: true,
     mode: "global_voice",
@@ -262,5 +265,6 @@ export function resultWithAction({
     preliminary: true,
     ai_used: false,
     action,
+    ...(conversation == null ? {} : { conversation }),
   };
 }
