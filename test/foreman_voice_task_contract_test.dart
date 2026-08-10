@@ -51,9 +51,10 @@ void main() {
     expect(session, contains('вс[её]\\s+готово'));
     expect(web, contains("setProperty('continuous'.toJS, true.toJS)"));
     expect(web, contains("setProperty('interimResults'.toJS, true.toJS)"));
-    expect(web, contains("setProperty('maxAlternatives'.toJS, 3.toJS)"));
+    expect(web, contains("setProperty('maxAlternatives'.toJS, 5.toJS)"));
     expect(web, contains('_applySpeechGrammar'));
     expect(web, contains('scoreTaskVoiceRecognitionHints(text, hints)'));
+    expect(web, contains('scoreTaskVoiceFuzzyHints(text, hints)'));
     expect(web, contains('session.stopRequested'));
     expect(web, contains("callMethod<JSAny?>('stop'.toJS)"));
     expect(web, isNot(contains('Duration(seconds: 18)')));
