@@ -1,0 +1,8 @@
+Selection grammar:
+- all matching rows when group <= 12
+- first N / last N
+- explicit ordinals: first and third
+- exclusions: all except second
+- deduplicate repeated ordinals
+- out-of-range -> clarification/error
+- >12 without narrowing -> clarification/error

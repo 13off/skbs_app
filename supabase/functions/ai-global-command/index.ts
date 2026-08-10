@@ -19,6 +19,7 @@ import {
   createProcurementRequestIntent,
 } from "./extended_actions.ts";
 import { buildGroupReferencedFollowUp } from "./group_reference_followup.ts";
+import { buildMultiStepVoicePlan } from "./multi_step_plan.ts";
 import {
   buildMilestoneManagement,
   buildObjectManagement,
@@ -169,6 +170,26 @@ Deno.serve(async (request: Request) => {
         return json({ error: actionTraceFollowUp.error }, actionTraceFollowUp.status);
       }
       return json(actionTraceFollowUp.body, actionTraceFollowUp.status);
+    }
+
+    // v15 turns one explicit voice request into a deterministic read/filter ->
+    // select -> prepare-action plan. The planner never writes the database and
+    // never treats selected IDs as permissions: existing confirmed action
+    // coordinators remain the only write path.
+    const multiStepPlan = await buildMultiStepVoicePlan({
+      client,
+      companyId,
+      role,
+      assignedObject,
+      requestedObject,
+      prompt: rawPrompt,
+      date,
+    });
+    if (multiStepPlan != null) {
+      if ("error" in multiStepPlan) {
+        return json({ error: multiStepPlan.error }, multiStepPlan.status);
+      }
+      return json(multiStepPlan.body, multiStepPlan.status);
     }
 
     // v13 only handles explicit group/range references and same-as-yesterday

@@ -1,0 +1,8 @@
+plan.version = 15
+plan.source = deterministic_tool_planner
+plan.domain = employees | candidates | procurement
+plan.selector_summary = human-readable selector only
+plan.matched_count = number
+plan.selected_count = number
+
+No entity IDs are stored in plan metadata. Existing action payloads retain the IDs needed by normal coordinators and action_trace v14.
