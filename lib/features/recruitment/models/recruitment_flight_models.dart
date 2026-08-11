@@ -53,6 +53,68 @@ class RecruitmentFlightCandidate {
   }
 }
 
+class RecruitmentFlightTicket {
+  final String id;
+  final String companyId;
+  final String flightId;
+  final String bucket;
+  final String path;
+  final String originalName;
+  final String mimeType;
+  final int? sizeBytes;
+  final DateTime createdAt;
+
+  const RecruitmentFlightTicket({
+    required this.id,
+    required this.companyId,
+    required this.flightId,
+    required this.bucket,
+    required this.path,
+    required this.originalName,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.createdAt,
+  });
+
+  factory RecruitmentFlightTicket.fromMap(Map<String, dynamic> map) {
+    int? optionalInt(dynamic value) {
+      return switch (value) {
+        int number => number,
+        num number => number.toInt(),
+        _ => int.tryParse(value?.toString() ?? ''),
+      };
+    }
+
+    return RecruitmentFlightTicket(
+      id: map['id']?.toString() ?? '',
+      companyId: map['company_id']?.toString() ?? '',
+      flightId: map['flight_id']?.toString() ?? '',
+      bucket: map['bucket']?.toString() ?? '',
+      path: map['path']?.toString() ?? '',
+      originalName: map['original_name']?.toString() ?? '',
+      mimeType: map['mime_type']?.toString() ?? '',
+      sizeBytes: optionalInt(map['size_bytes']),
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
+    );
+  }
+
+  factory RecruitmentFlightTicket.fromLegacy(RecruitmentFlight flight) {
+    return RecruitmentFlightTicket(
+      id: 'legacy:${flight.id}',
+      companyId: flight.companyId,
+      flightId: flight.id,
+      bucket: flight.ticketBucket,
+      path: flight.ticketPath,
+      originalName: flight.ticketOriginalName,
+      mimeType: flight.ticketMimeType,
+      sizeBytes: flight.ticketSizeBytes,
+      createdAt: flight.createdAt,
+    );
+  }
+}
+
 class RecruitmentFlight {
   final String id;
   final String companyId;
@@ -182,10 +244,12 @@ class RecruitmentFlight {
 class RecruitmentFlightEntry {
   final RecruitmentFlight flight;
   final RecruitmentFlightCandidate candidate;
+  final List<RecruitmentFlightTicket> tickets;
 
   const RecruitmentFlightEntry({
     required this.flight,
     required this.candidate,
+    this.tickets = const <RecruitmentFlightTicket>[],
   });
 }
 

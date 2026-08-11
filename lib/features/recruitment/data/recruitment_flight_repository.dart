@@ -8,9 +8,22 @@ import '../../../services/push_notification_service.dart';
 import '../models/recruitment_flight_models.dart';
 import 'recruitment_repository.dart';
 
+class RecruitmentFlightTicketUpload {
+  final String fileName;
+  final Uint8List bytes;
+
+  const RecruitmentFlightTicketUpload({
+    required this.fileName,
+    required this.bytes,
+  });
+}
+
 abstract final class RecruitmentFlightRepository {
   static final SupabaseClient _client = Supabase.instance.client;
   static const String ticketBucket = 'recruitment-documents';
+  static const int maxTicketsPerFlight = 10;
+  static const int maxTicketBytes = 20 * 1024 * 1024;
+  static const int maxTotalTicketBytes = 100 * 1024 * 1024;
 
   static Map<String, dynamic> _map(dynamic value) {
     if (value is Map<String, dynamic>) return value;
@@ -104,6 +117,26 @@ abstract final class RecruitmentFlightRepository {
         .toList(growable: false);
   }
 
+  static Future<List<RecruitmentFlightTicket>> fetchFlightTickets({
+    required String companyId,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlightTicket>[];
+    final rows = await _client
+        .from('recruitment_flight_tickets')
+        .select()
+        .eq('company_id', cleanCompanyId)
+        .order('created_at', ascending: true)
+        .order('id', ascending: true)
+        .limit(10000);
+    return rows
+        .map<RecruitmentFlightTicket>(
+          (row) => RecruitmentFlightTicket.fromMap(_map(row)),
+        )
+        .where((ticket) => ticket.id.isNotEmpty && ticket.flightId.isNotEmpty)
+        .toList(growable: false);
+  }
+
   static Future<RecruitmentFlightCalendarData> fetchCalendar({
     required String companyId,
     bool dispatchReminders = true,
@@ -111,17 +144,35 @@ abstract final class RecruitmentFlightRepository {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
       fetchCandidates(companyId: companyId),
       fetchFlights(companyId: companyId),
+      fetchFlightTickets(companyId: companyId),
     ]);
     final candidates = results[0] as List<RecruitmentFlightCandidate>;
     final flights = results[1] as List<RecruitmentFlight>;
+    final tickets = results[2] as List<RecruitmentFlightTicket>;
     final candidatesById = <String, RecruitmentFlightCandidate>{
       for (final candidate in candidates) candidate.applicationId: candidate,
     };
+    final ticketsByFlight = <String, List<RecruitmentFlightTicket>>{};
+    for (final ticket in tickets) {
+      ticketsByFlight
+          .putIfAbsent(ticket.flightId, () => <RecruitmentFlightTicket>[])
+          .add(ticket);
+    }
     final entries = flights
         .map((flight) {
           final candidate = candidatesById[flight.applicationId];
           if (candidate == null) return null;
-          return RecruitmentFlightEntry(flight: flight, candidate: candidate);
+          final attachments = <RecruitmentFlightTicket>[
+            ...?ticketsByFlight[flight.id],
+          ];
+          if (attachments.isEmpty && flight.hasTicket) {
+            attachments.add(RecruitmentFlightTicket.fromLegacy(flight));
+          }
+          return RecruitmentFlightEntry(
+            flight: flight,
+            candidate: candidate,
+            tickets: List<RecruitmentFlightTicket>.unmodifiable(attachments),
+          );
         })
         .whereType<RecruitmentFlightEntry>()
         .toList(growable: false);
@@ -143,6 +194,9 @@ abstract final class RecruitmentFlightRepository {
     required Uint8List bytes,
   }) async {
     if (bytes.isEmpty) throw Exception('Файл билета пустой');
+    if (bytes.length > maxTicketBytes) {
+      throw Exception('Файл билета должен быть меньше 20 МБ');
+    }
     final safeName = _safeFileName(fileName);
     final stamp = DateTime.now().toUtc().microsecondsSinceEpoch;
     final path = '$companyId/$applicationId/tickets/${stamp}_$safeName';
@@ -174,6 +228,8 @@ abstract final class RecruitmentFlightRepository {
     String notes = '',
     Uint8List? ticketBytes,
     String ticketFileName = '',
+    List<RecruitmentFlightTicketUpload> ticketUploads =
+        const <RecruitmentFlightTicketUpload>[],
     RecruitmentFlight? existing,
   }) async {
     final userId = _client.auth.currentUser?.id;
@@ -191,6 +247,33 @@ abstract final class RecruitmentFlightRepository {
       throw Exception('Прибытие должно быть позже вылета');
     }
 
+    final newAttachmentCount =
+        ticketUploads.length + (ticketBytes == null ? 0 : 1);
+    if (newAttachmentCount > maxTicketsPerFlight) {
+      throw Exception(
+        'К одному вылету можно прикрепить не больше $maxTicketsPerFlight билетов',
+      );
+    }
+
+    var existingTicketCount = 0;
+    if (flightId.trim().isNotEmpty && newAttachmentCount > 0) {
+      final existingRows = await _client
+          .from('recruitment_flight_tickets')
+          .select('id')
+          .eq('company_id', candidate.companyId)
+          .eq('flight_id', flightId.trim())
+          .limit(maxTicketsPerFlight + 1);
+      existingTicketCount = existingRows.length;
+      if (existingTicketCount == 0 && existing?.hasTicket == true) {
+        existingTicketCount = 1;
+      }
+    }
+    if (existingTicketCount + newAttachmentCount > maxTicketsPerFlight) {
+      throw Exception(
+        'К одному вылету можно прикрепить не больше $maxTicketsPerFlight билетов',
+      );
+    }
+
     final ticket = <String, dynamic>{
       'ticket_bucket': existing?.ticketBucket ?? '',
       'ticket_path': existing?.ticketPath ?? '',
@@ -198,18 +281,51 @@ abstract final class RecruitmentFlightRepository {
       'ticket_mime_type': existing?.ticketMimeType ?? '',
       'ticket_size_bytes': existing?.ticketSizeBytes,
     };
+    final uploadedAttachments = <Map<String, dynamic>>[];
+    var totalNewBytes = 0;
+
     if (ticketBytes != null) {
-      ticket.addAll(
+      totalNewBytes += ticketBytes.length;
+      if (totalNewBytes > maxTotalTicketBytes) {
+        throw Exception('Общий размер новых билетов должен быть не больше 100 МБ');
+      }
+      final uploaded = await _uploadTicket(
+        companyId: candidate.companyId,
+        applicationId: candidate.applicationId,
+        fileName: ticketFileName,
+        bytes: ticketBytes,
+      );
+      ticket.addAll(uploaded);
+      uploadedAttachments.add(uploaded);
+    }
+
+    for (final upload in ticketUploads) {
+      if (upload.bytes.isEmpty) throw Exception('Файл билета пустой');
+      if (upload.bytes.length > maxTicketBytes) {
+        throw Exception(
+          '${upload.fileName}: файл билета должен быть меньше 20 МБ',
+        );
+      }
+      totalNewBytes += upload.bytes.length;
+      if (totalNewBytes > maxTotalTicketBytes) {
+        throw Exception('Общий размер новых билетов должен быть не больше 100 МБ');
+      }
+      uploadedAttachments.add(
         await _uploadTicket(
           companyId: candidate.companyId,
           applicationId: candidate.applicationId,
-          fileName: ticketFileName,
-          bytes: ticketBytes,
+          fileName: upload.fileName,
+          bytes: upload.bytes,
         ),
       );
     }
+
+    if ((ticket['ticket_path']?.toString() ?? '').isEmpty &&
+        uploadedAttachments.isNotEmpty) {
+      ticket.addAll(uploadedAttachments.first);
+    }
     if ((ticket['ticket_path']?.toString() ?? '').isEmpty) {
-      throw Exception('Прикрепите купленный билет');
+      throw Exception('Прикрепите хотя бы один купленный билет');
     }
 
     final now = DateTime.now().toUtc().toIso8601String();
@@ -253,6 +369,26 @@ abstract final class RecruitmentFlightRepository {
           .single();
     }
 
+    final result = RecruitmentFlight.fromMap(_map(row));
+
+    if (uploadedAttachments.isNotEmpty) {
+      final attachmentRows = uploadedAttachments
+          .map(
+            (item) => <String, dynamic>{
+              'company_id': candidate.companyId,
+              'flight_id': result.id,
+              'bucket': item['ticket_bucket'],
+              'path': item['ticket_path'],
+              'original_name': item['ticket_original_name'],
+              'mime_type': item['ticket_mime_type'],
+              'size_bytes': item['ticket_size_bytes'],
+              'created_by': userId,
+            },
+          )
+          .toList(growable: false);
+      await _client.from('recruitment_flight_tickets').insert(attachmentRows);
+    }
+
     await _client
         .from('recruitment_applications')
         .update(<String, dynamic>{
@@ -280,7 +416,6 @@ abstract final class RecruitmentFlightRepository {
       );
     }
 
-    final result = RecruitmentFlight.fromMap(_map(row));
     _notify(result.id);
     return result;
   }
@@ -314,6 +449,15 @@ abstract final class RecruitmentFlightRepository {
     return _client.storage
         .from(flight.ticketBucket)
         .createSignedUrl(flight.ticketPath, 300);
+  }
+
+  static Future<String> createFlightTicketUrl(
+    RecruitmentFlightTicket ticket,
+  ) async {
+    if (ticket.bucket.trim().isEmpty || ticket.path.trim().isEmpty) {
+      throw Exception('Билет не прикреплён');
+    }
+    return _client.storage.from(ticket.bucket).createSignedUrl(ticket.path, 300);
   }
 
   static String reminderMessage(
