@@ -1,1 +1,1 @@
-Publish unified voice and written AI assistant in PWA. Retry after unified AI contract fixes.
+Publish unified AI chat hotfix: delayed refresh retry + payroll balances routing. 2026-08-11 13:52 MSK.
