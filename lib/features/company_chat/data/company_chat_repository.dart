@@ -9,6 +9,7 @@ class CompanyChatRepository {
   CompanyChatRepository._();
 
   static const String storageBucket = 'company-chat-files';
+  static const Duration _rpcTimeout = Duration(seconds: 8);
   static final SupabaseClient _client = Supabase.instance.client;
   static final StreamController<void> _changesController =
       StreamController<void>.broadcast();
@@ -23,17 +24,16 @@ class CompanyChatRepository {
     if (!delayedRetry) return;
 
     // На Flutter Web broadcast/realtime и ответ Edge Function могут прийти
-    // практически одновременно. Если в этот момент UI уже обновляется,
-    // одиночный повтор легко попадает в тот же refresh и визуально сообщение
-    // появляется только после ручной перезагрузки страницы. Несколько коротких
-    // локальных повторов делают обновление независимым от realtime-события и
-    // от задержки видимости только что записанной строки.
+    // практически одновременно. Повторяем локальный сигнал достаточно долго,
+    // чтобы UI не зависел от одного realtime-события или служебного RPC.
     for (final delay in <Duration>[
-      Duration(milliseconds: 250),
-      Duration(milliseconds: 700),
-      Duration(milliseconds: 1400),
-      Duration(milliseconds: 2600),
-      Duration(milliseconds: 4200),
+      Duration(milliseconds: 180),
+      Duration(milliseconds: 450),
+      Duration(milliseconds: 900),
+      Duration(milliseconds: 1600),
+      Duration(milliseconds: 2800),
+      Duration(milliseconds: 4500),
+      Duration(milliseconds: 7000),
     ]) {
       Timer(delay, () {
         if (!_changesController.isClosed) _changesController.add(null);
@@ -74,7 +74,7 @@ class CompanyChatRepository {
             final table = data['table']?.toString().trim() ?? '';
             if (table == 'company_chat_messages' ||
                 table == 'company_chat_attachments') {
-              _changesController.add(null);
+              _notifyChanges(delayedRetry: true);
             }
           },
         )
@@ -97,17 +97,19 @@ class CompanyChatRepository {
     String channelKind = 'general',
     String? peerUserId,
   }) async {
-    final data = await _client.rpc<dynamic>(
-      'get_company_chat_feed',
-      params: <String, dynamic>{
-        'p_limit': limit,
-        'p_before': before?.toUtc().toIso8601String(),
-        'p_channel_kind': channelKind.trim().isEmpty
-            ? 'general'
-            : channelKind.trim(),
-        'p_peer_user_id': _nullIfEmpty(peerUserId),
-      },
-    );
+    final data = await _client
+        .rpc<dynamic>(
+          'get_company_chat_feed',
+          params: <String, dynamic>{
+            'p_limit': limit,
+            'p_before': before?.toUtc().toIso8601String(),
+            'p_channel_kind': channelKind.trim().isEmpty
+                ? 'general'
+                : channelKind.trim(),
+            'p_peer_user_id': _nullIfEmpty(peerUserId),
+          },
+        )
+        .timeout(_rpcTimeout);
     return _list(data)
         .whereType<Map>()
         .map(
@@ -119,7 +121,9 @@ class CompanyChatRepository {
   }
 
   static Future<List<CompanyChatThread>> fetchThreads() async {
-    final data = await _client.rpc<dynamic>('get_company_chat_threads');
+    final data = await _client
+        .rpc<dynamic>('get_company_chat_threads')
+        .timeout(_rpcTimeout);
     return _list(data)
         .whereType<Map>()
         .map(
@@ -131,7 +135,9 @@ class CompanyChatRepository {
   }
 
   static Future<List<CompanyChatMember>> fetchMembers() async {
-    final data = await _client.rpc<dynamic>('get_company_chat_members');
+    final data = await _client
+        .rpc<dynamic>('get_company_chat_members')
+        .timeout(_rpcTimeout);
     return _list(data)
         .whereType<Map>()
         .map(
@@ -143,8 +149,15 @@ class CompanyChatRepository {
   }
 
   static Future<CompanyChatUnreadState> fetchUnreadState() async {
-    final data = await _client.rpc<dynamic>('get_company_chat_unread_state');
-    return CompanyChatUnreadState.fromMap(_map(data));
+    try {
+      final data = await _client
+          .rpc<dynamic>('get_company_chat_unread_state')
+          .timeout(const Duration(seconds: 5));
+      return CompanyChatUnreadState.fromMap(_map(data));
+    } catch (_) {
+      // Счётчик непрочитанных не должен блокировать отображение переписки.
+      return const CompanyChatUnreadState.empty();
+    }
   }
 
   static Future<void> markRead({
@@ -152,16 +165,27 @@ class CompanyChatRepository {
     String channelKind = 'general',
     String? peerUserId,
   }) async {
-    await _client.rpc<void>(
-      'mark_company_chat_read',
-      params: <String, dynamic>{
-        'p_read_at': (at ?? DateTime.now()).toUtc().toIso8601String(),
-        'p_channel_kind': channelKind.trim().isEmpty
-            ? 'general'
-            : channelKind.trim(),
-        'p_peer_user_id': _nullIfEmpty(peerUserId),
-      },
-    );
+    // Пометка прочитанного — служебная операция. Раньше UI ждал этот RPC до
+    // setState, поэтому зависший/медленный запрос мог оставить новые сообщения
+    // невидимыми до F5. Теперь она выполняется best-effort в фоне.
+    unawaited(() async {
+      try {
+        await _client
+            .rpc<void>(
+              'mark_company_chat_read',
+              params: <String, dynamic>{
+                'p_read_at': (at ?? DateTime.now()).toUtc().toIso8601String(),
+                'p_channel_kind': channelKind.trim().isEmpty
+                    ? 'general'
+                    : channelKind.trim(),
+                'p_peer_user_id': _nullIfEmpty(peerUserId),
+              },
+            )
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // Не мешаем переписке из-за статуса прочтения.
+      }
+    }());
   }
 
   // В экспериментальном режиме старый ИИ в общем чате скрыт.
@@ -176,19 +200,21 @@ class CompanyChatRepository {
     String channelKind = 'general',
     String? peerUserId,
   }) async {
-    final data = await _client.rpc<dynamic>(
-      'create_company_chat_message',
-      params: <String, dynamic>{
-        'p_body': body,
-        'p_reply_to_id': _nullIfEmpty(replyToId),
-        'p_mentioned_user_ids': mentionedUserIds,
-        'p_client_nonce': clientNonce,
-        'p_channel_kind': channelKind.trim().isEmpty
-            ? 'general'
-            : channelKind.trim(),
-        'p_peer_user_id': _nullIfEmpty(peerUserId),
-      },
-    );
+    final data = await _client
+        .rpc<dynamic>(
+          'create_company_chat_message',
+          params: <String, dynamic>{
+            'p_body': body,
+            'p_reply_to_id': _nullIfEmpty(replyToId),
+            'p_mentioned_user_ids': mentionedUserIds,
+            'p_client_nonce': clientNonce,
+            'p_channel_kind': channelKind.trim().isEmpty
+                ? 'general'
+                : channelKind.trim(),
+            'p_peer_user_id': _nullIfEmpty(peerUserId),
+          },
+        )
+        .timeout(_rpcTimeout);
     final id = data?.toString().trim() ?? '';
     if (id.isEmpty) throw Exception('Не удалось создать сообщение');
     _notifyChanges(delayedRetry: true);
@@ -242,7 +268,7 @@ class CompanyChatRepository {
           })
           .select()
           .single();
-      _notifyChanges();
+      _notifyChanges(delayedRetry: true);
       return CompanyChatAttachment.fromMap(_map(row));
     } catch (_) {
       await _client.storage.from(storageBucket).remove(<String>[path]);
@@ -251,11 +277,13 @@ class CompanyChatRepository {
   }
 
   static Future<void> deleteMessage(String messageId) async {
-    await _client.rpc<dynamic>(
-      'delete_company_chat_message',
-      params: <String, dynamic>{'p_message_id': messageId.trim()},
-    );
-    _notifyChanges();
+    await _client
+        .rpc<dynamic>(
+          'delete_company_chat_message',
+          params: <String, dynamic>{'p_message_id': messageId.trim()},
+        )
+        .timeout(_rpcTimeout);
+    _notifyChanges(delayedRetry: true);
   }
 
   static Future<void> askAi({
@@ -269,10 +297,9 @@ class CompanyChatRepository {
       'object_name': _nullIfEmpty(objectName),
     };
 
-    final response = await _client.functions.invoke(
-      'company-chat-gpt',
-      body: body,
-    );
+    final response = await _client.functions
+        .invoke('company-chat-gpt', body: body)
+        .timeout(const Duration(seconds: 40));
     final data = _map(response.data);
     final error = data['error']?.toString().trim() ?? '';
     if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
@@ -281,20 +308,22 @@ class CompanyChatRepository {
       );
     }
 
-    // После обычного ответа отдельный безопасный мост проверяет, просил ли
-    // пользователь выполнить функцию AppСтрой. Если да, он прикрепляет к
-    // сообщению ChatGPT конкретное подтверждаемое действие.
-    try {
-      await _client.functions.invoke(
-        'company-chat-action-preparer',
-        body: body,
-      );
-    } catch (_) {
-      // Сам текстовый ответ ChatGPT не должен пропадать из-за временной ошибки
-      // моста действий. Следующий запрос/обновление всё равно сохранит диалог.
-    }
-
+    // Ответ ChatGPT уже записан в БД — сразу просим интерфейс показать его.
+    // Подготовка кнопки действия не должна задерживать отображение текста.
     _notifyChanges(delayedRetry: true);
+
+    unawaited(() async {
+      try {
+        await _client.functions
+            .invoke('company-chat-action-preparer', body: body)
+            .timeout(const Duration(seconds: 15));
+      } catch (_) {
+        // Текстовый ответ уже доступен; действие можно подготовить следующим циклом.
+      } finally {
+        // Если мост добавил action в ai_payload, кнопка появится без F5.
+        _notifyChanges(delayedRetry: true);
+      }
+    }());
   }
 
   static Future<String> createSignedAttachmentUrl(
