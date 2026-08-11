@@ -42,7 +42,7 @@ void main() {
     expect(screen, isNot(contains('selectRole(')));
   });
 
-  test('invitation uses one canonical web publication', () {
+  test('invitation uses one canonical public landing with Russian API verify', () {
     final adapter = File(
       'supabase/functions/invite-company-member/index.ts',
     ).readAsStringSync();
@@ -52,12 +52,24 @@ void main() {
     final users = File(
       'lib/features/auth/data/user_repository.dart',
     ).readAsStringSync();
+    final landing = File('web/invite.html').readAsStringSync();
 
-    expect(adapter, isNot(contains('13off.github.io/appstroy-web')));
-    expect(adapter, isNot(contains('publishedWebAppUrl')));
+    expect(adapter, contains('https://13off.github.io/appstroy-web/'));
+    expect(adapter, contains('publishedWebAppUrl'));
+    expect(adapter, contains('publicInvitationUrl'));
     expect(adapter, contains('return json(data, coreResponse.status);'));
+    expect(adapter, isNot(contains('https://api.appstroy-web.ru/app/')));
+
+    // Token generation and tenant/role decisions remain in the protected core.
     expect(core, contains('https://api.appstroy-web.ru/app/'));
+    expect(core, contains('generateLink'));
+    expect(core, contains('properties?.hashed_token'));
+
+    // Client fallback may still know the Russian app mirror, but copied invites
+    // are server-rewritten to the canonical public landing above.
     expect(users, contains('https://api.appstroy-web.ru/app/'));
+    expect(landing, contains("const supabaseUrl = 'https://api.appstroy-web.ru'"));
+    expect(landing, contains('/auth/v1/verify'));
   });
 
   test('member access is one protected server transaction', () {
