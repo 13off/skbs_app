@@ -71,7 +71,7 @@ void main() {
     expect(backend, contains('/functions/v1/ai-global-command'));
     expect(backend, contains('tool_choice: "auto"'));
     expect(backend, contains('input_mode: "chatgpt"'));
-    expect(backend, contains('confirmation'));
+    expect(backend, contains('окончательное изменение выполняется после отдельного подтверждения'));
   });
 
   test('photos and files are sent inside the compact workspace', () {
