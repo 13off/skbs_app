@@ -8,4 +8,4 @@ Universal XLSX: employees, tasks, candidates, procurement, suppliers, flights pl
 Compile-safe generic table queries.
 Confirmation contract preserved.
 Agent v2: structured live-data tool, multi-step reasoning, multi-action plans, persistent conversation memory.
-Rebuild AppStroy ChatGPT agent v2.
+Rebuild AppStroy ChatGPT agent v2 after CI status failure.
