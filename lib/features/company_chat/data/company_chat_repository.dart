@@ -263,13 +263,15 @@ class CompanyChatRepository {
     required String sourceMessageId,
     String? objectName,
   }) async {
+    final body = <String, dynamic>{
+      'company_id': companyId.trim(),
+      'source_message_id': sourceMessageId.trim(),
+      'object_name': _nullIfEmpty(objectName),
+    };
+
     final response = await _client.functions.invoke(
       'company-chat-gpt',
-      body: <String, dynamic>{
-        'company_id': companyId.trim(),
-        'source_message_id': sourceMessageId.trim(),
-        'object_name': _nullIfEmpty(objectName),
-      },
+      body: body,
     );
     final data = _map(response.data);
     final error = data['error']?.toString().trim() ?? '';
@@ -278,6 +280,20 @@ class CompanyChatRepository {
         error.isEmpty ? 'ChatGPT временно недоступен' : error,
       );
     }
+
+    // После обычного ответа отдельный безопасный мост проверяет, просил ли
+    // пользователь выполнить функцию AppСтрой. Если да, он прикрепляет к
+    // сообщению ChatGPT конкретное подтверждаемое действие.
+    try {
+      await _client.functions.invoke(
+        'company-chat-action-preparer',
+        body: body,
+      );
+    } catch (_) {
+      // Сам текстовый ответ ChatGPT не должен пропадать из-за временной ошибки
+      // моста действий. Следующий запрос/обновление всё равно сохранит диалог.
+    }
+
     _notifyChanges(delayedRetry: true);
   }
 
