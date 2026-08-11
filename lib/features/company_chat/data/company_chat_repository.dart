@@ -207,11 +207,11 @@ class CompanyChatRepository {
   }
 
   static void _refreshSummariesInBackground() {
-    unawaited(_refreshThreadsNow().catchError((_) => _lastThreads));
     unawaited(
-      _refreshUnreadNow().catchError(
-        (_) => _lastUnread ?? const CompanyChatUnreadState.empty(),
-      ),
+      _refreshThreadsNow().then<void>((_) {}, onError: (_) {}),
+    );
+    unawaited(
+      _refreshUnreadNow().then<void>((_) {}, onError: (_) {}),
     );
   }
 
