@@ -1,1 +1,1 @@
-Enable ChatGPT-only experiment and hide legacy voice AI.
+Enable ChatGPT-only experiment, hide legacy chat AI and voice AI. Retry 2.
