@@ -44,7 +44,7 @@ function mapValue(value: unknown): JsonMap {
 }
 
 function normalize(value: unknown): string {
-  return clean(value, 6000)
+  return clean(value, 12000)
     .toLowerCase()
     .replaceAll("ё", "е")
     .replace(/[^а-яa-z0-9.,:+\-\/ ]+/g, " ")
@@ -80,7 +80,7 @@ function publishableKey(): string {
 
 function isFunctionalRequest(prompt: string): boolean {
   const value = normalize(prompt);
-  const direct = /(?:скач|выгруз|экспорт|сформир|сохрани\s+файл|скин\s+таблиц)/.test(value);
+  const direct = /(?:скач|выгруз|экспорт|таблиц|xlsx|excel|сформир|сохрани\s+файл|скин\s+файл|скин\s+таблиц|пришл.*файл)/.test(value);
   if (direct) return true;
   const verb = /(?:созда|добав|сохран|запол|простав|постав|отмет|измен|исправ|назнач|перевед|отправ|удал|архив|восстанов|подготов|открой|запиш|провед|сдел)/.test(value);
   const domain = /(?:табел|смен|выплат|аванс|остатк|долг|зарплат|задач|сотрудник|работник|кандидат|соискател|документ|таблиц|отчет|снабжен|закуп|поставщик|объект|вех|цел|чек|билет|вылет|юрид|претенз|акт|уведом|профил|геолокац|рабоч.*день)/.test(value);
@@ -106,6 +106,16 @@ function requestedMonth(prompt: string): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function reportType(value: string): string {
+  if (/(?:поставщик)/.test(value)) return "suppliers";
+  if (/(?:вылет|рейс|билет|прилет)/.test(value)) return "flights";
+  if (/(?:кандидат|соискател|подбор|кадр)/.test(value)) return "candidates";
+  if (/(?:снабжен|закуп|заявк|поставк)/.test(value)) return "procurement";
+  if (/(?:задач|наряд|работ)/.test(value)) return "tasks";
+  if (/(?:сотрудник|работник|бригада|персонал)/.test(value)) return "employees";
+  return "";
+}
+
 function actionLabel(type: string, action: JsonMap): string {
   const screen = clean(mapValue(action.payload).screen, 80);
   const labels: Record<string, string> = {
@@ -125,11 +135,12 @@ function actionLabel(type: string, action: JsonMap): string {
     open_candidate_detail: "Открыть кандидата",
     download_timesheet_excel: "Скачать таблицу табеля",
     download_payment_report: "Скачать таблицу выплат",
+    download_appstroy_table: "Скачать XLSX",
   };
   if (labels[type]) return labels[type];
   if (type === "open_screen") {
     const byScreen: Record<string, string> = {
-      payments: "Открыть выплаты и выгрузку",
+      payments: "Открыть выплаты",
       timesheet: "Открыть табель",
       tasks: "Открыть задачи",
       employees: "Открыть сотрудников",
@@ -147,6 +158,12 @@ function actionLabel(type: string, action: JsonMap): string {
   return clean(action.button_label, 100) || "Проверить действие";
 }
 
+function isDirectDownload(type: string): boolean {
+  return type === "download_timesheet_excel" ||
+    type === "download_payment_report" ||
+    type === "download_appstroy_table";
+}
+
 function normalizeAction(action: JsonMap, sourceMessageId: string): JsonMap {
   const type = clean(action.type, 100);
   if (!type) return {};
@@ -155,6 +172,7 @@ function normalizeAction(action: JsonMap, sourceMessageId: string): JsonMap {
     "open_candidate_detail",
     "download_timesheet_excel",
     "download_payment_report",
+    "download_appstroy_table",
   ]).has(type);
   return {
     ...action,
@@ -162,7 +180,9 @@ function normalizeAction(action: JsonMap, sourceMessageId: string): JsonMap {
     type,
     title: clean(action.title, 240) || "Действие AppСтрой",
     button_label: actionLabel(type, action),
-    confirmation_required: clickIsConfirmation ? false : action.confirmation_required !== false,
+    confirmation_required: clickIsConfirmation
+      ? false
+      : action.confirmation_required !== false,
     payload: mapValue(action.payload),
   };
 }
@@ -172,14 +192,20 @@ function fallbackAction({
   sourceMessageId,
   objectName,
   topic,
+  contextText,
 }: {
   prompt: string;
   sourceMessageId: string;
   objectName: string;
   topic: string;
+  contextText: string;
 }): JsonMap {
-  const value = normalize(`${prompt} ${topic}`);
-  const exportLike = /(?:скач|выгруз|экспорт|таблиц|отчет)/.test(value);
+  // Контекст нужен для коротких продолжений вроде «сам таблицу сделай».
+  const combined = `${contextText}\n${topic}\n${prompt}`;
+  const value = normalize(combined);
+  const exportLike = /(?:скач|выгруз|экспорт|таблиц|отчет|xlsx|excel|файл)/.test(normalize(prompt)) ||
+    /(?:сам\s+сделай|сделай\s+сам|пришли|скинь)/.test(normalize(prompt)) &&
+      /(?:таблиц|xlsx|excel|выгруз)/.test(value);
   const paymentDomain = /(?:выплат|аванс|остатк|долг|зарплат|чек|расчетн)/.test(value);
   const timesheetDomain = /(?:табел|смен|выход|явк)/.test(value);
 
@@ -187,11 +213,11 @@ function fallbackAction({
     return {
       id: `chatgpt-payment-export-${sourceMessageId}`,
       type: "download_payment_report",
-      title: `Скачать таблицу выплат за ${requestedMonth(prompt)}`,
+      title: `Скачать таблицу выплат за ${requestedMonth(combined)}`,
       button_label: "Скачать таблицу выплат",
       confirmation_required: false,
       payload: {
-        month: requestedMonth(prompt),
+        month: requestedMonth(combined),
         object_name: objectName || null,
         source: "chatgpt_function_bridge",
       },
@@ -202,11 +228,28 @@ function fallbackAction({
     return {
       id: `chatgpt-timesheet-export-${sourceMessageId}`,
       type: "download_timesheet_excel",
-      title: `Скачать табель за ${requestedMonth(prompt)}`,
+      title: `Скачать табель за ${requestedMonth(combined)}`,
       button_label: "Скачать таблицу табеля",
       confirmation_required: false,
       payload: {
-        month: requestedMonth(prompt),
+        month: requestedMonth(combined),
+        object_name: objectName || null,
+        source: "chatgpt_function_bridge",
+      },
+    };
+  }
+
+  const genericType = reportType(value);
+  if (exportLike && genericType) {
+    return {
+      id: `chatgpt-generic-export-${genericType}-${sourceMessageId}`,
+      type: "download_appstroy_table",
+      title: "Скачать таблицу из AppСтрой",
+      button_label: "Скачать XLSX",
+      confirmation_required: false,
+      payload: {
+        report_type: genericType,
+        month: requestedMonth(combined),
         object_name: objectName || null,
         source: "chatgpt_function_bridge",
       },
@@ -215,7 +258,6 @@ function fallbackAction({
 
   let screen = "tools";
   let title = "Открыть инструменты AppСтрой";
-
   if (paymentDomain) {
     screen = "payments";
     title = "Открыть выплаты";
@@ -255,7 +297,7 @@ function fallbackAction({
     id: `chatgpt-fallback-${sourceMessageId}`,
     type: "open_screen",
     title,
-    button_label: `Подтвердить: ${title.toLowerCase()}`,
+    button_label: title,
     confirmation_required: false,
     payload: {
       screen,
@@ -362,7 +404,23 @@ Deno.serve(async (request: Request) => {
       return json({ error: "Это не диалог ChatGPT" }, 400);
     }
 
-    if (!isFunctionalRequest(source.body)) {
+    const { data: recentData, error: recentError } = await admin
+      .from("company_chat_messages")
+      .select("id,kind,body")
+      .eq("company_id", companyId)
+      .eq("thread_key", source.thread_key)
+      .is("deleted_at", null)
+      .neq("id", sourceMessageId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (recentError) throw recentError;
+    const contextText = ((recentData ?? []) as Array<{ kind?: string; body?: string }>)
+      .reverse()
+      .map((item) => clean(item.body, 1000))
+      .filter(Boolean)
+      .join("\n");
+
+    if (!isFunctionalRequest(`${contextText}\n${source.body}`)) {
       return json({ ok: true, functional: false });
     }
 
@@ -380,19 +438,42 @@ Deno.serve(async (request: Request) => {
     if (!assistant) return json({ error: "Ответ ChatGPT ещё не создан" }, 409);
 
     const existingPayload = mapValue(assistant.ai_payload);
+    const context = mapValue(existingPayload.conversation);
+    const topic = clean(context.topic, 100);
+    const fallback = normalizeAction(
+      fallbackAction({
+        prompt: source.body,
+        sourceMessageId,
+        objectName,
+        topic,
+        contextText,
+      }),
+      sourceMessageId,
+    );
+    const fallbackType = clean(fallback.type, 100);
+
     const existingAction = mapValue(existingPayload.action);
     if (Object.keys(existingAction).length > 0) {
-      const normalized = normalizeAction(existingAction, sourceMessageId);
-      if (JSON.stringify(normalized) !== JSON.stringify(existingAction)) {
+      const normalizedExisting = normalizeAction(existingAction, sourceMessageId);
+      const existingType = clean(normalizedExisting.type, 100);
+      const preferred = isDirectDownload(fallbackType) && !isDirectDownload(existingType)
+        ? fallback
+        : normalizedExisting;
+      if (JSON.stringify(preferred) !== JSON.stringify(existingAction)) {
         await admin
           .from("company_chat_messages")
-          .update({ ai_payload: { ...existingPayload, action: normalized } })
+          .update({ ai_payload: { ...existingPayload, action: preferred } })
           .eq("id", assistant.id);
       }
-      return json({ ok: true, functional: true, action_ready: true, reused: true });
+      return json({
+        ok: true,
+        functional: true,
+        action_ready: true,
+        reused: preferred === normalizedExisting,
+        action_type: clean(preferred.type, 100),
+      });
     }
 
-    const context = mapValue(existingPayload.conversation);
     const appResult = await invokeAppStroy({
       supabaseUrl,
       publishable,
@@ -404,15 +485,18 @@ Deno.serve(async (request: Request) => {
     });
     const appAction = mapValue(appResult.data.action);
     const appConversation = mapValue(appResult.data.conversation);
-    const topic = clean(appConversation.topic, 100) || clean(context.topic, 100);
-    const prepared = Object.keys(appAction).length > 0
+    const appPrepared = Object.keys(appAction).length > 0
       ? normalizeAction(appAction, sourceMessageId)
-      : fallbackAction({
-        prompt: source.body,
-        sourceMessageId,
-        objectName,
-        topic,
-      });
+      : {};
+    const appType = clean(appPrepared.type, 100);
+
+    // Для выгрузки «открыть раздел» слабее реального XLSX. Не даём старому
+    // маршруту понизить действие, которое клиент уже умеет выполнить сам.
+    const prepared = isDirectDownload(fallbackType) && !isDirectDownload(appType)
+      ? fallback
+      : Object.keys(appPrepared).length > 0
+      ? appPrepared
+      : fallback;
 
     const nextPayload: JsonMap = {
       ...existingPayload,
@@ -426,7 +510,9 @@ Deno.serve(async (request: Request) => {
     if (Object.keys(semanticRoute).length > 0) nextPayload.semantic_route = semanticRoute;
 
     let nextBody = clean(assistant.body, 6000);
-    const note = "Действие AppСтрой подготовлено — проверь параметры и нажми кнопку ниже.";
+    const note = isDirectDownload(clean(prepared.type, 100))
+      ? "Выгрузка готова — нажми кнопку ниже, и AppСтрой сам сформирует XLSX из актуальных данных."
+      : "Действие AppСтрой подготовлено — проверь параметры и нажми кнопку ниже.";
     if (!nextBody.includes(note)) {
       nextBody = `${nextBody}${nextBody ? "\n\n" : ""}${note}`;
     }
