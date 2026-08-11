@@ -6,4 +6,5 @@ Compile-safe background refresh.
 Agent mode: ChatGPT can use AppStroy tools repeatedly and prepare direct XLSX exports.
 Universal XLSX: employees, tasks, candidates, procurement, suppliers, flights plus existing payments and timesheets.
 Compile-safe generic table queries.
-Rebuild universal XLSX ChatGPT.
+Confirmation contract preserved.
+Rebuild final agentic ChatGPT XLSX version.
