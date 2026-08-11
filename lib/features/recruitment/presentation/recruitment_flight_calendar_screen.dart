@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
@@ -91,6 +89,12 @@ class _RecruitmentFlightCalendarScreenState
     return '$hour:$minute';
   }
 
+  String ticketCountText(int count) => switch (count) {
+    1 => '1 билет',
+    2 || 3 || 4 => '$count билета',
+    _ => '$count билетов',
+  };
+
   bool sameDay(DateTime first, DateTime second) =>
       first.year == second.year &&
       first.month == second.month &&
@@ -119,9 +123,9 @@ class _RecruitmentFlightCalendarScreenState
     if (saved == true && mounted) await refresh();
   }
 
-  Future<void> openTicket(RecruitmentFlight flight) async {
+  Future<void> openTicket(RecruitmentFlightTicket ticket) async {
     try {
-      final url = await RecruitmentFlightRepository.createTicketUrl(flight);
+      final url = await RecruitmentFlightRepository.createFlightTicketUrl(ticket);
       final opened = await launchUrl(
         Uri.parse(url),
         mode: LaunchMode.externalApplication,
@@ -133,6 +137,43 @@ class _RecruitmentFlightCalendarScreenState
         SnackBar(content: Text('Не удалось открыть билет: $error')),
       );
     }
+  }
+
+  Future<void> openTickets(RecruitmentFlightEntry entry) async {
+    final tickets = entry.tickets;
+    if (tickets.isEmpty) return;
+    if (tickets.length == 1) {
+      await openTicket(tickets.first);
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        itemCount: tickets.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (_, index) {
+          final ticket = tickets[index];
+          return ListTile(
+            leading: const Icon(Icons.confirmation_number_outlined),
+            title: Text(
+              ticket.originalName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text('Билет ${index + 1} из ${tickets.length}'),
+            trailing: const Icon(Icons.open_in_new_rounded),
+            onTap: () async {
+              Navigator.of(sheetContext).pop();
+              await openTicket(ticket);
+            },
+          );
+        },
+      ),
+    );
   }
 
   Future<void> sendReminder(RecruitmentFlightEntry entry) async {
@@ -357,6 +398,7 @@ class _RecruitmentFlightCalendarScreenState
     RecruitmentFlightCalendarData data,
   ) {
     final flight = entry.flight;
+    final ticketCount = entry.tickets.length;
     final reminderBusy = reminderBusyIds.contains(flight.id);
     final statusBusy = statusBusyIds.contains(flight.id);
     final now = DateTime.now();
@@ -444,7 +486,10 @@ class _RecruitmentFlightCalendarScreenState
                   onSelected: (value) => changeStatus(entry, value),
                   itemBuilder: (_) => const <PopupMenuEntry<String>>[
                     PopupMenuItem(value: 'scheduled', child: Text('Запланирован')),
-                    PopupMenuItem(value: 'checked_in', child: Text('Регистрация пройдена')),
+                    PopupMenuItem(
+                      value: 'checked_in',
+                      child: Text('Регистрация пройдена'),
+                    ),
                     PopupMenuItem(value: 'departed', child: Text('Вылетел')),
                     PopupMenuItem(value: 'arrived', child: Text('Прибыл')),
                     PopupMenuItem(value: 'cancelled', child: Text('Отменён')),
@@ -482,10 +527,12 @@ class _RecruitmentFlightCalendarScreenState
                     text: 'За 3 часа',
                   ),
                 _FlightChip(
-                  icon: flight.hasTicket
+                  icon: ticketCount > 0
                       ? Icons.attachment_rounded
                       : Icons.warning_amber_rounded,
-                  text: flight.hasTicket ? 'Билет прикреплён' : 'Нет билета',
+                  text: ticketCount > 0
+                      ? ticketCountText(ticketCount)
+                      : 'Нет билета',
                 ),
               ],
             ),
@@ -494,9 +541,11 @@ class _RecruitmentFlightCalendarScreenState
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: flight.hasTicket ? () => openTicket(flight) : null,
+                    onPressed: ticketCount > 0 ? () => openTickets(entry) : null,
                     icon: const Icon(Icons.confirmation_number_outlined),
-                    label: const Text('Билет'),
+                    label: Text(
+                      ticketCount > 1 ? 'Билеты ($ticketCount)' : 'Билет',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -608,7 +657,8 @@ class _RecruitmentFlightCalendarScreenState
               text: 'Не удалось загрузить календарь: ${snapshot.error}',
             );
           }
-          final data = snapshot.data ??
+          final data =
+              snapshot.data ??
               const RecruitmentFlightCalendarData(
                 candidates: <RecruitmentFlightCandidate>[],
                 flights: <RecruitmentFlightEntry>[],
@@ -620,7 +670,7 @@ class _RecruitmentFlightCalendarScreenState
               const _FlightMessage(
                 icon: Icons.info_outline_rounded,
                 text:
-                    'После сохранения билета вылет появляется в календаре. Система создаёт напоминания за сутки и за 3 часа, а HR может отправить напоминание вручную.',
+                    'После сохранения билетов вылет появляется в календаре. Система создаёт напоминания за сутки и за 3 часа, а HR может отправить напоминание вручную.',
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
@@ -628,7 +678,7 @@ class _RecruitmentFlightCalendarScreenState
                     ? null
                     : () => openEditor(data),
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Добавить вылет и билет'),
+                label: const Text('Добавить вылет и билеты'),
               ),
               const SizedBox(height: 14),
               LayoutBuilder(
@@ -690,8 +740,8 @@ class _RecruitmentFlightEditorScreenState
   late final TextEditingController notesController;
   late bool remindDayBefore;
   late bool remindThreeHours;
-  Uint8List? ticketBytes;
-  String ticketFileName = '';
+  final List<RecruitmentFlightTicketUpload> pendingTickets =
+      <RecruitmentFlightTicketUpload>[];
   bool saving = false;
 
   @override
@@ -699,7 +749,8 @@ class _RecruitmentFlightEditorScreenState
     super.initState();
     final entry = widget.entry;
     candidate = entry?.candidate;
-    departureAt = entry?.flight.departureAt ??
+    departureAt =
+        entry?.flight.departureAt ??
         DateTime.now().add(const Duration(days: 1, hours: 3));
     arrivalAt = entry?.flight.arrivalAt;
     originController = TextEditingController(text: entry?.flight.origin ?? '');
@@ -759,28 +810,80 @@ class _RecruitmentFlightEditorScreenState
     if (value != null && mounted) setState(() => arrivalAt = value);
   }
 
-  Future<void> chooseTicket() async {
-    final file = await openFile(
+  Future<void> chooseTickets() async {
+    final existingTickets =
+        widget.entry?.tickets ?? const <RecruitmentFlightTicket>[];
+    final remaining =
+        RecruitmentFlightRepository.maxTicketsPerFlight -
+        existingTickets.length -
+        pendingTickets.length;
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'К одному вылету можно прикрепить не больше ${RecruitmentFlightRepository.maxTicketsPerFlight} билетов',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final files = await openFiles(
       acceptedTypeGroups: const <XTypeGroup>[
         XTypeGroup(
-          label: 'Билет',
+          label: 'Билеты',
           extensions: <String>['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic'],
         ),
       ],
     );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
-    if (bytes.length > 20 * 1024 * 1024) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Файл билета должен быть меньше 20 МБ')),
+    if (files.isEmpty) return;
+
+    final additions = <RecruitmentFlightTicketUpload>[];
+    var totalBytes = pendingTickets.fold<int>(
+      0,
+      (sum, item) => sum + item.bytes.length,
+    );
+    var skippedByLimit = 0;
+    var rejected = 0;
+
+    for (final file in files) {
+      if (additions.length >= remaining) {
+        skippedByLimit++;
+        continue;
+      }
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty ||
+          bytes.length > RecruitmentFlightRepository.maxTicketBytes) {
+        rejected++;
+        continue;
+      }
+      if (totalBytes + bytes.length >
+          RecruitmentFlightRepository.maxTotalTicketBytes) {
+        rejected++;
+        continue;
+      }
+      final duplicate = pendingTickets.any(
+        (item) => item.fileName == file.name && item.bytes.length == bytes.length,
       );
-      return;
+      if (duplicate) continue;
+      totalBytes += bytes.length;
+      additions.add(
+        RecruitmentFlightTicketUpload(fileName: file.name, bytes: bytes),
+      );
     }
-    setState(() {
-      ticketBytes = bytes;
-      ticketFileName = file.name;
-    });
+
+    if (!mounted) return;
+    setState(() => pendingTickets.addAll(additions));
+    if (skippedByLimit > 0 || rejected > 0) {
+      final details = <String>[
+        if (skippedByLimit > 0)
+          'не добавлено по лимиту: $skippedByLimit',
+        if (rejected > 0) 'пропущено по размеру: $rejected',
+      ];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(details.join(' · '))),
+      );
+    }
   }
 
   Future<void> save() async {
@@ -805,8 +908,9 @@ class _RecruitmentFlightEditorScreenState
         remindDayBefore: remindDayBefore,
         remindThreeHours: remindThreeHours,
         notes: notesController.text,
-        ticketBytes: ticketBytes,
-        ticketFileName: ticketFileName,
+        ticketUploads: List<RecruitmentFlightTicketUpload>.unmodifiable(
+          pendingTickets,
+        ),
         existing: widget.entry?.flight,
       );
       if (!mounted) return;
@@ -823,13 +927,12 @@ class _RecruitmentFlightEditorScreenState
 
   @override
   Widget build(BuildContext context) {
-    final existingTicket = widget.entry?.flight.ticketOriginalName ?? '';
-    final displayedTicket = ticketFileName.isNotEmpty
-        ? ticketFileName
-        : existingTicket;
+    final existingTickets =
+        widget.entry?.tickets ?? const <RecruitmentFlightTicket>[];
+    final totalTicketCount = existingTickets.length + pendingTickets.length;
     return AppPage(
       title: widget.entry == null ? 'Новый вылет' : 'Изменить вылет',
-      subtitle: 'Точный маршрут, время и купленный билет',
+      subtitle: 'Точный маршрут, время и купленные билеты',
       showBackButton: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -851,7 +954,9 @@ class _RecruitmentFlightEditorScreenState
                   ),
                 )
                 .toList(growable: false),
-            onChanged: saving ? null : (value) => setState(() => candidate = value),
+            onChanged: saving
+                ? null
+                : (value) => setState(() => candidate = value),
           ),
           const SizedBox(height: 12),
           Row(
@@ -912,7 +1017,9 @@ class _RecruitmentFlightEditorScreenState
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: saving ? null : () => setState(() => arrivalAt = null),
+                onPressed: saving
+                    ? null
+                    : () => setState(() => arrivalAt = null),
                 child: const Text('Убрать время прибытия'),
               ),
             ),
@@ -924,27 +1031,57 @@ class _RecruitmentFlightEditorScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Купленный билет',
+                  'Купленные билеты',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  displayedTicket.isEmpty
-                      ? 'Прикрепи PDF или фотографию билета. Без файла вылет не сохранится.'
-                      : displayedTicket,
+                  totalTicketCount == 0
+                      ? 'Можно выбрать сразу несколько PDF или фотографий. Без хотя бы одного файла вылет не сохранится.'
+                      : 'Прикреплено: $totalTicketCount из ${RecruitmentFlightRepository.maxTicketsPerFlight}',
                   style: TextStyle(
-                    color: displayedTicket.isEmpty
+                    color: totalTicketCount == 0
                         ? AppAdaptivePalette.textMuted
                         : AppAdaptivePalette.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (existingTickets.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...existingTickets.map(
+                    (ticket) => _TicketFileRow(
+                      fileName: ticket.originalName,
+                      saved: true,
+                    ),
+                  ),
+                ],
+                if (pendingTickets.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...pendingTickets.asMap().entries.map(
+                    (item) => _TicketFileRow(
+                      fileName: item.value.fileName,
+                      saved: false,
+                      onRemove: saving
+                          ? null
+                          : () => setState(
+                              () => pendingTickets.removeAt(item.key),
+                            ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
-                  onPressed: saving ? null : chooseTicket,
+                  onPressed:
+                      saving ||
+                          totalTicketCount >=
+                              RecruitmentFlightRepository.maxTicketsPerFlight
+                      ? null
+                      : chooseTickets,
                   icon: const Icon(Icons.attach_file_rounded),
                   label: Text(
-                    displayedTicket.isEmpty ? 'Прикрепить билет' : 'Заменить билет',
+                    totalTicketCount == 0
+                        ? 'Прикрепить билеты'
+                        : 'Добавить ещё билеты',
                   ),
                 ),
               ],
@@ -973,7 +1110,9 @@ class _RecruitmentFlightEditorScreenState
               'Напомнить за 3 часа',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: const Text('Повторное напоминание перед поездкой в аэропорт.'),
+            subtitle: const Text(
+              'Повторное напоминание перед поездкой в аэропорт.',
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -1005,6 +1144,65 @@ class _RecruitmentFlightEditorScreenState
   }
 }
 
+class _TicketFileRow extends StatelessWidget {
+  final String fileName;
+  final bool saved;
+  final VoidCallback? onRemove;
+
+  const _TicketFileRow({
+    required this.fileName,
+    required this.saved,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(
+            saved ? Icons.check_circle_outline_rounded : Icons.schedule_rounded,
+            size: 18,
+            color: saved
+                ? AppAdaptivePalette.accentStrong
+                : AppAdaptivePalette.textMuted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  saved
+                      ? 'Сохранён в календаре'
+                      : 'Будет добавлен после сохранения',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onRemove != null)
+            IconButton(
+              tooltip: 'Убрать файл',
+              onPressed: onRemove,
+              icon: const Icon(Icons.close_rounded),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FlightChip extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -1025,7 +1223,10 @@ class _FlightChip extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: AppAdaptivePalette.textMuted),
           const SizedBox(width: 5),
-          Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );
