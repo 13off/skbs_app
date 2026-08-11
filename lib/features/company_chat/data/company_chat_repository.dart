@@ -15,6 +15,7 @@ class CompanyChatRepository {
 
   static RealtimeChannel? _channel;
   static String? _companyId;
+  static List<CompanyChatThread> _lastThreads = const <CompanyChatThread>[];
 
   static Stream<void> get changes => _changesController.stream;
 
@@ -55,6 +56,7 @@ class CompanyChatRepository {
 
     stopRealtime();
     _companyId = cleanCompanyId;
+    _lastThreads = const <CompanyChatThread>[];
     final channel = _client.channel(
       'company:$cleanCompanyId:chat',
       opts: const RealtimeChannelConfig(private: true),
@@ -84,6 +86,7 @@ class CompanyChatRepository {
     final channel = _channel;
     _channel = null;
     _companyId = null;
+    _lastThreads = const <CompanyChatThread>[];
     if (channel != null) unawaited(_client.removeChannel(channel));
   }
 
@@ -115,15 +118,23 @@ class CompanyChatRepository {
   }
 
   static Future<List<CompanyChatThread>> fetchThreads() async {
-    final data = await _client.rpc<dynamic>('get_company_chat_threads');
-    return _list(data)
-        .whereType<Map>()
-        .map(
-          (value) =>
-              CompanyChatThread.fromMap(Map<String, dynamic>.from(value)),
-        )
-        .where((value) => value.threadKey.isNotEmpty)
-        .toList(growable: false);
+    try {
+      final data = await _client.rpc<dynamic>('get_company_chat_threads');
+      final result = _list(data)
+          .whereType<Map>()
+          .map(
+            (value) =>
+                CompanyChatThread.fromMap(Map<String, dynamic>.from(value)),
+          )
+          .where((value) => value.threadKey.isNotEmpty)
+          .toList(growable: false);
+      _lastThreads = List<CompanyChatThread>.from(result);
+      return result;
+    } catch (_) {
+      // После отправки сообщения ленту всё равно можно обновить по уже известному
+      // треду. Временный сбой списка чатов не должен оставлять сообщение до F5.
+      return List<CompanyChatThread>.from(_lastThreads);
+    }
   }
 
   static Future<List<CompanyChatMember>> fetchMembers() async {
