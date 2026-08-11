@@ -19,11 +19,26 @@ class CompanyChatRepository {
   static Stream<void> get changes => _changesController.stream;
 
   static void _notifyChanges({bool delayedRetry = false}) {
-    _changesController.add(null);
+    if (!_changesController.isClosed) _changesController.add(null);
     if (!delayedRetry) return;
-    Timer(const Duration(milliseconds: 650), () {
-      if (!_changesController.isClosed) _changesController.add(null);
-    });
+
+    // На Flutter Web broadcast/realtime и ответ Edge Function могут прийти
+    // практически одновременно. Если в этот момент UI уже обновляется,
+    // одиночный повтор легко попадает в тот же refresh и визуально сообщение
+    // появляется только после ручной перезагрузки страницы. Несколько коротких
+    // локальных повторов делают обновление независимым от realtime-события и
+    // от задержки видимости только что записанной строки.
+    for (final delay in <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+      Duration(milliseconds: 2600),
+      Duration(milliseconds: 4200),
+    ]) {
+      Timer(delay, () {
+        if (!_changesController.isClosed) _changesController.add(null);
+      });
+    }
   }
 
   static Map<String, dynamic> _map(dynamic value) {
@@ -306,7 +321,7 @@ class CompanyChatRepository {
   static String _safeFileName(String value) {
     final clean = value
         .trim()
-        .replaceAll(RegExp(r'[\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
         .replaceAll(RegExp(r'\s+'), ' ');
     if (clean.isEmpty) return 'file';
     return clean.length <= 180 ? clean : clean.substring(clean.length - 180);
