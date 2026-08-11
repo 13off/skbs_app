@@ -38,7 +38,7 @@ void main() {
     );
   });
 
-  test('floating AI launcher is removed while AI remains inside chat', () {
+  test('floating legacy AI launcher is removed while ChatGPT lives in chat', () {
     final homeScreen = File('lib/screens/home_screen.dart').readAsStringSync();
     final homeActions = File(
       'lib/screens/home/home_actions.dart',
@@ -59,8 +59,10 @@ void main() {
 
     expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
     expect(chat, contains('class _ChatLauncherButton'));
-    expect(chat, contains("'ИИ-помощник'"));
-    expect(chat, contains('Icons.lock_rounded'));
+    expect(chat, contains("'ChatGPT'"));
+    expect(chat, contains("'ChatGPT с доступом к AppСтрой'"));
+    expect(repository, contains("'company-chat-gpt'"));
+    expect(repository, contains('static Future<bool> canUseAi() async => false'));
     expect(repository, isNot(contains('!value.isAssistant')));
   });
 }
