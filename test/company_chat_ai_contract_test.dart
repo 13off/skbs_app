@@ -4,16 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
-    'company chat is tenant scoped, realtime and AI actions stay confirmed',
+    'company chat stays tenant scoped and ChatGPT actions stay confirmed',
     () {
       final migration = File(
         'supabase/migrations/20260724110000_company_chat_with_ai.sql',
       ).readAsStringSync();
       final edge = File(
-        'supabase/functions/company-chat-ai/index.ts',
+        'supabase/functions/company-chat-gpt/index.ts',
       ).readAsStringSync();
-      final screen = File(
-        'lib/features/company_chat/presentation/company_chat_screen.dart',
+      final repository = File(
+        'lib/features/company_chat/data/company_chat_repository.dart',
       ).readAsStringSync();
       final shell = File(
         'lib/features/company_chat/presentation/company_chat_shell.dart',
@@ -36,18 +36,19 @@ void main() {
       expect(edge, contains('current_user_has_permission'));
       expect(edge, contains('ai.use'));
       expect(edge, contains('company_chat_messages'));
-      expect(edge, contains('подтверждаемое действие AppСтрой'));
+      expect(edge, contains('appstroy_command'));
       expect(edge, contains('/functions/v1/ai-global-command'));
-      expect(edge, contains('unified_assistant: true'));
+      expect(edge, contains('tool_choice: "auto"'));
+      expect(edge, contains('input_mode: "chatgpt"'));
       expect(edge, contains('Authorization'));
+      expect(edge, contains('store: false'));
 
-      expect(screen, contains('AiActionExecutionCoordinator.execute'));
-      expect(screen, contains('ИИ ответит в общий чат'));
-      expect(screen, contains('openFiles'));
-      expect(screen, contains('Упомянуть сотрудника'));
+      expect(repository, contains("'company-chat-gpt'"));
+      expect(repository, contains('static Future<bool> canUseAi() async => false'));
       expect(shell, contains('GlobalVoiceActionRouter.execute'));
       expect(shell, contains('message.hasAiAction'));
       expect(shell, contains('fetchUnreadState'));
+      expect(shell, contains("'ChatGPT'"));
       expect(mainScreen, contains('CompanyChatShell'));
     },
   );
