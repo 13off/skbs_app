@@ -4,6 +4,7 @@ import '../../../data/attendance_repository.dart';
 import '../../../data/employee_repository.dart';
 import '../../../data/timesheet_excel_exporter.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../models/monthly_timesheet_row.dart';
 import '../../payments/data/payment_report_exporter.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
@@ -64,7 +65,7 @@ class ChatGptFunctionActionCoordinator {
 
     await TimesheetExcelExporter.downloadMonthlyTimesheets(
       months: <DateTime>[month],
-      rowsByMonth: <List<dynamic>>[rows],
+      rowsByMonth: <List<MonthlyTimesheetRow>>[rows],
       fileNamePrefix: 'Табель_${objectPart}_всех_сотрудников',
     );
 
