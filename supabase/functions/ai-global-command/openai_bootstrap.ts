@@ -190,14 +190,11 @@ async function rewriteRequest(request: Request): Promise<Request> {
   });
 }
 
-// Supabase.ai уже существует в Edge Runtime. Меняем только Session на адаптер
-// OpenAI. Сам global Supabase не переназначаем.
 const runtime = (globalThis as unknown as { Supabase?: any }).Supabase;
 if (runtime?.ai) {
   runtime.ai.Session = OpenAISession;
 }
 
-// Semantic router читает три служебные переменные через Deno.env.get().
 const originalEnvGet = Deno.env.get.bind(Deno.env);
 (Deno.env as unknown as { get: (name: string) => string | undefined }).get = (
   name: string,
@@ -210,9 +207,6 @@ const originalEnvGet = Deno.env.get.bind(Deno.env);
   return originalEnvGet(name);
 };
 
-// Пока основной router остаётся pinned на проверенный commit, подмешиваем в
-// входящий запрос русские названия месяцев. Старый requestedDate уже понимает
-// ISO YYYY-MM-DD, поэтому июль/август и т.п. работают без изменения ядра.
 const nativeServe = Deno.serve.bind(Deno);
 (Deno as unknown as {
   serve: (
@@ -222,5 +216,5 @@ const nativeServe = Deno.serve.bind(Deno);
   nativeServe(async (request: Request) => handler(await rewriteRequest(request)));
 
 await import(
-  "https://raw.githubusercontent.com/13off/skbs_app/1fe532492041f1bcd66035193a665a95d3668b5f/supabase/functions/ai-global-command/index.ts"
+  "https://raw.githubusercontent.com/13off/skbs_app/eaa9bfa41856bd4aea102578c4b6b82f59ca73fc/supabase/functions/ai-global-command/index.ts"
 );
