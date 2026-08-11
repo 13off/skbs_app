@@ -1,1 +1,2 @@
 Publish ChatGPT-only experiment: hide legacy AI chat and voice, expose ChatGPT connected to AppStroy. 2026-08-11.
+Refresh fix: make sent messages and ChatGPT replies appear without manual page reload on web/PWA.
