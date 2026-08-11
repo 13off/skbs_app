@@ -149,13 +149,9 @@ class CompanyChatRepository {
     );
   }
 
-  static Future<bool> canUseAi() async {
-    final data = await _client.rpc<dynamic>(
-      'current_user_has_permission',
-      params: const <String, dynamic>{'p_permission_code': 'ai.use'},
-    );
-    return data == true;
-  }
+  // В экспериментальном режиме старый ИИ в общем чате скрыт.
+  // Новый ChatGPT живёт в отдельном assistant-треде и вызывается через askAi().
+  static Future<bool> canUseAi() async => false;
 
   static Future<String> createMessage({
     required String body,
