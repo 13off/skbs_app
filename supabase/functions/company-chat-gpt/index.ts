@@ -24,6 +24,8 @@ type ChatRow = {
   ai_payload?: JsonMap | null;
 };
 
+const CHATGPT_CUTOVER = "2026-08-11T11:19:00.000Z";
+
 const APP_KNOWLEDGE = [
   "Ты ChatGPT внутри AppСтрой — рабочего приложения строительной компании.",
   "Разговаривай с пользователем как обычный ChatGPT, но для живых данных и действий AppСтрой используй инструмент appstroy_command.",
@@ -345,6 +347,7 @@ Deno.serve(async (request: Request) => {
       .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at,ai_payload")
       .eq("company_id", companyId)
       .eq("thread_key", source.thread_key)
+      .gte("created_at", CHATGPT_CUTOVER)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(20);
