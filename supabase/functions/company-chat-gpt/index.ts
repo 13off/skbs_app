@@ -25,20 +25,26 @@ type ChatRow = {
 };
 
 const CHATGPT_CUTOVER = "2026-08-11T11:19:00.000Z";
+const MAX_TOOL_ROUNDS = 4;
 
 const APP_KNOWLEDGE = [
   "Ты ChatGPT внутри AppСтрой — рабочего приложения строительной компании.",
-  "Разговаривай с пользователем как обычный ChatGPT, но для живых данных и действий AppСтрой используй инструмент appstroy_command.",
+  "Твоя задача — не только советовать, а реально работать с приложением через доступные инструменты в пределах прав текущего пользователя.",
   "В AppСтрой есть: объекты, сотрудники, табель и смены, выплаты/авансы/остатки/чеки, отчёты, задачи, вехи и цели, кандидаты и оформление, билеты и вылеты, кадровые документы, снабжение и поставщики, юридический блок, чат, профиль, уведомления, рабочий день и геолокация.",
-  "Права определяются ролью текущего пользователя. Инструмент AppСтрой сам проверяет компанию, роль и доступный объект.",
-  "Если вопрос требует фактов из текущей компании — ФИО, суммы, смены, остатки, статусы, задачи, кандидаты, документы, заявки, поставщики, объект — обязательно вызови appstroy_command. Не угадывай живые данные.",
-  "Если пользователь просит изменить данные, вызвать действие, создать задачу, изменить табель, выплату, этап кандидата и т.п. — вызови appstroy_command. Инструмент только подготавливает безопасное действие; окончательное изменение выполняется после отдельного подтверждения в интерфейсе AppСтрой.",
-  "Для общих вопросов, объяснений, идей, текстов и обсуждения можешь отвечать напрямую без инструмента.",
+  "Для живых данных и операций используй appstroy_command. Для готовой XLSX-выгрузки используй appstroy_export.",
+  "Если пользователь просит таблицу, XLSX, Excel, скачать, выгрузить, скинуть файл или говорит коротко «сам таблицу сделай» — не отвечай, что не умеешь и не отправляй его вручную в раздел. Подготовь appstroy_export.",
+  "Поддерживаемые XLSX: выплаты, табель, сотрудники, задачи, кандидаты, снабжение, поставщики, вылеты. Выбери подходящий тип сам из смысла диалога.",
+  "Короткие продолжения вроде «сам сделай», «эту таблицу», «за тот месяц», «тогда скачай» обязательно разрешай по предыдущим сообщениям. В tool arguments передавай уже самостоятельную, понятную без контекста команду/параметры.",
+  "Если запрос требует фактов из текущей компании — ФИО, суммы, смены, остатки, статусы, задачи, кандидаты, документы, заявки, поставщики, объект — обязательно вызови appstroy_command. Не угадывай живые данные.",
+  "Если пользователь просит изменить данные, создать задачу, изменить табель, выплату, этап кандидата и т.п. — вызови appstroy_command. Изменения только подготавливаются и выполняются после штатного подтверждения в интерфейсе.",
+  "Можно вызывать инструменты несколько раз подряд: сначала выяснить данные, затем подготовить нужное действие. Не останавливайся после первого промежуточного результата, если цель пользователя ещё не достигнута.",
+  "Если инструмент вернул action или ты подготовил appstroy_export, скажи коротко, что действие готово и нужно нажать кнопку ниже. Не предлагай вместо этого ручные обходные пути.",
+  "Для общих вопросов, объяснений, идей, текстов и обсуждения отвечай напрямую без инструментов.",
   "Не рассказывай пользователю про внутренние роутеры, edge-функции и техническую реализацию, если он сам об этом не спрашивает.",
   "Отвечай по-русски, естественно и по делу.",
 ].join("\n");
 
-const APP_TOOL = {
+const APP_COMMAND_TOOL = {
   type: "function",
   name: "appstroy_command",
   description:
@@ -49,10 +55,49 @@ const APP_TOOL = {
       prompt: {
         type: "string",
         description:
-          "Полная рабочая команда для AppСтрой. Сохрани имена, даты, суммы, объект и смысл запроса пользователя.",
+          "Самостоятельная полная рабочая команда для AppСтрой. Включи имена, даты, суммы, объект и смысл, даже если пользователь выразил их в предыдущих репликах.",
       },
     },
     required: ["prompt"],
+    additionalProperties: false,
+  },
+  strict: true,
+};
+
+const APP_EXPORT_TOOL = {
+  type: "function",
+  name: "appstroy_export",
+  description:
+    "Подготовить кнопку, которая сама сформирует и скачает XLSX из актуальных данных AppСтрой. Используй вместо советов открыть раздел вручную.",
+  parameters: {
+    type: "object",
+    properties: {
+      report_type: {
+        type: "string",
+        enum: [
+          "payments",
+          "timesheet",
+          "employees",
+          "tasks",
+          "candidates",
+          "procurement",
+          "suppliers",
+          "flights",
+        ],
+        description: "Какую таблицу выгрузить.",
+      },
+      month: {
+        type: "string",
+        description:
+          "Месяц YYYY-MM, если он нужен или упомянут. Пустая строка — без месячного фильтра для типов, где это допустимо.",
+      },
+      object_name: {
+        type: "string",
+        description:
+          "Название объекта, если оно задано или следует из контекста. Пустая строка — доступный пользователю общий scope.",
+      },
+    },
+    required: ["report_type", "month", "object_name"],
     additionalProperties: false,
   },
   strict: true,
@@ -206,7 +251,7 @@ async function openAiResponse({
       body: JSON.stringify({
         model,
         input,
-        tools: [APP_TOOL],
+        tools: [APP_COMMAND_TOOL, APP_EXPORT_TOOL],
         tool_choice: "auto",
         store: false,
       }),
@@ -231,6 +276,69 @@ function parseToolPrompt(call: any, fallback: string): string {
   } catch (_) {
     return fallback;
   }
+}
+
+function parseExport(call: any, sourceMessageId: string): JsonMap {
+  let raw: JsonMap = {};
+  try {
+    raw = mapValue(JSON.parse(String(call?.arguments ?? "{}")));
+  } catch (_) {}
+  const reportType = clean(raw.report_type, 40).toLowerCase();
+  const month = clean(raw.month, 20);
+  const objectName = clean(raw.object_name, 180);
+  const allowed = new Set([
+    "payments",
+    "timesheet",
+    "employees",
+    "tasks",
+    "candidates",
+    "procurement",
+    "suppliers",
+    "flights",
+  ]);
+  if (!allowed.has(reportType)) return {};
+
+  if (reportType === "payments") {
+    return {
+      id: `chatgpt-export-payments-${sourceMessageId}`,
+      type: "download_payment_report",
+      title: "Скачать таблицу выплат",
+      button_label: "Скачать таблицу выплат",
+      confirmation_required: false,
+      payload: {
+        month,
+        object_name: objectName || null,
+        source: "chatgpt_export_tool",
+      },
+    };
+  }
+  if (reportType === "timesheet") {
+    return {
+      id: `chatgpt-export-timesheet-${sourceMessageId}`,
+      type: "download_timesheet_excel",
+      title: "Скачать таблицу табеля",
+      button_label: "Скачать таблицу табеля",
+      confirmation_required: false,
+      payload: {
+        month,
+        object_name: objectName || null,
+        source: "chatgpt_export_tool",
+      },
+    };
+  }
+  return {
+    id: `chatgpt-export-${reportType}-${sourceMessageId}`,
+    type: "download_appstroy_table",
+    title: "Скачать XLSX из AppСтрой",
+    button_label: "Скачать XLSX",
+    confirmation_required: false,
+    payload: {
+      report_type: reportType,
+      month,
+      object_name: objectName || null,
+      source: "chatgpt_export_tool",
+    },
+  };
 }
 
 Deno.serve(async (request: Request) => {
@@ -378,17 +486,44 @@ Deno.serve(async (request: Request) => {
       { role: "user", content: source.body.slice(0, 4000) },
     ];
 
-    let responsePayload = await openAiResponse({ apiKey, model, input: initialInput });
+    let transcript: unknown[] = [...initialInput];
+    let responsePayload = await openAiResponse({ apiKey, model, input: transcript });
     let latestAppResult: JsonMap = {};
     let latestAppStatus = 0;
+    let preparedExportAction: JsonMap = {};
+    let commandToolUsed = false;
+    let exportToolUsed = false;
 
-    const calls = (Array.isArray(responsePayload?.output) ? responsePayload.output : [])
-      .filter((item: any) => item?.type === "function_call" && item?.name === "appstroy_command")
-      .slice(0, 3);
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+      const output = Array.isArray(responsePayload?.output) ? responsePayload.output : [];
+      const calls = output
+        .filter((item: any) =>
+          item?.type === "function_call" &&
+          (item?.name === "appstroy_command" || item?.name === "appstroy_export")
+        )
+        .slice(0, 4);
+      if (calls.length === 0) break;
 
-    if (calls.length > 0) {
+      transcript = [...transcript, ...output];
       const outputs: unknown[] = [];
       for (const call of calls) {
+        if (call?.name === "appstroy_export") {
+          exportToolUsed = true;
+          const action = parseExport(call, sourceMessageId);
+          if (Object.keys(action).length > 0) preparedExportAction = action;
+          outputs.push({
+            type: "function_call_output",
+            call_id: String(call.call_id ?? ""),
+            output: JSON.stringify({
+              ok: Object.keys(action).length > 0,
+              action_prepared: Object.keys(action).length > 0,
+              instruction: "Кнопка XLSX будет показана под финальным ответом.",
+            }),
+          });
+          continue;
+        }
+
+        commandToolUsed = true;
         const toolPrompt = parseToolPrompt(call, source.body);
         const appResult = await invokeAppStroy({
           supabaseUrl,
@@ -411,19 +546,18 @@ Deno.serve(async (request: Request) => {
         });
       }
 
-      const followInput: unknown[] = [
-        ...initialInput,
-        ...(Array.isArray(responsePayload?.output) ? responsePayload.output : []),
-        ...outputs,
-      ];
+      transcript = [...transcript, ...outputs];
       responsePayload = await openAiResponse({
         apiKey,
         model,
-        input: followInput,
+        input: transcript,
       });
     }
 
     let answer = outputText(responsePayload);
+    if (!answer && Object.keys(preparedExportAction).length > 0) {
+      answer = "Готово. Таблицу подготовил — нажми кнопку ниже, AppСтрой сформирует XLSX из актуальных данных.";
+    }
     if (!answer && Object.keys(latestAppResult).length > 0) {
       answer = clean(latestAppResult.summary, 6000) ||
         clean(latestAppResult.error, 6000) ||
@@ -435,15 +569,19 @@ Deno.serve(async (request: Request) => {
       title: "ChatGPT",
       summary: answer,
       ai_used: true,
-      assistant_mode: "chatgpt_app_tools",
+      assistant_mode: "chatgpt_app_agent",
       model,
-      app_tool_used: calls.length > 0,
+      app_tool_used: commandToolUsed,
+      export_tool_used: exportToolUsed,
       app_tool_status: latestAppStatus,
-      unified_assistant: false,
+      unified_assistant: true,
       input_mode: "chatgpt",
     };
-    const action = mapValue(latestAppResult.action);
-    if (Object.keys(action).length > 0) storedPayload.action = action;
+    const appAction = mapValue(latestAppResult.action);
+    const finalAction = Object.keys(preparedExportAction).length > 0
+      ? preparedExportAction
+      : appAction;
+    if (Object.keys(finalAction).length > 0) storedPayload.action = finalAction;
     const appConversation = mapValue(latestAppResult.conversation);
     if (Object.keys(appConversation).length > 0) {
       storedPayload.conversation = appConversation;
@@ -492,7 +630,9 @@ Deno.serve(async (request: Request) => {
       message_id: inserted.id,
       assistant: "chatgpt",
       model,
-      app_tool_used: calls.length > 0,
+      app_tool_used: commandToolUsed,
+      export_tool_used: exportToolUsed,
+      action_ready: Object.keys(finalAction).length > 0,
     });
   } catch (error) {
     console.error("company-chat-gpt failed", error);
