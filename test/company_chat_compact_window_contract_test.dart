@@ -49,7 +49,7 @@ void main() {
     expect(migration, contains('get_company_chat_threads'));
   });
 
-  test('ChatGPT uses AppStroy tools and keeps actions confirmed', () {
+  test('ChatGPT is an AppStroy agent with data tools exports and confirmations', () {
     final source = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();
@@ -68,10 +68,13 @@ void main() {
     expect(repository, contains("'company-chat-gpt'"));
     expect(repository, contains('static Future<bool> canUseAi() async => false'));
     expect(backend, contains('appstroy_command'));
+    expect(backend, contains('appstroy_data'));
+    expect(backend, contains('appstroy_export'));
     expect(backend, contains('/functions/v1/ai-global-command'));
     expect(backend, contains('tool_choice: "auto"'));
     expect(backend, contains('input_mode: "chatgpt"'));
-    expect(backend, contains('окончательное изменение выполняется после отдельного подтверждения'));
+    expect(backend, contains('voice_compound_batch'));
+    expect(backend, contains('отдельного подтверждения в интерфейсе'));
   });
 
   test('photos and files are sent inside the compact workspace', () {
