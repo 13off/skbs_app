@@ -18,7 +18,7 @@ void main() {
     expect(source, isNot(contains('CompanyChatScreen')));
   });
 
-  test('workspace contains general, employee and assistant conversations', () {
+  test('workspace contains general, employee and ChatGPT conversations', () {
     final source = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();
@@ -31,7 +31,8 @@ void main() {
 
     expect(source, contains("'Общий чат сотрудников'"));
     expect(source, contains("'СОТРУДНИКИ'"));
-    expect(source, contains("'ИИ-помощник'"));
+    expect(source, contains("'ChatGPT'"));
+    expect(source, contains("'ChatGPT с доступом к AppСтрой'"));
     expect(source, contains('CompanyChatRepository.fetchThreads()'));
     expect(repository, contains("'get_company_chat_threads'"));
     expect(
@@ -48,23 +49,29 @@ void main() {
     expect(migration, contains('get_company_chat_threads'));
   });
 
-  test('assistant is active and uses the unified action router', () {
+  test('ChatGPT uses AppStroy tools and keeps actions confirmed', () {
     final source = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();
+    final repository = File(
+      'lib/features/company_chat/data/company_chat_repository.dart',
+    ).readAsStringSync();
     final backend = File(
-      'supabase/functions/company-chat-ai/index.ts',
+      'supabase/functions/company-chat-gpt/index.ts',
     ).readAsStringSync();
 
     expect(source, contains('const bool _aiAssistantLocked = false'));
     expect(source, contains('GlobalVoiceActionRouter.execute('));
     expect(source, contains('message.hasAiAction'));
     expect(source, contains('action.buttonLabel'));
-    expect(source, contains('if (thread.isAssistant && _aiAssistantLocked)'));
-    expect(source, contains('final locked = assistant && _aiAssistantLocked'));
+    expect(source, contains('isBefore(_chatGptCutover)'));
+    expect(repository, contains("'company-chat-gpt'"));
+    expect(repository, contains('static Future<bool> canUseAi() async => false'));
+    expect(backend, contains('appstroy_command'));
     expect(backend, contains('/functions/v1/ai-global-command'));
-    expect(backend, contains('input_mode: "chat"'));
-    expect(backend, contains('unified_assistant: true'));
+    expect(backend, contains('tool_choice: "auto"'));
+    expect(backend, contains('input_mode: "chatgpt"'));
+    expect(backend, contains('confirmation'));
   });
 
   test('photos and files are sent inside the compact workspace', () {
