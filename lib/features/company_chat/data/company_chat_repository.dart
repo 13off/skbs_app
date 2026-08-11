@@ -18,6 +18,14 @@ class CompanyChatRepository {
 
   static Stream<void> get changes => _changesController.stream;
 
+  static void _notifyChanges({bool delayedRetry = false}) {
+    _changesController.add(null);
+    if (!delayedRetry) return;
+    Timer(const Duration(milliseconds: 650), () {
+      if (!_changesController.isClosed) _changesController.add(null);
+    });
+  }
+
   static Map<String, dynamic> _map(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
@@ -172,7 +180,7 @@ class CompanyChatRepository {
     );
     final id = data?.toString().trim() ?? '';
     if (id.isEmpty) throw Exception('Не удалось создать сообщение');
-    _changesController.add(null);
+    _notifyChanges(delayedRetry: true);
     return id;
   }
 
@@ -223,7 +231,7 @@ class CompanyChatRepository {
           })
           .select()
           .single();
-      _changesController.add(null);
+      _notifyChanges();
       return CompanyChatAttachment.fromMap(_map(row));
     } catch (_) {
       await _client.storage.from(storageBucket).remove(<String>[path]);
@@ -236,7 +244,7 @@ class CompanyChatRepository {
       'delete_company_chat_message',
       params: <String, dynamic>{'p_message_id': messageId.trim()},
     );
-    _changesController.add(null);
+    _notifyChanges();
   }
 
   static Future<void> askAi({
@@ -259,7 +267,7 @@ class CompanyChatRepository {
         error.isEmpty ? 'ИИ-помощник временно недоступен' : error,
       );
     }
-    _changesController.add(null);
+    _notifyChanges(delayedRetry: true);
   }
 
   static Future<String> createSignedAttachmentUrl(
