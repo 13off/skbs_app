@@ -36,13 +36,17 @@ void main() {
       expect(edge, contains('current_user_has_permission'));
       expect(edge, contains('ai.use'));
       expect(edge, contains('company_chat_messages'));
-      expect(edge, contains('подтверждения пользователя'));
+      expect(edge, contains('подтверждаемое действие AppСтрой'));
+      expect(edge, contains('/functions/v1/ai-global-command'));
+      expect(edge, contains('unified_assistant: true'));
       expect(edge, contains('Authorization'));
 
       expect(screen, contains('AiActionExecutionCoordinator.execute'));
       expect(screen, contains('ИИ ответит в общий чат'));
       expect(screen, contains('openFiles'));
       expect(screen, contains('Упомянуть сотрудника'));
+      expect(shell, contains('GlobalVoiceActionRouter.execute'));
+      expect(shell, contains('message.hasAiAction'));
       expect(shell, contains('fetchUnreadState'));
       expect(mainScreen, contains('CompanyChatShell'));
     },
