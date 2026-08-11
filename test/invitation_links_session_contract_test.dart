@@ -20,19 +20,22 @@ void main() {
     expect(repository, contains("data['invite_url']"));
   });
 
-  test('edge adapter preserves the canonical invitation route from core', () {
+  test('edge adapter publishes invitation on a valid static route', () {
     final edge = source('supabase/functions/invite-company-member/index.ts');
     final core = source(
       'supabase/functions/invite-company-member-core/index.ts',
     );
 
     expect(edge, contains('invite-company-member-core'));
-    expect(edge, contains('return json(data, coreResponse.status);'));
-    expect(edge, isNot(contains('13off.github.io/appstroy-web')));
-    expect(edge, isNot(contains('publishedWebAppUrl')));
-    expect(edge, isNot(contains('new URL("invite.html"')));
+    expect(edge, contains('https://13off.github.io/appstroy-web/'));
+    expect(edge, contains('publicInvitationUrl'));
+    expect(edge, contains('new URL("invite.html", publishedWebAppUrl)'));
+    expect(edge, contains('result.invite_url = publicInvitationUrl'));
+    expect(edge, contains('result.redirect_to = publicRedirectUrl'));
     expect(edge, isNot(contains('/functions/v1/invite-landing')));
-    expect(core, contains('https://api.appstroy-web.ru/app/'));
+    expect(edge, isNot(contains('localhost')));
+
+    // Core remains the only place that creates auth links, tokens and memberships.
     expect(core, contains('generateLink'));
     expect(core, contains('type: "invite"'));
     expect(core, contains('"recovery"'));
