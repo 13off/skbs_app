@@ -1,1 +1,1 @@
-Publish unified voice and written AI assistant in PWA. Retry after contract update.
+Publish unified voice and written AI assistant in PWA. Retry after unified AI contract fixes.
