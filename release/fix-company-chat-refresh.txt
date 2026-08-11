@@ -1,0 +1,1 @@
+Fix queued refresh for company chat message visibility.
