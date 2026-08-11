@@ -3,4 +3,6 @@ Refresh fix: make sent messages and ChatGPT replies appear without manual page r
 Action bridge: functional ChatGPT requests prepare AppStroy confirmation/action buttons.
 Fast chat path: cached thread/unread summaries no longer block feed rendering; read-status runs in background; ChatGPT action preparation no longer blocks the text reply; refresh retries start earlier.
 Compile-safe background refresh.
-Rebuild source bc5edbd5.
+Agent mode: ChatGPT can use AppStroy tools repeatedly and prepare direct XLSX exports.
+Universal XLSX: employees, tasks, candidates, procurement, suppliers, flights plus existing payments and timesheets.
+Rebuild agentic ChatGPT export version.
