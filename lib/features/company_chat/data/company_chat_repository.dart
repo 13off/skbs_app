@@ -143,7 +143,7 @@ class CompanyChatRepository {
       final data = await _client.rpc<dynamic>('get_company_chat_unread_state');
       return CompanyChatUnreadState.fromMap(_map(data));
     } catch (_) {
-      // Счётчик непрочитанных служебный: ошибка не должна блокировать ленту.
+      // Служебный счётчик не должен отменять обновление видимых сообщений.
       return const CompanyChatUnreadState.empty();
     }
   }
@@ -151,21 +151,6 @@ class CompanyChatRepository {
   static Future<void> markRead({
     DateTime? at,
     String channelKind = 'general',
-    String? peerUserId,
-  }) {
-    // Пометка прочитанного не влияет на содержимое переписки, поэтому не
-    // блокируем ею setState/отрисовку новых сообщений.
-    unawaited(_markReadInBackground(
-      at: at,
-      channelKind: channelKind,
-      peerUserId: peerUserId,
-    ));
-    return Future<void>.value();
-  }
-
-  static Future<void> _markReadInBackground({
-    DateTime? at,
-    required String channelKind,
     String? peerUserId,
   }) async {
     try {
@@ -180,7 +165,7 @@ class CompanyChatRepository {
         },
       );
     } catch (_) {
-      // Следующая успешная синхронизация обновит статус прочтения.
+      // Статус прочтения не должен ломать отображение переписки.
     }
   }
 
@@ -301,27 +286,19 @@ class CompanyChatRepository {
       );
     }
 
-    // Ответ ChatGPT уже записан. Сразу запускаем обновление интерфейса, не
-    // дожидаясь подготовки кнопки действия.
+    // Ответ уже записан в БД — просим UI показать его до подготовки кнопки.
     _notifyChanges(delayedRetry: true);
 
-    unawaited(_prepareActionInBackground(body));
-  }
-
-  static Future<void> _prepareActionInBackground(
-    Map<String, dynamic> body,
-  ) async {
     try {
       await _client.functions.invoke(
         'company-chat-action-preparer',
         body: body,
       );
     } catch (_) {
-      // Текстовый ответ уже показан; действие можно подготовить позднее.
-    } finally {
-      // Если action появился после подготовки — обновим пузырь ещё раз.
-      _notifyChanges(delayedRetry: true);
+      // Ответ ChatGPT остаётся доступным даже при ошибке моста действий.
     }
+
+    _notifyChanges(delayedRetry: true);
   }
 
   static Future<String> createSignedAttachmentUrl(
