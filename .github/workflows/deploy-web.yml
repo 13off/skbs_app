@@ -229,13 +229,13 @@ jobs:
                   if [ -f "${log}" ]; then
                     echo
                     echo "===== $(basename "${log}") ====="
-                    tail -n 180 "${log}"
+                    tail -n 1000 "${log}"
                   fi
                 done
               } > downloads/web-build.log
-              test -f ../flutter-test.log && tail -n 80 ../flutter-test.log > downloads/flutter-test-tail.log || rm -f downloads/flutter-test-tail.log
-              test -f ../flutter-analyze.log && tail -n 80 ../flutter-analyze.log > downloads/flutter-analyze-tail.log || rm -f downloads/flutter-analyze-tail.log
-              test -f ../flutter-web-build.log && tail -n 80 ../flutter-web-build.log > downloads/flutter-web-build-tail.log || rm -f downloads/flutter-web-build-tail.log
+              test -f ../flutter-test.log && tail -n 800 ../flutter-test.log > downloads/flutter-test-tail.log || rm -f downloads/flutter-test-tail.log
+              test -f ../flutter-analyze.log && tail -n 300 ../flutter-analyze.log > downloads/flutter-analyze-tail.log || rm -f downloads/flutter-analyze-tail.log
+              test -f ../flutter-web-build.log && tail -n 300 ../flutter-web-build.log > downloads/flutter-web-build-tail.log || rm -f downloads/flutter-web-build-tail.log
             else
               rm -f downloads/web-build.log downloads/flutter-test-tail.log downloads/flutter-analyze-tail.log downloads/flutter-web-build-tail.log
             fi
