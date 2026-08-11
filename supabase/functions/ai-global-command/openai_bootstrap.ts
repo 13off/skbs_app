@@ -16,6 +16,7 @@ const APP_KNOWLEDGE = [
   "профиль/система — профиль, настройки, уведомления, роли и предпросмотр ролей.",
   "Голос и письменный чат — два интерфейса одного помощника. Сначала определи смысл команды, затем используй штатный модуль AppСтрой.",
   "Не выдумывай живые данные: ФИО, объект, смены, суммы, кандидатов, заявки, документы и статусы нужно брать из доступных данных приложения.",
+  "Остаток/остатки выплат, задолженность сотрудникам и таблица остатков за месяц относятся к выплатам, а не к снабжению, если явно не сказано про материалы, склад, закупку или поставку.",
   "Никогда не считай изменение выполненным без штатной проверки и финального подтверждения пользователя.",
 ].join("\n");
 
@@ -33,6 +34,47 @@ function outputText(payload: any): string {
   return "";
 }
 
+function normalize(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .replaceAll("ё", "е")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function forcedSemanticResponse(
+  messages: Array<{ role?: string; content?: unknown }>,
+): string | null {
+  const systemText = messages
+    .filter((message) => message.role === "system" || message.role === "developer")
+    .map((message) => String(message.content ?? ""))
+    .join("\n");
+  if (!systemText.includes("маршрутизатор голосового помощника AppСтрой")) {
+    return null;
+  }
+
+  const userText = messages
+    .filter((message) => message.role === "user")
+    .map((message) => String(message.content ?? ""))
+    .join("\n");
+  const marker = userText.lastIndexOf("Фраза:");
+  const phrase = normalize(marker >= 0 ? userText.slice(marker + 6) : userText);
+  const payrollBalance = /(?:остатк|задолж|долг|недоплат|невыплат)/.test(phrase);
+  const explicitProcurement =
+    /(?:материал|склад|снабжен|закуп|поставк|заявк\s+снабжен|расходник)/.test(
+      phrase,
+    );
+  if (!payrollBalance || explicitProcurement) return null;
+
+  return JSON.stringify({
+    intent: "operational_insight",
+    subtype: "unpaid",
+    confidence: 0.99,
+    clarification: "",
+  });
+}
+
 class OpenAISession {
   constructor(_requestedModel?: string) {}
 
@@ -45,6 +87,9 @@ class OpenAISession {
 
     const model = Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-5-mini";
     const messages = Array.isArray(input?.messages) ? input.messages : [];
+    const forced = forcedSemanticResponse(messages);
+    if (forced != null) return { response: forced };
+
     const openAIInput = [
       { role: "developer", content: APP_KNOWLEDGE },
       ...messages.map((message) => ({
@@ -85,17 +130,74 @@ class OpenAISession {
   }
 }
 
+function monthDateFromPrompt(prompt: string, fallbackDate: unknown): string | null {
+  const value = normalize(prompt);
+  const months: Array<[RegExp, number]> = [
+    [/\bянвар[а-я]*\b/, 1],
+    [/\bфеврал[а-я]*\b/, 2],
+    [/\bмарт[а-я]*\b/, 3],
+    [/\bапрел[а-я]*\b/, 4],
+    [/\bма[йя][а-я]*\b/, 5],
+    [/\bиюн[а-я]*\b/, 6],
+    [/\bиюл[а-я]*\b/, 7],
+    [/\bавгуст[а-я]*\b/, 8],
+    [/\bсентябр[а-я]*\b/, 9],
+    [/\bоктябр[а-я]*\b/, 10],
+    [/\bноябр[а-я]*\b/, 11],
+    [/\bдекабр[а-я]*\b/, 12],
+  ];
+  const match = months.find(([pattern]) => pattern.test(value));
+  if (!match) return null;
+
+  const baseText = String(fallbackDate ?? "");
+  const baseMatch = /^(20\d{2})-(\d{2})-(\d{2})$/.exec(baseText);
+  const now = new Date();
+  const baseYear = baseMatch ? Number(baseMatch[1]) : now.getUTCFullYear();
+  const baseMonth = baseMatch ? Number(baseMatch[2]) : now.getUTCMonth() + 1;
+  const explicitYear = value.match(/\b(20\d{2})\b/);
+  const month = match[1];
+  let year = explicitYear ? Number(explicitYear[1]) : baseYear;
+  if (!explicitYear && month > baseMonth) year -= 1;
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+async function rewriteRequest(request: Request): Promise<Request> {
+  if (request.method !== "POST") return request;
+  const text = await request.text();
+  let input: Record<string, unknown>;
+  try {
+    input = JSON.parse(text || "{}") as Record<string, unknown>;
+  } catch (_) {
+    return new Request(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: text,
+      signal: request.signal,
+    });
+  }
+
+  const prompt = String(input.prompt ?? "").trim();
+  const monthDate = monthDateFromPrompt(prompt, input.date);
+  if (monthDate && !/\b20\d{2}-\d{2}-\d{2}\b/.test(prompt)) {
+    input.prompt = `${prompt}\n\nПериод запроса: ${monthDate}`;
+  }
+
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: JSON.stringify(input),
+    signal: request.signal,
+  });
+}
+
 // Supabase.ai уже существует в Edge Runtime. Меняем только Session на адаптер
-// OpenAI. Сам global Supabase не переназначаем: его свойство в runtime не имеет
-// обычного writable setter и повторное присваивание завершает worker с 500.
+// OpenAI. Сам global Supabase не переназначаем.
 const runtime = (globalThis as unknown as { Supabase?: any }).Supabase;
 if (runtime?.ai) {
   runtime.ai.Session = OpenAISession;
 }
 
-// Deno.env.set() в managed Edge Runtime не поддерживается. Semantic router
-// читает три служебные переменные через Deno.env.get(), поэтому подмешиваем их
-// только на чтении, не затрагивая реальные Secrets проекта.
+// Semantic router читает три служебные переменные через Deno.env.get().
 const originalEnvGet = Deno.env.get.bind(Deno.env);
 (Deno.env as unknown as { get: (name: string) => string | undefined }).get = (
   name: string,
@@ -107,6 +209,17 @@ const originalEnvGet = Deno.env.get.bind(Deno.env);
   }
   return originalEnvGet(name);
 };
+
+// Пока основной router остаётся pinned на проверенный commit, подмешиваем в
+// входящий запрос русские названия месяцев. Старый requestedDate уже понимает
+// ISO YYYY-MM-DD, поэтому июль/август и т.п. работают без изменения ядра.
+const nativeServe = Deno.serve.bind(Deno);
+(Deno as unknown as {
+  serve: (
+    handler: (request: Request) => Response | Promise<Response>,
+  ) => unknown;
+}).serve = (handler) =>
+  nativeServe(async (request: Request) => handler(await rewriteRequest(request)));
 
 await import(
   "https://raw.githubusercontent.com/13off/skbs_app/1fe532492041f1bcd66035193a665a95d3668b5f/supabase/functions/ai-global-command/index.ts"
