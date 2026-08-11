@@ -1,0 +1,100 @@
+name: Fix company chat refresh queue
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/fix-company-chat-refresh.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Queue realtime refreshes instead of dropping them
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/company_chat/presentation/company_chat_shell.dart')
+          text = path.read_text(encoding='utf-8')
+
+          old_field = """  bool loading = true;\n  bool refreshing = false;\n  bool sending = false;\n"""
+          new_field = """  bool loading = true;\n  bool refreshing = false;\n  bool refreshQueued = false;\n  bool sending = false;\n"""
+          if text.count(old_field) != 1:
+              raise SystemExit(f'field anchor count={text.count(old_field)}')
+          text = text.replace(old_field, new_field, 1)
+
+          old_start = """  Future<void> refreshWorkspace({bool markAsRead = false}) async {\n    if (refreshing || companyId.isEmpty) return;\n    refreshing = true;\n"""
+          new_start = """  Future<void> refreshWorkspace({bool markAsRead = false}) async {\n    if (companyId.isEmpty) return;\n    if (refreshing) {\n      refreshQueued = true;\n      return;\n    }\n    refreshing = true;\n"""
+          if text.count(old_start) != 1:
+              raise SystemExit(f'refresh start count={text.count(old_start)}')
+          text = text.replace(old_start, new_start, 1)
+
+          old_finally = """    } finally {\n      refreshing = false;\n    }\n  }\n\n  CompanyChatThread? _resolveSelected(\n"""
+          new_finally = """    } finally {\n      refreshing = false;\n      if (refreshQueued) {\n        refreshQueued = false;\n        unawaited(refreshWorkspace(markAsRead: panelOpen));\n      }\n    }\n  }\n\n  CompanyChatThread? _resolveSelected(\n"""
+          if text.count(old_finally) != 1:
+              raise SystemExit(f'refresh finally count={text.count(old_finally)}')
+          text = text.replace(old_finally, new_finally, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+          test = Path('test/company_chat_refresh_queue_contract_test.dart')
+          test.write_text("""import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('company chat never drops a refresh while another refresh is running', () {
+    final source = File(
+      'lib/features/company_chat/presentation/company_chat_shell.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('bool refreshQueued = false'));
+    expect(source, contains('if (refreshing) {'));
+    expect(source, contains('refreshQueued = true'));
+    expect(source, contains('if (refreshQueued) {'));
+    expect(
+      source,
+      contains('unawaited(refreshWorkspace(markAsRead: panelOpen))'),
+    );
+  });
+}
+""", encoding='utf-8')
+          PY
+
+      - name: Format
+        run: dart format lib/features/company_chat/presentation/company_chat_shell.dart test/company_chat_refresh_queue_contract_test.dart
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run chat tests
+        run: flutter test test/company_chat_compact_window_contract_test.dart test/company_chat_ai_contract_test.dart test/company_chat_refresh_queue_contract_test.dart --reporter compact
+
+      - name: Analyze changed source
+        run: flutter analyze lib/features/company_chat/presentation/company_chat_shell.dart
+
+      - name: Commit verified fix
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-company-chat-refresh.yml release/fix-company-chat-refresh.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Не терять отправленные сообщения при realtime-обновлении чата"
+          git push
