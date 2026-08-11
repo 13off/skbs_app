@@ -32,7 +32,10 @@ class OpenAISession {
     }));
 
     const controller = new AbortController();
-    const timeoutMs = Math.max(1000, Math.min(30000, Number(options.timeout ?? 8) * 1000));
+    const timeoutMs = Math.max(
+      1000,
+      Math.min(30000, Number(options.timeout ?? 8) * 1000),
+    );
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -42,10 +45,7 @@ class OpenAISession {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model,
-          input: openAIInput,
-        }),
+        body: JSON.stringify({ model, input: openAIInput }),
         signal: controller.signal,
       });
 
@@ -63,20 +63,28 @@ class OpenAISession {
   }
 }
 
-const runtime = (globalThis as unknown as { Supabase?: any }).Supabase ?? {};
-runtime.ai = { ...(runtime.ai ?? {}), Session: OpenAISession };
-(globalThis as unknown as { Supabase?: any }).Supabase = runtime;
-
-try {
-  Deno.env.set("AI_INFERENCE_API_HOST", "openai");
-  Deno.env.set("AI_SEMANTIC_MODE", "openaicompatible");
-  Deno.env.set(
-    "AI_SEMANTIC_MODEL",
-    Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-5-mini",
-  );
-} catch (error) {
-  console.warn("Unable to seed semantic-router compatibility env", error);
+// Supabase.ai уже существует в Edge Runtime. Меняем только Session на адаптер
+// OpenAI. Сам global Supabase не переназначаем: его свойство в runtime не имеет
+// обычного writable setter и повторное присваивание завершает worker с 500.
+const runtime = (globalThis as unknown as { Supabase?: any }).Supabase;
+if (runtime?.ai) {
+  runtime.ai.Session = OpenAISession;
 }
+
+// Deno.env.set() в managed Edge Runtime не поддерживается. Semantic router
+// читает три служебные переменные через Deno.env.get(), поэтому подмешиваем их
+// только на чтении, не затрагивая реальные Secrets проекта.
+const originalEnvGet = Deno.env.get.bind(Deno.env);
+(Deno.env as unknown as { get: (name: string) => string | undefined }).get = (
+  name: string,
+) => {
+  if (name === "AI_INFERENCE_API_HOST") return "openai";
+  if (name === "AI_SEMANTIC_MODE") return "openaicompatible";
+  if (name === "AI_SEMANTIC_MODEL") {
+    return originalEnvGet("OPENAI_MODEL")?.trim() || "gpt-5-mini";
+  }
+  return originalEnvGet(name);
+};
 
 await import(
   "https://raw.githubusercontent.com/13off/skbs_app/1fe532492041f1bcd66035193a665a95d3668b5f/supabase/functions/ai-global-command/index.ts"
