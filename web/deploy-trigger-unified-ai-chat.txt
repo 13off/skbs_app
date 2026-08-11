@@ -2,4 +2,5 @@ Publish ChatGPT-only experiment: hide legacy AI chat and voice, expose ChatGPT c
 Refresh fix: make sent messages and ChatGPT replies appear without manual page reload on web/PWA.
 Action bridge: functional ChatGPT requests prepare AppStroy confirmation/action buttons.
 Fast chat path: cached thread/unread summaries no longer block feed rendering; read-status runs in background; ChatGPT action preparation no longer blocks the text reply; refresh retries start earlier.
-Rebuild source b69d4a38.
+Compile-safe background refresh.
+Rebuild source bc5edbd5.
