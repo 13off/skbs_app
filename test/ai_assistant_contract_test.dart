@@ -18,7 +18,7 @@ String actionExecutionSource() => <String>[
 ].map(source).join('\n');
 
 void main() {
-  test('AI entry lives inside chat without a duplicate home button', () {
+  test('ChatGPT entry lives inside chat without duplicate legacy AI UI', () {
     final home = homeSource();
     final chat = source(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
@@ -26,13 +26,18 @@ void main() {
     final shell = source(
       'lib/features/shell/presentation/premium_main_screen.dart',
     );
+    final repository = source(
+      'lib/features/company_chat/data/company_chat_repository.dart',
+    );
 
     expect(home, isNot(contains("heroTag: 'home-ai-assistant'")));
     expect(home, isNot(contains('buildAiAssistantButton')));
-    expect(chat, contains("'ИИ-помощник'"));
-    expect(chat, contains("'Временно недоступен'"));
-    expect(chat, contains('Icons.lock_rounded'));
+    expect(chat, contains("'ChatGPT'"));
+    expect(chat, contains("'ChatGPT с доступом к AppСтрой'"));
+    expect(chat, contains("'Сообщение ChatGPT…'"));
     expect(chat, contains('class _ChatLauncherButton'));
+    expect(repository, contains("'company-chat-gpt'"));
+    expect(repository, contains('static Future<bool> canUseAi() async => false'));
     expect(shell, isNot(contains("label: 'ИИ'")));
   });
 
