@@ -19,6 +19,7 @@ import '../../recruitment/presentation/recruitment_applications_screen.dart';
 import '../../tools/presentation/company_tools_screen.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
+import 'chatgpt_function_action_coordinator.dart';
 import 'global_voice_action_execution_coordinator.dart';
 import 'global_voice_extended_action_coordinator.dart';
 import 'global_voice_management_action_coordinator.dart';
@@ -43,6 +44,13 @@ class GlobalVoiceActionRouter {
     }
     if (action.type == 'open_screen') {
       return _openScreen(context, profile, action);
+    }
+    if (ChatGptFunctionActionCoordinator.supportedTypes.contains(action.type)) {
+      return ChatGptFunctionActionCoordinator.execute(
+        context: context,
+        profile: profile,
+        action: action,
+      );
     }
     if (GlobalVoiceWorkflowActionCoordinator.supportedTypes.contains(
       action.type,
