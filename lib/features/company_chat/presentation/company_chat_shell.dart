@@ -5,11 +5,13 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../features/ai/actions/global_voice_action_router.dart';
+import '../../../features/ai/models/ai_assistant_result.dart';
 import '../../../models/app_user_profile.dart';
 import '../data/company_chat_repository.dart';
 import '../models/company_chat_models.dart';
 
-const bool _aiAssistantLocked = true;
+const bool _aiAssistantLocked = false;
 
 class CompanyChatShell extends StatefulWidget {
   final AppUserProfile profile;
@@ -38,6 +40,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
   final List<CompanyChatMessage> messages = <CompanyChatMessage>[];
   final List<CompanyChatThread> threads = <CompanyChatThread>[];
   final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];
+  final Set<String> runningActionIds = <String>{};
 
   StreamSubscription<void>? changesSubscription;
   Timer? refreshTimer;
@@ -79,6 +82,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       messages.clear();
       threads.clear();
       pendingFiles.clear();
+      runningActionIds.clear();
       unread = const CompanyChatUnreadState.empty();
       selectedThread = null;
       panelOpen = false;
@@ -437,6 +441,29 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
     }
   }
 
+  Future<void> runAiAction(CompanyChatMessage message) async {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return;
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty || runningActionIds.contains(action.id)) return;
+    setState(() => runningActionIds.add(action.id));
+    try {
+      final result = await GlobalVoiceActionRouter.execute(
+        context: context,
+        profile: widget.profile,
+        action: action,
+      );
+      showMessage(result.message);
+      await refreshWorkspace(markAsRead: true);
+    } catch (error) {
+      showMessage('Действие не выполнено: ${_error(error)}');
+    } finally {
+      if (mounted) setState(() => runningActionIds.remove(action.id));
+    }
+  }
+
   Future<void> openAttachment(CompanyChatAttachment attachment) async {
     try {
       final url = await CompanyChatRepository.createSignedAttachmentUrl(
@@ -533,6 +560,8 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
                           setState(() => pendingFiles.remove(item));
                         },
                         onSend: sendMessage,
+                        runningActionIds: runningActionIds,
+                        onRunAiAction: runAiAction,
                         onOpenAttachment: openAttachment,
                         onResize: (details) => resizePanel(
                           details,
@@ -575,6 +604,8 @@ class _ChatWorkspacePanel extends StatelessWidget {
   final VoidCallback onPickFiles;
   final ValueChanged<_PendingChatFile> onRemovePending;
   final VoidCallback onSend;
+  final Set<String> runningActionIds;
+  final ValueChanged<CompanyChatMessage> onRunAiAction;
   final ValueChanged<CompanyChatAttachment> onOpenAttachment;
   final ValueChanged<DragUpdateDetails> onResize;
 
@@ -597,6 +628,8 @@ class _ChatWorkspacePanel extends StatelessWidget {
     required this.onPickFiles,
     required this.onRemovePending,
     required this.onSend,
+    required this.runningActionIds,
+    required this.onRunAiAction,
     required this.onOpenAttachment,
     required this.onResize,
   });
@@ -991,6 +1024,14 @@ class _ChatWorkspacePanel extends StatelessWidget {
                 ),
               ),
             ],
+            if (assistant && message.hasAiAction && !message.isDeleted) ...[
+              const SizedBox(height: 8),
+              _AiActionButton(
+                message: message,
+                runningActionIds: runningActionIds,
+                onPressed: () => onRunAiAction(message),
+              ),
+            ],
             const SizedBox(height: 4),
             Align(
               alignment: Alignment.centerRight,
@@ -1136,6 +1177,42 @@ class _ChatWorkspacePanel extends StatelessWidget {
     if (bytes < 1024) return '$bytes Б';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+  }
+}
+
+class _AiActionButton extends StatelessWidget {
+  final CompanyChatMessage message;
+  final Set<String> runningActionIds;
+  final VoidCallback onPressed;
+
+  const _AiActionButton({
+    required this.message,
+    required this.runningActionIds,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return const SizedBox.shrink();
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty) return const SizedBox.shrink();
+    final running = runningActionIds.contains(action.id);
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonalIcon(
+        onPressed: running ? null : onPressed,
+        icon: running
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.fact_check_outlined, size: 18),
+        label: Text(action.buttonLabel),
+      ),
+    );
   }
 }
 
