@@ -7,4 +7,5 @@ Agent mode: ChatGPT can use AppStroy tools repeatedly and prepare direct XLSX ex
 Universal XLSX: employees, tasks, candidates, procurement, suppliers, flights plus existing payments and timesheets.
 Compile-safe generic table queries.
 Confirmation contract preserved.
-Rebuild final agentic ChatGPT XLSX version.
+Agent v2: structured live-data tool, multi-step reasoning, multi-action plans, persistent conversation memory.
+Rebuild AppStroy ChatGPT agent v2.
