@@ -21,7 +21,18 @@ type ChatRow = {
   body: string;
   created_at: string;
   deleted_at: string | null;
+  ai_payload?: JsonMap | null;
 };
+
+const APP_KNOWLEDGE = [
+  "AppСтрой — рабочая система строительной компании. ИИ-помощник должен опираться на реальные данные активной компании и права текущей роли.",
+  "Роли приложения: руководитель/администратор, разработчик, прораб, бухгалтер, HR, юрист, снабженец и сотрудник.",
+  "Основные рабочие области: Главная и объекты; сотрудники; табель и смены; выплаты, авансы, остатки и чеки; отчёты; задачи; вехи, цели и чек-листы; кандидаты, этапы подбора, оформление, вылеты, билеты и кадровые документы; снабжение, заявки, материалы и поставщики; юридические вопросы, договоры, решения и риски; чат компании и личные диалоги; профиль, настройки и уведомления; рабочий день сотрудника, геолокация, задачи и фото; режимы ролей и диагностика разработчика.",
+  "Для руководителя основные вкладки: Главная, Люди, Отчёты, Задачи, Профиль; из рабочих экранов также открываются Табель и Выплаты.",
+  "Голос и письменный чат — два входа в один помощник. Операционные запросы и изменения должны проходить через общий маршрутизатор ai-global-command.",
+  "Любые факты о сотрудниках, объектах, задачах, табеле, выплатах, кандидатах, снабжении и юридических данных нельзя выдумывать. Их нужно получать из доступных данных приложения.",
+  "Любое изменение данных остаётся подготовленным действием и проходит штатную проверку/подтверждение. Никогда не утверждай, что запись уже изменена, если подтверждение не выполнено.",
+].join("\n");
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -49,29 +60,19 @@ function serviceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 }
 
-function normalize(value: string): string {
-  return value.toLowerCase().replaceAll("ё", "е");
-}
-
-function functionNameFor(prompt: string): string {
-  const normalized = normalize(prompt);
-  const operationalInsight =
-    /(кто|кого|сотрудник).*(не выш|не явил|отсутств|нет на работ)/.test(normalized) ||
-    /(кому|у кого|кто).*(не выплат|не доплат|должн|долг|остаток|задолж)/.test(normalized) ||
-    /(документ|договор|удостоверен|медосмотр|патент).*(заканч|истека|просроч|срок)/.test(normalized) ||
-    /(сводк|отчет|итог).*(недел|7 дн)/.test(normalized);
-  if (operationalInsight) return "ai-operational-insights";
-
-  const taskCommand = /(созда|добав|постав|назнач|сдел).*(задач|работ|армирован|бетонир|монтаж|демонтаж)/.test(normalized);
-  if (taskCommand) return "ai-action-draft";
-
-  const documentCommand = /(подготов|состав|напиш|созда|сдел|сформир).*(документ|заявлен|договор|соглас|служебн|записк|письм)/.test(normalized);
-  if (documentCommand) return "ai-document-draft";
-
-  const operationalCommand = /(напомн|напоминан|исправ|измен|поправ|постав|отмет|выплат|аванс|зарплат|чек|табел|смен)/.test(normalized);
-  if (operationalCommand) return "ai-operational-draft";
-
-  return "ai-search";
+function publishableKey(): string {
+  const legacy = Deno.env.get("SUPABASE_ANON_KEY")?.trim() ?? "";
+  if (legacy) return legacy;
+  const direct = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")?.trim() ?? "";
+  if (direct) return direct;
+  const modern = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (modern) {
+    try {
+      const parsed = JSON.parse(modern) as Record<string, string>;
+      return parsed.default ?? Object.values(parsed)[0] ?? "";
+    } catch (_) {}
+  }
+  return "";
 }
 
 function resultText(result: JsonMap): string {
@@ -93,7 +94,152 @@ function resultText(result: JsonMap): string {
     warnings.length ? `Важно:\n${warnings.map((item) => `• ${item}`).join("\n")}` : "",
     nextSteps.length ? `Дальше:\n${nextSteps.map((item) => `• ${item}`).join("\n")}` : "",
   ].filter(Boolean);
-  return parts.join("\n\n").slice(0, 5000) || "Помощник не вернул текстовый ответ.";
+  return parts.join("\n\n").slice(0, 6000) || "Помощник не вернул текстовый ответ.";
+}
+
+function outputText(payload: any): string {
+  if (typeof payload?.output_text === "string") return payload.output_text.trim();
+  const output = Array.isArray(payload?.output) ? payload.output : [];
+  for (const item of output) {
+    if (item?.type !== "message" || !Array.isArray(item?.content)) continue;
+    for (const part of item.content) {
+      if (part?.type === "output_text" && typeof part?.text === "string") {
+        return part.text.trim();
+      }
+    }
+  }
+  return "";
+}
+
+function mapValue(value: unknown): JsonMap {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as JsonMap;
+  }
+  return {};
+}
+
+function conversationContext(recent: ChatRow[], source: ChatRow): JsonMap {
+  const prior = recent.filter((item) => item.id !== source.id);
+  const lastAssistant = [...prior].reverse().find((item) => item.kind === "assistant");
+  const payload = mapValue(lastAssistant?.ai_payload);
+  const conversation = mapValue(payload.conversation);
+  const previousUser = [...prior].reverse().find((item) => item.kind === "user");
+
+  const topic = clean(conversation.topic, 100);
+  const queryMode = clean(conversation.query_mode, 60);
+  const objectName = clean(conversation.object_name, 180);
+  const date = clean(conversation.date, 32);
+  const previousPrompt = clean(conversation.prompt, 1200) || clean(previousUser?.body, 1200);
+
+  const result: JsonMap = {};
+  if (topic) result.topic = topic;
+  if (queryMode) result.query_mode = queryMode;
+  if (objectName) result.object_name = objectName;
+  if (date) result.date = date;
+  if (previousPrompt) result.prompt = previousPrompt;
+  return result;
+}
+
+async function invokeGlobalAssistant({
+  supabaseUrl,
+  publishable,
+  authorization,
+  companyId,
+  objectName,
+  prompt,
+  context,
+}: {
+  supabaseUrl: string;
+  publishable: string;
+  authorization: string;
+  companyId: string;
+  objectName: string;
+  prompt: string;
+  context: JsonMap;
+}): Promise<{ data: JsonMap; status: number }> {
+  const response = await fetch(`${supabaseUrl}/functions/v1/ai-global-command`, {
+    method: "POST",
+    headers: {
+      "Authorization": authorization,
+      "apikey": publishable,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      company_id: companyId,
+      object_name: objectName || null,
+      date: new Date().toISOString().slice(0, 10),
+      prompt,
+      conversation_context: context,
+      input_mode: "chat",
+    }),
+  });
+  return {
+    data: await response.json().catch(() => ({})) as JsonMap,
+    status: response.status,
+  };
+}
+
+async function appAwareFreeform({
+  role,
+  objectName,
+  history,
+  prompt,
+}: {
+  role: string;
+  objectName: string;
+  history: ChatRow[];
+  prompt: string;
+}): Promise<string> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim() ?? "";
+  if (!apiKey) {
+    return "Не удалось обработать свободный вопрос. Операционные команды AppСтрой при этом продолжают работать через общий ИИ-маршрутизатор.";
+  }
+  const model = Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-5-mini";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const recentMessages = history
+      .filter((item) => item.body.trim())
+      .slice(-10)
+      .map((item) => ({
+        role: item.kind === "assistant" ? "assistant" : "user",
+        content: item.body.slice(0, 1200),
+      }));
+    const input = [
+      {
+        role: "developer",
+        content: [
+          "Ты единый ИИ-помощник AppСтрой. Сейчас пользователь пишет тебе текстом в личном чате, но твои знания и правила должны совпадать с голосовым помощником.",
+          APP_KNOWLEDGE,
+          `Текущая роль: ${role || "не указана"}.`,
+          objectName ? `Текущий объект: ${objectName}.` : "Текущий объект явно не выбран.",
+          "Этот свободный режим используется только когда общий операционный маршрутизатор не распознал действие. Отвечай на вопросы об устройстве и работе AppСтрой, объясняй возможности и помогай сформулировать команду.",
+          "Если пользователь просит конкретный факт из живых данных компании, которого нет в переданном контексте, не выдумывай его. Скажи, какой запрос лучше задать помощнику, чтобы он прочитал данные приложения.",
+          "Не сообщай, что изменение данных выполнено. Записи меняются только через подтверждаемое действие AppСтрой.",
+          "Отвечай по-русски, коротко и по делу.",
+        ].join("\n\n"),
+      },
+      ...recentMessages,
+      { role: "user", content: prompt.slice(0, 4000) },
+    ];
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, input }),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || `OpenAI API error ${response.status}`);
+    }
+    return outputText(payload) || "Не получилось сформировать ответ. Попробуй переформулировать запрос.";
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 Deno.serve(async (request: Request) => {
@@ -102,14 +248,14 @@ Deno.serve(async (request: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const publishable = publishableKey();
     const secret = serviceKey();
     const authorization = request.headers.get("Authorization") ?? "";
-    if (!supabaseUrl || !anonKey || !secret || !authorization) {
+    if (!supabaseUrl || !publishable || !secret || !authorization) {
       return json({ error: "Сервис ИИ чата не настроен" }, 500);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
+    const userClient = createClient(supabaseUrl, publishable, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -147,10 +293,11 @@ Deno.serve(async (request: Request) => {
       .maybeSingle();
     if (membershipError) throw membershipError;
     if (!membership) return json({ error: "Нет активного доступа к компании" }, 403);
+    const role = clean(membership.role, 40);
 
     const { data: sourceData, error: sourceError } = await admin
       .from("company_chat_messages")
-      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at")
+      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at,ai_payload")
       .eq("company_id", companyId)
       .eq("id", sourceMessageId)
       .maybeSingle();
@@ -193,49 +340,60 @@ Deno.serve(async (request: Request) => {
 
     const { data: recentData, error: recentError } = await admin
       .from("company_chat_messages")
-      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at")
+      .select("id,company_id,sender_user_id,sender_name,kind,channel_kind,peer_user_id,thread_key,body,created_at,deleted_at,ai_payload")
       .eq("company_id", companyId)
       .eq("thread_key", source.thread_key)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .limit(16);
+      .limit(18);
     if (recentError) throw recentError;
     const recent = ((recentData ?? []) as ChatRow[]).reverse();
-    const context = recent
-      .filter((item) => item.body.trim())
-      .map((item) => `${item.kind === "assistant" ? "ИИ" : item.sender_name}: ${item.body.slice(0, 600)}`)
-      .join("\n")
-      .slice(-7000);
+    const context = conversationContext(recent, source);
 
-    const prompt = [
-      "Ты отвечаешь в личном диалоге ИИ-помощника AppСтрой.",
-      "Учитывай предыдущие сообщения этого пользователя, но факты о сотрудниках, объектах, задачах, табеле, выплатах и документах проверяй через доступные данные приложения.",
-      "Не утверждай, что изменение выполнено: любые изменения должны остаться черновиком и требовать подтверждения пользователя.",
-      context ? `Предыдущие сообщения диалога:\n${context}` : "",
-      `Запрос пользователя:\n${source.body}`,
-    ].filter(Boolean).join("\n\n");
-
-    const targetFunction = functionNameFor(source.body);
-    const aiResponse = await fetch(`${supabaseUrl}/functions/v1/${targetFunction}`, {
-      method: "POST",
-      headers: {
-        "Authorization": authorization,
-        "apikey": anonKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        mode: "chat",
-        company_id: companyId,
-        object_name: objectName || null,
-        date: new Date().toISOString().slice(0, 10),
-        prompt,
-      }),
+    const global = await invokeGlobalAssistant({
+      supabaseUrl,
+      publishable,
+      authorization,
+      companyId,
+      objectName,
+      prompt: source.body,
+      context,
     });
-    const aiData = await aiResponse.json().catch(() => ({})) as JsonMap;
-    const aiError = clean(aiData.error, 1000);
-    if (!aiResponse.ok || aiError) {
-      return json({ error: aiError || "ИИ-помощник временно недоступен" }, aiResponse.status || 500);
+    let aiData = global.data;
+    let route = "ai-global-command";
+    const globalError = clean(aiData.error, 1000);
+    if (global.status < 200 || global.status >= 300 || globalError) {
+      return json({ error: globalError || "ИИ-помощник временно недоступен" }, global.status || 500);
     }
+
+    if (aiData.fallback === true) {
+      const freeformHistory = recent.filter((item) => item.id !== source.id);
+      const answer = await appAwareFreeform({
+        role,
+        objectName,
+        history: freeformHistory,
+        prompt: source.body,
+      });
+      aiData = {
+        title: "ИИ-помощник AppСтрой",
+        summary: answer,
+        highlights: [],
+        warnings: [],
+        next_steps: [],
+        scope_label: objectName ? `Объект: ${objectName}` : "Активная компания",
+        preliminary: false,
+        ai_used: true,
+        assistant_mode: "app_freeform",
+        app_knowledge_version: 1,
+      };
+      route = "ai-global-command+openai-freeform";
+    }
+
+    const storedPayload: JsonMap = {
+      ...aiData,
+      input_mode: "chat",
+      unified_assistant: true,
+    };
 
     const { data: inserted, error: insertError } = await admin
       .from("company_chat_messages")
@@ -248,10 +406,10 @@ Deno.serve(async (request: Request) => {
         channel_kind: "assistant",
         peer_user_id: user.id,
         thread_key: source.thread_key,
-        body: resultText(aiData),
+        body: resultText(storedPayload),
         reply_to_id: sourceMessageId,
         mentioned_user_ids: [user.id],
-        ai_payload: aiData,
+        ai_payload: storedPayload,
         ai_requester_user_id: user.id,
       })
       .select("id")
@@ -270,7 +428,7 @@ Deno.serve(async (request: Request) => {
     }
     if (insertError) throw insertError;
 
-    return json({ ok: true, message_id: inserted.id, function: targetFunction });
+    return json({ ok: true, message_id: inserted.id, function: route });
   } catch (error) {
     console.error("company-chat-ai failed", error);
     return json({ error: error instanceof Error ? error.message : String(error) }, 500);
