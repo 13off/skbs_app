@@ -16,6 +16,9 @@ class CompanyChatRepository {
   static RealtimeChannel? _channel;
   static String? _companyId;
   static List<CompanyChatThread> _lastThreads = const <CompanyChatThread>[];
+  static CompanyChatUnreadState? _lastUnread;
+  static Future<List<CompanyChatThread>>? _threadsRefresh;
+  static Future<CompanyChatUnreadState>? _unreadRefresh;
 
   static Stream<void> get changes => _changesController.stream;
 
@@ -24,13 +27,14 @@ class CompanyChatRepository {
     if (!delayedRetry) return;
 
     for (final delay in <Duration>[
-      Duration(milliseconds: 180),
-      Duration(milliseconds: 450),
-      Duration(milliseconds: 900),
-      Duration(milliseconds: 1600),
-      Duration(milliseconds: 2800),
-      Duration(milliseconds: 4500),
-      Duration(milliseconds: 7000),
+      Duration(milliseconds: 120),
+      Duration(milliseconds: 280),
+      Duration(milliseconds: 550),
+      Duration(milliseconds: 950),
+      Duration(milliseconds: 1500),
+      Duration(milliseconds: 2400),
+      Duration(milliseconds: 4000),
+      Duration(milliseconds: 6500),
     ]) {
       Timer(delay, () {
         if (!_changesController.isClosed) _changesController.add(null);
@@ -57,6 +61,7 @@ class CompanyChatRepository {
     stopRealtime();
     _companyId = cleanCompanyId;
     _lastThreads = const <CompanyChatThread>[];
+    _lastUnread = null;
     final channel = _client.channel(
       'company:$cleanCompanyId:chat',
       opts: const RealtimeChannelConfig(private: true),
@@ -72,6 +77,7 @@ class CompanyChatRepository {
             final table = data['table']?.toString().trim() ?? '';
             if (table == 'company_chat_messages' ||
                 table == 'company_chat_attachments') {
+              _refreshSummariesInBackground();
               _notifyChanges(delayedRetry: true);
             }
           },
@@ -87,6 +93,9 @@ class CompanyChatRepository {
     _channel = null;
     _companyId = null;
     _lastThreads = const <CompanyChatThread>[];
+    _lastUnread = null;
+    _threadsRefresh = null;
+    _unreadRefresh = null;
     if (channel != null) unawaited(_client.removeChannel(channel));
   }
 
@@ -118,6 +127,25 @@ class CompanyChatRepository {
   }
 
   static Future<List<CompanyChatThread>> fetchThreads() async {
+    if (_lastThreads.isNotEmpty) {
+      _refreshSummariesInBackground();
+      return List<CompanyChatThread>.from(_lastThreads);
+    }
+    return _refreshThreadsNow();
+  }
+
+  static Future<List<CompanyChatThread>> _refreshThreadsNow() {
+    final running = _threadsRefresh;
+    if (running != null) return running;
+    final future = _loadThreadsRemote();
+    _threadsRefresh = future;
+    future.whenComplete(() {
+      if (identical(_threadsRefresh, future)) _threadsRefresh = null;
+    });
+    return future;
+  }
+
+  static Future<List<CompanyChatThread>> _loadThreadsRemote() async {
     try {
       final data = await _client.rpc<dynamic>('get_company_chat_threads');
       final result = _list(data)
@@ -131,8 +159,6 @@ class CompanyChatRepository {
       _lastThreads = List<CompanyChatThread>.from(result);
       return result;
     } catch (_) {
-      // После отправки сообщения ленту всё равно можно обновить по уже известному
-      // треду. Временный сбой списка чатов не должен оставлять сообщение до F5.
       return List<CompanyChatThread>.from(_lastThreads);
     }
   }
@@ -150,13 +176,43 @@ class CompanyChatRepository {
   }
 
   static Future<CompanyChatUnreadState> fetchUnreadState() async {
+    final cached = _lastUnread;
+    if (cached != null) {
+      _refreshSummariesInBackground();
+      return cached;
+    }
+    return _refreshUnreadNow();
+  }
+
+  static Future<CompanyChatUnreadState> _refreshUnreadNow() {
+    final running = _unreadRefresh;
+    if (running != null) return running;
+    final future = _loadUnreadRemote();
+    _unreadRefresh = future;
+    future.whenComplete(() {
+      if (identical(_unreadRefresh, future)) _unreadRefresh = null;
+    });
+    return future;
+  }
+
+  static Future<CompanyChatUnreadState> _loadUnreadRemote() async {
     try {
       final data = await _client.rpc<dynamic>('get_company_chat_unread_state');
-      return CompanyChatUnreadState.fromMap(_map(data));
+      final result = CompanyChatUnreadState.fromMap(_map(data));
+      _lastUnread = result;
+      return result;
     } catch (_) {
-      // Служебный счётчик не должен отменять обновление видимых сообщений.
-      return const CompanyChatUnreadState.empty();
+      return _lastUnread ?? const CompanyChatUnreadState.empty();
     }
+  }
+
+  static void _refreshSummariesInBackground() {
+    unawaited(_refreshThreadsNow().catchError((_) => _lastThreads));
+    unawaited(
+      _refreshUnreadNow().catchError(
+        (_) => _lastUnread ?? const CompanyChatUnreadState.empty(),
+      ),
+    );
   }
 
   static Future<void> markRead({
@@ -164,19 +220,35 @@ class CompanyChatRepository {
     String channelKind = 'general',
     String? peerUserId,
   }) async {
+    final readAt = (at ?? DateTime.now()).toUtc().toIso8601String();
+    unawaited(
+      _markReadRemote(
+        readAt: readAt,
+        channelKind: channelKind,
+        peerUserId: peerUserId,
+      ),
+    );
+  }
+
+  static Future<void> _markReadRemote({
+    required String readAt,
+    required String channelKind,
+    String? peerUserId,
+  }) async {
     try {
       await _client.rpc<void>(
         'mark_company_chat_read',
         params: <String, dynamic>{
-          'p_read_at': (at ?? DateTime.now()).toUtc().toIso8601String(),
+          'p_read_at': readAt,
           'p_channel_kind': channelKind.trim().isEmpty
               ? 'general'
               : channelKind.trim(),
           'p_peer_user_id': _nullIfEmpty(peerUserId),
         },
       );
+      _refreshSummariesInBackground();
     } catch (_) {
-      // Статус прочтения не должен ломать отображение переписки.
+      // Статус прочтения не должен тормозить или ломать показ переписки.
     }
   }
 
@@ -207,6 +279,7 @@ class CompanyChatRepository {
     );
     final id = data?.toString().trim() ?? '';
     if (id.isEmpty) throw Exception('Не удалось создать сообщение');
+    _refreshSummariesInBackground();
     _notifyChanges(delayedRetry: true);
     return id;
   }
@@ -258,6 +331,7 @@ class CompanyChatRepository {
           })
           .select()
           .single();
+      _refreshSummariesInBackground();
       _notifyChanges(delayedRetry: true);
       return CompanyChatAttachment.fromMap(_map(row));
     } catch (_) {
@@ -271,6 +345,7 @@ class CompanyChatRepository {
       'delete_company_chat_message',
       params: <String, dynamic>{'p_message_id': messageId.trim()},
     );
+    _refreshSummariesInBackground();
     _notifyChanges(delayedRetry: true);
   }
 
@@ -297,19 +372,23 @@ class CompanyChatRepository {
       );
     }
 
-    // Ответ уже записан в БД — просим UI показать его до подготовки кнопки.
+    // Текст ChatGPT уже записан. Показываем его сразу; подготовка кнопки
+    // действия идёт отдельно и больше не увеличивает время ответа.
+    _refreshSummariesInBackground();
     _notifyChanges(delayedRetry: true);
+    unawaited(_prepareAiAction(body));
+  }
 
+  static Future<void> _prepareAiAction(Map<String, dynamic> body) async {
     try {
       await _client.functions.invoke(
         'company-chat-action-preparer',
         body: body,
       );
+      _notifyChanges(delayedRetry: true);
     } catch (_) {
-      // Ответ ChatGPT остаётся доступным даже при ошибке моста действий.
+      // Текстовый ответ ChatGPT не зависит от моста действий.
     }
-
-    _notifyChanges(delayedRetry: true);
   }
 
   static Future<String> createSignedAttachmentUrl(
