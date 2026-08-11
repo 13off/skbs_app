@@ -253,7 +253,7 @@ class CompanyChatRepository {
     String? objectName,
   }) async {
     final response = await _client.functions.invoke(
-      'company-chat-ai',
+      'company-chat-gpt',
       body: <String, dynamic>{
         'company_id': companyId.trim(),
         'source_message_id': sourceMessageId.trim(),
@@ -264,7 +264,7 @@ class CompanyChatRepository {
     final error = data['error']?.toString().trim() ?? '';
     if (response.status < 200 || response.status >= 300 || error.isNotEmpty) {
       throw Exception(
-        error.isEmpty ? 'ИИ-помощник временно недоступен' : error,
+        error.isEmpty ? 'ChatGPT временно недоступен' : error,
       );
     }
     _notifyChanges(delayedRetry: true);
