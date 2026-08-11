@@ -82,9 +82,28 @@ function isFunctionalRequest(prompt: string): boolean {
   const value = normalize(prompt);
   const direct = /(?:скач|выгруз|экспорт|сформир|сохрани\s+файл|скин\s+таблиц)/.test(value);
   if (direct) return true;
-  const verb = /(?:созда|добав|сохран|запол|простав|отмет|измен|исправ|назнач|перевед|отправ|удал|архив|восстанов|подготов|открой|запиш|провед|сдел)/.test(value);
+  const verb = /(?:созда|добав|сохран|запол|простав|постав|отмет|измен|исправ|назнач|перевед|отправ|удал|архив|восстанов|подготов|открой|запиш|провед|сдел)/.test(value);
   const domain = /(?:табел|смен|выплат|аванс|остатк|долг|зарплат|задач|сотрудник|работник|кандидат|соискател|документ|таблиц|отчет|снабжен|закуп|поставщик|объект|вех|цел|чек|билет|вылет|юрид|претенз|акт|уведом|профил|геолокац|рабоч.*день)/.test(value);
   return verb && domain;
+}
+
+function requestedMonth(prompt: string): string {
+  const value = normalize(prompt);
+  const iso = value.match(/\b(20\d{2})[-./](0?[1-9]|1[0-2])\b/);
+  if (iso) return `${iso[1]}-${String(Number(iso[2])).padStart(2, "0")}`;
+
+  const names: Array<[RegExp, number]> = [
+    [/январ/, 1], [/феврал/, 2], [/март/, 3], [/апрел/, 4], [/ма[йя]/, 5],
+    [/июн/, 6], [/июл/, 7], [/август/, 8], [/сентябр/, 9], [/октябр/, 10],
+    [/ноябр/, 11], [/декабр/, 12],
+  ];
+  const yearMatch = value.match(/\b(20\d{2})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : new Date().getFullYear();
+  for (const [pattern, month] of names) {
+    if (pattern.test(value)) return `${year}-${String(month).padStart(2, "0")}`;
+  }
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function actionLabel(type: string, action: JsonMap): string {
@@ -104,6 +123,8 @@ function actionLabel(type: string, action: JsonMap): string {
     send_candidate_message: "Проверить и отправить сообщение",
     open_period_timesheet: "Открыть таблицу табеля",
     open_candidate_detail: "Открыть кандидата",
+    download_timesheet_excel: "Скачать таблицу табеля",
+    download_payment_report: "Скачать таблицу выплат",
   };
   if (labels[type]) return labels[type];
   if (type === "open_screen") {
@@ -129,15 +150,19 @@ function actionLabel(type: string, action: JsonMap): string {
 function normalizeAction(action: JsonMap, sourceMessageId: string): JsonMap {
   const type = clean(action.type, 100);
   if (!type) return {};
+  const clickIsConfirmation = new Set([
+    "open_screen",
+    "open_candidate_detail",
+    "download_timesheet_excel",
+    "download_payment_report",
+  ]).has(type);
   return {
     ...action,
     id: clean(action.id, 160) || `chatgpt-action-${sourceMessageId}`,
     type,
     title: clean(action.title, 240) || "Действие AppСтрой",
     button_label: actionLabel(type, action),
-    confirmation_required: type === "open_screen" || type === "open_candidate_detail"
-      ? false
-      : action.confirmation_required !== false,
+    confirmation_required: clickIsConfirmation ? false : action.confirmation_required !== false,
     payload: mapValue(action.payload),
   };
 }
@@ -154,15 +179,49 @@ function fallbackAction({
   topic: string;
 }): JsonMap {
   const value = normalize(`${prompt} ${topic}`);
+  const exportLike = /(?:скач|выгруз|экспорт|таблиц|отчет)/.test(value);
+  const paymentDomain = /(?:выплат|аванс|остатк|долг|зарплат|чек|расчетн)/.test(value);
+  const timesheetDomain = /(?:табел|смен|выход|явк)/.test(value);
+
+  if (exportLike && paymentDomain) {
+    return {
+      id: `chatgpt-payment-export-${sourceMessageId}`,
+      type: "download_payment_report",
+      title: `Скачать таблицу выплат за ${requestedMonth(prompt)}`,
+      button_label: "Скачать таблицу выплат",
+      confirmation_required: false,
+      payload: {
+        month: requestedMonth(prompt),
+        object_name: objectName || null,
+        source: "chatgpt_function_bridge",
+      },
+    };
+  }
+
+  if (exportLike && timesheetDomain) {
+    return {
+      id: `chatgpt-timesheet-export-${sourceMessageId}`,
+      type: "download_timesheet_excel",
+      title: `Скачать табель за ${requestedMonth(prompt)}`,
+      button_label: "Скачать таблицу табеля",
+      confirmation_required: false,
+      payload: {
+        month: requestedMonth(prompt),
+        object_name: objectName || null,
+        source: "chatgpt_function_bridge",
+      },
+    };
+  }
+
   let screen = "tools";
   let title = "Открыть инструменты AppСтрой";
 
-  if (/(?:выплат|аванс|остатк|долг|зарплат|чек|расчетн)/.test(value)) {
+  if (paymentDomain) {
     screen = "payments";
-    title = "Открыть выплаты и подготовить выгрузку";
-  } else if (/(?:табел|смен|выход|явк)/.test(value)) {
+    title = "Открыть выплаты";
+  } else if (timesheetDomain) {
     screen = "timesheet";
-    title = "Открыть табель для проверки и выгрузки";
+    title = "Открыть табель";
   } else if (/(?:задач|наряд|работ)/.test(value)) {
     screen = "tasks";
     title = "Открыть задачи";
@@ -192,18 +251,11 @@ function fallbackAction({
     title = "Открыть настройки";
   }
 
-  const exportLike = /(?:скач|выгруз|экспорт|таблиц|отчет)/.test(value);
-  const button = exportLike && screen === "payments"
-    ? "Открыть выплаты и выгрузку"
-    : exportLike && screen === "timesheet"
-    ? "Открыть табель и скачать"
-    : `Подтвердить: ${title.toLowerCase()}`;
-
   return {
     id: `chatgpt-fallback-${sourceMessageId}`,
     type: "open_screen",
     title,
-    button_label: button,
+    button_label: `Подтвердить: ${title.toLowerCase()}`,
     confirmation_required: false,
     payload: {
       screen,
