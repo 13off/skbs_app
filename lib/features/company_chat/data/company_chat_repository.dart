@@ -139,13 +139,33 @@ class CompanyChatRepository {
   }
 
   static Future<CompanyChatUnreadState> fetchUnreadState() async {
-    final data = await _client.rpc<dynamic>('get_company_chat_unread_state');
-    return CompanyChatUnreadState.fromMap(_map(data));
+    try {
+      final data = await _client.rpc<dynamic>('get_company_chat_unread_state');
+      return CompanyChatUnreadState.fromMap(_map(data));
+    } catch (_) {
+      // Счётчик непрочитанных служебный: ошибка не должна блокировать ленту.
+      return const CompanyChatUnreadState.empty();
+    }
   }
 
   static Future<void> markRead({
     DateTime? at,
     String channelKind = 'general',
+    String? peerUserId,
+  }) {
+    // Пометка прочитанного не влияет на содержимое переписки, поэтому не
+    // блокируем ею setState/отрисовку новых сообщений.
+    unawaited(_markReadInBackground(
+      at: at,
+      channelKind: channelKind,
+      peerUserId: peerUserId,
+    ));
+    return Future<void>.value();
+  }
+
+  static Future<void> _markReadInBackground({
+    DateTime? at,
+    required String channelKind,
     String? peerUserId,
   }) async {
     try {
@@ -160,7 +180,7 @@ class CompanyChatRepository {
         },
       );
     } catch (_) {
-      // Статус прочтения не должен ломать отображение переписки.
+      // Следующая успешная синхронизация обновит статус прочтения.
     }
   }
 
@@ -285,18 +305,23 @@ class CompanyChatRepository {
     // дожидаясь подготовки кнопки действия.
     _notifyChanges(delayedRetry: true);
 
+    unawaited(_prepareActionInBackground(body));
+  }
+
+  static Future<void> _prepareActionInBackground(
+    Map<String, dynamic> body,
+  ) async {
     try {
       await _client.functions.invoke(
         'company-chat-action-preparer',
         body: body,
       );
     } catch (_) {
-      // Текстовый ответ ChatGPT не должен пропадать из-за временной ошибки
-      // моста действий.
+      // Текстовый ответ уже показан; действие можно подготовить позднее.
+    } finally {
+      // Если action появился после подготовки — обновим пузырь ещё раз.
+      _notifyChanges(delayedRetry: true);
     }
-
-    // Если action появился после подготовки — обновим пузырь ещё раз.
-    _notifyChanges(delayedRetry: true);
   }
 
   static Future<String> createSignedAttachmentUrl(
