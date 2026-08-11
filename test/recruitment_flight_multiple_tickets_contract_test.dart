@@ -7,7 +7,7 @@ String source(String path) => File(path).readAsStringSync();
 void main() {
   test('flight attachments are normalized and old tickets are backfilled', () {
     final migration = source(
-      'supabase/migrations/20260811090000_recruitment_flight_multiple_tickets.sql',
+      'supabase/migrations/20260811061224_recruitment_flight_multiple_tickets.sql',
     );
 
     expect(migration, contains('public.recruitment_flight_tickets'));
