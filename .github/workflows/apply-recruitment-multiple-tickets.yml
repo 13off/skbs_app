@@ -1,0 +1,728 @@
+name: Apply recruitment multiple tickets patch
+
+on:
+  push:
+    branches:
+      - feature/recruitment-multiple-flight-tickets
+    paths:
+      - .github/workflows/apply-recruitment-multiple-tickets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recruitment-multiple-flight-tickets
+          fetch-depth: 0
+
+      - name: Patch flight repository and calendar UI
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one replacement, found {count}')
+              file.write_text(text.replace(old, new, 1))
+
+          repo = 'lib/features/recruitment/data/recruitment_flight_repository.dart'
+          screen = 'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart'
+
+          replace_once(
+              repo,
+              "abstract final class RecruitmentFlightRepository {\n  static final SupabaseClient _client = Supabase.instance.client;\n  static const String ticketBucket = 'recruitment-documents';",
+              "class RecruitmentFlightTicketUpload {\n  final String fileName;\n  final Uint8List bytes;\n\n  const RecruitmentFlightTicketUpload({\n    required this.fileName,\n    required this.bytes,\n  });\n}\n\nabstract final class RecruitmentFlightRepository {\n  static final SupabaseClient _client = Supabase.instance.client;\n  static const String ticketBucket = 'recruitment-documents';\n  static const int maxTicketsPerFlight = 10;\n  static const int maxTicketBytes = 20 * 1024 * 1024;\n  static const int maxTotalTicketBytes = 100 * 1024 * 1024;"
+          )
+
+          marker = "  static Future<RecruitmentFlightCalendarData> fetchCalendar({\n"
+          addition = """  static Future<List<RecruitmentFlightTicket>> fetchFlightTickets({
+    required String companyId,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlightTicket>[];
+    final rows = await _client
+        .from('recruitment_flight_tickets')
+        .select()
+        .eq('company_id', cleanCompanyId)
+        .order('created_at', ascending: true)
+        .order('id', ascending: true)
+        .limit(10000);
+    return rows
+        .map<RecruitmentFlightTicket>(
+          (row) => RecruitmentFlightTicket.fromMap(_map(row)),
+        )
+        .where((ticket) => ticket.id.isNotEmpty && ticket.flightId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+"""
+          text = Path(repo).read_text()
+          if marker not in text or 'fetchFlightTickets({' in text:
+              raise SystemExit('repository: fetchFlightTickets insertion marker mismatch')
+          Path(repo).write_text(text.replace(marker, addition + marker, 1))
+
+          replace_once(
+              repo,
+              """    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      fetchCandidates(companyId: companyId),
+      fetchFlights(companyId: companyId),
+    ]);
+    final candidates = results[0] as List<RecruitmentFlightCandidate>;
+    final flights = results[1] as List<RecruitmentFlight>;
+    final candidatesById = <String, RecruitmentFlightCandidate>{
+      for (final candidate in candidates) candidate.applicationId: candidate,
+    };
+    final entries = flights
+        .map((flight) {
+          final candidate = candidatesById[flight.applicationId];
+          if (candidate == null) return null;
+          return RecruitmentFlightEntry(flight: flight, candidate: candidate);
+        })
+""",
+              """    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      fetchCandidates(companyId: companyId),
+      fetchFlights(companyId: companyId),
+      fetchFlightTickets(companyId: companyId),
+    ]);
+    final candidates = results[0] as List<RecruitmentFlightCandidate>;
+    final flights = results[1] as List<RecruitmentFlight>;
+    final tickets = results[2] as List<RecruitmentFlightTicket>;
+    final candidatesById = <String, RecruitmentFlightCandidate>{
+      for (final candidate in candidates) candidate.applicationId: candidate,
+    };
+    final ticketsByFlight = <String, List<RecruitmentFlightTicket>>{};
+    for (final ticket in tickets) {
+      ticketsByFlight.putIfAbsent(ticket.flightId, () => <RecruitmentFlightTicket>[])
+          .add(ticket);
+    }
+    final entries = flights
+        .map((flight) {
+          final candidate = candidatesById[flight.applicationId];
+          if (candidate == null) return null;
+          final attachments = <RecruitmentFlightTicket>[
+            ...?ticketsByFlight[flight.id],
+          ];
+          if (attachments.isEmpty && flight.hasTicket) {
+            attachments.add(RecruitmentFlightTicket.fromLegacy(flight));
+          }
+          return RecruitmentFlightEntry(
+            flight: flight,
+            candidate: candidate,
+            tickets: List<RecruitmentFlightTicket>.unmodifiable(attachments),
+          );
+        })
+"""
+          )
+
+          replace_once(
+              repo,
+              """    Uint8List? ticketBytes,
+    String ticketFileName = '',
+    RecruitmentFlight? existing,
+""",
+              """    Uint8List? ticketBytes,
+    String ticketFileName = '',
+    List<RecruitmentFlightTicketUpload> ticketUploads =
+        const <RecruitmentFlightTicketUpload>[],
+    RecruitmentFlight? existing,
+"""
+          )
+
+          replace_once(
+              repo,
+              """    final ticket = <String, dynamic>{
+      'ticket_bucket': existing?.ticketBucket ?? '',
+      'ticket_path': existing?.ticketPath ?? '',
+      'ticket_original_name': existing?.ticketOriginalName ?? '',
+      'ticket_mime_type': existing?.ticketMimeType ?? '',
+      'ticket_size_bytes': existing?.ticketSizeBytes,
+    };
+    if (ticketBytes != null) {
+      ticket.addAll(
+        await _uploadTicket(
+          companyId: candidate.companyId,
+          applicationId: candidate.applicationId,
+          fileName: ticketFileName,
+          bytes: ticketBytes,
+        ),
+      );
+    }
+    if ((ticket['ticket_path']?.toString() ?? '').isEmpty) {
+      throw Exception('Прикрепите купленный билет');
+    }
+""",
+              """    final newAttachmentCount = ticketUploads.length + (ticketBytes == null ? 0 : 1);
+    if (newAttachmentCount > maxTicketsPerFlight) {
+      throw Exception('К одному вылету можно прикрепить не больше $maxTicketsPerFlight билетов');
+    }
+    var existingTicketCount = 0;
+    if (flightId.trim().isNotEmpty && newAttachmentCount > 0) {
+      final existingRows = await _client
+          .from('recruitment_flight_tickets')
+          .select('id')
+          .eq('company_id', candidate.companyId)
+          .eq('flight_id', flightId.trim())
+          .limit(maxTicketsPerFlight + 1);
+      existingTicketCount = existingRows.length;
+    }
+    if (existingTicketCount + newAttachmentCount > maxTicketsPerFlight) {
+      throw Exception('К одному вылету можно прикрепить не больше $maxTicketsPerFlight билетов');
+    }
+
+    final ticket = <String, dynamic>{
+      'ticket_bucket': existing?.ticketBucket ?? '',
+      'ticket_path': existing?.ticketPath ?? '',
+      'ticket_original_name': existing?.ticketOriginalName ?? '',
+      'ticket_mime_type': existing?.ticketMimeType ?? '',
+      'ticket_size_bytes': existing?.ticketSizeBytes,
+    };
+    final uploadedAttachments = <Map<String, dynamic>>[];
+    if (ticketBytes != null) {
+      if (ticketBytes.length > maxTicketBytes) {
+        throw Exception('Файл билета должен быть меньше 20 МБ');
+      }
+      final uploaded = await _uploadTicket(
+        companyId: candidate.companyId,
+        applicationId: candidate.applicationId,
+        fileName: ticketFileName,
+        bytes: ticketBytes,
+      );
+      ticket.addAll(uploaded);
+      uploadedAttachments.add(uploaded);
+    }
+    var totalNewBytes = ticketBytes?.length ?? 0;
+    for (final upload in ticketUploads) {
+      if (upload.bytes.isEmpty) throw Exception('Файл билета пустой');
+      if (upload.bytes.length > maxTicketBytes) {
+        throw Exception('${upload.fileName}: файл билета должен быть меньше 20 МБ');
+      }
+      totalNewBytes += upload.bytes.length;
+      if (totalNewBytes > maxTotalTicketBytes) {
+        throw Exception('Общий размер новых билетов должен быть не больше 100 МБ');
+      }
+      uploadedAttachments.add(
+        await _uploadTicket(
+          companyId: candidate.companyId,
+          applicationId: candidate.applicationId,
+          fileName: upload.fileName,
+          bytes: upload.bytes,
+        ),
+      );
+    }
+    if ((ticket['ticket_path']?.toString() ?? '').isEmpty &&
+        uploadedAttachments.isNotEmpty) {
+      ticket.addAll(uploadedAttachments.first);
+    }
+    if ((ticket['ticket_path']?.toString() ?? '').isEmpty) {
+      throw Exception('Прикрепите хотя бы один купленный билет');
+    }
+"""
+          )
+
+          replace_once(
+              repo,
+              """    final result = RecruitmentFlight.fromMap(_map(row));
+    _notify(result.id);
+    return result;
+""",
+              """    final result = RecruitmentFlight.fromMap(_map(row));
+    if (uploadedAttachments.isNotEmpty) {
+      final rows = uploadedAttachments
+          .map(
+            (item) => <String, dynamic>{
+              'company_id': candidate.companyId,
+              'flight_id': result.id,
+              'bucket': item['ticket_bucket'],
+              'path': item['ticket_path'],
+              'original_name': item['ticket_original_name'],
+              'mime_type': item['ticket_mime_type'],
+              'size_bytes': item['ticket_size_bytes'],
+              'created_by': userId,
+            },
+          )
+          .toList(growable: false);
+      await _client.from('recruitment_flight_tickets').insert(rows);
+    }
+    _notify(result.id);
+    return result;
+"""
+          )
+
+          replace_once(
+              repo,
+              """  static Future<String> createTicketUrl(RecruitmentFlight flight) async {
+    if (!flight.hasTicket) throw Exception('Билет не прикреплён');
+    return _client.storage
+        .from(flight.ticketBucket)
+        .createSignedUrl(flight.ticketPath, 300);
+  }
+""",
+              """  static Future<String> createTicketUrl(RecruitmentFlight flight) async {
+    if (!flight.hasTicket) throw Exception('Билет не прикреплён');
+    return _client.storage
+        .from(flight.ticketBucket)
+        .createSignedUrl(flight.ticketPath, 300);
+  }
+
+  static Future<String> createFlightTicketUrl(
+    RecruitmentFlightTicket ticket,
+  ) async {
+    if (ticket.bucket.trim().isEmpty || ticket.path.trim().isEmpty) {
+      throw Exception('Билет не прикреплён');
+    }
+    return _client.storage.from(ticket.bucket).createSignedUrl(ticket.path, 300);
+  }
+"""
+          )
+
+          # Calendar UI: ticket list, multi-select and additive editor.
+          replace_once(screen, "import 'dart:typed_data';\n\n", '')
+
+          replace_once(
+              screen,
+              """  String timeTitle(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+""",
+              """  String timeTitle(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String ticketCountText(int count) => switch (count) {
+    1 => '1 билет',
+    2 || 3 || 4 => '$count билета',
+    _ => '$count билетов',
+  };
+"""
+          )
+
+          replace_once(
+              screen,
+              """  Future<void> openTicket(RecruitmentFlight flight) async {
+    try {
+      final url = await RecruitmentFlightRepository.createTicketUrl(flight);
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw Exception('Не удалось открыть билет');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть билет: $error')),
+      );
+    }
+  }
+""",
+              """  Future<void> openTicket(RecruitmentFlightTicket ticket) async {
+    try {
+      final url = await RecruitmentFlightRepository.createFlightTicketUrl(ticket);
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw Exception('Не удалось открыть билет');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть билет: $error')),
+      );
+    }
+  }
+
+  Future<void> openTickets(RecruitmentFlightEntry entry) async {
+    final tickets = entry.tickets;
+    if (tickets.isEmpty) return;
+    if (tickets.length == 1) {
+      await openTicket(tickets.first);
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        itemCount: tickets.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (_, index) {
+          final ticket = tickets[index];
+          return ListTile(
+            leading: const Icon(Icons.confirmation_number_outlined),
+            title: Text(
+              ticket.originalName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text('Билет ${index + 1} из ${tickets.length}'),
+            trailing: const Icon(Icons.open_in_new_rounded),
+            onTap: () async {
+              Navigator.of(sheetContext).pop();
+              await openTicket(ticket);
+            },
+          );
+        },
+      ),
+    );
+  }
+"""
+          )
+
+          replace_once(
+              screen,
+              """    final flight = entry.flight;
+    final reminderBusy = reminderBusyIds.contains(flight.id);
+""",
+              """    final flight = entry.flight;
+    final ticketCount = entry.tickets.length;
+    final reminderBusy = reminderBusyIds.contains(flight.id);
+"""
+          )
+
+          replace_once(
+              screen,
+              """                _FlightChip(
+                  icon: flight.hasTicket
+                      ? Icons.attachment_rounded
+                      : Icons.warning_amber_rounded,
+                  text: flight.hasTicket ? 'Билет прикреплён' : 'Нет билета',
+                ),
+""",
+              """                _FlightChip(
+                  icon: ticketCount > 0
+                      ? Icons.attachment_rounded
+                      : Icons.warning_amber_rounded,
+                  text: ticketCount > 0 ? ticketCountText(ticketCount) : 'Нет билета',
+                ),
+"""
+          )
+
+          replace_once(
+              screen,
+              """                  child: OutlinedButton.icon(
+                    onPressed: flight.hasTicket ? () => openTicket(flight) : null,
+                    icon: const Icon(Icons.confirmation_number_outlined),
+                    label: const Text('Билет'),
+                  ),
+""",
+              """                  child: OutlinedButton.icon(
+                    onPressed: ticketCount > 0 ? () => openTickets(entry) : null,
+                    icon: const Icon(Icons.confirmation_number_outlined),
+                    label: Text(ticketCount > 1 ? 'Билеты ($ticketCount)' : 'Билет'),
+                  ),
+"""
+          )
+
+          replace_once(
+              screen,
+              """  Uint8List? ticketBytes;
+  String ticketFileName = '';
+  bool saving = false;
+""",
+              """  final List<RecruitmentFlightTicketUpload> pendingTickets =
+      <RecruitmentFlightTicketUpload>[];
+  bool saving = false;
+"""
+          )
+
+          replace_once(
+              screen,
+              """  Future<void> chooseTicket() async {
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[
+        XTypeGroup(
+          label: 'Билет',
+          extensions: <String>['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic'],
+        ),
+      ],
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (!mounted) return;
+    if (bytes.length > 20 * 1024 * 1024) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Файл билета должен быть меньше 20 МБ')),
+      );
+      return;
+    }
+    setState(() {
+      ticketBytes = bytes;
+      ticketFileName = file.name;
+    });
+  }
+""",
+              """  Future<void> chooseTickets() async {
+    final existingTickets = widget.entry?.tickets ?? const <RecruitmentFlightTicket>[];
+    final remaining = RecruitmentFlightRepository.maxTicketsPerFlight -
+        existingTickets.length -
+        pendingTickets.length;
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'К одному вылету можно прикрепить не больше ${RecruitmentFlightRepository.maxTicketsPerFlight} билетов',
+          ),
+        ),
+      );
+      return;
+    }
+    final files = await openFiles(
+      acceptedTypeGroups: const <XTypeGroup>[
+        XTypeGroup(
+          label: 'Билеты',
+          extensions: <String>['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic'],
+        ),
+      ],
+    );
+    if (files.isEmpty) return;
+
+    final selectedFiles = files.take(remaining).toList(growable: false);
+    final additions = <RecruitmentFlightTicketUpload>[];
+    var totalBytes = pendingTickets.fold<int>(0, (sum, item) => sum + item.bytes.length);
+    final rejected = <String>[];
+    for (final file in selectedFiles) {
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty || bytes.length > RecruitmentFlightRepository.maxTicketBytes) {
+        rejected.add(file.name);
+        continue;
+      }
+      if (totalBytes + bytes.length > RecruitmentFlightRepository.maxTotalTicketBytes) {
+        rejected.add(file.name);
+        continue;
+      }
+      final duplicate = pendingTickets.any(
+        (item) => item.fileName == file.name && item.bytes.length == bytes.length,
+      );
+      if (duplicate) continue;
+      totalBytes += bytes.length;
+      additions.add(
+        RecruitmentFlightTicketUpload(fileName: file.name, bytes: bytes),
+      );
+    }
+    if (!mounted) return;
+    setState(() => pendingTickets.addAll(additions));
+    if (files.length > remaining || rejected.isNotEmpty) {
+      final details = <String>[
+        if (files.length > remaining) 'лишние файлы не добавлены: лимит 10 билетов',
+        if (rejected.isNotEmpty) 'пропущено файлов: ${rejected.length}',
+      ];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(details.join(' · '))),
+      );
+    }
+  }
+"""
+          )
+
+          replace_once(
+              screen,
+              """        ticketBytes: ticketBytes,
+        ticketFileName: ticketFileName,
+        existing: widget.entry?.flight,
+""",
+              """        ticketUploads: List<RecruitmentFlightTicketUpload>.unmodifiable(
+          pendingTickets,
+        ),
+        existing: widget.entry?.flight,
+"""
+          )
+
+          replace_once(
+              screen,
+              """    final existingTicket = widget.entry?.flight.ticketOriginalName ?? '';
+    final displayedTicket = ticketFileName.isNotEmpty
+        ? ticketFileName
+        : existingTicket;
+""",
+              """    final existingTickets =
+        widget.entry?.tickets ?? const <RecruitmentFlightTicket>[];
+    final totalTicketCount = existingTickets.length + pendingTickets.length;
+"""
+          )
+
+          replace_once(
+              screen,
+              """          PremiumWorkCard(
+            radius: 22,
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Купленный билет',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  displayedTicket.isEmpty
+                      ? 'Прикрепи PDF или фотографию билета. Без файла вылет не сохранится.'
+                      : displayedTicket,
+                  style: TextStyle(
+                    color: displayedTicket.isEmpty
+                        ? AppAdaptivePalette.textMuted
+                        : AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: saving ? null : chooseTicket,
+                  icon: const Icon(Icons.attach_file_rounded),
+                  label: Text(
+                    displayedTicket.isEmpty ? 'Прикрепить билет' : 'Заменить билет',
+                  ),
+                ),
+              ],
+            ),
+          ),
+""",
+              """          PremiumWorkCard(
+            radius: 22,
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Купленные билеты',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  totalTicketCount == 0
+                      ? 'Можно выбрать сразу несколько PDF или фотографий. Без хотя бы одного файла вылет не сохранится.'
+                      : 'Прикреплено: $totalTicketCount из ${RecruitmentFlightRepository.maxTicketsPerFlight}',
+                  style: TextStyle(
+                    color: totalTicketCount == 0
+                        ? AppAdaptivePalette.textMuted
+                        : AppAdaptivePalette.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (existingTickets.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...existingTickets.map(
+                    (ticket) => _TicketFileRow(
+                      fileName: ticket.originalName,
+                      saved: true,
+                    ),
+                  ),
+                ],
+                if (pendingTickets.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...pendingTickets.asMap().entries.map(
+                    (item) => _TicketFileRow(
+                      fileName: item.value.fileName,
+                      saved: false,
+                      onRemove: saving
+                          ? null
+                          : () => setState(() => pendingTickets.removeAt(item.key)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: saving ||
+                          totalTicketCount >= RecruitmentFlightRepository.maxTicketsPerFlight
+                      ? null
+                      : chooseTickets,
+                  icon: const Icon(Icons.attach_file_rounded),
+                  label: Text(
+                    totalTicketCount == 0 ? 'Прикрепить билеты' : 'Добавить ещё билеты',
+                  ),
+                ),
+              ],
+            ),
+          ),
+"""
+          )
+
+          marker = 'class _FlightChip extends StatelessWidget {'
+          ticket_row = """class _TicketFileRow extends StatelessWidget {
+  final String fileName;
+  final bool saved;
+  final VoidCallback? onRemove;
+
+  const _TicketFileRow({
+    required this.fileName,
+    required this.saved,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(
+            saved ? Icons.check_circle_outline_rounded : Icons.schedule_rounded,
+            size: 18,
+            color: saved
+                ? AppAdaptivePalette.accentStrong
+                : AppAdaptivePalette.textMuted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  saved ? 'Сохранён в календаре' : 'Будет добавлен после сохранения',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onRemove != null)
+            IconButton(
+              tooltip: 'Убрать файл',
+              onPressed: onRemove,
+              icon: const Icon(Icons.close_rounded),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+"""
+          text = Path(screen).read_text()
+          if marker not in text or 'class _TicketFileRow' in text:
+              raise SystemExit('screen: ticket row insertion marker mismatch')
+          Path(screen).write_text(text.replace(marker, ticket_row + marker, 1))
+
+          # Remove this one-shot workflow after producing the real code diff.
+          Path('.github/workflows/apply-recruitment-multiple-tickets.yml').unlink()
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Поддержать несколько билетов в календаре вылетов"
+          git push origin HEAD:feature/recruitment-multiple-flight-tickets
