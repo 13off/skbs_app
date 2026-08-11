@@ -1,1 +1,1 @@
-Fix queued refresh for company chat message visibility.
+Run unified AI chat hotfix 2026-08-11 13:52 MSK.
