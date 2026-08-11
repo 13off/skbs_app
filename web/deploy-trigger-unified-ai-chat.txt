@@ -1,5 +1,5 @@
 Publish ChatGPT-only experiment: hide legacy AI chat and voice, expose ChatGPT connected to AppStroy. 2026-08-11.
 Refresh fix: make sent messages and ChatGPT replies appear without manual page reload on web/PWA.
 Action bridge: functional ChatGPT requests prepare AppStroy confirmation/action buttons.
-Stable message refresh: unread-counter failures no longer cancel visible feed refresh; ChatGPT emits refresh before action preparation; retries extended.
-Rebuild source cfcc471.
+Stable message refresh: thread/unread summary failures no longer cancel visible feed refresh; ChatGPT emits refresh before action preparation; retries extended.
+Rebuild source f3bad6e.
