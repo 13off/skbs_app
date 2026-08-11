@@ -37,7 +37,7 @@ void main() {
     ]);
   });
 
-  test('главная сохраняет объект и отчёты, ИИ остаётся внутри чата', () {
+  test('главная сохраняет объект и отчёты, ChatGPT остаётся внутри чата', () {
     final home = <String>[
       'lib/screens/home_screen.dart',
       'lib/screens/home/home_actions.dart',
@@ -49,6 +49,9 @@ void main() {
     final chat = source(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     );
+    final repository = source(
+      'lib/features/company_chat/data/company_chat_repository.dart',
+    );
 
     expectFragments('главной', home, const <String>[
       'onObjectChanged',
@@ -57,10 +60,11 @@ void main() {
     ]);
     expect(home, isNot(contains("heroTag: 'home-ai-assistant'")));
     expectFragments('чата', chat, const <String>[
-      "'ИИ-помощник'",
-      "'Временно недоступен'",
-      'Icons.lock_rounded',
+      "'ChatGPT'",
+      "'ChatGPT с доступом к AppСтрой'",
+      "'Сообщение ChatGPT…'",
     ]);
+    expect(repository, contains("'company-chat-gpt'"));
   });
 
   test('сотрудники сохраняют добавление, карточку, выплаты и сводку', () {
