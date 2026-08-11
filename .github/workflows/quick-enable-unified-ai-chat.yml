@@ -1,0 +1,172 @@
+name: Quick enable unified AI chat
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/unified-ai-chat-quick.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch company chat shell
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/features/company_chat/presentation/company_chat_shell.dart')
+          s = p.read_text(encoding='utf-8')
+
+          def once(old, new):
+              global s
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f'expected 1 match, got {n}: {old[:120]!r}')
+              s = s.replace(old, new, 1)
+
+          anchor = "import 'package:url_launcher/url_launcher.dart';\n\n"
+          imports = "import '../../../features/ai/actions/ai_action_execution_coordinator.dart';\nimport '../../../features/ai/models/ai_assistant_result.dart';\n"
+          if imports not in s:
+              once(anchor, anchor + imports)
+          once('const bool _aiAssistantLocked = true;', 'const bool _aiAssistantLocked = false;')
+          once(
+              '  final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];\n',
+              '  final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];\n  final Set<String> runningActionIds = <String>{};\n',
+          )
+
+          method_anchor = '  Future<void> openAttachment(CompanyChatAttachment attachment) async {\n'
+          method = '''  Future<void> runAiAction(CompanyChatMessage message) async {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return;
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty || runningActionIds.contains(action.id)) return;
+    setState(() => runningActionIds.add(action.id));
+    try {
+      final result = await AiActionExecutionCoordinator.execute(
+        context: context,
+        profile: widget.profile,
+        action: action,
+      );
+      showMessage(result.message);
+      await refreshWorkspace(markAsRead: true);
+    } catch (error) {
+      showMessage('Действие не выполнено: ${_error(error)}');
+    } finally {
+      if (mounted) setState(() => runningActionIds.remove(action.id));
+    }
+  }
+
+'''
+          if method not in s:
+              once(method_anchor, method + method_anchor)
+
+          once(
+              '                        onSend: sendMessage,\n                        onOpenAttachment: openAttachment,\n',
+              '                        onSend: sendMessage,\n                        runningActionIds: runningActionIds,\n                        onRunAiAction: runAiAction,\n                        onOpenAttachment: openAttachment,\n',
+          )
+          once(
+              '  final VoidCallback onSend;\n  final ValueChanged<CompanyChatAttachment> onOpenAttachment;\n',
+              '  final VoidCallback onSend;\n  final Set<String> runningActionIds;\n  final ValueChanged<CompanyChatMessage> onRunAiAction;\n  final ValueChanged<CompanyChatAttachment> onOpenAttachment;\n',
+          )
+          once(
+              '    required this.onSend,\n    required this.onOpenAttachment,\n',
+              '    required this.onSend,\n    required this.runningActionIds,\n    required this.onRunAiAction,\n    required this.onOpenAttachment,\n',
+          )
+
+          stamp = '''            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                _time(message.createdAt),
+'''
+          action = '''            if (assistant && message.hasAiAction && !message.isDeleted) ...[
+              const SizedBox(height: 8),
+              _AiActionButton(
+                message: message,
+                runningActionIds: runningActionIds,
+                onPressed: () => onRunAiAction(message),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                _time(message.createdAt),
+'''
+          once(stamp, action)
+
+          class_anchor = 'class _ThreadSidebar extends StatelessWidget {\n'
+          button = '''class _AiActionButton extends StatelessWidget {
+  final CompanyChatMessage message;
+  final Set<String> runningActionIds;
+  final VoidCallback onPressed;
+
+  const _AiActionButton({
+    required this.message,
+    required this.runningActionIds,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return const SizedBox.shrink();
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty) return const SizedBox.shrink();
+    final running = runningActionIds.contains(action.id);
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonalIcon(
+        onPressed: running ? null : onPressed,
+        icon: running
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.fact_check_outlined, size: 18),
+        label: Text(action.buttonLabel),
+      ),
+    );
+  }
+}
+
+'''
+          if button not in s:
+              once(class_anchor, button + class_anchor)
+
+          required = [
+              'const bool _aiAssistantLocked = false;',
+              'AiActionExecutionCoordinator.execute(',
+              'message.hasAiAction',
+              'onRunAiAction',
+              'action.buttonLabel',
+          ]
+          for item in required:
+              if item not in s:
+                  raise SystemExit(f'missing patched contract: {item}')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          rm -f .github/workflows/quick-enable-unified-ai-chat.yml release/unified-ai-chat-quick.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Разблокировать письменный ИИ-чат и действия"
+          git push
