@@ -49,6 +49,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
   bool panelOpen = false;
   bool loading = true;
   bool refreshing = false;
+  bool refreshQueued = false;
   bool sending = false;
   bool askingAi = false;
   String? errorText;
@@ -88,6 +89,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       panelOpen = false;
       loading = true;
       refreshing = false;
+      refreshQueued = false;
       sending = false;
       askingAi = false;
       errorText = null;
@@ -174,7 +176,11 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
   }
 
   Future<void> refreshWorkspace({bool markAsRead = false}) async {
-    if (refreshing || companyId.isEmpty) return;
+    if (companyId.isEmpty) return;
+    if (refreshing) {
+      refreshQueued = true;
+      return;
+    }
     refreshing = true;
     final active = selectedThread;
     try {
@@ -226,6 +232,10 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       // Следующее realtime-событие повторит обновление.
     } finally {
       refreshing = false;
+      if (refreshQueued) {
+        refreshQueued = false;
+        unawaited(refreshWorkspace(markAsRead: panelOpen));
+      }
     }
   }
 

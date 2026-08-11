@@ -161,6 +161,28 @@ export function requestedDate(prompt: string, base: Date): string {
       Number(ru[1]),
     );
   }
+  const monthNames: Array<[RegExp, number]> = [
+    [/\bянвар[а-я]*\b/, 1],
+    [/\bфеврал[а-я]*\b/, 2],
+    [/\bмарт[а-я]*\b/, 3],
+    [/\bапрел[а-я]*\b/, 4],
+    [/\bма[йя][а-я]*\b/, 5],
+    [/\bиюн[а-я]*\b/, 6],
+    [/\bиюл[а-я]*\b/, 7],
+    [/\bавгуст[а-я]*\b/, 8],
+    [/\bсентябр[а-я]*\b/, 9],
+    [/\bоктябр[а-я]*\b/, 10],
+    [/\bноябр[а-я]*\b/, 11],
+    [/\bдекабр[а-я]*\b/, 12],
+  ];
+  for (const [pattern, month] of monthNames) {
+    if (!pattern.test(value)) continue;
+    const explicitYear = value.match(/\b(20\d{2})\b/);
+    let year = explicitYear ? Number(explicitYear[1]) : base.getUTCFullYear();
+    if (!explicitYear && month > base.getUTCMonth() + 1) year -= 1;
+    return dateKey(year, month, 1);
+  }
+
   const result = new Date(base.getTime());
   if (/послезавтра/.test(value)) result.setUTCDate(result.getUTCDate() + 2);
   else if (/завтра/.test(value)) result.setUTCDate(result.getUTCDate() + 1);

@@ -229,6 +229,10 @@ function localRoute(
     "найди",
     "глянь",
     "посмотри",
+    "дай",
+    "скин",
+    "выдай",
+    "таблиц",
   ]);
   const move = hasAny(value, [
     "перевед",
@@ -306,7 +310,7 @@ function localRoute(
     /прогул/,
     /отсутств/,
   ]);
-  const unpaid = hasAny(value, ["долг", "задолж", "недоплат", "невыплат", "остаток"]);
+  const unpaid = hasAny(value, ["долг", "задолж", "недоплат", "невыплат", "остатк", "расчетн"]);
   const expiring = hasAny(value, ["истека", "заканч", "просроч"]);
   const weekly = hasPhrase(value, [/за неделю/, /недельн/, /семь дней/, /7 дней/]);
   if ((absent || unpaid || expiring || weekly) && question) {
@@ -424,6 +428,7 @@ async function llmRoute({
     "Верни только один intent из белого списка.",
     "Белый список: query_employees, query_tasks, query_candidates, query_procurement, hr_stage_move, candidate_responsible, procurement_create, procurement_status, legal_create, legal_decision, timesheet_bulk, timesheet_update, task_create, document_draft, operational_insight, navigation, universal_search, fallback.",
     "subtype только если очевидно: operational_insight=absence|unpaid|expiring_documents|weekly_report; legal_decision=approve|reject; procurement_status=approved|ordered|in_delivery|delivered|canceled; navigation=timesheet|employees|tasks|payments|recruitment|procurement|legal|objects|chat|settings.",
+    "Фразы про остаток/остатки выплат, расчётный остаток, задолженность сотрудникам или таблицу остатков за месяц = operational_insight с subtype unpaid. Это НЕ снабжение, если явно не сказано про материалы, склад, закупку, поставку или заявку снабжения.",
     "JSON: {\"intent\":\"...\",\"subtype\":\"\",\"confidence\":0.0,\"clarification\":\"\"}",
   ].join("\n");
   const user = [
@@ -479,6 +484,10 @@ export async function resolveSemanticVoiceIntent({
   context?: SemanticConversationContext;
 }): Promise<SemanticRoute> {
   const local = localRoute(prompt, context);
+  // Deterministic AppСтрой rules win whenever they already recognized the
+  // request. OpenAI is a semantic fallback for genuinely unfamiliar wording,
+  // not an override that can turn payroll balances into procurement.
+  if (local.intent !== "fallback") return local;
   const llm = await llmRoute({ prompt, role, context });
   return llm ?? local;
 }
