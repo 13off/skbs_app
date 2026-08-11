@@ -233,8 +233,11 @@ jobs:
                   fi
                 done
               } > downloads/web-build.log
+              test -f ../flutter-test.log && tail -n 80 ../flutter-test.log > downloads/flutter-test-tail.log || rm -f downloads/flutter-test-tail.log
+              test -f ../flutter-analyze.log && tail -n 80 ../flutter-analyze.log > downloads/flutter-analyze-tail.log || rm -f downloads/flutter-analyze-tail.log
+              test -f ../flutter-web-build.log && tail -n 80 ../flutter-web-build.log > downloads/flutter-web-build-tail.log || rm -f downloads/flutter-web-build-tail.log
             else
-              rm -f downloads/web-build.log
+              rm -f downloads/web-build.log downloads/flutter-test-tail.log downloads/flutter-analyze-tail.log downloads/flutter-web-build-tail.log
             fi
 
             git add -A downloads
