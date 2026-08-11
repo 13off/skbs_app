@@ -1,0 +1,121 @@
+name: ChatGPT only experiment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/chatgpt-only-experiment.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Hide legacy AI voice and present one ChatGPT surface
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          chat = Path('lib/features/company_chat/presentation/company_chat_shell.dart')
+          text = chat.read_text(encoding='utf-8')
+
+          replacements = {
+              "showMessage('ИИ-помощник временно недоступен');": "showMessage('ChatGPT временно недоступен');",
+              "showMessage('ИИ не ответил: ${_error(error)}');": "showMessage('ChatGPT не ответил: ${_error(error)}');",
+              "? 'Личный диалог с ИИ-помощником'": "? 'ChatGPT с доступом к AppСтрой'",
+              "assistant ? 'Спроси ИИ-помощника' : 'Сообщений пока нет'": "assistant ? 'Напиши ChatGPT' : 'Сообщений пока нет'",
+              "? 'Помощник работает в отдельном личном диалоге и не отправляет ответы в общий чат.'": "? 'Обычный ChatGPT, подключённый к данным и действиям AppСтрой.'",
+              "assistant ? 'ИИ-помощник' : message.senderName": "assistant ? 'ChatGPT' : message.senderName",
+              "? 'ИИ-помощник временно недоступен'": "? 'ChatGPT временно недоступен'",
+              "? 'Сообщение ИИ-помощнику…'": "? 'Сообщение ChatGPT…'",
+              "? 'Отправить ИИ'": "? 'Отправить ChatGPT'",
+              "? 'Помощник AppСтрой'": "? 'Подключён к AppСтрой'",
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+
+          old_title = """                      Text(\n                        thread.title,\n                        maxLines: 1,\n"""
+          new_title = """                      Text(\n                        assistant ? 'ChatGPT' : thread.title,\n                        maxLines: 1,\n"""
+          if old_title in text:
+              text = text.replace(old_title, new_title, 1)
+          elif "assistant ? 'ChatGPT' : thread.title" not in text:
+              raise SystemExit('assistant title anchor not found')
+
+          chat.write_text(text, encoding='utf-8')
+
+          # Global microphone/voice layer stays disconnected during this experiment.
+          main = Path('lib/main.dart')
+          main_text = main.read_text(encoding='utf-8')
+          main_text = main_text.replace(
+              "import 'features/voice/presentation/global_voice_root_layer.dart';\n",
+              '',
+          )
+          old_wrapper = """            child: GlobalVoiceRootLayer(\n              child: child ?? const SizedBox.shrink(),\n            ),\n"""
+          if old_wrapper in main_text:
+              main_text = main_text.replace(
+                  old_wrapper,
+                  "            child: child ?? const SizedBox.shrink(),\n",
+                  1,
+              )
+          main.write_text(main_text, encoding='utf-8')
+
+          test = Path('test/chatgpt_only_experiment_contract_test.dart')
+          test.write_text("""import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('only ChatGPT is exposed as the experimental AI surface', () {
+    final chat = File(
+      'lib/features/company_chat/presentation/company_chat_shell.dart',
+    ).readAsStringSync();
+    final repo = File(
+      'lib/features/company_chat/data/company_chat_repository.dart',
+    ).readAsStringSync();
+    final main = File('lib/main.dart').readAsStringSync();
+
+    expect(chat, contains("assistant ? 'ChatGPT' : thread.title"));
+    expect(chat, contains('ChatGPT с доступом к AppСтрой'));
+    expect(chat, contains('Сообщение ChatGPT…'));
+    expect(repo, contains("'company-chat-gpt'"));
+    expect(main, isNot(contains('GlobalVoiceRootLayer')));
+  });
+}
+""", encoding='utf-8')
+          PY
+
+      - name: Format
+        run: dart format lib/main.dart lib/features/company_chat/presentation/company_chat_shell.dart lib/features/company_chat/data/company_chat_repository.dart test/chatgpt_only_experiment_contract_test.dart
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run focused tests
+        run: flutter test test/chatgpt_only_experiment_contract_test.dart test/company_chat_ai_contract_test.dart test/company_chat_refresh_queue_contract_test.dart --reporter compact
+
+      - name: Analyze changed Flutter files
+        run: flutter analyze lib/main.dart lib/features/company_chat/presentation/company_chat_shell.dart lib/features/company_chat/data/company_chat_repository.dart
+
+      - name: Commit verified experiment
+        shell: bash
+        run: |
+          rm -f .github/workflows/chatgpt-only-experiment.yml release/chatgpt-only-experiment.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Оставить один ChatGPT в приложении и скрыть голосовой ИИ"
+          git push
