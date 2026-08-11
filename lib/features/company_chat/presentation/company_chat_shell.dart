@@ -12,6 +12,7 @@ import '../data/company_chat_repository.dart';
 import '../models/company_chat_models.dart';
 
 const bool _aiAssistantLocked = false;
+final DateTime _chatGptCutover = DateTime.parse('2026-08-11T11:19:00Z');
 
 class CompanyChatShell extends StatefulWidget {
   final AppUserProfile profile;
@@ -257,12 +258,16 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
 
   Future<List<CompanyChatMessage>> _fetchThreadMessages(
     CompanyChatThread thread,
-  ) {
-    return CompanyChatRepository.fetchFeed(
+  ) async {
+    final values = await CompanyChatRepository.fetchFeed(
       limit: 120,
       channelKind: thread.channelKind,
       peerUserId: thread.peerUserId,
     );
+    if (!thread.isAssistant) return values;
+    return values
+        .where((item) => !item.createdAt.toUtc().isBefore(_chatGptCutover))
+        .toList(growable: false);
   }
 
   Future<void> markThreadRead(
@@ -278,7 +283,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
 
   Future<void> selectThread(CompanyChatThread thread) async {
     if (thread.isAssistant && _aiAssistantLocked) {
-      showMessage('ИИ-помощник временно недоступен');
+      showMessage('ChatGPT временно недоступен');
       return;
     }
     if (selectedThread?.threadKey == thread.threadKey || sending) return;
@@ -384,7 +389,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
       return;
     }
     if (thread.isAssistant && _aiAssistantLocked) {
-      showMessage('ИИ-помощник временно недоступен');
+      showMessage('ChatGPT временно недоступен');
       return;
     }
     final files = List<_PendingChatFile>.from(pendingFiles);
@@ -438,7 +443,7 @@ class _CompanyChatShellState extends State<CompanyChatShell> {
           );
           await refreshWorkspace(markAsRead: true);
         } catch (error) {
-          showMessage('ИИ не ответил: ${_error(error)}');
+          showMessage('ChatGPT не ответил: ${_error(error)}');
         } finally {
           if (mounted) setState(() => askingAi = false);
         }
@@ -718,7 +723,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
         : thread.isGeneral
         ? 'Общий чат сотрудников'
         : thread.isAssistant
-        ? 'Личный диалог с ИИ-помощником'
+        ? 'ChatGPT с доступом к AppСтрой'
         : AppUserProfile.titleForRole(thread.role);
     return Container(
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
@@ -752,7 +757,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  thread?.title ?? 'Чаты',
+                  thread?.isAssistant == true ? 'ChatGPT' : (thread?.title ?? 'Чаты'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -872,7 +877,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               Text(
-                assistant ? 'Спроси ИИ-помощника' : 'Сообщений пока нет',
+                assistant ? 'Напиши ChatGPT' : 'Сообщений пока нет',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
@@ -882,7 +887,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
               const SizedBox(height: 5),
               Text(
                 assistant
-                    ? 'Помощник работает в отдельном личном диалоге и не отправляет ответы в общий чат.'
+                    ? 'Обычный ChatGPT, подключённый к данным и действиям AppСтрой.'
                     : 'Напишите первое сообщение или прикрепите фото и файл.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -952,7 +957,7 @@ class _ChatWorkspacePanel extends StatelessWidget {
                   const SizedBox(width: 5),
                   Flexible(
                     child: Text(
-                      assistant ? 'ИИ-помощник' : message.senderName,
+                      assistant ? 'ChatGPT' : message.senderName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1125,9 +1130,9 @@ class _ChatWorkspacePanel extends StatelessWidget {
                     onSubmitted: (_) => onSend(),
                     decoration: InputDecoration(
                       hintText: locked
-                          ? 'ИИ-помощник временно недоступен'
+                          ? 'ChatGPT временно недоступен'
                           : assistant
-                          ? 'Сообщение ИИ-помощнику…'
+                          ? 'Сообщение ChatGPT…'
                           : 'Сообщение…',
                       isDense: true,
                       filled: true,
@@ -1148,9 +1153,9 @@ class _ChatWorkspacePanel extends StatelessWidget {
                 const SizedBox(width: 6),
                 IconButton.filled(
                   tooltip: locked
-                      ? 'ИИ-помощник временно недоступен'
+                      ? 'ChatGPT временно недоступен'
                       : assistant
-                      ? 'Отправить ИИ'
+                      ? 'Отправить ChatGPT'
                       : 'Отправить',
                   onPressed:
                       locked || sending || askingAi || selectedThread == null
@@ -1361,7 +1366,7 @@ class _ThreadTile extends StatelessWidget {
         : thread.isDirect
         ? AppUserProfile.titleForRole(thread.role)
         : thread.isAssistant
-        ? 'Помощник AppСтрой'
+        ? 'Подключён к AppСтрой'
         : 'Для всей компании';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1407,7 +1412,7 @@ class _ThreadTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        thread.title,
+                        assistant ? 'ChatGPT' : thread.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
