@@ -1,0 +1,239 @@
+name: Enable unified AI chat
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/unified-ai-chat.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Connect written chat to unified AI assistant
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/company_chat/presentation/company_chat_shell.dart')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, got {count}: {old[:140]!r}')
+              text = text.replace(old, new, 1)
+
+          import_anchor = "import 'package:url_launcher/url_launcher.dart';\n\n"
+          ai_imports = (
+              "import '../../../features/ai/actions/ai_action_execution_coordinator.dart';\n"
+              "import '../../../features/ai/models/ai_assistant_result.dart';\n"
+          )
+          if ai_imports not in text:
+              replace_once(import_anchor, import_anchor + ai_imports)
+
+          replace_once('const bool _aiAssistantLocked = true;', 'const bool _aiAssistantLocked = false;')
+
+          replace_once(
+              '  final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];\n',
+              '  final List<_PendingChatFile> pendingFiles = <_PendingChatFile>[];\n'
+              '  final Set<String> runningActionIds = <String>{};\n',
+          )
+
+          method_anchor = '''  Future<void> openAttachment(CompanyChatAttachment attachment) async {
+'''
+          action_method = '''  Future<void> runAiAction(CompanyChatMessage message) async {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return;
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty || runningActionIds.contains(action.id)) return;
+    setState(() => runningActionIds.add(action.id));
+    try {
+      final result = await AiActionExecutionCoordinator.execute(
+        context: context,
+        profile: widget.profile,
+        action: action,
+      );
+      showMessage(result.message);
+      await refreshWorkspace(markAsRead: true);
+    } catch (error) {
+      showMessage('Действие не выполнено: ${_error(error)}');
+    } finally {
+      if (mounted) setState(() => runningActionIds.remove(action.id));
+    }
+  }
+
+'''
+          if action_method not in text:
+              replace_once(method_anchor, action_method + method_anchor)
+
+          panel_anchor = '''                        onSend: sendMessage,
+                        onOpenAttachment: openAttachment,
+'''
+          panel_new = '''                        onSend: sendMessage,
+                        runningActionIds: runningActionIds,
+                        onRunAiAction: runAiAction,
+                        onOpenAttachment: openAttachment,
+'''
+          replace_once(panel_anchor, panel_new)
+
+          field_anchor = '''  final VoidCallback onSend;
+  final ValueChanged<CompanyChatAttachment> onOpenAttachment;
+'''
+          field_new = '''  final VoidCallback onSend;
+  final Set<String> runningActionIds;
+  final ValueChanged<CompanyChatMessage> onRunAiAction;
+  final ValueChanged<CompanyChatAttachment> onOpenAttachment;
+'''
+          replace_once(field_anchor, field_new)
+
+          ctor_anchor = '''    required this.onSend,
+    required this.onOpenAttachment,
+'''
+          ctor_new = '''    required this.onSend,
+    required this.runningActionIds,
+    required this.onRunAiAction,
+    required this.onOpenAttachment,
+'''
+          replace_once(ctor_anchor, ctor_new)
+
+          bubble_anchor = '''            if (message.attachments.isNotEmpty) ...[
+              if (body.isNotEmpty) const SizedBox(height: 7),
+              ...message.attachments.map(
+'''
+          if bubble_anchor not in text:
+              raise SystemExit('attachment block anchor not found')
+
+          timestamp_anchor = '''            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                _time(message.createdAt),
+'''
+          action_ui = '''            if (assistant && message.hasAiAction && !message.isDeleted) ...[
+              const SizedBox(height: 8),
+              _AiActionButton(
+                message: message,
+                runningActionIds: runningActionIds,
+                onPressed: () => onRunAiAction(message),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                _time(message.createdAt),
+'''
+          replace_once(timestamp_anchor, action_ui)
+
+          class_anchor = '''class _ThreadSidebar extends StatelessWidget {
+'''
+          button_class = '''class _AiActionButton extends StatelessWidget {
+  final CompanyChatMessage message;
+  final Set<String> runningActionIds;
+  final VoidCallback onPressed;
+
+  const _AiActionButton({
+    required this.message,
+    required this.runningActionIds,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rawAction = message.aiPayload['action'];
+    if (rawAction is! Map) return const SizedBox.shrink();
+    final action = AiAssistantAction.fromMap(
+      Map<String, dynamic>.from(rawAction),
+    );
+    if (action.id.isEmpty) return const SizedBox.shrink();
+    final running = runningActionIds.contains(action.id);
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonalIcon(
+        onPressed: running ? null : onPressed,
+        icon: running
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.fact_check_outlined, size: 18),
+        label: Text(action.buttonLabel),
+      ),
+    );
+  }
+}
+
+'''
+          if button_class not in text:
+              replace_once(class_anchor, button_class + class_anchor)
+
+          path.write_text(text, encoding='utf-8')
+
+          test = Path('test/unified_ai_chat_contract_test.dart')
+          test.write_text(r'''import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+String source(String path) => File(path).readAsStringSync();
+
+void main() {
+  test('written assistant is unlocked and uses the confirmed action pipeline', () {
+    final shell = source('lib/features/company_chat/presentation/company_chat_shell.dart');
+    expect(shell, contains('const bool _aiAssistantLocked = false;'));
+    expect(shell, contains('AiActionExecutionCoordinator.execute('));
+    expect(shell, contains('message.hasAiAction'));
+    expect(shell, contains('onRunAiAction'));
+    expect(shell, contains('action.buttonLabel'));
+  });
+
+  test('company chat uses the same global AI command core as voice', () {
+    final backend = source('supabase/functions/company-chat-ai/index.ts');
+    expect(backend, contains('/functions/v1/ai-global-command'));
+    expect(backend, contains('input_mode: "chat"'));
+    expect(backend, contains('unified_assistant: true'));
+    expect(backend, contains('APP_KNOWLEDGE'));
+  });
+}
+''', encoding='utf-8')
+          PY
+
+      - name: Format
+        run: dart format lib/features/company_chat/presentation/company_chat_shell.dart test/unified_ai_chat_contract_test.dart
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Run unified AI chat contract
+        run: flutter test test/unified_ai_chat_contract_test.dart --reporter compact
+
+      - name: Analyze changed client source
+        run: flutter analyze lib/features/company_chat/presentation/company_chat_shell.dart
+
+      - name: Commit verified change
+        shell: bash
+        run: |
+          rm -f .github/workflows/enable-unified-ai-chat.yml release/unified-ai-chat.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Подключить письменный чат к единому ИИ-помощнику"
+          git push
