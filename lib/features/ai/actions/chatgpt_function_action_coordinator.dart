@@ -8,6 +8,7 @@ import '../../../models/monthly_timesheet_row.dart';
 import '../../payments/data/payment_report_exporter.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_action_execution_coordinator.dart';
+import 'chatgpt_generic_table_exporter.dart';
 
 /// Действия, которые появляются кнопкой прямо под ответом ChatGPT.
 /// Кнопка сама считается подтверждением безопасной выгрузки; действия,
@@ -18,6 +19,7 @@ class ChatGptFunctionActionCoordinator {
   static const supportedTypes = <String>{
     'download_timesheet_excel',
     'download_payment_report',
+    'download_appstroy_table',
   };
 
   static Future<AiActionExecutionResult> execute({
@@ -32,6 +34,7 @@ class ChatGptFunctionActionCoordinator {
     return switch (action.type) {
       'download_timesheet_excel' => _downloadTimesheet(profile, action),
       'download_payment_report' => _downloadPayments(profile, action),
+      'download_appstroy_table' => _downloadGenericTable(profile, action),
       _ => throw UnsupportedError(action.type),
     };
   }
@@ -128,6 +131,33 @@ class ChatGptFunctionActionCoordinator {
           : 'Таблица выплат за ${_monthTitle(month)} скачана: $exportedRows строк',
       targetEntityType: 'payment_export',
       targetEntityId: '${month.year}-${month.month.toString().padLeft(2, '0')}',
+    );
+  }
+
+  static Future<AiActionExecutionResult> _downloadGenericTable(
+    AppUserProfile profile,
+    AiAssistantAction action,
+  ) async {
+    final reportType = action.text('report_type').trim().toLowerCase();
+    if (reportType.isEmpty) {
+      throw StateError('Не указан тип таблицы');
+    }
+    final month = _month(action.text('month'));
+    final objectName = _objectName(action, profile);
+    final exportedRows = await ChatGptGenericTableExporter.download(
+      profile: profile,
+      reportType: reportType,
+      objectName: objectName,
+      month: month,
+    );
+
+    return AiActionExecutionResult(
+      completed: true,
+      message: exportedRows == 0
+          ? 'Таблица скачана; по выбранным условиям строк нет'
+          : 'Таблица скачана: $exportedRows строк',
+      targetEntityType: 'generic_table_export',
+      targetEntityId: reportType,
     );
   }
 
