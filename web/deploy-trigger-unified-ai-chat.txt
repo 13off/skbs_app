@@ -5,4 +5,5 @@ Fast chat path: cached thread/unread summaries no longer block feed rendering; r
 Compile-safe background refresh.
 Agent mode: ChatGPT can use AppStroy tools repeatedly and prepare direct XLSX exports.
 Universal XLSX: employees, tasks, candidates, procurement, suppliers, flights plus existing payments and timesheets.
-Rebuild agentic ChatGPT export version.
+Compile-safe generic table queries.
+Rebuild universal XLSX ChatGPT.
