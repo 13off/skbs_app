@@ -16,6 +16,7 @@ import 'developer_constructor_screen.dart';
 import 'developer_panel_screen.dart';
 import 'developer_readiness_screen.dart';
 import 'developer_role_acceptance_screen.dart';
+import 'expense_categories_screen.dart';
 import 'role_permission_matrix_screen.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
@@ -220,6 +221,12 @@ class DeveloperSystemScreen extends StatelessWidget {
               icon: Icons.schedule_outlined,
               title: 'Напоминания и системные параметры',
               onTap: () => open(context, const DeveloperConstructorScreen()),
+            ),
+            actionCard(
+              context,
+              icon: Icons.receipt_long_outlined,
+              title: 'Статьи расходов',
+              onTap: () => open(context, const ExpenseCategoriesScreen()),
             ),
           ]),
           const SizedBox(height: 22),
