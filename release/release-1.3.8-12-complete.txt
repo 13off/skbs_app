@@ -1,0 +1,37 @@
+AppСтрой release 1.3.8+12
+release date: 2026-08-12
+status: complete
+
+application baseline:
+- accepted UI/application commit: d3245ed63d03006f30b75994be6c5d6049a44f61
+- version commit: 1cc6eca330235b850caf0c6383aa0c41198370f9
+
+android:
+- status: success
+- source commit: 23dc2e729621d827958b7a487f9d5ec17af2314f
+- artifact: AppStroy-23dc2e729621.apk / AppStroy-latest.apk
+- sha256: d6e6de8445a53e6e399762484e037bfc1951f83a5fe47d38bd627647d3877387
+
+ios:
+- status: success
+- source commit: fab230677274c3eb2866353b50e7940884f3d357
+- artifact: AppStroy-fab230677274.ipa / AppStroy-latest.ipa
+- sha256: 1a50f00490c4d4ec005b2d42b49fe79e42c44219231eed128b1c62a0174196fe
+- note: verification IPA is unsigned and requires signing for App Store/TestFlight/device distribution
+
+backend:
+- Supabase production schema for expenses verified
+- expense categories, expenses, receipts, counterparty column, RPC and receipt bucket are present
+- anonymous EXECUTE access to public.get_expenses_center(date,date) revoked
+- authenticated EXECUTE access retained; company/role checks remain inside RPC
+
+release fixes included after first iOS attempt:
+- optional FlutterPluginRegistrar is safely unwrapped for TaskVoiceRecognition in AppDelegate.swift
+- isolated iOS release trigger added via release/ios-release.txt
+
+quality gates:
+- Android regression tests: success
+- Android flutter analyze: success
+- Android release build: success
+- iOS unsigned release build: success
+- iOS IPA packaging/upload/publish: success
