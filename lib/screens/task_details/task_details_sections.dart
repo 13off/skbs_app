@@ -1,3 +1,7 @@
+// State helpers below are part of the owning screen library and intentionally
+// update that exact State instance.
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'task_details_editor_screen.dart';
 
 extension _TaskDetailsSections on _TaskDetailsScreenState {
@@ -298,21 +302,97 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
     return Text(message, style: TextStyle(color: AppAdaptivePalette.danger));
   }
 
-  Widget buildSaveButton() {
-    if (!canEdit) return const SizedBox.shrink();
-    return SizedBox(
-      height: 54,
-      child: FilledButton.icon(
-        onPressed: isSaving ? null : saveChanges,
-        icon: isSaving
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.save),
-        label: const Text('Сохранить'),
-      ),
+  Future<void> saveCurrentToDraft() async {
+    if (!canEdit || isSaving) return;
+
+    final objectName = widget.task.objectName.trim();
+    if (objectName.isEmpty) {
+      showValidationError('У задачи не указан объект');
+      return;
+    }
+
+    final axes = axesController.text.trim();
+    final visibleWork = workController.text.trim();
+    final goalWork = selectedChecklistTitle?.trim() ?? '';
+    final savedWork = isGoalTask && goalWork.isNotEmpty ? goalWork : visibleWork;
+    final draftTask = TaskItemData(
+      axes,
+      savedWork,
+      'Запланировано',
+      selectedDate,
+      objectName: objectName,
+      milestoneId: selectedMilestoneId ?? '',
+      checklistItemId: selectedChecklistItemId ?? '',
+    );
+
+    setState(() {
+      isSaving = true;
+      errorText = null;
+    });
+
+    try {
+      await TaskRepository.saveTaskDraftWithDetails(
+        draftTask,
+        objectName: objectName,
+        assigneeIds: selectedAssigneeIds.toList(),
+        sourceDraftId: null,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Задача сохранена в черновики')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => errorText = 'Не удалось сохранить в черновики: $error');
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
+
+  Widget buildActionButtons() {
+    if (!canEdit && !canRepeatTask) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canEdit)
+          SizedBox(
+            height: 54,
+            child: FilledButton.icon(
+              onPressed: isSaving ? null : saveChanges,
+              icon: isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save),
+              label: const Text('Сохранить'),
+            ),
+          ),
+        if (canEdit) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: isSaving ? null : saveCurrentToDraft,
+              icon: const Icon(Icons.drafts_outlined),
+              label: const Text('В черновики'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 52,
+          child: OutlinedButton.icon(
+            onPressed: canRepeatTask && !isSaving && !isLoading
+                ? repeatTask
+                : null,
+            icon: const Icon(Icons.copy_all_outlined),
+            label: const Text('Повторить'),
+          ),
+        ),
+      ],
     );
   }
 }
