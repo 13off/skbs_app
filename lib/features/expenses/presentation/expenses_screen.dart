@@ -1,4 +1,6 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
@@ -130,8 +132,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         _uncategorized => !item.isPayment && item.categoryId == null,
         _ => !item.isPayment && item.categoryId == selectedCategory,
       };
-      final objectOk = selectedObject == _allObjects ||
-          item.objectId == selectedObject;
+      final objectOk =
+          selectedObject == _allObjects || item.objectId == selectedObject;
       return categoryOk && objectOk;
     }).toList(growable: false);
   }
@@ -173,8 +175,39 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   double parseAmount(String raw) {
-    return double.tryParse(raw.trim().replaceAll(' ', '').replaceAll(',', '.')) ??
+    return double.tryParse(
+          raw.trim().replaceAll(' ', '').replaceAll(',', '.'),
+        ) ??
         0;
+  }
+
+  Future<List<XFile>> pickReceipts() async {
+    return openFiles(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: 'Чеки',
+          extensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+        ),
+      ],
+    );
+  }
+
+  Future<void> uploadPendingReceipts({
+    required String expenseId,
+    required List<XFile> files,
+  }) async {
+    for (final file in files) {
+      final bytes = await file.readAsBytes();
+      if (bytes.lengthInBytes > 20 * 1024 * 1024) {
+        throw StateError('Файл ${file.name} больше 20 МБ');
+      }
+      await repository.uploadReceipt(
+        expenseId: expenseId,
+        fileName: file.name,
+        bytes: bytes,
+        contentType: repository.contentTypeForFileName(file.name),
+      );
+    }
   }
 
   Future<void> editExpense([ExpenseItemData? initial]) async {
@@ -187,10 +220,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ? initial.amount.toInt().toString()
               : initial.amount.toStringAsFixed(2)),
     );
+    final counterpartyController = TextEditingController(
+      text: initial?.counterpartyName ?? '',
+    );
     final commentController = TextEditingController(text: initial?.comment ?? '');
     var date = initial?.date ?? DateTime.now();
     var categoryId = initial?.categoryId ?? '';
     var objectId = initial?.objectId ?? '';
+    var pendingReceipts = <XFile>[];
     if (!snapshot.categories.any((item) => item.id == categoryId)) {
       categoryId = '';
     }
@@ -211,10 +248,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             if (picked != null) setDialogState(() => date = picked);
           }
 
+          Future<void> addReceipts() async {
+            final picked = await pickReceipts();
+            if (picked.isEmpty) return;
+            setDialogState(() {
+              pendingReceipts = [...pendingReceipts, ...picked];
+            });
+          }
+
           return AlertDialog(
             title: Text(initial == null ? 'Добавить расход' : 'Изменить расход'),
             content: SizedBox(
-              width: 520,
+              width: 560,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -233,14 +278,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
-                        labelText: 'Сумма, ₽',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Сумма, ₽'),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: categoryId,
-                      decoration: const InputDecoration(labelText: 'Статья расходов'),
+                      decoration: const InputDecoration(
+                        labelText: 'Статья расходов',
+                      ),
                       items: [
                         const DropdownMenuItem(
                           value: '',
@@ -278,6 +323,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           setDialogState(() => objectId = value ?? ''),
                     ),
                     const SizedBox(height: 12),
+                    TextField(
+                      controller: counterpartyController,
+                      decoration: const InputDecoration(
+                        labelText: 'Кто оплатил / контрагент',
+                        hintText: 'Например, Одинцев И. А. или ООО «Поставщик»',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Дата'),
@@ -295,6 +348,49 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         hintText: 'Необязательно',
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: addReceipts,
+                        icon: const Icon(Icons.attach_file_rounded),
+                        label: const Text('Прикрепить чек'),
+                      ),
+                    ),
+                    if ((initial?.attachments.length ?? 0) > 0) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Уже прикреплено: ${initial!.attachments.length}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                    if (pendingReceipts.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ...List.generate(pendingReceipts.length, (index) {
+                        final file = pendingReceipts[index];
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.insert_drive_file_outlined),
+                          title: Text(
+                            file.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Убрать',
+                            onPressed: () => setDialogState(() {
+                              pendingReceipts = [...pendingReceipts]
+                                ..removeAt(index);
+                            }),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        );
+                      }),
+                    ],
                     if (snapshot.categories.isEmpty) ...[
                       const SizedBox(height: 12),
                       const Align(
@@ -341,16 +437,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     if (saved == true) {
       await runBusy(() async {
         final amount = parseAmount(amountController.text);
+        String expenseId;
         if (initial == null) {
-          await repository.createExpense(
+          final created = await repository.createExpense(
             name: nameController.text,
             amount: amount,
             date: date,
             categoryId: categoryId.isEmpty ? null : categoryId,
             objectId: objectId.isEmpty ? null : objectId,
+            counterpartyName: counterpartyController.text,
             comment: commentController.text,
           );
+          expenseId = created.id;
         } else {
+          expenseId = initial.id;
           await repository.updateExpense(
             id: initial.id,
             name: nameController.text,
@@ -358,15 +458,22 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             date: date,
             categoryId: categoryId.isEmpty ? null : categoryId,
             objectId: objectId.isEmpty ? null : objectId,
+            counterpartyName: counterpartyController.text,
             comment: commentController.text,
           );
         }
+        if (expenseId.isEmpty) throw StateError('Не удалось создать расход');
+        await uploadPendingReceipts(
+          expenseId: expenseId,
+          files: pendingReceipts,
+        );
         await load();
       });
     }
 
     nameController.dispose();
     amountController.dispose();
+    counterpartyController.dispose();
     commentController.dispose();
   }
 
@@ -376,7 +483,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Удалить расход?'),
-        content: Text('«${item.name}» на ${formatMoney(item.amount)} будет удалён.'),
+        content: Text(
+          '«${item.name}» на ${formatMoney(item.amount)} будет удалён вместе с прикреплёнными чеками.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -396,12 +505,104 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     });
   }
 
+  Future<void> openReceipt(ExpenseAttachmentData receipt) async {
+    await runBusy(() async {
+      final rawUrl = await repository.createReceiptSignedUrl(receipt);
+      final uri = Uri.tryParse(rawUrl);
+      if (uri == null || !await launchUrl(uri)) {
+        throw StateError('Не удалось открыть чек');
+      }
+    });
+  }
+
+  Future<void> deleteReceipt(
+    BuildContext sheetContext,
+    ExpenseAttachmentData receipt,
+  ) async {
+    if (!receipt.isEditable) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить чек?'),
+        content: Text('Файл «${receipt.fileName}» будет удалён.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await runBusy(() async {
+      await repository.deleteReceipt(receipt);
+      if (sheetContext.mounted) Navigator.pop(sheetContext);
+      await load();
+    });
+  }
+
+  Future<void> showReceipts(ExpenseItemData item) async {
+    if (item.attachments.isEmpty) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                item.isPayment ? 'Чеки выплаты' : 'Чеки расхода',
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              ...item.attachments.map(
+                (receipt) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    receipt.contentType == 'application/pdf'
+                        ? Icons.picture_as_pdf_outlined
+                        : Icons.image_outlined,
+                  ),
+                  title: Text(
+                    receipt.fileName.isEmpty ? 'Чек' : receipt.fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: const Text('Нажми, чтобы открыть'),
+                  onTap: busy ? null : () => openReceipt(receipt),
+                  trailing: receipt.isEditable
+                      ? IconButton(
+                          tooltip: 'Удалить чек',
+                          onPressed: busy
+                              ? null
+                              : () => deleteReceipt(sheetContext, receipt),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        )
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget filterPanel() {
-    final total = filteredRows.fold<double>(0, (sum, item) => sum + item.amount);
-    final payments = filteredRows
+    final rows = filteredRows;
+    final total = rows.fold<double>(0, (sum, item) => sum + item.amount);
+    final payments = rows
         .where((item) => item.isPayment)
         .fold<double>(0, (sum, item) => sum + item.amount);
     final manual = total - payments;
+    final withoutReceipt = rows.where((item) => item.attachments.isEmpty).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -422,7 +623,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               const SizedBox(height: 4),
               Text(
                 'Всего за ${formatDate(from)} — ${formatDate(to)}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -431,7 +634,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 children: [
                   Text('Выплаты: ${formatMoney(payments)}'),
                   Text('Другие расходы: ${formatMoney(manual)}'),
-                  Text('Операций: ${filteredRows.length}'),
+                  Text('Операций: ${rows.length}'),
+                  Text('Без чека: $withoutReceipt'),
                 ],
               ),
             ],
@@ -477,7 +681,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                       ],
                       onChanged: (value) {
-                        if (value != null) setState(() => selectedCategory = value);
+                        if (value != null) {
+                          setState(() => selectedCategory = value);
+                        }
                       },
                     ),
                   ),
@@ -561,6 +767,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       formatDate(item.date),
       item.categoryName,
       if ((item.objectName ?? '').trim().isNotEmpty) item.objectName!.trim(),
+      if (item.counterpartyName.trim().isNotEmpty) item.counterpartyName.trim(),
     ];
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -578,7 +785,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                item.isPayment ? Icons.payments_outlined : Icons.receipt_long_outlined,
+                item.isPayment
+                    ? Icons.payments_outlined
+                    : Icons.receipt_long_outlined,
               ),
             ),
             const SizedBox(width: 12),
@@ -619,13 +828,34 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     const SizedBox(height: 6),
                     Text(item.comment.trim()),
                   ],
-                  if (item.isPayment && (item.paymentType ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Тип выплаты: ${item.paymentType}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      if (item.isPayment)
+                        const Chip(
+                          visualDensity: VisualDensity.compact,
+                          label: Text('Выплата'),
+                        ),
+                      if (item.attachments.isNotEmpty)
+                        ActionChip(
+                          avatar: const Icon(Icons.attachment_rounded, size: 17),
+                          label: Text(
+                            item.attachments.length == 1
+                                ? 'Чек'
+                                : 'Чеки: ${item.attachments.length}',
+                          ),
+                          onPressed: busy ? null : () => showReceipts(item),
+                        )
+                      else
+                        const Chip(
+                          visualDensity: VisualDensity.compact,
+                          avatar: Icon(Icons.warning_amber_rounded, size: 17),
+                          label: Text('Без чека'),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -640,14 +870,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   PopupMenuItem(value: 'edit', child: Text('Изменить')),
                   PopupMenuItem(value: 'delete', child: Text('Удалить')),
                 ],
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(left: 10, top: 4),
-                child: Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: const Text('Выплата'),
-                ),
               ),
           ],
         ),
