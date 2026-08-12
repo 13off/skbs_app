@@ -15,6 +15,7 @@ import '../../models/app_user_profile.dart';
 import '../../models/employee.dart';
 import '../../models/task_item_data.dart';
 import '../../widgets/adaptive_detail_body.dart';
+import '../add_task_screen.dart';
 
 part 'task_details_actions.dart';
 part 'task_details_loading.dart';
@@ -75,6 +76,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       TaskEditPolicy.canEditStatus(widget.profile, widget.task);
   bool get canDeleteTask =>
       TaskEditPolicy.canDeleteTask(widget.profile, widget.task);
+  bool get canRepeatTask => TaskEditPolicy.canCreateForDate(
+    widget.profile,
+    TaskEditPolicy.operationalToday,
+    objectName: widget.task.objectName,
+  );
 
   @override
   void initState() {

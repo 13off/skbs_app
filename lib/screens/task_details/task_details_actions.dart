@@ -189,6 +189,77 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> repeatTask() async {
+    if (!canRepeatTask || isLoading || isSaving) return;
+
+    final objectName = widget.task.objectName.trim();
+    if (objectName.isEmpty) {
+      showValidationError('У задачи не указан объект');
+      return;
+    }
+
+    final draft = await Navigator.of(context).push<TaskCreateDraft>(
+      MaterialPageRoute<TaskCreateDraft>(
+        builder: (_) => AddTaskScreen(
+          initialDate: TaskEditPolicy.operationalToday,
+          objectName: objectName,
+          initialAxes: widget.task.axes,
+          initialWork: widget.task.work,
+          initialAssigneeIds: originalAssigneeIds.toList(),
+          initialMilestoneId: selectedMilestoneId,
+          initialChecklistItemId: selectedChecklistItemId,
+          initialChecklistTitle: widget.task.work,
+          allowAnyDate:
+              widget.profile.isAdmin ||
+              TaskEditPolicy.forObject(objectName).foremanCanCreateAnyDate,
+          allowDraft: widget.profile.isForeman,
+          isRepeat: true,
+        ),
+      ),
+    );
+
+    if (!mounted || draft == null) return;
+
+    setState(() {
+      isSaving = true;
+      errorText = null;
+    });
+
+    try {
+      if (draft.saveAsDraft) {
+        await TaskRepository.saveTaskDraftWithDetails(
+          draft.task,
+          objectName: objectName,
+          assigneeIds: draft.assigneeIds,
+          sourceDraftId: null,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Копия сохранена как черновик')),
+        );
+        return;
+      }
+
+      await TaskRepository.addTaskWithDetails(
+        draft.task,
+        objectName: objectName,
+        assigneeIds: draft.assigneeIds,
+        photos: draft.photos,
+      );
+      if (!mounted) return;
+
+      final date = DateFormat('dd.MM.yyyy').format(draft.task.date);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Задача повторена на $date')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => errorText = 'Не удалось повторить задачу: $error');
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
+
   Future<void> saveChanges() async {
     if (!canEdit) {
       ScaffoldMessenger.of(context).showSnackBar(

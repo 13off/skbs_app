@@ -8,13 +8,21 @@ extension _TaskCreateView on _AddTaskScreenState {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text(editingDraft ? 'Черновик задачи' : 'Новая задача'),
+        title: Text(
+          widget.isRepeat
+              ? 'Повторить задачу'
+              : editingDraft
+              ? 'Черновик задачи'
+              : 'Новая задача',
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            editingDraft
+            widget.isRepeat
+                ? 'Новая задача на основе существующей'
+                : editingDraft
                 ? 'Продолжите заполнение черновика'
                 : batchCount > 1
                 ? 'Прораб создаёт $batchCount задачи'
@@ -97,6 +105,8 @@ extension _TaskCreateView on _AddTaskScreenState {
               label: Text(
                 batchCount > 1
                     ? 'Сохранить $batchCount задачи'
+                    : widget.isRepeat
+                    ? 'Создать копию задачи'
                     : 'Сохранить задачу',
               ),
             ),

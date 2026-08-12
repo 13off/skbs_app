@@ -50,9 +50,8 @@ class AddTaskScreen extends StatefulWidget {
   final String initialAxes;
   final String initialWork;
   final List<String> initialAssigneeIds;
-  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately;
+  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately, isRepeat;
   final String? sourceDraftId;
-
   const AddTaskScreen({
     super.key,
     required this.initialDate,
@@ -62,6 +61,7 @@ class AddTaskScreen extends StatefulWidget {
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
     this.allowAnyDate = false, this.allowDraft = false,
+    this.isRepeat = false,
     this.sourceDraftId, this.startVoiceImmediately = false,
   });
 
