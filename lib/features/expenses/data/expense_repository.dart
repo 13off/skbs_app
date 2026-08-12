@@ -2,6 +2,10 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/app_data_sync.dart';
+import '../../../data/attendance_repository.dart';
+import '../../../data/payment_repository.dart';
+
 class ExpenseCategoryData {
   final String id;
   final String name;
@@ -185,6 +189,43 @@ class CreatedExpenseData {
   const CreatedExpenseData({required this.id, required this.companyId});
 }
 
+class EditablePaymentData {
+  final String id;
+  final String employeeId;
+  final int periodYear;
+  final int periodMonth;
+  final DateTime paymentDate;
+  final double amount;
+  final String paymentType;
+  final String comment;
+
+  const EditablePaymentData({
+    required this.id,
+    required this.employeeId,
+    required this.periodYear,
+    required this.periodMonth,
+    required this.paymentDate,
+    required this.amount,
+    required this.paymentType,
+    required this.comment,
+  });
+
+  factory EditablePaymentData.fromMap(Map<String, dynamic> map) {
+    return EditablePaymentData(
+      id: map['id']?.toString() ?? '',
+      employeeId: map['employee_id']?.toString() ?? '',
+      periodYear: (map['period_year'] as num?)?.toInt() ?? 0,
+      periodMonth: (map['period_month'] as num?)?.toInt() ?? 0,
+      paymentDate:
+          DateTime.tryParse(map['payment_date']?.toString() ?? '') ??
+          DateTime.now(),
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      paymentType: map['payment_type']?.toString() ?? 'advance',
+      comment: map['comment']?.toString() ?? '',
+    );
+  }
+}
+
 class ExpenseRepository {
   ExpenseRepository([SupabaseClient? client])
       : _client = client ?? Supabase.instance.client;
@@ -308,6 +349,66 @@ class ExpenseRepository {
       'counterparty_name': counterpartyName.trim(),
       'comment': comment.trim(),
     }).eq('id', id);
+  }
+
+  Future<EditablePaymentData> fetchPaymentForEdit(String paymentId) async {
+    final raw = await _client
+        .from('payments')
+        .select(
+          'id,employee_id,period_year,period_month,payment_date,amount,payment_type,comment',
+        )
+        .eq('id', paymentId)
+        .single();
+    return EditablePaymentData.fromMap(Map<String, dynamic>.from(raw));
+  }
+
+  Future<void> updatePayment({
+    required String id,
+    required String employeeId,
+    required int periodYear,
+    required int periodMonth,
+    required DateTime paymentDate,
+    required double amount,
+    required String paymentType,
+    required String comment,
+  }) async {
+    await _client.from('payments').update(<String, dynamic>{
+      'period_year': periodYear,
+      'period_month': periodMonth,
+      'payment_date': _date(paymentDate),
+      'amount': amount,
+      'payment_type': paymentType.trim(),
+      'comment': comment.trim(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
+
+    if (employeeId.trim().isEmpty) {
+      PaymentRepository.clearCache();
+    } else {
+      PaymentRepository.clearEmployeePaymentsCache(employeeId);
+    }
+    AttendanceRepository.clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.payments},
+      context: <String, dynamic>{
+        'table': 'payments',
+        'employee_id': employeeId.trim(),
+        'period_year': periodYear,
+        'period_month': periodMonth,
+      },
+    );
+  }
+
+  Future<void> deletePayment(String paymentId) async {
+    final raw = await _client
+        .from('payments')
+        .select('employee_id')
+        .eq('id', paymentId)
+        .single();
+    await PaymentRepository.deletePayment(
+      paymentId,
+      employeeId: raw['employee_id']?.toString(),
+    );
   }
 
   Future<String> _companyIdForExpense(String expenseId) async {
