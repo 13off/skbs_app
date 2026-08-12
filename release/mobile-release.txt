@@ -1,11 +1,11 @@
 AppСтрой mobile release
-version: 1.3.7+11
-previous mobile release: 1.3.6+10
-release date: 2026-08-07
+version: 1.3.8+12
+previous mobile release: 1.3.7+11
+release date: 2026-08-12
 release attempt: 1
-accepted application commit: ee23b528c8833e5a5862c1ff4db376d604e1484d
-release version commit: pending merge
-features: role-aware animated major What’s New release; all current AppСтрой web/mobile fixes through ee23b528; employee route sampling remains battery-saving at up to one point every 10 minutes
-backend: no database schema, RLS or company-isolation changes in this release bump
+accepted application commit: d3245ed63d03006f30b75994be6c5d6049a44f61
+release version commit: 1cc6eca330235b850caf0c6383aa0c41198370f9
+features: task actions «Сохранить», «В черновики» and «Повторить» are visible before photo blocks; task repeat flow fixes; manager factual expenses section; all current AppСтрой web/mobile fixes through d3245ed
+backend: expense categories, expenses, receipt/counterparty support and expense-center RPC migrations are included in source; production migration state is validated independently from the mobile build
 mobile: Android release APK and unsigned verification iOS IPA
 quality gates: Android and iOS workflows run full release validation; web deployment remains independently validated
