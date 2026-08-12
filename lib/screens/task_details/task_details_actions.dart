@@ -206,8 +206,8 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
           initialAxes: widget.task.axes,
           initialWork: widget.task.work,
           initialAssigneeIds: originalAssigneeIds.toList(),
-          initialMilestoneId: widget.task.milestoneId,
-          initialChecklistItemId: widget.task.checklistItemId,
+          initialMilestoneId: selectedMilestoneId,
+          initialChecklistItemId: selectedChecklistItemId,
           initialChecklistTitle: widget.task.work,
           allowAnyDate:
               widget.profile.isAdmin ||
