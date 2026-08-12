@@ -20,6 +20,7 @@ import '../../../screens/tasks_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../ai/data/global_voice_context_controller.dart';
 import '../../company/presentation/company_setup_recommendation_card.dart';
+import '../../expenses/presentation/expenses_screen.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
@@ -164,7 +165,18 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
 
   Future<void> openReports() => select(2);
 
-  Future<void> openTasks() => select(3);
+  Future<void> openTasks() async {
+    final navigator = await selectNavigator(0);
+    if (navigator == null) return;
+    await navigator.push<void>(
+      CupertinoPageRoute<void>(
+        builder: (_) => TasksScreen(
+          profile: widget.profile,
+          selectedObjectName: selectedObjectNameNotifier.value,
+        ),
+      ),
+    );
+  }
 
   Future<void> openTimesheet() async {
     final navigator = await selectNavigator(2);
@@ -192,7 +204,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   }
 
   Future<void> openTask(TaskItemData task) async {
-    final navigator = await selectNavigator(3);
+    final navigator = await selectNavigator(0);
     if (navigator == null) return;
     final result = await navigator.push<dynamic>(
       CupertinoPageRoute<dynamic>(
@@ -241,10 +253,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         selectedObjectName: selectedObjectName,
         onObjectChanged: changeSelectedObject,
       ),
-      3 => TasksScreen(
-        profile: widget.profile,
-        selectedObjectName: selectedObjectName,
-      ),
+      3 => ExpensesScreen(selectedObjectName: selectedObjectName),
       4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
@@ -273,9 +282,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
           selectedIcon: Icons.analytics_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Задачи',
-          icon: Icons.assignment_outlined,
-          selectedIcon: Icons.assignment_rounded,
+          label: 'Расходы',
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
         ),
         ProfessionalBottomNavigationItem(
           label: 'Профиль',
