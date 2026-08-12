@@ -50,8 +50,7 @@ class AddTaskScreen extends StatefulWidget {
   final String initialAxes;
   final String initialWork;
   final List<String> initialAssigneeIds;
-  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately;
-  final bool isRepeat;
+  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately, isRepeat;
   final String? sourceDraftId;
 
   const AddTaskScreen({
