@@ -65,6 +65,11 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
               final media = Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Keep task actions above media so they are immediately
+                  // visible on desktop and never get pushed below long photo
+                  // blocks on mobile.
+                  buildActionButtons(),
+                  const SizedBox(height: 18),
                   buildPhotosBlock(
                     photoStage: 'before',
                     title: 'Фото «До»',
@@ -84,8 +89,6 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
                     const SizedBox(height: 14),
                     buildErrorBlock(),
                   ],
-                  const SizedBox(height: 18),
-                  buildActionButtons(),
                 ],
               );
 
