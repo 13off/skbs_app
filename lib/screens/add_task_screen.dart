@@ -105,7 +105,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedDate = widget.initialDate;
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
-    selectedChecklistTitle = widget.initialChecklistTitle;
+    selectedChecklistTitle = selectedMilestoneId?.trim().isNotEmpty == true ? widget.initialChecklistTitle : null;
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     axesController.text = widget.initialAxes.trim();
     workController.text = widget.initialWork.trim();
