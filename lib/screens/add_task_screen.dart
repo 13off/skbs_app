@@ -47,8 +47,7 @@ class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
   final String? initialMilestoneId, initialChecklistItemId, initialChecklistTitle;
-  final String initialAxes;
-  final String initialWork;
+  final String initialAxes, initialWork;
   final List<String> initialAssigneeIds;
   final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately, isRepeat;
   final String? sourceDraftId;
