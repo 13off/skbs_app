@@ -20,6 +20,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   static const String _paymentsCategory = '__payments__';
   static const String _uncategorized = '__uncategorized__';
   static const String _allObjects = '__all__';
+  static const double _desktopListWidth = 1120;
 
   final ExpenseRepository repository = ExpenseRepository();
 
@@ -77,6 +78,57 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       buffer.write(raw[i]);
     }
     return '${buffer.toString()} ₽';
+  }
+
+  String monthName(int month) {
+    const names = <String>[
+      'Январь',
+      'Февраль',
+      'Март',
+      'Апрель',
+      'Май',
+      'Июнь',
+      'Июль',
+      'Август',
+      'Сентябрь',
+      'Октябрь',
+      'Ноябрь',
+      'Декабрь',
+    ];
+    if (month < 1 || month > names.length) return 'Месяц';
+    return names[month - 1];
+  }
+
+  String paymentTypeLabel(String? value) {
+    switch (value) {
+      case 'advance':
+        return 'Аванс';
+      case 'salary':
+        return 'Зарплата';
+      case 'fine':
+        return 'Штраф';
+      case 'other':
+        return 'Другая выплата';
+      default:
+        return 'Выплата';
+    }
+  }
+
+  String paymentPeriodTitle(int year, int month) {
+    return '${monthName(month)} $year';
+  }
+
+  String desktopTitle(ExpenseItemData item) {
+    if (item.isPayment) return paymentTypeLabel(item.paymentType);
+    final value = item.name.trim();
+    return value.isEmpty ? 'Расход' : value;
+  }
+
+  String mobileTitle(ExpenseItemData item) {
+    if (!item.isPayment) return desktopTitle(item);
+    final person = item.counterpartyName.trim();
+    final type = paymentTypeLabel(item.paymentType);
+    return person.isEmpty ? type : '$type · $person';
   }
 
   Future<void> load() async {
@@ -208,6 +260,78 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         contentType: repository.contentTypeForFileName(file.name),
       );
     }
+  }
+
+  Future<DateTime?> pickSettlementMonth(DateTime initial) async {
+    return showDialog<DateTime>(
+      context: context,
+      builder: (dialogContext) {
+        var year = initial.year;
+        var month = initial.month;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Расчётный период'),
+            content: SizedBox(
+              width: 430,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Предыдущий год',
+                        onPressed: () => setDialogState(() => year -= 1),
+                        icon: const Icon(Icons.chevron_left_rounded),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '$year',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Следующий год',
+                        onPressed: () => setDialogState(() => year += 1),
+                        icon: const Icon(Icons.chevron_right_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List<Widget>.generate(12, (index) {
+                      final value = index + 1;
+                      return ChoiceChip(
+                        label: Text(monthName(value)),
+                        selected: month == value,
+                        onSelected: (_) =>
+                            setDialogState(() => month = value),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Отмена'),
+              ),
+              FilledButton(
+                onPressed: () =>
+                    Navigator.pop(dialogContext, DateTime(year, month, 1)),
+                child: const Text('Выбрать'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> editExpense([ExpenseItemData? initial]) async {
@@ -477,6 +601,232 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     commentController.dispose();
   }
 
+  Future<void> editPayment(ExpenseItemData item) async {
+    if (!item.isPayment || item.id.isEmpty) return;
+
+    EditablePaymentData? payment;
+    await runBusy(() async {
+      payment = await repository.fetchPaymentForEdit(item.id);
+    });
+    if (!mounted || payment == null) return;
+
+    final source = payment!;
+    final amountController = TextEditingController(
+      text: source.amount % 1 == 0
+          ? source.amount.toInt().toString()
+          : source.amount.toStringAsFixed(2),
+    );
+    final commentController = TextEditingController(text: source.comment);
+    var paymentDate = source.paymentDate;
+    var settlementMonth = DateTime(source.periodYear, source.periodMonth, 1);
+    final allowedTypes = <String>{'advance', 'salary', 'fine', 'other'};
+    var paymentType = allowedTypes.contains(source.paymentType)
+        ? source.paymentType
+        : 'other';
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> pickDate() async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: paymentDate,
+              firstDate: DateTime(2024),
+              lastDate: DateTime(2035, 12, 31),
+              helpText: 'Дата выплаты',
+            );
+            if (picked != null) {
+              setDialogState(() => paymentDate = picked);
+            }
+          }
+
+          Future<void> pickPeriod() async {
+            final picked = await pickSettlementMonth(settlementMonth);
+            if (picked != null) {
+              setDialogState(() => settlementMonth = picked);
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Изменить выплату'),
+            content: SizedBox(
+              width: 560,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_outline_rounded),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.counterpartyName.trim().isEmpty
+                                      ? 'Сотрудник'
+                                      : item.counterpartyName.trim(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  (item.objectName ?? '').trim().isEmpty
+                                      ? 'Объект не указан'
+                                      : item.objectName!.trim(),
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: amountController,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(labelText: 'Сумма, ₽'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: paymentType,
+                      decoration: const InputDecoration(labelText: 'Тип выплаты'),
+                      items: const [
+                        DropdownMenuItem(value: 'advance', child: Text('Аванс')),
+                        DropdownMenuItem(
+                          value: 'salary',
+                          child: Text('Заработная плата'),
+                        ),
+                        DropdownMenuItem(value: 'fine', child: Text('Штраф')),
+                        DropdownMenuItem(
+                          value: 'other',
+                          child: Text('Другая выплата'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => paymentType = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.calendar_today_outlined),
+                      title: const Text('Дата выплаты'),
+                      subtitle: Text(formatDate(paymentDate)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: pickDate,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_note_outlined),
+                      title: const Text('Расчётный период'),
+                      subtitle: Text(
+                        paymentPeriodTitle(
+                          settlementMonth.year,
+                          settlementMonth.month,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: pickPeriod,
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: commentController,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Комментарий',
+                        hintText: 'Необязательно',
+                      ),
+                    ),
+                    if (item.attachments.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Чеки: ${item.attachments.length}. Они сохранятся без изменений.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Отмена'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final amount = parseAmount(amountController.text);
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Укажи сумму выплаты больше нуля'),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('Сохранить'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (saved == true) {
+      await runBusy(() async {
+        await repository.updatePayment(
+          id: source.id,
+          employeeId: source.employeeId,
+          periodYear: settlementMonth.year,
+          periodMonth: settlementMonth.month,
+          paymentDate: paymentDate,
+          amount: parseAmount(amountController.text),
+          paymentType: paymentType,
+          comment: commentController.text,
+        );
+        await load();
+      });
+      if (mounted && errorText == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Выплата изменена')),
+        );
+      }
+    }
+
+    amountController.dispose();
+    commentController.dispose();
+  }
+
   Future<void> deleteExpense(ExpenseItemData item) async {
     if (!item.isEditable || item.isPayment) return;
     final confirmed = await showDialog<bool>(
@@ -503,6 +853,39 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       await repository.deleteExpense(item.id);
       await load();
     });
+  }
+
+  Future<void> deletePayment(ExpenseItemData item) async {
+    if (!item.isPayment || item.id.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить выплату?'),
+        content: Text(
+          '${item.counterpartyName.trim().isEmpty ? 'Выплата' : item.counterpartyName.trim()} — ${formatMoney(item.amount)} от ${formatDate(item.date)}. Запись удалится и из раздела «Выплаты», а прикреплённые чеки будут удалены.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await runBusy(() async {
+      await repository.deletePayment(item.id);
+      await load();
+    });
+    if (mounted && errorText == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выплата удалена')),
+      );
+    }
   }
 
   Future<void> openReceipt(ExpenseAttachmentData receipt) async {
@@ -595,6 +978,105 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
+  Future<void> handleAction(ExpenseItemData item, String value) async {
+    if (value == 'edit') {
+      if (item.isPayment) {
+        await editPayment(item);
+      } else {
+        await editExpense(item);
+      }
+      return;
+    }
+    if (value == 'delete') {
+      if (item.isPayment) {
+        await deletePayment(item);
+      } else {
+        await deleteExpense(item);
+      }
+    }
+  }
+
+  Widget actionMenu(ExpenseItemData item) {
+    final hasActions = item.isPayment || item.isEditable;
+    return SizedBox(
+      width: 40,
+      child: hasActions
+          ? PopupMenuButton<String>(
+              enabled: !busy,
+              tooltip: 'Действия',
+              onSelected: (value) => handleAction(item, value),
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 19),
+                      SizedBox(width: 10),
+                      Text('Изменить'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, size: 19),
+                      SizedBox(width: 10),
+                      Text('Удалить'),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : null,
+    );
+  }
+
+  Widget receiptStatus(ExpenseItemData item) {
+    if (item.attachments.isNotEmpty) {
+      final label = item.attachments.length == 1
+          ? 'Чек'
+          : 'Чеки: ${item.attachments.length}';
+      return SizedBox(
+        height: 32,
+        child: OutlinedButton.icon(
+          onPressed: busy ? null : () => showReceipts(item),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          icon: const Icon(Icons.attachment_rounded, size: 16),
+          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      );
+    }
+
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16),
+          SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              'Без чека',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget filterPanel() {
     final rows = filteredRows;
     final total = rows.fold<double>(0, (sum, item) => sum + item.amount);
@@ -629,7 +1111,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ),
               const SizedBox(height: 12),
               Wrap(
-                spacing: 16,
+                spacing: 18,
                 runSpacing: 8,
                 children: [
                   Text('Выплаты: ${formatMoney(payments)}'),
@@ -651,10 +1133,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   SizedBox(
                     width: 260,
                     child: DropdownButtonFormField<String>(
+                      key: ValueKey(
+                        'expense-category-$selectedCategory-${snapshot.categories.length}',
+                      ),
                       initialValue: selectedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Статья расходов',
@@ -690,6 +1176,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   SizedBox(
                     width: 260,
                     child: DropdownButtonFormField<String>(
+                      key: ValueKey(
+                        'expense-object-$selectedObject-${snapshot.objects.length}',
+                      ),
                       initialValue: selectedObject,
                       decoration: const InputDecoration(
                         labelText: 'Объект',
@@ -719,29 +1208,22 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     icon: const Icon(Icons.date_range_outlined),
                     label: Text('${formatDate(from)} — ${formatDate(to)}'),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      snapshot.categories.isEmpty
-                          ? 'Статьи расходов настраиваются в панели Разработчика.'
-                          : 'Выплаты подтягиваются автоматически и не дублируются.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   FilledButton.icon(
                     onPressed: busy ? null : () => editExpense(),
                     icon: const Icon(Icons.add_rounded),
                     label: const Text('Добавить расход'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                snapshot.categories.isEmpty
+                    ? 'Статьи расходов настраиваются в панели Разработчика.'
+                    : 'Выплаты синхронизированы с разделом «Выплаты»: изменение или удаление здесь меняет исходную запись.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -757,122 +1239,289 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ),
           ),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
       ],
     );
   }
 
-  Widget expenseCard(ExpenseItemData item) {
-    final subtitleParts = <String>[
-      formatDate(item.date),
-      item.categoryName,
-      if ((item.objectName ?? '').trim().isNotEmpty) item.objectName!.trim(),
-      if (item.counterpartyName.trim().isNotEmpty) item.counterpartyName.trim(),
-    ];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: PremiumWorkCard(
-        radius: 22,
-        padding: const EdgeInsets.all(15),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
+  Widget expenseListHeader() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _desktopListWidth) {
+          return const SizedBox.shrink();
+        }
+        final style = TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.25,
+        );
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              const SizedBox(width: 42),
+              const SizedBox(width: 12),
+              SizedBox(width: 86, child: Text('ДАТА', style: style)),
+              const SizedBox(width: 16),
+              Expanded(flex: 4, child: Text('РАСХОД', style: style)),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 190,
+                child: Text('СТАТЬЯ / ОБЪЕКТ', style: style),
               ),
-              child: Icon(
-                item.isPayment
-                    ? Icons.payments_outlined
-                    : Icons.receipt_long_outlined,
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 190,
+                child: Text('СОТРУДНИК / КОНТРАГЕНТ', style: style),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(width: 112, child: Text('ДОКУМЕНТ', style: style)),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 120,
+                child: Text('СУММА', textAlign: TextAlign.right, style: style),
+              ),
+              const SizedBox(width: 40),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget desktopExpenseCard(ExpenseItemData item) {
+    final comment = item.comment.trim();
+    final objectName = (item.objectName ?? '').trim();
+    final responsible = item.counterpartyName.trim();
+    return PremiumWorkCard(
+      radius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              item.isPayment
+                  ? Icons.payments_outlined
+                  : Icons.receipt_long_outlined,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 86,
+            child: Text(
+              formatDate(item.date),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        formatMoney(item.amount),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitleParts.join(' · '),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Tooltip(
+                  message: desktopTitle(item),
+                  child: Text(
+                    desktopTitle(item),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (item.comment.trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(item.comment.trim()),
-                  ],
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      if (item.isPayment)
-                        const Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text('Выплата'),
-                        ),
-                      if (item.attachments.isNotEmpty)
-                        ActionChip(
-                          avatar: const Icon(Icons.attachment_rounded, size: 17),
-                          label: Text(
-                            item.attachments.length == 1
-                                ? 'Чек'
-                                : 'Чеки: ${item.attachments.length}',
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 18,
+                  child: comment.isEmpty
+                      ? const SizedBox.shrink()
+                      : Tooltip(
+                          message: comment,
+                          child: Text(
+                            comment,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 12,
+                            ),
                           ),
-                          onPressed: busy ? null : () => showReceipts(item),
-                        )
-                      else
-                        const Chip(
-                          visualDensity: VisualDensity.compact,
-                          avatar: Icon(Icons.warning_amber_rounded, size: 17),
-                          label: Text('Без чека'),
                         ),
-                    ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 190,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.categoryName.trim().isEmpty
+                      ? 'Без статьи'
+                      : item.categoryName.trim(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  objectName.isEmpty ? 'Без объекта' : objectName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 190,
+            child: Tooltip(
+              message: responsible,
+              child: Text(
+                responsible.isEmpty ? '—' : responsible,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
-            if (item.isEditable && !item.isPayment)
-              PopupMenuButton<String>(
-                enabled: !busy,
-                onSelected: (value) {
-                  if (value == 'edit') editExpense(item);
-                  if (value == 'delete') deleteExpense(item);
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Изменить')),
-                  PopupMenuItem(value: 'delete', child: Text('Удалить')),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(width: 112, child: receiptStatus(item)),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 120,
+            child: Text(
+              formatMoney(item.amount),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+          ),
+          actionMenu(item),
+        ],
+      ),
+    );
+  }
+
+  Widget mobileExpenseCard(ExpenseItemData item) {
+    final objectName = (item.objectName ?? '').trim();
+    final responsible = item.counterpartyName.trim();
+    final comment = item.comment.trim();
+    final meta = <String>[
+      formatDate(item.date),
+      item.categoryName.trim().isEmpty ? 'Без статьи' : item.categoryName.trim(),
+      if (objectName.isNotEmpty) objectName,
+      if (!item.isPayment && responsible.isNotEmpty) responsible,
+    ];
+
+    return PremiumWorkCard(
+      radius: 18,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              item.isPayment
+                  ? Icons.payments_outlined
+                  : Icons.receipt_long_outlined,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mobileTitle(item),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  meta.join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                if (comment.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    comment,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
+                const SizedBox(height: 9),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: receiptStatus(item),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatMoney(item.amount),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
-          ],
-        ),
+              const SizedBox(height: 2),
+              actionMenu(item),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget expenseCard(ExpenseItemData item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= _desktopListWidth) {
+            return desktopExpenseCard(item);
+          }
+          return mobileExpenseCard(item);
+        },
       ),
     );
   }
@@ -893,13 +1542,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     return AppLazyPage(
       title: 'Расходы',
-      subtitle: 'Выплаты сотрудникам и ручные расходы в одном месте',
+      subtitle: 'Выплаты сотрудникам и другие фактические расходы',
       headerTrailing: IconButton(
         tooltip: 'Обновить',
         onPressed: busy ? null : load,
         icon: const Icon(Icons.refresh_rounded),
       ),
-      leading: [filterPanel()],
+      leading: [filterPanel(), expenseListHeader()],
       itemCount: rows.length,
       itemBuilder: (context, index) => expenseCard(rows[index]),
       trailing: rows.isEmpty
