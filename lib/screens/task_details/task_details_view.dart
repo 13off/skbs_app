@@ -7,6 +7,26 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
         leading: const BackButton(),
         title: const Text('Задача'),
         actions: [
+          if (canRepeatTask)
+            PopupMenuButton<String>(
+              tooltip: 'Действия',
+              enabled: !isSaving && !isLoading,
+              onSelected: (value) {
+                if (value == 'repeat') repeatTask();
+              },
+              itemBuilder: (_) => const <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'repeat',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_all_outlined),
+                      SizedBox(width: 12),
+                      Text('Повторить задачу'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           if (canDeleteTask)
             IconButton(
               tooltip: 'Удалить',
