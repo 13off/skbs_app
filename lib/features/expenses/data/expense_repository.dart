@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ExpenseCategoryData {
@@ -40,6 +42,35 @@ class ExpenseObjectData {
   }
 }
 
+class ExpenseAttachmentData {
+  final String id;
+  final String bucket;
+  final String fileName;
+  final String filePath;
+  final String contentType;
+  final bool isEditable;
+
+  const ExpenseAttachmentData({
+    required this.id,
+    required this.bucket,
+    required this.fileName,
+    required this.filePath,
+    required this.contentType,
+    required this.isEditable,
+  });
+
+  factory ExpenseAttachmentData.fromMap(Map<String, dynamic> map) {
+    return ExpenseAttachmentData(
+      id: map['id']?.toString() ?? '',
+      bucket: map['bucket']?.toString() ?? '',
+      fileName: map['file_name']?.toString() ?? '',
+      filePath: map['file_path']?.toString() ?? '',
+      contentType: map['content_type']?.toString() ?? '',
+      isEditable: map['is_editable'] as bool? ?? false,
+    );
+  }
+}
+
 class ExpenseItemData {
   final String id;
   final String sourceType;
@@ -50,9 +81,11 @@ class ExpenseItemData {
   final String categoryName;
   final String? objectId;
   final String? objectName;
+  final String counterpartyName;
   final String comment;
   final String? paymentType;
   final bool isEditable;
+  final List<ExpenseAttachmentData> attachments;
 
   const ExpenseItemData({
     required this.id,
@@ -64,14 +97,29 @@ class ExpenseItemData {
     required this.categoryName,
     required this.objectId,
     required this.objectName,
+    required this.counterpartyName,
     required this.comment,
     required this.paymentType,
     required this.isEditable,
+    required this.attachments,
   });
 
   bool get isPayment => sourceType == 'payment';
 
   factory ExpenseItemData.fromMap(Map<String, dynamic> map) {
+    final rawAttachments = map['attachments'];
+    final attachments = rawAttachments is List
+        ? rawAttachments
+            .whereType<Map>()
+            .map(
+              (item) => ExpenseAttachmentData.fromMap(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .where((item) => item.filePath.isNotEmpty && item.bucket.isNotEmpty)
+            .toList(growable: false)
+        : const <ExpenseAttachmentData>[];
+
     return ExpenseItemData(
       id: map['id']?.toString() ?? '',
       sourceType: map['source_type']?.toString() ?? 'manual',
@@ -83,9 +131,11 @@ class ExpenseItemData {
       categoryName: map['category_name']?.toString() ?? 'Без статьи',
       objectId: map['object_id']?.toString(),
       objectName: map['object_name']?.toString(),
+      counterpartyName: map['counterparty_name']?.toString() ?? '',
       comment: map['comment']?.toString() ?? '',
       paymentType: map['payment_type']?.toString(),
       isEditable: map['is_editable'] as bool? ?? false,
+      attachments: attachments,
     );
   }
 }
@@ -128,9 +178,18 @@ class ExpensesSnapshot {
   }
 }
 
+class CreatedExpenseData {
+  final String id;
+  final String companyId;
+
+  const CreatedExpenseData({required this.id, required this.companyId});
+}
+
 class ExpenseRepository {
   ExpenseRepository([SupabaseClient? client])
       : _client = client ?? Supabase.instance.client;
+
+  static const String expenseReceiptsBucket = 'expense-receipts';
 
   final SupabaseClient _client;
 
@@ -138,6 +197,19 @@ class ExpenseRepository {
     return '${value.year.toString().padLeft(4, '0')}-'
         '${value.month.toString().padLeft(2, '0')}-'
         '${value.day.toString().padLeft(2, '0')}';
+  }
+
+  String _safeFileName(String value) {
+    final clean = value.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    return clean.isEmpty ? 'receipt' : clean;
+  }
+
+  String contentTypeForFileName(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 
   Future<ExpensesSnapshot> fetchSnapshot({
@@ -165,9 +237,11 @@ class ExpenseRepository {
         .order('name');
     return (raw as List)
         .whereType<Map>()
-        .map((item) => ExpenseCategoryData.fromMap(
-              Map<String, dynamic>.from(item),
-            ))
+        .map(
+          (item) => ExpenseCategoryData.fromMap(
+            Map<String, dynamic>.from(item),
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -187,22 +261,32 @@ class ExpenseRepository {
     await _client.from('expense_categories').delete().eq('id', id);
   }
 
-  Future<void> createExpense({
+  Future<CreatedExpenseData> createExpense({
     required String name,
     required double amount,
     required DateTime date,
     String? categoryId,
     String? objectId,
+    String counterpartyName = '',
     String comment = '',
   }) async {
-    await _client.from('expenses').insert(<String, dynamic>{
-      'name': name.trim(),
-      'amount': amount,
-      'expense_date': _date(date),
-      'category_id': categoryId,
-      'object_id': objectId,
-      'comment': comment.trim(),
-    });
+    final raw = await _client
+        .from('expenses')
+        .insert(<String, dynamic>{
+          'name': name.trim(),
+          'amount': amount,
+          'expense_date': _date(date),
+          'category_id': categoryId,
+          'object_id': objectId,
+          'counterparty_name': counterpartyName.trim(),
+          'comment': comment.trim(),
+        })
+        .select('id,company_id')
+        .single();
+    return CreatedExpenseData(
+      id: raw['id']?.toString() ?? '',
+      companyId: raw['company_id']?.toString() ?? '',
+    );
   }
 
   Future<void> updateExpense({
@@ -212,6 +296,7 @@ class ExpenseRepository {
     required DateTime date,
     String? categoryId,
     String? objectId,
+    String counterpartyName = '',
     String comment = '',
   }) async {
     await _client.from('expenses').update(<String, dynamic>{
@@ -220,11 +305,80 @@ class ExpenseRepository {
       'expense_date': _date(date),
       'category_id': categoryId,
       'object_id': objectId,
+      'counterparty_name': counterpartyName.trim(),
       'comment': comment.trim(),
     }).eq('id', id);
   }
 
+  Future<String> _companyIdForExpense(String expenseId) async {
+    final raw = await _client
+        .from('expenses')
+        .select('company_id')
+        .eq('id', expenseId)
+        .single();
+    return raw['company_id']?.toString() ?? '';
+  }
+
+  Future<void> uploadReceipt({
+    required String expenseId,
+    required String fileName,
+    required Uint8List bytes,
+    String? contentType,
+  }) async {
+    final companyId = await _companyIdForExpense(expenseId);
+    if (companyId.isEmpty) throw StateError('Не удалось определить компанию');
+
+    final safeName = _safeFileName(fileName);
+    final filePath = '$companyId/$expenseId/'
+        '${DateTime.now().microsecondsSinceEpoch}_$safeName';
+    final type = (contentType == null || contentType.trim().isEmpty)
+        ? contentTypeForFileName(fileName)
+        : contentType.trim();
+
+    await _client.storage.from(expenseReceiptsBucket).uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(contentType: type, upsert: false),
+        );
+    try {
+      await _client.from('expense_receipts').insert(<String, dynamic>{
+        'expense_id': expenseId,
+        'company_id': companyId,
+        'file_name': fileName.trim().isEmpty ? safeName : fileName.trim(),
+        'file_path': filePath,
+        'content_type': type,
+      });
+    } catch (_) {
+      await _client.storage.from(expenseReceiptsBucket).remove([filePath]);
+      rethrow;
+    }
+  }
+
+  Future<String> createReceiptSignedUrl(ExpenseAttachmentData receipt) {
+    return _client.storage
+        .from(receipt.bucket)
+        .createSignedUrl(receipt.filePath, 60 * 30);
+  }
+
+  Future<void> deleteReceipt(ExpenseAttachmentData receipt) async {
+    if (!receipt.isEditable || receipt.bucket != expenseReceiptsBucket) return;
+    await _client.storage.from(receipt.bucket).remove([receipt.filePath]);
+    await _client.from('expense_receipts').delete().eq('id', receipt.id);
+  }
+
   Future<void> deleteExpense(String id) async {
+    final raw = await _client
+        .from('expense_receipts')
+        .select('file_path')
+        .eq('expense_id', id);
+    final paths = (raw as List)
+        .whereType<Map>()
+        .map((row) => row['file_path']?.toString() ?? '')
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+    if (paths.isNotEmpty) {
+      await _client.storage.from(expenseReceiptsBucket).remove(paths);
+    }
     await _client.from('expenses').delete().eq('id', id);
   }
 }
