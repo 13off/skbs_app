@@ -7,26 +7,6 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
         leading: const BackButton(),
         title: const Text('Задача'),
         actions: [
-          if (canRepeatTask)
-            PopupMenuButton<String>(
-              tooltip: 'Действия',
-              enabled: !isSaving && !isLoading,
-              onSelected: (value) {
-                if (value == 'repeat') repeatTask();
-              },
-              itemBuilder: (_) => const <PopupMenuEntry<String>>[
-                PopupMenuItem<String>(
-                  value: 'repeat',
-                  child: Row(
-                    children: [
-                      Icon(Icons.copy_all_outlined),
-                      SizedBox(width: 12),
-                      Text('Повторить задачу'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           if (canDeleteTask)
             IconButton(
               tooltip: 'Удалить',
@@ -38,21 +18,58 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
       body: AdaptiveDetailBody(
         desktopMaxWidth: 1280,
         children: [
-          Text(
-            widget.task.objectName,
-            style: TextStyle(
-              color: AppAdaptivePalette.textMuted,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Детали задачи',
-            style: TextStyle(
-              color: AppAdaptivePalette.textPrimary,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final heading = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.task.objectName,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Детали задачи',
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              );
+
+              if (!canRepeatTask) return heading;
+
+              final repeatButton = OutlinedButton.icon(
+                onPressed: isSaving || isLoading ? null : repeatTask,
+                icon: const Icon(Icons.copy_all_outlined),
+                label: const Text('Повторить задачу'),
+              );
+
+              if (constraints.maxWidth < 720) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    heading,
+                    const SizedBox(height: 14),
+                    SizedBox(height: 50, child: repeatButton),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: heading),
+                  const SizedBox(width: 18),
+                  SizedBox(height: 46, child: repeatButton),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 18),
           LayoutBuilder(
