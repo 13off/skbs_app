@@ -282,7 +282,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: categoryId,
+                      initialValue: categoryId,
                       decoration: const InputDecoration(
                         labelText: 'Статья расходов',
                       ),
@@ -303,7 +303,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: objectId,
+                      initialValue: objectId,
                       decoration: const InputDecoration(labelText: 'Объект'),
                       items: [
                         const DropdownMenuItem(
@@ -655,7 +655,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   SizedBox(
                     width: 260,
                     child: DropdownButtonFormField<String>(
-                      value: selectedCategory,
+                      initialValue: selectedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Статья расходов',
                         isDense: true,
@@ -690,7 +690,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   SizedBox(
                     width: 260,
                     child: DropdownButtonFormField<String>(
-                      value: selectedObject,
+                      initialValue: selectedObject,
                       decoration: const InputDecoration(
                         labelText: 'Объект',
                         isDense: true,
