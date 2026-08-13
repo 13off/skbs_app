@@ -10,6 +10,8 @@ on:
       - assets/**
       - web/**
       - tool/web_smoke.py
+      - tool/patch_expenses_period.py
+      - .patch-expenses-period
       - pubspec.yaml
       - pubspec.lock
       - .fvmrc
@@ -52,7 +54,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: skbs_app
+          fetch-depth: 0
           show-progress: false
+
+      - name: Apply one-time expense period patch
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          if [ -f .patch-expenses-period ]; then
+            python3 tool/patch_expenses_period.py
+          else
+            echo "Expense period patch marker is absent"
+          fi
 
       - name: Checkout web repository
         uses: actions/checkout@v4
@@ -94,6 +107,34 @@ jobs:
         working-directory: skbs_app
         shell: bash
         run: flutter analyze 2>&1 | tee ../flutter-analyze.log
+
+      - name: Persist verified expense period patch
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          if [ ! -f .patch-expenses-period ]; then
+            echo "Nothing to persist"
+            exit 0
+          fi
+
+          rm -f .patch-expenses-period tool/patch_expenses_period.py
+          git show 244160ab9ee9e5efbdc4b9f9ced2c3cac9cb8a02:.github/workflows/deploy-web.yml > .github/workflows/deploy-web.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Исправить кнопку применения периода расходов"
+
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Expense period patch saved"
+              exit 0
+            fi
+            git fetch origin main
+            git rebase origin/main
+            sleep 4
+          done
+          exit 1
 
       - name: Configure public Firebase web values
         working-directory: skbs_app
