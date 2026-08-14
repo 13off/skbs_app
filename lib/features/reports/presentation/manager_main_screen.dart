@@ -21,6 +21,7 @@ import '../../../widgets/premium_ui.dart';
 import '../../ai/data/global_voice_context_controller.dart';
 import '../../company/presentation/company_setup_recommendation_card.dart';
 import '../../expenses/presentation/expenses_screen.dart';
+import '../../manager_todos/presentation/manager_todos.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
@@ -222,6 +223,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     return Column(
       children: [
         CompanySetupRecommendationCard(profile: widget.profile),
+        if (widget.profile.isAdmin) const ManagerTodoHomeBar(),
         Expanded(
           child: AdaptiveHomeScreen(
             profile: widget.profile,
