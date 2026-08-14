@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 import { searchAdmin } from "./admin_search.ts";
 import { searchCore, SearchFlags } from "./core_search.ts";
 import { ExtraFlags, searchExtra } from "./extra_search.ts";

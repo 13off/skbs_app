@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.110.5";
 
 import { clean, nameMatches, normalized } from "./shared.ts";
 

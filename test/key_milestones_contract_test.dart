@@ -32,7 +32,7 @@ void main() {
     );
 
     expect(detail, contains('AddTaskScreen('));
-    expect(detail, contains('TaskRepository.addTaskWithDetails'));
+    expect(detail, contains('persistTaskCreateDraft'));
     expect(detail, contains("hintText: 'Армирование'"));
     expect(detail, contains("child: Text('Изменить название')"));
     expect(detail, isNot(contains('Критичный пункт')));

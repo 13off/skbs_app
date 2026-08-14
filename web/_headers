@@ -1,0 +1,42 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+  Cross-Origin-Opener-Policy: same-origin
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/404.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/flutter_bootstrap.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/flutter_service_worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/firebase-messaging-sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/appstroy-push-sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/main.dart.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest-dark.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/canvaskit/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/icons/*
+  Cache-Control: public, max-age=3600, must-revalidate

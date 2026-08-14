@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_adaptive_palette.dart';
+import '../../../data/app_cache_coordinator.dart';
+import '../../../data/app_session_scope.dart';
 import '../../../data/user_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../employee/presentation/employee_platform_with_passport.dart';
@@ -52,12 +54,53 @@ class AuthGate extends StatelessWidget {
 
             return WhatsNewGate(
               profile: profile,
-              child: EmployeePlatformWithPassport(profile: profile),
+              child: _EmployeeSessionPlatform(profile: profile),
             );
           },
         );
       },
     );
+  }
+}
+
+class _EmployeeSessionPlatform extends StatefulWidget {
+  final AppUserProfile profile;
+
+  const _EmployeeSessionPlatform({required this.profile});
+
+  @override
+  State<_EmployeeSessionPlatform> createState() =>
+      _EmployeeSessionPlatformState();
+}
+
+class _EmployeeSessionPlatformState extends State<_EmployeeSessionPlatform> {
+  @override
+  void initState() {
+    super.initState();
+    _configureSession();
+  }
+
+  @override
+  void didUpdateWidget(covariant _EmployeeSessionPlatform oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.id == widget.profile.id &&
+        oldWidget.profile.activeCompanyId == widget.profile.activeCompanyId) {
+      return;
+    }
+    _configureSession();
+  }
+
+  void _configureSession() {
+    AppSessionScope.configure(
+      userId: widget.profile.id,
+      companyId: widget.profile.activeCompanyId,
+    );
+    AppCacheCoordinator.clearAll();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return EmployeePlatformWithPassport(profile: widget.profile);
   }
 }
 

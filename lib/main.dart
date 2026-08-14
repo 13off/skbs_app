@@ -29,24 +29,79 @@ const String supabasePublishableKey = String.fromEnvironment(
   defaultValue: _defaultSupabasePublishableKey,
 );
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ru_RU');
+  runApp(const SkbsApp());
+}
 
-  await AppThemeController.instance.initialize();
+class SkbsApp extends StatefulWidget {
+  const SkbsApp({super.key});
 
-  Object? startupError;
+  @override
+  State<SkbsApp> createState() => _SkbsAppState();
+}
 
-  try {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      publishableKey: supabasePublishableKey,
-    ).timeout(const Duration(milliseconds: 4500));
-  } catch (error) {
-    startupError = error;
+class _SkbsAppState extends State<SkbsApp> {
+  StreamSubscription<AuthState>? _authStateSubscription;
+  bool _pushNavigationScheduled = false;
+  bool _isStarting = true;
+  Object? _startupError;
+
+  @override
+  void initState() {
+    super.initState();
+    PushNotificationService.navigationRequest.addListener(
+      _handlePushNavigation,
+    );
+    unawaited(_initializeApplication());
   }
 
-  if (startupError == null) {
+  Future<void> _initializeApplication() async {
+    try {
+      await Future.wait<void>([
+        initializeDateFormatting('ru_RU'),
+        _initializeTheme(),
+        _initializeSupabase(),
+      ]);
+      _attachAuthStateSubscription();
+      unawaited(_initializePush());
+
+      if (!mounted) return;
+      setState(() {
+        _startupError = null;
+        _isStarting = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handlePushNavigation();
+      });
+    } catch (error) {
+      await _disposePartialSupabaseInitialization();
+      if (!mounted) return;
+      setState(() {
+        _startupError = error;
+        _isStarting = false;
+      });
+    }
+  }
+
+  Future<void> _initializeTheme() async {
+    try {
+      await AppThemeController.instance.initialize().timeout(
+        const Duration(seconds: 2),
+      );
+    } catch (_) {
+      // Настройки темы не должны удерживать загрузку приложения.
+    }
+  }
+
+  Future<void> _initializeSupabase() {
+    return Supabase.initialize(
+      url: supabaseUrl,
+      publishableKey: supabasePublishableKey,
+    ).then<void>((_) {});
+  }
+
+  Future<void> _initializePush() async {
     try {
       await PushNotificationService.initialize().timeout(
         const Duration(milliseconds: 4500),
@@ -56,44 +111,35 @@ Future<void> main() async {
     }
   }
 
-  runApp(SkbsApp(startupError: startupError));
-}
-
-class SkbsApp extends StatefulWidget {
-  final Object? startupError;
-
-  const SkbsApp({super.key, this.startupError});
-
-  @override
-  State<SkbsApp> createState() => _SkbsAppState();
-}
-
-class _SkbsAppState extends State<SkbsApp> {
-  StreamSubscription<AuthState>? _authStateSubscription;
-  bool _pushNavigationScheduled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    PushNotificationService.navigationRequest.addListener(
-      _handlePushNavigation,
-    );
-
-    if (widget.startupError == null) {
-      _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange
-          .listen((authState) {
-            if (authState.event == AuthChangeEvent.signedIn ||
-                authState.event == AuthChangeEvent.initialSession ||
-                authState.event == AuthChangeEvent.userUpdated ||
-                authState.event == AuthChangeEvent.tokenRefreshed) {
-              _handlePushNavigation();
-            }
-          });
+  Future<void> _disposePartialSupabaseInitialization() async {
+    if (!Supabase.instance.isInitialized) return;
+    try {
+      await Supabase.instance.dispose();
+    } catch (_) {
+      // Исходная ошибка запуска важнее ошибки освобождения ресурсов.
     }
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handlePushNavigation();
+  void _attachAuthStateSubscription() {
+    if (_authStateSubscription != null) return;
+    _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange
+        .listen((authState) {
+          if (authState.event == AuthChangeEvent.signedIn ||
+              authState.event == AuthChangeEvent.initialSession ||
+              authState.event == AuthChangeEvent.userUpdated ||
+              authState.event == AuthChangeEvent.tokenRefreshed) {
+            _handlePushNavigation();
+          }
+        });
+  }
+
+  Future<void> _retryStartup() async {
+    if (_isStarting) return;
+    setState(() {
+      _startupError = null;
+      _isStarting = true;
     });
+    await _initializeApplication();
   }
 
   @override
@@ -109,7 +155,9 @@ class _SkbsAppState extends State<SkbsApp> {
   }
 
   void _handlePushNavigation() {
-    if (_pushNavigationScheduled ||
+    if (_isStarting ||
+        _startupError != null ||
+        _pushNavigationScheduled ||
         PushNotificationService.navigationRequest.value == null) {
       return;
     }
@@ -165,17 +213,30 @@ class _SkbsAppState extends State<SkbsApp> {
             scale: themeController.uiScale,
             child: child ?? const SizedBox.shrink(),
           ),
-          home: widget.startupError == null
+          home: _isStarting
+              ? const _StartupLoadingScreen()
+              : _startupError == null
               ? const AppBrowserBackBridge(child: AuthGate())
-              : const _StartupErrorScreen(),
+              : _StartupErrorScreen(onRetry: _retryStartup),
         );
       },
     );
   }
 }
 
+class _StartupLoadingScreen extends StatelessWidget {
+  const _StartupLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+}
+
 class _StartupErrorScreen extends StatelessWidget {
-  const _StartupErrorScreen();
+  final Future<void> Function() onRetry;
+
+  const _StartupErrorScreen({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -226,12 +287,21 @@ class _StartupErrorScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Закрой приложение и открой снова. Если ошибка повторяется, проверь интернет-соединение.',
+                      'Проверь интернет-соединение и попробуй подключиться ещё раз.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: onRetry,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Повторить подключение'),
                       ),
                     ),
                   ],

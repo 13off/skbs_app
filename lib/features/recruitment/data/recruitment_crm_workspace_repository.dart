@@ -347,6 +347,32 @@ abstract final class RecruitmentCrmWorkspaceRepository {
     _notify(applicationId, table: 'recruitment_applications');
   }
 
+  static Future<int> bulkAssignResponsible({
+    required Iterable<String> applicationIds,
+    required String responsibleUserId,
+  }) async {
+    final ids = applicationIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return 0;
+
+    final dynamic result = await _client.rpc(
+      'bulk_assign_recruitment_responsible',
+      params: <String, dynamic>{
+        'p_application_ids': ids,
+        'p_responsible_user_id': responsibleUserId.trim().isEmpty
+            ? null
+            : responsibleUserId.trim(),
+      },
+    );
+    for (final id in ids) {
+      _notify(id, table: 'recruitment_applications');
+    }
+    return result is int ? result : int.tryParse(result?.toString() ?? '') ?? 0;
+  }
+
   static Future<int> bulkMove({
     required List<String> applicationIds,
     required String stageId,

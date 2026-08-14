@@ -1,8 +1,6 @@
 name: Keep web deployment current
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,13 +17,13 @@ jobs:
 
     steps:
       - name: Checkout source app history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: skbs_app
           fetch-depth: 0
 
       - name: Checkout published web app
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: 13off/appstroy-web
           path: appstroy-web

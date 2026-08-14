@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.110.5";
 
 import type { GlobalVoiceConversationContext } from "./conversation_context.ts";
 import { buildCandidateReadinessGoal } from "./goal_candidate_readiness.ts";

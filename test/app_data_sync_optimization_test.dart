@@ -29,6 +29,7 @@ void main() {
           AppCacheArea.payments,
           AppCacheArea.tasks,
           AppCacheArea.managerReports,
+          AppCacheArea.managerWeeklyContribution,
         }),
       );
     });

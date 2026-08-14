@@ -377,6 +377,29 @@ class ObjectRepository {
     _notifyObjectsChanged(objectName: cleanName);
   }
 
+  static Future<void> restoreObjects(Iterable<String> names) async {
+    final cleanNames = names
+        .map((value) => cleanObjectName(value))
+        .whereType<String>()
+        .toSet()
+        .toList(growable: false);
+    if (cleanNames.isEmpty) throw Exception('Не найдены объекты');
+
+    await _client.rpc(
+      'bulk_restore_archived_objects',
+      params: <String, dynamic>{'p_names': cleanNames},
+    );
+    clearCache();
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.objects},
+      context: <String, dynamic>{
+        'table': 'objects',
+        'object_names': cleanNames,
+        'restored': true,
+      },
+    );
+  }
+
   static Future<void> ensureObjectNameExists(String objectName) async {
     final cleanName = cleanObjectName(objectName);
 

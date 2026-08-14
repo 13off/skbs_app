@@ -248,12 +248,11 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
 
     setState(() => busy = true);
     try {
-      final task = await TaskRepository.addTaskWithDetails(
-        draft.task,
+      final createdTasks = await persistTaskCreateDraft(
+        draft,
         objectName: milestone.objectName,
-        assigneeIds: draft.assigneeIds,
-        photos: draft.photos,
       );
+      final task = createdTasks.first;
       final taskId = task.id;
       if (taskId == null || taskId.isEmpty) {
         throw Exception('Не удалось получить ID созданной задачи');

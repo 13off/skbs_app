@@ -2,8 +2,6 @@ name: Deploy Supabase proxy and Russian web
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
   push:
     paths:
       - infra/supabase-proxy/**
@@ -39,12 +37,12 @@ jobs:
           done
 
       - name: Checkout proxy source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: skbs_app
 
       - name: Checkout latest web build
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: 13off/appstroy-web
           path: web-build

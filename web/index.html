@@ -401,6 +401,22 @@
       animation: progressTravel 1.55s cubic-bezier(.4,0,.2,1) infinite;
     }
 
+    .loader-retry {
+      display: none;
+      margin: 22px auto 0;
+      padding: 11px 18px;
+      border: 1px solid var(--shell-border);
+      border-radius: 999px;
+      background: var(--shell-background);
+      color: var(--loader-text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #app-loader[data-timeout="true"] .loader-progress { display: none; }
+    #app-loader[data-timeout="true"] .loader-retry { display: block; }
+
     @keyframes stageIn {
       from { opacity: 0; transform: translateY(18px) scale(.975); }
       to { opacity: 1; transform: translateY(0) scale(1); }
@@ -484,6 +500,7 @@
       <div class="loader-title">AppСтрой</div>
       <div class="loader-subtitle">планируй. строй. управляй.</div>
       <div class="loader-progress" aria-hidden="true"></div>
+      <button class="loader-retry" type="button" onclick="window.location.reload()">Повторить запуск</button>
     </div>
   </div>
 
@@ -509,7 +526,12 @@
       };
 
       window.addEventListener('flutter-first-frame', hideAfterMinimum, { once: true });
-      window.setTimeout(hideLoader, 4400);
+      window.setTimeout(function () {
+        if (!loader || hidden) return;
+        loader.dataset.timeout = 'true';
+        var subtitle = loader.querySelector('.loader-subtitle');
+        if (subtitle) subtitle.textContent = 'Не удалось запустить приложение';
+      }, 15000);
     })();
   </script>
 

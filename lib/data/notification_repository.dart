@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/push_notification_service.dart';
 import 'app_data_sync.dart';
+import 'app_session_scope.dart';
 import 'user_repository.dart';
 
 class AppNotification {
@@ -170,6 +171,7 @@ class NotificationRepository {
       <String, _UnreadCacheEntry>{};
   static final Map<String, Future<bool>> _unreadInFlight =
       <String, Future<bool>>{};
+  static int _unreadCacheGeneration = 0;
 
   static Future<void> _refreshOperationalNotifications() async {
     try {
@@ -586,7 +588,9 @@ class NotificationRepository {
   }) async {
     if (_currentUserId == null) return false;
     final cleanObject = cleanObjectName(objectName);
-    final key = cleanObject?.toLowerCase() ?? '__all__';
+    final key = AppSessionScope.cacheKey(
+      cleanObject?.toLowerCase() ?? '__all__',
+    );
     final now = DateTime.now();
     final cached = _unreadCache[key];
     if (!forceRefresh &&
@@ -597,11 +601,16 @@ class NotificationRepository {
     final pending = _unreadInFlight[key];
     if (pending != null) return pending;
 
+    final cacheGeneration = _unreadCacheGeneration;
+    final sessionGeneration = AppSessionScope.generation;
     final future = _loadHasUnread(cleanObject);
     _unreadInFlight[key] = future;
     try {
       final value = await future;
-      _unreadCache[key] = _UnreadCacheEntry(value, DateTime.now());
+      if (cacheGeneration == _unreadCacheGeneration &&
+          AppSessionScope.isCurrent(sessionGeneration)) {
+        _unreadCache[key] = _UnreadCacheEntry(value, DateTime.now());
+      }
       return value;
     } finally {
       if (identical(_unreadInFlight[key], future)) {
@@ -624,8 +633,13 @@ class NotificationRepository {
   }
 
   static void _invalidateUnreadCache() {
+    _unreadCacheGeneration++;
     _unreadCache.clear();
     _unreadInFlight.clear();
+  }
+
+  static void clearCache() {
+    _invalidateUnreadCache();
   }
 
   static Future<void> markAsRead(List<String> notificationIds) async {

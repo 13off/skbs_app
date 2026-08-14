@@ -6,12 +6,11 @@ on:
       - main
     paths:
       - services/max-recruiting-bot/**
-      - tool/apply_max_employee_link_fix.py
       - .github/workflows/deploy-max-bot-vps.yml
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: deploy-max-recruiting-bot-vps
@@ -21,30 +20,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Apply employee MAX link routing fix
-        run: python3 tool/apply_max_employee_link_fix.py
-
-      - name: Validate patched MAX bot
+      - name: Validate MAX bot
         working-directory: services/max-recruiting-bot
         run: npm run check
-
-      - name: Persist employee MAX link routing fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add services/max-recruiting-bot/src/index.js \
-            services/max-recruiting-bot/src/appstroy.js \
-            services/max-recruiting-bot/src/utils.js
-          if git diff --cached --quiet; then
-            echo "Employee MAX link routing is already current"
-          else
-            git commit -m "Исправить вход сотрудника через персональную ссылку MAX"
-            git push origin HEAD:main
-          fi
 
       - name: Validate required VPS secrets
         shell: bash
@@ -59,7 +39,7 @@ jobs:
           test -n "$VPS_SSH_KEY" || { echo "VPS_SSH_KEY is missing"; exit 1; }
 
       - name: Copy service files
-        uses: appleboy/scp-action@v1
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -70,7 +50,7 @@ jobs:
           overwrite: true
 
       - name: Build and restart service
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -85,22 +65,3 @@ jobs:
             docker compose -f compose.yml up -d --force-recreate --remove-orphans
             docker compose -f compose.yml ps
             docker compose -f compose.yml logs --tail=80 max-recruiting-bot
-
-      - name: Publish deployment marker
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git reset --hard origin/main
-          mkdir -p release
-          printf '%s\n' "${{ github.sha }}" > release/max-bot-vps-source.txt
-          printf '%s\n' "success" > release/max-bot-vps-status.txt
-          git add release/max-bot-vps-source.txt release/max-bot-vps-status.txt
-          if git diff --cached --quiet; then
-            echo "MAX bot deployment marker is current"
-          else
-            git commit -m "Сохранить статус деплоя MAX-бота"
-            git push origin HEAD:main
-          fi

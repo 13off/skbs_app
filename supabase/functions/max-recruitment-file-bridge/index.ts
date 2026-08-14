@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 
 const COMPANY_ID = "e39c8fd5-e7f3-4beb-a269-76e893975a98";

@@ -5,6 +5,7 @@ class EmployeeComment {
   final String employeeId;
   final String text;
   final String createdBy;
+  final String createdByUserId;
   final DateTime createdAt;
 
   const EmployeeComment({
@@ -12,6 +13,7 @@ class EmployeeComment {
     required this.employeeId,
     required this.text,
     required this.createdBy,
+    this.createdByUserId = '',
     required this.createdAt,
   });
 
@@ -21,6 +23,7 @@ class EmployeeComment {
       employeeId: json['employee_id']?.toString() ?? '',
       text: json['comment_text']?.toString() ?? '',
       createdBy: json['created_by']?.toString() ?? '',
+      createdByUserId: json['created_by_user_id']?.toString() ?? '',
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -34,7 +37,9 @@ class EmployeeCommentsRepository {
   static Future<List<EmployeeComment>> fetchComments(String employeeId) async {
     final rows = await _client
         .from('employee_comments')
-        .select('id, employee_id, comment_text, created_by, created_at')
+        .select(
+          'id, employee_id, comment_text, created_by, created_by_user_id, created_at',
+        )
         .eq('employee_id', employeeId)
         .order('created_at', ascending: false);
 
@@ -55,12 +60,10 @@ class EmployeeCommentsRepository {
 
     final row = await _client
         .from('employee_comments')
-        .insert({
-          'employee_id': employeeId,
-          'comment_text': cleanText,
-          'created_by': 'Илья',
-        })
-        .select('id, employee_id, comment_text, created_by, created_at')
+        .insert({'employee_id': employeeId, 'comment_text': cleanText})
+        .select(
+          'id, employee_id, comment_text, created_by, created_by_user_id, created_at',
+        )
         .single();
 
     return EmployeeComment.fromSupabase(row);

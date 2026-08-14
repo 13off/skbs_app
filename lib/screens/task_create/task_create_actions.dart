@@ -97,27 +97,33 @@ extension _TaskCreateActions on _AddTaskScreenState {
     if (voiceBatchDrafts.length <= 1 || isGoalTask) {
       return const <TaskCreateDraft>[];
     }
-    return voiceBatchDrafts.skip(1).map((voiceDraft) {
-      final voiceDate = voiceDraft.date;
-      final taskDate = widget.allowAnyDate && voiceDate != null
-          ? voiceDate
-          : selectedDate;
-      final task = TaskItemData(
-        voiceDraft.axes.trim(),
-        normalizeTaskVoiceWork(voiceDraft.work),
-        'Запланировано',
-        taskDate,
-        objectName: widget.objectName,
-      );
-      return TaskCreateDraft(
-        task: task,
-        assigneeIds: List<String>.from(voiceDraft.assigneeIds),
-        photos: const <TaskPhotoFile>[],
-      );
-    }).toList(growable: false);
+    return voiceBatchDrafts
+        .skip(1)
+        .map((voiceDraft) {
+          final voiceDate = voiceDraft.date;
+          final taskDate = widget.allowAnyDate && voiceDate != null
+              ? voiceDate
+              : selectedDate;
+          final task = TaskItemData(
+            voiceDraft.axes.trim(),
+            normalizeTaskVoiceWork(voiceDraft.work),
+            'Запланировано',
+            taskDate,
+            objectName: widget.objectName,
+          );
+          return TaskCreateDraft(
+            task: task,
+            assigneeIds: List<String>.from(voiceDraft.assigneeIds),
+            photos: const <TaskPhotoFile>[],
+          );
+        })
+        .toList(growable: false);
   }
 
-  TaskCreateDraft buildResult({required bool asDraft}) {
+  TaskCreateDraft buildResult({
+    required bool asDraft,
+    List<TaskCreateDraft> additionalTasks = const <TaskCreateDraft>[],
+  }) {
     final axes = axesController.text.trim();
     final work = workController.text.trim();
     final goalWork = selectedChecklistTitle?.trim() ?? '';
@@ -140,6 +146,7 @@ extension _TaskCreateActions on _AddTaskScreenState {
           : List<TaskPhotoFile>.from(selectedPhotos),
       saveAsDraft: asDraft,
       sourceDraftId: widget.sourceDraftId,
+      additionalTasks: additionalTasks,
     );
   }
 
@@ -199,6 +206,12 @@ extension _TaskCreateActions on _AddTaskScreenState {
         );
         return;
       }
+      if (selectedPhotos.isNotEmpty) {
+        showValidationError(
+          'Пакет задач с фотографиями сохраните по одной, чтобы файлы не перепутались.',
+        );
+        return;
+      }
       for (var index = 0; index < additional.length; index += 1) {
         final draft = additional[index];
         final error = TaskDraftValidation.coreFields(
@@ -211,24 +224,11 @@ extension _TaskCreateActions on _AddTaskScreenState {
           return;
         }
       }
-
-      try {
-        for (final draft in additional) {
-          await TaskRepository.addTaskWithDetails(
-            draft.task,
-            objectName: widget.objectName,
-            assigneeIds: draft.assigneeIds,
-            photos: const <TaskPhotoFile>[],
-          );
-        }
-      } catch (error) {
-        if (!mounted) return;
-        showValidationError('Не удалось сохранить пакет задач: $error');
-        return;
-      }
-      if (!mounted) return;
     }
 
-    Navigator.pop(context, buildResult(asDraft: false));
+    Navigator.pop(
+      context,
+      buildResult(asDraft: false, additionalTasks: additional),
+    );
   }
 }

@@ -17,6 +17,7 @@ class PaymentRepository {
   _employeePaymentRequests = {};
   static final Map<String, Future<List<PaymentRecord>>> _bulkPaymentRequests =
       {};
+  static int _cacheGeneration = 0;
 
   static String dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -27,6 +28,7 @@ class PaymentRepository {
   }
 
   static void clearCache() {
+    _cacheGeneration++;
     _employeePaymentsCache.clear();
     _bulkPaymentsCache.clear();
     _employeePaymentRequests.clear();
@@ -38,6 +40,7 @@ class PaymentRepository {
 
     if (cleanEmployeeId.isEmpty) return;
 
+    _cacheGeneration++;
     _employeePaymentsCache.remove(cleanEmployeeId);
     _bulkPaymentsCache.clear();
     _employeePaymentRequests.remove(cleanEmployeeId);
@@ -155,6 +158,7 @@ class PaymentRepository {
     String employeeId, {
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanEmployeeId = employeeId.trim();
 
     if (cleanEmployeeId.isEmpty) return <PaymentRecord>[];
@@ -169,10 +173,12 @@ class PaymentRepository {
 
     final payments = await _fetchPaymentRows(<String>[cleanEmployeeId]);
 
-    _employeePaymentsCache[cleanEmployeeId] = _EmployeePaymentsCacheEntry(
-      payments: _copyPayments(payments),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _employeePaymentsCache[cleanEmployeeId] = _EmployeePaymentsCacheEntry(
+        payments: _copyPayments(payments),
+        createdAt: DateTime.now(),
+      );
+    }
 
     return _copyPayments(payments);
   }
@@ -211,6 +217,7 @@ class PaymentRepository {
     required String cacheKey,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanIds = employeeIds
         .map((id) => id.trim())
         .where((id) => id.isNotEmpty)
@@ -234,15 +241,17 @@ class PaymentRepository {
     final payments = await _fetchPaymentRows(cleanIds);
     final createdAt = DateTime.now();
 
-    _bulkPaymentsCache[cacheKey] = _BulkPaymentsCacheEntry(
-      payments: _copyPayments(payments),
-      createdAt: createdAt,
-    );
-    _warmEmployeePaymentCaches(
-      employeeIds: cleanIds,
-      payments: payments,
-      createdAt: createdAt,
-    );
+    if (generation == _cacheGeneration) {
+      _bulkPaymentsCache[cacheKey] = _BulkPaymentsCacheEntry(
+        payments: _copyPayments(payments),
+        createdAt: createdAt,
+      );
+      _warmEmployeePaymentCaches(
+        employeeIds: cleanIds,
+        payments: payments,
+        createdAt: createdAt,
+      );
+    }
 
     return _copyPayments(payments);
   }

@@ -181,12 +181,11 @@ class AiActionExecutionCoordinator {
     );
     if (draft == null) return const AiActionExecutionResult.cancelled();
 
-    final created = await TaskRepository.addTaskWithDetails(
-      draft.task,
+    final createdTasks = await persistTaskCreateDraft(
+      draft,
       objectName: objectName,
-      assigneeIds: draft.assigneeIds,
-      photos: draft.photos,
     );
+    final created = createdTasks.first;
     return AiActionExecutionResult(
       completed: true,
       message: 'Задача «${created.work}» создана',

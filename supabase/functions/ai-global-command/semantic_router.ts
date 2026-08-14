@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
 
 export type SemanticIntent =
   | "query_employees"

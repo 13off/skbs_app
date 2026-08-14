@@ -52,7 +52,7 @@ void main() {
     expect(adaptive, contains('profile.isForeman'));
     expect(adaptive, contains('mobile.TasksScreen'));
     expect(screen, contains('TaskEditPolicy.canCreateForDate'));
-    expect(screen, contains('TaskRepository.addTaskWithDetails'));
+    expect(screen, contains('persistTaskCreateDraft'));
     expect(screen, contains('TaskDetailsScreen'));
     expect(screen, contains('assigneeFilter'));
     expect(filters, contains("labelText: 'Исполнитель'"));
@@ -70,7 +70,7 @@ void main() {
     final timesheet = source('lib/screens/adaptive_timesheet_screen.dart');
 
     expect(platform, contains('AddTaskScreen'));
-    expect(platform, contains('TaskRepository.addTaskWithDetails'));
+    expect(platform, contains('persistTaskCreateDraft'));
     expect(platform, contains('TaskDetailsScreen'));
     expect(platform, contains('ForemanDesktopTasksScreen'));
     expect(platform, contains('AdaptiveTimesheetScreen'));

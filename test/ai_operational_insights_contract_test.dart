@@ -108,7 +108,7 @@ void main() {
     expect(source, contains('.from("payments")'));
     expect(source, contains('.from("legal_documents")'));
     expect(source, contains('.from("tasks")'));
-    expect(source, contains('@2.110.8'));
+    expect(source, contains('@2.110.5'));
     expect(source, isNot(contains('.insert(')));
     expect(source, isNot(contains('.update(')));
     expect(source, isNot(contains('.delete(')));

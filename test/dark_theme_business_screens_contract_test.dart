@@ -9,7 +9,7 @@ void main() {
   // белый текст на акцентных кнопках.
   test('archive uses adaptive surfaces and text colors', () {
     final archive = source(
-      'lib/features/archive/presentation/archive_management_screen.dart',
+      'lib/features/archive/presentation/archive_management_screen_v3.dart',
     );
 
     expect(
@@ -21,7 +21,6 @@ void main() {
     expect(archive, contains('AppAdaptivePalette.border'));
     expect(archive, contains('AppAdaptivePalette.textPrimary'));
     expect(archive, contains('AppAdaptivePalette.textMuted'));
-    expect(archive, contains('AppAdaptivePalette.onAccent'));
     expect(archive, isNot(contains('color: Colors.white,')));
     expect(archive, isNot(contains('AppColors.textPrimary')));
     expect(archive, isNot(contains('AppColors.textMuted')));

@@ -255,12 +255,11 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
     if (draft == null) return;
 
-    final createdTask = await TaskRepository.addTaskWithDetails(
-      draft.task,
+    final createdTasks = await persistTaskCreateDraft(
+      draft,
       objectName: objectName,
-      assigneeIds: draft.assigneeIds,
-      photos: draft.photos,
     );
+    final createdTask = createdTasks.first;
 
     if (!mounted) return;
 

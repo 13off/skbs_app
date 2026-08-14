@@ -19,7 +19,8 @@ void main() {
       expect(deployWorkflow, contains('workflow_dispatch:'));
       expect(deployWorkflow, contains('downloads/web-source-commit.txt'));
 
-      expect(watchdogWorkflow, contains("cron: '*/5 * * * *'"));
+      expect(watchdogWorkflow, contains('workflow_dispatch:'));
+      expect(watchdogWorkflow, isNot(contains('cron:')));
       expect(watchdogWorkflow, contains('fetch-depth: 0'));
       expect(watchdogWorkflow, contains('web-source-commit.txt'));
       expect(watchdogWorkflow, contains('git -C skbs_app diff --quiet'));

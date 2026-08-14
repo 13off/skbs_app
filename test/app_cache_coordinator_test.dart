@@ -15,6 +15,7 @@ void main() {
       AppCacheArea.attendance,
       AppCacheArea.financeSummary,
       AppCacheArea.managerReports,
+      AppCacheArea.managerWeeklyContribution,
     });
   });
 
@@ -28,6 +29,7 @@ void main() {
       AppCacheArea.attendance,
       AppCacheArea.financeSummary,
       AppCacheArea.managerReports,
+      AppCacheArea.managerWeeklyContribution,
     });
   });
 
@@ -39,6 +41,7 @@ void main() {
     expect(areas, const <AppCacheArea>{
       AppCacheArea.tasks,
       AppCacheArea.managerReports,
+      AppCacheArea.managerWeeklyContribution,
     });
   });
 
@@ -56,18 +59,34 @@ void main() {
       AppCacheArea.payments,
       AppCacheArea.tasks,
       AppCacheArea.managerReports,
+      AppCacheArea.managerWeeklyContribution,
     });
   });
 
-  test('служебные направления очищают только центр отчётов', () {
+  test('уведомления очищают счётчик и зависимые отчёты', () {
+    expect(
+      AppCacheCoordinator.areasFor(const <AppDataDomain>{
+        AppDataDomain.notifications,
+      }),
+      const <AppCacheArea>{
+        AppCacheArea.notifications,
+        AppCacheArea.managerReports,
+        AppCacheArea.managerWeeklyContribution,
+      },
+    );
+  });
+
+  test('остальные служебные направления очищают зависимые отчёты', () {
     for (final domain in const <AppDataDomain>[
-      AppDataDomain.notifications,
       AppDataDomain.legal,
       AppDataDomain.recruitment,
     ]) {
       expect(
         AppCacheCoordinator.areasFor(<AppDataDomain>{domain}),
-        const <AppCacheArea>{AppCacheArea.managerReports},
+        const <AppCacheArea>{
+          AppCacheArea.managerReports,
+          AppCacheArea.managerWeeklyContribution,
+        },
       );
     }
   });

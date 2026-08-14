@@ -18,7 +18,7 @@ jobs:
     name: Repository final scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           show-progress: false
@@ -96,7 +96,7 @@ jobs:
           if errors:
               raise SystemExit(1)
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: acceptance-repository-final
@@ -107,11 +107,11 @@ jobs:
     name: Every Edge file and every SQL migration
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           show-progress: false
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
@@ -187,7 +187,7 @@ jobs:
             echo "Files containing RLS enablement: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
           } > .artifacts/acceptance-followup/backend-inventory.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: acceptance-backend-final

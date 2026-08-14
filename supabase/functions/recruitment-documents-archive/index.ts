@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 import JSZip from "npm:jszip@3.10.1";
 

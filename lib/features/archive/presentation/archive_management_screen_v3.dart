@@ -239,7 +239,7 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
     final confirmed = await confirm(
       title: 'Восстановить выбранное?',
       message: kind == _ArchiveKind.employees
-          ? 'Сотрудники вернутся в рабочий список в раздел «Уволенные».'
+          ? 'Сотрудники вернутся в активный рабочий список.'
           : 'Объекты снова появятся в приложении.',
       action: 'Восстановить',
     );
@@ -248,13 +248,9 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
     setState(() => isBusy = true);
     try {
       if (kind == _ArchiveKind.employees) {
-        for (final id in selectedEmployeeIds.toList()) {
-          await EmployeeArchiveRepository.restoreEmployee(id);
-        }
+        await EmployeeArchiveRepository.restoreEmployees(selectedEmployeeIds);
       } else {
-        for (final name in selectedObjectNames.toList()) {
-          await ObjectRepository.restoreObject(name: name);
-        }
+        await ObjectRepository.restoreObjects(selectedObjectNames);
       }
 
       clearSelection();
@@ -279,21 +275,34 @@ class _ArchiveManagementScreenV3State extends State<ArchiveManagementScreenV3> {
 
     setState(() => isBusy = true);
     try {
+      final PermanentDeletionResult deletionResult;
       if (kind == _ArchiveKind.employees) {
-        for (final id in selectedEmployeeIds.toList()) {
-          await PermanentDeletionRepository.deleteArchivedEmployee(id);
-        }
+        deletionResult =
+            await PermanentDeletionRepository.deleteArchivedEmployees(
+              selectedEmployeeIds,
+            );
       } else {
-        for (final name in selectedObjectNames.toList()) {
-          await PermanentDeletionRepository.deleteArchivedObject(name);
-        }
+        deletionResult =
+            await PermanentDeletionRepository.deleteArchivedObjects(
+              selectedObjectNames,
+            );
       }
 
       clearSelection();
       await loadData(loader: false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выбранное удалено навсегда')),
+        SnackBar(
+          duration: deletionResult.hasWarnings
+              ? const Duration(seconds: 10)
+              : const Duration(seconds: 4),
+          content: Text(
+            deletionResult.hasWarnings
+                ? 'Данные удалены, но часть файлов не удалось очистить: '
+                      '${deletionResult.cleanupWarnings.join('; ')}'
+                : 'Выбранное удалено навсегда',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;

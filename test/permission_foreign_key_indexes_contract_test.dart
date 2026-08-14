@@ -7,7 +7,7 @@ void main() {
       'supabase/migrations/20260723190000_add_permission_foreign_key_indexes.sql';
 
   test('permission matrix foreign keys have covering indexes', () {
-    final sql = File(migrationPath).readAsStringSync();
+    final sql = File(migrationPath).readAsStringSync().replaceAll('\r\n', '\n');
 
     expect(
       sql,
@@ -27,7 +27,7 @@ void main() {
   });
 
   test('nullable audit relations use partial indexes', () {
-    final sql = File(migrationPath).readAsStringSync();
+    final sql = File(migrationPath).readAsStringSync().replaceAll('\r\n', '\n');
 
     expect(
       RegExp(

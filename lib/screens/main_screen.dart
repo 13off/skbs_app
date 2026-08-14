@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../data/app_cache_coordinator.dart';
+import '../data/app_session_scope.dart';
 import '../data/employee_repository.dart';
 import '../data/object_repository.dart';
 import '../features/accounting/presentation/accounting_main_screen.dart';
@@ -40,6 +41,10 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     PersonalProfileController.configure(widget.profile);
+    AppSessionScope.configure(
+      userId: widget.profile.id,
+      companyId: widget.profile.activeCompanyId,
+    );
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
@@ -57,6 +62,10 @@ class _MainScreenState extends State<MainScreen> {
     if (!identityChanged && !companyChanged) return;
 
     warmupToken++;
+    AppSessionScope.configure(
+      userId: widget.profile.id,
+      companyId: widget.profile.activeCompanyId,
+    );
     AppCacheCoordinator.clearAll();
     navigationRestoreFuture = restoreNavigation();
     if (widget.profile.isAdmin || widget.profile.isForeman) {
@@ -168,7 +177,7 @@ class _MainScreenState extends State<MainScreen> {
             final profile = effectiveProfile(liveBaseProfile, preview);
             final platform = KeyedSubtree(
               key: ValueKey<String>(
-                'platform:${profile.role}:${profile.objectName}:${preview.employeeId}:${profile.activeCompanyId}',
+                'platform:${profile.id}:${profile.role}:${profile.objectName}:${preview.employeeId}:${profile.activeCompanyId}',
               ),
               child: platformFor(
                 profile,

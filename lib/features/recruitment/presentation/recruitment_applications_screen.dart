@@ -490,12 +490,10 @@ class _RecruitmentApplicationsScreenState
     );
     if (userId == null) return;
     try {
-      for (final id in selectedIds) {
-        await RecruitmentCrmWorkspaceRepository.assignResponsible(
-          applicationId: id,
-          responsibleUserId: userId,
-        );
-      }
+      await RecruitmentCrmWorkspaceRepository.bulkAssignResponsible(
+        applicationIds: selectedIds,
+        responsibleUserId: userId,
+      );
       await refresh();
     } catch (error) {
       if (!mounted) return;

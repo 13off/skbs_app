@@ -31,7 +31,7 @@ void main() {
   test('tab taps do not write preferences twice', () {
     final navigation = source(
       'lib/widgets/professional_bottom_navigation.dart',
-    );
+    ).replaceAll('\r\n', '\n');
     final handlerStart = navigation.indexOf('handleSelected(int index)');
     final handlerEnd = navigation.indexOf(
       '\n  @override\n  Widget build(',

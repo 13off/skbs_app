@@ -33,6 +33,7 @@ class AttendanceRepository {
   _employeeMonthlyTimesheetRequests = {};
   static final Map<String, Future<List<PeriodTimesheetRow>>>
   _periodTimesheetRequests = {};
+  static int _cacheGeneration = 0;
 
   static String dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -59,6 +60,7 @@ class AttendanceRepository {
   }
 
   static void clearCache() {
+    _cacheGeneration++;
     _shiftValuesCache.clear();
     _monthlyTimesheetCache.clear();
     _employeeMonthlyTimesheetCache.clear();
@@ -205,6 +207,7 @@ class AttendanceRepository {
     String? objectName,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _dayCacheKey(date: date, objectName: cleanObject);
     final cached = _shiftValuesCache[cacheKey];
@@ -231,10 +234,12 @@ class AttendanceRepository {
       values[employeeId] = _toDouble(row['shifts']);
     }
 
-    _shiftValuesCache[cacheKey] = _ShiftValuesCacheEntry(
-      values: _copyShiftValues(values),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _shiftValuesCache[cacheKey] = _ShiftValuesCacheEntry(
+        values: _copyShiftValues(values),
+        createdAt: DateTime.now(),
+      );
+    }
 
     return _copyShiftValues(values);
   }
@@ -290,7 +295,6 @@ class AttendanceRepository {
         'object_name': employee.objectName,
         'status': shifts > 0 ? 'worked' : 'no_show',
         'shifts': shifts,
-        'marked_by': 'Илья',
         'updated_at': now,
       });
     }
@@ -370,6 +374,7 @@ class AttendanceRepository {
     bool includeFired = false,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _periodCacheKey(
       startDate: startDate,
@@ -442,10 +447,12 @@ class AttendanceRepository {
 
     reportRows.sort((a, b) => a.employeeName.compareTo(b.employeeName));
 
-    _attendanceReportCache[cacheKey] = _AttendanceReportCacheEntry(
-      rows: _copyReportRows(reportRows),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _attendanceReportCache[cacheKey] = _AttendanceReportCacheEntry(
+        rows: _copyReportRows(reportRows),
+        createdAt: DateTime.now(),
+      );
+    }
 
     return _copyReportRows(reportRows);
   }
@@ -489,6 +496,7 @@ class AttendanceRepository {
     bool includeFired = false,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _monthCacheKey(
       year: year,
@@ -569,10 +577,12 @@ class AttendanceRepository {
       );
     }).toList();
 
-    _monthlyTimesheetCache[cacheKey] = _MonthlyTimesheetCacheEntry(
-      rows: _copyMonthlyRows(result),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _monthlyTimesheetCache[cacheKey] = _MonthlyTimesheetCacheEntry(
+        rows: _copyMonthlyRows(result),
+        createdAt: DateTime.now(),
+      );
+    }
 
     return _copyMonthlyRows(result);
   }
@@ -621,6 +631,7 @@ class AttendanceRepository {
     required int month,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final employeeId = employee.id;
 
     if (employeeId == null || employeeId.trim().isEmpty) {
@@ -689,11 +700,13 @@ class AttendanceRepository {
       paid: paid,
     );
 
-    _employeeMonthlyTimesheetCache[cacheKey] =
-        _EmployeeMonthlyTimesheetCacheEntry(
-          row: result,
-          createdAt: DateTime.now(),
-        );
+    if (generation == _cacheGeneration) {
+      _employeeMonthlyTimesheetCache[cacheKey] =
+          _EmployeeMonthlyTimesheetCacheEntry(
+            row: result,
+            createdAt: DateTime.now(),
+          );
+    }
 
     return result;
   }
@@ -737,6 +750,7 @@ class AttendanceRepository {
     bool includeFired = false,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _periodCacheKey(
       startDate: startDate,
@@ -793,10 +807,12 @@ class AttendanceRepository {
       );
     }).toList();
 
-    _periodTimesheetCache[cacheKey] = _PeriodTimesheetCacheEntry(
-      rows: _copyPeriodRows(result),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _periodTimesheetCache[cacheKey] = _PeriodTimesheetCacheEntry(
+        rows: _copyPeriodRows(result),
+        createdAt: DateTime.now(),
+      );
+    }
 
     return _copyPeriodRows(result);
   }

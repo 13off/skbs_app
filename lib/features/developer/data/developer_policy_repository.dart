@@ -9,6 +9,7 @@ class DeveloperPolicyRepository {
   static final Map<String, Future<TaskPolicy>> _inFlight =
       <String, Future<TaskPolicy>>{};
   static const Duration _cacheTtl = Duration(minutes: 3);
+  static int _cacheGeneration = 0;
 
   static String _key(String objectName) => objectName.trim().toLowerCase();
 
@@ -38,7 +39,8 @@ class DeveloperPolicyRepository {
       if (pending != null) return pending;
     }
 
-    final future = _loadPolicy(objectName, key);
+    final generation = _cacheGeneration;
+    final future = _loadPolicy(objectName, key, generation);
     _inFlight[key] = future;
     try {
       return await future;
@@ -47,22 +49,29 @@ class DeveloperPolicyRepository {
     }
   }
 
-  static Future<TaskPolicy> _loadPolicy(String objectName, String key) async {
+  static Future<TaskPolicy> _loadPolicy(
+    String objectName,
+    String key,
+    int generation,
+  ) async {
     final result = await _client.rpc<dynamic>(
       'get_effective_task_policy',
       params: <String, dynamic>{'p_object_name': objectName.trim()},
     );
     final policy = TaskPolicy.fromJson(_map(result));
-    _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
+    if (generation == _cacheGeneration) {
+      _cache[key] = _PolicyCacheEntry(policy, DateTime.now());
+    }
     return policy;
   }
 
   static Future<DeveloperTaskPolicyCenter> fetchCenter() async {
+    final generation = _cacheGeneration;
     final result = await _client.rpc<dynamic>(
       'get_developer_task_policy_center',
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
-    _primeCache(center);
+    _primeCache(center, generation);
     return center;
   }
 
@@ -70,6 +79,7 @@ class DeveloperPolicyRepository {
     String? objectId,
     required TaskPolicy policy,
   }) async {
+    final generation = _cacheGeneration;
     final result = await _client.rpc<dynamic>(
       'save_task_policy_setting',
       params: <String, dynamic>{
@@ -78,28 +88,31 @@ class DeveloperPolicyRepository {
       },
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
-    _primeCache(center);
+    _primeCache(center, generation);
     return center;
   }
 
   static Future<DeveloperTaskPolicyCenter> resetObjectOverride(
     String objectId,
   ) async {
+    final generation = _cacheGeneration;
     final result = await _client.rpc<dynamic>(
       'reset_task_policy_override',
       params: <String, dynamic>{'p_object_id': objectId},
     );
     final center = DeveloperTaskPolicyCenter.fromJson(_map(result));
-    _primeCache(center);
+    _primeCache(center, generation);
     return center;
   }
 
   static void clearCache() {
+    _cacheGeneration++;
     _cache.clear();
     _inFlight.clear();
   }
 
-  static void _primeCache(DeveloperTaskPolicyCenter center) {
+  static void _primeCache(DeveloperTaskPolicyCenter center, int generation) {
+    if (generation != _cacheGeneration) return;
     _cache.clear();
     final now = DateTime.now();
     for (final object in center.objects) {

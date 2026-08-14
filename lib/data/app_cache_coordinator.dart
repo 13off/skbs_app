@@ -1,10 +1,14 @@
 import '../features/developer/data/developer_policy_repository.dart';
 import '../features/employee/data/employee_task_cabinet_repository.dart';
 import '../features/reports/data/manager_reports_repository.dart';
+import '../features/reports/data/manager_weekly_contribution_repository.dart';
 import 'app_data_sync.dart';
 import 'attendance_repository.dart';
+import 'employee_archive_repository.dart';
+import 'employee_private_data_repository.dart';
 import 'employee_repository.dart';
 import 'finance_summary_repository.dart';
+import 'notification_repository.dart';
 import 'object_repository.dart';
 import 'payment_repository.dart';
 import 'task_repository.dart';
@@ -16,8 +20,10 @@ enum AppCacheArea {
   objects,
   payments,
   tasks,
+  notifications,
   developerPolicies,
   managerReports,
+  managerWeeklyContribution,
 }
 
 class AppCacheCoordinator {
@@ -30,8 +36,10 @@ class AppCacheCoordinator {
     AppCacheArea.objects,
     AppCacheArea.payments,
     AppCacheArea.tasks,
+    AppCacheArea.notifications,
     AppCacheArea.developerPolicies,
     AppCacheArea.managerReports,
+    AppCacheArea.managerWeeklyContribution,
   };
 
   static const Set<AppDataDomain> _managerReportDomains = <AppDataDomain>{
@@ -72,9 +80,13 @@ class AppCacheCoordinator {
     }
     if (paymentsChanged) areas.add(AppCacheArea.payments);
     if (tasksChanged) areas.add(AppCacheArea.tasks);
+    if (domains.contains(AppDataDomain.notifications)) {
+      areas.add(AppCacheArea.notifications);
+    }
 
     if (domains.any(_managerReportDomains.contains)) {
       areas.add(AppCacheArea.managerReports);
+      areas.add(AppCacheArea.managerWeeklyContribution);
     }
 
     return Set<AppCacheArea>.unmodifiable(areas);
@@ -101,6 +113,8 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.employees)) {
       EmployeeRepository.clearCache();
+      EmployeePrivateDataRepository.clearCache();
+      EmployeeArchiveRepository.clearCache();
     }
     if (selected.contains(AppCacheArea.financeSummary)) {
       FinanceSummaryRepository.clearCache();
@@ -114,6 +128,9 @@ class AppCacheCoordinator {
     if (selected.contains(AppCacheArea.tasks)) {
       TaskRepository.clearTaskListCache();
     }
+    if (selected.contains(AppCacheArea.notifications)) {
+      NotificationRepository.clearCache();
+    }
     if (clearEmployeeCabinet) {
       EmployeeTaskCabinetRepository.clearCache();
     }
@@ -122,6 +139,9 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.managerReports)) {
       ManagerReportsRepository.clearCache();
+    }
+    if (selected.contains(AppCacheArea.managerWeeklyContribution)) {
+      ManagerWeeklyContributionRepository.clearCache();
     }
   }
 }

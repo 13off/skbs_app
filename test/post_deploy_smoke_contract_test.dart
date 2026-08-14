@@ -18,7 +18,10 @@ void main() {
     expect(workflow, contains('/auth/v1/health'));
     expect(workflow, contains('/functions/v1/ai-operational-draft'));
     expect(workflow, contains('401|403'));
-    expect(workflow, contains('actions/upload-artifact@v4'));
+    expect(
+      workflow,
+      matches(RegExp(r'actions/upload-artifact@[0-9a-f]{40}\s+# v4')),
+    );
   });
 
   test('smoke workflow never receives production credentials', () {
@@ -29,6 +32,6 @@ void main() {
     expect(workflow, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(workflow, isNot(contains('SUPABASE_ANON_KEY')));
     expect(workflow, isNot(contains('WEB_DEPLOY_TOKEN')));
-    expect(workflow, contains('permissions:\n  contents: read'));
+    expect(workflow, matches(RegExp(r'permissions:\s+contents:\s+read')));
   });
 }

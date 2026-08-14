@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee_private_data.dart';
+import 'app_session_scope.dart';
 
 class EmployeePrivateDataRepository {
   static final _client = Supabase.instance.client;
@@ -15,6 +16,7 @@ class EmployeePrivateDataRepository {
   static final Map<String, _PrivateDataMapEntry> _mapCache = {};
   static final Map<String, Future<Map<String, EmployeePrivateData>>>
   _mapRequests = {};
+  static int _cacheGeneration = 0;
 
   static bool _isFresh(DateTime createdAt) {
     return DateTime.now().difference(createdAt) < _cacheTtl;
@@ -27,6 +29,7 @@ class EmployeePrivateDataRepository {
   }
 
   static void clearCache() {
+    _cacheGeneration++;
     _employeeCache.clear();
     _employeeRequests.clear();
     _mapCache.clear();
@@ -39,27 +42,33 @@ class EmployeePrivateDataRepository {
   }) async {
     final id = employeeId.trim();
     if (id.isEmpty) return null;
+    final key = AppSessionScope.cacheKey(id);
 
-    final cached = _employeeCache[id];
+    final cached = _employeeCache[key];
     if (!forceRefresh && cached != null && _isFresh(cached.createdAt)) {
       return cached.value;
     }
 
-    final running = _employeeRequests[id];
+    final running = _employeeRequests[key];
     if (running != null) return running;
 
+    final cacheGeneration = _cacheGeneration;
+    final sessionGeneration = AppSessionScope.generation;
     final request = _loadByEmployeeId(id);
-    _employeeRequests[id] = request;
+    _employeeRequests[key] = request;
     try {
       final result = await request;
-      _employeeCache[id] = _PrivateDataEntry(
-        value: result,
-        createdAt: DateTime.now(),
-      );
+      if (cacheGeneration == _cacheGeneration &&
+          AppSessionScope.isCurrent(sessionGeneration)) {
+        _employeeCache[key] = _PrivateDataEntry(
+          value: result,
+          createdAt: DateTime.now(),
+        );
+      }
       return result;
     } finally {
-      if (identical(_employeeRequests[id], request)) {
-        _employeeRequests.remove(id);
+      if (identical(_employeeRequests[key], request)) {
+        _employeeRequests.remove(key);
       }
     }
   }
@@ -118,32 +127,38 @@ class EmployeePrivateDataRepository {
     required Future<Map<String, EmployeePrivateData>> Function() loader,
     List<String>? requestedEmployeeIds,
   }) async {
-    final cached = _mapCache[key];
+    final scopedKey = AppSessionScope.cacheKey(key);
+    final cached = _mapCache[scopedKey];
     if (!forceRefresh && cached != null && _isFresh(cached.createdAt)) {
       return _copyMap(cached.value);
     }
 
-    final running = _mapRequests[key];
+    final running = _mapRequests[scopedKey];
     if (running != null) return _copyMap(await running);
 
+    final cacheGeneration = _cacheGeneration;
+    final sessionGeneration = AppSessionScope.generation;
     final request = loader();
-    _mapRequests[key] = request;
+    _mapRequests[scopedKey] = request;
     try {
       final result = await request;
       final createdAt = DateTime.now();
-      _mapCache[key] = _PrivateDataMapEntry(
-        value: _copyMap(result),
-        createdAt: createdAt,
-      );
-      _warmEmployeeCache(
-        result,
-        createdAt: createdAt,
-        requestedEmployeeIds: requestedEmployeeIds,
-      );
+      if (cacheGeneration == _cacheGeneration &&
+          AppSessionScope.isCurrent(sessionGeneration)) {
+        _mapCache[scopedKey] = _PrivateDataMapEntry(
+          value: _copyMap(result),
+          createdAt: createdAt,
+        );
+        _warmEmployeeCache(
+          result,
+          createdAt: createdAt,
+          requestedEmployeeIds: requestedEmployeeIds,
+        );
+      }
       return _copyMap(result);
     } finally {
-      if (identical(_mapRequests[key], request)) {
-        _mapRequests.remove(key);
+      if (identical(_mapRequests[scopedKey], request)) {
+        _mapRequests.remove(scopedKey);
       }
     }
   }
@@ -156,16 +171,14 @@ class EmployeePrivateDataRepository {
     final ids = requestedEmployeeIds;
     if (ids != null) {
       for (final employeeId in ids) {
-        _employeeCache[employeeId] = _PrivateDataEntry(
-          value: values[employeeId],
-          createdAt: createdAt,
-        );
+        _employeeCache[AppSessionScope.cacheKey(employeeId)] =
+            _PrivateDataEntry(value: values[employeeId], createdAt: createdAt);
       }
       return;
     }
 
     for (final entry in values.entries) {
-      _employeeCache[entry.key] = _PrivateDataEntry(
+      _employeeCache[AppSessionScope.cacheKey(entry.key)] = _PrivateDataEntry(
         value: entry.value,
         createdAt: createdAt,
       );

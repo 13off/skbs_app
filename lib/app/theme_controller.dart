@@ -37,6 +37,8 @@ class AppThemeController extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
+    final previousThemeMode = _themeMode;
+    final previousUiScale = _uiScale;
     try {
       final preferences = await SharedPreferences.getInstance();
       final stored = preferences.getString(_preferenceKey);
@@ -49,7 +51,14 @@ class AppThemeController extends ChangeNotifier {
       _uiScale = defaultUiScale;
     }
 
-    await AppThemePlatformSync.apply(isDark: isDark);
+    if (_themeMode != previousThemeMode || _uiScale != previousUiScale) {
+      notifyListeners();
+    }
+    try {
+      await AppThemePlatformSync.apply(isDark: isDark);
+    } catch (_) {
+      // Системный цвет окна не должен ломать запуск и выбор темы в приложении.
+    }
   }
 
   Future<void> setDark(bool value) async {
