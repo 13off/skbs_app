@@ -66,12 +66,15 @@ void main() {
     expect(headers, contains('max-age=3600, must-revalidate'));
   });
 
-  test('production deploy требует ручного запуска без VPS secrets', () {
-    final workflow = File(
+  test('VPS deploy требует ручного запуска без repository secrets', () {
+    for (final path in <String>[
       '.github/workflows/deploy-supabase-proxy.yml',
-    ).readAsStringSync().replaceAll('\r\n', '\n');
+      '.github/workflows/deploy-max-bot-vps.yml',
+    ]) {
+      final workflow = File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
-    expect(workflow, contains('workflow_dispatch:'));
-    expect(workflow, isNot(contains('push:')));
+      expect(workflow, contains('workflow_dispatch:'), reason: path);
+      expect(workflow, isNot(contains('push:')), reason: path);
+    }
   });
 }

@@ -1,12 +1,6 @@
 name: Deploy MAX recruiting bot to VPS
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - services/max-recruiting-bot/**
-      - .github/workflows/deploy-max-bot-vps.yml
   workflow_dispatch:
 
 permissions:
