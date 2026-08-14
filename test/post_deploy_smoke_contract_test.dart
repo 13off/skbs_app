@@ -15,7 +15,11 @@ void main() {
     expect(workflow, contains('manifest.json'));
     expect(workflow, contains('flutter_service_worker.js'));
     expect(workflow, contains('https://api.appstroy-web.ru'));
+    expect(workflow, contains('/proxy-health'));
     expect(workflow, contains('/auth/v1/health'));
+    expect(workflow, contains('SUPABASE_PUBLISHABLE_KEY'));
+    expect(workflow, contains('apikey: \${SUPABASE_PUBLISHABLE_KEY}'));
+    expect(workflow, contains('\"name\":\"GoTrue\"'));
     expect(workflow, contains('/functions/v1/ai-operational-draft'));
     expect(workflow, contains('401|403'));
     expect(
@@ -32,6 +36,7 @@ void main() {
     expect(workflow, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(workflow, isNot(contains('SUPABASE_ANON_KEY')));
     expect(workflow, isNot(contains('WEB_DEPLOY_TOKEN')));
+    expect(workflow, isNot(contains(r'${{ secrets.')));
     expect(workflow, matches(RegExp(r'permissions:\s+contents:\s+read')));
   });
 }

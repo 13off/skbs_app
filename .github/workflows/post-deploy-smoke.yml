@@ -18,6 +18,7 @@ concurrency:
 env:
   APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
   API_BASE_URL: https://api.appstroy-web.ru
+  SUPABASE_PUBLISHABLE_KEY: sb_publishable_QBdH-vIQv4F_tVVNc4Ps_w_ssxwSaEm
 
 jobs:
   production-smoke:
@@ -122,11 +123,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          proxy_code="$(curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+            -sS -o proxy-health.txt -w '%{http_code}' \
+            "${API_BASE_URL}/proxy-health" || true)"
           health_code="$(curl --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
             -sS -o auth-health.json -w '%{http_code}' \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
             "${API_BASE_URL}/auth/v1/health" || true)"
+          printf 'Proxy health HTTP: %s\n' "$proxy_code" | tee -a smoke-report.txt
           printf 'Auth health HTTP: %s\n' "$health_code" | tee -a smoke-report.txt
-          if [ "$health_code" != "200" ]; then
+          if [ "$proxy_code" != "200" ] || [ "$(tr -d '\r\n[:space:]' < proxy-health.txt)" != "ok" ]; then
+            echo '::error::Российский API-прокси не прошёл собственный health check' | tee -a smoke-report.txt
+            exit 1
+          fi
+          if [ "$health_code" != "200" ] || ! grep -q '"name":"GoTrue"' auth-health.json; then
             echo '::error::Российский API-прокси не прошёл auth health' | tee -a smoke-report.txt
             exit 1
           fi
@@ -137,7 +147,9 @@ jobs:
           set -euo pipefail
           edge_code="$(curl --connect-timeout 10 --max-time 30 -sS \
             -o edge-anonymous.json -w '%{http_code}' \
-            -X POST -H 'Content-Type: application/json' \
+            -X POST \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H 'Content-Type: application/json' \
             --data '{"company_id":"00000000-0000-0000-0000-000000000000","prompt":"проверка"}' \
             "${API_BASE_URL}/functions/v1/ai-operational-draft" || true)"
           printf 'Anonymous Edge HTTP: %s\n' "$edge_code" | tee -a smoke-report.txt
@@ -172,6 +184,7 @@ jobs:
           name: web-pwa-smoke-${{ steps.source.outputs.short }}
           path: |
             smoke-report.txt
+            proxy-health.txt
             auth-health.json
             edge-anonymous.json
             manifest.json
