@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:file_saver/file_saver.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -461,16 +462,96 @@ class PaymentReceiptRepository {
     return List<PaymentReceipt>.from(map[paymentId] ?? <PaymentReceipt>[]);
   }
 
-  static Future<void> openReceipt(PaymentReceipt receipt) async {
+  static String _downloadExtension(PaymentReceipt receipt) {
+    final fromName = extensionFromFileName(receipt.fileName);
+    if (isAllowedExtension(fromName)) return fromName == 'jpeg' ? 'jpg' : fromName;
+
+    final fromPath = extensionFromFileName(receipt.filePath);
+    if (isAllowedExtension(fromPath)) return fromPath == 'jpeg' ? 'jpg' : fromPath;
+
+    switch (receipt.contentType.trim().toLowerCase()) {
+      case 'application/pdf':
+        return 'pdf';
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      default:
+        return 'jpg';
+    }
+  }
+
+  static Future<String> _downloadBaseName(PaymentReceipt receipt) async {
+    final parts = <String>['Чек'];
+
+    try {
+      final payment = await _client
+          .from('payments')
+          .select('employee_id,payment_date,amount')
+          .eq('id', receipt.paymentId)
+          .maybeSingle();
+
+      final employeeId = payment?['employee_id']?.toString().trim() ?? '';
+      if (employeeId.isNotEmpty) {
+        final employee = await _client
+            .from('employees')
+            .select('fio')
+            .eq('id', employeeId)
+            .maybeSingle();
+        final fio = employee?['fio']?.toString().trim() ?? '';
+        if (fio.isNotEmpty) parts.add(fio);
+      }
+
+      final paymentDate = DateTime.tryParse(
+        payment?['payment_date']?.toString() ?? '',
+      );
+      if (paymentDate != null) {
+        parts.add(
+          '${paymentDate.day.toString().padLeft(2, '0')}.${paymentDate.month.toString().padLeft(2, '0')}.${paymentDate.year}',
+        );
+      }
+
+      final amount = payment?['amount'];
+      if (amount is num) parts.add(amount.round().toString());
+    } catch (_) {
+      // Название чека не должно мешать самому скачиванию файла.
+    }
+
+    if (receipt.id.trim().isNotEmpty) {
+      final id = receipt.id.trim();
+      parts.add(id.length > 8 ? id.substring(0, 8) : id);
+    }
+
+    return parts.map(safePart).join('_');
+  }
+
+  static Future<void> downloadReceipt(PaymentReceipt receipt) async {
     if (receipt.filePath.trim().isEmpty) {
       throw Exception('У чека нет пути к файлу');
     }
 
-    final url = await _client.storage
-        .from(bucketName)
-        .createSignedUrl(receipt.filePath, 60 * 10);
+    final bytes = await _client.storage.from(bucketName).download(receipt.filePath);
+    if (bytes.isEmpty) throw Exception('Не удалось скачать чек');
 
-    html.window.open(url, '_blank');
+    final extension = _downloadExtension(receipt);
+    final contentType = receipt.contentType.trim().isEmpty
+        ? contentTypeFromExtension(extension)
+        : receipt.contentType.trim();
+    final baseName = await _downloadBaseName(receipt);
+
+    await FileSaver.instance.saveFile(
+      name: baseName,
+      bytes: bytes,
+      fileExtension: extension,
+      mimeType: MimeType.custom,
+      customMimeType: contentType,
+    );
+  }
+
+  /// Сохраняем старое имя метода, чтобы все существующие экраны автоматически
+  /// получили новое поведение без дублирования логики.
+  static Future<void> openReceipt(PaymentReceipt receipt) {
+    return downloadReceipt(receipt);
   }
 
   static Future<void> deleteReceiptsForPayment(String paymentId) async {
