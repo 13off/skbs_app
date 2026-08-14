@@ -19,7 +19,7 @@ void main() {
     expect(workflow, contains('/auth/v1/health'));
     expect(workflow, contains('SUPABASE_PUBLISHABLE_KEY'));
     expect(workflow, contains('apikey: \${SUPABASE_PUBLISHABLE_KEY}'));
-    expect(workflow, contains('\"name\":\"GoTrue\"'));
+    expect(workflow, contains('"name":"GoTrue"'));
     expect(workflow, contains('/functions/v1/ai-operational-draft'));
     expect(workflow, contains('401|403'));
     expect(
