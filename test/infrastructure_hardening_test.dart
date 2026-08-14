@@ -66,15 +66,12 @@ void main() {
     expect(headers, contains('max-age=3600, must-revalidate'));
   });
 
-  test('production deploy автоматически запускается только из main', () {
+  test('production deploy требует ручного запуска без VPS secrets', () {
     final workflow = File(
       '.github/workflows/deploy-supabase-proxy.yml',
     ).readAsStringSync().replaceAll('\r\n', '\n');
 
     expect(workflow, contains('workflow_dispatch:'));
-    expect(
-      workflow,
-      contains('push:\n    branches:\n      - main\n    paths:'),
-    );
+    expect(workflow, isNot(contains('push:')));
   });
 }
