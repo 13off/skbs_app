@@ -15,6 +15,11 @@ class AbsenceFineItem {
   final String explanationFilePath;
   final String explanationContentType;
   final DateTime? explanationUploadedAt;
+  final String violationActId;
+  final String violationActNumber;
+  final String violationActStatus;
+  final String violationTitle;
+  final String violationDescription;
 
   const AbsenceFineItem({
     required this.id,
@@ -28,9 +33,15 @@ class AbsenceFineItem {
     required this.explanationFilePath,
     required this.explanationContentType,
     required this.explanationUploadedAt,
+    required this.violationActId,
+    required this.violationActNumber,
+    required this.violationActStatus,
+    required this.violationTitle,
+    required this.violationDescription,
   });
 
   bool get hasExplanation => explanationFilePath.trim().isNotEmpty;
+  bool get hasViolationAct => violationActId.trim().isNotEmpty;
 
   factory AbsenceFineItem.fromMap(Map<String, dynamic> map) {
     return AbsenceFineItem(
@@ -54,6 +65,15 @@ class AbsenceFineItem {
       explanationUploadedAt: DateTime.tryParse(
         map['explanation_uploaded_at']?.toString() ?? '',
       )?.toLocal(),
+      violationActId: map['violation_act_id']?.toString().trim() ?? '',
+      violationActNumber:
+          map['violation_act_number']?.toString().trim() ?? '',
+      violationActStatus:
+          map['violation_act_status']?.toString().trim() ?? 'pending',
+      violationTitle:
+          map['violation_title']?.toString().trim() ?? 'Невыход на смену',
+      violationDescription:
+          map['violation_description']?.toString().trim() ?? '',
     );
   }
 }
@@ -63,7 +83,7 @@ class AbsenceFineRepository {
   static const bucketName = 'absence-explanations';
 
   static Future<List<AbsenceFineItem>> fetchPending() async {
-    final response = await _client.rpc<dynamic>('get_pending_absence_fines');
+    final response = await _client.rpc<dynamic>('get_pending_absence_fines_v2');
     if (response is! List) return const <AbsenceFineItem>[];
 
     return response
