@@ -4,25 +4,34 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_todo_repository.dart';
 
-class ManagerTodoHomeBar extends StatefulWidget {
+/// Kept for the old manager shell integration. The visible block now lives
+/// inside the dashboard content via [ManagerTodoHomeSection].
+class ManagerTodoHomeBar extends StatelessWidget {
   const ManagerTodoHomeBar({super.key});
 
   @override
-  State<ManagerTodoHomeBar> createState() => _ManagerTodoHomeBarState();
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
-class _ManagerTodoHomeBarState extends State<ManagerTodoHomeBar> {
+class ManagerTodoHomeSection extends StatefulWidget {
+  const ManagerTodoHomeSection({super.key});
+
+  @override
+  State<ManagerTodoHomeSection> createState() => _ManagerTodoHomeSectionState();
+}
+
+class _ManagerTodoHomeSectionState extends State<ManagerTodoHomeSection> {
   Future<List<ManagerTodoItem>>? future;
   final Set<String> busyIds = <String>{};
 
   @override
   void initState() {
     super.initState();
-    future = ManagerTodoRepository.fetchTodos(limit: 20);
+    future = ManagerTodoRepository.fetchTodos(limit: 30);
   }
 
   Future<void> reload() async {
-    final next = ManagerTodoRepository.fetchTodos(limit: 20);
+    final next = ManagerTodoRepository.fetchTodos(limit: 30);
     if (mounted) setState(() => future = next);
     await next;
   }
@@ -37,7 +46,6 @@ class _ManagerTodoHomeBarState extends State<ManagerTodoHomeBar> {
   Future<void> addTodo() async {
     final draft = await showManagerTodoComposer(context);
     if (draft == null || !mounted) return;
-
     try {
       await ManagerTodoRepository.createTodo(
         title: draft.title,
@@ -52,11 +60,12 @@ class _ManagerTodoHomeBarState extends State<ManagerTodoHomeBar> {
     }
   }
 
-  Future<void> toggle(ManagerTodoItem item) async {
+  Future<void> complete(ManagerTodoItem item) async {
     if (busyIds.contains(item.id)) return;
     setState(() => busyIds.add(item.id));
     try {
-      await ManagerTodoRepository.setDone(item.id, done: !item.isDone);
+      final changed = await ManagerTodoRepository.setDone(item.id, done: true);
+      if (!changed) throw StateError('Дело не найдено');
       if (mounted) await reload();
     } catch (error) {
       if (!mounted) return;
@@ -70,154 +79,284 @@ class _ManagerTodoHomeBarState extends State<ManagerTodoHomeBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: PremiumWorkCard(
-            radius: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: FutureBuilder<List<ManagerTodoItem>>(
-              future: future,
-              builder: (context, snapshot) {
-                final items = snapshot.data ?? const <ManagerTodoItem>[];
-                final first = items.isEmpty ? null : items.first;
-                final loading =
-                    snapshot.connectionState == ConnectionState.waiting &&
-                    !snapshot.hasData;
+    return FutureBuilder<List<ManagerTodoItem>>(
+      future: future,
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <ManagerTodoItem>[];
+        final visible = items.take(3).toList(growable: false);
+        final loading = snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData;
 
-                return Row(
-                  children: [
-                    InkWell(
-                      onTap: openAll,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Icon(
-                          Icons.checklist_rounded,
-                          color: AppAdaptivePalette.accent,
-                          size: 23,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Text(
+                        'Дела',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: InkWell(
-                        onTap: openAll,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      if (items.isNotEmpty) ...[
+                        const SizedBox(width: 9),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppAdaptivePalette.accentSoft,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${items.length}',
+                            style: TextStyle(
+                              color: AppAdaptivePalette.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                TextButton(onPressed: openAll, child: const Text('Все дела')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            PremiumWorkCard(
+              radius: 22,
+              padding: EdgeInsets.zero,
+              child: loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(18),
+                      child: LinearProgressIndicator(),
+                    )
+                  : snapshot.hasError
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
                             children: [
-                              Row(
+                              const Expanded(
+                                child: Text('Не удалось загрузить дела'),
+                              ),
+                              TextButton(
+                                onPressed: reload,
+                                child: const Text('Повторить'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : visible.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Дела',
-                                    style: TextStyle(
-                                      color: AppAdaptivePalette.textPrimary,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w900,
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: AppAdaptivePalette.surfaceSoft,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(
+                                      Icons.task_alt_rounded,
+                                      color: AppAdaptivePalette.textMuted,
                                     ),
                                   ),
-                                  if (items.isNotEmpty) ...[
-                                    const SizedBox(width: 7),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppAdaptivePalette.accentSoft,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        '${items.length}',
-                                        style: TextStyle(
-                                          color: AppAdaptivePalette.accent,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w900,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Открытых дел нет',
+                                          style: TextStyle(
+                                            color:
+                                                AppAdaptivePalette.textPrimary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Можно быстро записать то, что нельзя забыть.',
+                                          style: TextStyle(
+                                            color: AppAdaptivePalette.textMuted,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
+                                  const SizedBox(width: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: addTodo,
+                                    icon: const Icon(Icons.add_rounded, size: 18),
+                                    label: const Text('Добавить'),
+                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                loading
-                                    ? 'Загрузка…'
-                                    : first?.title ?? 'На сегодня всё закрыто',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: first == null
-                                      ? AppAdaptivePalette.textMuted
-                                      : AppAdaptivePalette.textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: first == null
-                                      ? FontWeight.w600
-                                      : FontWeight.w800,
+                            )
+                          : Column(
+                              children: [
+                                for (var index = 0;
+                                    index < visible.length;
+                                    index++) ...[
+                                  _ManagerTodoCompactRow(
+                                    item: visible[index],
+                                    busy: busyIds.contains(visible[index].id),
+                                    onToggle: () => complete(visible[index]),
+                                    onOpen: openAll,
+                                  ),
+                                  if (index != visible.length - 1)
+                                    Divider(
+                                      height: 1,
+                                      color: AppAdaptivePalette.border,
+                                    ),
+                                ],
+                                Divider(
+                                  height: 1,
+                                  color: AppAdaptivePalette.border,
                                 ),
-                              ),
-                              if (first != null && first.body.isNotEmpty) ...[
-                                const SizedBox(height: 1),
-                                Text(
-                                  first.body,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: AppAdaptivePalette.textMuted,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w600,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 7,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: addTodo,
+                                        icon: const Icon(
+                                          Icons.add_rounded,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Добавить дело'),
+                                      ),
+                                      const Spacer(),
+                                      if (items.length > visible.length)
+                                        TextButton(
+                                          onPressed: openAll,
+                                          child: Text(
+                                            'Ещё ${items.length - visible.length}',
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ManagerTodoCompactRow extends StatelessWidget {
+  final ManagerTodoItem item;
+  final bool busy;
+  final VoidCallback onToggle;
+  final VoidCallback onOpen;
+
+  const _ManagerTodoCompactRow({
+    required this.item,
+    required this.busy,
+    required this.onToggle,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final reminder = formatManagerTodoReminder(item.reminderAt);
+    return InkWell(
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Выполнено',
+              visualDensity: VisualDensity.compact,
+              onPressed: busy ? null : onToggle,
+              icon: busy
+                  ? const SizedBox(
+                      width: 19,
+                      height: 19,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      Icons.radio_button_unchecked_rounded,
+                      color: AppAdaptivePalette.textMuted,
                     ),
-                    if (first != null)
-                      IconButton(
-                        tooltip: 'Выполнено',
-                        onPressed: busyIds.contains(first.id)
-                            ? null
-                            : () => toggle(first),
-                        icon: busyIds.contains(first.id)
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Icon(
-                                Icons.radio_button_unchecked_rounded,
-                                color: AppAdaptivePalette.textMuted,
-                              ),
-                      ),
-                    IconButton(
-                      tooltip: 'Добавить дело',
-                      onPressed: addTodo,
-                      icon: Icon(
-                        Icons.add_rounded,
-                        color: AppAdaptivePalette.accent,
-                      ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
                     ),
-                    IconButton(
-                      tooltip: 'Все дела',
-                      onPressed: openAll,
-                      icon: Icon(
-                        Icons.chevron_right_rounded,
+                  ),
+                  if (item.body.isNotEmpty || reminder.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      item.body.isNotEmpty ? item.body : reminder,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: AppAdaptivePalette.textMuted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
-                );
-              },
+                ],
+              ),
             ),
-          ),
+            if (item.isAutomatic) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.accentSoft,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Авто',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppAdaptivePalette.textFaint,
+              size: 21,
+            ),
+          ],
         ),
       ),
     );
@@ -234,7 +373,7 @@ class ManagerTodosScreen extends StatefulWidget {
 class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
   Future<List<ManagerTodoItem>>? future;
   final Set<String> busyIds = <String>{};
-  bool includeDone = false;
+  bool showCompleted = false;
 
   @override
   void initState() {
@@ -242,16 +381,12 @@ class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
     future = load();
   }
 
-  Future<List<ManagerTodoItem>> load() {
-    return ManagerTodoRepository.fetchTodos(
-      includeDone: includeDone,
-      limit: 150,
-    );
-  }
+  Future<List<ManagerTodoItem>> load() =>
+      ManagerTodoRepository.fetchTodos(includeDone: true, limit: 200);
 
   Future<void> reload() async {
     final next = load();
-    setState(() => future = next);
+    if (mounted) setState(() => future = next);
     await next;
   }
 
@@ -263,7 +398,10 @@ class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
         title: draft.title,
         reminderAt: draft.reminderAt,
       );
-      if (mounted) await reload();
+      if (mounted) {
+        setState(() => showCompleted = false);
+        await reload();
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -296,87 +434,228 @@ class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppAdaptivePalette.background,
-      appBar: AppBar(
-        title: const Text('Дела'),
-        actions: [
-          IconButton(
-            tooltip: includeDone ? 'Скрыть выполненные' : 'Показать выполненные',
-            onPressed: () {
-              setState(() {
-                includeDone = !includeDone;
-                future = load();
-              });
-            },
-            icon: Icon(
-              includeDone
-                  ? Icons.visibility_off_outlined
-                  : Icons.history_rounded,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Добавить дело',
-            onPressed: addTodo,
-            icon: const Icon(Icons.add_rounded),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
       body: PremiumWorkBackdrop(
         child: SafeArea(
-          top: false,
-          child: FutureBuilder<List<ManagerTodoItem>>(
-            future: future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 96),
+                child: FutureBuilder<List<ManagerTodoItem>>(
+                  future: future,
+                  builder: (context, snapshot) {
+                    final source = snapshot.data ?? const <ManagerTodoItem>[];
+                    final open = source.where((item) => !item.isDone).toList();
+                    final completed = source.where((item) => item.isDone).toList()
+                      ..sort((a, b) => (b.completedAt ?? b.createdAt)
+                          .compareTo(a.completedAt ?? a.createdAt));
+                    final visible = showCompleted ? completed : open;
 
-              if (snapshot.hasError) {
-                return _TodoMessage(
-                  icon: Icons.error_outline_rounded,
-                  title: 'Не удалось загрузить дела',
-                  text: snapshot.error.toString(),
-                  actionLabel: 'Повторить',
-                  onAction: reload,
-                );
-              }
-
-              final items = snapshot.data ?? const <ManagerTodoItem>[];
-              if (items.isEmpty) {
-                return _TodoMessage(
-                  icon: Icons.task_alt_rounded,
-                  title: 'Всё закрыто',
-                  text: 'Добавь короткое дело, чтобы не держать его в голове.',
-                  actionLabel: 'Добавить дело',
-                  onAction: addTodo,
-                );
-              }
-
-              return RefreshIndicator(
-                onRefresh: reload,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _ManagerTodoTile(
-                      item: item,
-                      busy: busyIds.contains(item.id),
-                      onToggle: () => toggle(item),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Назад',
+                              onPressed: () => Navigator.maybePop(context),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Дела',
+                                    style: TextStyle(
+                                      color: AppAdaptivePalette.textPrimary,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Открытые ${open.length}  ·  Выполненные ${completed.length}',
+                                    style: TextStyle(
+                                      color: AppAdaptivePalette.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: addTodo,
+                              icon: const Icon(Icons.add_rounded, size: 19),
+                              label: const Text('Добавить дело'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        PremiumWorkCard(
+                          radius: 18,
+                          padding: const EdgeInsets.all(5),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _TodoSegment(
+                                  label: 'Открытые',
+                                  count: open.length,
+                                  selected: !showCompleted,
+                                  onTap: () =>
+                                      setState(() => showCompleted = false),
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: _TodoSegment(
+                                  label: 'Выполненные',
+                                  count: completed.length,
+                                  selected: showCompleted,
+                                  onTap: () =>
+                                      setState(() => showCompleted = true),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Expanded(
+                          child: snapshot.connectionState ==
+                                      ConnectionState.waiting &&
+                                  !snapshot.hasData
+                              ? const Center(child: CircularProgressIndicator())
+                              : snapshot.hasError
+                                  ? _TodoStateCard(
+                                      icon: Icons.error_outline_rounded,
+                                      title: 'Не удалось загрузить дела',
+                                      text: 'Проверь соединение и повтори.',
+                                      actionLabel: 'Повторить',
+                                      onAction: reload,
+                                    )
+                                  : visible.isEmpty
+                                      ? _TodoStateCard(
+                                          icon: showCompleted
+                                              ? Icons.history_rounded
+                                              : Icons.task_alt_rounded,
+                                          title: showCompleted
+                                              ? 'Выполненных дел пока нет'
+                                              : 'Открытых дел нет',
+                                          text: showCompleted
+                                              ? 'Здесь останется история закрытых дел.'
+                                              : 'Добавь дело, если есть то, что нельзя забыть.',
+                                          actionLabel: showCompleted
+                                              ? 'К открытым'
+                                              : 'Добавить дело',
+                                          onAction: showCompleted
+                                              ? () async => setState(
+                                                    () => showCompleted = false,
+                                                  )
+                                              : addTodo,
+                                        )
+                                      : RefreshIndicator(
+                                          onRefresh: reload,
+                                          child: ListView.separated(
+                                            physics:
+                                                const AlwaysScrollableScrollPhysics(),
+                                            padding: const EdgeInsets.only(
+                                              bottom: 24,
+                                            ),
+                                            itemCount: visible.length,
+                                            separatorBuilder: (_, _) =>
+                                                const SizedBox(height: 9),
+                                            itemBuilder: (context, index) {
+                                              final item = visible[index];
+                                              return _ManagerTodoTile(
+                                                item: item,
+                                                busy:
+                                                    busyIds.contains(item.id),
+                                                onToggle: () => toggle(item),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                        ),
+                      ],
                     );
                   },
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: addTodo,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Добавить'),
+    );
+  }
+}
+
+class _TodoSegment extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TodoSegment({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppAdaptivePalette.surfaceSoft
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: selected
+              ? Border.all(color: AppAdaptivePalette.border)
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? AppAdaptivePalette.textPrimary
+                    : AppAdaptivePalette.textMuted,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(width: 7),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppAdaptivePalette.accentSoft
+                    : AppAdaptivePalette.surfaceSoft,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: selected
+                      ? AppAdaptivePalette.accent
+                      : AppAdaptivePalette.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -393,51 +672,35 @@ class _ManagerTodoTile extends StatelessWidget {
     required this.onToggle,
   });
 
-  String reminderText(DateTime? value) {
-    if (value == null) return '';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(value.year, value.month, value.day);
-    final time =
-        '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-    if (date == today) return 'Сегодня, $time';
-    if (date == today.add(const Duration(days: 1))) return 'Завтра, $time';
-    return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}, $time';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final reminder = reminderText(item.reminderAt);
-
+    final reminder = formatManagerTodoReminder(item.reminderAt);
     return PremiumWorkCard(
       radius: 20,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: item.isDone ? 'Вернуть в дела' : 'Выполнено',
-              onPressed: busy ? null : onToggle,
-              icon: busy
-                  ? const SizedBox(
-                      width: 19,
-                      height: 19,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(
-                      item.isDone
-                          ? Icons.check_circle_rounded
-                          : Icons.radio_button_unchecked_rounded,
-                      color: item.isDone
-                          ? AppAdaptivePalette.success
-                          : AppAdaptivePalette.textMuted,
-                    ),
-            ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: item.isDone ? 'Вернуть в открытые' : 'Выполнено',
+            onPressed: busy ? null : onToggle,
+            icon: busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    item.isDone
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: item.isDone
+                        ? AppAdaptivePalette.success
+                        : AppAdaptivePalette.textMuted,
+                  ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,9 +716,8 @@ class _ManagerTodoTile extends StatelessWidget {
                               : AppAdaptivePalette.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          decoration: item.isDone
-                              ? TextDecoration.lineThrough
-                              : null,
+                          decoration:
+                              item.isDone ? TextDecoration.lineThrough : null,
                         ),
                       ),
                     ),
@@ -493,15 +755,15 @@ class _ManagerTodoTile extends StatelessWidget {
                   ),
                 ],
                 if (reminder.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 9),
                   Row(
                     children: [
                       Icon(
                         Icons.notifications_none_rounded,
-                        size: 15,
+                        size: 16,
                         color: AppAdaptivePalette.textFaint,
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Text(
                         reminder,
                         style: TextStyle(
@@ -516,20 +778,27 @@ class _ManagerTodoTile extends StatelessWidget {
               ],
             ),
           ),
+          if (item.isDone) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: busy ? null : onToggle,
+              child: const Text('Вернуть'),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _TodoMessage extends StatelessWidget {
+class _TodoStateCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String text;
   final String actionLabel;
   final Future<void> Function() onAction;
 
-  const _TodoMessage({
+  const _TodoStateCard({
     required this.icon,
     required this.title,
     required this.text,
@@ -539,43 +808,51 @@ class _TodoMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: PremiumWorkCard(
-            radius: 24,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 34, color: AppAdaptivePalette.textMuted),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textMuted,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: onAction, child: Text(actionLabel)),
-              ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: PremiumWorkCard(
+        radius: 22,
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppAdaptivePalette.surfaceSoft,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: AppAdaptivePalette.textMuted),
             ),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 12.5,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
+          ],
         ),
       ),
     );
@@ -589,23 +866,72 @@ class ManagerTodoDraft {
   const ManagerTodoDraft({required this.title, required this.reminderAt});
 }
 
+String formatManagerTodoReminder(DateTime? value) {
+  if (value == null) return '';
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final date = DateTime(value.year, value.month, value.day);
+  final time =
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  if (date == today) return 'Сегодня · $time';
+  if (date == today.add(const Duration(days: 1))) return 'Завтра · $time';
+  return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year} · $time';
+}
+
 Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
   final controller = TextEditingController();
-  var reminderChoice = 0;
+  DateTime? reminderAt;
   var canSubmit = false;
+  String? reminderError;
 
   final result = await showDialog<ManagerTodoDraft>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (context, setDialogState) {
+          Future<void> pickReminder() async {
+            final now = DateTime.now();
+            final initial = reminderAt ?? now.add(const Duration(hours: 1));
+            final date = await showDatePicker(
+              context: context,
+              initialDate: initial,
+              firstDate: DateTime(now.year, now.month, now.day),
+              lastDate: DateTime(now.year + 2, 12, 31),
+              helpText: 'Дата уведомления',
+              cancelText: 'Отмена',
+              confirmText: 'Далее',
+            );
+            if (date == null || !context.mounted) return;
+            final time = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.fromDateTime(initial),
+              helpText: 'Время уведомления',
+              cancelText: 'Отмена',
+              confirmText: 'Выбрать',
+            );
+            if (time == null) return;
+            final picked = DateTime(
+              date.year,
+              date.month,
+              date.day,
+              time.hour,
+              time.minute,
+            );
+            setDialogState(() {
+              reminderAt = picked;
+              reminderError = picked.isAfter(DateTime.now())
+                  ? null
+                  : 'Выбери время позже текущего';
+            });
+          }
+
           return Dialog(
             insetPadding: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
+              constraints: const BoxConstraints(maxWidth: 500),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -637,7 +963,6 @@ Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
                       minLines: 1,
                       maxLines: 3,
                       maxLength: 300,
-                      textInputAction: TextInputAction.done,
                       decoration: const InputDecoration(
                         labelText: 'Что нужно сделать?',
                         hintText: 'Например: позвонить поставщику',
@@ -651,7 +976,7 @@ Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Напомнить',
+                      'Уведомление',
                       style: TextStyle(
                         color: AppAdaptivePalette.textMuted,
                         fontSize: 12,
@@ -659,30 +984,75 @@ Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Не напоминать'),
-                          selected: reminderChoice == 0,
-                          onSelected: (_) =>
-                              setDialogState(() => reminderChoice = 0),
+                    InkWell(
+                      onTap: pickReminder,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
                         ),
-                        ChoiceChip(
-                          label: const Text('Через час'),
-                          selected: reminderChoice == 1,
-                          onSelected: (_) =>
-                              setDialogState(() => reminderChoice = 1),
+                        decoration: BoxDecoration(
+                          color: AppAdaptivePalette.surfaceSoft,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: reminderError == null
+                                ? AppAdaptivePalette.border
+                                : Theme.of(context).colorScheme.error,
+                          ),
                         ),
-                        ChoiceChip(
-                          label: const Text('Завтра 08:00'),
-                          selected: reminderChoice == 2,
-                          onSelected: (_) =>
-                              setDialogState(() => reminderChoice = 2),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.notifications_none_rounded,
+                              color: reminderAt == null
+                                  ? AppAdaptivePalette.textMuted
+                                  : AppAdaptivePalette.accent,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                reminderAt == null
+                                    ? 'Выбрать дату и время'
+                                    : formatManagerTodoReminder(reminderAt),
+                                style: TextStyle(
+                                  color: reminderAt == null
+                                      ? AppAdaptivePalette.textMuted
+                                      : AppAdaptivePalette.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            if (reminderAt != null)
+                              IconButton(
+                                tooltip: 'Без уведомления',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => setDialogState(() {
+                                  reminderAt = null;
+                                  reminderError = null;
+                                }),
+                                icon: const Icon(Icons.close_rounded, size: 19),
+                              )
+                            else
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: AppAdaptivePalette.textFaint,
+                              ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
+                    if (reminderError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        reminderError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -693,19 +1063,16 @@ Future<ManagerTodoDraft?> showManagerTodoComposer(BuildContext context) async {
                         ),
                         const SizedBox(width: 8),
                         FilledButton(
-                          onPressed: canSubmit
+                          onPressed: canSubmit && reminderError == null
                               ? () {
-                                  final now = DateTime.now();
-                                  final reminderAt = switch (reminderChoice) {
-                                    1 => now.add(const Duration(hours: 1)),
-                                    2 => DateTime(
-                                        now.year,
-                                        now.month,
-                                        now.day + 1,
-                                        8,
-                                      ),
-                                    _ => null,
-                                  };
+                                  if (reminderAt != null &&
+                                      !reminderAt!.isAfter(DateTime.now())) {
+                                    setDialogState(() {
+                                      reminderError =
+                                          'Выбери время позже текущего';
+                                    });
+                                    return;
+                                  }
                                   Navigator.pop(
                                     dialogContext,
                                     ManagerTodoDraft(

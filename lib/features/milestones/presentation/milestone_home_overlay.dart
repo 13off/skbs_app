@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../manager_todos/presentation/manager_todos.dart';
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
 import 'milestone_detail_screen.dart';
@@ -269,6 +270,10 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
                     child: Text('Ещё целей: $hiddenCount'),
                   ),
                 ),
+            ],
+            if (widget.profile.isAdmin) ...[
+              const SizedBox(height: 18),
+              const ManagerTodoHomeSection(),
             ],
           ],
         );

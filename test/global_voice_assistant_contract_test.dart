@@ -27,7 +27,7 @@ void main() {
     expect(layer, contains('confirmationRequired'));
   });
 
-  test('global voice stays visibly above the company chat launcher', () {
+  test('global voice forms a compact launcher rail above company chat', () {
     final authOverlay = File(
       'lib/features/ai/presentation/global_voice_assistant_auth_overlay.dart',
     ).readAsStringSync();
@@ -38,7 +38,7 @@ void main() {
       'lib/features/ai/presentation/global_voice_assistant_layer_v2.dart',
     ).readAsStringSync();
 
-    expect(authOverlay, contains('_globalVoiceBottomClearance = 128.0'));
+    expect(authOverlay, contains('_globalVoiceBottomClearance = 62.0'));
     expect(authOverlay, contains('bottom: _globalVoiceBottomClearance'));
     expect(chatShell, contains('padding.bottom + 92'));
     expect(chatShell, contains('dimension: 54'));
