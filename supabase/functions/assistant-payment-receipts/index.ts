@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.110.5";
+import {
+  createClient,
+  type SupabaseClient,
+} from "npm:@supabase/supabase-js@2.110.5";
 
 const BUCKET = "payment-receipts";
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -11,6 +14,8 @@ const ALLOWED_TYPES = new Set([
   "image/webp",
 ]);
 const ALLOWED_EXTENSIONS = new Set(["pdf", "jpg", "jpeg", "png", "webp"]);
+const SECRET_CONFIG_NAME = "assistant_payment_receipts";
+let cachedSecretSha256 = "";
 
 type JsonMap = Record<string, unknown>;
 
@@ -43,6 +48,29 @@ async function sha256(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function isSha256(value: string): boolean {
+  return /^[0-9a-f]{64}$/.test(value);
+}
+
+async function configuredSecretSha256(admin: SupabaseClient): Promise<string> {
+  const fromEnvironment = Deno.env.get(
+    "ASSISTANT_PAYMENT_RECEIPTS_SECRET_SHA256",
+  )?.trim().toLowerCase() ?? "";
+  if (isSha256(fromEnvironment)) return fromEnvironment;
+  if (isSha256(cachedSecretSha256)) return cachedSecretSha256;
+
+  const { data, error } = await admin
+    .from("edge_auth_secret_hashes")
+    .select("secret_sha256")
+    .eq("name", SECRET_CONFIG_NAME)
+    .maybeSingle();
+  if (error) throw error;
+
+  const fromDatabase = String(data?.secret_sha256 ?? "").trim().toLowerCase();
+  if (isSha256(fromDatabase)) cachedSecretSha256 = fromDatabase;
+  return cachedSecretSha256;
 }
 
 function sameText(first: string, second: string): boolean {
@@ -119,17 +147,6 @@ Deno.serve(async (request: Request) => {
   }
 
   try {
-    const expectedSecretSha256 = Deno.env.get(
-      "ASSISTANT_PAYMENT_RECEIPTS_SECRET_SHA256",
-    )?.trim().toLowerCase() ?? "";
-    const suppliedSecret = request.headers.get("x-assistant-secret") ?? "";
-    if (
-      !expectedSecretSha256 || !suppliedSecret ||
-      !sameText(await sha256(suppliedSecret), expectedSecretSha256)
-    ) {
-      return json({ error: "Unauthorized" }, 401);
-    }
-
     const declaredLength = Number(request.headers.get("content-length") ?? 0);
     if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
       return json({ error: "Request is too large" }, 413);
@@ -144,6 +161,15 @@ Deno.serve(async (request: Request) => {
     const admin = createClient(supabaseUrl, secret, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const expectedSecretSha256 = await configuredSecretSha256(admin);
+    const suppliedSecret = request.headers.get("x-assistant-secret") ?? "";
+    if (
+      !expectedSecretSha256 || !suppliedSecret ||
+      !sameText(await sha256(suppliedSecret), expectedSecretSha256)
+    ) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
     const rawBody = await request.text();
     if (!rawBody || rawBody.length > MAX_REQUEST_BYTES) {
       return json({ error: "Request is too large" }, 413);
