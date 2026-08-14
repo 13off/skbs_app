@@ -23,7 +23,7 @@ void main() {
     expect(review, contains("'Что выполнено'"));
     expect(review, contains("'Какие проблемы возникли'"));
     expect(review, contains("'Расходы и выплаты'"));
-    expect(review, contains("'Сотрудники требуют внимания'"));
+    expect(review, contains("'Отсутствовали сотрудники'"));
     expect(review, contains("'Документы на завтра'"));
     expect(review, contains("'Три приоритетные задачи на завтра'"));
   });

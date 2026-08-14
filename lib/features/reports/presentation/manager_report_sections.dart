@@ -62,16 +62,19 @@ class ManagerReportSections extends StatelessWidget {
         _ReportSection(
           onlyProblems: onlyProblems,
           icon: Icons.calendar_month_outlined,
-          title: 'Табель и начисления',
-          subtitle: 'Смены, часы и начисления за выбранный день',
+          title: 'Табель и посещаемость',
+          subtitle: 'Смены и отсутствовавшие сотрудники за выбранный день',
           meta: attendance.missing > 0
-              ? '${attendance.missing} без отметки'
+              ? '${attendance.missing} отсутствовали'
               : '${attendance.marked} отмечено',
           problemCount: attendance.missing,
           metrics: [
             _ReportMetric(label: 'Активных', value: '${attendance.active}'),
             _ReportMetric(label: 'Отмечено', value: '${attendance.marked}'),
-            _ReportMetric(label: 'Без отметки', value: '${attendance.missing}'),
+            _ReportMetric(
+              label: 'Отсутствовали',
+              value: '${attendance.missing}',
+            ),
             _ReportMetric(
               label: 'Смен',
               value: attendance.shifts.toStringAsFixed(1),

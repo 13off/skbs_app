@@ -155,7 +155,7 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     final lines = <String>[];
     if (metrics.attendance.missing > 0) {
       lines.add(
-        'Нет отметки в табеле у ${metrics.attendance.missing} сотрудников.',
+        'Отсутствовали ${metrics.attendance.missing} сотрудников.',
       );
     }
     if (metrics.tasks.problem > 0) {
@@ -211,11 +211,10 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     }
     if (center.metrics.attendance.missing > 0) {
       return <String>[
-        'Нужно проверить ${center.metrics.attendance.missing} сотрудников '
-            'без отметки в табеле.',
+        'Отсутствовали ${center.metrics.attendance.missing} сотрудников.',
       ];
     }
-    return <String>['Сотрудников, требующих срочного внимания, нет.'];
+    return <String>['Отсутствовавших сотрудников нет.'];
   }
 
   List<String> _documents() {
@@ -255,7 +254,7 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     }
 
     if (metrics.attendance.missing > 0) {
-      add('Закрыть пропуски в табеле до расчёта смен.');
+      add('Взять объяснительные у отсутствовавших сотрудников.');
     }
     if (metrics.tasks.problem > 0) {
       add('Разобрать задачи с проблемами и назначить решения.');
@@ -380,7 +379,7 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
           ),
           _ReviewSection(
             icon: Icons.groups_outlined,
-            title: 'Сотрудники требуют внимания',
+            title: 'Отсутствовали сотрудники',
             lines: _employees(),
           ),
           _ReviewSection(
