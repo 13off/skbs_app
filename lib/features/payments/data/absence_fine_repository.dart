@@ -15,11 +15,10 @@ class AbsenceFineItem {
   final String explanationFilePath;
   final String explanationContentType;
   final DateTime? explanationUploadedAt;
-  final String violationActId;
-  final String violationActNumber;
-  final String violationActStatus;
-  final String violationTitle;
-  final String violationDescription;
+  final String actFileName;
+  final String actFilePath;
+  final String actContentType;
+  final DateTime? actUploadedAt;
 
   const AbsenceFineItem({
     required this.id,
@@ -33,15 +32,15 @@ class AbsenceFineItem {
     required this.explanationFilePath,
     required this.explanationContentType,
     required this.explanationUploadedAt,
-    required this.violationActId,
-    required this.violationActNumber,
-    required this.violationActStatus,
-    required this.violationTitle,
-    required this.violationDescription,
+    required this.actFileName,
+    required this.actFilePath,
+    required this.actContentType,
+    required this.actUploadedAt,
   });
 
   bool get hasExplanation => explanationFilePath.trim().isNotEmpty;
-  bool get hasViolationAct => violationActId.trim().isNotEmpty;
+  bool get hasAct => actFilePath.trim().isNotEmpty;
+  bool get canConfirm => hasExplanation && hasAct;
 
   factory AbsenceFineItem.fromMap(Map<String, dynamic> map) {
     return AbsenceFineItem(
@@ -65,25 +64,23 @@ class AbsenceFineItem {
       explanationUploadedAt: DateTime.tryParse(
         map['explanation_uploaded_at']?.toString() ?? '',
       )?.toLocal(),
-      violationActId: map['violation_act_id']?.toString().trim() ?? '',
-      violationActNumber:
-          map['violation_act_number']?.toString().trim() ?? '',
-      violationActStatus:
-          map['violation_act_status']?.toString().trim() ?? 'pending',
-      violationTitle:
-          map['violation_title']?.toString().trim() ?? 'Невыход на смену',
-      violationDescription:
-          map['violation_description']?.toString().trim() ?? '',
+      actFileName: map['act_file_name']?.toString().trim() ?? '',
+      actFilePath: map['act_file_path']?.toString().trim() ?? '',
+      actContentType: map['act_content_type']?.toString().trim() ?? '',
+      actUploadedAt: DateTime.tryParse(
+        map['act_uploaded_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }
 
 class AbsenceFineRepository {
   static final _client = Supabase.instance.client;
-  static const bucketName = 'absence-explanations';
+  static const explanationBucketName = 'absence-explanations';
+  static const actBucketName = 'absence-fine-acts';
 
   static Future<List<AbsenceFineItem>> fetchPending() async {
-    final response = await _client.rpc<dynamic>('get_pending_absence_fines_v2');
+    final response = await _client.rpc<dynamic>('get_pending_absence_fines');
     if (response is! List) return const <AbsenceFineItem>[];
 
     return response
@@ -93,7 +90,7 @@ class AbsenceFineRepository {
         .toList(growable: false);
   }
 
-  static Future<PickedPaymentReceiptFile?> pickExplanation() async {
+  static Future<PickedPaymentReceiptFile?> pickDocument() async {
     final files = await PaymentReceiptRepository.pickReceiptFiles();
     if (files.isEmpty) return null;
     return files.first;
@@ -102,6 +99,35 @@ class AbsenceFineRepository {
   static Future<void> uploadExplanation({
     required AbsenceFineItem fine,
     required PickedPaymentReceiptFile file,
+  }) async {
+    await _uploadDocument(
+      fine: fine,
+      file: file,
+      bucketName: explanationBucketName,
+      rpcName: 'attach_absence_fine_explanation',
+      errorMessage: 'Не удалось привязать объяснительную',
+    );
+  }
+
+  static Future<void> uploadAct({
+    required AbsenceFineItem fine,
+    required PickedPaymentReceiptFile file,
+  }) async {
+    await _uploadDocument(
+      fine: fine,
+      file: file,
+      bucketName: actBucketName,
+      rpcName: 'attach_absence_fine_act',
+      errorMessage: 'Не удалось привязать акт о нарушении',
+    );
+  }
+
+  static Future<void> _uploadDocument({
+    required AbsenceFineItem fine,
+    required PickedPaymentReceiptFile file,
+    required String bucketName,
+    required String rpcName,
+    required String errorMessage,
   }) async {
     PaymentReceiptRepository.validateFileSize(
       fileName: file.originalName,
@@ -120,7 +146,7 @@ class AbsenceFineRepository {
 
     try {
       final attached = await _client.rpc<dynamic>(
-        'attach_absence_fine_explanation',
+        rpcName,
         params: <String, dynamic>{
           'p_fine_id': fine.id,
           'p_file_name': file.originalName,
@@ -128,9 +154,7 @@ class AbsenceFineRepository {
           'p_content_type': file.contentType,
         },
       );
-      if (attached != true) {
-        throw StateError('Не удалось привязать объяснительную');
-      }
+      if (attached != true) throw StateError(errorMessage);
     } catch (_) {
       try {
         await _client.storage.from(bucketName).remove(<String>[path]);
