@@ -46,7 +46,7 @@ new = """  Future<void> choosePeriod() async {
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: Text('С ' + formatDate(draftStart)),
+                          label: Text('С ${formatDate(draftStart)}'),
                           selected: editingStart,
                           onSelected: (_) {
                             setDialogState(() => editingStart = true);
@@ -56,7 +56,7 @@ new = """  Future<void> choosePeriod() async {
                       const SizedBox(width: 10),
                       Expanded(
                         child: ChoiceChip(
-                          label: Text('По ' + formatDate(draftEnd)),
+                          label: Text('По ${formatDate(draftEnd)}'),
                           selected: !editingStart,
                           onSelected: (_) {
                             setDialogState(() => editingStart = false);
@@ -68,9 +68,7 @@ new = """  Future<void> choosePeriod() async {
                   const SizedBox(height: 10),
                   CalendarDatePicker(
                     key: ValueKey<String>(
-                      (editingStart ? 'start' : 'end') +
-                          '-' +
-                          activeDate.toIso8601String(),
+                      '${editingStart ? 'start' : 'end'}-${activeDate.toIso8601String()}',
                     ),
                     initialDate: activeDate,
                     firstDate: firstAllowed,
