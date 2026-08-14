@@ -3,6 +3,8 @@ name: Deploy Supabase proxy and Russian web
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - infra/supabase-proxy/**
       - .github/workflows/deploy-supabase-proxy.yml
