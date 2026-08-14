@@ -40,29 +40,71 @@ class TaskCreateDraft {
     this.additionalTasks = const <TaskCreateDraft>[],
   });
 
-  List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[this, ...additionalTasks];
+  List<TaskCreateDraft> get allTasks => <TaskCreateDraft>[
+    this,
+    ...additionalTasks,
+  ];
+
+  TaskBatchCreateInput toBatchInput() {
+    return TaskBatchCreateInput(task: task, assigneeIds: assigneeIds);
+  }
+}
+
+Future<List<TaskItemData>> persistTaskCreateDraft(
+  TaskCreateDraft draft, {
+  required String objectName,
+}) async {
+  final drafts = draft.allTasks;
+  if (drafts.length == 1) {
+    return <TaskItemData>[
+      await TaskRepository.addTaskWithDetails(
+        draft.task,
+        objectName: objectName,
+        assigneeIds: draft.assigneeIds,
+        photos: draft.photos,
+      ),
+    ];
+  }
+  if (drafts.any((item) => item.photos.isNotEmpty)) {
+    throw Exception('Пакет задач с фотографиями нужно сохранять по одной');
+  }
+  return TaskRepository.addTaskBatch(
+    objectName: objectName,
+    tasks: drafts.map((item) => item.toBatchInput()).toList(growable: false),
+  );
 }
 
 class AddTaskScreen extends StatefulWidget {
   final DateTime initialDate;
   final String objectName;
-  final String? initialMilestoneId, initialChecklistItemId, initialChecklistTitle;
+  final String? initialMilestoneId,
+      initialChecklistItemId,
+      initialChecklistTitle;
   final String initialAxes;
   final String initialWork;
   final List<String> initialAssigneeIds;
-  final bool initialRequireBeforePhoto, allowAnyDate, allowDraft, startVoiceImmediately, isRepeat;
+  final bool initialRequireBeforePhoto,
+      allowAnyDate,
+      allowDraft,
+      startVoiceImmediately,
+      isRepeat;
   final String? sourceDraftId;
   const AddTaskScreen({
     super.key,
     required this.initialDate,
     required this.objectName,
-    this.initialMilestoneId, this.initialChecklistItemId, this.initialChecklistTitle,
-    this.initialAxes = '', this.initialWork = '',
+    this.initialMilestoneId,
+    this.initialChecklistItemId,
+    this.initialChecklistTitle,
+    this.initialAxes = '',
+    this.initialWork = '',
     this.initialAssigneeIds = const <String>[],
     this.initialRequireBeforePhoto = false,
-    this.allowAnyDate = false, this.allowDraft = false,
+    this.allowAnyDate = false,
+    this.allowDraft = false,
     this.isRepeat = false,
-    this.sourceDraftId, this.startVoiceImmediately = false,
+    this.sourceDraftId,
+    this.startVoiceImmediately = false,
   });
 
   @override
@@ -80,8 +122,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   String? selectedMilestoneId, selectedChecklistItemId, selectedChecklistTitle;
   bool isGoalTask = false;
 
-  bool isLoadingEmployees = false, isPickingPhotos = false, isLoadingPolicy = true;
-  bool isListeningVoice = false, voiceHasWarning = false, voiceAutoStartConsumed = false;
+  bool isLoadingEmployees = false,
+      isPickingPhotos = false,
+      isLoadingPolicy = true;
+  bool isListeningVoice = false,
+      voiceHasWarning = false,
+      voiceAutoStartConsumed = false;
   TaskPolicy policy = TaskPolicy.defaults;
   String? errorText, voiceTranscript, voiceMessage;
   TaskVoiceField? voiceActiveField;
@@ -105,7 +151,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     selectedDate = widget.initialDate;
     selectedMilestoneId = widget.initialMilestoneId;
     selectedChecklistItemId = widget.initialChecklistItemId;
-    selectedChecklistTitle = selectedMilestoneId?.trim().isNotEmpty == true ? widget.initialChecklistTitle : null;
+    selectedChecklistTitle = selectedMilestoneId?.trim().isNotEmpty == true
+        ? widget.initialChecklistTitle
+        : null;
     isGoalTask = selectedMilestoneId?.trim().isNotEmpty == true;
     axesController.text = widget.initialAxes.trim();
     workController.text = widget.initialWork.trim();

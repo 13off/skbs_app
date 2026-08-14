@@ -11,6 +11,19 @@ function iconUrl() {
   return new URL('../icons/AppStroy-192-v2.png', self.registration.scope).href;
 }
 
+function safeNotificationTarget(value) {
+  var root = new URL(appRootUrl());
+  try {
+    var target = new URL(value || root.href, root);
+    var rootPath = root.pathname.endsWith('/') ? root.pathname : root.pathname + '/';
+    var insideApp = target.origin === root.origin &&
+      (target.pathname === root.pathname || target.pathname.startsWith(rootPath));
+    return insideApp ? target.href : root.href;
+  } catch (_) {
+    return root.href;
+  }
+}
+
 self.addEventListener('push', function (event) {
   var payload = {};
   try {
@@ -21,7 +34,7 @@ self.addEventListener('push', function (event) {
 
   var title = payload.title || 'AppСтрой';
   var body = payload.body || 'В приложении есть новое уведомление';
-  var link = payload.link || appRootUrl();
+  var link = safeNotificationTarget(payload.link);
   var options = {
     body: body,
     icon: iconUrl(),
@@ -48,9 +61,9 @@ self.addEventListener('push', function (event) {
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  var target = event.notification.data && event.notification.data.link
-    ? event.notification.data.link
-    : appRootUrl();
+  var target = safeNotificationTarget(
+    event.notification.data && event.notification.data.link
+  );
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {

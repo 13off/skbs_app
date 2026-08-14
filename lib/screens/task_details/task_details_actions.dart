@@ -240,18 +240,13 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
         return;
       }
 
-      await TaskRepository.addTaskWithDetails(
-        draft.task,
-        objectName: objectName,
-        assigneeIds: draft.assigneeIds,
-        photos: draft.photos,
-      );
+      await persistTaskCreateDraft(draft, objectName: objectName);
       if (!mounted) return;
 
       final date = DateFormat('dd.MM.yyyy').format(draft.task.date);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Задача повторена на $date')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Задача повторена на $date')));
     } catch (error) {
       if (!mounted) return;
       setState(() => errorText = 'Не удалось повторить задачу: $error');

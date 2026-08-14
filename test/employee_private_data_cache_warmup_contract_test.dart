@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final source = File(
     'lib/data/employee_private_data_repository.dart',
-  ).readAsStringSync();
+  ).readAsStringSync().replaceAll('\r\n', '\n');
 
   group('EmployeePrivateDataRepository cache warmup contract', () {
     test('bulk employee lookup passes the requested identifiers', () {
@@ -14,7 +14,10 @@ void main() {
 
     test('fresh bulk result warms individual employee cache entries', () {
       expect(source, contains('_warmEmployeeCache'));
-      expect(source, contains('_employeeCache[employeeId] ='));
+      expect(
+        source,
+        contains('_employeeCache[AppSessionScope.cacheKey(employeeId)] ='),
+      );
       expect(source, contains('value: values[employeeId]'));
     });
 
@@ -22,8 +25,8 @@ void main() {
       expect(
         source,
         contains(
-          '_employeeCache[employeeId] = _PrivateDataEntry(\n'
-          '          value: values[employeeId],',
+          '_employeeCache[AppSessionScope.cacheKey(employeeId)] =\n'
+          '            _PrivateDataEntry(value: values[employeeId],',
         ),
       );
     });

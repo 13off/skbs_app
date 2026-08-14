@@ -31,8 +31,10 @@ void main() {
       expect(navigation, isNot(contains('Color(0xF7353B42)')));
       expect(
         navigation,
-        contains(
-          'gradient: dark\n                    ? _darkNavigationPanelGradient\n                    : _lightNavigationPanelGradient',
+        matches(
+          RegExp(
+            r'gradient:\s*dark\s*\?\s*_darkNavigationPanelGradient\s*:\s*_lightNavigationPanelGradient',
+          ),
         ),
       );
       expect(

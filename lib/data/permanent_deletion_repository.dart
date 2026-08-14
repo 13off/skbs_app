@@ -103,15 +103,22 @@ class PermanentDeletionRepository {
   static Future<PermanentDeletionResult> deleteArchivedEmployee(
     String employeeId,
   ) async {
-    final cleanEmployeeId = employeeId.trim();
+    return deleteArchivedEmployees(<String>[employeeId]);
+  }
 
-    if (cleanEmployeeId.isEmpty) {
-      throw Exception('Не найден ID сотрудника');
-    }
+  static Future<PermanentDeletionResult> deleteArchivedEmployees(
+    Iterable<String> employeeIds,
+  ) async {
+    final ids = employeeIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) throw Exception('Не найдены ID сотрудников');
 
     final response = await _client.rpc(
-      'permanently_delete_employee',
-      params: <String, dynamic>{'p_employee_id': cleanEmployeeId},
+      'permanently_delete_archived_employees',
+      params: <String, dynamic>{'p_employee_ids': ids},
     );
     final manifest = _mapFromRpc(response);
     final warnings = await _cleanupStorage(manifest);
@@ -125,7 +132,8 @@ class PermanentDeletionRepository {
       },
       context: <String, dynamic>{
         'table': 'employees',
-        'employee_id': cleanEmployeeId,
+        'employee_ids': ids,
+        'permanently_deleted': true,
       },
     );
 
@@ -135,37 +143,24 @@ class PermanentDeletionRepository {
   static Future<PermanentDeletionResult> deleteArchivedObject(
     String objectName,
   ) async {
-    final cleanName = objectName.trim();
+    return deleteArchivedObjects(<String>[objectName]);
+  }
 
-    if (cleanName.isEmpty) {
-      throw Exception('Не найден объект');
-    }
+  static Future<PermanentDeletionResult> deleteArchivedObjects(
+    Iterable<String> objectNames,
+  ) async {
+    final names = objectNames
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (names.isEmpty) throw Exception('Не найдены объекты');
 
     final response = await _client.rpc(
-      'archived_object_delete_manifest',
-      params: <String, dynamic>{'p_name': cleanName},
+      'permanently_delete_archived_objects',
+      params: <String, dynamic>{'p_names': names},
     );
     final manifest = _mapFromRpc(response);
-    final now = DateTime.now().toUtc().toIso8601String();
-
-    // Объект удаляется последним. Если один из предыдущих шагов завершится
-    // ошибкой, архивная запись останется и очистку можно будет повторить.
-    await _client
-        .from('user_profiles')
-        .update(<String, dynamic>{'object_name': null, 'updated_at': now})
-        .eq('object_name', cleanName);
-    await _client
-        .from('app_notification_clears')
-        .delete()
-        .eq('object_name', cleanName);
-    await _client
-        .from('app_notifications')
-        .delete()
-        .eq('object_name', cleanName);
-    await _client.from('tasks').delete().eq('object_name', cleanName);
-    await _client.from('attendance').delete().eq('object_name', cleanName);
-    await _client.from('employees').delete().eq('object_name', cleanName);
-    await _client.from('objects').delete().eq('name', cleanName);
 
     final warnings = await _cleanupStorage(manifest);
 
@@ -178,7 +173,11 @@ class PermanentDeletionRepository {
         AppDataDomain.payments,
         AppDataDomain.tasks,
       },
-      context: <String, dynamic>{'table': 'objects', 'object_name': cleanName},
+      context: <String, dynamic>{
+        'table': 'objects',
+        'object_names': names,
+        'permanently_deleted': true,
+      },
     );
 
     return PermanentDeletionResult(cleanupWarnings: warnings);

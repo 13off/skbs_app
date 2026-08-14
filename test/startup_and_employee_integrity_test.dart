@@ -3,6 +3,21 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('первый Flutter-кадр не ждёт сеть, тему или push', () {
+    final main = File('lib/main.dart').readAsStringSync();
+    final entrypointStart = main.indexOf('void main()');
+    final runAppPosition = main.indexOf('runApp(const SkbsApp())');
+    final initializationPosition = main.indexOf(
+      'Future<void> _initializeApplication()',
+    );
+
+    expect(entrypointStart, greaterThanOrEqualTo(0));
+    expect(runAppPosition, greaterThan(entrypointStart));
+    expect(runAppPosition, lessThan(initializationPosition));
+    expect(main, contains('unawaited(_initializePush())'));
+    expect(main, contains('_disposePartialSupabaseInitialization'));
+  });
+
   test('стартовый прогрев не дублирует задачи и табель', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
@@ -48,11 +63,14 @@ void main() {
     expect(main, contains('AppCacheCoordinator.clearAll()'));
     expect(coordinator, contains('AttendanceRepository.clearCache()'));
     expect(coordinator, contains('EmployeeRepository.clearCache()'));
+    expect(coordinator, contains('EmployeePrivateDataRepository.clearCache()'));
+    expect(coordinator, contains('EmployeeArchiveRepository.clearCache()'));
     expect(coordinator, contains('ObjectRepository.clearCache()'));
     expect(coordinator, contains('PaymentRepository.clearCache()'));
     expect(coordinator, contains('TaskRepository.clearTaskListCache()'));
     expect(coordinator, contains('DeveloperPolicyRepository.clearCache()'));
     expect(coordinator, contains('ManagerReportsRepository.clearCache()'));
+    expect(coordinator, contains('NotificationRepository.clearCache()'));
   });
 
   test('один человек не получает две активные карточки на одном объекте', () {

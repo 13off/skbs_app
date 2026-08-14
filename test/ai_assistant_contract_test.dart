@@ -37,7 +37,10 @@ void main() {
     expect(chat, contains("'Сообщение ChatGPT…'"));
     expect(chat, contains('class _ChatLauncherButton'));
     expect(repository, contains("'company-chat-gpt'"));
-    expect(repository, contains('static Future<bool> canUseAi() async => false'));
+    expect(
+      repository,
+      contains('static Future<bool> canUseAi() async => false'),
+    );
     expect(shell, isNot(contains("label: 'ИИ'")));
   });
 
@@ -87,10 +90,10 @@ void main() {
     expect(coordinator, contains('initialAssigneeIds:'));
     expect(coordinator, contains('initialRequireBeforePhoto:'));
     expect(coordinator, contains('if (draft == null)'));
-    expect(coordinator, contains('TaskRepository.addTaskWithDetails('));
+    expect(coordinator, contains('persistTaskCreateDraft('));
     expect(
       coordinator.indexOf('if (draft == null)'),
-      lessThan(coordinator.indexOf('TaskRepository.addTaskWithDetails(')),
+      lessThan(coordinator.indexOf('persistTaskCreateDraft(')),
     );
 
     expect(taskScreen, contains('final String initialAxes;'));

@@ -270,12 +270,11 @@ class _TasksScreenState extends State<TasksScreen> {
       return;
     }
 
-    final createdTask = await TaskRepository.addTaskWithDetails(
-      draft.task,
+    final createdTasks = await persistTaskCreateDraft(
+      draft,
       objectName: objectName,
-      assigneeIds: draft.assigneeIds,
-      photos: draft.photos,
     );
+    final createdTask = createdTasks.first;
     final sourceDraftId = draft.sourceDraftId?.trim() ?? '';
     if (sourceDraftId.isNotEmpty) {
       await TaskRepository.deleteTaskDraft(sourceDraftId);

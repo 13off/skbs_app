@@ -88,6 +88,7 @@ abstract final class ManagerWeeklyContributionRepository {
       <String, _WeeklyContributionCacheEntry>{};
   static final Map<String, Future<ManagerWeeklyContributionReport>> _requests =
       <String, Future<ManagerWeeklyContributionReport>>{};
+  static int _cacheGeneration = 0;
 
   static Future<ManagerWeeklyContributionReport> fetch({
     required String companyId,
@@ -105,14 +106,17 @@ abstract final class ManagerWeeklyContributionRepository {
     final running = _requests[key];
     if (!forceRefresh && running != null) return running;
 
+    final generation = _cacheGeneration;
     final request = _load(objectId: cleanObjectId);
     _requests[key] = request;
     try {
       final report = await request;
-      _cache[key] = _WeeklyContributionCacheEntry(
-        report: report,
-        createdAt: DateTime.now(),
-      );
+      if (generation == _cacheGeneration) {
+        _cache[key] = _WeeklyContributionCacheEntry(
+          report: report,
+          createdAt: DateTime.now(),
+        );
+      }
       return report;
     } finally {
       if (identical(_requests[key], request)) _requests.remove(key);
@@ -120,6 +124,7 @@ abstract final class ManagerWeeklyContributionRepository {
   }
 
   static void clearCache() {
+    _cacheGeneration++;
     _cache.clear();
     _requests.clear();
   }

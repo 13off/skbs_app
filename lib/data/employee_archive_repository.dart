@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/employee.dart';
 import 'app_data_sync.dart';
+import 'app_session_scope.dart';
 import 'employee_repository.dart';
 
 class EmployeeArchiveRepository {
@@ -15,6 +16,7 @@ class EmployeeArchiveRepository {
   static DateTime? _cachedAt;
   static Future<List<Employee>>? _inFlight;
   static int _cacheGeneration = 0;
+  static String _cacheScope = '';
 
   static bool get _isCacheFresh {
     final cachedAt = _cachedAt;
@@ -32,11 +34,13 @@ class EmployeeArchiveRepository {
     _cachedAt = null;
     _inFlight = null;
     _cacheGeneration++;
+    _cacheScope = AppSessionScope.cachePrefix;
   }
 
   static Future<List<Employee>> fetchArchivedEmployees({
     bool forceRefresh = false,
   }) async {
+    if (_cacheScope != AppSessionScope.cachePrefix) clearCache();
     if (!forceRefresh && _isCacheFresh) {
       return _copyEmployees(_cachedEmployees!);
     }
@@ -45,11 +49,13 @@ class EmployeeArchiveRepository {
     if (running != null) return _copyEmployees(await running);
 
     final generation = _cacheGeneration;
+    final sessionGeneration = AppSessionScope.generation;
     final request = _loadArchivedEmployees();
     _inFlight = request;
     try {
       final result = await request;
-      if (generation == _cacheGeneration) {
+      if (generation == _cacheGeneration &&
+          AppSessionScope.isCurrent(sessionGeneration)) {
         _cachedEmployees = _copyEmployees(result);
         _cachedAt = DateTime.now();
       }
@@ -105,23 +111,31 @@ class EmployeeArchiveRepository {
   }
 
   static Future<void> restoreEmployee(String employeeId) async {
-    final id = employeeId.trim();
-    if (id.isEmpty) throw Exception('Не найден ID сотрудника');
+    await restoreEmployees(<String>[employeeId]);
+  }
 
-    await _client
-        .from('employees')
-        .update({
-          'is_active': false,
-          'archived_at': null,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', id);
+  static Future<void> restoreEmployees(Iterable<String> employeeIds) async {
+    final ids = employeeIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) throw Exception('Не найдены ID сотрудников');
+
+    await _client.rpc(
+      'bulk_restore_archived_employees',
+      params: <String, dynamic>{'p_employee_ids': ids},
+    );
 
     clearCache();
     EmployeeRepository.clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
-      context: <String, dynamic>{'table': 'employees', 'employee_id': id},
+      context: <String, dynamic>{
+        'table': 'employees',
+        'employee_ids': ids,
+        'restored': true,
+      },
     );
   }
 }

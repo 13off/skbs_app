@@ -31,12 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           show-progress: false
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           cache: true
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload browser smoke evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: browser-smoke-evidence
           path: .artifacts/browser-smoke
@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload failing analyzer log
         if: failure() && steps.analyze.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flutter-analyze-log
           path: /tmp/flutter-analyze.log
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload failing test log
         if: failure() && steps.regression.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flutter-test-log
           path: /tmp/flutter-test.log
@@ -113,13 +113,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source with history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           show-progress: false
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload failing Deno log
         if: failure() && steps.edge-check.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: deno-check-log
           path: /tmp/deno-check.log

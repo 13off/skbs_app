@@ -32,17 +32,17 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Checkout download repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: 13off/appstroy-web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           cache: true
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload IPA artifact
         if: always() && steps.ios_prepare.outcome == 'success' && steps.ios_build.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: AppStroy-iOS-IPA
           path: ios-output/

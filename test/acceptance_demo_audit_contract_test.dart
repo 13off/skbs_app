@@ -15,7 +15,7 @@ void main() {
     expect(repository, contains("rpc('current_user_role')"));
     expect(repository, contains("rpc('current_user_company_id')"));
     expect(repository, contains("rpc('current_user_object_name')"));
-    expect(repository, contains("rpc(\n        'current_user_has_permission'"));
+    expect(repository, contains("'current_user_has_permission'"));
     expect(repository, contains('.select(probe.selectColumns)'));
     expect(screen, contains('реально авторизованная роль этой сессии'));
     expect(screen, contains('Результат не считается подтверждением'));

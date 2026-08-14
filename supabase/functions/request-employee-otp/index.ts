@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const maxRequestBytes = 4 * 1024;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -21,11 +22,69 @@ function json(body: unknown, status = 200) {
 
 function normalizePhone(value: unknown) {
   const digits = String(value ?? "").replace(/\D/g, "");
-  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
+  if (
+    digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))
+  ) {
     return `+7${digits.slice(1)}`;
   }
   if (digits.length === 10) return `+7${digits}`;
   return "";
+}
+
+function serviceKey(): string {
+  const modern = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (modern) {
+    try {
+      const parsed = JSON.parse(modern) as Record<string, string>;
+      return parsed.default ?? Object.values(parsed)[0] ?? "";
+    } catch (_) {
+      // Fall back to the legacy service-role environment variable.
+    }
+  }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+}
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function clientIp(request: Request): string {
+  return request.headers.get("cf-connecting-ip")?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+}
+
+async function consumeLimit(
+  adminClient: { rpc: unknown },
+  scope: string,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const pepper = Deno.env.get("EDGE_RATE_LIMIT_PEPPER") ?? "appstroy";
+  const rpc = adminClient.rpc as (
+    name: string,
+    params: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+  const { data, error } = await rpc("consume_edge_rate_limit", {
+    p_scope: scope,
+    p_key_hash: await sha256(`${pepper}:${key}`),
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
+function accepted() {
+  return json({ ok: true, channel: "max" });
 }
 
 Deno.serve(async (request: Request) => {
@@ -39,20 +98,64 @@ Deno.serve(async (request: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const serviceRoleKey = serviceKey();
     if (!supabaseUrl || !anonKey || !serviceRoleKey) {
       return json({ error: "Вход сотрудников не настроен" }, 500);
     }
 
-    const input = await request.json();
+    const contentType = request.headers.get("content-type")?.toLowerCase() ??
+      "";
+    if (!contentType.startsWith("application/json")) {
+      return json({ error: "Ожидается JSON" }, 415);
+    }
+    const declaredLength = Number(request.headers.get("content-length") ?? 0);
+    if (Number.isFinite(declaredLength) && declaredLength > maxRequestBytes) {
+      return json({ error: "Запрос слишком большой" }, 413);
+    }
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const ipAllowed = await consumeLimit(
+      adminClient,
+      "employee_otp_ip",
+      clientIp(request),
+      10,
+      600,
+    );
+    if (!ipAllowed) {
+      return json({
+        ok: false,
+        error: "Слишком много запросов. Попробуйте позже",
+      }, 429);
+    }
+    const rawInput = await request.text();
+    if (!rawInput || rawInput.length > maxRequestBytes) {
+      return json({ error: "Запрос слишком большой" }, 413);
+    }
+    let input: Record<string, unknown>;
+    try {
+      input = JSON.parse(rawInput) as Record<string, unknown>;
+    } catch (_) {
+      return json({ error: "Некорректный JSON" }, 400);
+    }
     const phone = normalizePhone(input.phone);
     if (!phone) {
       return json({ ok: false, error: "Некорректный номер телефона" });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const phoneAllowed = await consumeLimit(
+      adminClient,
+      "employee_otp_phone",
+      phone,
+      5,
+      900,
+    );
+    if (!phoneAllowed) {
+      return json({
+        ok: false,
+        error: "Слишком много запросов. Попробуйте позже",
+      }, 429);
+    }
 
     const { data: links, error: linksError } = await adminClient
       .from("employee_account_links")
@@ -69,10 +172,7 @@ Deno.serve(async (request: Request) => {
       new Set((links ?? []).map((row) => String(row.user_id))),
     );
     if (companyIds.length === 0 || userIds.length === 0) {
-      return json({
-        ok: false,
-        error: "Этот номер не подключён к кабинету сотрудника",
-      });
+      return accepted();
     }
 
     const [{ data: company }, { data: profile }, { data: maxLinks }] =
@@ -101,10 +201,7 @@ Deno.serve(async (request: Request) => {
       ]);
 
     if (!company || !profile) {
-      return json({
-        ok: false,
-        error: "Доступ сотрудника отключён. Обратитесь к руководителю",
-      });
+      return accepted();
     }
 
     const accountKeys = new Set(
@@ -120,11 +217,7 @@ Deno.serve(async (request: Request) => {
         .map((row) => String(row.max_user_id)),
     );
     if (validMaxUsers.size !== 1) {
-      return json({
-        ok: false,
-        error:
-          "MAX не подключён к кабинету сотрудника. Получите ссылку подключения у руководителя",
-      });
+      return accepted();
     }
 
     const authClient = createClient(supabaseUrl, anonKey, {
@@ -136,12 +229,11 @@ Deno.serve(async (request: Request) => {
     });
     if (otpError) throw otpError;
 
-    return json({ ok: true, channel: "max" });
+    return accepted();
   } catch (error) {
     console.error("Employee MAX OTP request failed", {
       name: error instanceof Error ? error.name : "UnknownError",
     });
-    const message = error instanceof Error ? error.message : String(error);
-    return json({ error: message || "Не удалось отправить код в MAX" }, 500);
+    return json({ error: "Не удалось отправить код. Попробуйте позже" }, 500);
   }
 });

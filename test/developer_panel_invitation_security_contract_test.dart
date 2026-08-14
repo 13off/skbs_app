@@ -68,7 +68,10 @@ void main() {
     // Client fallback may still know the Russian app mirror, but copied invites
     // are server-rewritten to the canonical public landing above.
     expect(users, contains('https://api.appstroy-web.ru/app/'));
-    expect(landing, contains("const supabaseUrl = 'https://api.appstroy-web.ru'"));
+    expect(
+      landing,
+      contains("const supabaseUrl = 'https://api.appstroy-web.ru'"),
+    );
     expect(landing, contains('/auth/v1/verify'));
   });
 
@@ -80,12 +83,16 @@ void main() {
       'supabase/migrations/20260723260000_harden_tenant_integrity_and_member_updates.sql',
     ).readAsStringSync();
 
-    final methodStart = repository.indexOf(
+    final normalizedRepository = repository.replaceAll('\r\n', '\n');
+    final methodStart = normalizedRepository.indexOf(
       'static Future<void> updateMemberAccess',
     );
-    final methodEnd = repository.indexOf('\n  }\n}', methodStart);
-    final method = repository.substring(methodStart, methodEnd + 4);
+    final methodEnd = normalizedRepository.indexOf('\n  }\n}', methodStart);
+    final method = methodStart < 0 || methodEnd < 0
+        ? null
+        : normalizedRepository.substring(methodStart, methodEnd + 4);
 
+    expect(method, isNotNull);
     expect(method, contains("'update_company_member_access'"));
     expect(method, isNot(contains(".from('company_memberships')")));
     expect(method, isNot(contains(".from('object_memberships')")));

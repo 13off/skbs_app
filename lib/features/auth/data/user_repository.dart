@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../../../services/push_notification_service.dart';
+import '../../../data/app_session_scope.dart';
 import '../models/app_user_profile.dart';
 
 class UserRepository {
@@ -275,6 +276,7 @@ class UserRepository {
     _pendingInvitationApplication = null;
     clearProfileCache();
     await _client.auth.signOut();
+    AppSessionScope.reset();
   }
 
   static Future<AppUserProfile?> fetchCurrentProfile({

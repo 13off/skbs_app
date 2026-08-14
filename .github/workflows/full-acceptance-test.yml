@@ -18,7 +18,7 @@ jobs:
     name: Repository contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           show-progress: false
@@ -113,7 +113,7 @@ jobs:
           print('Repository contracts passed.')
           PY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-acceptance-repository
@@ -125,10 +125,10 @@ jobs:
     name: Flutter, Web and browser
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           show-progress: false
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           cache: true
@@ -202,7 +202,7 @@ jobs:
       - name: Run headless Chrome browser smoke
         run: python3 tool/web_smoke.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-acceptance-flutter-web
@@ -217,15 +217,15 @@ jobs:
     name: Android debug and release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           show-progress: false
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           cache: true
@@ -238,7 +238,7 @@ jobs:
           mkdir -p .artifacts/full-acceptance
           ls -lh build/app/outputs/flutter-apk/*.apk > .artifacts/full-acceptance/android-apk-sizes.txt
           sha256sum build/app/outputs/flutter-apk/*.apk > .artifacts/full-acceptance/android-apk-sha256.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-acceptance-android
@@ -252,11 +252,11 @@ jobs:
     name: Supabase, Edge and SQL
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           show-progress: false
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
@@ -320,7 +320,7 @@ jobs:
             echo "RLS files: $(grep -Ril 'row level security\|enable rls' supabase/migrations --include='*.sql' | wc -l)"
           } > .artifacts/full-acceptance/backend-inventory.md
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-acceptance-backend
@@ -363,7 +363,7 @@ jobs:
           test "$FLUTTER_RESULT" = success
           test "$ANDROID_RESULT" = success
           test "$BACKEND_RESULT" = success
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: full-acceptance-summary

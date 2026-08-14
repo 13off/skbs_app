@@ -137,12 +137,7 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
       ).showSnackBar(const SnackBar(content: Text('Черновик задачи сохранён')));
       return;
     }
-    await TaskRepository.addTaskWithDetails(
-      draft.task,
-      objectName: assignedObject,
-      assigneeIds: draft.assigneeIds,
-      photos: draft.photos,
-    );
+    await persistTaskCreateDraft(draft, objectName: assignedObject);
   }
 
   Future<void> openTask(TaskItemData task) async {

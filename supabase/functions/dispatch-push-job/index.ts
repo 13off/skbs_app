@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
@@ -11,6 +11,8 @@ const corsHeaders = {
 const webPushPublicKey =
   "BEDeIMiSvfz3KavkGnr8UKRZkfE0Ix3PmG8HGNWcm20b70Zh_cWBmNR3crMxi5nYHk4KHbf_frABXuQDontdYn8";
 const webPushSubject = "mailto:admin@appstroy-web.ru";
+const outboundTimeoutMs = 15_000;
+const pushConcurrency = 8;
 
 const foremanAllowedEntityTypes = new Set([
   "attendance",
@@ -66,6 +68,7 @@ interface JobRow {
   status: string;
   attempts: number;
   updated_at: string;
+  lease_token: string;
 }
 
 interface AdminNotificationPreference {
@@ -87,6 +90,35 @@ function json(body: unknown, status = 200) {
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    .test(value);
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const run = async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index]);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(Math.max(concurrency, 1), items.length) },
+      run,
+    ),
+  );
+  return results;
 }
 
 function serviceKey(): string {
@@ -165,6 +197,7 @@ async function getGoogleAccessToken(account: ServiceAccount) {
           .replace("oauth-type", "oauth:grant-type"),
         assertion,
       }),
+      signal: AbortSignal.timeout(outboundTimeoutMs),
     },
   );
   const payload = await response.json();
@@ -191,12 +224,37 @@ function normalizeRole(value: unknown) {
 
 function notificationEventGroup(entityType: unknown) {
   const value = clean(entityType);
-  if (["tasks", "task_assignees", "task_photos", "brigade_photo", "foreman_reminder"].includes(value)) return "tasks";
+  if (
+    [
+      "tasks",
+      "task_assignees",
+      "task_photos",
+      "brigade_photo",
+      "foreman_reminder",
+    ].includes(value)
+  ) return "tasks";
   if (value === "attendance") return "attendance";
-  if (["employees", "employee_private_data", "employee_documents"].includes(value)) return "employees";
-  if (["recruitment_application", "recruitment_applications", "recruitment_message", "recruitment_messages", "recruitment_document", "recruitment_documents", "hr_reminder"].includes(value)) return "hr";
-  if (["payments", "payment_receipts", "accountant_reminder"].includes(value)) return "payments";
-  if (value.startsWith("legal_") || ["legal_document", "legal_matter", "lawyer_reminder"].includes(value)) return "legal";
+  if (
+    ["employees", "employee_private_data", "employee_documents"].includes(value)
+  ) return "employees";
+  if (
+    [
+      "recruitment_application",
+      "recruitment_applications",
+      "recruitment_message",
+      "recruitment_messages",
+      "recruitment_document",
+      "recruitment_documents",
+      "hr_reminder",
+    ].includes(value)
+  ) return "hr";
+  if (["payments", "payment_receipts", "accountant_reminder"].includes(value)) {
+    return "payments";
+  }
+  if (
+    value.startsWith("legal_") ||
+    ["legal_document", "legal_matter", "lawyer_reminder"].includes(value)
+  ) return "legal";
   return "system";
 }
 
@@ -261,12 +319,15 @@ async function sendToFcmToken(
             headers: { Urgency: "high" },
             notification: {
               icon: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
-              badge: `${publicUrl.replace(/\/$/, "")}/icons/AppStroy-192-v2.png`,
+              badge: `${
+                publicUrl.replace(/\/$/, "")
+              }/icons/AppStroy-192-v2.png`,
             },
             fcm_options: { link: publicUrl },
           },
         },
       }),
+      signal: AbortSignal.timeout(outboundTimeoutMs),
     },
   );
   const body = await response.json().catch(() => ({}));
@@ -319,6 +380,7 @@ async function sendToWebSubscription(
           publicKey: webPushPublicKey,
           privateKey,
         },
+        timeout: outboundTimeoutMs,
       },
     );
     return { ok: true, status: 201, errorCode: "" };
@@ -355,48 +417,26 @@ Deno.serve(async (request: Request) => {
     const input = await request.json().catch(() => ({}));
     const jobId = clean(input.job_id);
     const dispatchToken = clean(input.dispatch_token);
-    if (!jobId || !dispatchToken) {
+    if (!isUuid(jobId) || !isUuid(dispatchToken)) {
       return json({ error: "Некорректная очередь push" }, 400);
     }
 
-    const { data: rawJob, error: jobError } = await admin
-      .from("push_notification_jobs")
-      .select("id,notification_id,dispatch_token,status,attempts,updated_at")
-      .eq("id", jobId)
-      .eq("dispatch_token", dispatchToken)
-      .maybeSingle();
-    if (jobError) throw jobError;
-    if (!rawJob) return json({ error: "Задание push не найдено" }, 404);
-    job = rawJob as JobRow;
+    const { data: claimed, error: claimError } = await admin.rpc(
+      "claim_push_notification_job",
+      { p_job_id: jobId, p_dispatch_token: dispatchToken },
+    );
+    if (claimError) throw claimError;
+    const claim = (claimed ?? {}) as Record<string, unknown>;
+    if (claim.claimed !== true) {
+      const status = clean(claim.status) || "processing";
+      return json(
+        { ok: true, duplicate: true, status },
+        status === "processing" ? 202 : 200,
+      );
+    }
+    job = claim as unknown as JobRow;
 
     const finalStatuses = new Set(["sent", "partial", "no_recipients"]);
-    if (finalStatuses.has(job.status)) {
-      return json({ ok: true, duplicate: true, status: job.status });
-    }
-    if (job.status === "processing") {
-      const updatedAt = Date.parse(job.updated_at);
-      if (Number.isFinite(updatedAt) && Date.now() - updatedAt < 5 * 60 * 1000) {
-        return json({ ok: true, duplicate: true, status: "processing" }, 202);
-      }
-    }
-
-    const now = new Date().toISOString();
-    const { data: claimed, error: claimError } = await admin
-      .from("push_notification_jobs")
-      .update({
-        status: "processing",
-        attempts: Number(job.attempts ?? 0) + 1,
-        last_error: "",
-        updated_at: now,
-      })
-      .eq("id", job.id)
-      .eq("dispatch_token", dispatchToken)
-      .select("id")
-      .maybeSingle();
-    if (claimError) throw claimError;
-    if (!claimed) {
-      return json({ ok: true, duplicate: true, status: "processing" }, 202);
-    }
 
     const { data: rawNotification, error: notificationError } = await admin
       .from("app_notifications")
@@ -411,7 +451,7 @@ Deno.serve(async (request: Request) => {
         status: "failed",
         last_error: "Уведомление не найдено",
         updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
+      }).eq("id", job.id).eq("lease_token", job.lease_token);
       return json({ error: "Уведомление не найдено" }, 404);
     }
     const notification = rawNotification as NotificationRow;
@@ -422,11 +462,13 @@ Deno.serve(async (request: Request) => {
       .eq("notification_id", notification.id)
       .maybeSingle();
     if (existingError) throw existingError;
-    if (existingDelivery && finalStatuses.has(String(existingDelivery.status))) {
+    if (
+      existingDelivery && finalStatuses.has(String(existingDelivery.status))
+    ) {
       await admin.from("push_notification_jobs").update({
         status: String(existingDelivery.status),
         updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
+      }).eq("id", job.id).eq("lease_token", job.lease_token);
       return json({
         ok: true,
         duplicate: true,
@@ -473,7 +515,15 @@ Deno.serve(async (request: Request) => {
         : ["admin", "foreman", "hr", "accountant", "lawyer"];
       const selectedGroups = Array.isArray(row.selected_event_groups)
         ? row.selected_event_groups.map((value: unknown) => clean(value))
-        : ["tasks", "attendance", "employees", "hr", "payments", "legal", "system"];
+        : [
+          "tasks",
+          "attendance",
+          "employees",
+          "hr",
+          "payments",
+          "legal",
+          "system",
+        ];
       adminPreferences.set(String(row.user_id), {
         roles: new Set(selectedRoles),
         eventGroups: new Set(selectedGroups),
@@ -488,7 +538,15 @@ Deno.serve(async (request: Request) => {
     const adminAllowsPush = (userId: string) => {
       const preference = adminPreferences.get(userId) ?? {
         roles: new Set(["admin", "foreman", "hr", "accountant", "lawyer"]),
-        eventGroups: new Set(["tasks", "attendance", "employees", "hr", "payments", "legal", "system"]),
+        eventGroups: new Set([
+          "tasks",
+          "attendance",
+          "employees",
+          "hr",
+          "payments",
+          "legal",
+          "system",
+        ]),
         pushEnabled: true,
       };
       return preference.pushEnabled &&
@@ -580,7 +638,7 @@ Deno.serve(async (request: Request) => {
       await admin.from("push_notification_jobs").update({
         status: "no_recipients",
         updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
+      }).eq("id", job.id).eq("lease_token", job.lease_token);
       return json({ ok: true, status: "no_recipients", sent: 0 });
     }
 
@@ -612,7 +670,7 @@ Deno.serve(async (request: Request) => {
       await admin.from("push_notification_jobs").update({
         status: "no_recipients",
         updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
+      }).eq("id", job.id).eq("lease_token", job.lease_token);
       return json({ ok: true, status: "no_recipients", sent: 0 });
     }
 
@@ -642,17 +700,26 @@ Deno.serve(async (request: Request) => {
         failureCodes.FCM_NOT_CONFIGURED = fcmTokens.length;
       } else {
         const account = JSON.parse(serviceAccountJson) as ServiceAccount;
-        if (!account.project_id || !account.client_email || !account.private_key) {
+        if (
+          !account.project_id || !account.client_email || !account.private_key
+        ) {
           throw new Error("Некорректный FIREBASE_SERVICE_ACCOUNT_JSON");
         }
         const accessToken = await getGoogleAccessToken(account);
-        for (const token of fcmTokens) {
-          const result = await sendToFcmToken(
-            accessToken,
-            account,
-            notification,
-            token,
-          );
+        const results = await mapWithConcurrency(
+          fcmTokens,
+          pushConcurrency,
+          (token) =>
+            sendToFcmToken(
+              accessToken,
+              account,
+              notification,
+              token,
+            ),
+        );
+        for (let index = 0; index < results.length; index += 1) {
+          const result = results[index];
+          const token = fcmTokens[index];
           if (result.ok) {
             sentCount += 1;
             continue;
@@ -676,12 +743,19 @@ Deno.serve(async (request: Request) => {
         failureCount += webSubscriptions.length;
         failureCodes.WEB_PUSH_KEY_MISSING = webSubscriptions.length;
       } else {
-        for (const subscription of webSubscriptions) {
-          const result = await sendToWebSubscription(
-            String(privateKey),
-            notification,
-            subscription,
-          );
+        const results = await mapWithConcurrency(
+          webSubscriptions,
+          pushConcurrency,
+          (subscription) =>
+            sendToWebSubscription(
+              String(privateKey),
+              notification,
+              subscription,
+            ),
+        );
+        for (let index = 0; index < results.length; index += 1) {
+          const result = results[index];
+          const subscription = webSubscriptions[index];
           if (result.ok) {
             sentCount += 1;
             continue;
@@ -732,7 +806,7 @@ Deno.serve(async (request: Request) => {
         ? new Date(Date.now() + 60 * 60 * 1000).toISOString()
         : null,
       updated_at: new Date().toISOString(),
-    }).eq("id", job.id);
+    }).eq("id", job.id).eq("lease_token", job.lease_token);
 
     return json({
       ok: sentCount > 0,
@@ -754,8 +828,8 @@ Deno.serve(async (request: Request) => {
         last_error: message || "Не удалось отправить push",
         next_attempt_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
-      }).eq("id", job.id);
+      }).eq("id", job.id).eq("lease_token", job.lease_token);
     }
-    return json({ error: message || "Не удалось отправить push" }, 500);
+    return json({ error: "Не удалось отправить push" }, 500);
   }
 });

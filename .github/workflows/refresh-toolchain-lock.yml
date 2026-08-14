@@ -11,22 +11,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: appstroy-toolchain-lock
   cancel-in-progress: true
 
 jobs:
-  refresh-lock:
+  validate-lock:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup pinned Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
           cache: true
@@ -37,15 +37,5 @@ jobs:
       - name: Verify tests with resolved dependencies
         run: flutter test
 
-      - name: Commit lockfile when changed
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f pubspec.lock
-          if git diff --cached --quiet; then
-            echo "pubspec.lock is already current"
-            exit 0
-          fi
-          git commit -m "зафиксированы версии Flutter зависимостей"
-          git push
+      - name: Verify lockfile is committed
+        run: git diff --exit-code -- pubspec.lock

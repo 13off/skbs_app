@@ -60,9 +60,6 @@ void main() {
   test(
     'other page-level bottom actions already own a safe layout boundary',
     () {
-      final archiveV2 = File(
-        'lib/features/archive/presentation/archive_management_screen_v2.dart',
-      ).readAsStringSync();
       final archiveV3 = File(
         'lib/features/archive/presentation/archive_management_screen_v3.dart',
       ).readAsStringSync();
@@ -73,8 +70,6 @@ void main() {
         'lib/features/shell/presentation/persistent_tab_shell.dart',
       ).readAsStringSync();
 
-      expect(archiveV2, contains('bottomNavigationBar:'));
-      expect(archiveV2, contains('SafeArea('));
       expect(archiveV3, contains('bottomNavigationBar:'));
       expect(archiveV3, contains('SafeArea('));
 

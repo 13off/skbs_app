@@ -228,12 +228,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
       return;
     }
 
-    await TaskRepository.addTaskWithDetails(
-      draft.task,
-      objectName: objectName,
-      assigneeIds: draft.assigneeIds,
-      photos: draft.photos,
-    );
+    await persistTaskCreateDraft(draft, objectName: objectName);
     final sourceDraftId = draft.sourceDraftId?.trim() ?? '';
     if (sourceDraftId.isNotEmpty) {
       await TaskRepository.deleteTaskDraft(sourceDraftId);

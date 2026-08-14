@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../app/app_theme.dart';
-import '../../../data/task_repository.dart';
 import '../../../features/developer/data/developer_policy_repository.dart';
 import '../../../features/tasks/task_edit_policy.dart';
 import '../../../models/app_user_profile.dart';
@@ -204,12 +203,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
       if (draft == null) return;
 
-      final createdTask = await TaskRepository.addTaskWithDetails(
-        draft.task,
+      final createdTasks = await persistTaskCreateDraft(
+        draft,
         objectName: objectName,
-        assigneeIds: draft.assigneeIds,
-        photos: draft.photos,
       );
+      final createdTask = createdTasks.first;
       if (!mounted) return;
 
       setState(() {

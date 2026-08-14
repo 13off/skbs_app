@@ -23,6 +23,7 @@ class TaskRepository {
 
   static final Map<String, _TaskListCacheEntry> _tasksCache = {};
   static final Map<String, Future<List<TaskItemData>>> _taskRequests = {};
+  static int _cacheGeneration = 0;
 
   static String _dateKey(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
@@ -38,6 +39,7 @@ class TaskRepository {
   }
 
   static void clearTaskListCache() {
+    _cacheGeneration++;
     _tasksCache.clear();
     _taskRequests.clear();
   }
@@ -133,6 +135,7 @@ class TaskRepository {
     String? objectName,
     bool forceRefresh = false,
   }) async {
+    final generation = _cacheGeneration;
     final cleanObject = cleanObjectName(objectName);
     final cacheKey = _tasksCacheKey(date: date, objectName: cleanObject);
     final cached = _tasksCache[cacheKey];
@@ -157,10 +160,12 @@ class TaskRepository {
         )
         .toList(growable: false);
 
-    _tasksCache[cacheKey] = _TaskListCacheEntry(
-      tasks: _copyTasks(tasks),
-      createdAt: DateTime.now(),
-    );
+    if (generation == _cacheGeneration) {
+      _tasksCache[cacheKey] = _TaskListCacheEntry(
+        tasks: _copyTasks(tasks),
+        createdAt: DateTime.now(),
+      );
+    }
     return _copyTasks(tasks);
   }
 
@@ -375,6 +380,54 @@ class TaskRepository {
     }
   }
 
+  static Future<List<TaskItemData>> addTaskBatch({
+    required String objectName,
+    required List<TaskBatchCreateInput> tasks,
+  }) async {
+    if (tasks.length < 2) {
+      throw ArgumentError.value(tasks.length, 'tasks', 'Ожидался пакет задач');
+    }
+
+    final response = await _client.rpc<dynamic>(
+      'create_task_batch',
+      params: <String, dynamic>{
+        'p_object_name': objectName.trim(),
+        'p_tasks': tasks.map((task) => task.toJson()).toList(growable: false),
+      },
+    );
+    if (response is! List || response.length != tasks.length) {
+      throw Exception('Сервер вернул неполный результат создания задач');
+    }
+
+    clearTaskListCache();
+    final result = <TaskItemData>[];
+    for (var index = 0; index < response.length; index += 1) {
+      final row = response[index];
+      if (row is! Map) {
+        throw Exception('Сервер вернул повреждённый результат создания задач');
+      }
+      final source = tasks[index].task;
+      result.add(
+        TaskItemData.fromSupabase(Map<String, dynamic>.from(row)).copyWith(
+          milestoneId: source.milestoneId,
+          checklistItemId: source.checklistItemId,
+        ),
+      );
+    }
+    if (result.length != tasks.length) {
+      throw Exception('Сервер вернул повреждённый результат создания задач');
+    }
+    AppDataSync.notifyLocal(
+      const <AppDataDomain>{AppDataDomain.tasks},
+      context: <String, dynamic>{
+        'table': 'tasks',
+        'object_name': objectName.trim(),
+        'batch_size': result.length,
+      },
+    );
+    return result;
+  }
+
   static Future<void> updateTask(TaskItemData task) async {
     if (task.id == null) return;
 
@@ -472,6 +525,24 @@ class TaskRepository {
   static Future<void> openTaskPhoto(TaskPhotoData photo) async {
     final url = await createTaskPhotoSignedUrl(photo);
     TaskPhotoBrowserService.openUrl(url);
+  }
+}
+
+class TaskBatchCreateInput {
+  final TaskItemData task;
+  final List<String> assigneeIds;
+
+  const TaskBatchCreateInput({required this.task, required this.assigneeIds});
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'task_date': TaskRepository._dateKey(task.date),
+      'axes': task.axes.trim(),
+      'work': task.work.trim(),
+      'assignee_ids': TaskAssigneeRepository.cleanIdSet(assigneeIds).toList(),
+      'milestone_id': task.milestoneId?.trim(),
+      'checklist_item_id': task.checklistItemId?.trim(),
+    };
   }
 }
 

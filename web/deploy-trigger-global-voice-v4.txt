@@ -1,2 +1,0 @@
-Global voice v4 web deploy trigger.
-Contains source merge 06a3169695feed75d4582dc4df9e737aaade0c2a.

@@ -115,14 +115,12 @@ void main() {
     expect(screen, contains('Подтверждено AppСтрой'));
   });
 
-  test('русская дата паспорта инициализируется до runApp', () {
+  test('первый кадр не ждёт инициализации русской даты', () {
     final appMain = File(appMainPath).readAsStringSync();
     final bindingIndex = appMain.indexOf(
       'WidgetsFlutterBinding.ensureInitialized()',
     );
-    final localeIndex = appMain.indexOf(
-      "await initializeDateFormatting('ru_RU')",
-    );
+    final localeIndex = appMain.indexOf("initializeDateFormatting('ru_RU')");
     final runAppIndex = appMain.indexOf('runApp(');
 
     expect(
@@ -130,8 +128,9 @@ void main() {
       contains("import 'package:intl/date_symbol_data_local.dart';"),
     );
     expect(bindingIndex, greaterThanOrEqualTo(0));
-    expect(localeIndex, greaterThan(bindingIndex));
-    expect(runAppIndex, greaterThan(localeIndex));
+    expect(runAppIndex, greaterThan(bindingIndex));
+    expect(localeIndex, greaterThan(runAppIndex));
+    expect(appMain, contains('await Future.wait<void>(['));
   });
 
   test('редактирование паспорта не пишет в базу напрямую из интерфейса', () {

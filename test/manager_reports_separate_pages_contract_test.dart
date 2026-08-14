@@ -7,7 +7,7 @@ void main() {
   test('длинные списки отчётов не разворачиваются на общем экране', () {
     final sections = File(
       'lib/features/reports/presentation/manager_report_sections.dart',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final weekly = File(
       'lib/features/reports/presentation/manager_weekly_contribution_section.dart',
     ).readAsStringSync();
@@ -46,7 +46,7 @@ void main() {
     final actionIndex = sections.indexOf(
       'if (onOpen != null || onSecondary != null)',
     );
-    final detailsIndex = sections.indexOf("Text(\n            'Подробности'");
+    final detailsIndex = sections.indexOf("'Подробности'");
 
     expect(actionIndex, greaterThanOrEqualTo(0));
     expect(detailsIndex, greaterThan(actionIndex));
