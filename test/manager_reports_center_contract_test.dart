@@ -40,7 +40,7 @@ void main() {
     expect(shell, contains('ManagerReportsScreen'));
     expect(reportUi, contains('Все отчёты'));
     expect(reportUi, contains('Оперативные сводки'));
-    expect(reportUi, contains('Табель и начисления'));
+    expect(reportUi, contains('Табель и посещаемость'));
     expect(reportUi, contains('Сотрудники'));
     expect(reportUi, contains('Задачи и выполнение'));
     expect(reportUi, contains('Выплаты и бухгалтерия'));
