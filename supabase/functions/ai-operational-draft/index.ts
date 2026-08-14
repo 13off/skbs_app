@@ -28,8 +28,11 @@ Deno.serve(async (request: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const authorization = request.headers.get("Authorization") ?? "";
-    if (!supabaseUrl || !anonKey || !authorization) {
+    if (!supabaseUrl || !anonKey) {
       return json({ error: "Сервис действий не настроен" }, 500);
+    }
+    if (!authorization.startsWith("Bearer ")) {
+      return json({ error: "Требуется повторный вход" }, 401);
     }
 
     const client = createClient(supabaseUrl, anonKey, {

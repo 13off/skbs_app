@@ -42,6 +42,11 @@ void main() {
     final edge = aiOperationalSource();
 
     expect(edge, contains('Authorization: authorization'));
+    expect(edge, contains('authorization.startsWith("Bearer ")'));
+    expect(
+      edge,
+      contains('return json({ error: "Требуется повторный вход" }, 401)'),
+    );
     expect(edge, isNot(contains('SUPABASE_SERVICE_ROLE_KEY')));
     expect(edge, isNot(contains('.insert(')));
     expect(edge, isNot(contains('.update(')));
