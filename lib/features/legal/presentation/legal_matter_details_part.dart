@@ -11,13 +11,12 @@ class LegalMatterDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<LegalMatterDetailsScreen> createState() =>
-      _LegalMatterDetailsScreenState();
+  State<LegalMatterDetailsScreen> createState() => _LegalMatterDetailsScreenState();
 }
 
 class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
   late LegalMatter matter;
-  late Future<_LegalMatterWorkspaceViewData> workspaceFuture;
+  late Future<_LegalMatterWorkspaceViewData> future;
 
   bool get canEdit => !widget.canDecide;
 
@@ -25,13 +24,14 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
   void initState() {
     super.initState();
     matter = widget.matter;
-    workspaceFuture = loadWorkspace();
+    future = load();
   }
 
-  Future<_LegalMatterWorkspaceViewData> loadWorkspace() async {
+  Future<_LegalMatterWorkspaceViewData> load() async {
     final values = await Future.wait<dynamic>([
       LegalMatterWorkspaceRepository.fetch(matter.id),
       LegalRepository.fetchDocuments(),
+      LegalProcessRepository.fetchDetails(matter.id),
     ]);
     final documents = (values[1] as List<LegalDocument>)
         .where(
@@ -43,12 +43,13 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     return _LegalMatterWorkspaceViewData(
       workspace: values[0] as LegalMatterWorkspaceData,
       documents: documents,
+      process: values[2] as LegalMatterProcessDetails,
     );
   }
 
-  Future<void> refreshWorkspace() async {
-    final next = loadWorkspace();
-    setState(() => workspaceFuture = next);
+  Future<void> refresh() async {
+    final next = load();
+    setState(() => future = next);
     await next;
   }
 
@@ -57,23 +58,33 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
   }
 
-  String dateTimeText(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
+  String dateTimeText(DateTime? value) {
+    if (value == null) return '—';
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
-    return '$day.$month.${value.year} • $hour:$minute';
+    return '${date(value)} • $hour:$minute';
+  }
+
+  String money(double? value) {
+    if (value == null) return '—';
+    final raw = value.round().toString();
+    final buffer = StringBuffer();
+    for (var index = 0; index < raw.length; index++) {
+      if (index > 0 && (raw.length - index) % 3 == 0) buffer.write(' ');
+      buffer.write(raw[index]);
+    }
+    return '${buffer.toString()} ₽';
   }
 
   Widget line(String label, String value) {
-    if (value.trim().isEmpty) return const SizedBox.shrink();
+    if (value.trim().isEmpty || value == '—') return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 11),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 132,
+            width: 150,
             child: Text(
               label,
               style: TextStyle(
@@ -82,32 +93,20 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))),
         ],
       ),
     );
   }
 
-  Widget sectionTitle(String title, {String? subtitle, Widget? trailing}) {
+  Widget title(String value, {String? subtitle, Widget? trailing}) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
               if (subtitle != null) ...[
                 const SizedBox(height: 3),
                 Text(
@@ -127,38 +126,24 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     );
   }
 
-  Widget badge(String text, IconData icon, {bool danger = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: danger
-            ? const Color(0xFFF4E9E7)
-            : AppAdaptivePalette.surfaceSoft,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
-        ],
-      ),
+  Widget card(Widget child) {
+    return PremiumWorkCard(
+      radius: 24,
+      padding: const EdgeInsets.all(18),
+      child: child,
     );
   }
 
   Future<void> edit() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
-        builder: (_) => LegalMatterEditorScreen(matter: matter),
-      ),
+      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
     );
     if (saved != true) return;
     final fresh = await LegalRepository.fetchMatter(matter.id);
     if (!mounted) return;
     setState(() => matter = fresh);
-    await refreshWorkspace();
+    await refresh();
   }
 
   Future<void> editBasis(String current) async {
@@ -175,37 +160,20 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             minLines: 3,
             maxLines: 8,
             decoration: const InputDecoration(
-              hintText:
-                  'Договор, акт, пункт, переписка, событие или иное основание',
+              hintText: 'Договор, акт, переписка, событие, норма закона или иное основание',
             ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Сохранить'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Сохранить')),
         ],
       ),
     );
     controller.dispose();
     if (value == null) return;
-    try {
-      await LegalMatterWorkspaceRepository.saveBasis(
-        matterId: matter.id,
-        basis: value,
-      );
-      if (mounted) await refreshWorkspace();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сохранить основание: $error')),
-      );
-    }
+    await LegalMatterWorkspaceRepository.saveBasis(matterId: matter.id, basis: value);
+    if (mounted) await refresh();
   }
 
   Future<void> addNote() async {
@@ -213,7 +181,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Добавить запись в историю'),
+        title: const Text('Запись в историю'),
         content: SizedBox(
           width: 560,
           child: TextField(
@@ -222,84 +190,58 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             minLines: 3,
             maxLines: 8,
             decoration: const InputDecoration(
-              hintText:
-                  'Звонок, письмо, договорённость, полученный ответ или следующий шаг',
+              hintText: 'Звонок, письмо, полученный ответ, договорённость или следующий шаг',
             ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Добавить'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Добавить')),
         ],
       ),
     );
     controller.dispose();
     if (value == null || value.isEmpty) return;
-    try {
-      await LegalMatterWorkspaceRepository.addNote(
-        matterId: matter.id,
-        body: value,
-      );
-      if (mounted) await refreshWorkspace();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось добавить запись: $error')),
-      );
-    }
+    await LegalMatterWorkspaceRepository.addNote(matterId: matter.id, body: value);
+    if (mounted) await refresh();
   }
 
-  Future<void> openRelatedDocument(LegalDocument document) async {
-    try {
-      final files = await LegalRepository.fetchDocumentFiles(document.id);
-      if (!mounted) return;
-      if (files.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('У документа пока нет прикреплённых файлов'),
-          ),
-        );
-        return;
-      }
-      if (files.length == 1) {
-        await LegalRepository.openFile(files.first);
-        return;
-      }
-      final selected = await showDialog<LegalFile>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(document.title),
-          content: SizedBox(
-            width: 560,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: files
-                  .map(
-                    (file) => ListTile(
-                      leading: const Icon(Icons.attach_file_rounded),
-                      title: Text(file.originalName),
-                      trailing: const Icon(Icons.open_in_new_rounded),
-                      onTap: () => Navigator.pop(context, file),
-                    ),
-                  )
-                  .toList(),
-            ),
+  Future<void> openDocument(LegalDocument document) async {
+    final files = await LegalRepository.fetchDocumentFiles(document.id);
+    if (!mounted) return;
+    if (files.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('У документа пока нет прикреплённых файлов')),
+      );
+      return;
+    }
+    if (files.length == 1) {
+      await LegalRepository.openFile(files.first);
+      return;
+    }
+    final selected = await showDialog<LegalFile>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(document.title),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: files
+                .map(
+                  (file) => ListTile(
+                    leading: const Icon(Icons.attach_file_rounded),
+                    title: Text(file.originalName),
+                    trailing: const Icon(Icons.open_in_new_rounded),
+                    onTap: () => Navigator.pop(context, file),
+                  ),
+                )
+                .toList(),
           ),
         ),
-      );
-      if (selected != null) await LegalRepository.openFile(selected);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось открыть документ: $error')),
-      );
-    }
+      ),
+    );
+    if (selected != null) await LegalRepository.openFile(selected);
   }
 
   Future<void> decide(bool approved) async {
@@ -312,19 +254,11 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
           controller: controller,
           minLines: 2,
           maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: 'Комментарий руководителя',
-          ),
+          decoration: const InputDecoration(labelText: 'Комментарий руководителя'),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Подтвердить'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Подтвердить')),
         ],
       ),
     );
@@ -338,176 +272,145 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     final fresh = await LegalRepository.fetchMatter(matter.id);
     if (!mounted) return;
     setState(() => matter = fresh);
-    await refreshWorkspace();
+    await refresh();
   }
 
-  Widget overviewCard(LegalMatterWorkspaceData workspace) {
-    return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+  Widget overview(LegalMatterWorkspaceData workspace) {
+    return card(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              badge(matter.typeTitle, Icons.work_outline_rounded),
-              badge(matter.statusTitle, Icons.flag_outlined),
-              badge(
-                '${matter.riskTitle} риск',
-                matter.isHighRisk
-                    ? Icons.warning_amber_rounded
-                    : Icons.shield_outlined,
-                danger: matter.isHighRisk,
-              ),
-              if (matter.isOverdue)
-                badge(
-                  'Срок просрочен',
-                  Icons.timer_off_outlined,
-                  danger: true,
-                ),
+              Chip(label: Text(legalMatterDisplayType(matter))),
+              Chip(label: Text(matter.statusTitle)),
+              Chip(label: Text('${matter.riskTitle} риск')),
+              if (matter.isOverdue) const Chip(label: Text('Срок просрочен')),
             ],
           ),
           const SizedBox(height: 18),
-          sectionTitle('Суть дела'),
-          const SizedBox(height: 10),
+          title('Суть дела'),
+          const SizedBox(height: 8),
           Text(
-            matter.description.trim().isEmpty
-                ? 'Описание пока не заполнено'
-                : matter.description,
-            style: TextStyle(
-              color: matter.description.trim().isEmpty
-                  ? AppAdaptivePalette.textMuted
-                  : AppAdaptivePalette.textPrimary,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
-            ),
+            matter.description.trim().isEmpty ? 'Суть дела пока не описана' : matter.description,
+            style: const TextStyle(fontWeight: FontWeight.w700, height: 1.4),
           ),
           const SizedBox(height: 18),
-          sectionTitle(
+          title(
             'Основание',
-            subtitle: 'На каком документе, факте или событии строится позиция',
+            subtitle: 'Факт, документ или правовое основание, на котором строится работа',
             trailing: canEdit
                 ? IconButton(
-                    onPressed: () => editBasis(workspace.basis),
                     tooltip: 'Изменить основание',
+                    onPressed: () => editBasis(workspace.basis),
                     icon: const Icon(Icons.edit_outlined),
                   )
                 : null,
           ),
           const SizedBox(height: 8),
           Text(
-            workspace.basis.trim().isEmpty
-                ? 'Основание пока не указано'
-                : workspace.basis,
-            style: TextStyle(
-              color: workspace.basis.trim().isEmpty
-                  ? AppAdaptivePalette.textMuted
-                  : AppAdaptivePalette.textPrimary,
-              fontWeight: FontWeight.w700,
-              height: 1.4,
-            ),
+            workspace.basis.trim().isEmpty ? 'Основание пока не указано' : workspace.basis,
+            style: const TextStyle(fontWeight: FontWeight.w700, height: 1.4),
           ),
         ],
       ),
     );
   }
 
-  Widget participantsCard() {
-    final hasParticipants = matter.employeeName.isNotEmpty ||
-        matter.objectName.isNotEmpty ||
-        matter.counterpartyName.isNotEmpty ||
-        matter.responsibleName.isNotEmpty;
-    return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+  Widget processCard(LegalMatterProcessDetails process) {
+    if (!legalMatterIsCourt(matter) && matter.matterType != LegalMatterType.claim) {
+      return const SizedBox.shrink();
+    }
+    final court = legalMatterIsCourt(matter);
+    return card(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          sectionTitle(
-            'Участники и ответственность',
-            subtitle: 'Кого касается дело и кто ведёт его внутри компании',
-          ),
+          title(court ? 'Судебное производство' : 'Претензионная работа'),
           const SizedBox(height: 14),
-          if (!hasParticipants)
-            Text(
-              'Связи пока не указаны',
-              style: TextStyle(color: AppAdaptivePalette.textMuted),
-            )
-          else ...[
-            line('Ответственный', matter.responsibleName),
-            line('Сотрудник', matter.employeeName),
-            line('Объект', matter.objectName),
-            line('Контрагент', matter.counterpartyName),
+          if (court) ...[
+            line('Номер дела', process.courtCaseNumber),
+            line('Суд', process.courtName),
+            line('Стороны', process.courtParties),
           ],
+          line('Сумма требований', process.claimAmount == null ? '—' : money(process.claimAmount)),
+          line('Стадия', process.proceedingStage),
+          if (court) line('Заседание', dateTimeText(process.nextHearingAt)),
+          if (!court) line('Отправлено', date(process.outgoingSentAt)),
+          line(court ? 'Процессуальный срок' : 'Ответ до', date(process.responseDueAt)),
+          if (process.isResponseOverdue)
+            const Text(
+              'Срок ответа/действия просрочен',
+              style: TextStyle(color: Color(0xFFB5483F), fontWeight: FontWeight.w900),
+            ),
         ],
       ),
     );
   }
 
-  Widget controlCard() {
-    return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+  Widget participants() {
+    return card(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          sectionTitle(
-            'Контроль дела',
-            subtitle: 'Срок, необходимые действия, решение и результат',
-          ),
+          title('Участники и ответственность'),
+          const SizedBox(height: 14),
+          line('Ответственный', matter.responsibleName),
+          line('Сотрудник', matter.employeeName),
+          line('Объект', matter.objectName),
+          line('Контрагент', matter.counterpartyName),
+          if (matter.responsibleName.isEmpty &&
+              matter.employeeName.isEmpty &&
+              matter.objectName.isEmpty &&
+              matter.counterpartyName.isEmpty)
+            Text('Связи пока не указаны', style: TextStyle(color: AppAdaptivePalette.textMuted)),
+        ],
+      ),
+    );
+  }
+
+  Widget control() {
+    return card(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          title('Контроль дела'),
           const SizedBox(height: 14),
           line('Срок', date(matter.dueAt)),
           line('Что сделать', matter.requiredActions),
           line('Результат', matter.result),
           line('Вопрос руководителю', matter.managerQuestion),
           line('Решение', matter.decisionComment),
-          if (matter.requiresForemanAction)
-            line('Прораб', 'Требуется действие прораба'),
+          if (matter.requiresForemanAction) line('Прораб', 'Требуется действие прораба'),
         ],
       ),
     );
   }
 
-  Widget documentsCard(List<LegalDocument> documents) {
-    return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+  Widget documents(List<LegalDocument> documents) {
+    return card(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          sectionTitle(
-            'Связанные документы',
-            subtitle: 'Договоры, акты, претензии и другие материалы этого дела',
-          ),
+          title('Связанные документы', subtitle: 'Все документы, привязанные к этому делу'),
           const SizedBox(height: 10),
           if (documents.isEmpty)
-            Text(
-              'Связанных документов пока нет',
-              style: TextStyle(color: AppAdaptivePalette.textMuted),
-            )
+            Text('Связанных документов пока нет', style: TextStyle(color: AppAdaptivePalette.textMuted))
           else
             ...documents.map(
               (document) => ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(
-                  child: Icon(Icons.description_outlined),
-                ),
-                title: Text(
-                  document.title,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(
-                  <String>[
-                    if (document.documentType.isNotEmpty) document.documentType,
-                    document.statusTitle,
-                    if (document.documentNumber.isNotEmpty)
-                      '№ ${document.documentNumber}',
-                  ].join(' • '),
-                ),
+                leading: const CircleAvatar(child: Icon(Icons.description_outlined)),
+                title: Text(document.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(<String>[
+                  if (document.documentType.isNotEmpty) document.documentType,
+                  document.statusTitle,
+                  if (document.documentNumber.isNotEmpty) '№ ${document.documentNumber}',
+                ].join(' • ')),
                 trailing: const Icon(Icons.open_in_new_rounded),
-                onTap: () => openRelatedDocument(document),
+                onTap: () => openDocument(document),
               ),
             ),
         ],
@@ -515,7 +418,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
     );
   }
 
-  IconData eventIcon(String type) => switch (type) {
+  IconData historyIcon(String type) => switch (type) {
         'created' => Icons.add_circle_outline_rounded,
         'status' => Icons.flag_outlined,
         'decision' => Icons.how_to_reg_outlined,
@@ -523,14 +426,12 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
         _ => Icons.edit_note_rounded,
       };
 
-  Widget historyCard(LegalMatterWorkspaceData workspace) {
-    return PremiumWorkCard(
-      radius: 24,
-      padding: const EdgeInsets.all(18),
-      child: Column(
+  Widget history(LegalMatterWorkspaceData workspace) {
+    return card(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          sectionTitle(
+          title(
             'История дела',
             subtitle: 'Изменения, решения, звонки, письма и договорённости',
             trailing: canEdit
@@ -543,10 +444,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
           ),
           const SizedBox(height: 12),
           if (workspace.events.isEmpty)
-            Text(
-              'История пока пуста',
-              style: TextStyle(color: AppAdaptivePalette.textMuted),
-            )
+            Text('История пока пуста', style: TextStyle(color: AppAdaptivePalette.textMuted))
           else
             ...workspace.events.map((event) {
               final actor = workspace.actorName(event.actorUserId);
@@ -555,24 +453,13 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppAdaptivePalette.surfaceSoft,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Icon(eventIcon(event.eventType), size: 19),
-                    ),
+                    CircleAvatar(child: Icon(historyIcon(event.eventType), size: 18)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            event.title.isEmpty ? 'Событие' : event.title,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
+                          Text(event.title.isEmpty ? 'Событие' : event.title, style: const TextStyle(fontWeight: FontWeight.w900)),
                           if (event.body.isNotEmpty) ...[
                             const SizedBox(height: 3),
                             Text(event.body),
@@ -583,11 +470,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                               dateTimeText(event.createdAt),
                               if (actor.isNotEmpty) actor,
                             ].join(' • '),
-                            style: TextStyle(
-                              color: AppAdaptivePalette.textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(color: AppAdaptivePalette.textMuted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -609,30 +492,18 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
         title: const Text('Юридическое дело'),
         actions: [
           if (canEdit)
-            IconButton(
-              onPressed: edit,
-              tooltip: 'Редактировать дело',
-              icon: const Icon(Icons.edit_outlined),
-            ),
+            IconButton(onPressed: edit, tooltip: 'Редактировать', icon: const Icon(Icons.edit_outlined)),
         ],
       ),
       body: AppPage(
         title: matter.title,
-        subtitle:
-            '${matter.typeTitle} • ${matter.riskTitle} риск • ${matter.statusTitle}',
+        subtitle: '${legalMatterDisplayType(matter)} • ${matter.riskTitle} риск • ${matter.statusTitle}',
         child: FutureBuilder<_LegalMatterWorkspaceViewData>(
-          future: workspaceFuture,
+          future: future,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               if (snapshot.hasError) {
-                return PremiumWorkCard(
-                  child: Padding(
-                    padding: const EdgeInsets.all(22),
-                    child: Text(
-                      'Не удалось загрузить карточку: ${snapshot.error}',
-                    ),
-                  ),
-                );
+                return card(Text('Не удалось загрузить карточку: ${snapshot.error}'));
               }
               return const PremiumWorkCard(
                 child: Padding(
@@ -644,15 +515,19 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             final data = snapshot.data!;
             return Column(
               children: [
-                overviewCard(data.workspace),
+                overview(data.workspace),
+                if (legalMatterIsCourt(matter) || matter.matterType == LegalMatterType.claim) ...[
+                  const SizedBox(height: 12),
+                  processCard(data.process),
+                ],
                 const SizedBox(height: 12),
-                participantsCard(),
+                participants(),
                 const SizedBox(height: 12),
-                controlCard(),
+                control(),
                 const SizedBox(height: 12),
-                documentsCard(data.documents),
+                documents(data.documents),
                 const SizedBox(height: 12),
-                historyCard(data.workspace),
+                history(data.workspace),
                 if (widget.canDecide && matter.needsManager) ...[
                   const SizedBox(height: 14),
                   Row(
@@ -662,9 +537,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                           onPressed: () => decide(false),
                           icon: const Icon(Icons.close_rounded),
                           label: const Text('Отклонить'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                          ),
+                          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -673,9 +546,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                           onPressed: () => decide(true),
                           icon: const Icon(Icons.check_rounded),
                           label: const Text('Согласовать'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                          ),
+                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                         ),
                       ),
                     ],
@@ -693,9 +564,11 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
 class _LegalMatterWorkspaceViewData {
   final LegalMatterWorkspaceData workspace;
   final List<LegalDocument> documents;
+  final LegalMatterProcessDetails process;
 
   const _LegalMatterWorkspaceViewData({
     required this.workspace,
     required this.documents,
+    required this.process,
   });
 }
