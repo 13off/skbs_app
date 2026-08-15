@@ -10,6 +10,7 @@ import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/legal_repository.dart';
+import '../data/legal_workspace_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_dashboard_screen.dart';
 import 'legal_weekly_report_screen.dart';
@@ -68,13 +69,13 @@ class _DesktopLegalDashboardScreen extends StatefulWidget {
 
 class _DesktopLegalDashboardScreenState
     extends State<_DesktopLegalDashboardScreen> {
-  late Future<LegalDashboardData> future;
+  late Future<_LegalTodayData> future;
   StreamSubscription<AppDataChange>? subscription;
 
   @override
   void initState() {
     super.initState();
-    future = LegalRepository.fetchDashboard();
+    future = load();
     subscription = AppDataSync.changes.listen((change) {
       if (mounted && change.affects(AppDataDomain.legal)) refresh();
     });
@@ -86,8 +87,19 @@ class _DesktopLegalDashboardScreenState
     super.dispose();
   }
 
+  Future<_LegalTodayData> load() async {
+    final values = await Future.wait<dynamic>([
+      LegalRepository.fetchDashboard(),
+      LegalWorkspaceRepository.fetchRecoveries(),
+    ]);
+    return _LegalTodayData(
+      dashboard: values[0] as LegalDashboardData,
+      recoveries: values[1] as List<LegalWorkspaceRecovery>,
+    );
+  }
+
   Future<void> refresh() async {
-    final next = LegalRepository.fetchDashboard();
+    final next = load();
     setState(() => future = next);
     await next;
   }
@@ -106,11 +118,14 @@ class _DesktopLegalDashboardScreenState
   }
 
   Color matterAccent(LegalMatter matter) {
-    if (matter.riskLevel == 'critical' || matter.isOverdue) {
-      return specialistDanger;
-    }
+    if (matter.riskLevel == 'critical' || matter.isOverdue) return specialistDanger;
     if (matter.isHighRisk || matter.needsManager) return specialistWarning;
     return specialistSuccess;
+  }
+
+  String date(DateTime value) {
+    final local = value.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
   }
 
   Widget actionBar() {
@@ -148,23 +163,14 @@ class _DesktopLegalDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Документы внимания',
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.3,
-            ),
-          ),
+          const Text('Документы внимания', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 30),
               child: Center(child: Text('Критичных документов нет')),
             ),
-          ...attention
-              .take(7)
-              .map(
+          ...attention.take(7).map(
                 (document) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -174,10 +180,7 @@ class _DesktopLegalDashboardScreenState
                       color: documentAccent(document).withValues(alpha: 0.11),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      Icons.description_outlined,
-                      color: documentAccent(document),
-                    ),
+                    child: Icon(Icons.description_outlined, color: documentAccent(document)),
                   ),
                   title: Text(
                     document.title,
@@ -200,25 +203,22 @@ class _DesktopLegalDashboardScreenState
   }
 
   Widget matterPanel(List<LegalMatter> matters) {
-    final attention =
-        matters
-            .where(
-              (item) => item.isHighRisk || item.needsManager || item.isOverdue,
-            )
-            .toList()
-          ..sort((a, b) {
-            final first = a.riskLevel == 'critical'
-                ? 0
-                : a.isHighRisk
+    final attention = matters
+        .where((item) => item.isHighRisk || item.needsManager || item.isOverdue)
+        .toList()
+      ..sort((a, b) {
+        final first = a.riskLevel == 'critical'
+            ? 0
+            : a.isHighRisk
                 ? 1
                 : 2;
-            final second = b.riskLevel == 'critical'
-                ? 0
-                : b.isHighRisk
+        final second = b.riskLevel == 'critical'
+            ? 0
+            : b.isHighRisk
                 ? 1
                 : 2;
-            return first.compareTo(second);
-          });
+        return first.compareTo(second);
+      });
 
     return PremiumWorkCard(
       radius: 28,
@@ -226,23 +226,14 @@ class _DesktopLegalDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Риски и решения',
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.3,
-            ),
-          ),
+          const Text('Дела, риски и решения', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 30),
-              child: Center(child: Text('Срочных вопросов нет')),
+              child: Center(child: Text('Срочных дел нет')),
             ),
-          ...attention
-              .take(7)
-              .map(
+          ...attention.take(7).map(
                 (matter) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -253,9 +244,7 @@ class _DesktopLegalDashboardScreenState
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
-                      matter.isHighRisk
-                          ? Icons.warning_amber_rounded
-                          : Icons.gavel_outlined,
+                      matter.isHighRisk ? Icons.warning_amber_rounded : Icons.gavel_outlined,
                       color: matterAccent(matter),
                     ),
                   ),
@@ -279,14 +268,59 @@ class _DesktopLegalDashboardScreenState
     );
   }
 
+  Widget recoveryPanel(List<LegalWorkspaceRecovery> recoveries) {
+    final pending = recoveries.where((item) => item.status == 'pending').toList()
+      ..sort((a, b) => b.absenceDate.compareTo(a.absenceDate));
+    if (pending.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: PremiumWorkCard(
+        radius: 28,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Взыскания ожидают решения • ${pending.length}',
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Юрист видит пакет документов; подтверждение или отмена выполняется руководителем в разделе «Штрафы».',
+            ),
+            const SizedBox(height: 10),
+            ...pending.take(6).map(
+                  (item) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(child: Icon(Icons.payments_outlined)),
+                    title: Text(
+                      '${item.employeeName} — ${item.amount.round()} ₽',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text(
+                      <String>[
+                        date(item.absenceDate),
+                        if (item.objectName.isNotEmpty) item.objectName,
+                        item.hasAct ? 'акт приложен' : 'нет акта',
+                        item.hasExplanation ? 'объяснительная приложена' : 'нет объяснительной',
+                      ].join(' • '),
+                    ),
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<LegalDashboardData>(
+    return FutureBuilder<_LegalTodayData>(
       future: future,
       builder: (context, snapshot) {
         final content = <Widget>[];
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           content.add(
             const SpecialistMessageCard(
               icon: Icons.gavel_outlined,
@@ -305,7 +339,8 @@ class _DesktopLegalDashboardScreenState
             ),
           );
         } else {
-          final data = snapshot.data!;
+          final bundle = snapshot.data!;
+          final data = bundle.dashboard;
           content.addAll([
             Row(
               children: [
@@ -358,12 +393,14 @@ class _DesktopLegalDashboardScreenState
                 Expanded(child: matterPanel(data.matters)),
               ],
             ),
+            recoveryPanel(bundle.recoveries),
           ]);
         }
 
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-dashboard',
-          title: 'Юридический контроль',
+          title: 'Сегодня',
+          subtitle: 'Только то, что требует действия или контроля',
           trailing: actionBar(),
           onRefresh: refresh,
           children: content,
@@ -371,4 +408,11 @@ class _DesktopLegalDashboardScreenState
       },
     );
   }
+}
+
+class _LegalTodayData {
+  final LegalDashboardData dashboard;
+  final List<LegalWorkspaceRecovery> recoveries;
+
+  const _LegalTodayData({required this.dashboard, required this.recoveries});
 }
