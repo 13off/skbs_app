@@ -9,6 +9,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
+import '../data/legal_matter_workspace_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 
