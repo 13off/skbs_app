@@ -183,4 +183,12 @@ class AbsenceFineRepository {
     );
     return paymentId;
   }
+
+  static Future<void> cancel(AbsenceFineItem fine) async {
+    final response = await _client.rpc<dynamic>(
+      'cancel_absence_fine',
+      params: <String, dynamic>{'p_fine_id': fine.id},
+    );
+    if (response != true) throw StateError('Штраф не отменён');
+  }
 }
