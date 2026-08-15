@@ -16,6 +16,7 @@ class PendingAbsenceFinesCard extends StatefulWidget {
 class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
   Future<List<AbsenceFineItem>>? future;
   final Set<String> busyIds = <String>{};
+  final Set<String> cancellingIds = <String>{};
 
   @override
   void initState() {
@@ -86,7 +87,7 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Отмена'),
+            child: const Text('Назад'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
@@ -113,6 +114,57 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
       );
     } finally {
       if (mounted) setState(() => busyIds.remove(fine.id));
+    }
+  }
+
+  Future<void> cancel(AbsenceFineItem fine) async {
+    if (busyIds.contains(fine.id)) return;
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Отменить штраф?'),
+        content: Text(
+          '${fine.employeeName}\nНевыход: ${date(fine.absenceDate)}\nШтраф: ${money(fine.amount)}\n\nШтраф будет закрыт без удержания и не попадёт в выплаты.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Назад'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Отменить штраф'),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true || !mounted) return;
+
+    setState(() {
+      busyIds.add(fine.id);
+      cancellingIds.add(fine.id);
+    });
+    try {
+      await AbsenceFineRepository.cancel(fine);
+      await reload();
+      if (widget.onChanged != null) await widget.onChanged!();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Штраф ${money(fine.amount)} отменён')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось отменить штраф: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          busyIds.remove(fine.id);
+          cancellingIds.remove(fine.id);
+        });
+      }
     }
   }
 
@@ -195,7 +247,7 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'Неподтверждённые штрафы',
+                      'Штрафы на решение',
                       style: TextStyle(
                         color: AppAdaptivePalette.textPrimary,
                         fontSize: 16,
@@ -221,7 +273,7 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Штраф уже отмечен, но в расчёт выплат попадёт только после двух документов: объяснительной и подписанного акта о нарушении.',
+                'Проверьте штраф и примите решение. Подтверждённый штраф попадёт в выплаты как удержание; отменённый — закроется без финансового движения.',
                 style: TextStyle(
                   color: AppAdaptivePalette.textMuted,
                   fontSize: 12.5,
@@ -232,6 +284,7 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
               const SizedBox(height: 12),
               ...items.map((fine) {
                 final busy = busyIds.contains(fine.id);
+                final cancelling = cancellingIds.contains(fine.id);
                 return Container(
                   margin: const EdgeInsets.only(top: 8),
                   padding: const EdgeInsets.all(12),
@@ -277,6 +330,15 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Причина: невыход',
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       documentRow(
                         attached: fine.hasExplanation,
@@ -316,7 +378,7 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
                             onPressed: !fine.canConfirm || busy
                                 ? null
                                 : () => confirm(fine),
-                            icon: busy
+                            icon: busy && !cancelling
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
@@ -324,6 +386,20 @@ class _PendingAbsenceFinesCardState extends State<PendingAbsenceFinesCard> {
                                   )
                                 : const Icon(Icons.check_rounded, size: 18),
                             label: const Text('Подтвердить'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: busy ? null : () => cancel(fine),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppAdaptivePalette.danger,
+                            ),
+                            icon: cancelling
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.close_rounded, size: 18),
+                            label: const Text('Отменить'),
                           ),
                         ],
                       ),
