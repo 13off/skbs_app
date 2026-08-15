@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../navigation/app_page_route.dart';
+import 'absence_fines_screen.dart';
 import 'add_employee_screen.dart';
 import 'desktop_employees_view.dart';
 import 'employee_details_screen.dart';
@@ -140,6 +141,13 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
     );
   }
 
+  void openFines() {
+    Navigator.push<void>(
+      context,
+      AppPageRoute<void>(builder: (_) => const AbsenceFinesScreen()),
+    );
+  }
+
   Future<void> downloadSummary() async {
     try {
       await directoryController.downloadSummary();
@@ -197,6 +205,7 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
       onRefresh: () => directoryController.load(forceRefresh: true),
       onOpenEmployee: openEmployee,
       onOpenPayments: openPayments,
+      onOpenFines: openFines,
       onDownloadSummary: downloadSummary,
       onAddEmployee: addEmployee,
     );
