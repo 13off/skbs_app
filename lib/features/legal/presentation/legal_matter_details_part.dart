@@ -119,7 +119,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             ],
           ),
         ),
-        if (trailing != null) trailing,
+        trailing?,
       ],
     );
   }
