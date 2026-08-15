@@ -103,7 +103,10 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 3),
@@ -119,7 +122,7 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             ],
           ),
         ),
-        trailing?,
+        ?trailing,
       ],
     );
   }
@@ -151,12 +154,11 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
         builder: (_) => LegalMatterEditorScreen(matter: matter),
       ),
     );
-    if (saved == true) {
-      final fresh = await LegalRepository.fetchMatter(matter.id);
-      if (!mounted) return;
-      setState(() => matter = fresh);
-      await refreshWorkspace();
-    }
+    if (saved != true) return;
+    final fresh = await LegalRepository.fetchMatter(matter.id);
+    if (!mounted) return;
+    setState(() => matter = fresh);
+    await refreshWorkspace();
   }
 
   Future<void> editBasis(String current) async {
@@ -173,8 +175,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             minLines: 3,
             maxLines: 8,
             decoration: const InputDecoration(
-              hintText: 'Договор, акт, пункт, переписка, событие или иное основание',
-              alignLabelWithHint: true,
+              hintText:
+                  'Договор, акт, пункт, переписка, событие или иное основание',
             ),
           ),
         ),
@@ -220,8 +222,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
             minLines: 3,
             maxLines: 8,
             decoration: const InputDecoration(
-              hintText: 'Звонок, письмо, договорённость, полученный ответ или следующий шаг',
-              alignLabelWithHint: true,
+              hintText:
+                  'Звонок, письмо, договорённость, полученный ответ или следующий шаг',
             ),
           ),
         ),
@@ -259,7 +261,9 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       if (!mounted) return;
       if (files.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('У документа пока нет прикреплённых файлов')),
+          const SnackBar(
+            content: Text('У документа пока нет прикреплённых файлов'),
+          ),
         );
         return;
       }
@@ -358,7 +362,11 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                 danger: matter.isHighRisk,
               ),
               if (matter.isOverdue)
-                badge('Срок просрочен', Icons.timer_off_outlined, danger: true),
+                badge(
+                  'Срок просрочен',
+                  Icons.timer_off_outlined,
+                  danger: true,
+                ),
             ],
           ),
           const SizedBox(height: 18),
@@ -610,7 +618,8 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
       ),
       body: AppPage(
         title: matter.title,
-        subtitle: '${matter.typeTitle} • ${matter.riskTitle} риск • ${matter.statusTitle}',
+        subtitle:
+            '${matter.typeTitle} • ${matter.riskTitle} риск • ${matter.statusTitle}',
         child: FutureBuilder<_LegalMatterWorkspaceViewData>(
           future: workspaceFuture,
           builder: (context, snapshot) {
@@ -619,7 +628,9 @@ class _LegalMatterDetailsScreenState extends State<LegalMatterDetailsScreen> {
                 return PremiumWorkCard(
                   child: Padding(
                     padding: const EdgeInsets.all(22),
-                    child: Text('Не удалось загрузить карточку: ${snapshot.error}'),
+                    child: Text(
+                      'Не удалось загрузить карточку: ${snapshot.error}',
+                    ),
                   ),
                 );
               }
