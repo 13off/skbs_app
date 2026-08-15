@@ -106,6 +106,8 @@ begin
 end;
 $$;
 
+revoke all on function public.log_legal_matter_change() from public, anon, authenticated;
+
 DROP TRIGGER IF EXISTS legal_matters_history_trigger ON public.legal_matters;
 CREATE TRIGGER legal_matters_history_trigger
 AFTER INSERT OR UPDATE ON public.legal_matters
