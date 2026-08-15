@@ -21,7 +21,7 @@ void main() {
 
   test('court and claim workflow uses legal matters instead of parallel registry', () {
     final migration = File(
-      'supabase/migrations/20260815134000_legal_platform_finalize.sql',
+      'supabase/migrations/20260815134930_legal_platform_finalize.sql',
     ).readAsStringSync();
     final process = File(
       'lib/features/legal/data/legal_process_repository.dart',
@@ -58,12 +58,18 @@ void main() {
       'lib/features/legal/presentation/legal_matters_screen.dart',
     ).readAsStringSync();
 
-    expect(desktop, contains("title: managerMode ? 'Решения и риски' : 'Юридические дела'"));
+    expect(
+      desktop,
+      contains("title: managerMode ? 'Решения и риски' : 'Юридические дела'"),
+    );
     expect(desktop, contains('legalCourtMatterType'));
     expect(desktop, contains('LegalMatterType.claim'));
     expect(desktop, contains("label: 'Суды'"));
     expect(desktop, contains("label: 'Претензии'"));
-    expect(mobile, contains("title: managerMode ? 'Решения и риски' : 'Дела'"));
+    expect(
+      mobile,
+      contains("title: managerMode ? 'Решения и риски' : 'Дела'"),
+    );
     expect(mobile, contains('legalMatterDisplayType'));
   });
 
