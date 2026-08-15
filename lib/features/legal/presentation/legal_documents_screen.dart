@@ -34,6 +34,7 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
   late Future<List<LegalDocument>> future;
   StreamSubscription<AppDataChange>? subscription;
   String? status;
+  String category = 'all';
   bool attentionOnly = false;
 
   @override
@@ -88,11 +89,27 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
     if (mounted) refresh();
   }
 
+  String documentCategory(LegalDocument document) {
+    final value = '${document.documentType} ${document.title}'.toLowerCase();
+    if (value.contains('договор') ||
+        value.contains('контракт') ||
+        value.contains('соглашен')) {
+      return 'contract';
+    }
+    if (value.contains('акт')) return 'act';
+    return 'other';
+  }
+
+  List<LegalDocument> visibleDocuments(List<LegalDocument> source) {
+    if (category == 'all') return source;
+    return source.where((item) => documentCategory(item) == category).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Документы',
-      subtitle: 'Договоры, соглашения, акты, доверенности и кадровые документы',
+      subtitle: 'Один реестр договоров, актов и других юридических документов',
       headerTrailing: FilledButton.icon(
         onPressed: () => openEditor(),
         icon: const Icon(Icons.add_rounded),
@@ -116,6 +133,21 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                     ),
                   ),
                   onSubmitted: (_) => refresh(),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(
+                    labelText: 'Раздел',
+                    prefixIcon: Icon(Icons.folder_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('Все документы')),
+                    DropdownMenuItem(value: 'contract', child: Text('Договоры')),
+                    DropdownMenuItem(value: 'act', child: Text('Акты')),
+                    DropdownMenuItem(value: 'other', child: Text('Прочие')),
+                  ],
+                  onChanged: (value) => setState(() => category = value ?? 'all'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -179,12 +211,29 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                   ),
                 );
               }
-              final documents = snapshot.data!;
+              final source = snapshot.data!;
+              final documents = visibleDocuments(source);
               if (documents.isEmpty) {
-                return const PremiumWorkCard(
+                return PremiumWorkCard(
                   child: Padding(
-                    padding: EdgeInsets.all(30),
-                    child: Center(child: Text('Документы не найдены')),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Text(
+                          source.isEmpty
+                              ? 'Документов пока нет'
+                              : 'По выбранному разделу документов нет',
+                        ),
+                        if (source.isEmpty) ...[
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: () => openEditor(),
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Добавить документ'),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 );
               }
@@ -214,7 +263,13 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                 color: AppAdaptivePalette.surfaceSoft,
                                 borderRadius: BorderRadius.circular(15),
                               ),
-                              child: const Icon(Icons.description_outlined),
+                              child: Icon(
+                                documentCategory(document) == 'contract'
+                                    ? Icons.handshake_outlined
+                                    : documentCategory(document) == 'act'
+                                        ? Icons.fact_check_outlined
+                                        : Icons.description_outlined,
+                              ),
                             ),
                             const SizedBox(width: 13),
                             Expanded(

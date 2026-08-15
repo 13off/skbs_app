@@ -61,6 +61,7 @@ class _DesktopLegalDocumentsScreenState
   late Future<List<LegalDocument>> future;
   StreamSubscription<AppDataChange>? subscription;
   String? status;
+  String category = 'all';
   bool attentionOnly = false;
 
   @override
@@ -115,12 +116,26 @@ class _DesktopLegalDocumentsScreenState
     if (mounted) await refresh();
   }
 
+  String documentCategory(LegalDocument document) {
+    final value = '${document.documentType} ${document.title}'.toLowerCase();
+    if (value.contains('договор') ||
+        value.contains('контракт') ||
+        value.contains('соглашен')) {
+      return 'contract';
+    }
+    if (value.contains('акт')) return 'act';
+    return 'other';
+  }
+
+  List<LegalDocument> visibleDocuments(List<LegalDocument> source) {
+    if (category == 'all') return source;
+    return source.where((item) => documentCategory(item) == category).toList();
+  }
+
   Color statusColor(LegalDocument document) {
     if (document.isExpired || document.isActionOverdue) return specialistDanger;
     if (document.needsAttention) return specialistWarning;
-    if (document.status == LegalDocumentStatus.signed) {
-      return specialistSuccess;
-    }
+    if (document.status == LegalDocumentStatus.signed) return specialistSuccess;
     return specialistMuted;
   }
 
@@ -137,9 +152,13 @@ class _DesktopLegalDocumentsScreenState
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Expanded(
+          SizedBox(
+            width: 420,
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
@@ -154,9 +173,25 @@ class _DesktopLegalDocumentsScreenState
               onSubmitted: (_) => refresh(),
             ),
           ),
-          const SizedBox(width: 12),
           SizedBox(
-            width: 245,
+            width: 190,
+            child: DropdownButtonFormField<String>(
+              initialValue: category,
+              decoration: const InputDecoration(
+                labelText: 'Раздел',
+                prefixIcon: Icon(Icons.folder_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('Все документы')),
+                DropdownMenuItem(value: 'contract', child: Text('Договоры')),
+                DropdownMenuItem(value: 'act', child: Text('Акты')),
+                DropdownMenuItem(value: 'other', child: Text('Прочие')),
+              ],
+              onChanged: (value) => setState(() => category = value ?? 'all'),
+            ),
+          ),
+          SizedBox(
+            width: 225,
             child: DropdownButtonFormField<String>(
               initialValue: status,
               decoration: const InputDecoration(
@@ -164,10 +199,7 @@ class _DesktopLegalDocumentsScreenState
                 prefixIcon: Icon(Icons.filter_alt_outlined),
               ),
               items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Все статусы'),
-                ),
+                const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
                 ...LegalDocumentStatus.values.map(
                   (value) => DropdownMenuItem<String>(
                     value: value,
@@ -183,7 +215,6 @@ class _DesktopLegalDocumentsScreenState
               },
             ),
           ),
-          const SizedBox(width: 12),
           FilterChip(
             selected: attentionOnly,
             avatar: const Icon(Icons.priority_high_rounded, size: 18),
@@ -200,14 +231,11 @@ class _DesktopLegalDocumentsScreenState
     );
   }
 
-  Widget summary(List<LegalDocument> documents) {
-    final attention = documents.where((item) => item.needsAttention).length;
-    final signed = documents
-        .where((item) => item.status == LegalDocumentStatus.signed)
-        .length;
-    final expiring = documents
-        .where((item) => item.isExpired || item.isExpiringSoon)
-        .length;
+  Widget summary(List<LegalDocument> source, List<LegalDocument> visible) {
+    final attention = source.where((item) => item.needsAttention).length;
+    final contracts = source.where((item) => documentCategory(item) == 'contract').length;
+    final acts = source.where((item) => documentCategory(item) == 'act').length;
+    final expiring = source.where((item) => item.isExpired || item.isExpiringSoon).length;
 
     return PremiumWorkCard(
       radius: 24,
@@ -216,22 +244,14 @@ class _DesktopLegalDocumentsScreenState
         spacing: 10,
         runSpacing: 10,
         children: [
-          _Summary(
-            icon: Icons.folder_copy_outlined,
-            label: 'Показано',
-            value: '${documents.length}',
-          ),
+          _Summary(icon: Icons.folder_copy_outlined, label: 'Показано', value: '${visible.length}'),
+          _Summary(icon: Icons.handshake_outlined, label: 'Договоры', value: '$contracts'),
+          _Summary(icon: Icons.fact_check_outlined, label: 'Акты', value: '$acts'),
           _Summary(
             icon: Icons.priority_high_rounded,
             label: 'Внимание',
             value: '$attention',
             color: specialistWarning,
-          ),
-          _Summary(
-            icon: Icons.verified_outlined,
-            label: 'Подписаны и действуют',
-            value: '$signed',
-            color: specialistSuccess,
           ),
           _Summary(
             icon: Icons.event_busy_outlined,
@@ -274,36 +294,23 @@ class _DesktopLegalDocumentsScreenState
                     ),
                   ],
                 ),
-                SpecialistStatusPill(
-                  label: document.statusTitle,
-                  color: statusColor(document),
-                ),
+                SpecialistStatusPill(label: document.statusTitle, color: statusColor(document)),
                 specialistCellText(document.documentNumber, maxLines: 1),
-                specialistCellText(
-                  relatedTitle(document),
-                  color: specialistMuted,
-                ),
+                specialistCellText(relatedTitle(document), color: specialistMuted),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     specialistCellText(document.expiryTitle, maxLines: 1),
                     if (document.needsAttention)
-                      SpecialistStatusPill(
-                        label: 'Проверить',
-                        color: statusColor(document),
-                      ),
+                      SpecialistStatusPill(label: 'Проверить', color: statusColor(document)),
                   ],
                 ),
                 specialistCellText(
-                  document.responsibleName.isEmpty
-                      ? 'Не назначен'
-                      : document.responsibleName,
+                  document.responsibleName.isEmpty ? 'Не назначен' : document.responsibleName,
                   color: specialistMuted,
                 ),
                 specialistCellText(
-                  document.nextAction.isEmpty
-                      ? 'Действие не указано'
-                      : document.nextAction,
+                  document.nextAction.isEmpty ? 'Действие не указано' : document.nextAction,
                   color: specialistMuted,
                 ),
               ],
@@ -319,8 +326,7 @@ class _DesktopLegalDocumentsScreenState
       future: future,
       builder: (context, snapshot) {
         final children = <Widget>[filters(), const SizedBox(height: 16)];
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           children.add(
             const SpecialistMessageCard(
               icon: Icons.description_outlined,
@@ -339,15 +345,20 @@ class _DesktopLegalDocumentsScreenState
             ),
           );
         } else {
-          final documents = snapshot.data ?? const <LegalDocument>[];
-          children.add(summary(documents));
+          final source = snapshot.data ?? const <LegalDocument>[];
+          final documents = visibleDocuments(source);
+          children.add(summary(source, documents));
           children.add(const SizedBox(height: 16));
           if (documents.isEmpty) {
             children.add(
-              const SpecialistMessageCard(
-                icon: Icons.search_off_rounded,
-                title: 'Документы не найдены',
-                description: 'Измените поиск или выбранные фильтры.',
+              SpecialistMessageCard(
+                icon: source.isEmpty ? Icons.note_add_outlined : Icons.search_off_rounded,
+                title: source.isEmpty ? 'Документов пока нет' : 'По фильтрам ничего не найдено',
+                description: source.isEmpty
+                    ? 'Добавьте договор, акт или другой юридический документ. После этого он появится в досье сотрудника, объекта или контрагента.'
+                    : 'Измените поиск, раздел или выбранные фильтры.',
+                actionLabel: source.isEmpty ? 'Добавить документ' : null,
+                onAction: source.isEmpty ? () => openEditor() : null,
               ),
             );
           } else {
@@ -358,8 +369,7 @@ class _DesktopLegalDocumentsScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-documents',
           title: 'Юридические документы',
-          subtitle:
-              'Единый реестр договоров, актов, доверенностей и кадровых документов',
+          subtitle: 'Один реестр договоров, актов, доверенностей и кадровых документов',
           trailing: Wrap(
             spacing: 10,
             children: [
@@ -411,20 +421,8 @@ class _Summary extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: effectiveColor),
           const SizedBox(width: 8),
-          Text(
-            '$label: ',
-            style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: effectiveColor,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text('$label: ', style: TextStyle(color: specialistMuted, fontWeight: FontWeight.w700)),
+          Text(value, style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900)),
         ],
       ),
     );

@@ -10,6 +10,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/legal_matter_workspace_repository.dart';
+import '../data/legal_process_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 
@@ -62,12 +63,8 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
       search: searchController.text,
       attentionOnly: attentionOnly,
     );
-    if (widget.highRiskOnly) {
-      matters = matters.where((item) => item.isHighRisk).toList();
-    }
-    if (widget.managerOnly) {
-      matters = matters.where((item) => item.needsManager).toList();
-    }
+    if (widget.highRiskOnly) matters = matters.where((item) => item.isHighRisk).toList();
+    if (widget.managerOnly) matters = matters.where((item) => item.needsManager).toList();
     return matters;
   }
 
@@ -80,9 +77,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   Future<void> openEditor([LegalMatter? matter]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
-        builder: (_) => LegalMatterEditorScreen(matter: matter),
-      ),
+      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
     );
     if (saved == true && mounted) refresh();
   }
@@ -91,8 +86,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) =>
-            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
+        builder: (_) => LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) refresh();
@@ -101,17 +95,17 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPage(
-      title: managerMode ? 'Решения и риски' : 'Вопросы и риски',
+      title: managerMode ? 'Решения и риски' : 'Дела',
       showBackButton: Navigator.of(context).canPop(),
       subtitle: managerMode
-          ? 'Юридические вопросы, по которым требуется решение руководителя'
-          : 'Претензии, нарушения, споры, задачи и риски компании',
+          ? 'Юридические дела, по которым требуется решение руководителя'
+          : 'Все юридические дела, включая суды, претензии, нарушения и споры',
       headerTrailing: managerMode
           ? null
           : FilledButton.icon(
               onPressed: () => openEditor(),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Добавить'),
+              label: const Text('Создать дело'),
             ),
       child: Column(
         children: [
@@ -123,12 +117,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                 TextField(
                   controller: searchController,
                   decoration: InputDecoration(
-                    hintText: 'Поиск по вопросам',
+                    hintText: 'Поиск по делам',
                     prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(
-                      onPressed: refresh,
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                    ),
+                    suffixIcon: IconButton(onPressed: refresh, icon: const Icon(Icons.arrow_forward_rounded)),
                   ),
                   onSubmitted: (_) => refresh(),
                 ),
@@ -169,17 +160,29 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
               }
               final matters = snapshot.data!;
               if (matters.isEmpty) {
-                return const PremiumWorkCard(
+                return PremiumWorkCard(
                   child: Padding(
-                    padding: EdgeInsets.all(30),
-                    child: Center(child: Text('Вопросы не найдены')),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        const Text('Дел пока нет'),
+                        if (!managerMode) ...[
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: () => openEditor(),
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Создать первое дело'),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 );
               }
               return Column(
                 children: matters.map((matter) {
                   final meta = <String>[
-                    matter.typeTitle,
+                    legalMatterDisplayType(matter),
                     '${matter.riskTitle} риск',
                     matter.statusTitle,
                     if (matter.objectName.isNotEmpty) matter.objectName,
@@ -207,7 +210,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                               child: Icon(
                                 matter.isHighRisk
                                     ? Icons.warning_amber_rounded
-                                    : Icons.gavel_outlined,
+                                    : legalMatterIsCourt(matter)
+                                        ? Icons.account_balance_outlined
+                                        : Icons.gavel_outlined,
                               ),
                             ),
                             const SizedBox(width: 13),
@@ -217,10 +222,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 children: [
                                   Text(
                                     matter.title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
@@ -244,10 +246,7 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 ],
                               ),
                             ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppAdaptivePalette.textFaint,
-                            ),
+                            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
                           ],
                         ),
                       ),

@@ -29,7 +29,8 @@ void main() {
 
     expect(dashboard, contains('specialistDesktopBreakpoint'));
     expect(dashboard, contains('LegalDashboardScreen(profile: profile)'));
-    expect(dashboard, contains("title: 'Юридический контроль'"));
+    expect(dashboard, contains("title: 'Сегодня'"));
+    expect(dashboard, contains('LegalWorkspaceRepository.fetchRecoveries'));
     expect(documents, contains('LegalDocumentsScreen('));
     expect(documents, contains('SpecialistDesktopTable'));
     expect(documents, contains("title: 'Юридические документы'"));

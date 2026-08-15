@@ -9,6 +9,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
+import '../data/legal_process_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_matters_screen.dart';
@@ -58,16 +59,15 @@ class _DesktopLegalMattersScreen extends StatefulWidget {
   });
 
   @override
-  State<_DesktopLegalMattersScreen> createState() =>
-      _DesktopLegalMattersScreenState();
+  State<_DesktopLegalMattersScreen> createState() => _DesktopLegalMattersScreenState();
 }
 
-class _DesktopLegalMattersScreenState
-    extends State<_DesktopLegalMattersScreen> {
+class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> {
   final searchController = TextEditingController();
   late Future<List<LegalMatter>> future;
   StreamSubscription<AppDataChange>? subscription;
   bool attentionOnly = false;
+  String? type;
   String? risk;
   String? status;
   String? objectName;
@@ -97,12 +97,8 @@ class _DesktopLegalMattersScreenState
       search: searchController.text,
       attentionOnly: attentionOnly,
     );
-    if (widget.highRiskOnly) {
-      matters = matters.where((item) => item.isHighRisk).toList();
-    }
-    if (widget.managerOnly) {
-      matters = matters.where((item) => item.needsManager).toList();
-    }
+    if (widget.highRiskOnly) matters = matters.where((item) => item.isHighRisk).toList();
+    if (widget.managerOnly) matters = matters.where((item) => item.needsManager).toList();
     return matters;
   }
 
@@ -115,9 +111,7 @@ class _DesktopLegalMattersScreenState
   Future<void> openEditor([LegalMatter? matter]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
-        builder: (_) => LegalMatterEditorScreen(matter: matter),
-      ),
+      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
     );
     if (mounted && saved == true) await refresh();
   }
@@ -126,11 +120,20 @@ class _DesktopLegalMattersScreenState
     await Navigator.push<void>(
       context,
       CupertinoPageRoute<void>(
-        builder: (_) =>
-            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
+        builder: (_) => LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) await refresh();
+  }
+
+  bool typeMatches(LegalMatter matter) {
+    final selected = type;
+    if (selected == null) return true;
+    if (selected == legalCourtMatterType) return legalMatterIsCourt(matter);
+    if (selected == LegalMatterType.dispute) {
+      return matter.matterType == LegalMatterType.dispute && !legalMatterIsCourt(matter);
+    }
+    return matter.matterType == selected;
   }
 
   List<LegalMatter> filtered(List<LegalMatter> matters) {
@@ -138,32 +141,27 @@ class _DesktopLegalMattersScreenState
         .map((item) => item.objectName.trim())
         .where((value) => value.isNotEmpty)
         .toSet();
-    final safeObject = objectName != null && objects.contains(objectName)
-        ? objectName
-        : null;
+    final safeObject = objectName != null && objects.contains(objectName) ? objectName : null;
 
     final result = matters.where((matter) {
+      if (!typeMatches(matter)) return false;
       if (risk != null && matter.riskLevel != risk) return false;
       if (status != null && matter.status != status) return false;
-      if (safeObject != null && matter.objectName.trim() != safeObject) {
-        return false;
-      }
+      if (safeObject != null && matter.objectName.trim() != safeObject) return false;
       return true;
     }).toList();
 
     result.sort((a, b) {
       int rank(LegalMatter item) {
         if (item.riskLevel == LegalRiskLevel.critical) return 0;
-        if (item.riskLevel == LegalRiskLevel.high) return 1;
-        if (item.isOverdue || item.needsManager) return 2;
+        if (item.isOverdue) return 1;
+        if (item.riskLevel == LegalRiskLevel.high || item.needsManager) return 2;
         return 3;
       }
 
-      final compare = rank(a).compareTo(rank(b));
-      if (compare != 0) return compare;
-      final first = a.dueAt ?? DateTime(9999);
-      final second = b.dueAt ?? DateTime(9999);
-      return first.compareTo(second);
+      final rankCompare = rank(a).compareTo(rank(b));
+      if (rankCompare != 0) return rankCompare;
+      return (a.dueAt ?? DateTime(9999)).compareTo(b.dueAt ?? DateTime(9999));
     });
     return result;
   }
@@ -180,113 +178,118 @@ class _DesktopLegalMattersScreenState
   String date(DateTime? value) {
     if (value == null) return 'Без срока';
     final local = value.toLocal();
-    final day = local.day.toString().padLeft(2, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    return '$day.$month.${local.year}';
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
   }
 
   Color riskColor(LegalMatter matter) {
-    if (matter.riskLevel == LegalRiskLevel.critical || matter.isOverdue) {
-      return specialistDanger;
-    }
-    if (matter.riskLevel == LegalRiskLevel.high || matter.needsManager) {
-      return specialistWarning;
-    }
+    if (matter.riskLevel == LegalRiskLevel.critical || matter.isOverdue) return specialistDanger;
+    if (matter.riskLevel == LegalRiskLevel.high || matter.needsManager) return specialistWarning;
     if (matter.riskLevel == LegalRiskLevel.low) return specialistSuccess;
     return specialistMuted;
   }
 
   Widget filters(List<LegalMatter> matters) {
     final objects = objectOptions(matters);
+    final typeValues = <String>[
+      legalCourtMatterType,
+      LegalMatterType.claim,
+      LegalMatterType.violation,
+      LegalMatterType.dispute,
+      LegalMatterType.contractProblem,
+      LegalMatterType.employeeRequest,
+      LegalMatterType.penaltyRisk,
+      LegalMatterType.managerDecision,
+      LegalMatterType.task,
+      LegalMatterType.other,
+    ];
+
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Expanded(
+          SizedBox(
+            width: 420,
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Название, описание, объект или контрагент',
+                hintText: 'Название, сотрудник, объект или контрагент',
                 prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(
-                  tooltip: 'Найти',
-                  onPressed: refresh,
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                ),
+                suffixIcon: IconButton(tooltip: 'Найти', onPressed: refresh, icon: const Icon(Icons.arrow_forward_rounded)),
               ),
               onSubmitted: (_) => refresh(),
             ),
           ),
-          const SizedBox(width: 12),
           SizedBox(
-            width: 185,
+            width: 205,
+            child: DropdownButtonFormField<String>(
+              initialValue: type,
+              decoration: const InputDecoration(labelText: 'Тип дела'),
+              items: [
+                const DropdownMenuItem<String>(value: null, child: Text('Все дела')),
+                ...typeValues.map(
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      value == legalCourtMatterType ? 'Судебные дела' : LegalMatterType.title(value),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => type = value),
+            ),
+          ),
+          SizedBox(
+            width: 170,
             child: DropdownButtonFormField<String>(
               initialValue: risk,
               decoration: const InputDecoration(labelText: 'Риск'),
               items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Все риски'),
-                ),
+                const DropdownMenuItem<String>(value: null, child: Text('Все риски')),
                 ...LegalRiskLevel.values.map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(LegalRiskLevel.title(value)),
-                  ),
+                  (value) => DropdownMenuItem<String>(value: value, child: Text(LegalRiskLevel.title(value))),
                 ),
               ],
               onChanged: (value) => setState(() => risk = value),
             ),
           ),
-          const SizedBox(width: 12),
           SizedBox(
-            width: 190,
+            width: 180,
             child: DropdownButtonFormField<String>(
               initialValue: status,
               decoration: const InputDecoration(labelText: 'Статус'),
               items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Все статусы'),
-                ),
+                const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
                 ...LegalMatterStatus.values.map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(LegalMatterStatus.title(value)),
-                  ),
+                  (value) => DropdownMenuItem<String>(value: value, child: Text(LegalMatterStatus.title(value))),
                 ),
               ],
               onChanged: (value) => setState(() => status = value),
             ),
           ),
-          const SizedBox(width: 12),
           SizedBox(
             width: 220,
             child: DropdownButtonFormField<String>(
               initialValue: objects.contains(objectName) ? objectName : null,
               decoration: const InputDecoration(labelText: 'Объект'),
               items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('Все объекты'),
-                ),
+                const DropdownMenuItem<String>(value: null, child: Text('Все объекты')),
                 ...objects.map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value, overflow: TextOverflow.ellipsis),
-                  ),
+                  (value) => DropdownMenuItem<String>(value: value, child: Text(value, overflow: TextOverflow.ellipsis)),
                 ),
               ],
               onChanged: (value) => setState(() => objectName = value),
             ),
           ),
-          if (!widget.highRiskOnly && !widget.managerOnly) ...[
-            const SizedBox(width: 12),
+          if (!widget.highRiskOnly && !widget.managerOnly)
             FilterChip(
               selected: attentionOnly,
               avatar: const Icon(Icons.priority_high_rounded, size: 18),
-              label: const Text('Внимание'),
+              label: const Text('Требуют внимания'),
               onSelected: (value) {
                 setState(() {
                   attentionOnly = value;
@@ -294,23 +297,17 @@ class _DesktopLegalMattersScreenState
                 });
               },
             ),
-          ],
         ],
       ),
     );
   }
 
   Widget summary(List<LegalMatter> matters) {
-    final high = matters.where((item) => item.isHighRisk).length;
+    final open = matters.where((item) => item.status != LegalMatterStatus.closed && item.status != LegalMatterStatus.resolved).length;
+    final courts = matters.where(legalMatterIsCourt).length;
+    final claims = matters.where((item) => item.matterType == LegalMatterType.claim).length;
     final overdue = matters.where((item) => item.isOverdue).length;
     final manager = matters.where((item) => item.needsManager).length;
-    final open = matters
-        .where(
-          (item) =>
-              item.status != LegalMatterStatus.closed &&
-              item.status != LegalMatterStatus.resolved,
-        )
-        .length;
 
     return PremiumWorkCard(
       radius: 24,
@@ -319,29 +316,11 @@ class _DesktopLegalMattersScreenState
         spacing: 10,
         runSpacing: 10,
         children: [
-          _Summary(
-            icon: Icons.gavel_outlined,
-            label: 'Открытые',
-            value: '$open',
-          ),
-          _Summary(
-            icon: Icons.warning_amber_rounded,
-            label: 'Высокий риск',
-            value: '$high',
-            color: specialistWarning,
-          ),
-          _Summary(
-            icon: Icons.event_busy_outlined,
-            label: 'Просрочены',
-            value: '$overdue',
-            color: overdue > 0 ? specialistDanger : specialistMuted,
-          ),
-          _Summary(
-            icon: Icons.approval_outlined,
-            label: 'Решение руководителя',
-            value: '$manager',
-            color: manager > 0 ? specialistWarning : specialistMuted,
-          ),
+          _MatterSummary(icon: Icons.gavel_outlined, label: 'Открытые', value: '$open'),
+          _MatterSummary(icon: Icons.account_balance_outlined, label: 'Суды', value: '$courts'),
+          _MatterSummary(icon: Icons.outgoing_mail, label: 'Претензии', value: '$claims'),
+          _MatterSummary(icon: Icons.event_busy_outlined, label: 'Просрочены', value: '$overdue', color: overdue > 0 ? specialistDanger : specialistMuted),
+          _MatterSummary(icon: Icons.approval_outlined, label: 'Решение руководителя', value: '$manager', color: manager > 0 ? specialistWarning : specialistMuted),
         ],
       ),
     );
@@ -349,79 +328,61 @@ class _DesktopLegalMattersScreenState
 
   Widget table(List<LegalMatter> matters) {
     return SpecialistDesktopTable(
-      minWidth: 1260,
+      minWidth: 1240,
       columns: const [
-        SpecialistTableColumn('Вопрос', flex: 4),
+        SpecialistTableColumn('Дело', flex: 4),
         SpecialistTableColumn('Тип', flex: 2),
         SpecialistTableColumn('Риск', flex: 2),
         SpecialistTableColumn('Статус', flex: 2),
-        SpecialistTableColumn('Объект', flex: 2),
+        SpecialistTableColumn('Связи', flex: 3),
         SpecialistTableColumn('Срок', flex: 2),
         SpecialistTableColumn('Ответственный', flex: 2),
         SpecialistTableColumn('Руководитель', flex: 2),
       ],
-      rows: matters
-          .map(
-            (matter) => SpecialistTableRowData(
-              onTap: () => openDetails(matter),
-              cells: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    specialistCellText(matter.title, weight: FontWeight.w900),
-                    if (matter.description.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      specialistCellText(
-                        matter.description,
-                        color: specialistMuted,
-                        weight: FontWeight.w600,
-                        maxLines: 1,
-                      ),
-                    ],
-                  ],
-                ),
-                specialistCellText(matter.typeTitle, maxLines: 1),
-                SpecialistStatusPill(
-                  label: matter.riskTitle,
-                  color: riskColor(matter),
-                ),
-                SpecialistStatusPill(
-                  label: matter.statusTitle,
-                  color:
-                      matter.status == LegalMatterStatus.closed ||
-                          matter.status == LegalMatterStatus.resolved
-                      ? specialistSuccess
-                      : specialistMuted,
-                ),
-                specialistCellText(matter.objectName, color: specialistMuted),
-                SpecialistStatusPill(
-                  label: date(matter.dueAt),
-                  color: matter.isOverdue ? specialistDanger : specialistMuted,
-                ),
-                specialistCellText(
-                  matter.responsibleName.isEmpty
-                      ? 'Не назначен'
-                      : matter.responsibleName,
-                  color: specialistMuted,
-                ),
-                matter.needsManager
-                    ? SpecialistStatusPill(
-                        label: 'Требуется решение',
-                        color: specialistWarning,
-                      )
-                    : specialistCellText(
-                        matter.decisionStatus == 'approved'
-                            ? 'Согласовано'
-                            : matter.decisionStatus == 'rejected'
-                            ? 'Отклонено'
-                            : 'Не требуется',
-                        color: specialistMuted,
-                        maxLines: 1,
-                      ),
+      rows: matters.map((matter) {
+        final links = <String>[
+          if (matter.employeeName.isNotEmpty) matter.employeeName,
+          if (matter.objectName.isNotEmpty) matter.objectName,
+          if (matter.counterpartyName.isNotEmpty) matter.counterpartyName,
+        ];
+        return SpecialistTableRowData(
+          onTap: () => openDetails(matter),
+          cells: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                specialistCellText(matter.title, weight: FontWeight.w900),
+                if (matter.description.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  specialistCellText(matter.description, color: specialistMuted, weight: FontWeight.w600, maxLines: 1),
+                ],
               ],
             ),
-          )
-          .toList(),
+            specialistCellText(legalMatterDisplayType(matter), maxLines: 1),
+            SpecialistStatusPill(label: matter.riskTitle, color: riskColor(matter)),
+            SpecialistStatusPill(
+              label: matter.statusTitle,
+              color: matter.status == LegalMatterStatus.closed || matter.status == LegalMatterStatus.resolved
+                  ? specialistSuccess
+                  : specialistMuted,
+            ),
+            specialistCellText(links.isEmpty ? 'Не привязано' : links.join(' • '), color: specialistMuted),
+            SpecialistStatusPill(label: date(matter.dueAt), color: matter.isOverdue ? specialistDanger : specialistMuted),
+            specialistCellText(matter.responsibleName.isEmpty ? 'Не назначен' : matter.responsibleName, color: specialistMuted),
+            matter.needsManager
+                ? SpecialistStatusPill(label: 'Требуется решение', color: specialistWarning)
+                : specialistCellText(
+                    matter.decisionStatus == 'approved'
+                        ? 'Согласовано'
+                        : matter.decisionStatus == 'rejected'
+                            ? 'Отклонено'
+                            : 'Не требуется',
+                    color: specialistMuted,
+                    maxLines: 1,
+                  ),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -434,20 +395,13 @@ class _DesktopLegalMattersScreenState
         final visible = filtered(source);
         final children = <Widget>[filters(source), const SizedBox(height: 16)];
 
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
-          children.add(
-            const SpecialistMessageCard(
-              icon: Icons.gavel_outlined,
-              title: 'Загружаем юридические вопросы',
-              loading: true,
-            ),
-          );
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          children.add(const SpecialistMessageCard(icon: Icons.gavel_outlined, title: 'Загружаем дела', loading: true));
         } else if (snapshot.hasError) {
           children.add(
             SpecialistMessageCard(
               icon: Icons.cloud_off_outlined,
-              title: 'Не удалось загрузить вопросы',
+              title: 'Не удалось загрузить дела',
               description: snapshot.error.toString(),
               actionLabel: 'Повторить',
               onAction: refresh,
@@ -458,10 +412,14 @@ class _DesktopLegalMattersScreenState
           children.add(const SizedBox(height: 16));
           if (visible.isEmpty) {
             children.add(
-              const SpecialistMessageCard(
-                icon: Icons.search_off_rounded,
-                title: 'Вопросы не найдены',
-                description: 'Измените поиск или выбранные фильтры.',
+              SpecialistMessageCard(
+                icon: Icons.folder_open_outlined,
+                title: source.isEmpty ? 'Юридических дел пока нет' : 'По фильтрам ничего не найдено',
+                description: source.isEmpty
+                    ? 'Создайте первое дело. Суд и претензия создаются здесь же — отдельные дублирующие разделы не нужны.'
+                    : 'Измените поиск или фильтры.',
+                actionLabel: managerMode || source.isNotEmpty ? null : 'Создать дело',
+                onAction: managerMode || source.isNotEmpty ? null : () => openEditor(),
               ),
             );
           } else {
@@ -471,24 +429,20 @@ class _DesktopLegalMattersScreenState
 
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-matters',
-          title: managerMode ? 'Решения и риски' : 'Юридические вопросы',
+          title: managerMode ? 'Решения и риски' : 'Юридические дела',
           showBackButton: Navigator.of(context).canPop(),
           subtitle: managerMode
-              ? 'Вопросы, по которым требуется решение руководителя'
-              : 'Претензии, нарушения, споры, задачи и риски компании',
+              ? 'Дела, по которым требуется решение руководителя'
+              : 'Единый реестр: обычные дела, суды, претензии, нарушения и споры',
           trailing: Wrap(
             spacing: 10,
             children: [
-              IconButton.filledTonal(
-                tooltip: 'Обновить',
-                onPressed: refresh,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
+              IconButton.filledTonal(tooltip: 'Обновить', onPressed: refresh, icon: const Icon(Icons.refresh_rounded)),
               if (!managerMode)
                 FilledButton.icon(
                   onPressed: () => openEditor(),
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('Добавить вопрос'),
+                  label: const Text('Создать дело'),
                 ),
             ],
           ),
@@ -500,13 +454,13 @@ class _DesktopLegalMattersScreenState
   }
 }
 
-class _Summary extends StatelessWidget {
+class _MatterSummary extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final Color? color;
 
-  const _Summary({
+  const _MatterSummary({
     required this.icon,
     required this.label,
     required this.value,
@@ -528,20 +482,8 @@ class _Summary extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: effectiveColor),
           const SizedBox(width: 8),
-          Text(
-            '$label: ',
-            style: TextStyle(
-              color: specialistMuted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: effectiveColor,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text('$label: ', style: TextStyle(color: specialistMuted, fontWeight: FontWeight.w700)),
+          Text(value, style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900)),
         ],
       ),
     );
