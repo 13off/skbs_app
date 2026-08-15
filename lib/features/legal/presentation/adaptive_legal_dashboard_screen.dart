@@ -163,7 +163,10 @@ class _DesktopLegalDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Документы внимания', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+          const Text(
+            'Документы внимания',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
@@ -180,7 +183,10 @@ class _DesktopLegalDashboardScreenState
                       color: documentAccent(document).withValues(alpha: 0.11),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(Icons.description_outlined, color: documentAccent(document)),
+                    child: Icon(
+                      Icons.description_outlined,
+                      color: documentAccent(document),
+                    ),
                   ),
                   title: Text(
                     document.title,
@@ -226,7 +232,10 @@ class _DesktopLegalDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Дела, риски и решения', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+          const Text(
+            'Дела, риски и решения',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 12),
           if (attention.isEmpty)
             const Padding(
@@ -244,7 +253,9 @@ class _DesktopLegalDashboardScreenState
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
-                      matter.isHighRisk ? Icons.warning_amber_rounded : Icons.gavel_outlined,
+                      matter.isHighRisk
+                          ? Icons.warning_amber_rounded
+                          : Icons.gavel_outlined,
                       color: matterAccent(matter),
                     ),
                   ),
@@ -293,7 +304,9 @@ class _DesktopLegalDashboardScreenState
             ...pending.take(6).map(
                   (item) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const CircleAvatar(child: Icon(Icons.payments_outlined)),
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.payments_outlined),
+                    ),
                     title: Text(
                       '${item.employeeName} — ${item.amount.round()} ₽',
                       style: const TextStyle(fontWeight: FontWeight.w800),
@@ -302,8 +315,12 @@ class _DesktopLegalDashboardScreenState
                       <String>[
                         date(item.absenceDate),
                         if (item.objectName.isNotEmpty) item.objectName,
-                        item.hasAct ? 'акт приложен' : 'нет акта',
-                        item.hasExplanation ? 'объяснительная приложена' : 'нет объяснительной',
+                        item.actFilePath.isNotEmpty
+                            ? 'акт приложен'
+                            : 'нет акта',
+                        item.explanationFilePath.isNotEmpty
+                            ? 'объяснительная приложена'
+                            : 'нет объяснительной',
                       ].join(' • '),
                     ),
                   ),
@@ -320,7 +337,8 @@ class _DesktopLegalDashboardScreenState
       future: future,
       builder: (context, snapshot) {
         final content = <Widget>[];
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           content.add(
             const SpecialistMessageCard(
               icon: Icons.gavel_outlined,
