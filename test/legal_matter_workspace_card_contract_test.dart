@@ -25,7 +25,7 @@ void main() {
 
   test('matter history is tenant scoped, append only and linked to allowed matter', () {
     final sql = File(
-      'supabase/migrations/20260815130000_legal_matter_workspace_card.sql',
+      'supabase/migrations/20260815131342_legal_matter_workspace_card.sql',
     ).readAsStringSync();
 
     expect(sql, contains('add column if not exists basis text'));
@@ -36,5 +36,11 @@ void main() {
     expect(sql, isNot(contains('grant update on table public.legal_matter_events')));
     expect(sql, isNot(contains('grant delete on table public.legal_matter_events')));
     expect(sql, contains('CREATE TRIGGER legal_matters_history_trigger'));
+    expect(
+      sql,
+      contains(
+        'revoke all on function public.log_legal_matter_change() from public, anon, authenticated',
+      ),
+    );
   });
 }
