@@ -11,6 +11,7 @@ import 'adaptive_legal_documents_screen.dart';
 import 'adaptive_legal_matters_screen.dart';
 import 'legal_documents_screen.dart';
 import 'legal_matters_screen.dart';
+import 'legal_workspace_screen.dart';
 
 // Юрист использует отдельную оболочку, чтобы не менять вкладки администратора и прораба.
 class LegalMainScreen extends StatefulWidget {
@@ -23,7 +24,7 @@ class LegalMainScreen extends StatefulWidget {
 }
 
 class _LegalMainScreenState extends State<LegalMainScreen> {
-  static const int pageCount = 4;
+  static const int pageCount = 5;
   late final PersistentTabController tabs;
 
   @override
@@ -44,14 +45,15 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
     return switch (index) {
       0 => AdaptiveLegalDashboardScreen(
         profile: widget.profile,
-        onOpenDocuments: () => select(1),
-        onOpenMatters: () => select(2),
+        onOpenDocuments: () => select(2),
+        onOpenMatters: () => select(3),
         onOpenDocument: openDocumentFromDashboard,
         onOpenMatter: openMatterFromDashboard,
       ),
-      1 => const AdaptiveLegalDocumentsScreen(),
-      2 => AdaptiveLegalMattersScreen(profile: widget.profile),
-      3 => ProfileScreen(profile: widget.profile),
+      1 => const LegalWorkspaceScreen(),
+      2 => const AdaptiveLegalDocumentsScreen(),
+      3 => AdaptiveLegalMattersScreen(profile: widget.profile),
+      4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
   }
@@ -63,7 +65,7 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
   }
 
   Future<void> openDocumentFromDashboard(LegalDocument document) async {
-    final navigator = await selectTabNavigator(1);
+    final navigator = await selectTabNavigator(2);
     if (navigator == null) return;
     await navigator.push<void>(
       CupertinoPageRoute<void>(
@@ -73,7 +75,7 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
   }
 
   Future<void> openMatterFromDashboard(LegalMatter matter) async {
-    final navigator = await selectTabNavigator(2);
+    final navigator = await selectTabNavigator(3);
     if (navigator == null) return;
     await navigator.push<void>(
       CupertinoPageRoute<void>(
@@ -95,12 +97,17 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
           selectedIcon: Icons.home_rounded,
         ),
         ProfessionalBottomNavigationItem(
+          label: 'База',
+          icon: Icons.hub_outlined,
+          selectedIcon: Icons.hub_rounded,
+        ),
+        ProfessionalBottomNavigationItem(
           label: 'Документы',
           icon: Icons.description_outlined,
           selectedIcon: Icons.description_rounded,
         ),
         ProfessionalBottomNavigationItem(
-          label: 'Вопросы',
+          label: 'Дела',
           icon: Icons.gavel_outlined,
           selectedIcon: Icons.gavel_rounded,
         ),
