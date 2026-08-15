@@ -19,6 +19,19 @@ void main() {
     expect(source, isNot(contains('length: 9')));
   });
 
+  test('documents keep contracts and acts in one useful registry', () {
+    final source = File(
+      'lib/features/legal/presentation/adaptive_legal_documents_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains("DropdownMenuItem(value: 'contract', child: Text('Договоры'))"));
+    expect(source, contains("DropdownMenuItem(value: 'act', child: Text('Акты'))"));
+    expect(source, contains('documentCategory'));
+    expect(source, contains("label: 'Договоры'"));
+    expect(source, contains("label: 'Акты'"));
+    expect(source, contains("actionLabel: source.isEmpty ? 'Добавить документ' : null"));
+  });
+
   test('court and claim workflow uses legal matters instead of parallel registry', () {
     final migration = File(
       'supabase/migrations/20260815134930_legal_platform_finalize.sql',
