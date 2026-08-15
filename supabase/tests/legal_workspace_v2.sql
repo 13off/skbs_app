@@ -1,0 +1,7 @@
+-- Manual SQL smoke for production/staging after applying 20260815083100_legal_workspace_v2.
+-- Run authenticated as a lawyer account through the application/API, not as postgres:
+-- select * from public.legal_workspace_employee_directory();
+-- select * from public.legal_workspace_object_directory();
+-- select * from public.legal_workspace_documents(null, null, null);
+-- select * from public.legal_workspace_recoveries();
+-- Verify that another company's identifiers never appear in any result.
