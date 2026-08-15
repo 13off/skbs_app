@@ -62,7 +62,7 @@ declare
   v_title text;
   v_body text;
 begin
-  v_actor := coalesce(new.updated_by, new.created_by, auth.uid());
+  v_actor := coalesce(auth.uid(), new.updated_by, new.created_by);
 
   if tg_op = 'INSERT' then
     v_type := 'created';
