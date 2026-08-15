@@ -45,6 +45,7 @@ class DesktopEmployeesView extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final ValueChanged<Employee> onOpenEmployee;
   final VoidCallback onOpenPayments;
+  final VoidCallback onOpenFines;
   final Future<void> Function() onDownloadSummary;
   final Future<void> Function() onAddEmployee;
 
@@ -60,6 +61,7 @@ class DesktopEmployeesView extends StatefulWidget {
     required this.onRefresh,
     required this.onOpenEmployee,
     required this.onOpenPayments,
+    required this.onOpenFines,
     required this.onDownloadSummary,
     required this.onAddEmployee,
   });
@@ -270,6 +272,7 @@ class _DesktopEmployeesViewState extends State<DesktopEmployeesView> {
                           readyCount: readyCount,
                           canManage: widget.profile.isAdmin,
                           onOpenPayments: widget.onOpenPayments,
+                          onOpenFines: widget.onOpenFines,
                           onDownloadSummary: widget.onDownloadSummary,
                           onAddEmployee: widget.onAddEmployee,
                         ),
@@ -369,6 +372,7 @@ class _ActionBar extends StatelessWidget {
   final int readyCount;
   final bool canManage;
   final VoidCallback onOpenPayments;
+  final VoidCallback onOpenFines;
   final Future<void> Function() onDownloadSummary;
   final Future<void> Function() onAddEmployee;
 
@@ -378,6 +382,7 @@ class _ActionBar extends StatelessWidget {
     required this.readyCount,
     required this.canManage,
     required this.onOpenPayments,
+    required this.onOpenFines,
     required this.onDownloadSummary,
     required this.onAddEmployee,
   });
@@ -418,6 +423,12 @@ class _ActionBar extends StatelessWidget {
               onPressed: onOpenPayments,
               icon: Icon(Icons.payments_outlined),
               label: const Text('Выплаты'),
+            ),
+            SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed: onOpenFines,
+              icon: Icon(Icons.gavel_outlined),
+              label: const Text('Штрафы'),
             ),
             SizedBox(width: 10),
             OutlinedButton.icon(
