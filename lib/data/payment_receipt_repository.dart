@@ -4,11 +4,7 @@ import 'dart:typed_data';
 
 import 'package:file_saver/file_saver.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:universal_html/html.dart' as html;
-
-import 'image_compression_service.dart';
 
 class PaymentReceipt {
   final String id;
@@ -67,6 +63,10 @@ class PaymentReceiptRepository {
 
   static const bucketName = 'payment-receipts';
   static const int maxFileSizeBytes = 20 * 1024 * 1024;
+  static const Duration _fileReadTimeout = Duration(seconds: 45);
+  static const Duration _uploadTimeout = Duration(seconds: 45);
+  static const Duration _authRefreshTimeout = Duration(seconds: 15);
+  static const int _maxUploadAttempts = 3;
 
   /// Совпадает с форматами, разрешёнными в Supabase Storage.
   static const List<String> allowedExtensions = [
@@ -117,7 +117,8 @@ class PaymentReceiptRepository {
     required int index,
     required String extension,
   }) {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final nonce = math.Random().nextInt(0xFFFFFF).toRadixString(16);
     final cleanExtension = extension.trim().toLowerCase();
 
     final nameWithoutExtension = originalName.contains('.')
@@ -130,10 +131,10 @@ class PaymentReceiptRepository {
         : cleanName;
 
     if (cleanExtension.isEmpty) {
-      return '${timestamp}_${index}_$shortName';
+      return '${timestamp}_${index}_${nonce}_$shortName';
     }
 
-    return '${timestamp}_${index}_$shortName.$cleanExtension';
+    return '${timestamp}_${index}_${nonce}_$shortName.$cleanExtension';
   }
 
   static String formatFileSize(int bytes) {
@@ -159,11 +160,11 @@ class PaymentReceiptRepository {
     );
   }
 
-  static Future<List<PickedPaymentReceiptFile>> pickReceiptFiles() async {
-    if (kIsWeb) {
-      return pickReceiptFilesWeb();
-    }
-
+  /// Используем один и тот же поддерживаемый file_selector на Web/PWA и native.
+  /// Старый самодельный HTML input мог не прислать onChange после возврата из
+  /// системного picker на iOS PWA, из-за чего интерфейс навсегда оставался в
+  /// состоянии «Выбираем…».
+  static Future<List<PickedPaymentReceiptFile>> pickReceiptFiles() {
     return pickReceiptFilesNative();
   }
 
@@ -190,7 +191,14 @@ class PaymentReceiptRepository {
         throw Exception('Неподдерживаемый формат файла: $originalName');
       }
 
-      final bytes = await file.readAsBytes();
+      final bytes = await file.readAsBytes().timeout(
+        _fileReadTimeout,
+        onTimeout: () {
+          throw TimeoutException(
+            'Не удалось прочитать файл вовремя: $originalName',
+          );
+        },
+      );
 
       if (bytes.isEmpty) {
         throw Exception('Не удалось прочитать файл: $originalName');
@@ -218,127 +226,76 @@ class PaymentReceiptRepository {
     return pickedFiles;
   }
 
-  static Future<List<PickedPaymentReceiptFile>> pickReceiptFilesWeb() async {
-    final completer = Completer<List<PickedPaymentReceiptFile>>();
-
-    final uploadInput = html.FileUploadInputElement()
-      ..accept = allowedExtensions.map((extension) => '.$extension').join(',')
-      ..multiple = true;
-
-    uploadInput.onChange.listen((_) async {
-      try {
-        final files = uploadInput.files;
-
-        if (files == null || files.isEmpty) {
-          completer.complete(<PickedPaymentReceiptFile>[]);
-          return;
-        }
-
-        final pickedFiles = <PickedPaymentReceiptFile>[];
-
-        for (var i = 0; i < files.length; i++) {
-          final file = files[i];
-          final originalName = file.name.trim().isEmpty
-              ? 'receipt_${i + 1}'
-              : file.name.trim();
-
-          final originalExtension = extensionFromFileName(originalName);
-
-          if (!isAllowedExtension(originalExtension)) {
-            throw Exception('Неподдерживаемый формат файла: $originalName');
-          }
-
-          final originalBytes = await readWebFileAsBytes(file);
-
-          if (originalBytes.isEmpty) {
-            throw Exception('Не удалось прочитать файл: $originalName');
-          }
-
-          var finalBytes = originalBytes;
-          var finalExtension = originalExtension;
-          var finalContentType = file.type.trim().isEmpty
-              ? contentTypeFromExtension(originalExtension)
-              : file.type.trim();
-
-          if (ImageCompressionService.isSupportedImageExtension(
-            originalExtension,
-          )) {
-            final compressed =
-                await ImageCompressionService.compressHtmlImageFile(
-                  file: file,
-                  originalBytes: originalBytes,
-                  originalName: originalName,
-                  maxDimension: 1800,
-                  jpegQuality: 0.82,
-                );
-
-            finalBytes = compressed.bytes;
-            finalExtension = compressed.extension.isEmpty
-                ? originalExtension
-                : compressed.extension;
-            finalContentType = compressed.contentType;
-          }
-
-          validateFileSize(
-            fileName: originalName,
-            sizeBytes: finalBytes.length,
-          );
-
-          final storageFileName = safeStorageFileName(
-            originalName: originalName,
-            index: i + 1,
-            extension: finalExtension,
-          );
-
-          pickedFiles.add(
-            PickedPaymentReceiptFile(
-              originalName: originalName,
-              storageFileName: storageFileName,
-              extension: finalExtension,
-              contentType: finalContentType,
-              bytes: finalBytes,
-            ),
-          );
-        }
-
-        completer.complete(pickedFiles);
-      } catch (e, stackTrace) {
-        completer.completeError(e, stackTrace);
-      }
-    });
-
-    uploadInput.click();
-
-    return completer.future;
+  /// Оставлено для обратной совместимости с тестами/старыми вызовами.
+  static Future<List<PickedPaymentReceiptFile>> pickReceiptFilesWeb() {
+    return pickReceiptFilesNative();
   }
 
-  static Future<Uint8List> readWebFileAsBytes(html.File file) {
-    final completer = Completer<Uint8List>();
-    final reader = html.FileReader();
+  static Future<void> _refreshSessionBestEffort() async {
+    if (_client.auth.currentSession == null) return;
 
-    reader.onLoad.listen((_) {
-      final result = reader.result;
+    try {
+      await _client.auth.refreshSession().timeout(_authRefreshTimeout);
+    } catch (_) {
+      // Основная загрузка ниже всё равно вернёт понятную ошибку пользователю.
+    }
+  }
 
-      if (result is ByteBuffer) {
-        completer.complete(Uint8List.view(result));
-        return;
+  static Future<void> _removePathBestEffort(String path) async {
+    try {
+      await _client.storage
+          .from(bucketName)
+          .remove(<String>[path])
+          .timeout(_authRefreshTimeout);
+    } catch (_) {
+      // Очистка не должна скрывать исходную ошибку загрузки.
+    }
+  }
+
+  static Future<void> _uploadReceiptWithRetry({
+    required PickedPaymentReceiptFile file,
+    required String path,
+  }) async {
+    Object? lastError;
+
+    for (var attempt = 1; attempt <= _maxUploadAttempts; attempt++) {
+      if (attempt > 1) {
+        await _refreshSessionBestEffort();
+        // Если предыдущий HTTP-запрос успел записать файл, но клиент не получил
+        // ответ, удаляем возможный хвост перед повтором. Так retry остаётся
+        // идемпотентным при upsert=false.
+        await _removePathBestEffort(path);
+        await Future<void>.delayed(Duration(milliseconds: 450 * attempt));
       }
 
-      if (result is Uint8List) {
-        completer.complete(result);
+      try {
+        await _client.storage
+            .from(bucketName)
+            .uploadBinary(
+              path,
+              file.bytes,
+              fileOptions: FileOptions(
+                contentType: file.contentType,
+                upsert: false,
+              ),
+            )
+            .timeout(
+              _uploadTimeout,
+              onTimeout: () {
+                throw TimeoutException(
+                  'Истекло время загрузки файла ${file.originalName}',
+                );
+              },
+            );
         return;
+      } catch (error) {
+        lastError = error;
       }
+    }
 
-      completer.completeError('Не удалось прочитать файл');
-    });
-
-    reader.onError.listen((_) {
-      completer.completeError('Ошибка чтения файла');
-    });
-
-    reader.readAsArrayBuffer(file);
-
-    return completer.future;
+    throw Exception(
+      'Не удалось загрузить чек "${file.originalName}" после $_maxUploadAttempts попыток. Проверьте интернет и повторите. Причина: $lastError',
+    );
   }
 
   static Future<List<PaymentReceipt>> uploadReceiptFiles({
@@ -367,23 +324,12 @@ class PaymentReceiptRepository {
     final uploadedPaths = <String>[];
 
     try {
-      // Независимые чеки отправляются одновременно, чтобы сохранение выплаты
-      // не ждало последовательной загрузки каждого файла.
-      await Future.wait(
-        uploadItems.map((item) async {
-          await _client.storage
-              .from(bucketName)
-              .uploadBinary(
-                item.path,
-                item.file.bytes,
-                fileOptions: FileOptions(
-                  contentType: item.file.contentType,
-                  upsert: false,
-                ),
-              );
-          uploadedPaths.add(item.path);
-        }),
-      );
+      // Последовательная загрузка предсказуемее на мобильных сетях и не создаёт
+      // одновременно несколько Storage POST-запросов с одной PWA-сессией.
+      for (final item in uploadItems) {
+        await _uploadReceiptWithRetry(file: item.file, path: item.path);
+        uploadedPaths.add(item.path);
+      }
 
       final rows = await _client
           .from('payment_receipts')
@@ -464,10 +410,14 @@ class PaymentReceiptRepository {
 
   static String _downloadExtension(PaymentReceipt receipt) {
     final fromName = extensionFromFileName(receipt.fileName);
-    if (isAllowedExtension(fromName)) return fromName == 'jpeg' ? 'jpg' : fromName;
+    if (isAllowedExtension(fromName)) {
+      return fromName == 'jpeg' ? 'jpg' : fromName;
+    }
 
     final fromPath = extensionFromFileName(receipt.filePath);
-    if (isAllowedExtension(fromPath)) return fromPath == 'jpeg' ? 'jpg' : fromPath;
+    if (isAllowedExtension(fromPath)) {
+      return fromPath == 'jpeg' ? 'jpg' : fromPath;
+    }
 
     switch (receipt.contentType.trim().toLowerCase()) {
       case 'application/pdf':
@@ -530,7 +480,9 @@ class PaymentReceiptRepository {
       throw Exception('У чека нет пути к файлу');
     }
 
-    final bytes = await _client.storage.from(bucketName).download(receipt.filePath);
+    final bytes = await _client.storage
+        .from(bucketName)
+        .download(receipt.filePath);
     if (bytes.isEmpty) throw Exception('Не удалось скачать чек');
 
     final extension = _downloadExtension(receipt);

@@ -111,11 +111,24 @@ class PaymentRepository {
     final paymentId = row['id']?.toString();
 
     if (paymentId != null && paymentId.isNotEmpty && receiptFiles.isNotEmpty) {
-      await PaymentReceiptRepository.uploadReceiptFiles(
-        paymentId: paymentId,
-        employeeId: employeeId,
-        files: receiptFiles,
-      );
+      try {
+        await PaymentReceiptRepository.uploadReceiptFiles(
+          paymentId: paymentId,
+          employeeId: employeeId,
+          files: receiptFiles,
+        );
+      } catch (_) {
+        // Не оставляем «успешную» выплату без выбранного пользователем чека.
+        // Иначе повторное нажатие после ошибки создаёт дубликаты выплат.
+        try {
+          await _client.from('payments').delete().eq('id', paymentId);
+        } catch (_) {
+          // Исходная ошибка загрузки важнее ошибки компенсационной очистки.
+        }
+        clearEmployeePaymentsCache(employeeId);
+        AttendanceRepository.clearCache();
+        rethrow;
+      }
     }
 
     clearEmployeePaymentsCache(employeeId);
