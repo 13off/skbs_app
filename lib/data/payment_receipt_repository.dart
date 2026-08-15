@@ -101,6 +101,7 @@ class PaymentReceiptRepository {
     return 'application/octet-stream';
   }
 
+  /// Чистит имя для локального скачивания. Здесь кириллица допустима.
   static String safePart(String value) {
     final clean = value.trim();
 
@@ -112,6 +113,10 @@ class PaymentReceiptRepository {
         .replaceAll(RegExp(r'_+'), '_');
   }
 
+  /// Storage key намеренно не содержит исходное имя файла.
+  /// Supabase Storage принимает ограниченный набор символов в object key,
+  /// поэтому кириллица и другие пользовательские символы остаются только в
+  /// payment_receipts.file_name и никогда не попадают в путь объекта.
   static String safeStorageFileName({
     required String originalName,
     required int index,
@@ -121,31 +126,24 @@ class PaymentReceiptRepository {
     final nonce = math.Random().nextInt(0xFFFFFF).toRadixString(16);
     final cleanExtension = extension.trim().toLowerCase();
 
-    final nameWithoutExtension = originalName.contains('.')
-        ? originalName.substring(0, originalName.lastIndexOf('.'))
-        : originalName;
-
-    final cleanName = safePart(nameWithoutExtension);
-    final shortName = cleanName.length > 48
-        ? cleanName.substring(0, 48)
-        : cleanName;
-
-    if (cleanExtension.isEmpty) {
-      return '${timestamp}_${index}_${nonce}_$shortName';
+    var hash = 0;
+    for (final codeUnit in originalName.codeUnits) {
+      hash = ((hash * 31) + codeUnit) & 0x7fffffff;
     }
+    final originalHash = hash.toRadixString(16);
+    final baseName = '${timestamp}_${index}_${nonce}_$originalHash';
 
-    return '${timestamp}_${index}_${nonce}_$shortName.$cleanExtension';
+    if (cleanExtension.isEmpty) return baseName;
+    return '$baseName.$cleanExtension';
   }
 
   static String formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes Б';
 
     final kb = bytes / 1024;
-
     if (kb < 1024) return '${kb.toStringAsFixed(1)} КБ';
 
     final mb = kb / 1024;
-
     return '${mb.toStringAsFixed(1)} МБ';
   }
 
@@ -161,9 +159,6 @@ class PaymentReceiptRepository {
   }
 
   /// Используем один и тот же поддерживаемый file_selector на Web/PWA и native.
-  /// Старый самодельный HTML input мог не прислать onChange после возврата из
-  /// системного picker на iOS PWA, из-за чего интерфейс навсегда оставался в
-  /// состоянии «Выбираем…».
   static Future<List<PickedPaymentReceiptFile>> pickReceiptFiles() {
     return pickReceiptFilesNative();
   }
@@ -172,10 +167,7 @@ class PaymentReceiptRepository {
     const typeGroup = XTypeGroup(label: 'Чеки', extensions: allowedExtensions);
 
     final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-
-    if (files.isEmpty) {
-      return <PickedPaymentReceiptFile>[];
-    }
+    if (files.isEmpty) return <PickedPaymentReceiptFile>[];
 
     final pickedFiles = <PickedPaymentReceiptFile>[];
 
@@ -184,7 +176,6 @@ class PaymentReceiptRepository {
       final originalName = file.name.trim().isEmpty
           ? 'receipt_${i + 1}'
           : file.name.trim();
-
       final extension = extensionFromFileName(originalName);
 
       if (!isAllowedExtension(extension)) {
@@ -206,16 +197,14 @@ class PaymentReceiptRepository {
 
       validateFileSize(fileName: originalName, sizeBytes: bytes.length);
 
-      final storageFileName = safeStorageFileName(
-        originalName: originalName,
-        index: i + 1,
-        extension: extension,
-      );
-
       pickedFiles.add(
         PickedPaymentReceiptFile(
           originalName: originalName,
-          storageFileName: storageFileName,
+          storageFileName: safeStorageFileName(
+            originalName: originalName,
+            index: i + 1,
+            extension: extension,
+          ),
           extension: extension,
           contentType: contentTypeFromExtension(extension),
           bytes: Uint8List.fromList(bytes),
@@ -261,9 +250,6 @@ class PaymentReceiptRepository {
     for (var attempt = 1; attempt <= _maxUploadAttempts; attempt++) {
       if (attempt > 1) {
         await _refreshSessionBestEffort();
-        // Если предыдущий HTTP-запрос успел записать файл, но клиент не получил
-        // ответ, удаляем возможный хвост перед повтором. Так retry остаётся
-        // идемпотентным при upsert=false.
         await _removePathBestEffort(path);
         await Future<void>.delayed(Duration(milliseconds: 450 * attempt));
       }
@@ -306,14 +292,8 @@ class PaymentReceiptRepository {
     final cleanPaymentId = paymentId.trim();
     final cleanEmployeeId = employeeId.trim();
 
-    if (cleanPaymentId.isEmpty) {
-      throw Exception('Не найден ID выплаты');
-    }
-
-    if (cleanEmployeeId.isEmpty) {
-      throw Exception('Не найден ID сотрудника');
-    }
-
+    if (cleanPaymentId.isEmpty) throw Exception('Не найден ID выплаты');
+    if (cleanEmployeeId.isEmpty) throw Exception('Не найден ID сотрудника');
     if (files.isEmpty) return <PaymentReceipt>[];
 
     final uploadItems = files.map((file) {
@@ -324,8 +304,7 @@ class PaymentReceiptRepository {
     final uploadedPaths = <String>[];
 
     try {
-      // Последовательная загрузка предсказуемее на мобильных сетях и не создаёт
-      // одновременно несколько Storage POST-запросов с одной PWA-сессией.
+      // Последовательная загрузка предсказуемее на мобильных сетях.
       for (final item in uploadItems) {
         await _uploadReceiptWithRetry(file: item.file, path: item.path);
         uploadedPaths.add(item.path);
@@ -389,7 +368,6 @@ class PaymentReceiptRepository {
 
       for (final row in rows) {
         final receipt = PaymentReceipt.fromMap(row);
-
         if (receipt.paymentId.isEmpty) continue;
 
         result.putIfAbsent(receipt.paymentId, () => <PaymentReceipt>[]);
@@ -404,7 +382,6 @@ class PaymentReceiptRepository {
     String paymentId,
   ) async {
     final map = await fetchReceiptsForPaymentIds([paymentId]);
-
     return List<PaymentReceipt>.from(map[paymentId] ?? <PaymentReceipt>[]);
   }
 
@@ -500,15 +477,12 @@ class PaymentReceiptRepository {
     );
   }
 
-  /// Сохраняем старое имя метода, чтобы все существующие экраны автоматически
-  /// получили новое поведение без дублирования логики.
   static Future<void> openReceipt(PaymentReceipt receipt) {
     return downloadReceipt(receipt);
   }
 
   static Future<void> deleteReceiptsForPayment(String paymentId) async {
     final receipts = await fetchReceiptsForPayment(paymentId);
-
     final paths = receipts
         .map((receipt) => receipt.filePath.trim())
         .where((path) => path.isNotEmpty)
