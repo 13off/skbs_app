@@ -13,7 +13,8 @@ void main() {
     expect(source, contains("Tab(text: 'Объекты"));
     expect(source, contains("Tab(text: 'Контрагенты"));
     expect(source, contains('База юриста'));
-    expect(source, contains('_EmployeeDossierScreen'));
+    expect(source, contains('LegalEmployeeDossierScreen(employee: item)'));
+    expect(source, isNot(contains('class _EmployeeDossierScreen')));
     expect(source, contains('_ObjectLegalDossierScreen'));
     expect(source, contains('_CounterpartyDossierScreen'));
     expect(source, isNot(contains('length: 9')));
@@ -23,13 +24,21 @@ void main() {
     final source = File(
       'lib/features/legal/presentation/adaptive_legal_documents_screen.dart',
     ).readAsStringSync();
-
-    expect(source, contains("DropdownMenuItem(value: 'contract', child: Text('Договоры'))"));
-    expect(source, contains("DropdownMenuItem(value: 'act', child: Text('Акты'))"));
+    expect(
+      source,
+      contains("DropdownMenuItem(value: 'contract', child: Text('Договоры'))"),
+    );
+    expect(
+      source,
+      contains("DropdownMenuItem(value: 'act', child: Text('Акты'))"),
+    );
     expect(source, contains('documentCategory'));
     expect(source, contains("label: 'Договоры'"));
     expect(source, contains("label: 'Акты'"));
-    expect(source, contains("actionLabel: source.isEmpty ? 'Добавить документ' : null"));
+    expect(
+      source,
+      contains("actionLabel: source.isEmpty ? 'Добавить документ' : null"),
+    );
   });
 
   test('court and claim workflow uses legal matters instead of parallel registry', () {
