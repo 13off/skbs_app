@@ -26,6 +26,8 @@ class ImageCompressionService {
   static const double defaultJpegQuality = 0.82;
   static const int defaultMinInputBytes = 260 * 1024;
   static const int defaultMinSavingPercent = 8;
+  static const Duration imageDecodeTimeout = Duration(seconds: 25);
+  static const Duration blobReadTimeout = Duration(seconds: 25);
 
   static bool isSupportedImageExtension(String extension) {
     final clean = extension.trim().toLowerCase();
@@ -33,7 +35,9 @@ class ImageCompressionService {
     return clean == 'jpg' ||
         clean == 'jpeg' ||
         clean == 'png' ||
-        clean == 'webp';
+        clean == 'webp' ||
+        clean == 'heic' ||
+        clean == 'heif';
   }
 
   static String extensionFromFileName(String name) {
@@ -55,6 +59,7 @@ class ImageCompressionService {
     double jpegQuality = defaultJpegQuality,
     int minInputBytes = defaultMinInputBytes,
     int minSavingPercent = defaultMinSavingPercent,
+    bool forceJpeg = false,
   }) async {
     final originalExtension = extensionFromFileName(originalName);
     final fallbackContentType = file.type.isEmpty
@@ -70,23 +75,28 @@ class ImageCompressionService {
       wasCompressed: false,
     );
 
-    if (!isSupportedImageExtension(originalExtension)) {
+    if (!isSupportedImageExtension(originalExtension) && !forceJpeg) {
       return fallback;
     }
 
-    if (originalBytes.length < minInputBytes && originalExtension != 'png') {
+    if (!forceJpeg &&
+        originalBytes.length < minInputBytes &&
+        originalExtension != 'png') {
       return fallback;
     }
 
     final objectUrl = html.Url.createObjectUrlFromBlob(file);
 
     try {
-      final image = await _loadImage(objectUrl);
+      final image = await _loadImage(objectUrl).timeout(imageDecodeTimeout);
 
       final int sourceWidth = _safeDimension(image.naturalWidth);
       final int sourceHeight = _safeDimension(image.naturalHeight);
 
       if (sourceWidth <= 0 || sourceHeight <= 0) {
+        if (forceJpeg) {
+          throw Exception('Не удалось определить размер изображения');
+        }
         return fallback;
       }
 
@@ -118,10 +128,29 @@ class ImageCompressionService {
       // toBlob выполняет кодирование асинхронно и не создаёт огромную
       // промежуточную base64-строку, поэтому выбор фото не блокирует UI.
       final blob = await canvas.toBlob('image/jpeg', jpegQuality);
-      final compressedBytes = await _bytesFromBlob(blob);
+      final compressedBytes = await _bytesFromBlob(
+        blob,
+      ).timeout(blobReadTimeout);
 
-      if (compressedBytes.isEmpty ||
-          compressedBytes.length >= originalBytes.length) {
+      if (compressedBytes.isEmpty) {
+        if (forceJpeg) {
+          throw Exception('JPEG после преобразования пуст');
+        }
+        return fallback;
+      }
+
+      if (forceJpeg) {
+        return CompressedImageFile(
+          originalName: originalName,
+          contentType: 'image/jpeg',
+          extension: 'jpg',
+          bytes: compressedBytes,
+          originalSize: originalBytes.length,
+          wasCompressed: true,
+        );
+      }
+
+      if (compressedBytes.length >= originalBytes.length) {
         return fallback;
       }
 
@@ -142,7 +171,19 @@ class ImageCompressionService {
         originalSize: originalBytes.length,
         wasCompressed: true,
       );
+    } on TimeoutException {
+      if (forceJpeg) {
+        throw Exception(
+          'Фото iPhone слишком долго преобразуется в JPEG. Попробуйте ещё раз.',
+        );
+      }
+      return fallback;
     } catch (_) {
+      if (forceJpeg) {
+        throw Exception(
+          'Не удалось преобразовать фото iPhone в JPEG. Попробуйте выбрать фото ещё раз.',
+        );
+      }
       return fallback;
     } finally {
       html.Url.revokeObjectUrl(objectUrl);
@@ -243,6 +284,8 @@ class ImageCompressionService {
     if (clean == 'jpg' || clean == 'jpeg') return 'image/jpeg';
     if (clean == 'png') return 'image/png';
     if (clean == 'webp') return 'image/webp';
+    if (clean == 'heic') return 'image/heic';
+    if (clean == 'heif') return 'image/heif';
 
     return 'application/octet-stream';
   }
