@@ -239,6 +239,7 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
     final stagePhotos = photos
         .where((photo) => photo.photoStage == photoStage)
         .toList();
+    final isThisStagePicking = pickingPhotoStage == photoStage;
     final description = photoStage == 'before'
         ? policy.requireBeforePhoto
               ? 'Обязательное состояние участка перед началом работ: минимум ${policy.minBeforePhotos}.'
@@ -268,10 +269,10 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
             width: double.infinity,
             height: 48,
             child: OutlinedButton.icon(
-              onPressed: isPickingPhotos || !canEdit
+              onPressed: pickingPhotoStage != null || !canEdit
                   ? null
                   : () => addPhotos(photoStage),
-              icon: isPickingPhotos
+              icon: isThisStagePicking
                   ? const SizedBox(
                       width: 18,
                       height: 18,
