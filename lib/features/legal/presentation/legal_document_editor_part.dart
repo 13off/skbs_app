@@ -2,8 +2,15 @@ part of 'legal_documents_screen.dart';
 
 class LegalDocumentEditorScreen extends StatefulWidget {
   final LegalDocument? document;
+  final String? initialEmployeeId;
+  final String? initialObjectId;
 
-  const LegalDocumentEditorScreen({super.key, this.document});
+  const LegalDocumentEditorScreen({
+    super.key,
+    this.document,
+    this.initialEmployeeId,
+    this.initialObjectId,
+  });
 
   @override
   State<LegalDocumentEditorScreen> createState() =>
@@ -51,6 +58,11 @@ class _LegalDocumentEditorScreenState extends State<LegalDocumentEditorScreen> {
           : item.responsibleUserId;
       foremanAction = item.requiresForemanAction;
       managerApproval = item.requiresManagerApproval;
+    } else {
+      employeeId = widget.initialEmployeeId;
+      objectId = widget.initialObjectId == null || widget.initialObjectId!.isEmpty
+          ? allObjectsScopeValue
+          : widget.initialObjectId;
     }
     directoriesFuture = loadDirectories();
   }

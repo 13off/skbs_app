@@ -187,7 +187,7 @@ class _LegalEmployeeDossierScreenState
   ) {
     final rows = <Widget>[];
     for (final field in fields) {
-      final value = field.value(dossier);
+      final value = field.resolve(dossier);
       if (value.trim().isEmpty) continue;
       rows.add(
         Padding(
@@ -578,18 +578,16 @@ class _EmployeeDossierBundle {
 
 class _DossierField {
   final String label;
-  final String Function(LegalEmployeeDossier dossier) value;
+  final String? key;
+  final String Function(LegalEmployeeDossier dossier)? resolver;
 
-  const _DossierField.custom(this.label, this.value);
+  const _DossierField.key(this.label, this.key) : resolver = null;
 
-  const _DossierField.key(String label, String key)
-      : this.custom(label, _DossierFieldValue(key).call);
-}
+  const _DossierField.custom(this.label, this.resolver) : key = null;
 
-class _DossierFieldValue {
-  final String key;
-
-  const _DossierFieldValue(this.key);
-
-  String call(LegalEmployeeDossier dossier) => dossier.text(key);
+  String resolve(LegalEmployeeDossier dossier) {
+    final custom = resolver;
+    if (custom != null) return custom(dossier);
+    return dossier.text(key ?? '');
+  }
 }
