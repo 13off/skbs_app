@@ -1526,71 +1526,102 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return PremiumWorkCard(
       radius: 18,
       padding: const EdgeInsets.all(14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(
-              item.isPayment
-                  ? Icons.payments_outlined
-                  : Icons.receipt_long_outlined,
-              size: 20,
-            ),
+          Row(
+            key: const ValueKey('expense-mobile-header'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  item.isPayment
+                      ? Icons.payments_outlined
+                      : Icons.receipt_long_outlined,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mobileTitle(item),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        height: 1.18,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      meta.join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 82, maxWidth: 112),
+                child: Text(
+                  formatMoney(item.amount),
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    height: 1.18,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Padding(
+              padding: const EdgeInsets.only(left: 52),
+              child: Text(
+                comment,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(height: 1.28),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 52),
+            child: Row(
+              key: const ValueKey('expense-mobile-footer'),
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  mobileTitle(item),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  meta.join(' · '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: receiptStatus(item),
                   ),
                 ),
-                if (comment.isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    comment,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                const SizedBox(height: 9),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: receiptStatus(item),
-                ),
+                const SizedBox(width: 8),
+                actionMenu(item),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatMoney(item.amount),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 2),
-              actionMenu(item),
-            ],
           ),
         ],
       ),
