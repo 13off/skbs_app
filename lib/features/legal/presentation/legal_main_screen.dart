@@ -35,12 +35,22 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
     super.dispose();
   }
 
+  Widget legalRoot(Widget child) {
+    return LiquidGlassStyleScope(
+      depth: 1.28,
+      cardRadius: 22,
+      hidePageSubtitles: true,
+      compactPageLayout: true,
+      child: child,
+    );
+  }
+
   Widget rootPage(int index) {
     return switch (index) {
-      0 => LegalTodayCompleteScreen(profile: widget.profile),
-      1 => const LegalBaseCompleteScreen(),
-      2 => const LegalDocumentsCompleteScreen(),
-      3 => LegalMattersCompleteScreen(profile: widget.profile),
+      0 => legalRoot(LegalTodayCompleteScreen(profile: widget.profile)),
+      1 => legalRoot(const LegalBaseCompleteScreen()),
+      2 => legalRoot(const LegalDocumentsCompleteScreen()),
+      3 => legalRoot(LegalMattersCompleteScreen(profile: widget.profile)),
       4 => LiquidGlassStyleScope(
           depth: 1,
           hidePageSubtitles: false,
@@ -56,7 +66,7 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
     return LiquidGlassStyleScope(
       depth: 1.28,
       cardRadius: 22,
-      hidePageSubtitles: true,
+      hidePageSubtitles: false,
       compactPageLayout: true,
       child: PersistentTabShell(
         controller: tabs,
