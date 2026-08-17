@@ -41,44 +41,55 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
       1 => const LegalBaseCompleteScreen(),
       2 => const LegalDocumentsCompleteScreen(),
       3 => LegalMattersCompleteScreen(profile: widget.profile),
-      4 => ProfileScreen(profile: widget.profile),
+      4 => LiquidGlassStyleScope(
+          depth: 1,
+          hidePageSubtitles: false,
+          compactPageLayout: false,
+          child: ProfileScreen(profile: widget.profile),
+        ),
       _ => const SizedBox.shrink(),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    return PersistentTabShell(
-      controller: tabs,
-      navigationStorageKey: 'lawyer',
-      items: const <ProfessionalBottomNavigationItem>[
-        ProfessionalBottomNavigationItem(
-          label: 'Сегодня',
-          icon: Icons.home_outlined,
-          selectedIcon: Icons.home_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'База',
-          icon: Icons.hub_outlined,
-          selectedIcon: Icons.hub_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'Документы',
-          icon: Icons.description_outlined,
-          selectedIcon: Icons.description_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'Дела',
-          icon: Icons.gavel_outlined,
-          selectedIcon: Icons.gavel_rounded,
-        ),
-        ProfessionalBottomNavigationItem(
-          label: 'Профиль',
-          icon: Icons.person_outline_rounded,
-          selectedIcon: Icons.person_rounded,
-        ),
-      ],
-      tabBuilder: (context, index) => rootPage(index),
+    return LiquidGlassStyleScope(
+      depth: 1.28,
+      cardRadius: 22,
+      hidePageSubtitles: true,
+      compactPageLayout: true,
+      child: PersistentTabShell(
+        controller: tabs,
+        navigationStorageKey: 'lawyer',
+        items: const <ProfessionalBottomNavigationItem>[
+          ProfessionalBottomNavigationItem(
+            label: 'Сегодня',
+            icon: Icons.home_outlined,
+            selectedIcon: Icons.home_rounded,
+          ),
+          ProfessionalBottomNavigationItem(
+            label: 'База',
+            icon: Icons.hub_outlined,
+            selectedIcon: Icons.hub_rounded,
+          ),
+          ProfessionalBottomNavigationItem(
+            label: 'Документы',
+            icon: Icons.description_outlined,
+            selectedIcon: Icons.description_rounded,
+          ),
+          ProfessionalBottomNavigationItem(
+            label: 'Дела',
+            icon: Icons.gavel_outlined,
+            selectedIcon: Icons.gavel_rounded,
+          ),
+          ProfessionalBottomNavigationItem(
+            label: 'Профиль',
+            icon: Icons.person_outline_rounded,
+            selectedIcon: Icons.person_rounded,
+          ),
+        ],
+        tabBuilder: (context, index) => rootPage(index),
+      ),
     );
   }
 }
