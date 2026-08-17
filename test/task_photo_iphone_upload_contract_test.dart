@@ -71,11 +71,37 @@ void main() {
     expect(models, contains('loadedBytes / totalBytes'));
     expect(repository, contains('request.upload.onProgress'));
     expect(repository, contains('final loaded = event.loaded ?? 0;'));
-    expect(repository, contains('onProgress(loaded.toInt())'));
+    expect(repository, contains('onProgress(loadedBytes)'));
     expect(repository, contains("request.open(\n      'POST'"));
     expect(repository, contains("request.setRequestHeader('Content-Type'"));
     expect(photoActions, contains(r"'Загрузка ${progress.percent}%"));
     expect(photoActions, contains('LinearProgressIndicator'));
     expect(photoActions, contains('value: progress.fraction'));
+  });
+
+  test('два upload-слота работают как живая очередь и не ждут медленную пару', () {
+    final repository = File(
+      'lib/data/task_photo_repository.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains('uploadConcurrency = 2'));
+    expect(repository, contains('runUploadWorker'));
+    expect(repository, contains('nextUploadIndex'));
+    expect(repository, contains('List<Future<void>>.generate(workerCount'));
+    expect(repository, isNot(contains('batch = uploadItems.sublist')));
+  });
+
+  test('зависший web upload повторяет только один файл без изменения RLS', () {
+    final repository = File(
+      'lib/data/task_photo_repository.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains('webUploadMaxAttempts = 2'));
+    expect(repository, contains('webUploadStallTimeout'));
+    expect(repository, contains('request.abort()'));
+    expect(repository, contains('_isRetryableWebUploadError'));
+    expect(repository, contains('error.status == 409'));
+    expect(repository, contains('if (attempt > 1) onProgress(0)'));
+    expect(repository, isNot(contains("setRequestHeader('x-upsert'")));
   });
 }
