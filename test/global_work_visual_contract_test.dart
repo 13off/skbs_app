@@ -3,26 +3,30 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('persistent workspaces share one glass visual contract', () {
+  test('persistent workspaces own the single glass visual contract', () {
     final shell = File(
       'lib/features/shell/presentation/persistent_tab_shell.dart',
     ).readAsStringSync();
 
-    expect(shell, contains('_workDepth = 1.28'));
-    expect(shell, contains('_workCardRadius = 22'));
+    expect(shell, contains('workDepth = 1.28'));
+    expect(shell, contains('workCardRadius = 22'));
+    expect(shell, contains('depth: PersistentTabShell.workDepth'));
+    expect(shell, contains('cardRadius: PersistentTabShell.workCardRadius'));
     expect(shell, contains('compactPageLayout: true'));
     expect(shell, contains('hidePageSubtitles: true'));
     expect(shell, contains('LiquidGlassStyleScope'));
   });
 
-  test('role router keeps the same visual contract around every platform', () {
+  test('role router reuses shell visual tokens around every platform', () {
     final main = File('lib/screens/main_screen.dart').readAsStringSync();
 
-    expect(main, contains('_workDepth = 1.28'));
-    expect(main, contains('_workCardRadius = 22'));
+    expect(main, contains('PersistentTabShell.workDepth'));
+    expect(main, contains('PersistentTabShell.workCardRadius'));
     expect(main, contains('workVisualScope'));
     expect(main, contains('CompanyChatShell'));
     expect(main, contains('LiquidGlassStyleScope'));
+    expect(main, isNot(contains('_workDepth = 1.28')));
+    expect(main, isNot(contains('_workCardRadius = 22')));
   });
 
   test('all primary role platforms remain routed through shared shells', () {
