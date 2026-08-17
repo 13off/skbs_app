@@ -7,6 +7,7 @@ import '../models/employee.dart';
 import '../navigation/app_page_route.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
+import 'absence_fines_screen.dart';
 import 'add_employee_screen.dart';
 import 'employee_details_screen.dart';
 import 'employees/employee_directory_controller.dart';
