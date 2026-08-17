@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 
 import '../../app/app_adaptive_palette.dart';
 import '../../data/employee_repository.dart';
+import '../../data/task_photo_browser_service.dart';
+import '../../data/task_photo_repository.dart';
 import '../../data/task_repository.dart';
 import '../../features/developer/data/developer_policy_repository.dart';
 import '../../features/developer/models/task_policy.dart';
@@ -59,6 +61,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   bool isLoading = false;
   bool isSaving = false;
   String? pickingPhotoStage;
+  int preparingPhotoCompleted = 0;
+  int preparingPhotoTotal = 0;
+  TaskPhotoUploadProgress? photoUploadProgress;
+  int lastRenderedUploadPercent = -1;
   TaskPolicy policy = TaskPolicy.defaults;
   String? deletingPhotoId;
   String? errorText;
