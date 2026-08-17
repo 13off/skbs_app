@@ -1,19 +1,15 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
-import '../models/legal_models.dart';
-import 'adaptive_legal_dashboard_screen.dart';
-import 'adaptive_legal_documents_screen.dart';
-import 'adaptive_legal_matters_screen.dart';
-import 'legal_documents_screen.dart';
-import 'legal_matters_screen.dart';
-import 'legal_workspace_screen.dart';
+import 'legal_base_complete_screen.dart';
+import 'legal_documents_complete_screen.dart';
+import 'legal_matters_complete_screen.dart';
+import 'legal_today_complete_screen.dart';
 
-// Юрист использует отдельную оболочку, чтобы не менять вкладки администратора и прораба.
+// Рабочая оболочка юриста: очередь → база → документы → дела → профиль.
 class LegalMainScreen extends StatefulWidget {
   final AppUserProfile profile;
 
@@ -39,50 +35,15 @@ class _LegalMainScreenState extends State<LegalMainScreen> {
     super.dispose();
   }
 
-  Future<void> select(int index) => tabs.select(index);
-
   Widget rootPage(int index) {
     return switch (index) {
-      0 => AdaptiveLegalDashboardScreen(
-        profile: widget.profile,
-        onOpenDocuments: () => select(2),
-        onOpenMatters: () => select(3),
-        onOpenDocument: openDocumentFromDashboard,
-        onOpenMatter: openMatterFromDashboard,
-      ),
-      1 => const LegalWorkspaceScreen(),
-      2 => const AdaptiveLegalDocumentsScreen(),
-      3 => AdaptiveLegalMattersScreen(profile: widget.profile),
+      0 => LegalTodayCompleteScreen(profile: widget.profile),
+      1 => const LegalBaseCompleteScreen(),
+      2 => const LegalDocumentsCompleteScreen(),
+      3 => LegalMattersCompleteScreen(profile: widget.profile),
       4 => ProfileScreen(profile: widget.profile),
       _ => const SizedBox.shrink(),
     };
-  }
-
-  Future<NavigatorState?> selectTabNavigator(int index) async {
-    final navigator = await tabs.selectNavigator(index);
-    if (!mounted) return null;
-    return navigator;
-  }
-
-  Future<void> openDocumentFromDashboard(LegalDocument document) async {
-    final navigator = await selectTabNavigator(2);
-    if (navigator == null) return;
-    await navigator.push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalDocumentDetailsScreen(document: document),
-      ),
-    );
-  }
-
-  Future<void> openMatterFromDashboard(LegalMatter matter) async {
-    final navigator = await selectTabNavigator(3);
-    if (navigator == null) return;
-    await navigator.push<void>(
-      CupertinoPageRoute<void>(
-        builder: (_) =>
-            LegalMatterDetailsScreen(matter: matter, canDecide: false),
-      ),
-    );
   }
 
   @override
