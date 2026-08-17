@@ -38,7 +38,10 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
   }
 
   Future<void> addPhotos(String photoStage) async {
-    if (!canEdit) return;
+    if (!canEdit || pickingPhotoStage != null) return;
+    if (photoStage != 'before' && photoStage != 'after') {
+      throw ArgumentError.value(photoStage, 'photoStage');
+    }
 
     final taskId = widget.task.id;
     if (taskId == null || taskId.isEmpty) {
@@ -49,7 +52,7 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     }
 
     setState(() {
-      isPickingPhotos = true;
+      pickingPhotoStage = photoStage;
       errorText = null;
     });
 
@@ -78,7 +81,9 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
       if (!mounted) return;
       setState(() => errorText = 'Ошибка загрузки фото: $error');
     } finally {
-      if (mounted) setState(() => isPickingPhotos = false);
+      if (mounted && pickingPhotoStage == photoStage) {
+        setState(() => pickingPhotoStage = null);
+      }
     }
   }
 
