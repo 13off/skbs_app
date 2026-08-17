@@ -52,6 +52,9 @@ void main() {
     );
     expect(home, isNot(contains('FilledButton.tonalIcon(')));
     expect(work, contains("label: 'Начать выполнение'"));
-    expect(main, contains('if (profile.isEmployee) return content;'));
+    expect(
+      main,
+      contains('if (profile.isEmployee) return workVisualScope(content);'),
+    );
   });
 }
