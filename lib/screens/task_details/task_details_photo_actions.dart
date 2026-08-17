@@ -87,4 +87,123 @@ extension _TaskDetailsPhotoActions on _TaskDetailsScreenState {
       }
     }
   }
+
+  Widget buildFastPhotosBlock({
+    required String photoStage,
+    required String title,
+    required String emptyText,
+  }) {
+    final stagePhotos = photos
+        .where((photo) => photo.photoStage == photoStage)
+        .toList();
+    final isThisStagePicking = pickingPhotoStage == photoStage;
+    final progress = isThisStagePicking ? photoUploadProgress : null;
+    final isPreparing =
+        isThisStagePicking && progress == null && preparingPhotoTotal > 0;
+    final minimum = photoStage == 'before'
+        ? (policy.requireBeforePhoto ? policy.minBeforePhotos : 0)
+        : (policy.requireAfterPhotoOnComplete ? policy.minAfterPhotos : 0);
+
+    String buttonLabel() {
+      if (progress != null) {
+        if (progress.percent >= 100) {
+          return 'Загружено 100% · сохраняем';
+        }
+        return 'Загрузка ${progress.percent}% · '
+            '${progress.completedFiles}/${progress.totalFiles}';
+      }
+      if (isPreparing) {
+        return 'Подготовка $preparingPhotoCompleted/$preparingPhotoTotal';
+      }
+      return stagePhotos.isEmpty
+          ? 'Добавить фотографии'
+          : 'Добавить ещё фотографии';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppAdaptivePalette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (stagePhotos.isNotEmpty)
+                Text(
+                  '${stagePhotos.length}',
+                  style: TextStyle(
+                    color: AppAdaptivePalette.textMuted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+            ],
+          ),
+          if (minimum > 0) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Минимум: $minimum',
+              style: TextStyle(
+                color: AppAdaptivePalette.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: pickingPhotoStage != null || !canEdit
+                  ? null
+                  : () => addPhotosFast(photoStage),
+              icon: isPreparing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : progress != null
+                  ? const Icon(Icons.cloud_upload_outlined)
+                  : const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(buttonLabel()),
+            ),
+          ),
+          if (progress != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress.fraction,
+                minHeight: 6,
+              ),
+            ),
+          ],
+          if (stagePhotos.isEmpty) ...[
+            const SizedBox(height: 12),
+            Text(emptyText),
+          ] else ...[
+            const SizedBox(height: 14),
+            TaskPhotoGrid<TaskPhotoData>(
+              items: stagePhotos,
+              itemBuilder: (context, photo) => buildPhotoTile(photo),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
