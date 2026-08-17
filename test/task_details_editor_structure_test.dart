@@ -58,7 +58,7 @@ void main() {
     expect(shell, contains('required this.profile'));
     expect(facade, contains('editor.TaskDetailsScreen'));
     expect(facade, isNot(contains('legacy.TaskDetailsScreen')));
-    expect(facade, isNot(contains('task_details_legacy_screen.dart'));
+    expect(facade, isNot(contains('task_details_legacy_screen.dart')));
     expect(actions, contains("Navigator.pop(context, updatedTask)"));
     expect(actions, contains("Navigator.pop(context, 'delete')"));
     expect(actions, contains('TaskEditPolicy.canDeletePhoto('));
