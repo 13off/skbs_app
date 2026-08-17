@@ -2,6 +2,39 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+/// Локальная настройка стеклянного визуального языка.
+///
+/// По умолчанию ничего не меняет. Рабочие контуры могут усилить глубину,
+/// унифицировать радиусы карточек и уплотнить страницы, не затрагивая остальное
+/// приложение.
+class LiquidGlassStyleScope extends InheritedWidget {
+  final double depth;
+  final double? cardRadius;
+  final bool hidePageSubtitles;
+  final bool compactPageLayout;
+
+  const LiquidGlassStyleScope({
+    super.key,
+    required super.child,
+    this.depth = 1,
+    this.cardRadius,
+    this.hidePageSubtitles = false,
+    this.compactPageLayout = false,
+  }) : assert(depth >= 0.8 && depth <= 1.6);
+
+  static LiquidGlassStyleScope? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<LiquidGlassStyleScope>();
+  }
+
+  @override
+  bool updateShouldNotify(LiquidGlassStyleScope oldWidget) {
+    return depth != oldWidget.depth ||
+        cardRadius != oldWidget.cardRadius ||
+        hidePageSubtitles != oldWidget.hidePageSubtitles ||
+        compactPageLayout != oldWidget.compactPageLayout;
+  }
+}
+
 /// Лёгкая стеклянная поверхность для единичных панелей.
 ///
 /// Настоящее размытие включается только явно. Для длинных списков и повторяющихся
@@ -38,6 +71,17 @@ class LiquidGlassSurface extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dark = theme.brightness == Brightness.dark;
+    final style = LiquidGlassStyleScope.maybeOf(context);
+    final depth = style?.depth ?? 1.0;
+    final depthDelta = depth - 1.0;
+    final shadowFactor = 1.0 + depthDelta * 0.85;
+    final geometryFactor = 1.0 + depthDelta * 0.55;
+    final highlightFactor = 1.0 + depthDelta * 0.45;
+
+    double scaledAlpha(double value, double factor, {double max = 1}) {
+      return (value * factor).clamp(0.0, max).toDouble();
+    }
+
     final resolvedTint =
         tint ??
         (dark
@@ -64,35 +108,63 @@ class LiquidGlassSurface extends StatelessWidget {
     final resolvedBorder =
         borderColor ??
         (dark
-            ? Colors.white.withValues(alpha: 0.13)
-            : Colors.white.withValues(alpha: 0.90));
+            ? Colors.white.withValues(
+                alpha: scaledAlpha(0.13, highlightFactor, max: 0.22),
+              )
+            : Colors.white.withValues(
+                alpha: scaledAlpha(0.90, highlightFactor, max: 0.98),
+              ));
     final borderRadius = BorderRadius.circular(radius);
+    final extraSpecularAlpha = depthDelta <= 0
+        ? 0.0
+        : (depthDelta * (dark ? 0.24 : 0.52)).clamp(0.0, 0.20).toDouble();
 
     final surface = DecoratedBox(
       decoration: BoxDecoration(
         color: resolvedTint,
         gradient: resolvedGradient,
         borderRadius: borderRadius,
-        border: Border.all(color: resolvedBorder, width: 1.15),
+        border: Border.all(
+          color: resolvedBorder,
+          width: 1.15 * (1.0 + depthDelta * 0.20),
+        ),
         boxShadow: elevated
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: dark ? 0.34 : 0.13),
-                  blurRadius: dark ? 34 : 40,
+                  color: Colors.black.withValues(
+                    alpha: scaledAlpha(
+                      dark ? 0.34 : 0.13,
+                      shadowFactor,
+                      max: dark ? 0.48 : 0.22,
+                    ),
+                  ),
+                  blurRadius: (dark ? 34 : 40) * geometryFactor,
                   spreadRadius: -15,
-                  offset: const Offset(0, 18),
+                  offset: Offset(0, 18 * geometryFactor),
                 ),
                 BoxShadow(
-                  color: scheme.primary.withValues(alpha: dark ? 0.075 : 0.035),
-                  blurRadius: 24,
+                  color: scheme.primary.withValues(
+                    alpha: scaledAlpha(
+                      dark ? 0.075 : 0.035,
+                      shadowFactor,
+                      max: dark ? 0.12 : 0.07,
+                    ),
+                  ),
+                  blurRadius: 24 * geometryFactor,
                   spreadRadius: -16,
-                  offset: const Offset(0, 10),
+                  offset: Offset(0, 10 * geometryFactor),
                 ),
                 BoxShadow(
-                  color: Colors.white.withValues(alpha: dark ? 0.055 : 0.74),
-                  blurRadius: 12,
+                  color: Colors.white.withValues(
+                    alpha: scaledAlpha(
+                      dark ? 0.055 : 0.74,
+                      highlightFactor,
+                      max: dark ? 0.09 : 0.92,
+                    ),
+                  ),
+                  blurRadius: 12 * geometryFactor,
                   spreadRadius: -7,
-                  offset: const Offset(-3, -5),
+                  offset: Offset(-3, -5 * geometryFactor),
                 ),
               ]
             : const <BoxShadow>[],
@@ -108,8 +180,20 @@ class LiquidGlassSurface extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.white.withValues(alpha: dark ? 0.085 : 0.44),
-                      Colors.white.withValues(alpha: dark ? 0.018 : 0.08),
+                      Colors.white.withValues(
+                        alpha: scaledAlpha(
+                          dark ? 0.085 : 0.44,
+                          highlightFactor,
+                          max: dark ? 0.14 : 0.62,
+                        ),
+                      ),
+                      Colors.white.withValues(
+                        alpha: scaledAlpha(
+                          dark ? 0.018 : 0.08,
+                          highlightFactor,
+                          max: dark ? 0.04 : 0.14,
+                        ),
+                      ),
                       Colors.transparent,
                     ],
                     stops: const [0, 0.36, 1],
@@ -118,6 +202,30 @@ class LiquidGlassSurface extends StatelessWidget {
               ),
             ),
           ),
+          if (extraSpecularAlpha > 0)
+            Positioned(
+              left: radius * 0.12,
+              top: -radius * 0.78,
+              child: IgnorePointer(
+                child: Container(
+                  width: radius * 4.3,
+                  height: radius * 2.25,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.55, -0.55),
+                      radius: 1,
+                      colors: [
+                        Colors.white.withValues(alpha: extraSpecularAlpha),
+                        Colors.white.withValues(alpha: extraSpecularAlpha * 0.22),
+                        Colors.transparent,
+                      ],
+                      stops: const [0, 0.44, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             left: radius * 0.55,
             right: radius * 0.55,
@@ -129,7 +237,13 @@ class LiquidGlassSurface extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      Colors.white.withValues(alpha: dark ? 0.22 : 0.92),
+                      Colors.white.withValues(
+                        alpha: scaledAlpha(
+                          dark ? 0.22 : 0.92,
+                          highlightFactor,
+                          max: dark ? 0.34 : 1,
+                        ),
+                      ),
                       Colors.transparent,
                     ],
                   ),
@@ -137,6 +251,28 @@ class LiquidGlassSurface extends StatelessWidget {
               ),
             ),
           ),
+          if (extraSpecularAlpha > 0)
+            Positioned(
+              left: radius * 0.72,
+              right: radius * 0.72,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.white.withValues(
+                          alpha: extraSpecularAlpha * (dark ? 0.42 : 0.75),
+                        ),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Padding(padding: padding, child: child),
         ],
       ),

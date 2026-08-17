@@ -62,11 +62,13 @@ class PremiumWorkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
+    final visualStyle = LiquidGlassStyleScope.maybeOf(context);
+    final effectiveRadius = visualStyle?.cardRadius ?? radius;
 
     Widget surface() => LiquidGlassSurface(
       margin: margin,
       padding: padding,
-      radius: radius,
+      radius: effectiveRadius,
       blur: false,
       tint:
           tint ??

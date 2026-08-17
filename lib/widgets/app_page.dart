@@ -54,6 +54,10 @@ class AppPage extends StatelessWidget {
     final effectiveShowBackButton =
         !suppressAutomaticBackButton && (showBackButton || canPop);
     final isDesktop = MediaQuery.sizeOf(context).width >= desktopBreakpoint;
+    final visualStyle = LiquidGlassStyleScope.maybeOf(context);
+    final pageHeaderGap = visualStyle?.compactPageLayout == true
+        ? AppUi.gap16
+        : AppUi.pageHeaderGap;
     final horizontalPadding = isDesktop
         ? AppUi.pageDesktopHorizontalPadding
         : AppUi.pageMobileHorizontalPadding;
@@ -88,7 +92,7 @@ class AppPage extends StatelessWidget {
                   showBackButton: effectiveShowBackButton,
                   onBack: onBack,
                 ),
-                const SizedBox(height: AppUi.pageHeaderGap),
+                SizedBox(height: pageHeaderGap),
                 child,
               ],
             ),
@@ -156,6 +160,10 @@ class AppLazyPage extends StatelessWidget {
         : headerTrailing ?? scopedTrailing;
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppPage.desktopBreakpoint;
+    final visualStyle = LiquidGlassStyleScope.maybeOf(context);
+    final pageHeaderGap = visualStyle?.compactPageLayout == true
+        ? AppUi.gap16
+        : AppUi.pageHeaderGap;
     final horizontalPadding = isDesktop
         ? AppUi.pageDesktopHorizontalPadding
         : AppUi.pageMobileHorizontalPadding;
@@ -202,7 +210,7 @@ class AppLazyPage extends StatelessWidget {
           );
         }
         if (index == 1) {
-          return const SizedBox(height: AppUi.pageHeaderGap);
+          return SizedBox(height: pageHeaderGap);
         }
         final bodyIndex = index - 2;
         if (bodyIndex < leading.length) return constrain(leading[bodyIndex]);
@@ -237,7 +245,10 @@ class AppPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cleanSubtitle = subtitle.trim();
+    final visualStyle = LiquidGlassStyleScope.maybeOf(context);
+    final cleanSubtitle = visualStyle?.hidePageSubtitles == true
+        ? ''
+        : subtitle.trim();
     final isDesktop =
         MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
 
