@@ -188,11 +188,13 @@ class TaskPhotoRepository {
       throw Exception('Сессия истекла. Войдите в приложение ещё раз.');
     }
 
-    final authHeaders = _client.auth.headers;
-    final apiKey = authHeaders.entries
-        .where((entry) => entry.key.toLowerCase() == 'apikey')
-        .map((entry) => entry.value)
-        .firstOrNull;
+    String? apiKey;
+    for (final entry in _client.auth.headers.entries) {
+      if (entry.key.toLowerCase() == 'apikey') {
+        apiKey = entry.value;
+        break;
+      }
+    }
     if (apiKey == null || apiKey.isEmpty) {
       throw Exception('Не удалось подготовить авторизацию для загрузки фото');
     }
@@ -223,8 +225,7 @@ class TaskPhotoRepository {
     request.setRequestHeader('Cache-Control', 'max-age=3600');
 
     request.upload.onProgress.listen((event) {
-      final loaded = event.loaded;
-      onProgress(loaded.toInt());
+      onProgress(event.loaded.toInt());
     });
     request.onLoad.listen((_) {
       if (completer.isCompleted) return;
