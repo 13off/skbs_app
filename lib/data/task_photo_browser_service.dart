@@ -75,7 +75,7 @@ class TaskPhotoBrowserService {
 
     reader.readAsArrayBuffer(file);
 
-    return Future<Uint8List>.any(<Future<Uint8List>>[loaded, failed]).timeout(
+    return Future.any<Uint8List>(<Future<Uint8List>>[loaded, failed]).timeout(
       fileReadTimeout,
       onTimeout: () {
         throw TimeoutException(
