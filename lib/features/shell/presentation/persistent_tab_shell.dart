@@ -197,8 +197,8 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     // Keep the established nested-navigation and root-route behavior.
     // Flutter 3.44 deprecates this API before the replacement is covered
     // by route-level integration tests in every target shell.
-    // ignore: deprecated_member_use
     return workVisualScope(
+      // ignore: deprecated_member_use
       child: WillPopScope(
         onWillPop: () => widget.controller.handleBack(
           returnToFirstTab: widget.returnToFirstTabOnBack,
