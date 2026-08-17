@@ -89,6 +89,16 @@ void main() {
     expect(sql, contains('ra.employee_id is not null'));
   });
 
+  test('global HR templates are recognized for employee forms', () {
+    final sql = File(
+      'supabase/migrations/20260817075400_legal_employee_dossier_global_templates.sql',
+    ).readAsStringSync();
+    expect(sql, contains('dt.company_id is null or dt.company_id = edf.company_id'));
+    expect(sql, contains('t.company_id is null or t.company_id = f.company_id'));
+    expect(sql, contains('employment_contract'));
+    expect(sql, contains('(гпх|gph|civil|service|оказан.*услуг|подряд'));
+  });
+
   test('employee dossier is the only employee card in lawyer base', () {
     final workspace = File(
       'lib/features/legal/presentation/legal_workspace_screen.dart',
