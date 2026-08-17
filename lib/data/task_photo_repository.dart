@@ -13,6 +13,9 @@ class TaskPhotoRepository {
   static const signedUrlLifetimeSeconds = 60 * 10;
   static const uploadConcurrency = 2;
   static const uploadTimeoutMs = 60 * 1000;
+  static const webUploadMaxAttempts = 2;
+  static const webUploadRetryDelay = Duration(milliseconds: 650);
+  static const webUploadStallTimeout = Duration(seconds: 18);
 
   const TaskPhotoRepository._();
 
@@ -94,35 +97,37 @@ class TaskPhotoRepository {
     emitProgress();
 
     try {
-      for (
-        var start = 0;
-        start < uploadItems.length;
-        start += uploadConcurrency
-      ) {
-        final end = (start + uploadConcurrency) < uploadItems.length
-            ? start + uploadConcurrency
-            : uploadItems.length;
-        final batch = uploadItems.sublist(start, end);
+      var nextUploadIndex = 0;
+      final workerCount = uploadItems.length < uploadConcurrency
+          ? uploadItems.length
+          : uploadConcurrency;
 
-        await Future.wait(
-          batch.map((item) async {
-            await _uploadPhotoBytes(
-              path: item.path,
-              photo: item.photo,
-              onProgress: (loadedBytes) {
-                loadedBytesByPath[item.path] = loadedBytes
-                    .clamp(0, item.photo.bytes.length)
-                    .toInt();
-                emitProgress();
-              },
-            );
-            loadedBytesByPath[item.path] = item.photo.bytes.length;
-            uploadedPaths.add(item.path);
-            completedFiles += 1;
-            emitProgress();
-          }),
-        );
+      Future<void> runUploadWorker() async {
+        while (true) {
+          if (nextUploadIndex >= uploadItems.length) return;
+          final item = uploadItems[nextUploadIndex];
+          nextUploadIndex += 1;
+
+          await _uploadPhotoBytes(
+            path: item.path,
+            photo: item.photo,
+            onProgress: (loadedBytes) {
+              loadedBytesByPath[item.path] = loadedBytes
+                  .clamp(0, item.photo.bytes.length)
+                  .toInt();
+              emitProgress();
+            },
+          );
+          loadedBytesByPath[item.path] = item.photo.bytes.length;
+          uploadedPaths.add(item.path);
+          completedFiles += 1;
+          emitProgress();
+        }
       }
+
+      await Future.wait(
+        List<Future<void>>.generate(workerCount, (_) => runUploadWorker()),
+      );
 
       final rowsToInsert = uploadItems
           .map(
@@ -183,6 +188,59 @@ class TaskPhotoRepository {
     required TaskPhotoFile photo,
     required void Function(int loadedBytes) onProgress,
   }) async {
+    Object? lastError;
+
+    for (var attempt = 1; attempt <= webUploadMaxAttempts; attempt++) {
+      try {
+        if (attempt > 1) onProgress(0);
+        await _uploadPhotoBytesWebAttempt(
+          path: path,
+          photo: photo,
+          onProgress: onProgress,
+        );
+        return;
+      } catch (error) {
+        lastError = error;
+
+        if (attempt > 1 &&
+            error is _TaskPhotoUploadHttpException &&
+            error.status == 409) {
+          // Первый запрос мог успеть сохраниться в Storage, а браузер потерял
+          // только ответ. Повтор по тому же уникальному пути тогда получает
+          // conflict — считаем исходную загрузку успешно завершённой.
+          onProgress(photo.bytes.length);
+          return;
+        }
+
+        if (attempt >= webUploadMaxAttempts ||
+            !_isRetryableWebUploadError(error)) {
+          rethrow;
+        }
+
+        await Future<void>.delayed(webUploadRetryDelay * attempt);
+      }
+    }
+
+    throw lastError ?? Exception('Не удалось загрузить фотографию');
+  }
+
+  static bool _isRetryableWebUploadError(Object error) {
+    if (error is TimeoutException) return true;
+    if (error is _TaskPhotoNetworkException) return true;
+    if (error is _TaskPhotoUploadHttpException) {
+      return error.status == 408 ||
+          error.status == 425 ||
+          error.status == 429 ||
+          error.status >= 500;
+    }
+    return false;
+  }
+
+  static Future<void> _uploadPhotoBytesWebAttempt({
+    required String path,
+    required TaskPhotoFile photo,
+    required void Function(int loadedBytes) onProgress,
+  }) async {
     final session = _client.auth.currentSession;
     if (session == null || session.accessToken.isEmpty) {
       throw Exception('Сессия истекла. Войдите в приложение ещё раз.');
@@ -209,6 +267,26 @@ class TaskPhotoRepository {
     ].map(Uri.encodeComponent).join('/');
     final request = html.HttpRequest();
     final completer = Completer<void>();
+    Timer? stallTimer;
+
+    void cancelStallTimer() {
+      stallTimer?.cancel();
+      stallTimer = null;
+    }
+
+    void armStallTimer() {
+      if (completer.isCompleted) return;
+      cancelStallTimer();
+      stallTimer = Timer(webUploadStallTimeout, () {
+        if (completer.isCompleted) return;
+        completer.completeError(
+          TimeoutException(
+            'Передача фотографии остановилась. Повторяем загрузку.',
+          ),
+        );
+        request.abort();
+      });
+    }
 
     request.open(
       'POST',
@@ -226,9 +304,16 @@ class TaskPhotoRepository {
 
     request.upload.onProgress.listen((event) {
       final loaded = event.loaded ?? 0;
-      onProgress(loaded.toInt());
+      final loadedBytes = loaded.toInt();
+      onProgress(loadedBytes);
+      if (loadedBytes >= photo.bytes.length) {
+        cancelStallTimer();
+      } else {
+        armStallTimer();
+      }
     });
     request.onLoad.listen((_) {
+      cancelStallTimer();
       if (completer.isCompleted) return;
       final status = request.status ?? 0;
       if (status >= 200 && status < 300) {
@@ -238,7 +323,8 @@ class TaskPhotoRepository {
       }
       final response = request.responseText?.trim();
       completer.completeError(
-        Exception(
+        _TaskPhotoUploadHttpException(
+          status,
           response == null || response.isEmpty
               ? 'Storage вернул ошибку $status'
               : 'Storage вернул ошибку $status: $response',
@@ -246,24 +332,33 @@ class TaskPhotoRepository {
       );
     });
     request.onError.listen((_) {
+      cancelStallTimer();
       if (!completer.isCompleted) {
         completer.completeError(
-          Exception('Сеть прервала загрузку фотографии. Попробуйте ещё раз.'),
+          const _TaskPhotoNetworkException(
+            'Сеть прервала загрузку фотографии. Повторяем загрузку.',
+          ),
         );
       }
     });
     request.onTimeout.listen((_) {
+      cancelStallTimer();
       if (!completer.isCompleted) {
         completer.completeError(
           TimeoutException(
-            'Фотография загружается слишком долго. Попробуйте ещё раз.',
+            'Фотография загружается слишком долго. Повторяем загрузку.',
           ),
         );
       }
     });
 
     request.send(photo.bytes);
-    await completer.future;
+    armStallTimer();
+    try {
+      await completer.future;
+    } finally {
+      cancelStallTimer();
+    }
   }
 
   static Future<void> removeStoragePaths(Iterable<String> paths) async {
@@ -309,4 +404,23 @@ class TaskPhotoRepository {
         .from(bucketName)
         .createSignedUrl(photo.storagePath, signedUrlLifetimeSeconds);
   }
+}
+
+class _TaskPhotoUploadHttpException implements Exception {
+  final int status;
+  final String message;
+
+  const _TaskPhotoUploadHttpException(this.status, this.message);
+
+  @override
+  String toString() => message;
+}
+
+class _TaskPhotoNetworkException implements Exception {
+  final String message;
+
+  const _TaskPhotoNetworkException(this.message);
+
+  @override
+  String toString() => message;
 }
