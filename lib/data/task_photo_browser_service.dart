@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:universal_html/html.dart' as html;
@@ -6,8 +7,8 @@ import 'image_compression_service.dart';
 import 'task_photo_models.dart';
 
 class TaskPhotoBrowserService {
-  static const acceptedFileTypes =
-      'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+  static const acceptedFileTypes = 'image/*,.heic,.heif';
+  static const Duration fileReadTimeout = Duration(seconds: 25);
 
   const TaskPhotoBrowserService._();
 
@@ -16,14 +17,72 @@ class TaskPhotoBrowserService {
     if (dotIndex == -1 || dotIndex == name.length - 1) return '';
 
     final extension = name.substring(dotIndex + 1).toLowerCase();
-    const allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+    const allowedExtensions = {
+      'jpg',
+      'jpeg',
+      'png',
+      'webp',
+      'heic',
+      'heif',
+    };
     return allowedExtensions.contains(extension) ? extension : '';
+  }
+
+  static String extensionFromContentType(String contentType) {
+    final clean = contentType.trim().toLowerCase().split(';').first;
+    return switch (clean) {
+      'image/jpeg' || 'image/jpg' => 'jpg',
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      'image/heic' || 'image/heic-sequence' => 'heic',
+      'image/heif' || 'image/heif-sequence' => 'heif',
+      _ => '',
+    };
+  }
+
+  static String extensionForFile(html.File file) {
+    final fromName = extensionFromFileName(file.name);
+    if (fromName.isNotEmpty) return fromName;
+    return extensionFromContentType(file.type);
+  }
+
+  static bool requiresJpegNormalization({
+    required String extension,
+    required String contentType,
+  }) {
+    final cleanExtension = extension.trim().toLowerCase();
+    final cleanContentType = contentType.trim().toLowerCase();
+    return cleanExtension == 'heic' ||
+        cleanExtension == 'heif' ||
+        cleanContentType.startsWith('image/heic') ||
+        cleanContentType.startsWith('image/heif');
   }
 
   static Uint8List bytesFromReaderResult(Object? result) {
     if (result is Uint8List) return result;
     if (result is ByteBuffer) return Uint8List.view(result);
     throw Exception('Не удалось прочитать фото');
+  }
+
+  static Future<Uint8List> readFileBytes(html.File file) async {
+    final reader = html.FileReader();
+    final loaded = reader.onLoad.first.then<Uint8List>((_) {
+      return bytesFromReaderResult(reader.result);
+    });
+    final failed = reader.onError.first.then<Uint8List>((_) {
+      throw Exception('Не удалось прочитать фото ${file.name}');
+    });
+
+    reader.readAsArrayBuffer(file);
+
+    return Future.any<Uint8List>(<Future<Uint8List>>[loaded, failed]).timeout(
+      fileReadTimeout,
+      onTimeout: () {
+        throw TimeoutException(
+          'Фото ${file.name} слишком долго обрабатывается. Попробуйте ещё раз.',
+        );
+      },
+    );
   }
 
   static Future<List<TaskPhotoFile>> pickPhotoFiles() async {
@@ -39,18 +98,19 @@ class TaskPhotoBrowserService {
 
     final photos = <TaskPhotoFile>[];
     for (final file in files) {
-      final extension = extensionFromFileName(file.name);
+      final extension = extensionForFile(file);
       if (extension.isEmpty) {
         throw Exception(
-          'Можно загрузить только JPG, PNG или WEBP: ${file.name}',
+          'Не удалось определить формат фотографии ${file.name}. '
+          'Выберите изображение из медиатеки ещё раз.',
         );
       }
 
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
-      await reader.onLoad.first;
-
-      final originalBytes = bytesFromReaderResult(reader.result);
+      final originalBytes = await readFileBytes(file);
+      final forceJpeg = requiresJpegNormalization(
+        extension: extension,
+        contentType: file.type,
+      );
       final compressedPhoto =
           await ImageCompressionService.compressHtmlImageFile(
             file: file,
@@ -58,7 +118,15 @@ class TaskPhotoBrowserService {
             originalName: file.name,
             maxDimension: 1600,
             jpegQuality: 0.82,
+            forceJpeg: forceJpeg,
           );
+
+      if (forceJpeg && compressedPhoto.extension != 'jpg') {
+        throw Exception(
+          'Не удалось преобразовать фото iPhone ${file.name} в JPEG. '
+          'Попробуйте выбрать это фото ещё раз.',
+        );
+      }
 
       photos.add(
         TaskPhotoFile(
