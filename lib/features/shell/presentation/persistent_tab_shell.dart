@@ -73,6 +73,9 @@ class PersistentTabController extends ChangeNotifier {
 }
 
 class PersistentTabShell extends StatefulWidget {
+  static const double workDepth = 1.28;
+  static const double workCardRadius = 22;
+
   final PersistentTabController controller;
   final List<ProfessionalBottomNavigationItem> items;
   final IndexedWidgetBuilder tabBuilder;
@@ -95,9 +98,6 @@ class PersistentTabShell extends StatefulWidget {
 }
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
-  static const double _workDepth = 1.28;
-  static const double _workCardRadius = 22;
-
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
 
   Widget workVisualScope({
@@ -105,8 +105,8 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     bool hidePageSubtitles = false,
   }) {
     return LiquidGlassStyleScope(
-      depth: _workDepth,
-      cardRadius: _workCardRadius,
+      depth: PersistentTabShell.workDepth,
+      cardRadius: PersistentTabShell.workCardRadius,
       hidePageSubtitles: hidePageSubtitles,
       compactPageLayout: true,
       child: child,
