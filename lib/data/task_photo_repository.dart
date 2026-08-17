@@ -225,7 +225,8 @@ class TaskPhotoRepository {
     request.setRequestHeader('Cache-Control', 'max-age=3600');
 
     request.upload.onProgress.listen((event) {
-      onProgress(event.loaded.toInt());
+      final loaded = event.loaded ?? 0;
+      onProgress(loaded.toInt());
     });
     request.onLoad.listen((_) {
       if (completer.isCompleted) return;
