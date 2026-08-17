@@ -70,7 +70,7 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
                   // blocks on mobile.
                   buildActionButtons(),
                   const SizedBox(height: 18),
-                  buildPhotosBlock(
+                  buildFastPhotosBlock(
                     photoStage: 'before',
                     title: 'Фото «До»',
                     emptyText: policy.requireBeforePhoto
@@ -78,7 +78,7 @@ extension _TaskDetailsView on _TaskDetailsScreenState {
                         : 'Фото «До» не прикреплено',
                   ),
                   const SizedBox(height: 14),
-                  buildPhotosBlock(
+                  buildFastPhotosBlock(
                     photoStage: 'after',
                     title: 'Фото «После»',
                     emptyText: policy.requireAfterPhotoOnComplete

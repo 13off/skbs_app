@@ -9,6 +9,7 @@ import 'task_photo_models.dart';
 class TaskPhotoBrowserService {
   static const acceptedFileTypes = 'image/*,.heic,.heif';
   static const Duration fileReadTimeout = Duration(seconds: 25);
+  static const int prepareConcurrency = 2;
 
   const TaskPhotoBrowserService._();
 
@@ -85,7 +86,49 @@ class TaskPhotoBrowserService {
     );
   }
 
-  static Future<List<TaskPhotoFile>> pickPhotoFiles() async {
+  static Future<TaskPhotoFile> _preparePhotoFile(html.File file) async {
+    final extension = extensionForFile(file);
+    if (extension.isEmpty) {
+      throw Exception(
+        'Не удалось определить формат фотографии ${file.name}. '
+        'Выберите изображение из медиатеки ещё раз.',
+      );
+    }
+
+    final originalBytes = await readFileBytes(file);
+    final forceJpeg = requiresJpegNormalization(
+      extension: extension,
+      contentType: file.type,
+    );
+    final compressedPhoto = await ImageCompressionService.compressHtmlImageFile(
+      file: file,
+      originalBytes: originalBytes,
+      originalName: file.name,
+      maxDimension: 1440,
+      jpegQuality: 0.78,
+      forceJpeg: forceJpeg,
+    );
+
+    if (forceJpeg && compressedPhoto.extension != 'jpg') {
+      throw Exception(
+        'Не удалось преобразовать фото iPhone ${file.name} в JPEG. '
+        'Попробуйте выбрать это фото ещё раз.',
+      );
+    }
+
+    return TaskPhotoFile(
+      originalName: file.name,
+      contentType: compressedPhoto.contentType,
+      extension: compressedPhoto.extension.isEmpty
+          ? extension
+          : compressedPhoto.extension,
+      bytes: compressedPhoto.bytes,
+    );
+  }
+
+  static Future<List<TaskPhotoFile>> pickPhotoFiles({
+    void Function(int completed, int total)? onPrepareProgress,
+  }) async {
     final input = html.FileUploadInputElement()
       ..multiple = true
       ..accept = acceptedFileTypes;
@@ -96,48 +139,21 @@ class TaskPhotoBrowserService {
     final files = input.files;
     if (files == null || files.isEmpty) return <TaskPhotoFile>[];
 
+    final selectedFiles = files.toList(growable: false);
     final photos = <TaskPhotoFile>[];
-    for (final file in files) {
-      final extension = extensionForFile(file);
-      if (extension.isEmpty) {
-        throw Exception(
-          'Не удалось определить формат фотографии ${file.name}. '
-          'Выберите изображение из медиатеки ещё раз.',
-        );
-      }
+    var completed = 0;
+    onPrepareProgress?.call(0, selectedFiles.length);
 
-      final originalBytes = await readFileBytes(file);
-      final forceJpeg = requiresJpegNormalization(
-        extension: extension,
-        contentType: file.type,
+    for (var start = 0; start < selectedFiles.length; start += prepareConcurrency) {
+      final end = (start + prepareConcurrency) < selectedFiles.length
+          ? start + prepareConcurrency
+          : selectedFiles.length;
+      final batch = await Future.wait(
+        selectedFiles.sublist(start, end).map(_preparePhotoFile),
       );
-      final compressedPhoto =
-          await ImageCompressionService.compressHtmlImageFile(
-            file: file,
-            originalBytes: originalBytes,
-            originalName: file.name,
-            maxDimension: 1600,
-            jpegQuality: 0.82,
-            forceJpeg: forceJpeg,
-          );
-
-      if (forceJpeg && compressedPhoto.extension != 'jpg') {
-        throw Exception(
-          'Не удалось преобразовать фото iPhone ${file.name} в JPEG. '
-          'Попробуйте выбрать это фото ещё раз.',
-        );
-      }
-
-      photos.add(
-        TaskPhotoFile(
-          originalName: file.name,
-          contentType: compressedPhoto.contentType,
-          extension: compressedPhoto.extension.isEmpty
-              ? extension
-              : compressedPhoto.extension,
-          bytes: compressedPhoto.bytes,
-        ),
-      );
+      photos.addAll(batch);
+      completed += batch.length;
+      onPrepareProgress?.call(completed, selectedFiles.length);
     }
 
     return photos;

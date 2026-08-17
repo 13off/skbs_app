@@ -49,3 +49,27 @@ class TaskPhotoFile {
     required this.bytes,
   });
 }
+
+class TaskPhotoUploadProgress {
+  final int loadedBytes;
+  final int totalBytes;
+  final int completedFiles;
+  final int totalFiles;
+
+  const TaskPhotoUploadProgress({
+    required this.loadedBytes,
+    required this.totalBytes,
+    required this.completedFiles,
+    required this.totalFiles,
+  });
+
+  double get fraction {
+    if (totalBytes <= 0) return 0;
+    return (loadedBytes / totalBytes).clamp(0.0, 1.0);
+  }
+
+  int get percent => (fraction * 100).floor().clamp(0, 100);
+}
+
+typedef TaskPhotoUploadProgressCallback =
+    void Function(TaskPhotoUploadProgress progress);

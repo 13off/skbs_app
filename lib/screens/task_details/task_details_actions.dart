@@ -37,56 +37,6 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     });
   }
 
-  Future<void> addPhotos(String photoStage) async {
-    if (!canEdit || pickingPhotoStage != null) return;
-    if (photoStage != 'before' && photoStage != 'after') {
-      throw ArgumentError.value(photoStage, 'photoStage');
-    }
-
-    final taskId = widget.task.id;
-    if (taskId == null || taskId.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Сначала сохраните задачу')));
-      return;
-    }
-
-    setState(() {
-      pickingPhotoStage = photoStage;
-      errorText = null;
-    });
-
-    try {
-      final pickedPhotos = await TaskRepository.pickPhotoFiles();
-      if (pickedPhotos.isEmpty) return;
-
-      final uploadedPhotos = await TaskRepository.uploadPhotosForTask(
-        taskId: taskId,
-        photos: pickedPhotos,
-        photoStage: photoStage,
-      );
-      if (!mounted) return;
-
-      setState(() => photos = <TaskPhotoData>[...uploadedPhotos, ...photos]);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            photoStage == 'before'
-                ? 'Фото «До» добавлены'
-                : 'Фото «После» добавлены',
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => errorText = 'Ошибка загрузки фото: $error');
-    } finally {
-      if (mounted && pickingPhotoStage == photoStage) {
-        setState(() => pickingPhotoStage = null);
-      }
-    }
-  }
-
   Future<void> openPhoto(TaskPhotoData photo) async {
     try {
       await TaskRepository.openTaskPhoto(photo);
