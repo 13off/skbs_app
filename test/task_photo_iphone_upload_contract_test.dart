@@ -54,7 +54,7 @@ void main() {
     expect(picker, contains('Future.wait'));
     expect(photoActions, contains("'Добавить фотографии'"));
     expect(photoActions, contains("'Добавить ещё фотографии'"));
-    expect(photoActions, contains('Добавлено фотографий: $count'));
+    expect(photoActions, contains(r'Добавлено фотографий: $count'));
   });
 
   test('процент загрузки считается по реально отправленным байтам', () {
@@ -70,10 +70,11 @@ void main() {
     expect(models, contains('totalBytes'));
     expect(models, contains('loadedBytes / totalBytes'));
     expect(repository, contains('request.upload.onProgress'));
-    expect(repository, contains('event.loaded.toInt()'));
+    expect(repository, contains('final loaded = event.loaded ?? 0;'));
+    expect(repository, contains('onProgress(loaded.toInt())'));
     expect(repository, contains("request.open(\n      'POST'"));
     expect(repository, contains("request.setRequestHeader('Content-Type'"));
-    expect(photoActions, contains("'Загрузка ${progress.percent}%"));
+    expect(photoActions, contains(r"'Загрузка ${progress.percent}%"));
     expect(photoActions, contains('LinearProgressIndicator'));
     expect(photoActions, contains('value: progress.fraction'));
   });
