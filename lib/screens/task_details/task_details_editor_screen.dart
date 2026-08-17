@@ -21,6 +21,7 @@ import '../add_task_screen.dart';
 
 part 'task_details_actions.dart';
 part 'task_details_loading.dart';
+part 'task_details_photo_actions.dart';
 part 'task_details_sections.dart';
 part 'task_details_view.dart';
 
