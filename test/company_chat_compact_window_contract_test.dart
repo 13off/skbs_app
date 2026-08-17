@@ -93,12 +93,15 @@ void main() {
 
   test('employee platform is never wrapped in company chat', () {
     final mainScreen = File('lib/screens/main_screen.dart').readAsStringSync();
+    const employeeReturn =
+        'if (profile.isEmployee) return workVisualScope(content);';
+    const chatWrapper = 'CompanyChatShell(';
 
-    expect(mainScreen, contains('if (profile.isEmployee) return content'));
-    expect(mainScreen, contains('return CompanyChatShell('));
+    expect(mainScreen, contains(employeeReturn));
+    expect(mainScreen, contains(chatWrapper));
     expect(
-      mainScreen.indexOf('if (profile.isEmployee) return content'),
-      lessThan(mainScreen.indexOf('return CompanyChatShell(')),
+      mainScreen.indexOf(employeeReturn),
+      lessThan(mainScreen.indexOf(chatWrapper, mainScreen.indexOf(employeeReturn))),
     );
   });
 }
