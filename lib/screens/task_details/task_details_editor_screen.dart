@@ -58,7 +58,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   bool isLoading = false;
   bool isSaving = false;
-  bool isPickingPhotos = false;
+  String? pickingPhotoStage;
   TaskPolicy policy = TaskPolicy.defaults;
   String? deletingPhotoId;
   String? errorText;
