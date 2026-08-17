@@ -63,7 +63,7 @@ class PremiumWorkCard extends StatelessWidget {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
 
-    return LiquidGlassSurface(
+    Widget surface() => LiquidGlassSurface(
       margin: margin,
       padding: padding,
       radius: radius,
@@ -77,6 +77,13 @@ class PremiumWorkCard extends StatelessWidget {
           ? Colors.white.withValues(alpha: 0.12)
           : Colors.white.withValues(alpha: 0.92),
       child: child,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.hasBoundedWidth) return surface();
+        return SizedBox(width: double.infinity, child: surface());
+      },
     );
   }
 }
