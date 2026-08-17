@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// Также служит публикационным guard для живого обновления кэшированных вкладок.
 void main() {
   test('cached persistent tabs rebuild on live theme changes', () {
     final shell = File(
@@ -12,17 +11,19 @@ void main() {
     expect(shell, contains("import '../../../app/theme_controller.dart';"));
     expect(shell, contains('animation: AppThemeController.instance'));
     expect(shell, contains('Theme.of(context);'));
-    expect(shell, contains('return widget.tabBuilder(context, index);'));
+    expect(shell, contains('widget.tabBuilder(context, index)'));
+    expect(shell, contains('final rootPage = overrideBuilder != null'));
+    expect(shell, contains('child: rootPage'));
 
     expect(
       shell,
       isNot(contains("ValueKey<String>('theme:")),
-      reason: 'Смена темы не должна пересоздавать Navigator и терять вкладку.',
+      reason: 'Theme changes must not recreate nested Navigator state.',
     );
     expect(
       shell,
       contains('final Map<int, Widget> _tabNavigators'),
-      reason: 'Кэш и история вложенных вкладок должны сохраняться.',
+      reason: 'Nested tab cache and navigation history must stay alive.',
     );
   });
 }

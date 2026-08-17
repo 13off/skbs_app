@@ -31,7 +31,10 @@ void main() {
     expect(workScreen, contains("label: 'Начать работу'"));
     expect(workScreen, contains("label: 'Начать выполнение'"));
     expect(workScreen, contains("'Работа идёт'"));
-    expect(main, contains('if (profile.isEmployee) return content;'));
+    expect(
+      main,
+      contains('if (profile.isEmployee) return workVisualScope(content);'),
+    );
   });
 
   test('начало рабочего дня не запускает задачу автоматически', () {

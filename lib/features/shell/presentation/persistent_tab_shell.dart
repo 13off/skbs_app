@@ -73,6 +73,9 @@ class PersistentTabController extends ChangeNotifier {
 }
 
 class PersistentTabShell extends StatefulWidget {
+  static const double workDepth = 1.28;
+  static const double workCardRadius = 22;
+
   final PersistentTabController controller;
   final List<ProfessionalBottomNavigationItem> items;
   final IndexedWidgetBuilder tabBuilder;
@@ -96,6 +99,19 @@ class PersistentTabShell extends StatefulWidget {
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
+
+  Widget workVisualScope({
+    required Widget child,
+    bool hidePageSubtitles = false,
+  }) {
+    return LiquidGlassStyleScope(
+      depth: PersistentTabShell.workDepth,
+      cardRadius: PersistentTabShell.workCardRadius,
+      hidePageSubtitles: hidePageSubtitles,
+      compactPageLayout: true,
+      child: child,
+    );
+  }
 
   @override
   void initState() {
@@ -149,10 +165,17 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
               // Equivalent to override?.builder?.call(context), but explicit so
               // the established direct tabBuilder fallback remains intact.
               final overrideBuilder = override?.builder;
-              if (overrideBuilder != null) {
-                return overrideBuilder(context);
-              }
-              return widget.tabBuilder(context, index);
+              final rootPage = overrideBuilder != null
+                  ? overrideBuilder(context)
+                  : widget.tabBuilder(context, index);
+
+              // Корневые вкладки должны быть короткими и рабочими: название
+              // достаточно объясняет раздел. Вложенные карточки сохраняют
+              // статус, срок, объект и другой полезный подзаголовок.
+              return workVisualScope(
+                hidePageSubtitles: true,
+                child: rootPage,
+              );
             },
           ),
         ),
@@ -174,29 +197,31 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     // Keep the established nested-navigation and root-route behavior.
     // Flutter 3.44 deprecates this API before the replacement is covered
     // by route-level integration tests in every target shell.
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: () => widget.controller.handleBack(
-        returnToFirstTab: widget.returnToFirstTabOnBack,
-      ),
-      child: AppSurfaceBackdrop(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: IndexedStack(
-            index: activeIndex,
-            children: List<Widget>.generate(widget.controller.pageCount, (
-              index,
-            ) {
-              final child = _tabNavigators[index];
-              if (child == null) return const SizedBox.shrink();
-              return TickerMode(enabled: index == activeIndex, child: child);
-            }),
-          ),
-          bottomNavigationBar: ProfessionalBottomNavigation(
-            items: widget.items,
-            selectedIndex: activeIndex,
-            storageKey: widget.navigationStorageKey,
-            onSelected: widget.controller.select,
+    return workVisualScope(
+      // ignore: deprecated_member_use
+      child: WillPopScope(
+        onWillPop: () => widget.controller.handleBack(
+          returnToFirstTab: widget.returnToFirstTabOnBack,
+        ),
+        child: AppSurfaceBackdrop(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: IndexedStack(
+              index: activeIndex,
+              children: List<Widget>.generate(widget.controller.pageCount, (
+                index,
+              ) {
+                final child = _tabNavigators[index];
+                if (child == null) return const SizedBox.shrink();
+                return TickerMode(enabled: index == activeIndex, child: child);
+              }),
+            ),
+            bottomNavigationBar: ProfessionalBottomNavigation(
+              items: widget.items,
+              selectedIndex: activeIndex,
+              storageKey: widget.navigationStorageKey,
+              onSelected: widget.controller.select,
+            ),
           ),
         ),
       ),

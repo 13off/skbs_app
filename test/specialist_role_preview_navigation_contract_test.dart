@@ -21,9 +21,10 @@ void expectPersistentTabNavigation(String path) {
   expect(shell, contains('onGenerateRoute: (settings)'));
   expect(shell, contains('widget.tabBuilder(context, index)'));
   expect(shell, contains('navigator.popUntil((route) => route.isFirst)'));
-  expect(shell, contains('return WillPopScope('));
+  expect(shell, contains('child: WillPopScope('));
   expect(shell, contains('widget.controller.handleBack('));
   expect(shell, contains('returnToFirstTab: widget.returnToFirstTabOnBack'));
+  expect(shell, contains('return workVisualScope('));
   expect(shell, isNot(contains('PopScope<void>(')));
 }
 
