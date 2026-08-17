@@ -18,20 +18,27 @@ extension _EmployeesSections on _EmployeesScreenState {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: primary ? _accent : _line),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 19, color: foreground),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(color: foreground, fontWeight: FontWeight.w800),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ],
         ),
@@ -41,25 +48,56 @@ extension _EmployeesSections on _EmployeesScreenState {
 
   Widget header() {
     final scopeTitle = objectName ?? 'Все объекты';
-    final actions = Wrap(
-      spacing: 10,
-      runSpacing: 10,
+
+    Widget actionCell({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      bool primary = false,
+    }) {
+      return Expanded(
+        child: actionButton(
+          icon: icon,
+          label: label,
+          onTap: onTap,
+          primary: primary,
+        ),
+      );
+    }
+
+    final actions = Column(
       children: [
-        actionButton(
-          icon: Icons.payments_outlined,
-          label: 'Выплаты',
-          onTap: openPayments,
+        Row(
+          children: [
+            actionCell(
+              icon: Icons.payments_outlined,
+              label: 'Выплаты',
+              onTap: openPayments,
+            ),
+            const SizedBox(width: 10),
+            actionCell(
+              icon: Icons.gavel_outlined,
+              label: 'Штрафы',
+              onTap: openFines,
+            ),
+          ],
         ),
-        actionButton(
-          icon: Icons.table_view_outlined,
-          label: 'Сводка',
-          onTap: downloadSummary,
-        ),
-        actionButton(
-          icon: Icons.person_add_alt_1,
-          label: 'Добавить',
-          onTap: addEmployee,
-          primary: true,
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            actionCell(
+              icon: Icons.table_view_outlined,
+              label: 'Сводка',
+              onTap: downloadSummary,
+            ),
+            const SizedBox(width: 10),
+            actionCell(
+              icon: Icons.person_add_alt_1,
+              label: 'Добавить',
+              onTap: addEmployee,
+              primary: true,
+            ),
+          ],
         ),
       ],
     );

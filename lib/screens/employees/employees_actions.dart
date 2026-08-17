@@ -40,6 +40,13 @@ extension _EmployeesActions on _EmployeesScreenState {
     );
   }
 
+  void openFines() {
+    Navigator.push<void>(
+      context,
+      AppPageRoute<void>(builder: (_) => const AbsenceFinesScreen()),
+    );
+  }
+
   Future<void> downloadSummary() async {
     try {
       await directoryController.downloadSummary();
