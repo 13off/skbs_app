@@ -22,6 +22,7 @@ import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
+import '../widgets/premium_ui.dart';
 
 class MainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -34,6 +35,9 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   static const Duration _maximumWarmup = Duration(seconds: 7);
+  static const double _workDepth = 1.28;
+  static const double _workCardRadius = 22;
+
   int warmupToken = 0;
   late Future<void> navigationRestoreFuture;
 
@@ -166,6 +170,16 @@ class _MainScreenState extends State<MainScreen> {
     return premium.MainScreen(profile: profile);
   }
 
+  Widget workVisualScope(Widget child) {
+    return LiquidGlassStyleScope(
+      depth: _workDepth,
+      cardRadius: _workCardRadius,
+      hidePageSubtitles: false,
+      compactPageLayout: true,
+      child: child,
+    );
+  }
+
   Widget buildPlatform() {
     return ValueListenableBuilder(
       valueListenable: PersonalProfileController.state,
@@ -194,13 +208,15 @@ class _MainScreenState extends State<MainScreen> {
                     child: platform,
                   );
 
-            if (profile.isEmployee) return content;
-            return CompanyChatShell(
-              key: ValueKey<String>(
-                'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
+            if (profile.isEmployee) return workVisualScope(content);
+            return workVisualScope(
+              CompanyChatShell(
+                key: ValueKey<String>(
+                  'chat:${profile.id}:${profile.fullName}:${profile.avatarPath}',
+                ),
+                profile: profile,
+                child: content,
               ),
-              profile: profile,
-              child: content,
             );
           },
         );
