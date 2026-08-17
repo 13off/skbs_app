@@ -18,6 +18,7 @@ import '../features/profile/data/personal_profile_controller.dart';
 import '../features/recruitment/presentation/recruitment_main_screen.dart';
 import '../features/reports/presentation/manager_main_screen.dart';
 import '../features/role_preview/role_preview_controller.dart';
+import '../features/shell/presentation/persistent_tab_shell.dart';
 import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
@@ -35,8 +36,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   static const Duration _maximumWarmup = Duration(seconds: 7);
-  static const double _workDepth = 1.28;
-  static const double _workCardRadius = 22;
 
   int warmupToken = 0;
   late Future<void> navigationRestoreFuture;
@@ -172,8 +171,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget workVisualScope(Widget child) {
     return LiquidGlassStyleScope(
-      depth: _workDepth,
-      cardRadius: _workCardRadius,
+      depth: PersistentTabShell.workDepth,
+      cardRadius: PersistentTabShell.workCardRadius,
       hidePageSubtitles: false,
       compactPageLayout: true,
       child: child,
