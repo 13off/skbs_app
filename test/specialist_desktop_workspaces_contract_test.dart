@@ -5,39 +5,44 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('lawyer platform uses adaptive desktop workspaces', () {
+  test('lawyer platform uses completed adaptive workspaces', () {
     final main = source(
       'lib/features/legal/presentation/legal_main_screen.dart',
     );
-    final dashboard = source(
-      'lib/features/legal/presentation/adaptive_legal_dashboard_screen.dart',
+    final today = source(
+      'lib/features/legal/presentation/legal_today_complete_screen.dart',
+    );
+    final base = source(
+      'lib/features/legal/presentation/legal_base_complete_screen.dart',
     );
     final documents = source(
-      'lib/features/legal/presentation/adaptive_legal_documents_screen.dart',
+      'lib/features/legal/presentation/legal_documents_complete_screen.dart',
     );
     final matters = source(
-      'lib/features/legal/presentation/adaptive_legal_matters_screen.dart',
+      'lib/features/legal/presentation/legal_matters_complete_screen.dart',
     );
 
-    expect(main, contains('AdaptiveLegalDashboardScreen'));
-    expect(main, contains('AdaptiveLegalDocumentsScreen'));
-    expect(main, contains('AdaptiveLegalMattersScreen'));
-    expect(main, contains('ProfessionalBottomNavigation'));
-    expect(main, contains('selectTabNavigator'));
-    expect(main, contains('LegalDocumentDetailsScreen'));
-    expect(main, contains('LegalMatterDetailsScreen'));
+    expect(main, contains('LegalTodayCompleteScreen'));
+    expect(main, contains('LegalBaseCompleteScreen'));
+    expect(main, contains('LegalDocumentsCompleteScreen'));
+    expect(main, contains('LegalMattersCompleteScreen'));
+    expect(main, contains('PersistentTabShell'));
+    expect(main, contains('ProfessionalBottomNavigationItem'));
 
-    expect(dashboard, contains('specialistDesktopBreakpoint'));
-    expect(dashboard, contains('LegalDashboardScreen(profile: profile)'));
-    expect(dashboard, contains("title: 'Сегодня'"));
-    expect(dashboard, contains('LegalWorkspaceRepository.fetchRecoveries'));
-    expect(documents, contains('LegalDocumentsScreen('));
-    expect(documents, contains('SpecialistDesktopTable'));
-    expect(documents, contains("title: 'Юридические документы'"));
-    expect(documents, isNot(contains('LegalDocumentStatus.active')));
-    expect(matters, contains('LegalMattersScreen('));
-    expect(matters, contains('SpecialistDesktopTable'));
-    expect(matters, contains("title: managerMode ? 'Решения и риски'"));
+    expect(today, contains("title: 'Сегодня'"));
+    expect(today, contains('LegalOperationsRepository.fetchTodayItems'));
+    expect(today, contains('Контроль базы'));
+    expect(base, contains("title: 'База юриста'"));
+    expect(base, contains('LegalEmployeeCompleteScreen'));
+    expect(base, contains('LegalObjectCompleteScreen'));
+    expect(base, contains('LegalCounterpartyCompleteScreen'));
+    expect(documents, contains("title: 'Документы'"));
+    expect(documents, contains('LegalDocumentCompleteScreen'));
+    expect(documents, contains('Только требующие внимания'));
+    expect(matters, contains("title: 'Дела'"));
+    expect(matters, contains('LegalMatterCompleteScreen'));
+    expect(matters, contains("('court', 'Суды')"));
+    expect(matters, contains("('claim', 'Претензии')"));
   });
 
   test('accountant platform uses adaptive desktop workspaces', () {
