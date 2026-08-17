@@ -10,6 +10,7 @@ import '../data/legal_repository.dart';
 import '../data/legal_workspace_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
+import 'legal_employee_dossier_screen.dart';
 import 'legal_matters_screen.dart';
 
 /// Единая база юриста.
@@ -129,18 +130,7 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
             onTap: () => Navigator.push<void>(
               context,
               CupertinoPageRoute<void>(
-                builder: (_) => _EmployeeDossierScreen(
-                  employee: item,
-                  documents: data.workspace.documents
-                      .where((document) => document.employeeId == item.id)
-                      .toList(),
-                  matters: data.matters
-                      .where((matter) => matter.employeeId == item.id)
-                      .toList(),
-                  recoveries: data.workspace.recoveries
-                      .where((recovery) => recovery.employeeId == item.id)
-                      .toList(),
-                ),
+                builder: (_) => LegalEmployeeDossierScreen(employee: item),
               ),
             ),
           ),
@@ -536,104 +526,6 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => openMatter(matter),
         ),
-      ),
-    );
-  }
-}
-
-class _EmployeeDossierScreen extends StatefulWidget {
-  final LegalWorkspaceEmployee employee;
-  final List<LegalWorkspaceDocument> documents;
-  final List<LegalMatter> matters;
-  final List<LegalWorkspaceRecovery> recoveries;
-
-  const _EmployeeDossierScreen({
-    required this.employee,
-    required this.documents,
-    required this.matters,
-    required this.recoveries,
-  });
-
-  @override
-  State<_EmployeeDossierScreen> createState() => _EmployeeDossierScreenState();
-}
-
-class _EmployeeDossierScreenState extends State<_EmployeeDossierScreen> with _DossierHelpers<_EmployeeDossierScreen> {
-  @override
-  Widget build(BuildContext context) {
-    final employee = widget.employee;
-    return Scaffold(
-      appBar: AppBar(title: Text(employee.fio)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-        children: [
-          PremiumWorkCard(
-            radius: 24,
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(employee.fio, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 5),
-                Text(<String>[if (employee.position.isNotEmpty) employee.position, if (employee.objectName.isNotEmpty) employee.objectName].join(' • ')),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _CountChip('${widget.documents.length} документов', Icons.description_outlined),
-                    _CountChip('${widget.matters.length} дел', Icons.gavel_outlined),
-                    _CountChip('${widget.recoveries.length} взысканий', Icons.payments_outlined),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              FilledButton.icon(
-                onPressed: () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => const LegalDocumentEditorScreen())),
-                icon: const Icon(Icons.note_add_outlined),
-                label: const Text('Добавить документ'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => const LegalMatterEditorScreen())),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Создать дело'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          section(
-            'Документы сотрудника',
-            widget.documents.map(workspaceDocumentTile).toList(),
-            emptyText: 'Документы сотрудника пока не загружены. Их можно добавить кнопкой выше.',
-          ),
-          section(
-            'Юридические дела',
-            widget.matters.map(matterTile).toList(),
-            emptyText: 'Связанных юридических дел пока нет.',
-          ),
-          section(
-            'Взыскания и невыходы',
-            widget.recoveries.map((recovery) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: PremiumWorkCard(
-                radius: 20,
-                padding: EdgeInsets.zero,
-                child: ListTile(
-                  leading: const Icon(Icons.payments_outlined),
-                  title: Text('${money(recovery.amount)} • ${date(recovery.absenceDate)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(recovery.status == 'confirmed' ? 'Подтверждено руководителем' : 'Ожидает решения руководителя'),
-                ),
-              ),
-            )).toList(),
-            emptyText: 'Взысканий нет.',
-          ),
-        ],
       ),
     );
   }
