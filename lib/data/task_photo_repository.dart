@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:universal_html/html.dart' as html;
 
 import 'app_data_sync.dart';
 import 'task_photo_models.dart';
@@ -7,6 +11,8 @@ class TaskPhotoRepository {
   static final _client = Supabase.instance.client;
   static const bucketName = 'task-photos';
   static const signedUrlLifetimeSeconds = 60 * 10;
+  static const uploadConcurrency = 2;
+  static const uploadTimeoutMs = 60 * 1000;
 
   const TaskPhotoRepository._();
 
@@ -40,6 +46,7 @@ class TaskPhotoRepository {
     required String taskId,
     required List<TaskPhotoFile> photos,
     required String photoStage,
+    TaskPhotoUploadProgressCallback? onProgress,
   }) async {
     if (photos.isEmpty) return <TaskPhotoData>[];
     if (photoStage != 'before' && photoStage != 'after') {
@@ -59,25 +66,63 @@ class TaskPhotoRepository {
       );
     });
     final uploadedPaths = <String>[];
+    final loadedBytesByPath = <String, int>{
+      for (final item in uploadItems) item.path: 0,
+    };
+    final totalBytes = photos.fold<int>(
+      0,
+      (sum, photo) => sum + photo.bytes.length,
+    );
+    var completedFiles = 0;
+
+    void emitProgress() {
+      if (onProgress == null) return;
+      final loadedBytes = loadedBytesByPath.values.fold<int>(
+        0,
+        (sum, loaded) => sum + loaded,
+      );
+      onProgress(
+        TaskPhotoUploadProgress(
+          loadedBytes: loadedBytes,
+          totalBytes: totalBytes,
+          completedFiles: completedFiles,
+          totalFiles: photos.length,
+        ),
+      );
+    }
+
+    emitProgress();
 
     try {
-      // Фото независимы друг от друга. Параллельная отправка заметно сокращает
-      // ожидание после кнопки «Сохранить» при нескольких снимках.
-      await Future.wait(
-        uploadItems.map((item) async {
-          await _client.storage
-              .from(bucketName)
-              .uploadBinary(
-                item.path,
-                item.photo.bytes,
-                fileOptions: FileOptions(
-                  contentType: item.photo.contentType,
-                  upsert: false,
-                ),
-              );
-          uploadedPaths.add(item.path);
-        }),
-      );
+      for (
+        var start = 0;
+        start < uploadItems.length;
+        start += uploadConcurrency
+      ) {
+        final end = (start + uploadConcurrency) < uploadItems.length
+            ? start + uploadConcurrency
+            : uploadItems.length;
+        final batch = uploadItems.sublist(start, end);
+
+        await Future.wait(
+          batch.map((item) async {
+            await _uploadPhotoBytes(
+              path: item.path,
+              photo: item.photo,
+              onProgress: (loadedBytes) {
+                loadedBytesByPath[item.path] = loadedBytes
+                    .clamp(0, item.photo.bytes.length)
+                    .toInt();
+                emitProgress();
+              },
+            );
+            loadedBytesByPath[item.path] = item.photo.bytes.length;
+            uploadedPaths.add(item.path);
+            completedFiles += 1;
+            emitProgress();
+          }),
+        );
+      }
 
       final rowsToInsert = uploadItems
           .map(
@@ -104,6 +149,119 @@ class TaskPhotoRepository {
       await removeStoragePaths(uploadedPaths);
       rethrow;
     }
+  }
+
+  static Future<void> _uploadPhotoBytes({
+    required String path,
+    required TaskPhotoFile photo,
+    required void Function(int loadedBytes) onProgress,
+  }) async {
+    if (!kIsWeb) {
+      await _client.storage
+          .from(bucketName)
+          .uploadBinary(
+            path,
+            photo.bytes,
+            fileOptions: FileOptions(
+              contentType: photo.contentType,
+              upsert: false,
+            ),
+          );
+      onProgress(photo.bytes.length);
+      return;
+    }
+
+    await _uploadPhotoBytesWeb(
+      path: path,
+      photo: photo,
+      onProgress: onProgress,
+    );
+  }
+
+  static Future<void> _uploadPhotoBytesWeb({
+    required String path,
+    required TaskPhotoFile photo,
+    required void Function(int loadedBytes) onProgress,
+  }) async {
+    final session = _client.auth.currentSession;
+    if (session == null || session.accessToken.isEmpty) {
+      throw Exception('Сессия истекла. Войдите в приложение ещё раз.');
+    }
+
+    final authHeaders = _client.auth.headers;
+    final apiKey = authHeaders.entries
+        .where((entry) => entry.key.toLowerCase() == 'apikey')
+        .map((entry) => entry.value)
+        .firstOrNull;
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('Не удалось подготовить авторизацию для загрузки фото');
+    }
+
+    final cleanStorageUrl = _client.storage.url.replaceFirst(
+      RegExp(r'/+$'),
+      '',
+    );
+    final encodedObjectPath = <String>[
+      bucketName,
+      ...path.split('/'),
+    ].map(Uri.encodeComponent).join('/');
+    final request = html.HttpRequest();
+    final completer = Completer<void>();
+
+    request.open(
+      'POST',
+      '$cleanStorageUrl/object/$encodedObjectPath',
+      async: true,
+    );
+    request.timeout = uploadTimeoutMs;
+    request.setRequestHeader('apikey', apiKey);
+    request.setRequestHeader(
+      'Authorization',
+      'Bearer ${session.accessToken}',
+    );
+    request.setRequestHeader('Content-Type', photo.contentType);
+    request.setRequestHeader('Cache-Control', 'max-age=3600');
+
+    request.upload.onProgress.listen((event) {
+      final loaded = event.loaded;
+      onProgress(loaded.toInt());
+    });
+    request.onLoad.listen((_) {
+      if (completer.isCompleted) return;
+      final status = request.status ?? 0;
+      if (status >= 200 && status < 300) {
+        onProgress(photo.bytes.length);
+        completer.complete();
+        return;
+      }
+      final response = request.responseText?.trim();
+      completer.completeError(
+        Exception(
+          response == null || response.isEmpty
+              ? 'Storage вернул ошибку $status'
+              : 'Storage вернул ошибку $status: $response',
+        ),
+      );
+    });
+    request.onError.listen((_) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          Exception('Сеть прервала загрузку фотографии. Попробуйте ещё раз.'),
+        );
+      }
+    });
+    request.onTimeout.listen((_) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          TimeoutException(
+            'Фотография загружается слишком долго. Попробуйте ещё раз.',
+          ),
+        );
+      }
+    });
+
+    request.send(photo.bytes);
+    await completer.future;
   }
 
   static Future<void> removeStoragePaths(Iterable<String> paths) async {
