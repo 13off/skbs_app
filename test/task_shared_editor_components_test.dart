@@ -79,6 +79,9 @@ void main() {
     final detailsActions = File(
       'lib/screens/task_details/task_details_actions.dart',
     ).readAsStringSync();
+    final detailsPhotoActions = File(
+      'lib/screens/task_details/task_details_photo_actions.dart',
+    ).readAsStringSync();
     final detailsSections = File(
       'lib/screens/task_details/task_details_sections.dart',
     ).readAsStringSync();
@@ -89,10 +92,14 @@ void main() {
       expect(actions, contains('TaskDraftValidation.coreFields('));
       expect(actions, isNot(contains('showModalBottomSheet<Set<String>>')));
     }
-    for (final sections in <String>[createSections, detailsSections]) {
-      expect(sections, contains('TaskAssigneeSummaryCard('));
-      expect(sections, contains('TaskPhotoGrid<'));
-      expect(sections, isNot(contains('GridView.builder(')));
-    }
+
+    expect(createSections, contains('TaskAssigneeSummaryCard('));
+    expect(createSections, contains('TaskPhotoGrid<'));
+    expect(createSections, isNot(contains('GridView.builder(')));
+
+    final detailsUi = '$detailsSections\n$detailsPhotoActions';
+    expect(detailsUi, contains('TaskAssigneeSummaryCard('));
+    expect(detailsUi, contains('TaskPhotoGrid<'));
+    expect(detailsUi, isNot(contains('GridView.builder(')));
   });
 }
