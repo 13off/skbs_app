@@ -1,7 +1,6 @@
 AppСтрой Android release
-version: 1.3.9+15
+version: 1.3.9+18
 release date: 2026-08-18
-accepted application commit: 383c0f0087a8bd91bbab40a5aca87bfed14140c3
-mobile release source: 3d81d3c3dfe89e37ce88b9ae5dee4a378db82256
+accepted application commit: 0746ea6d59706555eb7c431866c354dd4c93b807
 release workflow: .github/workflows/build-android-apk.yml
-reason: replace web-only task photo FileUploadInputElement with Android system multi-image picker; normalize selected images to JPEG before task photo upload; preserve before/after multi-photo flow
+reason: remove global floating chat and microphone controls across all roles/screens while preserving native task photo picker, multiple before/after photos and the current task/photo business logic
