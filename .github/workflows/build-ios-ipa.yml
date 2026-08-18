@@ -40,6 +40,7 @@ jobs:
           repository: 13off/appstroy-web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
+          ref: downloads
 
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -173,7 +174,7 @@ jobs:
         shell: bash
         run: |
           cd appstroy-web
-          git pull --rebase
+          git pull --rebase origin downloads
           cd ..
           mkdir -p appstroy-web/downloads
           test -f ios-prepare.log || printf 'Prepare step did not produce a log\n' > ios-prepare.log
@@ -202,8 +203,8 @@ jobs:
             else
               git commit -m "сохранена ошибка сборки iOS"
             fi
-            git pull --rebase
-            git push
+            git pull --rebase origin downloads
+            git push origin HEAD:downloads
           fi
 
       - name: Fail workflow when iOS build failed

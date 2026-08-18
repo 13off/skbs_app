@@ -49,6 +49,7 @@ jobs:
           repository: 13off/appstroy-web
           token: ${{ secrets.WEB_DEPLOY_TOKEN }}
           path: appstroy-web
+          ref: downloads
 
       - name: Publish building status
         shell: bash
@@ -62,7 +63,7 @@ jobs:
           git add downloads/apk-build-status.txt downloads/source-commit.txt
           if ! git diff --cached --quiet; then
             git commit -m "запущена сборка APK через российский прокси"
-            git push
+            git push origin HEAD:downloads
           fi
 
       - name: Setup Java 17
@@ -150,7 +151,7 @@ jobs:
         shell: bash
         run: |
           cd appstroy-web
-          git pull --rebase
+          git pull --rebase origin downloads
           cd ..
 
           SOURCE_SHA="$(git rev-parse HEAD)"
@@ -177,7 +178,7 @@ jobs:
             else
               git commit -m "сохранена ошибка сборки APK"
             fi
-            git push
+            git push origin HEAD:downloads
           fi
 
       - name: Fail workflow when APK build failed
