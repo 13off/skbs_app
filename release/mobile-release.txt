@@ -1,11 +1,12 @@
 AppСтрой mobile release
-version: 1.3.9+13
-previous mobile release: 1.3.8+12
+version: 1.3.9+14
+previous mobile release: 1.3.9+13
 release date: 2026-08-18
 release attempt: 1
-accepted application commit: 4a37a0ea1bd2bf3800f360c5562b6f64d973d975
-release version commit: a503a5809d1f11f22109bc76171a3c753861e087
-features: manager expenses and receipts; manager Todos with reminders and automatic report-driven actions; absence fines with explanation and signed act flow; complete lawyer workspace Today/Base/Documents/Cases/Profile with employee/object/counterparty dossiers, document versions, process timeline and data quality control; unified volumetric glass UI across roles; mobile fines/payments/expense card fixes; iPhone task photo support with HEIC/HEIF normalization, multiple before/after photos, real byte upload progress and resilient live upload queue
+accepted application commit: e4f4eb0b8bd03cd6eaa08cf97969d3533c33ff95
+release version commit: acd5fd3e26cd2bcd970407d7a6cc968f61b3bef7
+features: built-in role-aware animated «Что нового» for changes since 12 August; manager Todos with automatic report-driven actions; absence fines with explanation and signed act flow; complete lawyer workspace Today/Base/Documents/Cases/Profile; unified volumetric glass UI across roles; iPhone task photo support with HEIC/HEIF normalization, multiple before/after photos, real byte upload progress and resilient live upload queue
+whats-new: one-time per user and role; dark glass dialog with blur, PageView, swipe/buttons, page dots and animated scenes; admin/developer see full release, lawyer sees legal/fines/common updates, employee/foreman see photos/common updates
 security: session and tenant cache isolation, atomic bulk operations, hardened Edge Functions/RPC/storage access, deterministic CI and production smoke coverage
 mobile: Android release APK and unsigned verification iOS IPA
-quality gates: Android and iOS workflows build from current main through the Russian Supabase proxy; web deployment remains independently validated
+quality gates: PR Check, Full Acceptance Test and backend follow-up for the in-app update are green before this mobile build
