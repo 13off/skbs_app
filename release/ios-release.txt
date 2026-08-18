@@ -1,6 +1,8 @@
 AppСтрой iOS verification release
-version: 1.3.8+12
-release date: 2026-08-12
-attempt: 2
-reason: fix Swift registration of TaskVoiceRecognition after FlutterImplicitEngineDelegate registrar became optional
+version: 1.3.9+15
+release date: 2026-08-18
+attempt: 1
+accepted application commit: 383c0f0087a8bd91bbab40a5aca87bfed14140c3
+mobile release source: 543d50e12cf80c03d49f8cb3ecd599da826b95e4
+reason: replace web-only task photo FileUploadInputElement with native PHPicker multi-image selection; decode iPhone photos including HEIC through UIKit and normalize to JPEG before task photo upload
 expected output: unsigned verification IPA
