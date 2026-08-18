@@ -5,6 +5,7 @@ import '../../app/app_adaptive_palette.dart';
 import '../../data/employee_repository.dart';
 import '../../data/task_photo_browser_service.dart';
 import '../../data/task_photo_repository.dart';
+import '../../data/task_photo_signed_url_cache.dart';
 import '../../data/task_repository.dart';
 import '../../features/developer/data/developer_policy_repository.dart';
 import '../../features/developer/models/task_policy.dart';
@@ -22,6 +23,7 @@ import '../add_task_screen.dart';
 part 'task_details_actions.dart';
 part 'task_details_loading.dart';
 part 'task_details_photo_actions.dart';
+part 'task_details_photo_viewer.dart';
 part 'task_details_sections.dart';
 part 'task_details_view.dart';
 
