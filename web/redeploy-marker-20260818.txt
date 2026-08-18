@@ -1,2 +1,2 @@
-PWA incident redeploy: 2026-08-18T20:11+03:00
-Reason: mobile release commits touched the GitHub Pages source branch; rebuild the validated current web app.
+PWA incident redeploy: 2026-08-18T20:18+03:00
+Reason: mobile release commits touched the GitHub Pages source branch; rebuild the validated current web app after fixing the release contract gate.
