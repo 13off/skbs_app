@@ -1,11 +1,10 @@
 AppСтрой mobile release
-version: 1.3.9+15
-previous mobile release: 1.3.9+14
+version: 1.3.9+18
+previous mobile release: 1.3.9+17
 release date: 2026-08-18
 release attempt: 1
-accepted application commit: 383c0f0087a8bd91bbab40a5aca87bfed14140c3
-release version commit: fad3cbfafe8fa611c724704f7bb4e8854feb7370
-features: native task photo picker for Android and iOS; multiple image selection; Android system document image picker; iOS PHPicker; native HEIC/image decoding and JPEG normalization to max 1440 px at quality 78 before Storage upload; existing multiple before/after photo flow preserved; built-in «Что нового» since 12 August remains included
-web: existing PWA/browser picker, HEIC normalization, live upload queue and real browser byte progress are unchanged
-mobile: Android release APK and unsigned verification iOS IPA
-quality gates: PR Check green; Android debug and release builds green on the native picker change; unrelated pre-existing assistant-recruitment-ticket-upload Deno check remains outside this photo change
+accepted application commit: 0746ea6d59706555eb7c431866c354dd4c93b807
+features: global floating chat launcher removed across all roles and screens; global floating microphone/voice overlay removed across all roles and screens; task photo native picker, iOS in-app viewer, pinch-to-zoom, signed URL cache and photo delete isolation remain included; built-in «Что нового» since 12 August remains included
+web: PWA already published from accepted application commit with build status success
+mobile: build Android release APK and unsigned verification iOS IPA from current main
+quality gates: PR #515 PR Check green including strict analyzer, regression tests, web release and Chrome smoke; no business rules, RLS, tasks, timesheets, documents or role navigation changed
