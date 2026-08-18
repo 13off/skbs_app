@@ -73,6 +73,17 @@ import UIKit
     jpegQuality: CGFloat,
     result: @escaping FlutterResult
   ) {
+    if !Thread.isMainThread {
+      DispatchQueue.main.async { [weak self] in
+        self?.presentTaskPhotoPicker(
+          maxDimension: maxDimension,
+          jpegQuality: jpegQuality,
+          result: result
+        )
+      }
+      return
+    }
+
     guard photoPickerDelegate == nil else {
       result(FlutterError(code: "photo_busy", message: "Выбор фотографий уже открыт.", details: nil))
       return
@@ -125,8 +136,28 @@ import UIKit
     presenter.present(picker, animated: true)
   }
 
+  private func activeWindow() -> UIWindow? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    let foregroundScenes = scenes.filter {
+      $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
+    }
+    let candidateScenes = foregroundScenes.isEmpty ? scenes : foregroundScenes
+
+    for scene in candidateScenes {
+      if let keyWindow = scene.windows.first(where: { $0.isKeyWindow }) {
+        return keyWindow
+      }
+    }
+    for scene in candidateScenes {
+      if let visibleWindow = scene.windows.first(where: { !$0.isHidden && $0.alpha > 0 }) {
+        return visibleWindow
+      }
+    }
+    return window
+  }
+
   private func topViewController(from root: UIViewController? = nil) -> UIViewController? {
-    let rootController = root ?? window?.rootViewController
+    let rootController = root ?? activeWindow()?.rootViewController ?? window?.rootViewController
     if let presented = rootController?.presentedViewController {
       return topViewController(from: presented)
     }
@@ -135,6 +166,9 @@ import UIKit
     }
     if let tabs = rootController as? UITabBarController {
       return topViewController(from: tabs.selectedViewController)
+    }
+    if let split = rootController as? UISplitViewController {
+      return topViewController(from: split.viewControllers.last)
     }
     return rootController
   }
