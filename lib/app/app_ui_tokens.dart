@@ -101,6 +101,9 @@ abstract final class AppUi {
     BuildContext context, {
     double gap = floatingActionGap,
   }) {
+    // On native the Scaffold body already ends above bottomNavigationBar.
+    // Adding the navigation height again pushes floating actions into content.
+    if (!kIsWeb) return gap;
     return navigationTotalHeight(context) + gap;
   }
 
@@ -109,6 +112,7 @@ abstract final class AppUi {
     double actionHeight = 64,
     double gap = 22,
   }) {
+    if (!kIsWeb) return actionHeight + gap;
     return navigationTotalHeight(context) + actionHeight + gap;
   }
 }
