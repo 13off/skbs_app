@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
 import 'image_compression_service.dart';
 import 'task_photo_models.dart';
+import 'task_photo_native_picker_service.dart';
 
 class TaskPhotoBrowserService {
   static const acceptedFileTypes = 'image/*,.heic,.heif';
@@ -129,6 +131,14 @@ class TaskPhotoBrowserService {
   static Future<List<TaskPhotoFile>> pickPhotoFiles({
     void Function(int completed, int total)? onPrepareProgress,
   }) async {
+    if (!kIsWeb) {
+      final photos = await TaskPhotoNativePickerService.pickPhotoFiles();
+      if (photos.isNotEmpty) {
+        onPrepareProgress?.call(photos.length, photos.length);
+      }
+      return photos;
+    }
+
     final input = html.FileUploadInputElement()
       ..multiple = true
       ..accept = acceptedFileTypes;
