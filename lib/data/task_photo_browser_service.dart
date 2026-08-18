@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:url_launcher/url_launcher.dart';
 
 import 'image_compression_service.dart';
 import 'task_photo_models.dart';
@@ -170,6 +171,13 @@ class TaskPhotoBrowserService {
   }
 
   static void openUrl(String url) {
-    html.window.open(url, '_blank');
+    if (kIsWeb) {
+      html.window.open(url, '_blank');
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
   }
 }
