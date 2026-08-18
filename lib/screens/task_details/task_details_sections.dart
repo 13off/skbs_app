@@ -146,87 +146,125 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   }
 
   Widget buildPhotoTile(TaskPhotoData photo) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => openPhoto(photo),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            FutureBuilder<String>(
-              future: signedUrlFuture(photo),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Container(
-                    color: AppAdaptivePalette.surfaceSoft,
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (snapshot.hasError || snapshot.data == null) {
-                  return Container(
-                    color: AppAdaptivePalette.surfaceSoft,
-                    child: const Icon(Icons.broken_image_outlined),
-                  );
-                }
-                return Image.network(snapshot.data!, fit: BoxFit.cover);
-              },
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.all(7),
-                color: Colors.black54,
-                child: Text(
-                  photo.originalName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+    final canDelete = TaskEditPolicy.canDeletePhoto(
+      widget.profile,
+      widget.task,
+      photo.photoStage,
+    );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        Positioned.fill(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => openPhotoInApp(photo),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  buildPhotoPreview(photo),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      color: Colors.black54,
+                      child: Text(
+                        photo.originalName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-            if (TaskEditPolicy.canDeletePhoto(
-              widget.profile,
-              widget.task,
-              photo.photoStage,
-            ))
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Material(
-                  color: Colors.black.withValues(alpha: 0.68),
-                  shape: const CircleBorder(),
-                  child: IconButton(
-                    tooltip: 'Удалить фото',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: deletingPhotoId == null
-                        ? () => deletePhoto(photo)
-                        : null,
-                    icon: deletingPhotoId == photo.id
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.white,
-                            size: 19,
-                          ),
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
+        if (canDelete)
+          Positioned(
+            top: 5,
+            right: 5,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.68),
+              shape: const CircleBorder(),
+              child: IconButton(
+                tooltip: 'Удалить фото',
+                visualDensity: VisualDensity.compact,
+                onPressed: deletingPhotoId == null
+                    ? () => deletePhotoFromTile(photo)
+                    : null,
+                icon: deletingPhotoId == photo.id
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.white,
+                        size: 19,
+                      ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget buildPhotoPreview(TaskPhotoData photo) {
+    final cachedUrl = TaskPhotoSignedUrlCache.cachedUrl(photo);
+    if (cachedUrl != null) {
+      return buildNetworkPhoto(cachedUrl);
+    }
+
+    return FutureBuilder<String>(
+      future: signedUrlFuture(photo),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            color: AppAdaptivePalette.surfaceSoft,
+            child: const Icon(Icons.broken_image_outlined),
+          );
+        }
+        final url = snapshot.data;
+        if (url == null || url.isEmpty) {
+          return Container(
+            color: AppAdaptivePalette.surfaceSoft,
+            child: Icon(
+              Icons.photo_outlined,
+              color: AppAdaptivePalette.textMuted,
+              size: 28,
+            ),
+          );
+        }
+        return buildNetworkPhoto(url);
+      },
+    );
+  }
+
+  Widget buildNetworkPhoto(String url) {
+    return ColoredBox(
+      color: AppAdaptivePalette.surfaceSoft,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.broken_image_outlined));
+        },
       ),
     );
   }
