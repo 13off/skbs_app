@@ -92,6 +92,21 @@ void main() {
     expect(ios, contains('FlutterStandardTypedData(bytes: data)'));
   });
 
+  test('iOS PHPicker ищет окно SceneDelegate, а не только AppDelegate.window', () {
+    final ios = File('ios/Runner/AppDelegate.swift').readAsStringSync();
+    final info = File('ios/Runner/Info.plist').readAsStringSync();
+
+    expect(info, contains('$(PRODUCT_MODULE_NAME).SceneDelegate'));
+    expect(ios, contains('UIApplication.shared.connectedScenes'));
+    expect(ios, contains(r'$0 as? UIWindowScene'));
+    expect(ios, contains('.foregroundActive'));
+    expect(ios, contains('.foregroundInactive'));
+    expect(ios, contains(r'$0.isKeyWindow'));
+    expect(ios, contains('activeWindow()?.rootViewController'));
+    expect(ios, contains('if !Thread.isMainThread'));
+    expect(ios, contains('DispatchQueue.main.async'));
+  });
+
   test('процент web загрузки считается по реально отправленным байтам', () {
     final models = File('lib/data/task_photo_models.dart').readAsStringSync();
     final repository = File(
