@@ -1,7 +1,7 @@
 AppСтрой Android release
-version: 1.3.9+13
+version: 1.3.9+15
 release date: 2026-08-18
-accepted application commit: 4a37a0ea1bd2bf3800f360c5562b6f64d973d975
-mobile release source: 6d239f958c08708a965964004282db10478bdbc4
+accepted application commit: 383c0f0087a8bd91bbab40a5aca87bfed14140c3
+mobile release source: 3d81d3c3dfe89e37ce88b9ae5dee4a378db82256
 release workflow: .github/workflows/build-android-apk.yml
-reason: publish all AppСтрой changes since 2026-08-12, including expenses, manager todos, fines workflow, complete lawyer platform, unified glass UI and resilient multi-photo task upload
+reason: replace web-only task photo FileUploadInputElement with Android system multi-image picker; normalize selected images to JPEG before task photo upload; preserve before/after multi-photo flow
