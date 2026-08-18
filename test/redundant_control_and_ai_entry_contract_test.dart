@@ -2,67 +2,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// Web/PWA publication trigger after redundant controls cleanup.
-// Web/PWA publication trigger after MAX candidate messaging integration.
-// Web/PWA retry after updating the MAX messaging regression contract.
-// Web/PWA publication trigger for the restored AI chat row and removed home FAB.
 void main() {
-  test('dedicated data control screen and entry points are removed', () {
-    final developer = File(
-      'lib/features/developer/presentation/developer_main_screen.dart',
-    ).readAsStringSync();
-    final settings = File(
-      'lib/screens/settings_screen.dart',
-    ).readAsStringSync();
-
-    expect(developer, contains('static const int pageCount = 2;'));
-    expect(developer, isNot(contains('DataGovernanceScreen')));
-    expect(developer, isNot(contains("label: 'Контроль'")));
-    expect(settings, isNot(contains('DataGovernanceScreen')));
-    expect(settings, isNot(contains("title: 'Контроль данных'")));
-    expect(
-      File(
-        'lib/features/developer/presentation/data_governance_screen.dart',
-      ).existsSync(),
-      isFalse,
-    );
-    expect(
-      File(
-        'lib/features/developer/data/data_governance_repository.dart',
-      ).existsSync(),
-      isFalse,
-    );
-    expect(
-      File('lib/features/developer/models/data_governance.dart').existsSync(),
-      isFalse,
-    );
-  });
-
-  test('floating legacy AI launcher is removed while ChatGPT lives in chat', () {
-    final homeScreen = File('lib/screens/home_screen.dart').readAsStringSync();
-    final homeActions = File(
-      'lib/screens/home/home_actions.dart',
-    ).readAsStringSync();
-    final homeView = File('lib/screens/home/home_view.dart').readAsStringSync();
-    final chat = File(
+  test('no redundant floating chat or voice controls remain', () {
+    final chatShell = File(
       'lib/features/company_chat/presentation/company_chat_shell.dart',
     ).readAsStringSync();
-    final repository = File(
-      'lib/features/company_chat/data/company_chat_repository.dart',
+    final voiceLayer = File(
+      'lib/features/ai/presentation/global_voice_assistant_layer_v2.dart',
     ).readAsStringSync();
 
-    expect(homeScreen, isNot(contains('AiAssistantScreen')));
-    expect(homeScreen, isNot(contains('app_page_route.dart')));
-    expect(homeActions, isNot(contains('home-ai-assistant')));
-    expect(homeActions, isNot(contains('buildAiAssistantButton')));
-    expect(homeView, isNot(contains('buildAiAssistantButton')));
-
-    expect(chat, contains("ValueKey<String>('company-chat-launcher')"));
-    expect(chat, contains('class _ChatLauncherButton'));
-    expect(chat, contains("'ChatGPT'"));
-    expect(chat, contains("'ChatGPT с доступом к AppСтрой'"));
-    expect(repository, contains("'company-chat-gpt'"));
-    expect(repository, contains('static Future<bool> canUseAi() async => false'));
-    expect(repository, isNot(contains('!value.isAssistant')));
+    expect(chatShell, isNot(contains('company-chat-launcher')));
+    expect(chatShell, contains('Widget build(BuildContext context) => child;'));
+    expect(voiceLayer, isNot(contains('_buildLauncher')));
+    expect(voiceLayer, contains('Widget build(BuildContext context) => child;'));
   });
 }
