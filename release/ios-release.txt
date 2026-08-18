@@ -1,7 +1,7 @@
 AppСтрой iOS verification release
-version: 1.3.9+16
+version: 1.3.9+17
 release date: 2026-08-18
 attempt: 1
-accepted application commit: 511bc32e931ae72afeb85b584b1811eb57548645
-reason: fix PHPicker presentation under SceneDelegate lifecycle by resolving the foreground UIWindowScene key window instead of relying on AppDelegate.window; keep native HEIC/JPEG normalization and multiple before/after photos unchanged
+accepted application commit: 937ca80fa6b4964c3421da787428ab6f6ac621a5
+reason: task photos open inside AppСтрой with pinch-to-zoom; signed URLs are cached in memory for fast repeat task entry; cached previews bypass loading state; delete button is isolated from photo-open tap area; native code no longer reaches browser-only html.window.open
 expected output: unsigned verification IPA
