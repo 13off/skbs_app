@@ -1,11 +1,13 @@
 import AVFoundation
 import Flutter
+import PhotosUI
 import Speech
 import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let taskVoiceChannelName = "ru.appstroy.skbs/task_voice"
+  private let taskPhotoChannelName = "ru.appstroy.skbs/task_photos"
   private let audioEngine = AVAudioEngine()
   private var speechRecognizer: SFSpeechRecognizer?
   private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -14,6 +16,7 @@ import UIKit
   private var voiceTimeout: DispatchWorkItem?
   private var latestTranscript = ""
   private var hasAudioTap = false
+  private var photoPickerDelegate: AnyObject?
 
   override func application(
     _ application: UIApplication,
@@ -26,15 +29,16 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
     guard let registrar = engineBridge.pluginRegistry.registrar(
-      forPlugin: "TaskVoiceRecognition"
+      forPlugin: "AppStroyNativeFeatures"
     ) else {
       return
     }
-    let channel = FlutterMethodChannel(
+
+    let voiceChannel = FlutterMethodChannel(
       name: taskVoiceChannelName,
       binaryMessenger: registrar.messenger()
     )
-    channel.setMethodCallHandler { [weak self] call, result in
+    voiceChannel.setMethodCallHandler { [weak self] call, result in
       guard call.method == "recognizeTask" else {
         result(FlutterMethodNotImplemented)
         return
@@ -43,6 +47,96 @@ import UIKit
       let locale = (arguments?["locale"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
       self?.requestTaskSpeech(locale: locale?.isEmpty == false ? locale! : "ru-RU", result: result)
     }
+
+    let photoChannel = FlutterMethodChannel(
+      name: taskPhotoChannelName,
+      binaryMessenger: registrar.messenger()
+    )
+    photoChannel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "pickPhotos" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let arguments = call.arguments as? [String: Any]
+      let maxDimension = (arguments?["maxDimension"] as? NSNumber)?.doubleValue ?? 1440
+      let qualityPercent = (arguments?["jpegQuality"] as? NSNumber)?.doubleValue ?? 78
+      self?.presentTaskPhotoPicker(
+        maxDimension: CGFloat(max(640, min(4096, maxDimension))),
+        jpegQuality: CGFloat(max(45, min(95, qualityPercent)) / 100.0),
+        result: result
+      )
+    }
+  }
+
+  private func presentTaskPhotoPicker(
+    maxDimension: CGFloat,
+    jpegQuality: CGFloat,
+    result: @escaping FlutterResult
+  ) {
+    guard photoPickerDelegate == nil else {
+      result(FlutterError(code: "photo_busy", message: "Выбор фотографий уже открыт.", details: nil))
+      return
+    }
+
+    guard #available(iOS 14.0, *) else {
+      result(
+        FlutterError(
+          code: "photo_picker_unavailable",
+          message: "Для выбора нескольких фотографий требуется iOS 14 или новее.",
+          details: nil
+        )
+      )
+      return
+    }
+
+    guard let presenter = topViewController() else {
+      result(FlutterError(code: "photo_picker_failed", message: "Не удалось открыть медиатеку.", details: nil))
+      return
+    }
+
+    let delegate = TaskPhotoPickerDelegate(
+      maxDimension: maxDimension,
+      jpegQuality: jpegQuality
+    ) { [weak self] pickerResult in
+      DispatchQueue.main.async {
+        self?.photoPickerDelegate = nil
+        switch pickerResult {
+        case .success(let rows):
+          result(rows)
+        case .failure(let error):
+          result(
+            FlutterError(
+              code: "photo_prepare_failed",
+              message: error.localizedDescription,
+              details: nil
+            )
+          )
+        }
+      }
+    }
+    photoPickerDelegate = delegate
+
+    var configuration = PHPickerConfiguration(photoLibrary: .shared())
+    configuration.filter = .images
+    configuration.selectionLimit = 0
+    configuration.preferredAssetRepresentationMode = .current
+    let picker = PHPickerViewController(configuration: configuration)
+    picker.delegate = delegate
+    presenter.present(picker, animated: true)
+  }
+
+  private func topViewController(from root: UIViewController? = nil) -> UIViewController? {
+    let rootController = root ?? window?.rootViewController
+    if let presented = rootController?.presentedViewController {
+      return topViewController(from: presented)
+    }
+    if let navigation = rootController as? UINavigationController {
+      return topViewController(from: navigation.visibleViewController)
+    }
+    if let tabs = rootController as? UITabBarController {
+      return topViewController(from: tabs.selectedViewController)
+    }
+    return rootController
   }
 
   private func requestTaskSpeech(locale: String, result: @escaping FlutterResult) {
@@ -199,5 +293,135 @@ import UIKit
       hasAudioTap = false
     }
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+  }
+}
+
+@available(iOS 14.0, *)
+private final class TaskPhotoPickerDelegate: NSObject, PHPickerViewControllerDelegate {
+  private let maxDimension: CGFloat
+  private let jpegQuality: CGFloat
+  private let completion: (Result<[[String: Any]], Error>) -> Void
+  private var finished = false
+
+  init(
+    maxDimension: CGFloat,
+    jpegQuality: CGFloat,
+    completion: @escaping (Result<[[String: Any]], Error>) -> Void
+  ) {
+    self.maxDimension = maxDimension
+    self.jpegQuality = jpegQuality
+    self.completion = completion
+  }
+
+  func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    guard !results.isEmpty else {
+      finish(.success([]))
+      return
+    }
+    process(results: results, index: 0, rows: [])
+  }
+
+  private func process(
+    results: [PHPickerResult],
+    index: Int,
+    rows: [[String: Any]]
+  ) {
+    if index >= results.count {
+      finish(.success(rows))
+      return
+    }
+
+    let provider = results[index].itemProvider
+    guard provider.canLoadObject(ofClass: UIImage.self) else {
+      finish(.failure(TaskPhotoPickerError.unreadable))
+      return
+    }
+
+    provider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+      guard let self, !self.finished else { return }
+      if let error {
+        self.finish(.failure(error))
+        return
+      }
+      guard let image = object as? UIImage else {
+        self.finish(.failure(TaskPhotoPickerError.unreadable))
+        return
+      }
+
+      do {
+        let row = try self.normalizedPhoto(
+          image: image,
+          suggestedName: provider.suggestedName,
+          index: index
+        )
+        var updatedRows = rows
+        updatedRows.append(row)
+        self.process(results: results, index: index + 1, rows: updatedRows)
+      } catch {
+        self.finish(.failure(error))
+      }
+    }
+  }
+
+  private func normalizedPhoto(
+    image: UIImage,
+    suggestedName: String?,
+    index: Int
+  ) throws -> [String: Any] {
+    let sourceWidth = CGFloat(image.cgImage?.width ?? Int(image.size.width * image.scale))
+    let sourceHeight = CGFloat(image.cgImage?.height ?? Int(image.size.height * image.scale))
+    guard sourceWidth > 0, sourceHeight > 0 else {
+      throw TaskPhotoPickerError.unreadable
+    }
+
+    let longestSide = max(sourceWidth, sourceHeight)
+    let scale = longestSide > maxDimension ? maxDimension / longestSide : 1
+    let targetSize = CGSize(
+      width: max(1, (sourceWidth * scale).rounded()),
+      height: max(1, (sourceHeight * scale).rounded())
+    )
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+    let normalized = renderer.image { context in
+      UIColor.white.setFill()
+      context.fill(CGRect(origin: .zero, size: targetSize))
+      image.draw(in: CGRect(origin: .zero, size: targetSize))
+    }
+    guard let data = normalized.jpegData(compressionQuality: jpegQuality), !data.isEmpty else {
+      throw TaskPhotoPickerError.encodeFailed
+    }
+
+    let cleanSuggested = suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let sourceName = cleanSuggested.isEmpty ? "photo_\(index + 1)" : cleanSuggested
+    let baseName = (sourceName as NSString).deletingPathExtension
+    return [
+      "name": "\(baseName.isEmpty ? "photo_\(index + 1)" : baseName).jpg",
+      "contentType": "image/jpeg",
+      "extension": "jpg",
+      "bytes": FlutterStandardTypedData(bytes: data),
+    ]
+  }
+
+  private func finish(_ result: Result<[[String: Any]], Error>) {
+    guard !finished else { return }
+    finished = true
+    completion(result)
+  }
+}
+
+private enum TaskPhotoPickerError: LocalizedError {
+  case unreadable
+  case encodeFailed
+
+  var errorDescription: String? {
+    switch self {
+    case .unreadable:
+      return "Не удалось открыть выбранную фотографию."
+    case .encodeFailed:
+      return "Не удалось подготовить фотографию для загрузки."
+    }
   }
 }
