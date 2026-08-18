@@ -24,7 +24,12 @@ void main() {
     expect(marker, matches(RegExp(r'^features: .+$', multiLine: true)));
     expect(
       marker,
-      contains('mobile: Android release APK and unsigned verification iOS IPA'),
+      matches(
+        RegExp(
+          r'^mobile: .*Android release APK.*unsigned verification iOS IPA.*$',
+          multiLine: true,
+        ),
+      ),
     );
     expect(marker, matches(RegExp(r'^quality gates: .+$', multiLine: true)));
   });
