@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('leader sees all while other roles see own and employee updates', () {
+  test('leader sees all while other roles see common and own updates', () {
     final source = File(
-      'lib/features/whats_new/presentation/role_aware_whats_new_gate.dart',
+      'lib/features/whats_new/presentation/whats_new_release_data.dart',
     ).readAsStringSync();
 
     expect(
@@ -15,19 +15,21 @@ void main() {
     expect(source, contains('List<_UpdateSlide>.unmodifiable(_allSlides)'));
     expect(
       source,
-      contains('slide.employeeCommon || slide.roles.contains(profile.role)'),
+      contains('slide.common || slide.roles.contains(profile.role)'),
     );
-    expect(source, contains("roles: <String>{'procurement'}"));
-    expect(source, contains("roles: <String>{'hr', 'lawyer'}"));
-    expect(source, contains("roles: <String>{'hr'}"));
-    expect(source, contains('employeeCommon: true'));
+    expect(source, contains("roles: <String>{'admin'}"));
+    expect(source, contains("roles: <String>{'admin', 'lawyer'}"));
+    expect(source, contains("roles: <String>{'lawyer'}"));
+    expect(source, contains("roles: <String>{'employee', 'foreman'}"));
+    expect(source, contains('common: true'));
 
-    final commonCount = RegExp('employeeCommon: true').allMatches(source).length;
-    expect(commonCount, 4);
+    final commonCount = RegExp('common: true').allMatches(source).length;
+    expect(commonCount, 2);
 
-    expect(source, contains('Новый кабинет сотрудника'));
-    expect(source, contains('Геолокация и маршрут работы'));
-    expect(source, contains('AppСтрой стал быстрее'));
-    expect(source, contains('Исправлены ошибки'));
+    expect(source, contains('Дела руководителя'));
+    expect(source, contains('Полноценная платформа юриста'));
+    expect(source, contains('Единый стеклянный интерфейс'));
+    expect(source, contains('Новые фото «До» и «После»'));
+    expect(source, contains('Стабильнее и безопаснее'));
   });
 }
