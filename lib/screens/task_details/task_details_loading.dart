@@ -30,7 +30,7 @@ extension _TaskDetailsLoading on _TaskDetailsScreenState {
   Future<String> signedUrlFuture(TaskPhotoData photo) {
     return signedUrlFutures.putIfAbsent(
       photo.id,
-      () => TaskRepository.createTaskPhotoSignedUrl(photo),
+      () => TaskPhotoSignedUrlCache.getSignedUrl(photo),
     );
   }
 
