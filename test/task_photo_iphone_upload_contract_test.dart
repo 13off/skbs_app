@@ -96,7 +96,7 @@ void main() {
     final ios = File('ios/Runner/AppDelegate.swift').readAsStringSync();
     final info = File('ios/Runner/Info.plist').readAsStringSync();
 
-    expect(info, contains('$(PRODUCT_MODULE_NAME).SceneDelegate'));
+    expect(info, contains(r'$(PRODUCT_MODULE_NAME).SceneDelegate'));
     expect(ios, contains('UIApplication.shared.connectedScenes'));
     expect(ios, contains(r'$0 as? UIWindowScene'));
     expect(ios, contains('.foregroundActive'));
