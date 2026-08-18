@@ -64,5 +64,19 @@ void main() {
         0.01,
       ),
     );
+
+    final navigationContext = tester.element(navigation);
+    expect(
+      AppUi.floatingActionBottom(navigationContext),
+      AppUi.floatingActionGap,
+    );
+    expect(
+      AppUi.floatingActionListBottomPadding(
+        navigationContext,
+        actionHeight: 64,
+        gap: 22,
+      ),
+      86,
+    );
   });
 }
