@@ -1,23 +1,32 @@
 package ru.appstroy.skbs
 
 import android.Manifest
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 
 class MainActivity : FlutterActivity() {
     companion object {
         private const val THEME_CHANNEL = "ru.appstroy.skbs/theme"
         private const val TASK_VOICE_CHANNEL = "ru.appstroy.skbs/task_voice"
+        private const val TASK_PHOTO_CHANNEL = "ru.appstroy.skbs/task_photos"
         private const val TASK_VOICE_PERMISSION_REQUEST = 7401
+        private const val TASK_PHOTO_PICK_REQUEST = 7402
         private const val PREFERENCES_FILE = "FlutterSharedPreferences"
         private const val THEME_PREFERENCE = "flutter.app_theme_mode"
         private const val LIGHT_LAUNCHER = "ru.appstroy.skbs.LauncherLight"
@@ -27,6 +36,9 @@ class MainActivity : FlutterActivity() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var speechResult: MethodChannel.Result? = null
     private var pendingSpeechLocale = "ru-RU"
+    private var photoPickerResult: MethodChannel.Result? = null
+    private var photoMaxDimension = 1440
+    private var photoJpegQuality = 78
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val dark = storedThemeIsDark()
@@ -61,6 +73,171 @@ class MainActivity : FlutterActivity() {
                 val locale = call.argument<String>("locale")?.trim().orEmpty()
                 requestTaskSpeech(if (locale.isEmpty()) "ru-RU" else locale, result)
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TASK_PHOTO_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method != "pickPhotos") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val maxDimension = call.argument<Int>("maxDimension") ?: 1440
+                val jpegQuality = call.argument<Int>("jpegQuality") ?: 78
+                requestTaskPhotos(maxDimension, jpegQuality, result)
+            }
+    }
+
+    private fun requestTaskPhotos(
+        maxDimension: Int,
+        jpegQuality: Int,
+        result: MethodChannel.Result,
+    ) {
+        if (photoPickerResult != null) {
+            result.error("photo_busy", "Выбор фотографий уже открыт.", null)
+            return
+        }
+
+        photoPickerResult = result
+        photoMaxDimension = maxDimension.coerceIn(640, 4096)
+        photoJpegQuality = jpegQuality.coerceIn(45, 95)
+
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        startActivityForResult(
+            Intent.createChooser(intent, "Выберите фотографии"),
+            TASK_PHOTO_PICK_REQUEST,
+        )
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != TASK_PHOTO_PICK_REQUEST) return
+
+        val callback = photoPickerResult ?: return
+        if (resultCode != Activity.RESULT_OK || data == null) {
+            photoPickerResult = null
+            callback.success(emptyList<Map<String, Any>>())
+            return
+        }
+
+        val uris = mutableListOf<Uri>()
+        val clipData = data.clipData
+        if (clipData != null) {
+            for (index in 0 until clipData.itemCount) {
+                val uri = clipData.getItemAt(index).uri
+                if (!uris.contains(uri)) uris.add(uri)
+            }
+        }
+        data.data?.let { uri ->
+            if (!uris.contains(uri)) uris.add(uri)
+        }
+
+        if (uris.isEmpty()) {
+            photoPickerResult = null
+            callback.success(emptyList<Map<String, Any>>())
+            return
+        }
+
+        val maxDimension = photoMaxDimension
+        val jpegQuality = photoJpegQuality
+        Thread {
+            try {
+                val photos = uris.mapIndexed { index, uri ->
+                    normalizePhoto(uri, index, maxDimension, jpegQuality)
+                }
+                runOnUiThread {
+                    val current = photoPickerResult ?: return@runOnUiThread
+                    photoPickerResult = null
+                    current.success(photos)
+                }
+            } catch (error: Throwable) {
+                runOnUiThread {
+                    val current = photoPickerResult ?: return@runOnUiThread
+                    photoPickerResult = null
+                    current.error(
+                        "photo_prepare_failed",
+                        error.message ?: "Не удалось подготовить фотографию.",
+                        null,
+                    )
+                }
+            }
+        }.start()
+    }
+
+    private fun normalizePhoto(
+        uri: Uri,
+        index: Int,
+        maxDimension: Int,
+        jpegQuality: Int,
+    ): Map<String, Any> {
+        val source = decodePhoto(uri)
+            ?: throw IllegalStateException("Не удалось открыть выбранную фотографию.")
+        val longestSide = maxOf(source.width, source.height)
+        val target = if (longestSide > maxDimension) {
+            val scale = maxDimension.toDouble() / longestSide.toDouble()
+            val width = (source.width * scale).toInt().coerceAtLeast(1)
+            val height = (source.height * scale).toInt().coerceAtLeast(1)
+            Bitmap.createScaledBitmap(source, width, height, true)
+        } else {
+            source
+        }
+
+        val bytes = ByteArrayOutputStream().use { output ->
+            val success = target.compress(
+                Bitmap.CompressFormat.JPEG,
+                jpegQuality,
+                output,
+            )
+            if (!success) {
+                throw IllegalStateException("Не удалось преобразовать фотографию в JPEG.")
+            }
+            output.toByteArray()
+        }
+
+        if (target !== source) target.recycle()
+        source.recycle()
+
+        val originalName = displayName(uri).ifBlank { "photo_${index + 1}" }
+        val baseName = originalName.substringBeforeLast('.', originalName)
+        return mapOf(
+            "name" to "$baseName.jpg",
+            "contentType" to "image/jpeg",
+            "extension" to "jpg",
+            "bytes" to bytes,
+        )
+    }
+
+    private fun decodePhoto(uri: Uri): Bitmap? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(contentResolver, uri)
+            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+        } else {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        }
+    }
+
+    private fun displayName(uri: Uri): String {
+        return try {
+            contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use ""
+                val column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (column < 0) "" else cursor.getString(column).orEmpty()
+            }.orEmpty()
+        } catch (_: Throwable) {
+            ""
+        }
     }
 
     private fun requestTaskSpeech(locale: String, result: MethodChannel.Result) {
@@ -208,6 +385,12 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         speechResult?.error("speech_cancelled", "Голосовой ввод остановлен.", null)
         speechResult = null
+        photoPickerResult?.error(
+            "photo_cancelled",
+            "Выбор фотографий остановлен.",
+            null,
+        )
+        photoPickerResult = null
         speechRecognizer?.cancel()
         speechRecognizer?.destroy()
         speechRecognizer = null
