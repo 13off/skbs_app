@@ -37,17 +37,6 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     });
   }
 
-  Future<void> openPhoto(TaskPhotoData photo) async {
-    try {
-      await TaskRepository.openTaskPhoto(photo);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ошибка открытия фото: $error')));
-    }
-  }
-
   Future<void> deletePhoto(TaskPhotoData photo) async {
     final allowed = TaskEditPolicy.canDeletePhoto(
       widget.profile,
