@@ -1,7 +1,7 @@
 AppСтрой Android release
-version: 1.3.6+10
-release date: 2026-08-06
-accepted application commit: 357cabd0c6ad9f5857bd1afe4f92e9cc20f940c1
-mobile release source: 357cabd0c6ad9f5857bd1afe4f92e9cc20f940c1
+version: 1.3.9+13
+release date: 2026-08-18
+accepted application commit: 4a37a0ea1bd2bf3800f360c5562b6f64d973d975
+mobile release source: 6d239f958c08708a965964004282db10478bdbc4
 release workflow: .github/workflows/build-android-apk.yml
-reason: publish battery-saving employee location tracking with at most one route point every 10 minutes
+reason: publish all AppСтрой changes since 2026-08-12, including expenses, manager todos, fines workflow, complete lawyer platform, unified glass UI and resilient multi-photo task upload
