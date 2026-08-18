@@ -18,7 +18,7 @@ void main() {
     expect(photoActions, contains('pickingPhotoStage == photoStage'));
   });
 
-  test('iPhone HEIC и HEIF нормализуются в JPEG до storage upload', () {
+  test('web iPhone HEIC и HEIF нормализуются в JPEG до storage upload', () {
     final picker = File(
       'lib/data/task_photo_browser_service.dart',
     ).readAsStringSync();
@@ -57,7 +57,42 @@ void main() {
     expect(photoActions, contains(r'Добавлено фотографий: $count'));
   });
 
-  test('процент загрузки считается по реально отправленным байтам', () {
+  test('Android и iOS используют нативный picker, а html остаётся только web', () {
+    final picker = File(
+      'lib/data/task_photo_browser_service.dart',
+    ).readAsStringSync();
+    final nativePicker = File(
+      'lib/data/task_photo_native_picker_service.dart',
+    ).readAsStringSync();
+    final android = File(
+      'android/app/src/main/kotlin/ru/appstroy/skbs/MainActivity.kt',
+    ).readAsStringSync();
+    final ios = File('ios/Runner/AppDelegate.swift').readAsStringSync();
+
+    expect(picker, contains('if (!kIsWeb)'));
+    expect(
+      picker,
+      contains('TaskPhotoNativePickerService.pickPhotoFiles()'),
+    );
+    expect(picker.indexOf('if (!kIsWeb)'), lessThan(picker.indexOf('FileUploadInputElement')));
+    expect(nativePicker, contains("'ru.appstroy.skbs/task_photos'"));
+    expect(nativePicker, contains("'pickPhotos'"));
+    expect(nativePicker, contains("contentType: 'image/jpeg'"));
+
+    expect(android, contains('TASK_PHOTO_CHANNEL'));
+    expect(android, contains('Intent.ACTION_OPEN_DOCUMENT'));
+    expect(android, contains('Intent.EXTRA_ALLOW_MULTIPLE'));
+    expect(android, contains('Bitmap.CompressFormat.JPEG'));
+    expect(android, contains('"contentType" to "image/jpeg"'));
+
+    expect(ios, contains('import PhotosUI'));
+    expect(ios, contains('PHPickerConfiguration'));
+    expect(ios, contains('configuration.selectionLimit = 0'));
+    expect(ios, contains('normalized.jpegData'));
+    expect(ios, contains('FlutterStandardTypedData(bytes: data)'));
+  });
+
+  test('процент web загрузки считается по реально отправленным байтам', () {
     final models = File('lib/data/task_photo_models.dart').readAsStringSync();
     final repository = File(
       'lib/data/task_photo_repository.dart',
