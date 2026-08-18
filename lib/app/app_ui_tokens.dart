@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Единые размеры интерфейса AppСтрой.
@@ -79,10 +80,21 @@ abstract final class AppUi {
   }
 
   static double navigationTotalHeight(BuildContext context) {
-    return navigationPanelHeight(context) +
-        navigationTopSpacing(context) +
-        navigationBottomSpacing(context) +
-        MediaQuery.viewPaddingOf(context).bottom;
+    final panelHeight = navigationPanelHeight(context);
+    final topSpacing = navigationTopSpacing(context);
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+
+    // Web/PWA keeps its established floating geometry exactly as before.
+    // Native Android/iOS paints the glass through the system safe area instead
+    // of reserving an additional blank strip below the visible panel.
+    if (kIsWeb) {
+      return panelHeight +
+          topSpacing +
+          navigationBottomSpacing(context) +
+          safeBottom;
+    }
+
+    return panelHeight + topSpacing + safeBottom;
   }
 
   static double floatingActionBottom(
