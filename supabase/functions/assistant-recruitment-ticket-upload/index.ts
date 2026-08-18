@@ -1,8 +1,8 @@
 import "jsr:@supabase/functions-js@2.112.3/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.5";
 
+const EXPECTED_SECRET_SHA256 = "3c71daf8c4641ca643789c29cdacb7a806ec0533088e3a0d4f6126e5727f8777";
 const BUCKET = "recruitment-documents";
-const NONCE_SCOPE = "recruitment_ticket_upload";
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function json(body: unknown, status = 200) {
@@ -46,33 +46,6 @@ function decodeBase64(raw: string) {
   return bytes;
 }
 
-async function consumeNonce(admin: any, rawNonce: string, companyId: string) {
-  if (!rawNonce) return false;
-  const hash = await sha256(rawNonce);
-  const now = new Date().toISOString();
-  const { data: row, error: lookupError } = await admin
-    .from("assistant_operation_nonces")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("nonce_hash", hash)
-    .eq("scope", NONCE_SCOPE)
-    .is("used_at", null)
-    .gt("expires_at", now)
-    .maybeSingle();
-  if (lookupError) throw lookupError;
-  if (!row) return false;
-
-  const { data: consumed, error: consumeError } = await admin
-    .from("assistant_operation_nonces")
-    .update({ used_at: now })
-    .eq("id", row.id)
-    .is("used_at", null)
-    .select("id")
-    .maybeSingle();
-  if (consumeError) throw consumeError;
-  return Boolean(consumed?.id);
-}
-
 async function uploadPdf(admin: any, app: any, fileNameRaw: string, contentTypeRaw: string, raw: string) {
   const fileName = safeName(fileNameRaw);
   const contentType = String(contentTypeRaw || "application/pdf").toLowerCase();
@@ -103,6 +76,11 @@ async function cleanup(admin: any, path?: string) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
+    const secret = req.headers.get("x-assistant-secret") ?? "";
+    if (!secret || await sha256(secret) !== EXPECTED_SECRET_SHA256) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
     const body = await req.json();
     const applicationId = String(body.application_id ?? "").trim();
     if (!applicationId) return json({ error: "application_id required" }, 400);
@@ -120,16 +98,7 @@ Deno.serve(async (req) => {
     if (appError) throw appError;
     if (!app) return json({ error: "Application not found" }, 404);
 
-    const authorized = await consumeNonce(admin, String(body.nonce ?? ""), app.company_id);
-    if (!authorized) return json({ error: "Unauthorized or expired nonce" }, 401);
-
     const action = String(body.action ?? "upload");
-    if (action === "upload") {
-      const raw = String(body.file_base64 ?? "");
-      if (!raw) return json({ error: "file_base64 required" }, 400);
-      const uploaded = await uploadPdf(admin, app, String(body.file_name ?? "ticket.pdf"), String(body.content_type ?? "application/pdf"), raw);
-      return json({ ok: true, ...uploaded, company_id: app.company_id, application_id: app.id }, 201);
-    }
 
     if (action === "create_flight") {
       for (const k of ["departure_at", "origin", "destination", "file_base64"]) {
@@ -144,9 +113,23 @@ Deno.serve(async (req) => {
         .eq("departure_at", departureAt)
         .maybeSingle();
       if (existingError) throw existingError;
-      if (existing) return json({ ok: true, reused: true, flight_id: existing.id, ticket_path: existing.ticket_path, ticket_original_name: existing.ticket_original_name });
+      if (existing) {
+        return json({
+          ok: true,
+          reused: true,
+          flight_id: existing.id,
+          ticket_path: existing.ticket_path,
+          ticket_original_name: existing.ticket_original_name,
+        });
+      }
 
-      const uploaded = await uploadPdf(admin, app, String(body.file_name ?? "ticket.pdf"), String(body.content_type ?? "application/pdf"), String(body.file_base64 ?? ""));
+      const uploaded = await uploadPdf(
+        admin,
+        app,
+        String(body.file_name ?? "ticket.pdf"),
+        String(body.content_type ?? "application/pdf"),
+        String(body.file_base64 ?? ""),
+      );
       try {
         const row = {
           company_id: app.company_id,
@@ -168,28 +151,39 @@ Deno.serve(async (req) => {
           notes: String(body.notes ?? ""),
         };
         const { data: flight, error: flightError } = await admin
-          .from("recruitment_flights").insert(row).select("id").single();
+          .from("recruitment_flights")
+          .insert(row)
+          .select("id")
+          .single();
         if (flightError) throw flightError;
-        const { error: ticketError } = await admin.from("recruitment_flight_tickets").insert({
-          company_id: app.company_id,
-          flight_id: flight.id,
-          bucket: uploaded.bucket,
-          path: uploaded.path,
-          original_name: uploaded.original_name,
-          mime_type: uploaded.mime_type,
-          size_bytes: uploaded.size_bytes,
-        });
+
+        const { error: ticketError } = await admin
+          .from("recruitment_flight_tickets")
+          .insert({
+            company_id: app.company_id,
+            flight_id: flight.id,
+            bucket: uploaded.bucket,
+            path: uploaded.path,
+            original_name: uploaded.original_name,
+            mime_type: uploaded.mime_type,
+            size_bytes: uploaded.size_bytes,
+          });
         if (ticketError) {
           await admin.from("recruitment_flights").delete().eq("id", flight.id);
           throw ticketError;
         }
+
         const patch: Record<string, unknown> = {};
         if (body.object_id) patch.object_id = String(body.object_id);
         if (body.stage_id) patch.stage_id = String(body.stage_id);
         if (Object.keys(patch).length) {
-          const { error: patchError } = await admin.from("recruitment_applications").update(patch).eq("id", app.id);
+          const { error: patchError } = await admin
+            .from("recruitment_applications")
+            .update(patch)
+            .eq("id", app.id);
           if (patchError) throw patchError;
         }
+
         return json({ ok: true, created: true, flight_id: flight.id, ...uploaded }, 201);
       } catch (err) {
         await cleanup(admin, uploaded.path);
@@ -201,7 +195,9 @@ Deno.serve(async (req) => {
       const flightId = String(body.flight_id ?? "").trim();
       const raw = String(body.file_base64 ?? "");
       if (!flightId || !raw) return json({ error: "flight_id and file_base64 required" }, 400);
-      const { data: flight, error: flightError } = await admin.from("recruitment_flights")
+
+      const { data: flight, error: flightError } = await admin
+        .from("recruitment_flights")
         .select("id,company_id,application_id")
         .eq("id", flightId)
         .eq("company_id", app.company_id)
@@ -211,26 +207,45 @@ Deno.serve(async (req) => {
       if (!flight) return json({ error: "Flight not found for application" }, 404);
 
       const originalName = safeName(String(body.file_name ?? "ticket.pdf"));
-      const { data: existingTicket, error: lookupError } = await admin.from("recruitment_flight_tickets")
+      const { data: existingTicket, error: lookupError } = await admin
+        .from("recruitment_flight_tickets")
         .select("id,path,original_name")
         .eq("company_id", app.company_id)
         .eq("flight_id", flight.id)
         .eq("original_name", originalName)
         .maybeSingle();
       if (lookupError) throw lookupError;
-      if (existingTicket) return json({ ok: true, reused: true, ticket_id: existingTicket.id, path: existingTicket.path, original_name: existingTicket.original_name });
+      if (existingTicket) {
+        return json({
+          ok: true,
+          reused: true,
+          ticket_id: existingTicket.id,
+          path: existingTicket.path,
+          original_name: existingTicket.original_name,
+        });
+      }
 
-      const uploaded = await uploadPdf(admin, app, originalName, String(body.content_type ?? "application/pdf"), raw);
+      const uploaded = await uploadPdf(
+        admin,
+        app,
+        originalName,
+        String(body.content_type ?? "application/pdf"),
+        raw,
+      );
       try {
-        const { data: ticket, error: insertError } = await admin.from("recruitment_flight_tickets").insert({
-          company_id: app.company_id,
-          flight_id: flight.id,
-          bucket: uploaded.bucket,
-          path: uploaded.path,
-          original_name: uploaded.original_name,
-          mime_type: uploaded.mime_type,
-          size_bytes: uploaded.size_bytes,
-        }).select("id").single();
+        const { data: ticket, error: insertError } = await admin
+          .from("recruitment_flight_tickets")
+          .insert({
+            company_id: app.company_id,
+            flight_id: flight.id,
+            bucket: uploaded.bucket,
+            path: uploaded.path,
+            original_name: uploaded.original_name,
+            mime_type: uploaded.mime_type,
+            size_bytes: uploaded.size_bytes,
+          })
+          .select("id")
+          .single();
         if (insertError) throw insertError;
         return json({ ok: true, created: true, ticket_id: ticket.id, flight_id: flight.id, ...uploaded }, 201);
       } catch (err) {
