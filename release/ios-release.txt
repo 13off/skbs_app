@@ -1,7 +1,7 @@
 AppСтрой iOS verification release
-version: 1.3.9+17
+version: 1.3.9+18
 release date: 2026-08-18
 attempt: 1
-accepted application commit: 937ca80fa6b4964c3421da787428ab6f6ac621a5
-reason: task photos open inside AppСтрой with pinch-to-zoom; signed URLs are cached in memory for fast repeat task entry; cached previews bypass loading state; delete button is isolated from photo-open tap area; native code no longer reaches browser-only html.window.open
+accepted application commit: 0746ea6d59706555eb7c431866c354dd4c93b807
+reason: remove global floating chat and microphone controls across the entire app while preserving task photo native picker, in-app viewer, pinch-to-zoom, signed URL cache, isolated delete action and built-in «Что нового» since 12 August
 expected output: unsigned verification IPA
