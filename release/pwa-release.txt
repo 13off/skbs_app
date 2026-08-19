@@ -1,0 +1,4 @@
+AppСтрой PWA release
+release date: 2026-08-19
+reason: publish corrected PWA geometry for «Добавить задачу» and «Сохранить табель» after PR #522; use committed web icons and reliable dedicated release workflow
+accepted application fix: d2c104806abb647684bb3a543bd4f8013a416117
