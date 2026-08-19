@@ -42,6 +42,31 @@ void main() {
     expect(listBottom, 64 + 22);
   });
 
+  test('PWA floating actions do not double count bottom navigation', () {
+    final tokens = File('lib/app/app_ui_tokens.dart').readAsStringSync();
+    final floatingStart = tokens.indexOf('static double floatingActionBottom');
+    final listStart = tokens.indexOf(
+      'static double floatingActionListBottomPadding',
+    );
+
+    expect(floatingStart, greaterThanOrEqualTo(0));
+    expect(listStart, greaterThan(floatingStart));
+
+    final floatingBlock = tokens.substring(floatingStart, listStart);
+    final listBlock = tokens.substring(listStart);
+
+    expect(floatingBlock, isNot(contains('kIsWeb')));
+    expect(floatingBlock, isNot(contains('navigationTotalHeight(context) + gap')));
+    expect(floatingBlock, contains('return gap;'));
+
+    expect(listBlock, isNot(contains('if (!kIsWeb)')));
+    expect(
+      listBlock,
+      isNot(contains('navigationTotalHeight(context) + actionHeight + gap')),
+    );
+    expect(listBlock, contains('return actionHeight + gap;'));
+  });
+
   test('navigation and timesheet consume one geometry source', () {
     final navigation = File(
       'lib/widgets/professional_bottom_navigation.dart',
@@ -49,6 +74,7 @@ void main() {
     final timesheet = File(
       'lib/screens/timesheet/timesheet_view.dart',
     ).readAsStringSync();
+    final tasks = File('lib/screens/mobile_tasks_screen.dart').readAsStringSync();
 
     expect(
       navigation,
@@ -61,6 +87,8 @@ void main() {
       timesheet,
       contains('AppUi.floatingActionListBottomPadding(context)'),
     );
+    expect(tasks, contains('AppUi.floatingActionBottom(context)'));
+    expect(tasks, contains("ValueKey('tasks-floating-add')"));
   });
 
   test(
