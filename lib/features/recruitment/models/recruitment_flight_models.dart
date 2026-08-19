@@ -119,49 +119,30 @@ class RecruitmentFlightReminder {
   final String id;
   final String companyId;
   final String flightId;
-  final String eventKind;
-  final int offsetMinutes;
+  final DateTime remindAt;
   final DateTime? sentAt;
 
   const RecruitmentFlightReminder({
     this.id = '',
     this.companyId = '',
     this.flightId = '',
-    required this.eventKind,
-    required this.offsetMinutes,
+    required this.remindAt,
     this.sentAt,
   });
 
-  bool get isArrival => eventKind == 'arrival';
   bool get isSent => sentAt != null;
 
-  DateTime? eventAt(RecruitmentFlight flight) =>
-      isArrival ? flight.arrivalAt : flight.departureAt;
-
-  DateTime? triggerAt(RecruitmentFlight flight) =>
-      eventAt(flight)?.subtract(Duration(minutes: offsetMinutes));
-
   String get label {
-    final event = isArrival ? 'прибытия' : 'отправления';
-    if (offsetMinutes == 0) return 'В момент $event';
-    return 'За ${_offsetTitle(offsetMinutes)} до $event';
-  }
-
-  static String _offsetTitle(int minutes) {
-    if (minutes < 60) return '$minutes мин';
-    if (minutes % 1440 == 0) {
-      final days = minutes ~/ 1440;
-      return '$days ${days == 1 ? 'день' : days < 5 ? 'дня' : 'дней'}';
-    }
-    final hours = minutes ~/ 60;
-    final rest = minutes % 60;
-    if (rest == 0) return '$hours ч';
-    return '$hours ч $rest мин';
+    final local = remindAt.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day.$month.${local.year} · $hour:$minute';
   }
 
   Map<String, dynamic> toPayload() => <String, dynamic>{
-    'event_kind': eventKind,
-    'offset_minutes': offsetMinutes,
+    'remind_at': remindAt.toUtc().toIso8601String(),
   };
 
   factory RecruitmentFlightReminder.fromMap(Map<String, dynamic> map) {
@@ -170,20 +151,14 @@ class RecruitmentFlightReminder {
       return text.isEmpty ? null : DateTime.tryParse(text)?.toLocal();
     }
 
-    final rawOffset = map['offset_minutes'];
-    final offset = switch (rawOffset) {
-      int value => value,
-      num value => value.toInt(),
-      _ => int.tryParse(rawOffset?.toString() ?? '') ?? 0,
-    };
     return RecruitmentFlightReminder(
       id: map['id']?.toString() ?? '',
       companyId: map['company_id']?.toString() ?? '',
       flightId: map['flight_id']?.toString() ?? '',
-      eventKind: map['event_kind']?.toString() == 'arrival'
-          ? 'arrival'
-          : 'departure',
-      offsetMinutes: offset,
+      remindAt:
+          optionalDate(map['remind_at']) ??
+          optionalDate(map['created_at']) ??
+          DateTime.now(),
       sentAt: optionalDate(map['sent_at']),
     );
   }

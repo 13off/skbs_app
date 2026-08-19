@@ -206,11 +206,6 @@ abstract final class RecruitmentFlightRepository {
         })
         .whereType<RecruitmentFlightEntry>()
         .toList(growable: false);
-    if (dispatchReminders) {
-      unawaited(
-        dispatchDueReminders(candidates: candidates).catchError((_) {}),
-      );
-    }
     return RecruitmentFlightCalendarData(
       candidates: candidates,
       flights: entries,
@@ -279,24 +274,19 @@ abstract final class RecruitmentFlightRepository {
 
     final reminderKeys = <String>{};
     for (final reminder in reminders) {
-      if (reminder.eventKind != 'departure' && reminder.eventKind != 'arrival') {
-        throw Exception('Некорректное событие уведомления');
-      }
-      if (reminder.offsetMinutes < 0 || reminder.offsetMinutes > 43200) {
-        throw Exception('Уведомление можно поставить не более чем за 30 дней');
-      }
-      final key = '${reminder.eventKind}:${reminder.offsetMinutes}';
+      final local = reminder.remindAt.toLocal();
+      final normalized = DateTime(
+        local.year,
+        local.month,
+        local.day,
+        local.hour,
+        local.minute,
+      );
+      final key = normalized.toUtc().toIso8601String();
       if (!reminderKeys.add(key)) {
-        throw Exception('Такое уведомление уже добавлено');
+        throw Exception('Уведомление на эту дату и время уже добавлено');
       }
-      final eventAt = reminder.eventKind == 'arrival' ? arrivalAt : departureAt;
-      if (eventAt == null) {
-        throw Exception('Для уведомления о прибытии укажите время прибытия');
-      }
-      if (!reminder.isSent &&
-          !eventAt
-              .subtract(Duration(minutes: reminder.offsetMinutes))
-              .isAfter(DateTime.now())) {
+      if (!reminder.isSent && !normalized.isAfter(DateTime.now())) {
         throw Exception('Время одного из уведомлений уже прошло');
       }
     }
