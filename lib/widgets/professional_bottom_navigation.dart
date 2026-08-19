@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
@@ -11,6 +12,8 @@ import 'premium_pressable_v3.dart';
 
 const _darkNavigationPanelTint = Color(0x8047525D);
 const _lightNavigationPanelTint = Color(0x66F1F4F7);
+const _nativeDarkNavigationPanelTint = Color(0x3047525D);
+const _nativeLightNavigationPanelTint = Color(0x24F1F4F7);
 
 const _darkNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
@@ -23,6 +26,20 @@ const _lightNavigationPanelGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [Color(0xB3FFFFFF), Color(0x99F4F7FA), Color(0x80E9EEF4)],
+  stops: [0, 0.55, 1],
+);
+
+const _nativeDarkNavigationPanelGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0x705B646E), Color(0x504A5662), Color(0x38404B56)],
+  stops: [0, 0.55, 1],
+);
+
+const _nativeLightNavigationPanelGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0x70FFFFFF), Color(0x4DF4F7FA), Color(0x2EE9EEF4)],
   stops: [0, 0.55, 1],
 );
 
@@ -143,9 +160,16 @@ class _ProfessionalBottomNavigationState
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final isDesktop = AppUi.usesDesktopNavigation(context);
+    final nativeMobile = !kIsWeb && !isDesktop;
     final panelHeight = AppUi.navigationPanelHeight(context);
     final topSpacing = AppUi.navigationTopSpacing(context);
     final bottomSpacing = AppUi.navigationBottomSpacing(context);
+    final outerBottomSpacing = nativeMobile ? 0.0 : bottomSpacing + bottomInset;
+    final panelPadding = isDesktop
+        ? const EdgeInsets.all(8)
+        : nativeMobile
+        ? EdgeInsets.fromLTRB(7, 7, 7, 7 + bottomInset)
+        : const EdgeInsets.all(7);
 
     return SizedBox(
       key: const ValueKey('professional-bottom-navigation'),
@@ -157,7 +181,7 @@ class _ProfessionalBottomNavigationState
             isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
             topSpacing,
             isDesktop ? AppUi.pageDesktopHorizontalPadding : 12,
-            bottomSpacing + bottomInset,
+            outerBottomSpacing,
           ),
           child: Center(
             child: ConstrainedBox(
@@ -169,15 +193,26 @@ class _ProfessionalBottomNavigationState
               child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
                 blur: true,
-                blurSigma: isDesktop ? 24 : 20,
-                tint: dark
+                blurSigma: nativeMobile ? 18 : (isDesktop ? 24 : 20),
+                tint: nativeMobile
+                    ? dark
+                          ? _nativeDarkNavigationPanelTint
+                          : _nativeLightNavigationPanelTint
+                    : dark
                     ? _darkNavigationPanelTint
                     : _lightNavigationPanelTint,
-                gradient: dark
+                gradient: nativeMobile
+                    ? dark
+                          ? _nativeDarkNavigationPanelGradient
+                          : _nativeLightNavigationPanelGradient
+                    : dark
                     ? _darkNavigationPanelGradient
                     : _lightNavigationPanelGradient,
+                borderColor: nativeMobile
+                    ? Colors.white.withValues(alpha: dark ? 0.16 : 0.62)
+                    : null,
                 radius: isDesktop ? 34 : 29,
-                padding: EdgeInsets.all(isDesktop ? 8 : 7),
+                padding: panelPadding,
                 child: SizedBox(
                   key: const ValueKey('professional-bottom-navigation-items'),
                   height: panelHeight - (isDesktop ? 16 : 14),
