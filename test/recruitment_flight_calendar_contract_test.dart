@@ -30,7 +30,7 @@ void main() {
     expect(models, contains('class RecruitmentFlightCalendarData'));
   });
 
-  test('calendar exposes month view, ticket editor and employee reminder', () {
+  test('calendar exposes month view, ticket editor and personal reminder', () {
     final screen = source(
       'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
     );
@@ -42,28 +42,33 @@ void main() {
     expect(screen, contains('GridView.builder('));
     expect(screen, contains('Добавить вылет и билет'));
     expect(screen, contains('Прикрепить билет'));
-    expect(screen, contains('Напомнить сотруднику'));
+    expect(screen, contains('Добавить уведомление'));
+    expect(screen, isNot(contains('Напомнить сотруднику')));
+    expect(screen, contains('Future<void> chooseArrival() async'));
     expect(screen, contains('RecruitmentMobilizationScreen'));
     expect(main, contains('RecruitmentFlightCalendarScreen'));
     expect(main, contains("label: 'Вылеты'"));
   });
 
-  test('manual and due reminders target app and bot channels once', () {
+  test('scheduled flight reminder is personal and exact-time based', () {
     final migration = source(
-      'supabase/migrations/20260806123000_recruitment_flight_calendar.sql',
+      'supabase/migrations/20260819170000_personal_flight_reminder_datetime.sql',
     );
     final repository = source(
       'lib/features/recruitment/data/recruitment_flight_repository.dart',
     );
+    final models = source(
+      'lib/features/recruitment/models/recruitment_flight_models.dart',
+    );
 
-    expect(migration, contains('send_recruitment_flight_reminder'));
-    expect(migration, contains('dispatch_due_recruitment_flight_reminders'));
-    expect(migration, contains('day_before_sent_at is null'));
-    expect(migration, contains('three_hours_sent_at is null'));
-    expect(migration, contains("'recruitment_flight'"));
-    expect(repository, contains('PushNotificationService.dispatchNotification'));
-    expect(repository, contains('RecruitmentRepository.sendCandidateMessage'));
+    expect(migration, contains('remind_at timestamptz'));
+    expect(migration, contains('target_user_id uuid references auth.users(id)'));
+    expect(migration, contains('target_user_id = (select auth.uid())'));
+    expect(migration, contains("'* * * * *'"));
+    expect(migration, contains("'Напоминание о вылете'"));
+    expect(repository, contains("'replace_recruitment_flight_reminders'"));
+    expect(models, contains("'remind_at': remindAt.toUtc().toIso8601String()"));
   });
 
-  // This contract intentionally covers both the HR calendar and employee delivery channels.
+  // Arrival/departure remain flight data; reminders are private notifications for the creator.
 }

@@ -26,7 +26,6 @@ class _RecruitmentFlightCalendarScreenState
   late Future<RecruitmentFlightCalendarData> future;
   DateTime visibleMonth = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime selectedDay = _dateOnly(DateTime.now());
-  final Set<String> reminderBusyIds = <String>{};
   final Set<String> statusBusyIds = <String>{};
 
   static DateTime _dateOnly(DateTime value) =>
@@ -174,37 +173,6 @@ class _RecruitmentFlightCalendarScreenState
         },
       ),
     );
-  }
-
-  Future<void> sendReminder(RecruitmentFlightEntry entry) async {
-    if (reminderBusyIds.contains(entry.flight.id)) return;
-    setState(() => reminderBusyIds.add(entry.flight.id));
-    try {
-      final result = await RecruitmentFlightRepository.sendReminder(entry);
-      if (!mounted) return;
-      final channels = <String>[
-        if (result.hasAppRecipient) 'приложение',
-        if (entry.candidate.canMessageInMax) 'MAX',
-        if (entry.candidate.canMessageInTelegram) 'Telegram',
-      ];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            channels.isEmpty
-                ? 'Напоминание записано, но сотрудник ещё не подключён к приложению или боту'
-                : 'Напоминание отправлено: ${channels.join(', ')}',
-          ),
-        ),
-      );
-      await refresh();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить напоминание: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => reminderBusyIds.remove(entry.flight.id));
-    }
   }
 
   Future<void> changeStatus(
@@ -399,7 +367,6 @@ class _RecruitmentFlightCalendarScreenState
   ) {
     final flight = entry.flight;
     final ticketCount = entry.tickets.length;
-    final reminderBusy = reminderBusyIds.contains(flight.id);
     final statusBusy = statusBusyIds.contains(flight.id);
     final now = DateTime.now();
     final timeUntil = flight.departureAt.difference(now);
@@ -516,16 +483,6 @@ class _RecruitmentFlightCalendarScreenState
                   icon: Icons.flag_outlined,
                   text: flight.statusTitle,
                 ),
-                if (flight.remindDayBefore)
-                  const _FlightChip(
-                    icon: Icons.notifications_active_outlined,
-                    text: 'За сутки',
-                  ),
-                if (flight.remindThreeHours)
-                  const _FlightChip(
-                    icon: Icons.alarm_outlined,
-                    text: 'За 3 часа',
-                  ),
                 _FlightChip(
                   icon: ticketCount > 0
                       ? Icons.attachment_rounded
@@ -557,20 +514,6 @@ class _RecruitmentFlightCalendarScreenState
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: reminderBusy || flight.isCancelled || flight.isCompleted
-                  ? null
-                  : () => sendReminder(entry),
-              icon: reminderBusy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.notifications_active_outlined),
-              label: const Text('Напомнить сотруднику'),
             ),
           ],
         ),
@@ -621,7 +564,7 @@ class _RecruitmentFlightCalendarScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Календарь вылетов',
-      subtitle: 'Билеты, маршруты и напоминания сотрудникам',
+      subtitle: 'Билеты, маршруты и ваши уведомления',
       headerTrailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -670,7 +613,7 @@ class _RecruitmentFlightCalendarScreenState
               const _FlightMessage(
                 icon: Icons.info_outline_rounded,
                 text:
-                    'После сохранения билетов вылет появляется в календаре. Система создаёт напоминания за сутки и за 3 часа, а HR может отправить напоминание вручную.',
+                    'После сохранения билетов вылет появляется в календаре. При необходимости добавьте точную дату и время личного уведомления для себя.',
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
@@ -811,197 +754,48 @@ class _RecruitmentFlightEditorScreenState
   }
 
   Future<void> addReminder() async {
-    var eventKind = 'departure';
-    var offsetMinutes = 180;
-    final customController = TextEditingController(text: '90');
-    String? validationText;
-    final result = await showModalBottomSheet<RecruitmentFlightReminder>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final bottom = MediaQuery.viewInsetsOf(context).bottom;
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottom),
-              child: PremiumWorkCard(
-                radius: 26,
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Добавить уведомление',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: eventKind,
-                      decoration: const InputDecoration(
-                        labelText: 'Событие',
-                        prefixIcon: Icon(Icons.notifications_active_outlined),
-                      ),
-                      items: <DropdownMenuItem<String>>[
-                        const DropdownMenuItem(
-                          value: 'departure',
-                          child: Text('Отправление'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'arrival',
-                          enabled: arrivalAt != null,
-                          child: Text(
-                            arrivalAt == null
-                                ? 'Прибытие — сначала укажите время'
-                                : 'Прибытие',
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setSheetState(() {
-                          eventKind = value;
-                          validationText = null;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<int>(
-                      initialValue: offsetMinutes,
-                      decoration: const InputDecoration(
-                        labelText: 'Когда напомнить',
-                        prefixIcon: Icon(Icons.schedule_rounded),
-                      ),
-                      items: const <int>[0, 15, 30, 60, 180, 360, 720, 1440, 2880, -1]
-                          .map(
-                            (value) => DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(
-                                value == -1
-                                    ? 'Свой вариант'
-                                    : _reminderPresetLabel(value),
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setSheetState(() {
-                          offsetMinutes = value;
-                          validationText = null;
-                        });
-                      },
-                    ),
-                    if (offsetMinutes == -1) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: customController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'За сколько минут',
-                          hintText: 'Например, 90',
-                          prefixIcon: Icon(Icons.edit_calendar_outlined),
-                        ),
-                      ),
-                    ],
-                    if (validationText != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        validationText!,
-                        style: TextStyle(
-                          color: AppAdaptivePalette.danger,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () {
-                        final offset = offsetMinutes == -1
-                            ? int.tryParse(customController.text.trim())
-                            : offsetMinutes;
-                        if (offset == null || offset < 0 || offset > 43200) {
-                          setSheetState(() => validationText =
-                              'Укажите время от 0 минут до 30 дней');
-                          return;
-                        }
-                        final eventAt = eventKind == 'arrival'
-                            ? arrivalAt
-                            : departureAt;
-                        if (eventAt == null) {
-                          setSheetState(() => validationText =
-                              'Сначала укажите время прибытия');
-                          return;
-                        }
-                        final triggerAt = eventAt.subtract(
-                          Duration(minutes: offset),
-                        );
-                        if (!triggerAt.isAfter(DateTime.now())) {
-                          setSheetState(() => validationText =
-                              'Это уведомление должно было сработать раньше. Выберите другое время.');
-                          return;
-                        }
-                        final duplicate = reminders.any(
-                          (item) =>
-                              item.eventKind == eventKind &&
-                              item.offsetMinutes == offset,
-                        );
-                        if (duplicate) {
-                          setSheetState(() => validationText =
-                              'Такое уведомление уже добавлено');
-                          return;
-                        }
-                        Navigator.pop(
-                          sheetContext,
-                          RecruitmentFlightReminder(
-                            eventKind: eventKind,
-                            offsetMinutes: offset,
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add_alert_rounded),
-                      label: const Text('Добавить'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-    customController.dispose();
-    if (result != null && mounted) {
-      setState(() => reminders.add(result));
-    }
-  }
+    final now = DateTime.now();
+    final initial = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    ).add(const Duration(hours: 1));
+    final value = await chooseDateTime(initial);
+    if (value == null || !mounted) return;
 
-  static String _reminderPresetLabel(int minutes) => switch (minutes) {
-    0 => 'В момент события',
-    15 => 'За 15 минут',
-    30 => 'За 30 минут',
-    60 => 'За 1 час',
-    180 => 'За 3 часа',
-    360 => 'За 6 часов',
-    720 => 'За 12 часов',
-    1440 => 'За 24 часа',
-    2880 => 'За 2 дня',
-    _ => 'За $minutes минут',
-  };
+    final normalized = DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+    );
+    if (!normalized.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выберите будущие дату и время уведомления')),
+      );
+      return;
+    }
+    final duplicate = reminders.any((item) {
+      final current = item.remindAt.toLocal();
+      return current.year == normalized.year &&
+          current.month == normalized.month &&
+          current.day == normalized.day &&
+          current.hour == normalized.hour &&
+          current.minute == normalized.minute;
+    });
+    if (duplicate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Уведомление на это время уже добавлено')),
+      );
+      return;
+    }
+    setState(
+      () => reminders.add(RecruitmentFlightReminder(remindAt: normalized)),
+    );
+  }
 
   Widget buildRemindersCard() {
     return PremiumWorkCard(
@@ -1017,7 +811,7 @@ class _RecruitmentFlightEditorScreenState
           const SizedBox(height: 5),
           Text(
             reminders.isEmpty
-                ? 'Уведомления не добавлены. Можно поставить несколько напоминаний перед отправлением или прибытием.'
+                ? 'Добавьте дату и время, когда нужно напомнить вам об этом вылете.'
                 : 'Добавлено: ${reminders.length}',
             style: TextStyle(
               color: AppAdaptivePalette.textMuted,
@@ -1039,9 +833,7 @@ class _RecruitmentFlightEditorScreenState
                 child: Row(
                   children: [
                     Icon(
-                      reminder.isArrival
-                          ? Icons.flight_land_rounded
-                          : Icons.flight_takeoff_rounded,
+                      Icons.notifications_active_outlined,
                       color: AppAdaptivePalette.accentStrong,
                     ),
                     const SizedBox(width: 10),
