@@ -1,6 +1,5 @@
 AppСтрой PWA release
-release date: 2026-08-19
-reason: simplify flight reminders to a personal exact date/time picker; keep flight arrival date/time; remove employee reminder action and all relative reminder presets
-accepted application commit: 2be811bd8712ca2d0d959b6e946f7b1fe843c583
-current source before release marker: 630c527e73e39d6949ea8023abe772a005b90b7e
-backend migrations: personal_flight_reminder_datetime and recruitment_flight_reminder_target_user_index applied to production
+release date: 2026-08-20
+reason: restore departure/arrival choice for personal flight reminders and add a custom reminder title while keeping exact manual date/time scheduling
+accepted application commit: 9c99f5132aadcafe4ebedaf4f025d51dae312154
+backend migration: flight_reminder_event_and_title applied to production
