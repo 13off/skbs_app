@@ -1,2 +1,3 @@
-PWA incident redeploy: 2026-08-18T20:18+03:00
-Reason: mobile release commits touched the GitHub Pages source branch; rebuild the validated current web app after fixing the release contract gate.
+PWA forced redeploy: 2026-08-19T11:11+03:00
+Reason: publish the merged PWA bottom-action geometry fix from PR #522 so «Добавить задачу» and «Сохранить табель» no longer double-count the reserved bottom navigation area.
+Expected source: d2c104806abb647684bb3a543bd4f8013a416117 plus this redeploy marker commit.
