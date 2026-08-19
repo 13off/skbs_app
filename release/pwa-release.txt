@@ -1,5 +1,6 @@
 AppСтрой PWA release
 release date: 2026-08-19
-reason: publish configurable flight notifications and individual timesheet multi-month/date-range selection with balance for the selected period
-accepted application commit: e0a112b4bc69150641e4abf4082a0d910508bce4
-backend migration: recruitment_flight_custom_reminders applied to production
+reason: simplify flight reminders to a personal exact date/time picker; keep flight arrival date/time; remove employee reminder action and all relative reminder presets
+accepted application commit: 2be811bd8712ca2d0d959b6e946f7b1fe843c583
+current source before release marker: 630c527e73e39d6949ea8023abe772a005b90b7e
+backend migrations: personal_flight_reminder_datetime and recruitment_flight_reminder_target_user_index applied to production
