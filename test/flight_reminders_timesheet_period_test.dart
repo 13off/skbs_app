@@ -32,7 +32,7 @@ void main() {
     expect(source, contains("'Добавить уведомление'"));
     expect(source, contains('RecruitmentFlightReminder'));
     expect(source, contains('Такое уведомление уже добавлено'));
-    expect(source, contains('Время прибытия'));
+    expect(source, contains('время прибытия'));
   });
 
   test('flight reminder persistence has cascade and exact duplicate guard', () {
