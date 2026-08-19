@@ -1,0 +1,185 @@
+name: Build PWA release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - release/pwa-release.txt
+      - .github/workflows/build-pwa-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appstroy-pwa-release
+  cancel-in-progress: true
+
+env:
+  APP_PUBLIC_URL: https://13off.github.io/appstroy-web/
+  FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+  FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+  FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+  FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+  FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
+  FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+  FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+  FIREBASE_VAPID_KEY: ${{ vars.FIREBASE_VAPID_KEY }}
+
+jobs:
+  build-pwa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check deploy token
+        shell: bash
+        run: |
+          test -n "${{ secrets.WEB_DEPLOY_TOKEN }}" || { echo "::error::Не найден secret WEB_DEPLOY_TOKEN"; exit 1; }
+
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: skbs_app
+          show-progress: false
+
+      - name: Checkout published web
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: 13off/appstroy-web
+          token: ${{ secrets.WEB_DEPLOY_TOKEN }}
+          path: appstroy-web
+          ref: main
+          show-progress: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: skbs_app/.fvmrc
+          cache: true
+
+      - name: Validate committed web assets
+        shell: bash
+        run: |
+          test -s skbs_app/web/icons/AppStroy-192-v2.png
+          test -s skbs_app/web/icons/AppStroy-512-v2.png
+          test -s skbs_app/web/favicon-v2.png
+          test -s skbs_app/web/icons/app_icon_matte_v2.svg
+
+      - name: Install locked dependencies
+        working-directory: skbs_app
+        shell: bash
+        run: flutter pub get --enforce-lockfile 2>&1 | tee ../pwa-pub-get.log
+
+      - name: Run regression tests
+        working-directory: skbs_app
+        shell: bash
+        run: flutter test --reporter compact 2>&1 | tee ../pwa-test.log
+
+      - name: Analyze source
+        working-directory: skbs_app
+        shell: bash
+        run: flutter analyze 2>&1 | tee ../pwa-analyze.log
+
+      - name: Configure Firebase web values
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path('web/firebase-messaging-sw.js')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '__FIREBASE_API_KEY__': os.environ.get('FIREBASE_API_KEY', ''),
+              '__FIREBASE_AUTH_DOMAIN__': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+              '__FIREBASE_PROJECT_ID__': os.environ.get('FIREBASE_PROJECT_ID', ''),
+              '__FIREBASE_STORAGE_BUCKET__': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+              '__FIREBASE_MESSAGING_SENDER_ID__': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+              '__FIREBASE_WEB_APP_ID__': os.environ.get('FIREBASE_WEB_APP_ID', ''),
+              '__APP_PUBLIC_URL__': os.environ.get('APP_PUBLIC_URL', ''),
+          }
+          for marker, value in replacements.items():
+              text = text.replace(marker, value)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Build PWA
+        working-directory: skbs_app
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build web --release \
+            --base-href /appstroy-web/ \
+            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
+            --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define=FIREBASE_AUTH_DOMAIN="$FIREBASE_AUTH_DOMAIN" \
+            --dart-define=FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET" \
+            --dart-define=FIREBASE_WEB_APP_ID="$FIREBASE_WEB_APP_ID" \
+            --dart-define=FIREBASE_ANDROID_APP_ID="$FIREBASE_ANDROID_APP_ID" \
+            --dart-define=FIREBASE_IOS_APP_ID="$FIREBASE_IOS_APP_ID" \
+            --dart-define=FIREBASE_VAPID_KEY="$FIREBASE_VAPID_KEY" \
+            2>&1 | tee ../pwa-build.log
+
+      - name: Prepare cache-busted web
+        shell: bash
+        run: |
+          BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
+          sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
+          sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
+          sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
+          cp skbs_app/build/web/index.html skbs_app/build/web/404.html
+          test -s skbs_app/build/web/main.dart.js
+          test -s skbs_app/build/web/flutter_bootstrap.js
+          grep -q "flutter_bootstrap.js?v=${BUILD_ID}" skbs_app/build/web/index.html
+
+      - name: Publish PWA
+        working-directory: appstroy-web
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'downloads' -exec rm -rf {} +
+            cp -R ../skbs_app/build/web/. ./
+            touch .nojekyll
+            git add -A
+            if git diff --cached --quiet; then
+              echo "Published PWA is already current"
+              break
+            fi
+            git commit -m "обновлена PWA после исправления нижних действий"
+            if git push origin HEAD:main; then
+              break
+            fi
+            sleep $((attempt * 3))
+            test "$attempt" -lt 5
+          done
+
+      - name: Record successful PWA source
+        working-directory: appstroy-web
+        shell: bash
+        run: |
+          SOURCE_SHA="$(git -C ../skbs_app rev-parse HEAD)"
+          BUILD_ID="$(git -C ../skbs_app rev-parse --short=12 HEAD)"
+          git fetch origin main
+          git reset --hard origin/main
+          grep -q "flutter_bootstrap.js?v=${BUILD_ID}" index.html
+          mkdir -p downloads
+          printf 'success\n' > downloads/web-build-status.txt
+          printf '%s\n' "$SOURCE_SHA" > downloads/web-source-commit.txt
+          rm -f downloads/web-build.log downloads/flutter-test-tail.log downloads/flutter-analyze-tail.log downloads/flutter-web-build-tail.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A downloads
+          if ! git diff --cached --quiet; then
+            git commit -m "сохранён успешный статус PWA"
+            git push origin HEAD:main
+          fi
