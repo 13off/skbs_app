@@ -1,7 +1,7 @@
 AppСтрой iOS verification release
-version: 1.3.9+19
+version: 1.3.9+20
 release date: 2026-08-19
-accepted application commit: 6f67ed0709eabed8e40d84a4ccdec614ab4e79ba
-release version commit: cf6c107e5e9677d2d1e6ccb2f269f2609d1f8207
-reason: fix iOS payment receipt picker by adding Uniform Type Identifiers for JPG/JPEG, PNG, WEBP and PDF; include all current main changes and preserve native task photo picker and current mobile UI
+accepted application commit: 317e32d9f8bca1363098ad2e2c2574408c07280c
+release version commit: 1f6f53bc3f52e81824dc7919b196fef9ca1e6542
+reason: include the corrected native Android/iOS bottom navigation safe-area geometry and lighter glass from PR #517 while keeping Web/PWA formulas and appearance unchanged; retain the iOS payment receipt picker fixes already released in 1.3.9+19 and the current mobile task photo picker
 expected output: unsigned verification IPA
