@@ -810,14 +810,6 @@ class _RecruitmentFlightEditorScreenState
     if (value != null && mounted) setState(() => arrivalAt = value);
   }
 
-  String _reminderOffsetTitle(int minutes) {
-    if (minutes == 0) return 'В момент события';
-    if (minutes < 60) return 'За $minutes мин';
-    if (minutes % 1440 == 0) return 'За ${minutes ~/ 1440} дн.';
-    if (minutes % 60 == 0) return 'За ${minutes ~/ 60} ч';
-    return 'За ${minutes ~/ 60} ч ${minutes % 60} мин';
-  }
-
   Future<void> addReminder() async {
     var eventKind = 'departure';
     var offsetMinutes = 180;
