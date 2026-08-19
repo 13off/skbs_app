@@ -1,0 +1,31 @@
+name: Run flight reminder event/title patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/run-flight-reminder-event-title-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-feature-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/flight-reminder-event-title
+          fetch-depth: 0
+      - name: Apply patch
+        run: python3 tooling/flight_reminder_event_title_patch.py
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/recruitment/models/recruitment_flight_models.dart \
+                  lib/features/recruitment/data/recruitment_flight_repository.dart \
+                  lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart \
+                  test/flight_reminders_timesheet_period_test.dart
+          git commit -m 'Вылеты: вернуть отправление/прибытие и название уведомления'
+          git push origin HEAD:feature/flight-reminder-event-title
