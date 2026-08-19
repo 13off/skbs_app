@@ -164,7 +164,16 @@ class PaymentReceiptRepository {
   }
 
   static Future<List<PickedPaymentReceiptFile>> pickReceiptFilesNative() async {
-    const typeGroup = XTypeGroup(label: 'Чеки', extensions: allowedExtensions);
+    const typeGroup = XTypeGroup(
+      label: 'Чеки',
+      extensions: allowedExtensions,
+      uniformTypeIdentifiers: <String>[
+        'public.jpeg',
+        'public.png',
+        'org.webmproject.webp',
+        'com.adobe.pdf',
+      ],
+    );
 
     final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
     if (files.isEmpty) return <PickedPaymentReceiptFile>[];
