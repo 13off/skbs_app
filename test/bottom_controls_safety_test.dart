@@ -31,6 +31,7 @@ void main() {
       ),
     );
 
+    // Native deliberately keeps the PWA bottom spacing out of this geometry.
     expect(
       navigationHeight,
       AppUi.mobileNavigationPanelHeight +
