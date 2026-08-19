@@ -52,6 +52,15 @@ validation = '''    final reminderKeys = <String>{};
 '''
 replace_once(
     repo,
+    '''    final result = RecruitmentFlight.fromMap(_map(row));
+
+''' + validation + '''    await _client.rpc(''',
+    '''    final result = RecruitmentFlight.fromMap(_map(row));
+
+    await _client.rpc(''',
+)
+replace_once(
+    repo,
     '''    if (arrivalAt != null && !arrivalAt.isAfter(departureAt)) {
       throw Exception('Прибытие должно быть позже вылета');
     }
@@ -63,6 +72,5 @@ replace_once(
 
 ''' + validation + '''    final newAttachmentCount =''',
 )
-replace_once(repo, validation, '')
 
 print('feature cleanup applied')
