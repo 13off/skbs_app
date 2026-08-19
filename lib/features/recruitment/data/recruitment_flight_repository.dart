@@ -274,6 +274,18 @@ abstract final class RecruitmentFlightRepository {
 
     final reminderKeys = <String>{};
     for (final reminder in reminders) {
+      if (reminder.eventKind != 'departure' && reminder.eventKind != 'arrival') {
+        throw Exception('Выберите отправление или прибытие');
+      }
+      if (reminder.title.trim().isEmpty) {
+        throw Exception('Укажите название уведомления');
+      }
+      if (reminder.title.trim().length > 120) {
+        throw Exception('Название уведомления должно быть короче 120 символов');
+      }
+      if (reminder.eventKind == 'arrival' && arrivalAt == null) {
+        throw Exception('Для уведомления о прибытии укажите время прибытия');
+      }
       final local = reminder.remindAt.toLocal();
       final normalized = DateTime(
         local.year,

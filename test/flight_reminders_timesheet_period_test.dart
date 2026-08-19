@@ -4,28 +4,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/features/recruitment/models/recruitment_flight_models.dart';
 
 void main() {
-  test('flight reminder stores exact chosen date and time', () {
+  test('flight reminder stores event, title and exact chosen date and time', () {
     final reminder = RecruitmentFlightReminder(
+      eventKind: 'arrival',
+      title: 'Встретить сотрудника',
       remindAt: DateTime(2026, 8, 25, 18, 30),
     );
 
+    expect(reminder.eventTitle, 'Прибытие');
+    expect(reminder.displayTitle, 'Встретить сотрудника');
     expect(reminder.label, '25.08.2026 · 18:30');
+    expect(reminder.toPayload()['event_kind'], 'arrival');
+    expect(reminder.toPayload()['reminder_title'], 'Встретить сотрудника');
     expect(
       reminder.toPayload()['remind_at'],
       reminder.remindAt.toUtc().toIso8601String(),
     );
   });
 
-  test('flight editor asks only for reminder date and time', () {
+  test('flight editor keeps event choice, custom title and exact reminder time', () {
     final source = File(
       'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
     ).readAsStringSync();
 
     expect(source, contains("'Добавить уведомление'"));
-    expect(source, contains('final value = await chooseDateTime(initial);'));
-    expect(source, contains('RecruitmentFlightReminder(remindAt: normalized)'));
-    expect(source, isNot(contains("labelText: 'Событие'")));
-    expect(source, isNot(contains("labelText: 'Когда напомнить'")));
+    expect(source, contains("labelText: 'Название уведомления'"));
+    expect(source, contains("Text('Отправление')"));
+    expect(source, contains("Text('Прибытие')"));
+    expect(source, contains('eventKind: eventKind'));
+    expect(source, contains('title: title'));
     expect(source, isNot(contains("'За 15 минут'")));
     expect(source, isNot(contains("'За 3 часа'")));
     expect(source, isNot(contains("'За 24 часа'")));

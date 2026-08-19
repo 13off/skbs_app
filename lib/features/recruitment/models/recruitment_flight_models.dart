@@ -119,6 +119,8 @@ class RecruitmentFlightReminder {
   final String id;
   final String companyId;
   final String flightId;
+  final String eventKind;
+  final String title;
   final DateTime remindAt;
   final DateTime? sentAt;
 
@@ -126,11 +128,16 @@ class RecruitmentFlightReminder {
     this.id = '',
     this.companyId = '',
     this.flightId = '',
+    this.eventKind = 'departure',
+    this.title = '',
     required this.remindAt,
     this.sentAt,
   });
 
   bool get isSent => sentAt != null;
+  bool get isArrival => eventKind == 'arrival';
+  String get eventTitle => isArrival ? 'Прибытие' : 'Отправление';
+  String get displayTitle => title.trim().isEmpty ? eventTitle : title.trim();
 
   String get label {
     final local = remindAt.toLocal();
@@ -142,6 +149,8 @@ class RecruitmentFlightReminder {
   }
 
   Map<String, dynamic> toPayload() => <String, dynamic>{
+    'event_kind': eventKind,
+    'reminder_title': title.trim(),
     'remind_at': remindAt.toUtc().toIso8601String(),
   };
 
@@ -151,10 +160,13 @@ class RecruitmentFlightReminder {
       return text.isEmpty ? null : DateTime.tryParse(text)?.toLocal();
     }
 
+    final rawEvent = map['event_kind']?.toString().trim() ?? '';
     return RecruitmentFlightReminder(
       id: map['id']?.toString() ?? '',
       companyId: map['company_id']?.toString() ?? '',
       flightId: map['flight_id']?.toString() ?? '',
+      eventKind: rawEvent == 'arrival' ? 'arrival' : 'departure',
+      title: map['reminder_title']?.toString() ?? '',
       remindAt:
           optionalDate(map['remind_at']) ??
           optionalDate(map['created_at']) ??
