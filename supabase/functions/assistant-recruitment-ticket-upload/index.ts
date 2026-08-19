@@ -50,7 +50,7 @@ function decodeBase64(raw: string) {
 function decodePdf(raw: string) {
   let bytes = decodeBase64(raw);
   if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
-    bytes = gunzipSync(bytes);
+    bytes = new Uint8Array(gunzipSync(bytes));
   }
   if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("Invalid file size");
   if (!(bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)) {
