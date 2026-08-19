@@ -117,6 +117,25 @@ abstract final class RecruitmentFlightRepository {
         .toList(growable: false);
   }
 
+  static Future<List<RecruitmentFlightReminder>> fetchFlightReminders({
+    required String companyId,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlightReminder>[];
+    final rows = await _client
+        .from('recruitment_flight_reminders')
+        .select()
+        .eq('company_id', cleanCompanyId)
+        .order('created_at', ascending: true)
+        .limit(10000);
+    return rows
+        .map<RecruitmentFlightReminder>(
+          (row) => RecruitmentFlightReminder.fromMap(_map(row)),
+        )
+        .where((reminder) => reminder.flightId.isNotEmpty)
+        .toList(growable: false);
+  }
+
   static Future<List<RecruitmentFlightTicket>> fetchFlightTickets({
     required String companyId,
   }) async {
@@ -145,10 +164,12 @@ abstract final class RecruitmentFlightRepository {
       fetchCandidates(companyId: companyId),
       fetchFlights(companyId: companyId),
       fetchFlightTickets(companyId: companyId),
+      fetchFlightReminders(companyId: companyId),
     ]);
     final candidates = results[0] as List<RecruitmentFlightCandidate>;
     final flights = results[1] as List<RecruitmentFlight>;
     final tickets = results[2] as List<RecruitmentFlightTicket>;
+    final reminders = results[3] as List<RecruitmentFlightReminder>;
     final candidatesById = <String, RecruitmentFlightCandidate>{
       for (final candidate in candidates) candidate.applicationId: candidate,
     };
@@ -157,6 +178,12 @@ abstract final class RecruitmentFlightRepository {
       ticketsByFlight
           .putIfAbsent(ticket.flightId, () => <RecruitmentFlightTicket>[])
           .add(ticket);
+    }
+    final remindersByFlight = <String, List<RecruitmentFlightReminder>>{};
+    for (final reminder in reminders) {
+      remindersByFlight
+          .putIfAbsent(reminder.flightId, () => <RecruitmentFlightReminder>[])
+          .add(reminder);
     }
     final entries = flights
         .map((flight) {
@@ -172,6 +199,9 @@ abstract final class RecruitmentFlightRepository {
             flight: flight,
             candidate: candidate,
             tickets: List<RecruitmentFlightTicket>.unmodifiable(attachments),
+            reminders: List<RecruitmentFlightReminder>.unmodifiable(
+              remindersByFlight[flight.id] ?? const <RecruitmentFlightReminder>[],
+            ),
           );
         })
         .whereType<RecruitmentFlightEntry>()
@@ -223,8 +253,8 @@ abstract final class RecruitmentFlightRepository {
     required String origin,
     required String destination,
     String flightNumber = '',
-    bool remindDayBefore = true,
-    bool remindThreeHours = true,
+    List<RecruitmentFlightReminder> reminders =
+        const <RecruitmentFlightReminder>[],
     String notes = '',
     Uint8List? ticketBytes,
     String ticketFileName = '',
@@ -245,6 +275,30 @@ abstract final class RecruitmentFlightRepository {
     }
     if (arrivalAt != null && !arrivalAt.isAfter(departureAt)) {
       throw Exception('Прибытие должно быть позже вылета');
+    }
+
+    final reminderKeys = <String>{};
+    for (final reminder in reminders) {
+      if (reminder.eventKind != 'departure' && reminder.eventKind != 'arrival') {
+        throw Exception('Некорректное событие уведомления');
+      }
+      if (reminder.offsetMinutes < 0 || reminder.offsetMinutes > 43200) {
+        throw Exception('Уведомление можно поставить не более чем за 30 дней');
+      }
+      final key = '${reminder.eventKind}:${reminder.offsetMinutes}';
+      if (!reminderKeys.add(key)) {
+        throw Exception('Такое уведомление уже добавлено');
+      }
+      final eventAt = reminder.eventKind == 'arrival' ? arrivalAt : departureAt;
+      if (eventAt == null) {
+        throw Exception('Для уведомления о прибытии укажите время прибытия');
+      }
+      if (!reminder.isSent &&
+          !eventAt
+              .subtract(Duration(minutes: reminder.offsetMinutes))
+              .isAfter(DateTime.now())) {
+        throw Exception('Время одного из уведомлений уже прошло');
+      }
     }
 
     final newAttachmentCount =
@@ -343,8 +397,8 @@ abstract final class RecruitmentFlightRepository {
       'origin': origin.trim(),
       'destination': destination.trim(),
       'flight_number': flightNumber.trim().toUpperCase(),
-      'remind_day_before': remindDayBefore,
-      'remind_three_hours': remindThreeHours,
+      'remind_day_before': false,
+      'remind_three_hours': false,
       'notes': notes.trim(),
       ...ticket,
       'updated_by': userId,
@@ -370,6 +424,14 @@ abstract final class RecruitmentFlightRepository {
     }
 
     final result = RecruitmentFlight.fromMap(_map(row));
+
+    await _client.rpc(
+      'replace_recruitment_flight_reminders',
+      params: <String, dynamic>{
+        'p_flight_id': result.id,
+        'p_reminders': reminders.map((item) => item.toPayload()).toList(),
+      },
+    );
 
     if (uploadedAttachments.isNotEmpty) {
       final attachmentRows = uploadedAttachments

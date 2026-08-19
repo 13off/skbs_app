@@ -738,8 +738,7 @@ class _RecruitmentFlightEditorScreenState
   late final TextEditingController destinationController;
   late final TextEditingController flightNumberController;
   late final TextEditingController notesController;
-  late bool remindDayBefore;
-  late bool remindThreeHours;
+  late List<RecruitmentFlightReminder> reminders;
   final List<RecruitmentFlightTicketUpload> pendingTickets =
       <RecruitmentFlightTicketUpload>[];
   bool saving = false;
@@ -761,8 +760,9 @@ class _RecruitmentFlightEditorScreenState
       text: entry?.flight.flightNumber ?? '',
     );
     notesController = TextEditingController(text: entry?.flight.notes ?? '');
-    remindDayBefore = entry?.flight.remindDayBefore ?? true;
-    remindThreeHours = entry?.flight.remindThreeHours ?? true;
+    reminders = List<RecruitmentFlightReminder>.from(
+      entry?.reminders ?? const <RecruitmentFlightReminder>[],
+    );
   }
 
   @override
@@ -808,6 +808,283 @@ class _RecruitmentFlightEditorScreenState
       arrivalAt ?? departureAt.add(const Duration(hours: 3)),
     );
     if (value != null && mounted) setState(() => arrivalAt = value);
+  }
+
+  Future<void> addReminder() async {
+    var eventKind = 'departure';
+    var offsetMinutes = 180;
+    final customController = TextEditingController(text: '90');
+    String? validationText;
+    final result = await showModalBottomSheet<RecruitmentFlightReminder>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final bottom = MediaQuery.viewInsetsOf(context).bottom;
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottom),
+              child: PremiumWorkCard(
+                radius: 26,
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Добавить уведомление',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: eventKind,
+                      decoration: const InputDecoration(
+                        labelText: 'Событие',
+                        prefixIcon: Icon(Icons.notifications_active_outlined),
+                      ),
+                      items: <DropdownMenuItem<String>>[
+                        const DropdownMenuItem(
+                          value: 'departure',
+                          child: Text('Отправление'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'arrival',
+                          enabled: arrivalAt != null,
+                          child: Text(
+                            arrivalAt == null
+                                ? 'Прибытие — сначала укажите время'
+                                : 'Прибытие',
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setSheetState(() {
+                          eventKind = value;
+                          validationText = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: offsetMinutes,
+                      decoration: const InputDecoration(
+                        labelText: 'Когда напомнить',
+                        prefixIcon: Icon(Icons.schedule_rounded),
+                      ),
+                      items: const <int>[0, 15, 30, 60, 180, 360, 720, 1440, 2880, -1]
+                          .map(
+                            (value) => DropdownMenuItem<int>(
+                              value: value,
+                              child: Text(
+                                value == -1
+                                    ? 'Свой вариант'
+                                    : _reminderPresetLabel(value),
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setSheetState(() {
+                          offsetMinutes = value;
+                          validationText = null;
+                        });
+                      },
+                    ),
+                    if (offsetMinutes == -1) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: customController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'За сколько минут',
+                          hintText: 'Например, 90',
+                          prefixIcon: Icon(Icons.edit_calendar_outlined),
+                        ),
+                      ),
+                    ],
+                    if (validationText != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        validationText!,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.danger,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () {
+                        final offset = offsetMinutes == -1
+                            ? int.tryParse(customController.text.trim())
+                            : offsetMinutes;
+                        if (offset == null || offset < 0 || offset > 43200) {
+                          setSheetState(() => validationText =
+                              'Укажите время от 0 минут до 30 дней');
+                          return;
+                        }
+                        final eventAt = eventKind == 'arrival'
+                            ? arrivalAt
+                            : departureAt;
+                        if (eventAt == null) {
+                          setSheetState(() => validationText =
+                              'Сначала укажите время прибытия');
+                          return;
+                        }
+                        final triggerAt = eventAt.subtract(
+                          Duration(minutes: offset),
+                        );
+                        if (!triggerAt.isAfter(DateTime.now())) {
+                          setSheetState(() => validationText =
+                              'Это уведомление должно было сработать раньше. Выберите другое время.');
+                          return;
+                        }
+                        final duplicate = reminders.any(
+                          (item) =>
+                              item.eventKind == eventKind &&
+                              item.offsetMinutes == offset,
+                        );
+                        if (duplicate) {
+                          setSheetState(() => validationText =
+                              'Такое уведомление уже добавлено');
+                          return;
+                        }
+                        Navigator.pop(
+                          sheetContext,
+                          RecruitmentFlightReminder(
+                            eventKind: eventKind,
+                            offsetMinutes: offset,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_alert_rounded),
+                      label: const Text('Добавить'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    customController.dispose();
+    if (result != null && mounted) {
+      setState(() => reminders.add(result));
+    }
+  }
+
+  static String _reminderPresetLabel(int minutes) => switch (minutes) {
+    0 => 'В момент события',
+    15 => 'За 15 минут',
+    30 => 'За 30 минут',
+    60 => 'За 1 час',
+    180 => 'За 3 часа',
+    360 => 'За 6 часов',
+    720 => 'За 12 часов',
+    1440 => 'За 24 часа',
+    2880 => 'За 2 дня',
+    _ => 'За $minutes минут',
+  };
+
+  Widget buildRemindersCard() {
+    return PremiumWorkCard(
+      radius: 22,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Уведомления',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            reminders.isEmpty
+                ? 'Уведомления не добавлены. Можно поставить несколько напоминаний перед отправлением или прибытием.'
+                : 'Добавлено: ${reminders.length}',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (reminders.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...reminders.asMap().entries.map((entry) {
+              final reminder = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppAdaptivePalette.surfaceSoft,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppAdaptivePalette.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      reminder.isArrival
+                          ? Icons.flight_land_rounded
+                          : Icons.flight_takeoff_rounded,
+                      color: AppAdaptivePalette.accentStrong,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reminder.label,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          if (reminder.isSent)
+                            Text(
+                              'Уже отправлено',
+                              style: TextStyle(
+                                color: AppAdaptivePalette.textMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Удалить уведомление',
+                      onPressed: saving
+                          ? null
+                          : () => setState(() => reminders.removeAt(entry.key)),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          OutlinedButton.icon(
+            onPressed: saving || reminders.length >= 20 ? null : addReminder,
+            icon: const Icon(Icons.add_alert_rounded),
+            label: const Text('Добавить уведомление'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> chooseTickets() async {
@@ -905,8 +1182,7 @@ class _RecruitmentFlightEditorScreenState
         origin: originController.text,
         destination: destinationController.text,
         flightNumber: flightNumberController.text,
-        remindDayBefore: remindDayBefore,
-        remindThreeHours: remindThreeHours,
+        reminders: List<RecruitmentFlightReminder>.unmodifiable(reminders),
         notes: notesController.text,
         ticketUploads: List<RecruitmentFlightTicketUpload>.unmodifiable(
           pendingTickets,
@@ -1088,33 +1364,8 @@ class _RecruitmentFlightEditorScreenState
             ),
           ),
           const SizedBox(height: 12),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: remindDayBefore,
-            onChanged: saving
-                ? null
-                : (value) => setState(() => remindDayBefore = value),
-            title: const Text(
-              'Напомнить за сутки',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-            subtitle: const Text('Сотруднику придёт уведомление за 24 часа.'),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: remindThreeHours,
-            onChanged: saving
-                ? null
-                : (value) => setState(() => remindThreeHours = value),
-            title: const Text(
-              'Напомнить за 3 часа',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-            subtitle: const Text(
-              'Повторное напоминание перед поездкой в аэропорт.',
-            ),
-          ),
-          const SizedBox(height: 8),
+          buildRemindersCard(),
+          const SizedBox(height: 12),
           TextField(
             controller: notesController,
             enabled: !saving,
