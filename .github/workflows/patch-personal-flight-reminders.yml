@@ -1,0 +1,32 @@
+name: Patch personal flight reminders
+
+on:
+  push:
+    branches:
+      - feature/personal-flight-reminder-datetime
+    paths:
+      - .github/workflows/patch-personal-flight-reminders.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/personal-flight-reminder-datetime
+          fetch-depth: 0
+      - name: Apply exact personal reminder UX
+        run: python3 .github/scripts/patch_personal_flight_reminders.py
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Вылеты: личное уведомление по дате и времени"
+          git push origin HEAD:feature/personal-flight-reminder-datetime
