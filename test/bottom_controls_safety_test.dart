@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:skbs_app/app/app_ui_tokens.dart';
 
 void main() {
-  testWidgets('iPhone safe area is part of the shared navigation geometry', (
+  testWidgets('native iPhone safe area stays inside navigation geometry', (
     tester,
   ) async {
     late double navigationHeight;
@@ -31,9 +31,14 @@ void main() {
       ),
     );
 
-    expect(navigationHeight, 128);
-    expect(actionBottom, 138);
-    expect(listBottom, 214);
+    expect(
+      navigationHeight,
+      AppUi.mobileNavigationPanelHeight +
+          AppUi.mobileNavigationTopSpacing +
+          34,
+    );
+    expect(actionBottom, AppUi.floatingActionGap);
+    expect(listBottom, 64 + 22);
   });
 
   test('navigation and timesheet consume one geometry source', () {
