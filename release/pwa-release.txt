@@ -1,4 +1,5 @@
 AppСтрой PWA release
 release date: 2026-08-19
-reason: publish corrected PWA geometry for «Добавить задачу» and «Сохранить табель» after PR #522; use committed web icons and reliable dedicated release workflow
-accepted application fix: d2c104806abb647684bb3a543bd4f8013a416117
+reason: publish configurable flight notifications and individual timesheet multi-month/date-range selection with balance for the selected period
+accepted application commit: e0a112b4bc69150641e4abf4082a0d910508bce4
+backend migration: recruitment_flight_custom_reminders applied to production
