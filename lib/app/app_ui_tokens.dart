@@ -84,7 +84,7 @@ abstract final class AppUi {
     final topSpacing = navigationTopSpacing(context);
     final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
 
-    // Web/PWA keeps its established floating geometry exactly as before.
+    // Web/PWA keeps its established floating navigation panel geometry.
     // Native Android/iOS paints the glass through the system safe area instead
     // of reserving an additional blank strip below the visible panel.
     if (kIsWeb) {
@@ -101,10 +101,10 @@ abstract final class AppUi {
     BuildContext context, {
     double gap = floatingActionGap,
   }) {
-    // On native the Scaffold body already ends above bottomNavigationBar.
-    // Adding the navigation height again pushes floating actions into content.
-    if (!kIsWeb) return gap;
-    return navigationTotalHeight(context) + gap;
+    // The root tab Scaffold reserves bottomNavigationBar on every platform,
+    // including PWA. Re-adding navigationTotalHeight here double-counts that
+    // reserved slot and lifts page actions too high above the bottom panel.
+    return gap;
   }
 
   static double floatingActionListBottomPadding(
@@ -112,7 +112,8 @@ abstract final class AppUi {
     double actionHeight = 64,
     double gap = 22,
   }) {
-    if (!kIsWeb) return actionHeight + gap;
-    return navigationTotalHeight(context) + actionHeight + gap;
+    // List content only needs room for the floating action itself because the
+    // shell already ends the page body above the navigation bar on all builds.
+    return actionHeight + gap;
   }
 }
