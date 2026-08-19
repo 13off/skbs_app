@@ -1,7 +1,6 @@
 AppСтрой Android release
-version: 1.3.9+18
-release date: 2026-08-18
-attempt: 2
-accepted application commit: 0746ea6d59706555eb7c431866c354dd4c93b807
+version: 1.3.9+20
+release date: 2026-08-19
+accepted application commit: 1519fce80ab357f009cf20912c17a46460c51b79
 release workflow: .github/workflows/build-android-apk.yml
-reason: clean repeat release after PWA/mobile publishing isolation; keep global chat and microphone launchers removed and preserve native task photo picker, multiple before/after photos, in-app viewer and current task/photo business logic
+reason: align Android release with current iOS/PWA source; include native bottom navigation safe-area geometry and lighter glass from PR #517, keep Web/PWA formulas unchanged, retain current receipt upload fixes and mobile task photo picker
