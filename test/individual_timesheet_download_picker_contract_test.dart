@@ -16,7 +16,9 @@ void main() {
       contains("import 'employee_timesheet_download_sheet.dart';"),
     );
     expect(timesheet, contains('EmployeeTimesheetDownloadSheet.show('));
-    expect(timesheet, contains('initialDate: selectedMonth'));
+    expect(timesheet, contains('initialDate: initialDate'));
+    expect(timesheet, contains('Set<DateTime> selectedMonths'));
+    expect(timesheet, contains('showDateRangePicker('));
     expect(timesheet, isNot(contains('showDialog<void>(')));
     expect(timesheet, isNot(contains('EmployeeTimesheetDownloadScreen(')));
     expect(
