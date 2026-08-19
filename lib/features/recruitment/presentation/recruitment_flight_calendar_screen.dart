@@ -754,14 +754,96 @@ class _RecruitmentFlightEditorScreenState
   }
 
   Future<void> addReminder() async {
+    final titleController = TextEditingController();
+    var selectedEvent = 'departure';
+    final setup = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Новое уведомление'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Событие', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const <ButtonSegment<String>>[
+                    ButtonSegment<String>(
+                      value: 'departure',
+                      icon: Icon(Icons.flight_takeoff_rounded),
+                      label: Text('Отправление'),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'arrival',
+                      icon: Icon(Icons.flight_land_rounded),
+                      label: Text('Прибытие'),
+                    ),
+                  ],
+                  selected: <String>{selectedEvent},
+                  onSelectionChanged: (values) =>
+                      setDialogState(() => selectedEvent = values.first),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: titleController,
+                  autofocus: true,
+                  maxLength: 120,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Название уведомления',
+                    hintText: 'Например: проверить регистрацию',
+                    prefixIcon: Icon(Icons.label_outline_rounded),
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: titleController.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(<String, String>{
+                        'event_kind': selectedEvent,
+                        'title': titleController.text.trim(),
+                      }),
+              child: const Text('Далее'),
+            ),
+          ],
+        ),
+      ),
+    );
+    titleController.dispose();
+    if (setup == null || !mounted) return;
+
+    final eventKind = setup['event_kind'] ?? 'departure';
+    final title = setup['title']?.trim() ?? '';
+    if (eventKind == 'arrival' && arrivalAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Сначала укажите время прибытия рейса')),
+      );
+      return;
+    }
+
     final now = DateTime.now();
+    final eventAt = eventKind == 'arrival' ? arrivalAt : departureAt;
+    final suggested = eventAt != null && eventAt.isAfter(now)
+        ? eventAt
+        : now.add(const Duration(hours: 1));
     final initial = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute,
-    ).add(const Duration(hours: 1));
+      suggested.year,
+      suggested.month,
+      suggested.day,
+      suggested.hour,
+      suggested.minute,
+    );
     final value = await chooseDateTime(initial);
     if (value == null || !mounted) return;
 
@@ -793,7 +875,13 @@ class _RecruitmentFlightEditorScreenState
       return;
     }
     setState(
-      () => reminders.add(RecruitmentFlightReminder(remindAt: normalized)),
+      () => reminders.add(
+        RecruitmentFlightReminder(
+          eventKind: eventKind,
+          title: title,
+          remindAt: normalized,
+        ),
+      ),
     );
   }
 
@@ -842,8 +930,17 @@ class _RecruitmentFlightEditorScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            reminder.label,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            reminder.displayTitle,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${reminder.eventTitle} · ${reminder.label}',
+                            style: TextStyle(
+                              color: AppAdaptivePalette.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           if (reminder.isSent)
                             Text(
