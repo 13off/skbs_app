@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/attendance_report_row.dart';
 import '../models/employee.dart';
+import '../models/employee_timesheet_period_row.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../models/period_timesheet_row.dart';
 import 'app_data_sync.dart';
@@ -709,6 +710,62 @@ class AttendanceRepository {
     }
 
     return result;
+  }
+
+  static Future<EmployeeTimesheetPeriodRow> fetchTimesheetForEmployeePeriod({
+    required Employee employee,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final cleanStart = DateTime(startDate.year, startDate.month, startDate.day);
+    final cleanEnd = DateTime(endDate.year, endDate.month, endDate.day);
+    if (cleanEnd.isBefore(cleanStart)) {
+      throw ArgumentError('Конец периода не может быть раньше начала');
+    }
+    final employeeId = employee.id?.trim() ?? '';
+    if (employeeId.isEmpty) {
+      return EmployeeTimesheetPeriodRow(
+        employee: employee,
+        startDate: cleanStart,
+        endDate: cleanEnd,
+        shiftsByDate: const <String, double>{},
+        paid: 0,
+      );
+    }
+
+    final data = await Future.wait<dynamic>([
+      _fetchAttendanceRows(
+        startDate: cleanStart,
+        endDate: cleanEnd,
+        employeeIds: <String>[employeeId],
+      ),
+      _client
+          .from('payments')
+          .select('amount')
+          .eq('employee_id', employeeId)
+          .gte('payment_date', dateKey(cleanStart))
+          .lte('payment_date', dateKey(cleanEnd))
+          .isFilter('deleted_at', null),
+    ]);
+    final attendanceRows = data[0] as List<Map<String, dynamic>>;
+    final paymentRows = data[1] as List<dynamic>;
+    final shiftsByDate = <String, double>{};
+    for (final row in attendanceRows) {
+      final workDateText = row['work_date']?.toString();
+      if (workDateText == null || workDateText.isEmpty) continue;
+      shiftsByDate[workDateText] = _toDouble(row['shifts']);
+    }
+    var paid = 0.0;
+    for (final row in paymentRows) {
+      paid += _toDouble(row['amount']);
+    }
+    return EmployeeTimesheetPeriodRow(
+      employee: employee,
+      startDate: cleanStart,
+      endDate: cleanEnd,
+      shiftsByDate: shiftsByDate,
+      paid: paid,
+    );
   }
 
   static Future<List<PeriodTimesheetRow>> fetchPeriodTimesheet({

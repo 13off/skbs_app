@@ -115,6 +115,80 @@ class RecruitmentFlightTicket {
   }
 }
 
+class RecruitmentFlightReminder {
+  final String id;
+  final String companyId;
+  final String flightId;
+  final String eventKind;
+  final int offsetMinutes;
+  final DateTime? sentAt;
+
+  const RecruitmentFlightReminder({
+    this.id = '',
+    this.companyId = '',
+    this.flightId = '',
+    required this.eventKind,
+    required this.offsetMinutes,
+    this.sentAt,
+  });
+
+  bool get isArrival => eventKind == 'arrival';
+  bool get isSent => sentAt != null;
+
+  DateTime? eventAt(RecruitmentFlight flight) =>
+      isArrival ? flight.arrivalAt : flight.departureAt;
+
+  DateTime? triggerAt(RecruitmentFlight flight) =>
+      eventAt(flight)?.subtract(Duration(minutes: offsetMinutes));
+
+  String get label {
+    final event = isArrival ? 'прибытия' : 'отправления';
+    if (offsetMinutes == 0) return 'В момент $event';
+    return 'За ${_offsetTitle(offsetMinutes)} до $event';
+  }
+
+  static String _offsetTitle(int minutes) {
+    if (minutes < 60) return '$minutes мин';
+    if (minutes % 1440 == 0) {
+      final days = minutes ~/ 1440;
+      return '$days ${days == 1 ? 'день' : days < 5 ? 'дня' : 'дней'}';
+    }
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    if (rest == 0) return '$hours ч';
+    return '$hours ч $rest мин';
+  }
+
+  Map<String, dynamic> toPayload() => <String, dynamic>{
+    'event_kind': eventKind,
+    'offset_minutes': offsetMinutes,
+  };
+
+  factory RecruitmentFlightReminder.fromMap(Map<String, dynamic> map) {
+    DateTime? optionalDate(dynamic value) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? null : DateTime.tryParse(text)?.toLocal();
+    }
+
+    final rawOffset = map['offset_minutes'];
+    final offset = switch (rawOffset) {
+      int value => value,
+      num value => value.toInt(),
+      _ => int.tryParse(rawOffset?.toString() ?? '') ?? 0,
+    };
+    return RecruitmentFlightReminder(
+      id: map['id']?.toString() ?? '',
+      companyId: map['company_id']?.toString() ?? '',
+      flightId: map['flight_id']?.toString() ?? '',
+      eventKind: map['event_kind']?.toString() == 'arrival'
+          ? 'arrival'
+          : 'departure',
+      offsetMinutes: offset,
+      sentAt: optionalDate(map['sent_at']),
+    );
+  }
+}
+
 class RecruitmentFlight {
   final String id;
   final String companyId;
@@ -245,11 +319,13 @@ class RecruitmentFlightEntry {
   final RecruitmentFlight flight;
   final RecruitmentFlightCandidate candidate;
   final List<RecruitmentFlightTicket> tickets;
+  final List<RecruitmentFlightReminder> reminders;
 
   const RecruitmentFlightEntry({
     required this.flight,
     required this.candidate,
     this.tickets = const <RecruitmentFlightTicket>[],
+    this.reminders = const <RecruitmentFlightReminder>[],
   });
 }
 
