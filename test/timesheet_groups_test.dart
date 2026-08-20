@@ -30,9 +30,12 @@ void main() {
 
     expect(mobile, contains("Text('Все группы')"));
     expect(mobile, contains("Text('Без группы')"));
-    expect(mobile, contains("Text('Группы')"));
+    expect(mobile, contains("tooltip: 'Управление группами'"));
+    expect(mobile, contains('buildGroupHeader'));
     expect(desktop, contains('groupFilter = allGroupsFilter'));
+    expect(desktop, contains("child: Text('Все группы')"));
     expect(desktop, contains('_TimesheetGroupTableHeader'));
+    expect(desktop, contains("label: const Text('Группы')"));
     expect(manager, contains("'Создать группу'"));
     expect(manager, contains("'Название группы'"));
     expect(manager, contains("'Сотрудники · выбрано"));
