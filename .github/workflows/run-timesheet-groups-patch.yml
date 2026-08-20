@@ -27,3 +27,5 @@ jobs:
           git add -A
           git commit -m 'Табель: группы сотрудников и фильтр'
           git push origin HEAD:feature/timesheet-groups-pwa
+
+# retry: 2026-08-20
