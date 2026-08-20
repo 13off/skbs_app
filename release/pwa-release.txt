@@ -1,5 +1,6 @@
 AppСтрой PWA release
 release date: 2026-08-20
-reason: restore departure/arrival choice for personal flight reminders and add a custom reminder title while keeping exact manual date/time scheduling
-accepted application commit: 9c99f5132aadcafe4ebedaf4f025d51dae312154
-backend migration: flight_reminder_event_and_title applied to production
+reason: add object-scoped employee groups inside the timesheet for foremen, including grouped sections, group filter, ungrouped employees and admin group management; keep existing timesheet design and shift logic
+accepted application commit: efaed6e0160e7d2b9d631ece6629a332c6c4d658
+backend migration: timesheet_employee_groups applied to production
+release target: PWA only; no Android APK or iOS IPA release
