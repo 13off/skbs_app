@@ -73,7 +73,7 @@ class TimesheetGroupRepository {
     );
 
     AppDataSync.notifyLocal(
-      const <AppDataDomain>{AppDataDomain.timesheetGroups},
+      const <AppDataDomain>{AppDataDomain.employees},
       context: <String, dynamic>{
         'table': 'timesheet_groups',
         'object_name': cleanObject,
@@ -90,7 +90,7 @@ class TimesheetGroupRepository {
       params: <String, dynamic>{'p_group_id': cleanId},
     );
     AppDataSync.notifyLocal(
-      const <AppDataDomain>{AppDataDomain.timesheetGroups},
+      const <AppDataDomain>{AppDataDomain.employees},
       context: const <String, dynamic>{'table': 'timesheet_groups'},
     );
   }
