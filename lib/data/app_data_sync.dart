@@ -201,6 +201,8 @@ class AppDataSync {
       case 'payment_receipts':
         return const <AppDataDomain>{AppDataDomain.payments};
       case 'employees':
+      case 'timesheet_groups':
+      case 'timesheet_group_members':
       case 'employee_private_data':
       case 'employee_comments':
       case 'employee_documents':

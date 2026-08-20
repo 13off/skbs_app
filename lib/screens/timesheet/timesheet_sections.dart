@@ -214,7 +214,6 @@ extension _TimesheetSections on _TimesheetScreenState {
     final groupIds = timesheetGroups.map((group) => group.id).toSet();
     final currentValue =
         selectedGroupFilter == _allTimesheetGroupsFilter ||
-            selectedGroupFilter == _ungroupedTimesheetFilter ||
             groupIds.contains(selectedGroupFilter)
         ? selectedGroupFilter
         : _allTimesheetGroupsFilter;
@@ -244,10 +243,6 @@ extension _TimesheetSections on _TimesheetScreenState {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  const DropdownMenuItem<String>(
-                    value: _ungroupedTimesheetFilter,
-                    child: Text('Без группы'),
                   ),
                 ],
                 onChanged: isGroupsLoading

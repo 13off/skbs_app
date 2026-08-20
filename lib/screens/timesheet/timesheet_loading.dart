@@ -31,7 +31,6 @@ extension _TimesheetLoading on _TimesheetScreenState {
         timesheetGroups = groups;
         final filterExists =
             selectedGroupFilter == _allTimesheetGroupsFilter ||
-            selectedGroupFilter == _ungroupedTimesheetFilter ||
             groups.any((group) => group.id == selectedGroupFilter);
         if (!filterExists) {
           selectedGroupFilter = _allTimesheetGroupsFilter;

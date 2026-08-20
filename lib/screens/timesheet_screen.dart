@@ -28,7 +28,6 @@ part 'timesheet/timesheet_sync.dart';
 part 'timesheet/timesheet_view.dart';
 
 const String _allTimesheetGroupsFilter = '__all__';
-const String _ungroupedTimesheetFilter = '__ungrouped__';
 
 class _TimesheetEmployeeGroupSection {
   final String title;
