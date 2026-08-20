@@ -15,7 +15,10 @@ class TimesheetGroup {
     required this.employeeIds,
   });
 
-  bool containsEmployee(String? employeeId) {
+  bool containsEmployee(dynamic employeeOrId) {
+    final String? employeeId = employeeOrId is String
+        ? employeeOrId
+        : employeeOrId?.id?.toString();
     return employeeId != null && employeeIds.contains(employeeId);
   }
 
