@@ -94,7 +94,7 @@ extension _TimesheetActions on _TimesheetScreenState {
         continue;
       }
       final members = visibleEmployees
-          .where(group.containsEmployee)
+          .where((employee) => group.containsEmployee(employee.id))
           .toList(growable: false);
       if (members.isNotEmpty) {
         sections.add(
