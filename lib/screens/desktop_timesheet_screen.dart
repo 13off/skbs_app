@@ -44,7 +44,6 @@ class DesktopTimesheetScreen extends StatefulWidget {
 
 class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   static const String allGroupsFilter = '__all__';
-  static const String ungroupedFilter = '__ungrouped__';
   static const List<double> quickOptions = <double>[0, 0.5, 1, 1.5, 2];
 
   final TextEditingController searchController = TextEditingController();
@@ -261,7 +260,6 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         }
 
         final filterExists = groupFilter == allGroupsFilter ||
-            groupFilter == ungroupedFilter ||
             loadedGroups.any((group) => group.id == groupFilter);
         if (!filterExists) groupFilter = allGroupsFilter;
       });
@@ -497,9 +495,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   bool employeeMatchesGroupFilter(Employee employee) {
     if (groupFilter == allGroupsFilter) return true;
-    final group = groupForEmployee(employee);
-    if (groupFilter == ungroupedFilter) return group == null;
-    return group?.id == groupFilter;
+    return groupForEmployee(employee)?.id == groupFilter;
   }
 
   int groupSortIndex(Employee employee) {
@@ -728,7 +724,6 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     final currentGroups = groupOptions;
     final validGroupValues = <String>{
       allGroupsFilter,
-      ungroupedFilter,
       ...currentGroups.map((group) => group.id),
     };
     final currentGroupFilter = validGroupValues.contains(groupFilter)
@@ -820,10 +815,6 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                           ),
                         ),
                       ),
-                      const DropdownMenuItem<String>(
-                        value: ungroupedFilter,
-                        child: Text('Без группы'),
-                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) setState(() => groupFilter = value);
@@ -901,18 +892,19 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   List<Widget> buildGroupedTableRows(List<Employee> visible) {
     if (timesheetGroups.isEmpty) {
-      return visible
-          .map<Widget>(
-            (employee) => _TimesheetRow(
-              employee: employee,
-              value: shiftValueFor(employee),
-              formatShift: formatShift,
-              enabled: !isLoading && !isSaving,
-              onSelected: (value) => setShiftValue(employee, value),
-              onCustom: () => showShiftPicker(employee),
-            ),
-          )
-          .toList(growable: false);
+      return <Widget>[
+        _TimesheetGroupTableHeader(title: 'Общая', count: visible.length),
+        ...visible.map<Widget>(
+          (employee) => _TimesheetRow(
+            employee: employee,
+            value: shiftValueFor(employee),
+            formatShift: formatShift,
+            enabled: !isLoading && !isSaving,
+            onSelected: (value) => setShiftValue(employee, value),
+            onCustom: () => showShiftPicker(employee),
+          ),
+        ),
+      ];
     }
 
     final rows = <Widget>[];
@@ -940,27 +932,6 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       );
     }
 
-    final ungrouped = visible
-        .where((employee) => groupForEmployee(employee) == null)
-        .toList();
-    if (ungrouped.isNotEmpty &&
-        (groupFilter == allGroupsFilter || groupFilter == ungroupedFilter)) {
-      rows.add(
-        _TimesheetGroupTableHeader(title: 'Без группы', count: ungrouped.length),
-      );
-      rows.addAll(
-        ungrouped.map(
-          (employee) => _TimesheetRow(
-            employee: employee,
-            value: shiftValueFor(employee),
-            formatShift: formatShift,
-            enabled: !isLoading && !isSaving,
-            onSelected: (value) => setShiftValue(employee, value),
-            onCustom: () => showShiftPicker(employee),
-          ),
-        ),
-      );
-    }
     return rows;
   }
 

@@ -134,7 +134,7 @@ class _TimesheetGroupManagerSheetState
       builder: (context) => AlertDialog(
         title: const Text('Удалить группу?'),
         content: Text(
-          'Группа «${group.name}» будет удалена. Сотрудники останутся в табеле и попадут в «Без группы».',
+          'Группа «${group.name}» будет удалена. Сотрудники автоматически перейдут в группу «Общая».',
         ),
         actions: [
           TextButton(
@@ -315,16 +315,41 @@ class _TimesheetGroupManagerSheetState
                                     ],
                                   ),
                                 ),
-                                IconButton(
-                                  tooltip: 'Изменить',
-                                  onPressed: loading ? null : () => editGroup(group),
-                                  icon: const Icon(Icons.edit_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: 'Удалить',
-                                  onPressed: loading ? null : () => deleteGroup(group),
-                                  icon: const Icon(Icons.delete_outline_rounded),
-                                ),
+                                if (group.isSystem)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppAdaptivePalette.accentSoft,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      'По умолчанию',
+                                      style: TextStyle(
+                                        color: AppAdaptivePalette.textMuted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  )
+                                else ...[
+                                  IconButton(
+                                    tooltip: 'Изменить',
+                                    onPressed: loading
+                                        ? null
+                                        : () => editGroup(group),
+                                    icon: const Icon(Icons.edit_outlined),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Удалить',
+                                    onPressed: loading
+                                        ? null
+                                        : () => deleteGroup(group),
+                                    icon: const Icon(Icons.delete_outline_rounded),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

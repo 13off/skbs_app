@@ -56,9 +56,7 @@ extension _TimesheetActions on _TimesheetScreenState {
 
   bool employeeMatchesGroupFilter(Employee employee) {
     if (selectedGroupFilter == _allTimesheetGroupsFilter) return true;
-    final group = groupForEmployee(employee);
-    if (selectedGroupFilter == _ungroupedTimesheetFilter) return group == null;
-    return group?.id == selectedGroupFilter;
+    return groupForEmployee(employee)?.id == selectedGroupFilter;
   }
 
   String timesheetGroupTitle(TimesheetGroup group) {
@@ -83,7 +81,10 @@ extension _TimesheetActions on _TimesheetScreenState {
   ) {
     if (timesheetGroups.isEmpty) {
       return <_TimesheetEmployeeGroupSection>[
-        _TimesheetEmployeeGroupSection(title: '', employees: visibleEmployees),
+        _TimesheetEmployeeGroupSection(
+          title: 'Общая',
+          employees: visibleEmployees,
+        ),
       ];
     }
 
@@ -106,19 +107,6 @@ extension _TimesheetActions on _TimesheetScreenState {
       }
     }
 
-    final ungrouped = visibleEmployees
-        .where((employee) => groupForEmployee(employee) == null)
-        .toList(growable: false);
-    if (ungrouped.isNotEmpty &&
-        (selectedGroupFilter == _allTimesheetGroupsFilter ||
-            selectedGroupFilter == _ungroupedTimesheetFilter)) {
-      sections.add(
-        _TimesheetEmployeeGroupSection(
-          title: 'Без группы',
-          employees: ungrouped,
-        ),
-      );
-    }
     return sections;
   }
 

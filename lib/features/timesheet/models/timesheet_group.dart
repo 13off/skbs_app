@@ -4,6 +4,7 @@ class TimesheetGroup {
   final String objectName;
   final String name;
   final int sortOrder;
+  final bool isSystem;
   final Set<String> employeeIds;
 
   const TimesheetGroup({
@@ -12,6 +13,7 @@ class TimesheetGroup {
     required this.objectName,
     required this.name,
     required this.sortOrder,
+    required this.isSystem,
     required this.employeeIds,
   });
 
@@ -37,6 +39,7 @@ class TimesheetGroup {
       objectName: map['object_name']?.toString().trim() ?? '',
       name: map['name']?.toString().trim() ?? '',
       sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
+      isSystem: map['is_system'] == true,
       employeeIds: Set<String>.unmodifiable(employeeIds),
     );
   }
