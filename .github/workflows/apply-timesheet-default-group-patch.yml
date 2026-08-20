@@ -1,0 +1,30 @@
+name: Apply timesheet default group patch
+
+on:
+  push:
+    branches:
+      - feature/timesheet-groups-always-assigned
+    paths:
+      - tooling/timesheet_default_group_patch.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/timesheet-groups-always-assigned
+          fetch-depth: 0
+      - name: Apply source patch
+        run: python3 tooling/timesheet_default_group_patch.py
+      - name: Commit patched feature
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f tooling/timesheet_default_group_patch.py .github/workflows/apply-timesheet-default-group-patch.yml
+          git add -A
+          git commit -m 'Табель: каждый сотрудник всегда в группе'
+          git push origin HEAD:feature/timesheet-groups-always-assigned
