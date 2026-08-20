@@ -1,7 +1,7 @@
 AppСтрой iOS verification release
-version: 1.3.9+20
-release date: 2026-08-19
-accepted application commit: 317e32d9f8bca1363098ad2e2c2574408c07280c
-release version commit: 1f6f53bc3f52e81824dc7919b196fef9ca1e6542
-reason: include the corrected native Android/iOS bottom navigation safe-area geometry and lighter glass from PR #517 while keeping Web/PWA formulas and appearance unchanged; retain the iOS payment receipt picker fixes already released in 1.3.9+19 and the current mobile task photo picker
+version: 1.3.9+21
+release date: 2026-08-20
+accepted application commit: e5e371f5016eb19b4c8934e32330cee46df6e1e6
+release version commit: ff1e7d4bbb876b4a9f7a420c041938a8fafbc864
+reason: publish the current iOS source with personal flight reminders by exact date/time, restored Departure/Arrival choice and custom reminder title; include individual timesheet multi-month/date-range selection with balance for the selected period and all previous native navigation, receipt and task-photo fixes
 expected output: unsigned verification IPA
