@@ -165,7 +165,10 @@ where e.is_active = true
   )
 on conflict (company_id, employee_id) do nothing;
 
-create or replace function public.list_timesheet_groups(
+-- The result shape changes by adding is_system, so PostgreSQL requires a drop/recreate.
+drop function if exists public.list_timesheet_groups(text);
+
+create function public.list_timesheet_groups(
   p_object_name text default null
 )
 returns table (
@@ -332,6 +335,16 @@ begin
       raise exception 'Группа не найдена';
     end if;
 
+    if exists (
+      select 1
+      from public.timesheet_groups g
+      where g.id = v_group_id
+        and g.company_id = v_company_id
+        and g.object_id <> v_object_id
+    ) then
+      raise exception 'Группу нельзя перенести на другой объект';
+    end if;
+
     select coalesce(array_agg(m.employee_id), '{}'::uuid[])
       into v_previous_employee_ids
     from public.timesheet_group_members m
@@ -339,8 +352,7 @@ begin
       and m.group_id = v_group_id;
 
     update public.timesheet_groups
-    set object_id = v_object_id,
-        name = v_name,
+    set name = v_name,
         updated_at = now()
     where id = v_group_id
       and company_id = v_company_id;
