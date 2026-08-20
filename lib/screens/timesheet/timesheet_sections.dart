@@ -210,6 +210,115 @@ extension _TimesheetSections on _TimesheetScreenState {
     );
   }
 
+  Widget buildGroupFilter(List<Employee> allEmployees) {
+    final groupIds = timesheetGroups.map((group) => group.id).toSet();
+    final currentValue =
+        selectedGroupFilter == _allTimesheetGroupsFilter ||
+            selectedGroupFilter == _ungroupedTimesheetFilter ||
+            groupIds.contains(selectedGroupFilter)
+        ? selectedGroupFilter
+        : _allTimesheetGroupsFilter;
+
+    return PremiumWorkCard(
+      radius: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      child: Row(
+        children: [
+          Icon(Icons.groups_2_outlined, color: AppAdaptivePalette.textMuted),
+          const SizedBox(width: 9),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: currentValue,
+                isExpanded: true,
+                items: <DropdownMenuItem<String>>[
+                  const DropdownMenuItem<String>(
+                    value: _allTimesheetGroupsFilter,
+                    child: Text('Все группы'),
+                  ),
+                  ...timesheetGroups.map(
+                    (group) => DropdownMenuItem<String>(
+                      value: group.id,
+                      child: Text(
+                        timesheetGroupTitle(group),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const DropdownMenuItem<String>(
+                    value: _ungroupedTimesheetFilter,
+                    child: Text('Без группы'),
+                  ),
+                ],
+                onChanged: isGroupsLoading
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => selectedGroupFilter = value);
+                        }
+                      },
+              ),
+            ),
+          ),
+          if (canManageTimesheetGroups) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Управление группами',
+              onPressed: isGroupsLoading
+                  ? null
+                  : () => openTimesheetGroupManager(allEmployees),
+              icon: const Icon(Icons.tune_rounded),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget buildGroupHeader(String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: AppAdaptivePalette.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            '$count чел.',
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildGroupedEmployeeItems(List<Employee> visibleEmployees) {
+    final sections = employeeGroupSections(visibleEmployees);
+    final widgets = <Widget>[];
+    for (final section in sections) {
+      if (section.title.isNotEmpty) {
+        widgets.add(buildGroupHeader(section.title, section.employees.length));
+      }
+      widgets.addAll(
+        section.employees.map(
+          (employee) => RepaintBoundary(child: buildEmployeeRow(employee)),
+        ),
+      );
+    }
+    return widgets;
+  }
+
   Widget buildQuickActions(List<Employee> visibleEmployees) {
     return PremiumWorkCard(
       radius: 22,

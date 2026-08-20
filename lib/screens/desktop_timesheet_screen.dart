@@ -2,20 +2,22 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../app/app_ui_tokens.dart';
-import 'package:intl/intl.dart';
-
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../data/employee_repository.dart';
+import '../features/timesheet/data/timesheet_group_repository.dart';
+import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import 'period_timesheet_screen.dart';
+import 'timesheet_group_manager_sheet.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
@@ -41,15 +43,21 @@ class DesktopTimesheetScreen extends StatefulWidget {
 }
 
 class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
+  static const String allGroupsFilter = '__all__';
+  static const String ungroupedFilter = '__ungrouped__';
+  static const List<double> quickOptions = <double>[0, 0.5, 1, 1.5, 2];
+
   final TextEditingController searchController = TextEditingController();
   final ScrollController verticalController = ScrollController();
 
   DateTime selectedDate = AppState.today;
   List<Employee> employees = const <Employee>[];
+  List<TimesheetGroup> timesheetGroups = const <TimesheetGroup>[];
   Map<String, double> shiftValuesByEmployeeId = <String, double>{};
   Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
 
   String? objectFilter;
+  String groupFilter = allGroupsFilter;
   String attendanceFilter = 'Все сотрудники';
   bool isLoading = true;
   bool isSaving = false;
@@ -59,7 +67,9 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   int loadGeneration = 0;
   StreamSubscription<AppDataChange>? dataChangeSubscription;
 
-  static const List<double> quickOptions = <double>[0, 0.5, 1, 1.5, 2];
+  bool get canManageTimesheetGroups =>
+      widget.profile.actualRole == 'admin' ||
+      widget.profile.actualRole == 'developer';
 
   @override
   void initState() {
@@ -75,6 +85,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     if (cleanObjectName(oldWidget.selectedObjectName) !=
         cleanObjectName(widget.selectedObjectName)) {
       objectFilter = cleanObjectName(widget.selectedObjectName);
+      groupFilter = allGroupsFilter;
       attendanceFilter = 'Все сотрудники';
       searchController.clear();
       loadData(forceRefresh: true);
@@ -208,6 +219,9 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               objectName: requestedObject,
               forceRefresh: forceRefresh,
             );
+      final groupFuture = attendanceOnly
+          ? Future<List<TimesheetGroup>>.value(timesheetGroups)
+          : TimesheetGroupRepository.fetchGroups(objectName: requestedObject);
       final results = await Future.wait<dynamic>([
         employeeFuture,
         AttendanceRepository.fetchShiftValuesForDate(
@@ -215,12 +229,14 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           objectName: requestedObject,
           forceRefresh: forceRefresh,
         ),
+        groupFuture,
       ]);
 
       if (!mounted || generation != loadGeneration) return;
 
       final loadedEmployees = results[0] as List<Employee>;
       final loadedValues = results[1] as Map<String, double>;
+      final loadedGroups = results[2] as List<TimesheetGroup>;
       final availableObjects = loadedEmployees
           .map((employee) => employee.objectName.trim())
           .where((name) => name.isNotEmpty)
@@ -228,6 +244,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
       setState(() {
         employees = loadedEmployees;
+        timesheetGroups = loadedGroups;
         shiftValuesByEmployeeId = Map<String, double>.from(loadedValues);
         originalShiftValuesByEmployeeId = Map<String, double>.from(
           loadedValues,
@@ -242,6 +259,11 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             !availableObjects.contains(objectFilter)) {
           objectFilter = null;
         }
+
+        final filterExists = groupFilter == allGroupsFilter ||
+            groupFilter == ungroupedFilter ||
+            loadedGroups.any((group) => group.id == groupFilter);
+        if (!filterExists) groupFilter = allGroupsFilter;
       });
     } catch (error) {
       if (!mounted || generation != loadGeneration) return;
@@ -341,7 +363,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    SizedBox(height: 18),
+                    const SizedBox(height: 18),
                     Slider(
                       value: selected.clamp(0, 3),
                       min: 0,
@@ -357,15 +379,15 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                       runSpacing: 8,
                       alignment: WrapAlignment.center,
                       children: quickOptions
-                          .map((option) {
-                            return ChoiceChip(
+                          .map(
+                            (option) => ChoiceChip(
                               label: Text(formatShift(option)),
                               selected: selected == option,
                               onSelected: (_) {
                                 setDialogState(() => selected = option);
                               },
-                            );
-                          })
+                            ),
+                          )
                           .toList(growable: false),
                     ),
                   ],
@@ -436,14 +458,55 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   List<String> get objectOptions {
-    final values =
-        employees
-            .map((employee) => employee.objectName.trim())
-            .where((name) => name.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final values = employees
+        .map((employee) => employee.objectName.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return values;
+  }
+
+  List<TimesheetGroup> get groupOptions {
+    final selectedObject = cleanObjectName(objectFilter);
+    final result = timesheetGroups.where((group) {
+      return selectedObject == null || group.objectName == selectedObject;
+    }).toList();
+    result.sort((first, second) {
+      final objectCompare = first.objectName.compareTo(second.objectName);
+      if (objectCompare != 0) return objectCompare;
+      final orderCompare = first.sortOrder.compareTo(second.sortOrder);
+      if (orderCompare != 0) return orderCompare;
+      return first.name.compareTo(second.name);
+    });
+    return result;
+  }
+
+  TimesheetGroup? groupForEmployee(Employee employee) {
+    for (final group in timesheetGroups) {
+      if (group.containsEmployee(employee.id)) return group;
+    }
+    return null;
+  }
+
+  String groupOptionTitle(TimesheetGroup group) {
+    final selectedObject = cleanObjectName(objectFilter);
+    if (selectedObject != null) return group.name;
+    return '${group.name} · ${group.objectName}';
+  }
+
+  bool employeeMatchesGroupFilter(Employee employee) {
+    if (groupFilter == allGroupsFilter) return true;
+    final group = groupForEmployee(employee);
+    if (groupFilter == ungroupedFilter) return group == null;
+    return group?.id == groupFilter;
+  }
+
+  int groupSortIndex(Employee employee) {
+    final group = groupForEmployee(employee);
+    if (group == null) return 1 << 30;
+    final index = timesheetGroups.indexWhere((value) => value.id == group.id);
+    return index < 0 ? 1 << 29 : index;
   }
 
   List<Employee> visibleEmployees() {
@@ -454,6 +517,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       if (selectedObject != null && employee.objectName != selectedObject) {
         return false;
       }
+      if (!employeeMatchesGroupFilter(employee)) return false;
 
       final shift = shiftValueFor(employee);
       if (attendanceFilter == 'Только вышедшие' && shift <= 0) return false;
@@ -468,9 +532,25 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     result.sort((first, second) {
       final object = first.objectName.compareTo(second.objectName);
       if (object != 0) return object;
+      final group = groupSortIndex(first).compareTo(groupSortIndex(second));
+      if (group != 0) return group;
       return first.name.compareTo(second.name);
     });
     return result;
+  }
+
+  Future<void> openTimesheetGroupManager() async {
+    if (!canManageTimesheetGroups) return;
+    final changed = await TimesheetGroupManagerSheet.show(
+      context,
+      selectedObjectName: widget.selectedObjectName,
+      employees: employees,
+      groups: timesheetGroups,
+    );
+    if (changed && mounted) {
+      groupFilter = allGroupsFilter;
+      await loadData(forceRefresh: true, attendanceOnly: false);
+    }
   }
 
   void openReport() {
@@ -505,7 +585,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                       changeDate(selectedDate.subtract(const Duration(days: 1)))
                 : null,
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           PremiumPressable(
             onTap: enabled ? pickDate : null,
             borderRadius: BorderRadius.circular(18),
@@ -521,7 +601,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               child: Row(
                 children: [
                   Icon(Icons.calendar_month_outlined, color: _muted),
-                  SizedBox(width: 11),
+                  const SizedBox(width: 11),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -551,7 +631,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
               ),
             ),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           _SquareButton(
             icon: Icons.chevron_right_rounded,
             tooltip: 'Следующий день',
@@ -559,12 +639,12 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 ? () => changeDate(selectedDate.add(const Duration(days: 1)))
                 : null,
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: enabled && !isSameDate(selectedDate, AppState.today)
                 ? () => changeDate(AppState.today)
                 : null,
-            icon: Icon(Icons.today_outlined),
+            icon: const Icon(Icons.today_outlined),
             label: const Text('Сегодня'),
           ),
           const Spacer(),
@@ -587,7 +667,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           IconButton(
             onPressed: enabled ? () => loadData(forceRefresh: true) : null,
             tooltip: 'Обновить табель',
-            icon: Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -613,7 +693,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             icon: Icons.groups_outlined,
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Вышли',
@@ -622,7 +702,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             accent: _worked,
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Не вышли',
@@ -631,7 +711,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             accent: _warning,
           ),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
           child: _MetricCard(
             label: 'Всего смен',
@@ -645,111 +725,243 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   Widget buildFilters(List<Employee> visible) {
     final lockedObject = cleanObjectName(widget.selectedObjectName);
+    final currentGroups = groupOptions;
+    final validGroupValues = <String>{
+      allGroupsFilter,
+      ungroupedFilter,
+      ...currentGroups.map((group) => group.id),
+    };
+    final currentGroupFilter = validGroupValues.contains(groupFilter)
+        ? groupFilter
+        : allGroupsFilter;
 
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: searchController,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Поиск по ФИО, должности или объекту',
-                prefixIcon: Icon(Icons.search_rounded),
-                suffixIcon: searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        onPressed: () {
-                          searchController.clear();
-                          setState(() {});
-                        },
-                        icon: Icon(Icons.close_rounded),
-                      ),
-                filled: true,
-                fillColor: _soft,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: _DropdownShell(
-              icon: Icons.apartment_outlined,
-              child: DropdownButton<String?>(
-                value: lockedObject ?? objectFilter,
-                isExpanded: true,
-                items: <DropdownMenuItem<String?>>[
-                  if (lockedObject == null)
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Все объекты'),
-                    ),
-                  ...objectOptions.map(
-                    (objectName) => DropdownMenuItem<String?>(
-                      value: objectName,
-                      child: Text(objectName, overflow: TextOverflow.ellipsis),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Поиск по ФИО, должности или объекту',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              searchController.clear();
+                              setState(() {});
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                    filled: true,
+                    fillColor: _soft,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                ],
-                onChanged: lockedObject == null
-                    ? (value) => setState(() => objectFilter = value)
-                    : null,
+                ),
               ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: _DropdownShell(
-              icon: Icons.filter_alt_outlined,
-              child: DropdownButton<String>(
-                value: attendanceFilter,
-                isExpanded: true,
-                items:
-                    const <String>[
-                          'Все сотрудники',
-                          'Только вышедшие',
-                          'Не вышли',
-                        ]
-                        .map(
-                          (value) => DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _DropdownShell(
+                  icon: Icons.apartment_outlined,
+                  child: DropdownButton<String?>(
+                    value: lockedObject ?? objectFilter,
+                    isExpanded: true,
+                    items: <DropdownMenuItem<String?>>[
+                      if (lockedObject == null)
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Все объекты'),
+                        ),
+                      ...objectOptions.map(
+                        (objectName) => DropdownMenuItem<String?>(
+                          value: objectName,
+                          child: Text(objectName, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ],
+                    onChanged: lockedObject == null
+                        ? (value) => setState(() {
+                            objectFilter = value;
+                            groupFilter = allGroupsFilter;
+                          })
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _DropdownShell(
+                  icon: Icons.groups_2_outlined,
+                  child: DropdownButton<String>(
+                    value: currentGroupFilter,
+                    isExpanded: true,
+                    items: <DropdownMenuItem<String>>[
+                      const DropdownMenuItem<String>(
+                        value: allGroupsFilter,
+                        child: Text('Все группы'),
+                      ),
+                      ...currentGroups.map(
+                        (group) => DropdownMenuItem<String>(
+                          value: group.id,
+                          child: Text(
+                            groupOptionTitle(group),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        )
-                        .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) setState(() => attendanceFilter = value);
-                },
+                        ),
+                      ),
+                      const DropdownMenuItem<String>(
+                        value: ungroupedFilter,
+                        child: Text('Без группы'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => groupFilter = value);
+                    },
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _DropdownShell(
+                  icon: Icons.filter_alt_outlined,
+                  child: DropdownButton<String>(
+                    value: attendanceFilter,
+                    isExpanded: true,
+                    items: const <String>[
+                      'Все сотрудники',
+                      'Только вышедшие',
+                      'Не вышли',
+                    ].map(
+                      (value) => DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      ),
+                    ).toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => attendanceFilter = value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: 12),
-          FilledButton.tonalIcon(
-            onPressed: visible.isEmpty || isLoading || isSaving
-                ? null
-                : () => setVisibleShifts(visible, 1),
-            icon: Icon(Icons.done_all_rounded),
-            label: const Text('Всем 1'),
-          ),
-          SizedBox(width: 8),
-          FilledButton.tonalIcon(
-            onPressed: visible.isEmpty || isLoading || isSaving
-                ? null
-                : () => setVisibleShifts(visible, 0),
-            icon: Icon(Icons.remove_done_rounded),
-            label: const Text('Всем 0'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Быстрый ввод',
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              if (canManageTimesheetGroups) ...[
+                OutlinedButton.icon(
+                  onPressed: isLoading || isSaving
+                      ? null
+                      : openTimesheetGroupManager,
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: const Text('Группы'),
+                ),
+                const SizedBox(width: 10),
+              ],
+              FilledButton.tonalIcon(
+                onPressed: visible.isEmpty || isLoading || isSaving
+                    ? null
+                    : () => setVisibleShifts(visible, 1),
+                icon: const Icon(Icons.done_all_rounded),
+                label: const Text('Всем 1'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                onPressed: visible.isEmpty || isLoading || isSaving
+                    ? null
+                    : () => setVisibleShifts(visible, 0),
+                icon: const Icon(Icons.remove_done_rounded),
+                label: const Text('Всем 0'),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> buildGroupedTableRows(List<Employee> visible) {
+    if (timesheetGroups.isEmpty) {
+      return visible
+          .map<Widget>(
+            (employee) => _TimesheetRow(
+              employee: employee,
+              value: shiftValueFor(employee),
+              formatShift: formatShift,
+              enabled: !isLoading && !isSaving,
+              onSelected: (value) => setShiftValue(employee, value),
+              onCustom: () => showShiftPicker(employee),
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    final rows = <Widget>[];
+    for (final group in groupOptions) {
+      if (groupFilter != allGroupsFilter && groupFilter != group.id) continue;
+      final members = visible.where(group.containsEmployee).toList();
+      if (members.isEmpty) continue;
+      rows.add(
+        _TimesheetGroupTableHeader(
+          title: groupOptionTitle(group),
+          count: members.length,
+        ),
+      );
+      rows.addAll(
+        members.map(
+          (employee) => _TimesheetRow(
+            employee: employee,
+            value: shiftValueFor(employee),
+            formatShift: formatShift,
+            enabled: !isLoading && !isSaving,
+            onSelected: (value) => setShiftValue(employee, value),
+            onCustom: () => showShiftPicker(employee),
+          ),
+        ),
+      );
+    }
+
+    final ungrouped = visible
+        .where((employee) => groupForEmployee(employee) == null)
+        .toList();
+    if (ungrouped.isNotEmpty &&
+        (groupFilter == allGroupsFilter || groupFilter == ungroupedFilter)) {
+      rows.add(
+        _TimesheetGroupTableHeader(title: 'Без группы', count: ungrouped.length),
+      );
+      rows.addAll(
+        ungrouped.map(
+          (employee) => _TimesheetRow(
+            employee: employee,
+            value: shiftValueFor(employee),
+            formatShift: formatShift,
+            enabled: !isLoading && !isSaving,
+            onSelected: (value) => setShiftValue(employee, value),
+            onCustom: () => showShiftPicker(employee),
+          ),
+        ),
+      );
+    }
+    return rows;
   }
 
   Widget buildTable(List<Employee> visible) {
@@ -763,23 +975,14 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
             const _TableHeader(),
             if (visible.isEmpty)
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
+                padding: const EdgeInsets.symmetric(vertical: 48),
                 child: Text(
                   'Сотрудники не найдены',
                   style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
                 ),
               )
             else
-              ...visible.map(
-                (employee) => _TimesheetRow(
-                  employee: employee,
-                  value: shiftValueFor(employee),
-                  formatShift: formatShift,
-                  enabled: !isLoading && !isSaving,
-                  onSelected: (value) => setShiftValue(employee, value),
-                  onCustom: () => showShiftPicker(employee),
-                ),
-              ),
+              ...buildGroupedTableRows(visible),
           ],
         ),
       ),
@@ -807,9 +1010,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 children: [
                   Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: double.infinity,
-                      ),
+                      constraints: const BoxConstraints(maxWidth: double.infinity),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -981,7 +1182,7 @@ class _MetricCard extends StatelessWidget {
             ),
             child: Icon(icon, color: accent, size: 21),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1030,8 +1231,46 @@ class _DropdownShell extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: _muted),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(child: DropdownButtonHideUnderline(child: child)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimesheetGroupTableHeader extends StatelessWidget {
+  final String title;
+  final int count;
+
+  const _TimesheetGroupTableHeader({required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 13, 18, 10),
+      decoration: BoxDecoration(
+        color: AppAdaptivePalette.surfaceSoft,
+        border: Border(bottom: BorderSide(color: AppAdaptivePalette.border)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.groups_2_outlined, size: 18, color: _muted),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(color: _text, fontWeight: FontWeight.w900),
+            ),
+          ),
+          Text(
+            '$count чел.',
+            style: TextStyle(
+              color: _muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -1047,7 +1286,7 @@ class _TableHeader extends StatelessWidget {
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       color: _soft,
-      child: Row(
+      child: const Row(
         children: [
           Expanded(flex: 4, child: _HeaderText('Сотрудник')),
           Expanded(flex: 2, child: _HeaderText('Объект')),
@@ -1128,7 +1367,7 @@ class _TimesheetRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: 11),
+                const SizedBox(width: 11),
                 Expanded(
                   child: Text(
                     employee.name,

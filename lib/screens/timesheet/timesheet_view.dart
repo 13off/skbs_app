@@ -10,6 +10,7 @@ extension _TimesheetView on _TimesheetScreenState {
           builder: (context, employeesSnapshot) {
             final allEmployees = employeesSnapshot.data ?? <Employee>[];
             final visibleEmployees = filterEmployees(allEmployees);
+            final employeeItems = buildGroupedEmployeeItems(visibleEmployees);
             final floatingBottom = AppUi.floatingActionBottom(context);
             final listBottom = AppUi.floatingActionListBottomPadding(context);
 
@@ -44,10 +45,12 @@ extension _TimesheetView on _TimesheetScreenState {
                             ),
                             const SizedBox(height: 16),
                             buildSearch(),
+                            const SizedBox(height: 12),
+                            buildGroupFilter(allEmployees),
                             const SizedBox(height: 16),
                             buildQuickActions(visibleEmployees),
                             const SizedBox(height: 18),
-                            if (isAttendanceLoading || isSaving)
+                            if (isAttendanceLoading || isGroupsLoading || isSaving)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 10),
                                 child: LinearProgressIndicator(),
@@ -89,14 +92,10 @@ extension _TimesheetView on _TimesheetScreenState {
                               18,
                               listBottom,
                             ),
-                            itemCount: leading.length + visibleEmployees.length,
+                            itemCount: leading.length + employeeItems.length,
                             itemBuilder: (context, index) {
                               if (index < leading.length) return leading[index];
-                              final employee =
-                                  visibleEmployees[index - leading.length];
-                              return RepaintBoundary(
-                                child: buildEmployeeRow(employee),
-                              );
+                              return employeeItems[index - leading.length];
                             },
                           );
                         },

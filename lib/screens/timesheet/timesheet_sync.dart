@@ -28,6 +28,7 @@ extension _TimesheetSync on _TimesheetScreenState {
       AppDataDomain.objects,
     })) {
       setState(() => reloadEmployees(forceRefresh: true));
+      loadTimesheetGroups(forceRefresh: true);
     }
 
     final attendanceChanged = change.affectsAny(const <AppDataDomain>{

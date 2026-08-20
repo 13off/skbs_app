@@ -47,13 +47,93 @@ extension _TimesheetActions on _TimesheetScreenState {
     );
   }
 
+  TimesheetGroup? groupForEmployee(Employee employee) {
+    for (final group in timesheetGroups) {
+      if (group.containsEmployee(employee.id)) return group;
+    }
+    return null;
+  }
+
+  bool employeeMatchesGroupFilter(Employee employee) {
+    if (selectedGroupFilter == _allTimesheetGroupsFilter) return true;
+    final group = groupForEmployee(employee);
+    if (selectedGroupFilter == _ungroupedTimesheetFilter) return group == null;
+    return group?.id == selectedGroupFilter;
+  }
+
+  String timesheetGroupTitle(TimesheetGroup group) {
+    if (cleanObjectName(widget.selectedObjectName) != null) return group.name;
+    return '${group.name} · ${group.objectName}';
+  }
+
   List<Employee> filterEmployees(List<Employee> employees) {
     final searchText = searchController.text.trim().toLowerCase();
-    return employees.where((employee) {
+    final result = employees.where((employee) {
+      if (!employeeMatchesGroupFilter(employee)) return false;
       return searchText.isEmpty ||
           employee.name.toLowerCase().contains(searchText) ||
           employee.position.toLowerCase().contains(searchText);
     }).toList();
+    result.sort((first, second) => first.name.compareTo(second.name));
+    return result;
+  }
+
+  List<_TimesheetEmployeeGroupSection> employeeGroupSections(
+    List<Employee> visibleEmployees,
+  ) {
+    if (timesheetGroups.isEmpty) {
+      return <_TimesheetEmployeeGroupSection>[
+        _TimesheetEmployeeGroupSection(title: '', employees: visibleEmployees),
+      ];
+    }
+
+    final sections = <_TimesheetEmployeeGroupSection>[];
+    for (final group in timesheetGroups) {
+      if (selectedGroupFilter != _allTimesheetGroupsFilter &&
+          selectedGroupFilter != group.id) {
+        continue;
+      }
+      final members = visibleEmployees
+          .where((employee) => group.containsEmployee(employee.id))
+          .toList(growable: false);
+      if (members.isNotEmpty) {
+        sections.add(
+          _TimesheetEmployeeGroupSection(
+            title: timesheetGroupTitle(group),
+            employees: members,
+          ),
+        );
+      }
+    }
+
+    final ungrouped = visibleEmployees
+        .where((employee) => groupForEmployee(employee) == null)
+        .toList(growable: false);
+    if (ungrouped.isNotEmpty &&
+        (selectedGroupFilter == _allTimesheetGroupsFilter ||
+            selectedGroupFilter == _ungroupedTimesheetFilter)) {
+      sections.add(
+        _TimesheetEmployeeGroupSection(
+          title: 'Без группы',
+          employees: ungrouped,
+        ),
+      );
+    }
+    return sections;
+  }
+
+  Future<void> openTimesheetGroupManager(List<Employee> employees) async {
+    if (!canManageTimesheetGroups) return;
+    final changed = await TimesheetGroupManagerSheet.show(
+      context,
+      selectedObjectName: widget.selectedObjectName,
+      employees: employees,
+      groups: timesheetGroups,
+    );
+    if (changed && mounted) {
+      selectedGroupFilter = _allTimesheetGroupsFilter;
+      await loadTimesheetGroups(forceRefresh: true);
+    }
   }
 
   Future<void> changeDate(DateTime newDate) async {
