@@ -1,0 +1,68 @@
+name: Apply isolated performance preload package
+
+on:
+  push:
+    branches:
+      - feature/performance-preload-indexes-images-20260821
+    paths:
+      - .github/workflows/apply-performance-preload-package.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/performance-preload-indexes-images-20260821
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Apply package
+        run: python3 tooling/performance_preload_package_patch.py
+
+      - name: Format changed Dart
+        run: |
+          dart format \
+            lib/data/app_preload_coordinator.dart \
+            lib/data/finance_summary_repository.dart \
+            lib/data/attendance_repository.dart \
+            lib/data/payment_repository.dart \
+            lib/data/task_photo_repository.dart \
+            lib/data/task_photo_signed_url_cache.dart \
+            lib/features/shell/presentation/premium_main_screen.dart \
+            lib/features/payments/presentation/screens/payments_screen.dart \
+            lib/screens/task_details/task_details_editor_screen.dart \
+            lib/screens/task_details/task_details_loading.dart \
+            lib/screens/task_details/task_details_sections.dart \
+            test/performance_preload_indexes_images_contract_test.dart
+
+      - name: Analyze package before commit
+        run: flutter analyze
+
+      - name: Run package contract
+        run: flutter test test/performance_preload_indexes_images_contract_test.dart --reporter compact
+
+      - name: Remove one-shot tooling
+        run: rm -f tooling/performance_preload_package_patch.py .github/workflows/apply-performance-preload-package.yml
+
+      - name: Commit isolated package
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'Ускорить предзагрузку, отчёты и изображения'
+          git push origin HEAD:feature/performance-preload-indexes-images-20260821
