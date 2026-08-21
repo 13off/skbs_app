@@ -11,8 +11,8 @@ void main() {
       'lib/widgets/professional_bottom_navigation.dart',
     ).readAsStringSync();
 
-    expect(source, contains("show CupertinoPageRoute"));
-    expect(source, contains('return CupertinoPageRoute<void>('));
+    expect(source, contains("import '../../../navigation/app_page_route.dart';"));
+    expect(source, contains('AppPageRoute<void>('));
     expect(
       source,
       contains('return buildRootPage(index, selectedObjectName);'),
