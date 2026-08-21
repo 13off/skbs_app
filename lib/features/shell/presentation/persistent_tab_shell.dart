@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -101,8 +99,6 @@ class PersistentTabShell extends StatefulWidget {
 }
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
-  static const Duration _prewarmPause = Duration(milliseconds: 90);
-
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
   int _prewarmGeneration = 0;
 
@@ -177,16 +173,13 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
         if (!mounted || generation != _prewarmGeneration) return;
         setState(() => _ensureTabBuilt(indexToBuild));
 
-        // Let this tab complete an actual frame (and start its async reads)
-        // before warming the next one. This avoids one large hidden build frame.
+        // Wait for this hidden tab to finish a real frame before scheduling the
+        // next idle build. A post-frame handoff avoids Timer/Future.delayed
+        // wakeups and keeps both production and widget tests free of pending
+        // timers while still spreading prewarm work across frames.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || generation != _prewarmGeneration) return;
-          unawaited(
-            Future<void>.delayed(_prewarmPause).then((_) {
-              if (!mounted || generation != _prewarmGeneration) return;
-              _prewarmNextTab(generation);
-            }),
-          );
+          _prewarmNextTab(generation);
         });
       },
       Priority.idle,
