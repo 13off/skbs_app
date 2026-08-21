@@ -53,7 +53,7 @@ void main() {
         contains("ValueKey('professional-bottom-navigation-panel')"),
       );
       expect(navigation, contains('LiquidGlassSurface('));
-      expect(navigation, contains('blur: true'));
+      expect(navigation, contains('blur: !kIsWeb || isDesktop'));
     },
   );
 }
