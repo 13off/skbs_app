@@ -12,6 +12,7 @@ void main() {
 
     expect(areas, const <AppCacheArea>{
       AppCacheArea.employees,
+      AppCacheArea.timesheetGroups,
       AppCacheArea.attendance,
       AppCacheArea.financeSummary,
       AppCacheArea.managerReports,
@@ -54,6 +55,7 @@ void main() {
       AppCacheArea.objects,
       AppCacheArea.developerPolicies,
       AppCacheArea.employees,
+      AppCacheArea.timesheetGroups,
       AppCacheArea.attendance,
       AppCacheArea.financeSummary,
       AppCacheArea.payments,
