@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -12,6 +11,7 @@ import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
 import 'legal_employee_dossier_screen.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 /// Единая база юриста.
 ///
@@ -82,7 +82,10 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           Icon(icon, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -92,12 +95,11 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
   Widget employees(_LegalBaseData data) {
     final items = data.workspace.employees
         .where(
-          (item) => matches(
-            '${item.fio} ${item.position} ${item.objectName}',
-          ),
+          (item) => matches('${item.fio} ${item.position} ${item.objectName}'),
         )
         .toList();
-    if (items.isEmpty) return message('Сотрудники не найдены', icon: Icons.search_off);
+    if (items.isEmpty)
+      return message('Сотрудники не найдены', icon: Icons.search_off);
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
@@ -109,13 +111,21 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           radius: 22,
           padding: EdgeInsets.zero,
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: CircleAvatar(
               child: Text(
-                item.fio.trim().isEmpty ? '?' : item.fio.trim()[0].toUpperCase(),
+                item.fio.trim().isEmpty
+                    ? '?'
+                    : item.fio.trim()[0].toUpperCase(),
               ),
             ),
-            title: Text(item.fio, style: const TextStyle(fontWeight: FontWeight.w800)),
+            title: Text(
+              item.fio,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
             subtitle: Text(
               <String>[
                 if (item.position.isNotEmpty) item.position,
@@ -129,7 +139,7 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.push<void>(
               context,
-              CupertinoPageRoute<void>(
+              AppPageRoute<void>(
                 builder: (_) => LegalEmployeeDossierScreen(employee: item),
               ),
             ),
@@ -143,7 +153,8 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
     final items = data.workspace.objects
         .where((item) => matches('${item.name} ${item.address}'))
         .toList();
-    if (items.isEmpty) return message('Объекты не найдены', icon: Icons.search_off);
+    if (items.isEmpty)
+      return message('Объекты не найдены', icon: Icons.search_off);
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
@@ -155,9 +166,15 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           radius: 22,
           padding: EdgeInsets.zero,
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: const CircleAvatar(child: Icon(Icons.apartment_rounded)),
-            title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+            title: Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
             subtitle: Text(
               <String>[
                 if (item.address.isNotEmpty) item.address,
@@ -169,7 +186,7 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.push<void>(
               context,
-              CupertinoPageRoute<void>(
+              AppPageRoute<void>(
                 builder: (_) => _ObjectLegalDossierScreen(
                   object: item,
                   documents: data.workspace.documents
@@ -199,7 +216,10 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         children: [
-          message('Контрагенты пока не добавлены', icon: Icons.business_outlined),
+          message(
+            'Контрагенты пока не добавлены',
+            icon: Icons.business_outlined,
+          ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -229,9 +249,15 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           radius: 22,
           padding: EdgeInsets.zero,
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: const CircleAvatar(child: Icon(Icons.business_outlined)),
-            title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+            title: Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
             subtitle: Text(
               <String>[
                 if (item.inn.isNotEmpty) 'ИНН ${item.inn}',
@@ -243,7 +269,7 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.push<void>(
               context,
-              CupertinoPageRoute<void>(
+              AppPageRoute<void>(
                 builder: (_) => _CounterpartyDossierScreen(
                   counterparty: item,
                   documents: documents,
@@ -272,21 +298,43 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: name, autofocus: true, decoration: const InputDecoration(labelText: 'Название *')),
+              TextField(
+                controller: name,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Название *'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: inn, decoration: const InputDecoration(labelText: 'ИНН')),
+              TextField(
+                controller: inn,
+                decoration: const InputDecoration(labelText: 'ИНН'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: contact, decoration: const InputDecoration(labelText: 'Контактное лицо')),
+              TextField(
+                controller: contact,
+                decoration: const InputDecoration(labelText: 'Контактное лицо'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: phone, decoration: const InputDecoration(labelText: 'Телефон')),
+              TextField(
+                controller: phone,
+                decoration: const InputDecoration(labelText: 'Телефон'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: email, decoration: const InputDecoration(labelText: 'E-mail')),
+              TextField(
+                controller: email,
+                decoration: const InputDecoration(labelText: 'E-mail'),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Добавить')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Добавить'),
+          ),
         ],
       ),
     );
@@ -317,7 +365,10 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
           if (snapshot.hasError) {
             return Padding(
               padding: const EdgeInsets.all(16),
-              child: message('Не удалось загрузить базу: ${snapshot.error}', icon: Icons.cloud_off_outlined),
+              child: message(
+                'Не удалось загрузить базу: ${snapshot.error}',
+                icon: Icons.cloud_off_outlined,
+              ),
             );
           }
           return const Center(child: CircularProgressIndicator());
@@ -337,9 +388,17 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('База юриста', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                            Text(
+                              'База юриста',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                             SizedBox(height: 3),
-                            Text('Сотрудники, объекты и контрагенты — без дублирования документов и дел'),
+                            Text(
+                              'Сотрудники, объекты и контрагенты — без дублирования документов и дел',
+                            ),
                           ],
                         ),
                       ),
@@ -356,7 +415,8 @@ class _LegalWorkspaceScreenState extends State<LegalWorkspaceScreen> {
                   child: TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'Поиск по ФИО, объекту, контрагенту, ИНН или контакту',
+                      hintText:
+                          'Поиск по ФИО, объекту, контрагенту, ИНН или контакту',
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: search.isEmpty
                           ? null
@@ -435,7 +495,10 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
         if (children.isEmpty)
           PremiumWorkCard(
@@ -452,11 +515,15 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
 
   Future<void> openWorkspaceDocument(LegalWorkspaceDocument item) async {
     if (item.legalDocumentId.isNotEmpty) {
-      final document = await LegalRepository.fetchDocument(item.legalDocumentId);
+      final document = await LegalRepository.fetchDocument(
+        item.legalDocumentId,
+      );
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(builder: (_) => LegalDocumentDetailsScreen(document: document)),
+        AppPageRoute<void>(
+          builder: (_) => LegalDocumentDetailsScreen(document: document),
+        ),
       );
       return;
     }
@@ -471,15 +538,18 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
   Future<void> openLegalDocument(LegalDocument document) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(builder: (_) => LegalDocumentDetailsScreen(document: document)),
+      AppPageRoute<void>(
+        builder: (_) => LegalDocumentDetailsScreen(document: document),
+      ),
     );
   }
 
   Future<void> openMatter(LegalMatter matter) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(matter: matter, canDecide: false),
+      AppPageRoute<void>(
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: false),
       ),
     );
   }
@@ -491,17 +561,24 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
         radius: 20,
         padding: EdgeInsets.zero,
         child: ListTile(
-          leading: Icon(item.category == 'contract'
-              ? Icons.handshake_outlined
-              : item.category == 'act'
-                  ? Icons.fact_check_outlined
-                  : Icons.description_outlined),
-          title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text(<String>[
-            if (item.documentType.isNotEmpty) item.documentType,
-            if (item.objectName.isNotEmpty) item.objectName,
-            date(item.documentDate),
-          ].join(' • ')),
+          leading: Icon(
+            item.category == 'contract'
+                ? Icons.handshake_outlined
+                : item.category == 'act'
+                ? Icons.fact_check_outlined
+                : Icons.description_outlined,
+          ),
+          title: Text(
+            item.title,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            <String>[
+              if (item.documentType.isNotEmpty) item.documentType,
+              if (item.objectName.isNotEmpty) item.objectName,
+              date(item.documentDate),
+            ].join(' • '),
+          ),
           trailing: const Icon(Icons.open_in_new_rounded),
           onTap: () => openWorkspaceDocument(item),
         ),
@@ -516,13 +593,22 @@ mixin _DossierHelpers<T extends StatefulWidget> on State<T> {
         radius: 20,
         padding: EdgeInsets.zero,
         child: ListTile(
-          leading: Icon(legalMatterIsCourt(matter) ? Icons.account_balance_outlined : Icons.gavel_outlined),
-          title: Text(matter.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text(<String>[
-            legalMatterDisplayType(matter),
-            matter.statusTitle,
-            if (matter.dueAt != null) 'срок ${date(matter.dueAt)}',
-          ].join(' • ')),
+          leading: Icon(
+            legalMatterIsCourt(matter)
+                ? Icons.account_balance_outlined
+                : Icons.gavel_outlined,
+          ),
+          title: Text(
+            matter.title,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            <String>[
+              legalMatterDisplayType(matter),
+              matter.statusTitle,
+              if (matter.dueAt != null) 'срок ${date(matter.dueAt)}',
+            ].join(' • '),
+          ),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => openMatter(matter),
         ),
@@ -543,10 +629,12 @@ class _ObjectLegalDossierScreen extends StatefulWidget {
   });
 
   @override
-  State<_ObjectLegalDossierScreen> createState() => _ObjectLegalDossierScreenState();
+  State<_ObjectLegalDossierScreen> createState() =>
+      _ObjectLegalDossierScreenState();
 }
 
-class _ObjectLegalDossierScreenState extends State<_ObjectLegalDossierScreen> with _DossierHelpers<_ObjectLegalDossierScreen> {
+class _ObjectLegalDossierScreenState extends State<_ObjectLegalDossierScreen>
+    with _DossierHelpers<_ObjectLegalDossierScreen> {
   @override
   Widget build(BuildContext context) {
     final object = widget.object;
@@ -561,7 +649,13 @@ class _ObjectLegalDossierScreenState extends State<_ObjectLegalDossierScreen> wi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(object.name, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+                Text(
+                  object.name,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 if (object.address.isNotEmpty) ...[
                   const SizedBox(height: 5),
                   Text(object.address),
@@ -571,10 +665,22 @@ class _ObjectLegalDossierScreenState extends State<_ObjectLegalDossierScreen> wi
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _CountChip('${object.employeesCount} сотрудников', Icons.groups_2_outlined),
-                    _CountChip('${widget.documents.where((item) => item.category == 'contract').length} договоров', Icons.handshake_outlined),
-                    _CountChip('${widget.documents.where((item) => item.category == 'act').length} актов', Icons.fact_check_outlined),
-                    _CountChip('${widget.matters.length} дел', Icons.gavel_outlined),
+                    _CountChip(
+                      '${object.employeesCount} сотрудников',
+                      Icons.groups_2_outlined,
+                    ),
+                    _CountChip(
+                      '${widget.documents.where((item) => item.category == 'contract').length} договоров',
+                      Icons.handshake_outlined,
+                    ),
+                    _CountChip(
+                      '${widget.documents.where((item) => item.category == 'act').length} актов',
+                      Icons.fact_check_outlined,
+                    ),
+                    _CountChip(
+                      '${widget.matters.length} дел',
+                      Icons.gavel_outlined,
+                    ),
                   ],
                 ),
               ],
@@ -609,10 +715,12 @@ class _CounterpartyDossierScreen extends StatefulWidget {
   });
 
   @override
-  State<_CounterpartyDossierScreen> createState() => _CounterpartyDossierScreenState();
+  State<_CounterpartyDossierScreen> createState() =>
+      _CounterpartyDossierScreenState();
 }
 
-class _CounterpartyDossierScreenState extends State<_CounterpartyDossierScreen> with _DossierHelpers<_CounterpartyDossierScreen> {
+class _CounterpartyDossierScreenState extends State<_CounterpartyDossierScreen>
+    with _DossierHelpers<_CounterpartyDossierScreen> {
   @override
   Widget build(BuildContext context) {
     final item = widget.counterparty;
@@ -627,12 +735,19 @@ class _CounterpartyDossierScreenState extends State<_CounterpartyDossierScreen> 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 if (item.inn.isNotEmpty) Text('ИНН: ${item.inn}'),
                 if (item.kpp.isNotEmpty) Text('КПП: ${item.kpp}'),
                 if (item.ogrn.isNotEmpty) Text('ОГРН: ${item.ogrn}'),
-                if (item.contactName.isNotEmpty) Text('Контакт: ${item.contactName}'),
+                if (item.contactName.isNotEmpty)
+                  Text('Контакт: ${item.contactName}'),
                 if (item.phone.isNotEmpty) Text('Телефон: ${item.phone}'),
                 if (item.email.isNotEmpty) Text('E-mail: ${item.email}'),
                 const SizedBox(height: 14),
@@ -640,8 +755,14 @@ class _CounterpartyDossierScreenState extends State<_CounterpartyDossierScreen> 
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _CountChip('${widget.documents.length} документов', Icons.description_outlined),
-                    _CountChip('${widget.matters.length} дел', Icons.gavel_outlined),
+                    _CountChip(
+                      '${widget.documents.length} документов',
+                      Icons.description_outlined,
+                    ),
+                    _CountChip(
+                      '${widget.matters.length} дел',
+                      Icons.gavel_outlined,
+                    ),
                   ],
                 ),
               ],
@@ -650,20 +771,29 @@ class _CounterpartyDossierScreenState extends State<_CounterpartyDossierScreen> 
           const SizedBox(height: 22),
           section(
             'Документы',
-            widget.documents.map((document) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: PremiumWorkCard(
-                radius: 20,
-                padding: EdgeInsets.zero,
-                child: ListTile(
-                  leading: const Icon(Icons.description_outlined),
-                  title: Text(document.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${document.documentType} • ${document.statusTitle}'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => openLegalDocument(document),
-                ),
-              ),
-            )).toList(),
+            widget.documents
+                .map(
+                  (document) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: PremiumWorkCard(
+                      radius: 20,
+                      padding: EdgeInsets.zero,
+                      child: ListTile(
+                        leading: const Icon(Icons.description_outlined),
+                        title: Text(
+                          document.title,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          '${document.documentType} • ${document.statusTitle}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => openLegalDocument(document),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
             emptyText: 'Документов с этим контрагентом пока нет.',
           ),
           section(

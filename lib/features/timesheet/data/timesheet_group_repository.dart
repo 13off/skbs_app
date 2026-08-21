@@ -7,6 +7,12 @@ class TimesheetGroupRepository {
   TimesheetGroupRepository._();
 
   static final SupabaseClient _client = Supabase.instance.client;
+  static const Duration _cacheTtl = Duration(seconds: 30);
+  static final Map<String, _TimesheetGroupCacheEntry> _cache =
+      <String, _TimesheetGroupCacheEntry>{};
+  static final Map<String, Future<List<TimesheetGroup>>> _inFlight =
+      <String, Future<List<TimesheetGroup>>>{};
+  static int _cacheGeneration = 0;
 
   static String? _cleanObjectName(String? value) {
     final clean = value?.trim();
@@ -25,18 +31,56 @@ class TimesheetGroupRepository {
     return result;
   }
 
-  static Future<List<TimesheetGroup>> fetchGroups({String? objectName}) async {
+  static Future<List<TimesheetGroup>> fetchGroups({
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    final cleanObject = _cleanObjectName(objectName);
+    final key = cleanObject ?? '__all__';
+    final cached = _cache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.createdAt) < _cacheTtl) {
+      return List<TimesheetGroup>.from(cached.groups);
+    }
+
+    final running = _inFlight[key];
+    if (running != null) return List<TimesheetGroup>.from(await running);
+
+    final generation = _cacheGeneration;
+    final request = _loadGroups(cleanObject);
+    _inFlight[key] = request;
+    try {
+      final groups = await request;
+      if (generation == _cacheGeneration) {
+        _cache[key] = _TimesheetGroupCacheEntry(
+          groups: List<TimesheetGroup>.from(groups),
+          createdAt: DateTime.now(),
+        );
+      }
+      return List<TimesheetGroup>.from(groups);
+    } finally {
+      if (identical(_inFlight[key], request)) _inFlight.remove(key);
+    }
+  }
+
+  static Future<List<TimesheetGroup>> _loadGroups(String? objectName) async {
     final result = await _client.rpc(
       'list_timesheet_groups',
-      params: <String, dynamic>{'p_object_name': _cleanObjectName(objectName)},
+      params: <String, dynamic>{'p_object_name': objectName},
     );
-
     if (result is! List) return const <TimesheetGroup>[];
     return _sortGroups(
       result.whereType<Map>().map(
         (row) => TimesheetGroup.fromMap(Map<String, dynamic>.from(row)),
       ),
     );
+  }
+
+  static void clearCache() {
+    _cacheGeneration++;
+    _cache.clear();
+    _inFlight.clear();
   }
 
   static Future<String> saveGroup({
@@ -72,6 +116,7 @@ class TimesheetGroupRepository {
       },
     );
 
+    clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
       context: <String, dynamic>{
@@ -89,9 +134,20 @@ class TimesheetGroupRepository {
       'delete_timesheet_group',
       params: <String, dynamic>{'p_group_id': cleanId},
     );
+    clearCache();
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.employees},
       context: const <String, dynamic>{'table': 'timesheet_groups'},
     );
   }
+}
+
+class _TimesheetGroupCacheEntry {
+  final List<TimesheetGroup> groups;
+  final DateTime createdAt;
+
+  const _TimesheetGroupCacheEntry({
+    required this.groups,
+    required this.createdAt,
+  });
 }

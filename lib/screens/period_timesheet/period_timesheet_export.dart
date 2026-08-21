@@ -83,7 +83,7 @@ extension _PeriodTimesheetExport on _PeriodTimesheetScreenState {
 
   Future<void> openAddPaymentScreen() async {
     final saved = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,

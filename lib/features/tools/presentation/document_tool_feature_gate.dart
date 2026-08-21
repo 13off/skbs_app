@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_adaptive_palette.dart';
+import '../../../navigation/app_page_route.dart';
 
 const String documentToolRequiredMessage =
     'Подключите AppСтрой Трудоустройство';
@@ -260,9 +261,7 @@ class DocumentToolProtectedScreen extends StatelessWidget {
                           width: double.infinity,
                           child: FilledButton.icon(
                             onPressed: () => Navigator.of(context).push<void>(
-                              MaterialPageRoute<void>(
-                                builder: (_) => toolsScreen!,
-                              ),
+                              AppPageRoute<void>(builder: (_) => toolsScreen!),
                             ),
                             icon: const Icon(Icons.extension_rounded),
                             label: const Text('Открыть Инструменты'),
@@ -323,7 +322,7 @@ Future<void> showDocumentToolRequiredSheet(
                   onPressed: () {
                     Navigator.pop(sheetContext);
                     Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(builder: (_) => toolsScreen),
+                      AppPageRoute<void>(builder: (_) => toolsScreen),
                     );
                   },
                   icon: const Icon(Icons.extension_rounded),

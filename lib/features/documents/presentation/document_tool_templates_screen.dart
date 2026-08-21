@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -8,6 +7,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/document_template_repository.dart';
 import '../models/document_template.dart';
 import 'document_template_online_editor_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class DocumentToolTemplatesScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -102,7 +102,7 @@ class _DocumentToolTemplatesScreenState
       return;
     }
     final changed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => DocumentTemplateOnlineEditorScreen(
           template: template,
           version: version,

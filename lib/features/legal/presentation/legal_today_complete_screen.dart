@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -11,6 +10,7 @@ import 'legal_document_complete_screen.dart';
 import 'legal_employee_complete_screen.dart';
 import 'legal_matter_complete_screen.dart';
 import 'legal_quality_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalTodayCompleteScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -77,7 +77,7 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalDocumentCompleteScreen(document: document),
         ),
       );
@@ -86,7 +86,7 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalMatterCompleteScreen(matter: matter),
         ),
       );
@@ -95,11 +95,13 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
           ? item.employeeId
           : item.entityId;
       final employees = await LegalWorkspaceRepository.fetchEmployees();
-      final matches = employees.where((value) => value.id == employeeId).toList();
+      final matches = employees
+          .where((value) => value.id == employeeId)
+          .toList();
       if (!mounted || matches.isEmpty) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalEmployeeCompleteScreen(employee: matches.first),
         ),
       );
@@ -108,19 +110,20 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
   }
 
   IconData icon(LegalTodayItem item) => switch (item.itemType) {
-        'missing_documents' => Icons.assignment_late_outlined,
-        'document_attention' => Icons.description_outlined,
-        'matter_attention' => Icons.gavel_outlined,
-        'process_event' => Icons.event_available_outlined,
-        'recovery' => Icons.payments_outlined,
-        _ => Icons.notifications_active_outlined,
-      };
+    'missing_documents' => Icons.assignment_late_outlined,
+    'document_attention' => Icons.description_outlined,
+    'matter_attention' => Icons.gavel_outlined,
+    'process_event' => Icons.event_available_outlined,
+    'recovery' => Icons.payments_outlined,
+    _ => Icons.notifications_active_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Сегодня',
-      subtitle: 'Только то, что требует действия: сроки, риски, документы и решения',
+      subtitle:
+          'Только то, что требует действия: сроки, риски, документы и решения',
       headerTrailing: Wrap(
         spacing: 8,
         children: [
@@ -128,9 +131,7 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
             onPressed: () async {
               await Navigator.push<void>(
                 context,
-                CupertinoPageRoute<void>(
-                  builder: (_) => const LegalQualityScreen(),
-                ),
+                AppPageRoute<void>(builder: (_) => const LegalQualityScreen()),
               );
               if (mounted) await refresh();
             },
@@ -162,14 +163,18 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
           }
           final source = snapshot.data!;
           final items = visible(source);
-          final danger = source.where((item) => item.severity == 'danger').length;
+          final danger = source
+              .where((item) => item.severity == 'danger')
+              .length;
           final missing = source
               .where((item) => item.itemType == 'missing_documents')
               .length;
           final process = source
               .where((item) => item.itemType == 'process_event')
               .length;
-          final recoveries = source.where((item) => item.itemType == 'recovery').length;
+          final recoveries = source
+              .where((item) => item.itemType == 'recovery')
+              .length;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -180,11 +185,31 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
                   spacing: 16,
                   runSpacing: 10,
                   children: [
-                    _TodayMetric(label: 'Всего', value: source.length, icon: Icons.inbox_outlined),
-                    _TodayMetric(label: 'Срочно', value: danger, icon: Icons.error_outline_rounded),
-                    _TodayMetric(label: 'Неполные досье', value: missing, icon: Icons.folder_off_outlined),
-                    _TodayMetric(label: 'События суда', value: process, icon: Icons.account_balance_outlined),
-                    _TodayMetric(label: 'Взыскания', value: recoveries, icon: Icons.payments_outlined),
+                    _TodayMetric(
+                      label: 'Всего',
+                      value: source.length,
+                      icon: Icons.inbox_outlined,
+                    ),
+                    _TodayMetric(
+                      label: 'Срочно',
+                      value: danger,
+                      icon: Icons.error_outline_rounded,
+                    ),
+                    _TodayMetric(
+                      label: 'Неполные досье',
+                      value: missing,
+                      icon: Icons.folder_off_outlined,
+                    ),
+                    _TodayMetric(
+                      label: 'События суда',
+                      value: process,
+                      icon: Icons.account_balance_outlined,
+                    ),
+                    _TodayMetric(
+                      label: 'Взыскания',
+                      value: recoveries,
+                      icon: Icons.payments_outlined,
+                    ),
                   ],
                 ),
               ),
@@ -192,20 +217,21 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: <(String, String)>[
-                  ('all', 'Все'),
-                  ('danger', 'Срочно'),
-                  ('documents', 'Документы'),
-                  ('courts', 'Суды и сроки'),
-                ]
-                    .map(
-                      (item) => ChoiceChip(
-                        label: Text(item.$2),
-                        selected: filter == item.$1,
-                        onSelected: (_) => setState(() => filter = item.$1),
-                      ),
-                    )
-                    .toList(),
+                children:
+                    <(String, String)>[
+                          ('all', 'Все'),
+                          ('danger', 'Срочно'),
+                          ('documents', 'Документы'),
+                          ('courts', 'Суды и сроки'),
+                        ]
+                        .map(
+                          (item) => ChoiceChip(
+                            label: Text(item.$2),
+                            selected: filter == item.$1,
+                            onSelected: (_) => setState(() => filter = item.$1),
+                          ),
+                        )
+                        .toList(),
               ),
               const SizedBox(height: 12),
               if (items.isEmpty)
@@ -218,10 +244,15 @@ class _LegalTodayCompleteScreenState extends State<LegalTodayCompleteScreen> {
                       SizedBox(height: 10),
                       Text(
                         'На сейчас ничего не горит',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       SizedBox(height: 4),
-                      Text('Новые сроки, риски и недостающие документы появятся здесь автоматически.'),
+                      Text(
+                        'Новые сроки, риски и недостающие документы появятся здесь автоматически.',
+                      ),
                     ],
                   ),
                 )
@@ -266,7 +297,11 @@ class _TodayMetric extends StatelessWidget {
   final int value;
   final IconData icon;
 
-  const _TodayMetric({required this.label, required this.value, required this.icon});
+  const _TodayMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {

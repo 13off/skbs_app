@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -15,6 +14,7 @@ import 'manager_report_header_widgets.dart';
 import 'manager_report_sections.dart';
 import 'manager_report_tile.dart';
 import 'manager_weekly_contribution_section.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ManagerReportsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -139,7 +139,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   void openScreen(Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   void openRoutes() {

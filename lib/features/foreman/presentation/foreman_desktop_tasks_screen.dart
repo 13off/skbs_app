@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -16,6 +15,7 @@ import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/foreman_workspace_repository.dart';
 import 'foreman_task_filters.dart';
 import 'foreman_task_table.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ForemanDesktopTasksScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -58,7 +58,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
           })) {
         return;
       }
-      loadTasks(silent: true, forceRefresh: true);
+      loadTasks(silent: true);
     });
   }
 
@@ -192,7 +192,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
 
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
-      CupertinoPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: sourceDraft?.date ?? selectedDate,
           objectName: objectName,
@@ -257,7 +257,7 @@ class _ForemanDesktopTasksScreenState extends State<ForemanDesktopTasksScreen> {
   Future<void> openTask(TaskItemData task) async {
     final result = await Navigator.push<dynamic>(
       context,
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );

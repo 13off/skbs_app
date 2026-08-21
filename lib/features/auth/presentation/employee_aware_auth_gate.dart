@@ -31,7 +31,7 @@ class AuthGate extends StatelessWidget {
         }
 
         return FutureBuilder<AppUserProfile?>(
-          future: UserRepository.fetchCurrentProfile(forceRefresh: true),
+          future: UserRepository.fetchCurrentProfile(),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Scaffold(

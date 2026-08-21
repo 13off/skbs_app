@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,6 +16,7 @@ import '../widgets/premium_ui.dart';
 import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
+import '../navigation/app_page_route.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
@@ -135,7 +135,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
       return;
     }
 
-    loadTasks(silent: true, forceRefresh: true);
+    loadTasks(silent: true);
   }
 
   Future<void> loadTasks({
@@ -242,7 +242,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
-      CupertinoPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: selectedDate,
           objectName: objectName,
@@ -293,7 +293,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
   Future<void> openTaskDetails(TaskItemData task) async {
     final result = await Navigator.push<dynamic>(
       context,
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );
@@ -415,7 +415,7 @@ class _DesktopTasksScreenState extends State<DesktopTasksScreen> {
 
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => ActPreviewScreen(tasks: source, date: selectedDate),
       ),
     );

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -11,6 +10,7 @@ import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
+import '../../../navigation/app_page_route.dart';
 
 part 'legal_document_details_part.dart';
 part 'legal_document_editor_part.dart';
@@ -72,7 +72,7 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
   Future<void> openEditor([LegalDocument? document]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(document: document),
       ),
     );
@@ -82,7 +82,7 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
   Future<void> openDetails(LegalDocument document) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => LegalDocumentDetailsScreen(document: document),
       ),
     );
@@ -142,12 +142,19 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                     prefixIcon: Icon(Icons.folder_outlined),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'all', child: Text('Все документы')),
-                    DropdownMenuItem(value: 'contract', child: Text('Договоры')),
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text('Все документы'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'contract',
+                      child: Text('Договоры'),
+                    ),
                     DropdownMenuItem(value: 'act', child: Text('Акты')),
                     DropdownMenuItem(value: 'other', child: Text('Прочие')),
                   ],
-                  onChanged: (value) => setState(() => category = value ?? 'all'),
+                  onChanged: (value) =>
+                      setState(() => category = value ?? 'all'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -267,8 +274,8 @@ class _LegalDocumentsScreenState extends State<LegalDocumentsScreen> {
                                 documentCategory(document) == 'contract'
                                     ? Icons.handshake_outlined
                                     : documentCategory(document) == 'act'
-                                        ? Icons.fact_check_outlined
-                                        : Icons.description_outlined,
+                                    ? Icons.fact_check_outlined
+                                    : Icons.description_outlined,
                               ),
                             ),
                             const SizedBox(width: 13),

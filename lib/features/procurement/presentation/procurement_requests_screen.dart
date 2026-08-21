@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -11,6 +10,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/procurement_repository.dart';
 import '../models/procurement_models.dart';
 import 'procurement_request_editor_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ProcurementRequestsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -58,7 +58,7 @@ class _ProcurementRequestsScreenState extends State<ProcurementRequestsScreen> {
   Future<void> openEditor([ProcurementRequest? request]) async {
     final changed = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => ProcurementRequestEditorScreen(
           profile: widget.profile,
           request: request,

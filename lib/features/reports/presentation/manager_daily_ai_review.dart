@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -11,6 +10,7 @@ import '../../accounting/presentation/adaptive_accounting_reports_screen.dart';
 import '../../legal/presentation/legal_weekly_report_screen.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_report_formatters.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ManagerDailyAiReviewCard extends StatelessWidget {
   final AppUserProfile profile;
@@ -26,7 +26,7 @@ class ManagerDailyAiReviewCard extends StatelessWidget {
 
   void _open(BuildContext context) {
     Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => ManagerDailyAiReviewScreen(
           profile: profile,
           center: center,
@@ -154,9 +154,7 @@ class ManagerDailyAiReviewScreen extends StatelessWidget {
     final metrics = center.metrics;
     final lines = <String>[];
     if (metrics.attendance.missing > 0) {
-      lines.add(
-        'Отсутствовали ${metrics.attendance.missing} сотрудников.',
-      );
+      lines.add('Отсутствовали ${metrics.attendance.missing} сотрудников.');
     }
     if (metrics.tasks.problem > 0) {
       lines.add('С проблемой отмечено ${metrics.tasks.problem} задач.');

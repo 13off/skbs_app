@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -8,6 +7,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/employee_shift_runtime.dart';
 import '../data/employee_task_cabinet_repository.dart';
 import 'employee_simple_work_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeTasksScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -53,7 +53,7 @@ class _EmployeeTasksScreenState extends State<EmployeeTasksScreen> {
 
   Future<void> openTask(String employeeId, EmployeeTaskCabinetTask task) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeWorkTaskDetailsScreen(
           employeeId: employeeId,
           task: task,

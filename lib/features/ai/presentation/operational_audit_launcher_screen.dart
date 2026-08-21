@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,6 +7,7 @@ import '../../../widgets/object_employee_scope.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/ai_assistant_repository.dart';
 import 'ai_operational_audit_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class OperationalAuditLauncherScreen extends StatefulWidget {
   final DateTime? initialMonth;
@@ -127,7 +127,7 @@ class _OperationalAuditLauncherScreenState
       }
       if (!mounted) return;
       await Navigator.of(context).push<void>(
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => AiOperationalAuditScreen(action: action),
         ),
       );

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -14,6 +13,7 @@ import '../models/legal_models.dart';
 import 'adaptive_legal_matters_screen.dart';
 import 'legal_documents_screen.dart';
 import 'legal_weekly_report_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -52,7 +52,7 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
   void openDocuments({bool attentionOnly = false, String? status}) {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => LegalDocumentsScreen(
           attentionOnly: attentionOnly,
           initialStatus: status,
@@ -64,7 +64,7 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
   void openMatters({bool highRiskOnly = false, bool managerOnly = false}) {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => AdaptiveLegalMattersScreen(
           highRiskOnly: highRiskOnly,
           managerOnly: managerOnly,
@@ -77,7 +77,7 @@ class _LegalDashboardScreenState extends State<LegalDashboardScreen> {
   void openWeeklyReport() {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(builder: (_) => const LegalWeeklyReportScreen()),
+      AppPageRoute<void>(builder: (_) => const LegalWeeklyReportScreen()),
     );
   }
 

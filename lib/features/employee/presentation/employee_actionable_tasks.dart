@@ -5,6 +5,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_cabinet_repository.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeActionableHomeScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -827,9 +828,7 @@ class _EmptySection extends StatelessWidget {
 
 Future<void> _openTask(BuildContext context, EmployeeCabinetTask task) async {
   await Navigator.of(context).push<void>(
-    MaterialPageRoute<void>(
-      builder: (_) => EmployeeTaskDetailsScreen(task: task),
-    ),
+    AppPageRoute<void>(builder: (_) => EmployeeTaskDetailsScreen(task: task)),
   );
 }
 

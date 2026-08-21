@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -9,6 +8,7 @@ import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
 import 'adaptive_legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalManagerSummaryScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -118,7 +118,7 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   Icons.approval_outlined,
                   () => Navigator.push<void>(
                     context,
-                    CupertinoPageRoute<void>(
+                    AppPageRoute<void>(
                       builder: (_) => AdaptiveLegalMattersScreen(
                         profile: widget.profile,
                         managerOnly: true,
@@ -132,7 +132,7 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   Icons.warning_amber_rounded,
                   () => Navigator.push<void>(
                     context,
-                    CupertinoPageRoute<void>(
+                    AppPageRoute<void>(
                       builder: (_) => AdaptiveLegalMattersScreen(
                         profile: widget.profile,
                         highRiskOnly: true,
@@ -146,7 +146,7 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   Icons.draw_outlined,
                   () => Navigator.push<void>(
                     context,
-                    CupertinoPageRoute<void>(
+                    AppPageRoute<void>(
                       builder: (_) => const LegalDocumentsScreen(
                         initialStatus: LegalDocumentStatus.awaitingSignature,
                       ),
@@ -159,7 +159,7 @@ class _LegalManagerSummaryScreenState extends State<LegalManagerSummaryScreen> {
                   Icons.event_busy_outlined,
                   () => Navigator.push<void>(
                     context,
-                    CupertinoPageRoute<void>(
+                    AppPageRoute<void>(
                       builder: (_) =>
                           const LegalDocumentsScreen(attentionOnly: true),
                     ),

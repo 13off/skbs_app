@@ -17,6 +17,7 @@ import 'recruitment_application_detail_screen.dart';
 import 'recruitment_archive_screen.dart';
 import 'recruitment_crm_settings_screen.dart';
 import 'recruitment_import_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
@@ -45,6 +46,7 @@ class _RecruitmentApplicationsScreenState
         RecruitmentBoardSupportData.empty,
       );
   StreamSubscription<AppDataChange>? changesSubscription;
+  Timer? searchDebounce;
   final Set<String> archiveBusyIds = <String>{};
   final Set<String> movingIds = <String>{};
   final Map<String, String> pendingStageIds = <String, String>{};
@@ -88,6 +90,7 @@ class _RecruitmentApplicationsScreenState
   @override
   void dispose() {
     changesSubscription?.cancel();
+    searchDebounce?.cancel();
     boardScrollController.dispose();
     searchController
       ..removeListener(handleSearchChanged)
@@ -96,7 +99,10 @@ class _RecruitmentApplicationsScreenState
   }
 
   void handleSearchChanged() {
-    if (mounted) setState(() {});
+    searchDebounce?.cancel();
+    searchDebounce = Timer(const Duration(milliseconds: 90), () {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<RecruitmentWorkspaceData> load() async {
@@ -241,7 +247,7 @@ class _RecruitmentApplicationsScreenState
   ]) async {
     if (application != null) {
       final action = await Navigator.of(context).push<String>(
-        MaterialPageRoute<String>(
+        AppPageRoute<String>(
           builder: (_) => RecruitmentApplicationDetailScreen(
             profile: widget.profile,
             application: application,
@@ -273,7 +279,7 @@ class _RecruitmentApplicationsScreenState
 
   Future<void> openArchive() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => RecruitmentArchiveScreen(profile: widget.profile),
       ),
     );
@@ -282,7 +288,7 @@ class _RecruitmentApplicationsScreenState
 
   Future<void> openSettings() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => RecruitmentCrmSettingsScreen(profile: widget.profile),
       ),
     );
@@ -294,7 +300,7 @@ class _RecruitmentApplicationsScreenState
 
   Future<void> openImport(RecruitmentWorkspaceData workspace) async {
     final imported = await Navigator.of(context).push<int>(
-      MaterialPageRoute<int>(
+      AppPageRoute<int>(
         builder: (_) => RecruitmentImportScreen(
           profile: widget.profile,
           workspace: workspace,

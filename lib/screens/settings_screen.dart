@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../app/theme_controller.dart';
@@ -23,6 +22,7 @@ import 'notification_control_center_screen.dart';
 import 'push_notification_settings_screen.dart';
 import 'pwa_install_screen.dart';
 import 'template_documents_screen.dart';
+import '../navigation/app_page_route.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void open(Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   Widget sectionTitle(String title) {

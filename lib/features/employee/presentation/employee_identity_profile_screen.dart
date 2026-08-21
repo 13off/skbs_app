@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
@@ -8,6 +7,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/employee_task_cabinet_repository.dart';
 import 'employee_simple_work_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeIdentityProfileScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -63,7 +63,7 @@ class _EmployeeIdentityProfileScreenState
   void open(Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   String initials(String fullName) {

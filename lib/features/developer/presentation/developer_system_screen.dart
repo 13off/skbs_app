@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -18,6 +17,7 @@ import 'developer_readiness_screen.dart';
 import 'developer_role_acceptance_screen.dart';
 import 'expense_categories_screen.dart';
 import 'role_permission_matrix_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class DeveloperSystemScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -27,7 +27,7 @@ class DeveloperSystemScreen extends StatelessWidget {
   void open(BuildContext context, Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   Widget constructorCard(BuildContext context) {

@@ -1,5 +1,4 @@
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,6 +9,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_flight_repository.dart';
 import '../models/recruitment_flight_models.dart';
 import 'recruitment_mobilization_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class RecruitmentFlightCalendarScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -111,7 +111,7 @@ class _RecruitmentFlightCalendarScreenState
     RecruitmentFlightEntry? entry,
   }) async {
     final saved = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => RecruitmentFlightEditorScreen(
           profile: widget.profile,
           candidates: data.candidates,
@@ -124,7 +124,9 @@ class _RecruitmentFlightCalendarScreenState
 
   Future<void> openTicket(RecruitmentFlightTicket ticket) async {
     try {
-      final url = await RecruitmentFlightRepository.createFlightTicketUrl(ticket);
+      final url = await RecruitmentFlightRepository.createFlightTicketUrl(
+        ticket,
+      );
       final opened = await launchUrl(
         Uri.parse(url),
         mode: LaunchMode.externalApplication,
@@ -175,10 +177,7 @@ class _RecruitmentFlightCalendarScreenState
     );
   }
 
-  Future<void> changeStatus(
-    RecruitmentFlightEntry entry,
-    String status,
-  ) async {
+  Future<void> changeStatus(RecruitmentFlightEntry entry, String status) async {
     if (statusBusyIds.contains(entry.flight.id)) return;
     setState(() => statusBusyIds.add(entry.flight.id));
     try {
@@ -210,10 +209,7 @@ class _RecruitmentFlightCalendarScreenState
       );
   }
 
-  Widget calendar(
-    RecruitmentFlightCalendarData data, {
-    required bool compact,
-  }) {
+  Widget calendar(RecruitmentFlightCalendarData data, {required bool compact}) {
     final firstDay = DateTime(visibleMonth.year, visibleMonth.month, 1);
     final daysInMonth = DateTime(
       visibleMonth.year,
@@ -393,7 +389,9 @@ class _RecruitmentFlightCalendarScreenState
                         ? AppAdaptivePalette.danger.withValues(alpha: 0.12)
                         : urgent
                         ? AppAdaptivePalette.warning.withValues(alpha: 0.14)
-                        : AppAdaptivePalette.accentStrong.withValues(alpha: 0.12),
+                        : AppAdaptivePalette.accentStrong.withValues(
+                            alpha: 0.12,
+                          ),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Icon(
@@ -452,7 +450,10 @@ class _RecruitmentFlightCalendarScreenState
                   tooltip: 'Статус вылета',
                   onSelected: (value) => changeStatus(entry, value),
                   itemBuilder: (_) => const <PopupMenuEntry<String>>[
-                    PopupMenuItem(value: 'scheduled', child: Text('Запланирован')),
+                    PopupMenuItem(
+                      value: 'scheduled',
+                      child: Text('Запланирован'),
+                    ),
                     PopupMenuItem(
                       value: 'checked_in',
                       child: Text('Регистрация пройдена'),
@@ -498,7 +499,9 @@ class _RecruitmentFlightCalendarScreenState
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: ticketCount > 0 ? () => openTickets(entry) : null,
+                    onPressed: ticketCount > 0
+                        ? () => openTickets(entry)
+                        : null,
                     icon: const Icon(Icons.confirmation_number_outlined),
                     label: Text(
                       ticketCount > 1 ? 'Билеты ($ticketCount)' : 'Билет',
@@ -571,10 +574,9 @@ class _RecruitmentFlightCalendarScreenState
           IconButton.filledTonal(
             tooltip: 'Подготовка выхода',
             onPressed: () => Navigator.of(context).push<void>(
-              CupertinoPageRoute<void>(
-                builder: (_) => RecruitmentMobilizationScreen(
-                  profile: widget.profile,
-                ),
+              AppPageRoute<void>(
+                builder: (_) =>
+                    RecruitmentMobilizationScreen(profile: widget.profile),
               ),
             ),
             icon: const Icon(Icons.assignment_turned_in_outlined),
@@ -767,7 +769,10 @@ class _RecruitmentFlightEditorScreenState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Событие', style: TextStyle(fontWeight: FontWeight.w800)),
+                const Text(
+                  'Событие',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const <ButtonSegment<String>>[
@@ -811,9 +816,9 @@ class _RecruitmentFlightEditorScreenState
               onPressed: titleController.text.trim().isEmpty
                   ? null
                   : () => Navigator.of(dialogContext).pop(<String, String>{
-                        'event_kind': selectedEvent,
-                        'title': titleController.text.trim(),
-                      }),
+                      'event_kind': selectedEvent,
+                      'title': titleController.text.trim(),
+                    }),
               child: const Text('Далее'),
             ),
           ],
@@ -856,7 +861,9 @@ class _RecruitmentFlightEditorScreenState
     );
     if (!normalized.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите будущие дату и время уведомления')),
+        const SnackBar(
+          content: Text('Выберите будущие дату и время уведомления'),
+        ),
       );
       return;
     }
@@ -912,7 +919,10 @@ class _RecruitmentFlightEditorScreenState
               final reminder = entry.value;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppAdaptivePalette.surfaceSoft,
                   borderRadius: BorderRadius.circular(15),
@@ -1029,7 +1039,8 @@ class _RecruitmentFlightEditorScreenState
         continue;
       }
       final duplicate = pendingTickets.any(
-        (item) => item.fileName == file.name && item.bytes.length == bytes.length,
+        (item) =>
+            item.fileName == file.name && item.bytes.length == bytes.length,
       );
       if (duplicate) continue;
       totalBytes += bytes.length;
@@ -1042,13 +1053,12 @@ class _RecruitmentFlightEditorScreenState
     setState(() => pendingTickets.addAll(additions));
     if (skippedByLimit > 0 || rejected > 0) {
       final details = <String>[
-        if (skippedByLimit > 0)
-          'не добавлено по лимиту: $skippedByLimit',
+        if (skippedByLimit > 0) 'не добавлено по лимиту: $skippedByLimit',
         if (rejected > 0) 'пропущено по размеру: $rejected',
       ];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(details.join(' · '))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(details.join(' · '))));
     }
   }
 
@@ -1083,7 +1093,9 @@ class _RecruitmentFlightEditorScreenState
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
       );
     } finally {
       if (mounted) setState(() => saving = false);

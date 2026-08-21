@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,6 +5,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/company_setup_repository.dart';
 import 'company_setup_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class CompanySetupRecommendationCard extends StatefulWidget {
   final AppUserProfile profile;
@@ -81,7 +81,7 @@ class _CompanySetupRecommendationCardState
 
   Future<void> openDetails() async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => CompanySetupScreen(profile: widget.profile),
       ),
     );

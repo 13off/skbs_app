@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_todo_repository.dart';
+import '../../../navigation/app_page_route.dart';
 
 /// Kept for the old manager shell integration. The visible block now lives
 /// inside the dashboard content via [ManagerTodoHomeSection].
@@ -38,7 +39,7 @@ class _ManagerTodoHomeSectionState extends State<ManagerTodoHomeSection> {
 
   Future<void> openAll() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const ManagerTodosScreen()),
+      AppPageRoute<void>(builder: (_) => const ManagerTodosScreen()),
     );
     if (mounted) await reload();
   }
@@ -84,7 +85,8 @@ class _ManagerTodoHomeSectionState extends State<ManagerTodoHomeSection> {
       builder: (context, snapshot) {
         final items = snapshot.data ?? const <ManagerTodoItem>[];
         final visible = items.take(3).toList(growable: false);
-        final loading = snapshot.connectionState == ConnectionState.waiting &&
+        final loading =
+            snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData;
 
         return Column(
@@ -140,122 +142,116 @@ class _ManagerTodoHomeSectionState extends State<ManagerTodoHomeSection> {
                       child: LinearProgressIndicator(),
                     )
                   : snapshot.hasError
-                      ? Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text('Не удалось загрузить дела'),
-                              ),
-                              TextButton(
-                                onPressed: reload,
-                                child: const Text('Повторить'),
-                              ),
-                            ],
+                  ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Не удалось загрузить дела'),
                           ),
-                        )
-                      : visible.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: AppAdaptivePalette.surfaceSoft,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Icon(
-                                      Icons.task_alt_rounded,
-                                      color: AppAdaptivePalette.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Открытых дел нет',
-                                          style: TextStyle(
-                                            color:
-                                                AppAdaptivePalette.textPrimary,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Можно быстро записать то, что нельзя забыть.',
-                                          style: TextStyle(
-                                            color: AppAdaptivePalette.textMuted,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  OutlinedButton.icon(
-                                    onPressed: addTodo,
-                                    icon: const Icon(Icons.add_rounded, size: 18),
-                                    label: const Text('Добавить'),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Column(
+                          TextButton(
+                            onPressed: reload,
+                            child: const Text('Повторить'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : visible.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: AppAdaptivePalette.surfaceSoft,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.task_alt_rounded,
+                              color: AppAdaptivePalette.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                for (var index = 0;
-                                    index < visible.length;
-                                    index++) ...[
-                                  _ManagerTodoCompactRow(
-                                    item: visible[index],
-                                    busy: busyIds.contains(visible[index].id),
-                                    onToggle: () => complete(visible[index]),
-                                    onOpen: openAll,
+                                Text(
+                                  'Открытых дел нет',
+                                  style: TextStyle(
+                                    color: AppAdaptivePalette.textPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  if (index != visible.length - 1)
-                                    Divider(
-                                      height: 1,
-                                      color: AppAdaptivePalette.border,
-                                    ),
-                                ],
-                                Divider(
-                                  height: 1,
-                                  color: AppAdaptivePalette.border,
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 7,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: addTodo,
-                                        icon: const Icon(
-                                          Icons.add_rounded,
-                                          size: 18,
-                                        ),
-                                        label: const Text('Добавить дело'),
-                                      ),
-                                      const Spacer(),
-                                      if (items.length > visible.length)
-                                        TextButton(
-                                          onPressed: openAll,
-                                          child: Text(
-                                            'Ещё ${items.length - visible.length}',
-                                          ),
-                                        ),
-                                    ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Можно быстро записать то, что нельзя забыть.',
+                                  style: TextStyle(
+                                    color: AppAdaptivePalette.textMuted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: addTodo,
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Добавить'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (
+                          var index = 0;
+                          index < visible.length;
+                          index++
+                        ) ...[
+                          _ManagerTodoCompactRow(
+                            item: visible[index],
+                            busy: busyIds.contains(visible[index].id),
+                            onToggle: () => complete(visible[index]),
+                            onOpen: openAll,
+                          ),
+                          if (index != visible.length - 1)
+                            Divider(
+                              height: 1,
+                              color: AppAdaptivePalette.border,
+                            ),
+                        ],
+                        Divider(height: 1, color: AppAdaptivePalette.border),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          child: Row(
+                            children: [
+                              TextButton.icon(
+                                onPressed: addTodo,
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: const Text('Добавить дело'),
+                              ),
+                              const Spacer(),
+                              if (items.length > visible.length)
+                                TextButton(
+                                  onPressed: openAll,
+                                  child: Text(
+                                    'Ещё ${items.length - visible.length}',
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ],
         );
@@ -446,9 +442,12 @@ class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
                   builder: (context, snapshot) {
                     final source = snapshot.data ?? const <ManagerTodoItem>[];
                     final open = source.where((item) => !item.isDone).toList();
-                    final completed = source.where((item) => item.isDone).toList()
-                      ..sort((a, b) => (b.completedAt ?? b.createdAt)
-                          .compareTo(a.completedAt ?? a.createdAt));
+                    final completed =
+                        source.where((item) => item.isDone).toList()..sort(
+                          (a, b) => (b.completedAt ?? b.createdAt).compareTo(
+                            a.completedAt ?? a.createdAt,
+                          ),
+                        );
                     final visible = showCompleted ? completed : open;
 
                     return Column(
@@ -524,60 +523,58 @@ class _ManagerTodosScreenState extends State<ManagerTodosScreen> {
                         ),
                         const SizedBox(height: 14),
                         Expanded(
-                          child: snapshot.connectionState ==
+                          child:
+                              snapshot.connectionState ==
                                       ConnectionState.waiting &&
                                   !snapshot.hasData
                               ? const Center(child: CircularProgressIndicator())
                               : snapshot.hasError
-                                  ? _TodoStateCard(
-                                      icon: Icons.error_outline_rounded,
-                                      title: 'Не удалось загрузить дела',
-                                      text: 'Проверь соединение и повтори.',
-                                      actionLabel: 'Повторить',
-                                      onAction: reload,
-                                    )
-                                  : visible.isEmpty
-                                      ? _TodoStateCard(
-                                          icon: showCompleted
-                                              ? Icons.history_rounded
-                                              : Icons.task_alt_rounded,
-                                          title: showCompleted
-                                              ? 'Выполненных дел пока нет'
-                                              : 'Открытых дел нет',
-                                          text: showCompleted
-                                              ? 'Здесь останется история закрытых дел.'
-                                              : 'Добавь дело, если есть то, что нельзя забыть.',
-                                          actionLabel: showCompleted
-                                              ? 'К открытым'
-                                              : 'Добавить дело',
-                                          onAction: showCompleted
-                                              ? () async => setState(
-                                                    () => showCompleted = false,
-                                                  )
-                                              : addTodo,
+                              ? _TodoStateCard(
+                                  icon: Icons.error_outline_rounded,
+                                  title: 'Не удалось загрузить дела',
+                                  text: 'Проверь соединение и повтори.',
+                                  actionLabel: 'Повторить',
+                                  onAction: reload,
+                                )
+                              : visible.isEmpty
+                              ? _TodoStateCard(
+                                  icon: showCompleted
+                                      ? Icons.history_rounded
+                                      : Icons.task_alt_rounded,
+                                  title: showCompleted
+                                      ? 'Выполненных дел пока нет'
+                                      : 'Открытых дел нет',
+                                  text: showCompleted
+                                      ? 'Здесь останется история закрытых дел.'
+                                      : 'Добавь дело, если есть то, что нельзя забыть.',
+                                  actionLabel: showCompleted
+                                      ? 'К открытым'
+                                      : 'Добавить дело',
+                                  onAction: showCompleted
+                                      ? () async => setState(
+                                          () => showCompleted = false,
                                         )
-                                      : RefreshIndicator(
-                                          onRefresh: reload,
-                                          child: ListView.separated(
-                                            physics:
-                                                const AlwaysScrollableScrollPhysics(),
-                                            padding: const EdgeInsets.only(
-                                              bottom: 24,
-                                            ),
-                                            itemCount: visible.length,
-                                            separatorBuilder: (_, _) =>
-                                                const SizedBox(height: 9),
-                                            itemBuilder: (context, index) {
-                                              final item = visible[index];
-                                              return _ManagerTodoTile(
-                                                item: item,
-                                                busy:
-                                                    busyIds.contains(item.id),
-                                                onToggle: () => toggle(item),
-                                              );
-                                            },
-                                          ),
-                                        ),
+                                      : addTodo,
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: reload,
+                                  child: ListView.separated(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    itemCount: visible.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: 9),
+                                    itemBuilder: (context, index) {
+                                      final item = visible[index];
+                                      return _ManagerTodoTile(
+                                        item: item,
+                                        busy: busyIds.contains(item.id),
+                                        onToggle: () => toggle(item),
+                                      );
+                                    },
+                                  ),
+                                ),
                         ),
                       ],
                     );
@@ -614,9 +611,7 @@ class _TodoSegment extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: selected
-              ? AppAdaptivePalette.surfaceSoft
-              : Colors.transparent,
+          color: selected ? AppAdaptivePalette.surfaceSoft : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
           border: selected
               ? Border.all(color: AppAdaptivePalette.border)
@@ -716,8 +711,9 @@ class _ManagerTodoTile extends StatelessWidget {
                               : AppAdaptivePalette.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          decoration:
-                              item.isDone ? TextDecoration.lineThrough : null,
+                          decoration: item.isDone
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                     ),

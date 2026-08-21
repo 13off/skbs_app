@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -9,6 +8,7 @@ import '../data/legal_workspace_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalEmployeeDossierScreen extends StatefulWidget {
   final LegalWorkspaceEmployee employee;
@@ -92,11 +92,13 @@ class _LegalEmployeeDossierScreenState
   Future<void> openDocument(LegalEmployeeDossierDocument item) async {
     try {
       if (item.legalDocumentId.isNotEmpty) {
-        final document = await LegalRepository.fetchDocument(item.legalDocumentId);
+        final document = await LegalRepository.fetchDocument(
+          item.legalDocumentId,
+        );
         if (!mounted) return;
         await Navigator.push<void>(
           context,
-          CupertinoPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) => LegalDocumentDetailsScreen(document: document),
           ),
         );
@@ -124,11 +126,9 @@ class _LegalEmployeeDossierScreenState
   Future<void> openMatter(LegalMatter matter) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(
-          matter: matter,
-          canDecide: false,
-        ),
+      AppPageRoute<void>(
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: false),
       ),
     );
     if (mounted) await refresh();
@@ -137,7 +137,7 @@ class _LegalEmployeeDossierScreenState
   Future<void> addDocument(LegalEmployeeDossier dossier) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(
           initialEmployeeId: dossier.employeeId,
           initialObjectId: dossier.objectId,
@@ -258,7 +258,8 @@ class _LegalEmployeeDossierScreenState
       children: [
         sectionTitle(
           'Личные данные',
-          subtitle: 'Данные из кадровой карточки сотрудника. Просмотр фиксируется в журнале доступа.',
+          subtitle:
+              'Данные из кадровой карточки сотрудника. Просмотр фиксируется в журнале доступа.',
         ),
         dataCard('Работа и контакты', dossier, [
           _DossierField.custom('Статус', activeStatus),
@@ -327,19 +328,23 @@ class _LegalEmployeeDossierScreenState
         radius: 20,
         padding: EdgeInsets.zero,
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 7),
-          leading: CircleAvatar(
-            child: Icon(
-              switch (item.group) {
-                'contract' => Icons.handshake_outlined,
-                'application_consent' => Icons.edit_document,
-                'personal_document' => Icons.badge_outlined,
-                'act_explanation' => Icons.fact_check_outlined,
-                _ => Icons.description_outlined,
-              },
-            ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 7,
           ),
-          title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          leading: CircleAvatar(
+            child: Icon(switch (item.group) {
+              'contract' => Icons.handshake_outlined,
+              'application_consent' => Icons.edit_document,
+              'personal_document' => Icons.badge_outlined,
+              'act_explanation' => Icons.fact_check_outlined,
+              _ => Icons.description_outlined,
+            }),
+          ),
+          title: Text(
+            item.title,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
           subtitle: Text(meta.isEmpty ? 'Документ' : meta.join(' • ')),
           trailing: Icon(
             item.hasStoredFile || item.legalDocumentId.isNotEmpty
@@ -389,7 +394,9 @@ class _LegalEmployeeDossierScreenState
                 radius: 20,
                 padding: EdgeInsets.zero,
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.payments_outlined)),
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.payments_outlined),
+                  ),
                   title: Text(
                     '${money(item.amount)} • ${date(item.absenceDate)}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
@@ -428,8 +435,13 @@ class _LegalEmployeeDossierScreenState
                 radius: 20,
                 padding: EdgeInsets.zero,
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.gavel_outlined)),
-                  title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.gavel_outlined),
+                  ),
+                  title: Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   subtitle: Text(
                     <String>[
                       item.typeTitle,
@@ -473,7 +485,9 @@ class _LegalEmployeeDossierScreenState
                 child: PremiumWorkCard(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Text('Не удалось загрузить досье: ${snapshot.error}'),
+                    child: Text(
+                      'Не удалось загрузить досье: ${snapshot.error}',
+                    ),
                   ),
                 ),
               );
@@ -507,8 +521,8 @@ class _LegalEmployeeDossierScreenState
               dossier.isArchived
                   ? 'Архив'
                   : dossier.isActive
-                      ? 'Работает'
-                      : 'Не работает',
+                  ? 'Работает'
+                  : 'Не работает',
             ].join(' • '),
             headerTrailing: FilledButton.icon(
               onPressed: () => addDocument(dossier),

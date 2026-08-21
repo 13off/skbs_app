@@ -8,7 +8,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openEditEmployee() async {
     final updatedEmployee = await Navigator.push<Employee>(
       context,
-      CupertinoPageRoute<Employee>(
+      AppPageRoute<Employee>(
         builder: (_) => EditEmployeeScreen(employee: employee),
       ),
     );
@@ -25,7 +25,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openProfessionalPassport() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeProfessionalPassportViewerScreen(employee: employee),
       ),
@@ -35,7 +35,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openContribution() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeContributionScreen(employee: employee),
       ),
     );
@@ -44,7 +44,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openTimesheet() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeTimesheetScreen(employee: employee),
       ),
     );
@@ -53,7 +53,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openDocuments() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => DocumentToolProtectedScreen(
           companyId: widget.profile.activeCompanyId,
           title: 'Документы',
@@ -67,7 +67,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openPrivateData() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => DocumentToolProtectedScreen(
           companyId: widget.profile.activeCompanyId,
           title: 'Личные данные',
@@ -90,7 +90,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
     final now = DateTime.now();
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AddPaymentScreen(
           periodYear: now.year,
           periodMonth: now.month,
@@ -109,7 +109,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openPayments() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PaymentHistoryScreen(employee: employee),
       ),
     );
@@ -118,7 +118,7 @@ extension _EmployeeDetailsNavigation on _EmployeeDetailsScreenState {
   Future<void> openComments() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeCommentsScreen(employee: employee),
       ),
     );

@@ -13,7 +13,7 @@ extension _TimesheetSections on _TimesheetScreenState {
           ? FilledButton.tonalIcon(
               onPressed: () {
                 Navigator.of(context).push(
-                  CupertinoPageRoute<void>(
+                  AppPageRoute<void>(
                     builder: (_) => _TimesheetReportRoute(
                       selectedObjectName: widget.selectedObjectName,
                     ),

@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
 import 'ai_action_history_screen.dart';
 import 'ai_assistant_confirmed_screen.dart' as confirmed;
 import 'ai_diagnostics_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiAssistantScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -38,7 +38,7 @@ class AiAssistantScreen extends StatelessWidget {
                   tooltip: 'Диагностика ИИ',
                   onPressed: () {
                     Navigator.of(context).push<void>(
-                      CupertinoPageRoute<void>(
+                      AppPageRoute<void>(
                         builder: (_) => AiDiagnosticsScreen(
                           profile: profile,
                           selectedObjectName: selectedObjectName,
@@ -52,7 +52,7 @@ class AiAssistantScreen extends StatelessWidget {
                   tooltip: 'Журнал действий ИИ',
                   onPressed: () {
                     Navigator.of(context).push<void>(
-                      CupertinoPageRoute<void>(
+                      AppPageRoute<void>(
                         builder: (_) => AiActionHistoryScreen(profile: profile),
                       ),
                     );

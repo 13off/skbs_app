@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -7,6 +6,7 @@ import '../../../widgets/premium_ui.dart';
 import 'employee_passport_directory_screen.dart';
 import 'employee_professional_passport_screen.dart';
 import 'employee_team_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeCommunityHubScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -15,7 +15,7 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
 
   Future<void> _openTeam(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => profile.isRolePreview
             ? const EmployeeTeamSeedDirectoryScreen()
             : const EmployeeTeamScreen(),
@@ -25,7 +25,7 @@ class EmployeeCommunityHubScreen extends StatelessWidget {
 
   Future<void> _openPassport(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => profile.isRolePreview
             ? const EmployeePassportDirectoryScreen()
             : EmployeeProfessionalPassportScreen(profile: profile),

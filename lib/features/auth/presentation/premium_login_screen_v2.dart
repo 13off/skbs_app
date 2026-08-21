@@ -7,6 +7,7 @@ import '../../../app/app_theme.dart';
 import '../../../data/user_repository.dart';
 import '../../../widgets/premium_ui.dart';
 import 'company_signup_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LoginScreen extends StatefulWidget {
   final Future<void> Function()? onSignedIn;
@@ -93,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> openCompanyRegistration() async {
     final signedIn = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const CompanySignupScreen()),
+      AppPageRoute(builder: (_) => const CompanySignupScreen()),
     );
     if (signedIn == true) await widget.onSignedIn?.call();
   }

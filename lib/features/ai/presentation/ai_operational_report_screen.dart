@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/employee_repository.dart';
@@ -10,6 +9,7 @@ import '../../../models/app_user_profile.dart';
 import '../../../screens/payments_screen.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_employee_draft_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiOperationalReportScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -210,7 +210,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
       );
       if (!mounted) return;
       final employeeId = await Navigator.of(context).push<String>(
-        CupertinoPageRoute<String>(
+        AppPageRoute<String>(
           builder: (_) => AiEmployeeDraftScreen(action: draftAction),
         ),
       );
@@ -297,7 +297,7 @@ class _AiOperationalReportScreenState extends State<AiOperationalReportScreen> {
         OutlinedButton.icon(
           onPressed: () {
             Navigator.of(context).push<void>(
-              CupertinoPageRoute<void>(
+              AppPageRoute<void>(
                 builder: (_) => PaymentsScreen(
                   selectedObjectName: widget.action.text('object_name').isEmpty
                       ? null

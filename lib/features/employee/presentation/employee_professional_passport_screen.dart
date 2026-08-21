@@ -9,6 +9,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../role_preview/role_preview_controller.dart';
 import '../data/employee_professional_profile_repository.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeProfessionalPassportScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -57,7 +58,7 @@ class _EmployeeProfessionalPassportScreenState
     }
     final result = await Navigator.of(context)
         .push<EmployeeProfessionalProfile>(
-          MaterialPageRoute<EmployeeProfessionalProfile>(
+          AppPageRoute<EmployeeProfessionalProfile>(
             builder: (_) =>
                 _ProfessionalPassportEditPage(initial: data.professional),
           ),

@@ -59,7 +59,7 @@ class _LegalDocumentDetailsScreenState
   Future<void> edit() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(document: document),
       ),
     );

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -13,6 +12,7 @@ import '../data/legal_matter_workspace_repository.dart';
 import '../data/legal_process_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
+import '../../../navigation/app_page_route.dart';
 
 part 'legal_matter_details_part.dart';
 part 'legal_matter_editor_part.dart';
@@ -63,8 +63,10 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
       search: searchController.text,
       attentionOnly: attentionOnly,
     );
-    if (widget.highRiskOnly) matters = matters.where((item) => item.isHighRisk).toList();
-    if (widget.managerOnly) matters = matters.where((item) => item.needsManager).toList();
+    if (widget.highRiskOnly)
+      matters = matters.where((item) => item.isHighRisk).toList();
+    if (widget.managerOnly)
+      matters = matters.where((item) => item.needsManager).toList();
     return matters;
   }
 
@@ -77,7 +79,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   Future<void> openEditor([LegalMatter? matter]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
+      AppPageRoute<bool>(
+        builder: (_) => LegalMatterEditorScreen(matter: matter),
+      ),
     );
     if (saved == true && mounted) refresh();
   }
@@ -85,8 +89,9 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
   Future<void> openDetails(LegalMatter matter) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
+      AppPageRoute<void>(
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) refresh();
@@ -119,7 +124,10 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                   decoration: InputDecoration(
                     hintText: 'Поиск по делам',
                     prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(onPressed: refresh, icon: const Icon(Icons.arrow_forward_rounded)),
+                    suffixIcon: IconButton(
+                      onPressed: refresh,
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                    ),
                   ),
                   onSubmitted: (_) => refresh(),
                 ),
@@ -211,8 +219,8 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 matter.isHighRisk
                                     ? Icons.warning_amber_rounded
                                     : legalMatterIsCourt(matter)
-                                        ? Icons.account_balance_outlined
-                                        : Icons.gavel_outlined,
+                                    ? Icons.account_balance_outlined
+                                    : Icons.gavel_outlined,
                               ),
                             ),
                             const SizedBox(width: 13),
@@ -222,7 +230,10 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 children: [
                                   Text(
                                     matter.title,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
@@ -246,7 +257,10 @@ class _LegalMattersScreenState extends State<LegalMattersScreen> {
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded, color: AppAdaptivePalette.textFaint),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppAdaptivePalette.textFaint,
+                            ),
                           ],
                         ),
                       ),

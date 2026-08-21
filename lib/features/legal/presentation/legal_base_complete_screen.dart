@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -11,12 +10,14 @@ import '../models/legal_models.dart';
 import 'legal_document_complete_screen.dart';
 import 'legal_employee_complete_screen.dart';
 import 'legal_matter_complete_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalBaseCompleteScreen extends StatefulWidget {
   const LegalBaseCompleteScreen({super.key});
 
   @override
-  State<LegalBaseCompleteScreen> createState() => _LegalBaseCompleteScreenState();
+  State<LegalBaseCompleteScreen> createState() =>
+      _LegalBaseCompleteScreenState();
 }
 
 class _LegalBaseCompleteScreenState extends State<LegalBaseCompleteScreen> {
@@ -65,7 +66,8 @@ class _LegalBaseCompleteScreenState extends State<LegalBaseCompleteScreen> {
       length: 3,
       child: AppPage(
         title: 'База юриста',
-        subtitle: 'Сотрудники, объекты и контрагенты — единая история и документы',
+        subtitle:
+            'Сотрудники, объекты и контрагенты — единая история и документы',
         headerTrailing: IconButton.filledTonal(
           tooltip: 'Обновить',
           onPressed: refresh,
@@ -108,7 +110,9 @@ class _LegalBaseCompleteScreenState extends State<LegalBaseCompleteScreen> {
                 if (!snapshot.hasData) {
                   if (snapshot.hasError) {
                     return PremiumWorkCard(
-                      child: Text('Не удалось загрузить базу: ${snapshot.error}'),
+                      child: Text(
+                        'Не удалось загрузить базу: ${snapshot.error}',
+                      ),
                     );
                   }
                   return const PremiumWorkCard(
@@ -162,7 +166,8 @@ class _EmployeeDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Center(child: Text('Сотрудники не найдены'));
+    if (items.isEmpty)
+      return const Center(child: Text('Сотрудники не найдены'));
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -173,8 +178,13 @@ class _EmployeeDirectory extends StatelessWidget {
             radius: 20,
             padding: EdgeInsets.zero,
             child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person_outline_rounded)),
-              title: Text(item.fio, style: const TextStyle(fontWeight: FontWeight.w900)),
+              leading: const CircleAvatar(
+                child: Icon(Icons.person_outline_rounded),
+              ),
+              title: Text(
+                item.fio,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
               subtitle: Text(
                 <String>[
                   if (item.position.isNotEmpty) item.position,
@@ -186,7 +196,7 @@ class _EmployeeDirectory extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.push<void>(
                 context,
-                CupertinoPageRoute<void>(
+                AppPageRoute<void>(
                   builder: (_) => LegalEmployeeCompleteScreen(employee: item),
                 ),
               ),
@@ -216,8 +226,13 @@ class _ObjectDirectory extends StatelessWidget {
             radius: 20,
             padding: EdgeInsets.zero,
             child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.apartment_outlined)),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+              leading: const CircleAvatar(
+                child: Icon(Icons.apartment_outlined),
+              ),
+              title: Text(
+                item.name,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
               subtitle: Text(
                 <String>[
                   if (item.address.isNotEmpty) item.address,
@@ -229,7 +244,7 @@ class _ObjectDirectory extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.push<void>(
                 context,
-                CupertinoPageRoute<void>(
+                AppPageRoute<void>(
                   builder: (_) => LegalObjectCompleteScreen(object: item),
                 ),
               ),
@@ -248,7 +263,8 @@ class _CounterpartyDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Center(child: Text('Контрагенты не найдены'));
+    if (items.isEmpty)
+      return const Center(child: Text('Контрагенты не найдены'));
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -260,7 +276,10 @@ class _CounterpartyDirectory extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: ListTile(
               leading: const CircleAvatar(child: Icon(Icons.business_outlined)),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+              title: Text(
+                item.name,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
               subtitle: Text(
                 <String>[
                   if (item.inn.isNotEmpty) 'ИНН ${item.inn}',
@@ -271,8 +290,9 @@ class _CounterpartyDirectory extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.push<void>(
                 context,
-                CupertinoPageRoute<void>(
-                  builder: (_) => LegalCounterpartyCompleteScreen(counterparty: item),
+                AppPageRoute<void>(
+                  builder: (_) =>
+                      LegalCounterpartyCompleteScreen(counterparty: item),
                 ),
               ),
             ),
@@ -289,7 +309,8 @@ class LegalObjectCompleteScreen extends StatefulWidget {
   const LegalObjectCompleteScreen({super.key, required this.object});
 
   @override
-  State<LegalObjectCompleteScreen> createState() => _LegalObjectCompleteScreenState();
+  State<LegalObjectCompleteScreen> createState() =>
+      _LegalObjectCompleteScreenState();
 }
 
 class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
@@ -358,9 +379,20 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 145, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+          SizedBox(
+            width: 145,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
         ],
       ),
     );
@@ -378,7 +410,9 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
     DateTime? end = data.profile.contractEnd;
     final contracts = data.legalDocuments.where((item) {
       final text = '${item.documentType} ${item.title}'.toLowerCase();
-      return text.contains('договор') || text.contains('контракт') || text.contains('соглашен');
+      return text.contains('договор') ||
+          text.contains('контракт') ||
+          text.contains('соглашен');
     }).toList();
 
     final saved = await showDialog<bool>(
@@ -393,35 +427,61 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: customerId.isEmpty ? null : customerId,
-                    decoration: const InputDecoration(labelText: 'Заказчик / контрагент'),
+                    decoration: const InputDecoration(
+                      labelText: 'Заказчик / контрагент',
+                    ),
                     items: data.counterparties
-                        .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name)))
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text(item.name),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setDialogState(() => customerId = value ?? ''),
+                    onChanged: (value) =>
+                        setDialogState(() => customerId = value ?? ''),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: contractId.isEmpty ? null : contractId,
-                    decoration: const InputDecoration(labelText: 'Основной договор'),
+                    decoration: const InputDecoration(
+                      labelText: 'Основной договор',
+                    ),
                     items: contracts
-                        .map((item) => DropdownMenuItem(value: item.id, child: Text(item.title)))
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text(item.title),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setDialogState(() => contractId = value ?? ''),
+                    onChanged: (value) =>
+                        setDialogState(() => contractId = value ?? ''),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: responsibleId.isEmpty ? null : responsibleId,
-                    decoration: const InputDecoration(labelText: 'Ответственный'),
+                    decoration: const InputDecoration(
+                      labelText: 'Ответственный',
+                    ),
                     items: data.responsibles
-                        .map((item) => DropdownMenuItem(value: item.id, child: Text(item.title)))
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text(item.title),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setDialogState(() => responsibleId = value ?? ''),
+                    onChanged: (value) =>
+                        setDialogState(() => responsibleId = value ?? ''),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: valueController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Стоимость договора'),
+                    decoration: const InputDecoration(
+                      labelText: 'Стоимость договора',
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ListTile(
@@ -463,8 +523,14 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Отмена')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Сохранить')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Сохранить'),
+            ),
           ],
         ),
       ),
@@ -475,7 +541,9 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
         customerCounterpartyId: customerId,
         mainContractDocumentId: contractId,
         responsibleUserId: responsibleId,
-        contractValue: double.tryParse(valueController.text.replaceAll(',', '.')),
+        contractValue: double.tryParse(
+          valueController.text.replaceAll(',', '.'),
+        ),
         contractStart: start,
         contractEnd: end,
         notes: notesController.text,
@@ -498,7 +566,10 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           if (items.isEmpty)
             const Text('Нет документов')
@@ -507,16 +578,35 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
               (item) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.description_outlined),
-                title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text(<String>[if (item.documentType.isNotEmpty) item.documentType, if (item.status.isNotEmpty) item.status].join(' • ')),
+                title: Text(
+                  item.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  <String>[
+                    if (item.documentType.isNotEmpty) item.documentType,
+                    if (item.status.isNotEmpty) item.status,
+                  ].join(' • '),
+                ),
                 trailing: const Icon(Icons.open_in_new_rounded),
                 onTap: () async {
                   if (item.legalDocumentId.isNotEmpty) {
-                    final doc = await LegalRepository.fetchDocument(item.legalDocumentId);
+                    final doc = await LegalRepository.fetchDocument(
+                      item.legalDocumentId,
+                    );
                     if (!mounted) return;
-                    await Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => LegalDocumentCompleteScreen(document: doc)));
+                    await Navigator.push<void>(
+                      context,
+                      AppPageRoute<void>(
+                        builder: (_) =>
+                            LegalDocumentCompleteScreen(document: doc),
+                      ),
+                    );
                   } else if (item.hasStoredFile) {
-                    await LegalWorkspaceRepository.openStoredFile(bucketName: item.bucketName, storagePath: item.storagePath);
+                    await LegalWorkspaceRepository.openStoredFile(
+                      bucketName: item.bucketName,
+                      storagePath: item.storagePath,
+                    );
                   }
                 },
               ),
@@ -531,18 +621,28 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.object.name),
-        actions: [IconButton(onPressed: refresh, icon: const Icon(Icons.refresh_rounded))],
+        actions: [
+          IconButton(
+            onPressed: refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
       ),
       body: FutureBuilder<_ObjectCompleteData>(
         future: future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            if (snapshot.hasError) return Center(child: Text('Не удалось загрузить объект: ${snapshot.error}'));
+            if (snapshot.hasError)
+              return Center(
+                child: Text('Не удалось загрузить объект: ${snapshot.error}'),
+              );
             return const Center(child: CircularProgressIndicator());
           }
           final data = snapshot.data!;
           final courts = data.matters.where(legalMatterIsCourt).toList();
-          final claims = data.matters.where((item) => item.matterType == LegalMatterType.claim).toList();
+          final claims = data.matters
+              .where((item) => item.matterType == LegalMatterType.claim)
+              .toList();
           return AppPage(
             title: data.profile.objectName,
             subtitle: data.profile.address,
@@ -560,7 +660,13 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('Юридический профиль объекта', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                      const Text(
+                        'Юридический профиль объекта',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 14),
                       line('Заказчик', data.profile.customerName),
                       line('Основной договор', data.profile.mainContractTitle),
@@ -583,14 +689,29 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Сотрудники • ${data.employees.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      Text(
+                        'Сотрудники • ${data.employees.length}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       ...data.employees.map(
                         (item) => ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(item.fio, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          title: Text(
+                            item.fio,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                           subtitle: Text(item.position),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => LegalEmployeeCompleteScreen(employee: item))),
+                          onTap: () => Navigator.push<void>(
+                            context,
+                            AppPageRoute<void>(
+                              builder: (_) =>
+                                  LegalEmployeeCompleteScreen(employee: item),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -601,7 +722,16 @@ class _LegalObjectCompleteScreenState extends State<LegalObjectCompleteScreen> {
                 const SizedBox(height: 12),
                 _MatterGroup(title: 'Судебные дела', items: courts),
                 const SizedBox(height: 12),
-                _MatterGroup(title: 'Остальные юридические дела', items: data.matters.where((item) => !legalMatterIsCourt(item) && item.matterType != LegalMatterType.claim).toList()),
+                _MatterGroup(
+                  title: 'Остальные юридические дела',
+                  items: data.matters
+                      .where(
+                        (item) =>
+                            !legalMatterIsCourt(item) &&
+                            item.matterType != LegalMatterType.claim,
+                      )
+                      .toList(),
+                ),
               ],
             ),
           );
@@ -625,17 +755,31 @@ class _MatterGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('$title • ${items.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(
+            '$title • ${items.length}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
           if (items.isEmpty)
-            const Padding(padding: EdgeInsets.only(top: 10), child: Text('Нет записей'))
+            const Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: Text('Нет записей'),
+            )
           else
             ...items.map(
               (item) => ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                title: Text(
+                  item.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: Text('${item.statusTitle} • ${item.riskTitle} риск'),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => LegalMatterCompleteScreen(matter: item))),
+                onTap: () => Navigator.push<void>(
+                  context,
+                  AppPageRoute<void>(
+                    builder: (_) => LegalMatterCompleteScreen(matter: item),
+                  ),
+                ),
               ),
             ),
         ],
@@ -647,13 +791,18 @@ class _MatterGroup extends StatelessWidget {
 class LegalCounterpartyCompleteScreen extends StatefulWidget {
   final LegalCounterparty counterparty;
 
-  const LegalCounterpartyCompleteScreen({super.key, required this.counterparty});
+  const LegalCounterpartyCompleteScreen({
+    super.key,
+    required this.counterparty,
+  });
 
   @override
-  State<LegalCounterpartyCompleteScreen> createState() => _LegalCounterpartyCompleteScreenState();
+  State<LegalCounterpartyCompleteScreen> createState() =>
+      _LegalCounterpartyCompleteScreenState();
 }
 
-class _LegalCounterpartyCompleteScreenState extends State<LegalCounterpartyCompleteScreen> {
+class _LegalCounterpartyCompleteScreenState
+    extends State<LegalCounterpartyCompleteScreen> {
   late Future<_CounterpartyCompleteData> future;
 
   @override
@@ -679,10 +828,13 @@ class _LegalCounterpartyCompleteScreenState extends State<LegalCounterpartyCompl
 
   bool contract(LegalDocument item) {
     final text = '${item.documentType} ${item.title}'.toLowerCase();
-    return text.contains('договор') || text.contains('контракт') || text.contains('соглашен');
+    return text.contains('договор') ||
+        text.contains('контракт') ||
+        text.contains('соглашен');
   }
 
-  bool act(LegalDocument item) => '${item.documentType} ${item.title}'.toLowerCase().contains('акт');
+  bool act(LegalDocument item) =>
+      '${item.documentType} ${item.title}'.toLowerCase().contains('акт');
 
   Widget info() {
     final c = widget.counterparty;
@@ -692,7 +844,10 @@ class _LegalCounterpartyCompleteScreenState extends State<LegalCounterpartyCompl
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Реквизиты и контакты', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const Text(
+            'Реквизиты и контакты',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 12),
           if (c.inn.isNotEmpty) Text('ИНН: ${c.inn}'),
           if (c.kpp.isNotEmpty) Text('КПП: ${c.kpp}'),
@@ -714,17 +869,30 @@ class _LegalCounterpartyCompleteScreenState extends State<LegalCounterpartyCompl
         future: future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            if (snapshot.hasError) return Center(child: Text('Не удалось загрузить контрагента: ${snapshot.error}'));
+            if (snapshot.hasError)
+              return Center(
+                child: Text(
+                  'Не удалось загрузить контрагента: ${snapshot.error}',
+                ),
+              );
             return const Center(child: CircularProgressIndicator());
           }
           final data = snapshot.data!;
           final objectNames = <String>{
-            ...data.documents.map((item) => item.objectName).where((value) => value.isNotEmpty),
-            ...data.matters.map((item) => item.objectName).where((value) => value.isNotEmpty),
+            ...data.documents
+                .map((item) => item.objectName)
+                .where((value) => value.isNotEmpty),
+            ...data.matters
+                .map((item) => item.objectName)
+                .where((value) => value.isNotEmpty),
           }.toList()..sort();
           return AppPage(
             title: widget.counterparty.name,
-            subtitle: <String>[if (widget.counterparty.inn.isNotEmpty) 'ИНН ${widget.counterparty.inn}', widget.counterparty.status].join(' • '),
+            subtitle: <String>[
+              if (widget.counterparty.inn.isNotEmpty)
+                'ИНН ${widget.counterparty.inn}',
+              widget.counterparty.status,
+            ].join(' • '),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -736,24 +904,68 @@ class _LegalCounterpartyCompleteScreenState extends State<LegalCounterpartyCompl
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Связанные объекты • ${objectNames.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                      if (objectNames.isEmpty) const Padding(padding: EdgeInsets.only(top: 8), child: Text('Связей с объектами пока нет')),
-                      ...objectNames.map((value) => ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.apartment_outlined), title: Text(value))),
+                      Text(
+                        'Связанные объекты • ${objectNames.length}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (objectNames.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text('Связей с объектами пока нет'),
+                        ),
+                      ...objectNames.map(
+                        (value) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.apartment_outlined),
+                          title: Text(value),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                _CounterpartyDocumentGroup(title: 'Договоры', items: data.documents.where(contract).toList()),
+                _CounterpartyDocumentGroup(
+                  title: 'Договоры',
+                  items: data.documents.where(contract).toList(),
+                ),
                 const SizedBox(height: 12),
-                _CounterpartyDocumentGroup(title: 'Акты', items: data.documents.where(act).toList()),
+                _CounterpartyDocumentGroup(
+                  title: 'Акты',
+                  items: data.documents.where(act).toList(),
+                ),
                 const SizedBox(height: 12),
-                _CounterpartyDocumentGroup(title: 'Другие документы', items: data.documents.where((item) => !contract(item) && !act(item)).toList()),
+                _CounterpartyDocumentGroup(
+                  title: 'Другие документы',
+                  items: data.documents
+                      .where((item) => !contract(item) && !act(item))
+                      .toList(),
+                ),
                 const SizedBox(height: 12),
-                _MatterGroup(title: 'Претензии', items: data.matters.where((item) => item.matterType == LegalMatterType.claim).toList()),
+                _MatterGroup(
+                  title: 'Претензии',
+                  items: data.matters
+                      .where((item) => item.matterType == LegalMatterType.claim)
+                      .toList(),
+                ),
                 const SizedBox(height: 12),
-                _MatterGroup(title: 'Судебные дела', items: data.matters.where(legalMatterIsCourt).toList()),
+                _MatterGroup(
+                  title: 'Судебные дела',
+                  items: data.matters.where(legalMatterIsCourt).toList(),
+                ),
                 const SizedBox(height: 12),
-                _MatterGroup(title: 'Остальные дела', items: data.matters.where((item) => item.matterType != LegalMatterType.claim && !legalMatterIsCourt(item)).toList()),
+                _MatterGroup(
+                  title: 'Остальные дела',
+                  items: data.matters
+                      .where(
+                        (item) =>
+                            item.matterType != LegalMatterType.claim &&
+                            !legalMatterIsCourt(item),
+                      )
+                      .toList(),
+                ),
               ],
             ),
           );
@@ -777,15 +989,30 @@ class _CounterpartyDocumentGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('$title • ${items.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-          if (items.isEmpty) const Padding(padding: EdgeInsets.only(top: 8), child: Text('Нет документов')),
+          Text(
+            '$title • ${items.length}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('Нет документов'),
+            ),
           ...items.map(
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(
+                item.title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
               subtitle: Text('${item.statusTitle} • ${item.expiryTitle}'),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.push<void>(context, CupertinoPageRoute<void>(builder: (_) => LegalDocumentCompleteScreen(document: item))),
+              onTap: () => Navigator.push<void>(
+                context,
+                AppPageRoute<void>(
+                  builder: (_) => LegalDocumentCompleteScreen(document: item),
+                ),
+              ),
             ),
           ),
         ],
@@ -799,7 +1026,11 @@ class _LegalBaseData {
   final List<LegalWorkspaceObject> objects;
   final List<LegalCounterparty> counterparties;
 
-  const _LegalBaseData({required this.employees, required this.objects, required this.counterparties});
+  const _LegalBaseData({
+    required this.employees,
+    required this.objects,
+    required this.counterparties,
+  });
 }
 
 class _ObjectCompleteData {
@@ -826,5 +1057,8 @@ class _CounterpartyCompleteData {
   final List<LegalDocument> documents;
   final List<LegalMatter> matters;
 
-  const _CounterpartyCompleteData({required this.documents, required this.matters});
+  const _CounterpartyCompleteData({
+    required this.documents,
+    required this.matters,
+  });
 }

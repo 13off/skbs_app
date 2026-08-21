@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../features/documents/data/document_template_repository.dart';
@@ -8,6 +7,7 @@ import '../../../models/app_user_profile.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_document_draft_screen.dart';
 import 'ai_exact_document_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiDocumentTemplateScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -93,7 +93,7 @@ class _AiDocumentTemplateScreenState extends State<AiDocumentTemplateScreen> {
     final code = templateCode;
     if (code == null || !exactTemplateAvailable) return;
     final completed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AiExactDocumentScreen(
           profile: widget.profile,
           action: widget.action,

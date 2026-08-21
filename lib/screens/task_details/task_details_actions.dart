@@ -143,7 +143,7 @@ extension _TaskDetailsActions on _TaskDetailsScreenState {
     }
 
     final draft = await Navigator.of(context).push<TaskCreateDraft>(
-      MaterialPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: TaskEditPolicy.operationalToday,
           objectName: objectName,

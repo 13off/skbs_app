@@ -1,7 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../app/theme_controller.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../navigation/platform_tab_override_scope.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
@@ -38,7 +41,7 @@ class PersistentTabController extends ChangeNotifier {
     }
 
     // Bottom tabs are workspaces, not pages in one long carousel. Switching
-    // immediately avoids painting two heavyweight screens during 280 ms.
+    // immediately avoids painting two heavyweight screens during a transition.
     currentIndex = index;
     notifyListeners();
   }
@@ -98,7 +101,10 @@ class PersistentTabShell extends StatefulWidget {
 }
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
+  static const Duration _prewarmPause = Duration(milliseconds: 90);
+
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
+  int _prewarmGeneration = 0;
 
   Widget workVisualScope({
     required Widget child,
@@ -118,6 +124,7 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
     _ensureTabBuilt(widget.controller.currentIndex);
+    _scheduleTabPrewarm();
   }
 
   @override
@@ -125,14 +132,17 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_handleControllerChanged);
+      _prewarmGeneration++;
       _tabNavigators.clear();
       widget.controller.addListener(_handleControllerChanged);
       _ensureTabBuilt(widget.controller.currentIndex);
+      _scheduleTabPrewarm();
     }
   }
 
   @override
   void dispose() {
+    _prewarmGeneration++;
     widget.controller.removeListener(_handleControllerChanged);
     super.dispose();
   }
@@ -141,11 +151,54 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     _tabNavigators.putIfAbsent(index, () => _buildTabNavigator(index));
   }
 
+  void _scheduleTabPrewarm() {
+    final generation = ++_prewarmGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _prewarmGeneration) return;
+      _prewarmNextTab(generation);
+    });
+  }
+
+  void _prewarmNextTab(int generation) {
+    if (!mounted || generation != _prewarmGeneration) return;
+
+    int? nextIndex;
+    for (var index = 0; index < widget.controller.pageCount; index++) {
+      if (!_tabNavigators.containsKey(index)) {
+        nextIndex = index;
+        break;
+      }
+    }
+    if (nextIndex == null) return;
+    final indexToBuild = nextIndex;
+
+    SchedulerBinding.instance.scheduleTask<void>(
+      () {
+        if (!mounted || generation != _prewarmGeneration) return;
+        setState(() => _ensureTabBuilt(indexToBuild));
+
+        // Let this tab complete an actual frame (and start its async reads)
+        // before warming the next one. This avoids one large hidden build frame.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || generation != _prewarmGeneration) return;
+          unawaited(
+            Future<void>.delayed(_prewarmPause).then((_) {
+              if (!mounted || generation != _prewarmGeneration) return;
+              _prewarmNextTab(generation);
+            }),
+          );
+        });
+      },
+      Priority.idle,
+      debugLabel: 'AppStroy.prewarmTab.$indexToBuild',
+    );
+  }
+
   Widget _buildTabNavigator(int index) {
     return RepaintBoundary(
       child: Navigator(
         key: widget.controller.navigatorKeys[index],
-        onGenerateRoute: (settings) => CupertinoPageRoute<void>(
+        onGenerateRoute: (settings) => AppPageRoute<void>(
           settings: settings,
           builder: (context) => AnimatedBuilder(
             animation: AppThemeController.instance,
@@ -162,20 +215,12 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
                       storageKey: storageKey,
                       index: index,
                     );
-              // Equivalent to override?.builder?.call(context), but explicit so
-              // the established direct tabBuilder fallback remains intact.
               final overrideBuilder = override?.builder;
               final rootPage = overrideBuilder != null
                   ? overrideBuilder(context)
                   : widget.tabBuilder(context, index);
 
-              // Корневые вкладки должны быть короткими и рабочими: название
-              // достаточно объясняет раздел. Вложенные карточки сохраняют
-              // статус, срок, объект и другой полезный подзаголовок.
-              return workVisualScope(
-                hidePageSubtitles: true,
-                child: rootPage,
-              );
+              return workVisualScope(hidePageSubtitles: true, child: rootPage);
             },
           ),
         ),
@@ -194,9 +239,6 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
   Widget build(BuildContext context) {
     assert(widget.items.length == widget.controller.pageCount);
     final activeIndex = widget.controller.currentIndex;
-    // Keep the established nested-navigation and root-route behavior.
-    // Flutter 3.44 deprecates this API before the replacement is covered
-    // by route-level integration tests in every target shell.
     return workVisualScope(
       // ignore: deprecated_member_use
       child: WillPopScope(

@@ -8,6 +8,7 @@ import '../data/app_data_sync.dart';
 import '../data/notification_repository.dart';
 import '../features/dispatcher/presentation/dispatcher_summary_details_screen.dart';
 import 'premium_ui_v2.dart';
+import '../navigation/app_page_route.dart';
 
 Color get _card => AppAdaptivePalette.surfaceElevated;
 Color get _softCard => AppAdaptivePalette.surfaceSoft;
@@ -60,7 +61,7 @@ class _NotificationBellState extends State<NotificationBell> {
         selectedObject != changedObject) {
       return;
     }
-    setState(() => refreshHasUnread(forceRefresh: true));
+    setState(refreshHasUnread);
   }
 
   void refreshHasUnread({bool forceRefresh = false}) {
@@ -425,7 +426,7 @@ class _NotificationTile extends StatelessWidget {
                   FilledButton.tonalIcon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute<void>(
+                        AppPageRoute<void>(
                           builder: (_) => DispatcherSummaryDetailsScreen(
                             runId: notification.entityId.trim(),
                           ),

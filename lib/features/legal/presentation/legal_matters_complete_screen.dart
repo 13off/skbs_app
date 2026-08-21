@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -9,6 +8,7 @@ import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_matter_complete_screen.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalMattersCompleteScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -20,7 +20,8 @@ class LegalMattersCompleteScreen extends StatefulWidget {
       _LegalMattersCompleteScreenState();
 }
 
-class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen> {
+class _LegalMattersCompleteScreenState
+    extends State<LegalMattersCompleteScreen> {
   late Future<List<LegalMatter>> future;
   final searchController = TextEditingController();
   String filter = 'active';
@@ -37,9 +38,8 @@ class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen>
     super.dispose();
   }
 
-  Future<List<LegalMatter>> load() => LegalRepository.fetchMatters(
-        search: searchController.text,
-      );
+  Future<List<LegalMatter>> load() =>
+      LegalRepository.fetchMatters(search: searchController.text);
 
   Future<void> refresh() async {
     final next = load();
@@ -51,27 +51,37 @@ class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen>
     return switch (filter) {
       'all' => source,
       'court' => source.where(legalMatterIsCourt).toList(),
-      'claim' => source.where((item) => item.matterType == LegalMatterType.claim).toList(),
+      'claim' =>
+        source
+            .where((item) => item.matterType == LegalMatterType.claim)
+            .toList(),
       'overdue' => source.where((item) => item.isOverdue).toList(),
       'manager' => source.where((item) => item.needsManager).toList(),
-      _ => source
-          .where((item) => item.status != LegalMatterStatus.resolved && item.status != LegalMatterStatus.closed)
-          .toList(),
+      _ =>
+        source
+            .where(
+              (item) =>
+                  item.status != LegalMatterStatus.resolved &&
+                  item.status != LegalMatterStatus.closed,
+            )
+            .toList(),
     };
   }
 
   Future<void> add() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => const LegalMatterEditorScreen()),
+      AppPageRoute<bool>(builder: (_) => const LegalMatterEditorScreen()),
     );
     if (saved == true && mounted) await refresh();
   }
 
   IconData icon(LegalMatter item) {
     if (legalMatterIsCourt(item)) return Icons.account_balance_outlined;
-    if (item.matterType == LegalMatterType.claim) return Icons.mark_email_read_outlined;
-    if (item.matterType == LegalMatterType.violation) return Icons.report_problem_outlined;
+    if (item.matterType == LegalMatterType.claim)
+      return Icons.mark_email_read_outlined;
+    if (item.matterType == LegalMatterType.violation)
+      return Icons.report_problem_outlined;
     return Icons.gavel_outlined;
   }
 
@@ -96,7 +106,8 @@ class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen>
                 TextField(
                   controller: searchController,
                   decoration: InputDecoration(
-                    hintText: 'Поиск по делу, сотруднику, объекту или контрагенту',
+                    hintText:
+                        'Поиск по делу, сотруднику, объекту или контрагенту',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: IconButton(
                       onPressed: refresh,
@@ -109,22 +120,24 @@ class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen>
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: <(String, String)>[
-                    ('active', 'В работе'),
-                    ('court', 'Суды'),
-                    ('claim', 'Претензии'),
-                    ('overdue', 'Просрочено'),
-                    ('manager', 'Решение руководителя'),
-                    ('all', 'Все'),
-                  ]
-                      .map(
-                        (item) => ChoiceChip(
-                          label: Text(item.$2),
-                          selected: filter == item.$1,
-                          onSelected: (_) => setState(() => filter = item.$1),
-                        ),
-                      )
-                      .toList(),
+                  children:
+                      <(String, String)>[
+                            ('active', 'В работе'),
+                            ('court', 'Суды'),
+                            ('claim', 'Претензии'),
+                            ('overdue', 'Просрочено'),
+                            ('manager', 'Решение руководителя'),
+                            ('all', 'Все'),
+                          ]
+                          .map(
+                            (item) => ChoiceChip(
+                              label: Text(item.$2),
+                              selected: filter == item.$1,
+                              onSelected: (_) =>
+                                  setState(() => filter = item.$1),
+                            ),
+                          )
+                          .toList(),
                 ),
               ],
             ),
@@ -201,8 +214,9 @@ class _LegalMattersCompleteScreenState extends State<LegalMattersCompleteScreen>
                         onTap: () async {
                           await Navigator.push<void>(
                             context,
-                            CupertinoPageRoute<void>(
-                              builder: (_) => LegalMatterCompleteScreen(matter: item),
+                            AppPageRoute<void>(
+                              builder: (_) =>
+                                  LegalMatterCompleteScreen(matter: item),
                             ),
                           );
                           if (mounted) await refresh();

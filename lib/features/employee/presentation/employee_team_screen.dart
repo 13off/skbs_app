@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +7,7 @@ import '../../../models/employee.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/employee_team_repository.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeTeamSeedDirectoryScreen extends StatefulWidget {
   const EmployeeTeamSeedDirectoryScreen({super.key});
@@ -63,7 +63,7 @@ class _EmployeeTeamSeedDirectoryScreenState
 
   Future<void> _open(Employee employee) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeTeamScreen(
           employeeId: employee.id,
           seedEmployeeName: employee.name,
@@ -216,7 +216,7 @@ class _EmployeeTeamScreenState extends State<EmployeeTeamScreen> {
 
   Future<void> _openMember(EmployeeTeamMember member, String objectName) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeTeamMemberScreen(member: member, objectName: objectName),
       ),

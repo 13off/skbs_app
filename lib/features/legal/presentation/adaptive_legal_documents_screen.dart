@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +10,7 @@ import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AdaptiveLegalDocumentsScreen extends StatelessWidget {
   final bool attentionOnly;
@@ -99,7 +99,7 @@ class _DesktopLegalDocumentsScreenState
   Future<void> openEditor([LegalDocument? document]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(document: document),
       ),
     );
@@ -109,7 +109,7 @@ class _DesktopLegalDocumentsScreenState
   Future<void> openDetails(LegalDocument document) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => LegalDocumentDetailsScreen(document: document),
       ),
     );
@@ -199,7 +199,10 @@ class _DesktopLegalDocumentsScreenState
                 prefixIcon: Icon(Icons.filter_alt_outlined),
               ),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Все статусы'),
+                ),
                 ...LegalDocumentStatus.values.map(
                   (value) => DropdownMenuItem<String>(
                     value: value,
@@ -233,9 +236,13 @@ class _DesktopLegalDocumentsScreenState
 
   Widget summary(List<LegalDocument> source, List<LegalDocument> visible) {
     final attention = source.where((item) => item.needsAttention).length;
-    final contracts = source.where((item) => documentCategory(item) == 'contract').length;
+    final contracts = source
+        .where((item) => documentCategory(item) == 'contract')
+        .length;
     final acts = source.where((item) => documentCategory(item) == 'act').length;
-    final expiring = source.where((item) => item.isExpired || item.isExpiringSoon).length;
+    final expiring = source
+        .where((item) => item.isExpired || item.isExpiringSoon)
+        .length;
 
     return PremiumWorkCard(
       radius: 24,
@@ -244,9 +251,21 @@ class _DesktopLegalDocumentsScreenState
         spacing: 10,
         runSpacing: 10,
         children: [
-          _Summary(icon: Icons.folder_copy_outlined, label: 'Показано', value: '${visible.length}'),
-          _Summary(icon: Icons.handshake_outlined, label: 'Договоры', value: '$contracts'),
-          _Summary(icon: Icons.fact_check_outlined, label: 'Акты', value: '$acts'),
+          _Summary(
+            icon: Icons.folder_copy_outlined,
+            label: 'Показано',
+            value: '${visible.length}',
+          ),
+          _Summary(
+            icon: Icons.handshake_outlined,
+            label: 'Договоры',
+            value: '$contracts',
+          ),
+          _Summary(
+            icon: Icons.fact_check_outlined,
+            label: 'Акты',
+            value: '$acts',
+          ),
           _Summary(
             icon: Icons.priority_high_rounded,
             label: 'Внимание',
@@ -294,23 +313,36 @@ class _DesktopLegalDocumentsScreenState
                     ),
                   ],
                 ),
-                SpecialistStatusPill(label: document.statusTitle, color: statusColor(document)),
+                SpecialistStatusPill(
+                  label: document.statusTitle,
+                  color: statusColor(document),
+                ),
                 specialistCellText(document.documentNumber, maxLines: 1),
-                specialistCellText(relatedTitle(document), color: specialistMuted),
+                specialistCellText(
+                  relatedTitle(document),
+                  color: specialistMuted,
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     specialistCellText(document.expiryTitle, maxLines: 1),
                     if (document.needsAttention)
-                      SpecialistStatusPill(label: 'Проверить', color: statusColor(document)),
+                      SpecialistStatusPill(
+                        label: 'Проверить',
+                        color: statusColor(document),
+                      ),
                   ],
                 ),
                 specialistCellText(
-                  document.responsibleName.isEmpty ? 'Не назначен' : document.responsibleName,
+                  document.responsibleName.isEmpty
+                      ? 'Не назначен'
+                      : document.responsibleName,
                   color: specialistMuted,
                 ),
                 specialistCellText(
-                  document.nextAction.isEmpty ? 'Действие не указано' : document.nextAction,
+                  document.nextAction.isEmpty
+                      ? 'Действие не указано'
+                      : document.nextAction,
                   color: specialistMuted,
                 ),
               ],
@@ -326,7 +358,8 @@ class _DesktopLegalDocumentsScreenState
       future: future,
       builder: (context, snapshot) {
         final children = <Widget>[filters(), const SizedBox(height: 16)];
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           children.add(
             const SpecialistMessageCard(
               icon: Icons.description_outlined,
@@ -352,8 +385,12 @@ class _DesktopLegalDocumentsScreenState
           if (documents.isEmpty) {
             children.add(
               SpecialistMessageCard(
-                icon: source.isEmpty ? Icons.note_add_outlined : Icons.search_off_rounded,
-                title: source.isEmpty ? 'Документов пока нет' : 'По фильтрам ничего не найдено',
+                icon: source.isEmpty
+                    ? Icons.note_add_outlined
+                    : Icons.search_off_rounded,
+                title: source.isEmpty
+                    ? 'Документов пока нет'
+                    : 'По фильтрам ничего не найдено',
                 description: source.isEmpty
                     ? 'Добавьте договор, акт или другой юридический документ. После этого он появится в досье сотрудника, объекта или контрагента.'
                     : 'Измените поиск, раздел или выбранные фильтры.',
@@ -369,7 +406,8 @@ class _DesktopLegalDocumentsScreenState
         return SpecialistDesktopPage(
           storageKey: 'desktop-legal-documents',
           title: 'Юридические документы',
-          subtitle: 'Один реестр договоров, актов, доверенностей и кадровых документов',
+          subtitle:
+              'Один реестр договоров, актов, доверенностей и кадровых документов',
           trailing: Wrap(
             spacing: 10,
             children: [
@@ -421,8 +459,20 @@ class _Summary extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: effectiveColor),
           const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(color: specialistMuted, fontWeight: FontWeight.w700)),
-          Text(value, style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900)),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: specialistMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: effectiveColor,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );

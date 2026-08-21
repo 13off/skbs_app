@@ -7,6 +7,7 @@ import '../data/payment_repository.dart';
 import '../models/employee.dart';
 import '../widgets/adaptive_detail_body.dart';
 import 'add_payment_screen.dart';
+import '../navigation/app_page_route.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   final Employee employee;
@@ -157,7 +158,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
     final period = suggestedSettlementMonth;
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AddPaymentScreen(
           periodYear: period.year,
           periodMonth: period.month,

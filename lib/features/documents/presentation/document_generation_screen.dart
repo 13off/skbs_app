@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../features/company/data/company_repository.dart';
@@ -12,6 +11,7 @@ import '../data/document_workflow_repository.dart';
 import '../models/document_onboarding.dart';
 import '../models/document_template.dart';
 import 'document_onboarding_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class DocumentGenerationScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -125,7 +125,7 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
       );
       if (openTemplates == true && mounted) {
         await Navigator.of(context).push<void>(
-          CupertinoPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) => TemplateDocumentsScreen(profile: widget.profile),
           ),
         );
@@ -212,7 +212,7 @@ class _DocumentGenerationScreenState extends State<DocumentGenerationScreen> {
 
   void _openOnboarding(String onboardingId) {
     Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => DocumentOnboardingScreen(
           profile: widget.profile,
           onboardingId: onboardingId,

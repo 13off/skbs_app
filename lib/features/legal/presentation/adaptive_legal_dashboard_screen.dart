@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -14,6 +13,7 @@ import '../data/legal_workspace_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_dashboard_screen.dart';
 import 'legal_weekly_report_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AdaptiveLegalDashboardScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -107,7 +107,7 @@ class _DesktopLegalDashboardScreenState
   void openWeeklyReport() {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(builder: (_) => const LegalWeeklyReportScreen()),
+      AppPageRoute<void>(builder: (_) => const LegalWeeklyReportScreen()),
     );
   }
 
@@ -118,7 +118,8 @@ class _DesktopLegalDashboardScreenState
   }
 
   Color matterAccent(LegalMatter matter) {
-    if (matter.riskLevel == 'critical' || matter.isOverdue) return specialistDanger;
+    if (matter.riskLevel == 'critical' || matter.isOverdue)
+      return specialistDanger;
     if (matter.isHighRisk || matter.needsManager) return specialistWarning;
     return specialistSuccess;
   }
@@ -173,7 +174,9 @@ class _DesktopLegalDashboardScreenState
               padding: EdgeInsets.symmetric(vertical: 30),
               child: Center(child: Text('Критичных документов нет')),
             ),
-          ...attention.take(7).map(
+          ...attention
+              .take(7)
+              .map(
                 (document) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -209,22 +212,25 @@ class _DesktopLegalDashboardScreenState
   }
 
   Widget matterPanel(List<LegalMatter> matters) {
-    final attention = matters
-        .where((item) => item.isHighRisk || item.needsManager || item.isOverdue)
-        .toList()
-      ..sort((a, b) {
-        final first = a.riskLevel == 'critical'
-            ? 0
-            : a.isHighRisk
+    final attention =
+        matters
+            .where(
+              (item) => item.isHighRisk || item.needsManager || item.isOverdue,
+            )
+            .toList()
+          ..sort((a, b) {
+            final first = a.riskLevel == 'critical'
+                ? 0
+                : a.isHighRisk
                 ? 1
                 : 2;
-        final second = b.riskLevel == 'critical'
-            ? 0
-            : b.isHighRisk
+            final second = b.riskLevel == 'critical'
+                ? 0
+                : b.isHighRisk
                 ? 1
                 : 2;
-        return first.compareTo(second);
-      });
+            return first.compareTo(second);
+          });
 
     return PremiumWorkCard(
       radius: 28,
@@ -242,7 +248,9 @@ class _DesktopLegalDashboardScreenState
               padding: EdgeInsets.symmetric(vertical: 30),
               child: Center(child: Text('Срочных дел нет')),
             ),
-          ...attention.take(7).map(
+          ...attention
+              .take(7)
+              .map(
                 (matter) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -280,8 +288,9 @@ class _DesktopLegalDashboardScreenState
   }
 
   Widget recoveryPanel(List<LegalWorkspaceRecovery> recoveries) {
-    final pending = recoveries.where((item) => item.status == 'pending').toList()
-      ..sort((a, b) => b.absenceDate.compareTo(a.absenceDate));
+    final pending =
+        recoveries.where((item) => item.status == 'pending').toList()
+          ..sort((a, b) => b.absenceDate.compareTo(a.absenceDate));
     if (pending.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -301,7 +310,9 @@ class _DesktopLegalDashboardScreenState
               'Юрист видит пакет документов; подтверждение или отмена выполняется руководителем в разделе «Штрафы».',
             ),
             const SizedBox(height: 10),
-            ...pending.take(6).map(
+            ...pending
+                .take(6)
+                .map(
                   (item) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const CircleAvatar(

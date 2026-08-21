@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -25,6 +24,7 @@ import 'global_voice_extended_action_coordinator.dart';
 import 'global_voice_management_action_coordinator.dart';
 import 'global_voice_professional_action_coordinator.dart';
 import 'global_voice_workflow_action_coordinator.dart';
+import '../../../navigation/app_page_route.dart';
 
 export 'ai_action_execution_coordinator.dart' show AiActionExecutionResult;
 
@@ -107,11 +107,7 @@ class GlobalVoiceActionRouter {
 
     final steps = rawActions
         .whereType<Map>()
-        .map(
-          (raw) => AiAssistantAction.fromMap(
-            Map<String, dynamic>.from(raw),
-          ),
-        )
+        .map((raw) => AiAssistantAction.fromMap(Map<String, dynamic>.from(raw)))
         .where((step) => step.type.isNotEmpty)
         .toList(growable: false);
     if (steps.isEmpty) {
@@ -183,7 +179,7 @@ class GlobalVoiceActionRouter {
 
     final application = matches.single;
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => RecruitmentApplicationDetailScreen(
           profile: profile,
           application: application,
@@ -223,9 +219,9 @@ class GlobalVoiceActionRouter {
       _ => throw StateError('Раздел пока нельзя открыть голосом'),
     };
 
-    await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(builder: (_) => target),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(AppPageRoute<void>(builder: (_) => target));
     return AiActionExecutionResult(
       completed: true,
       message: action.title,
@@ -234,10 +230,7 @@ class GlobalVoiceActionRouter {
     );
   }
 
-  static String? _objectName(
-    AiAssistantAction action,
-    AppUserProfile profile,
-  ) {
+  static String? _objectName(AiAssistantAction action, AppUserProfile profile) {
     final fromAction = action.text('object_name');
     if (fromAction.isNotEmpty) return fromAction;
     final fromProfile = profile.objectName.trim();
@@ -317,9 +310,6 @@ class GlobalVoiceActionRouter {
     if (!profile.isAdmin && !profile.isForeman) {
       throw StateError('Цели недоступны текущей роли');
     }
-    return MilestonesScreen(
-      profile: profile,
-      selectedObjectName: objectName,
-    );
+    return MilestonesScreen(profile: profile, selectedObjectName: objectName);
   }
 }

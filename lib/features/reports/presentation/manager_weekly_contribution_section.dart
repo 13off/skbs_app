@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -6,6 +5,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/manager_weekly_contribution_repository.dart';
 import 'manager_report_tile.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ManagerWeeklyContributionSection extends StatelessWidget {
   final Future<ManagerWeeklyContributionReport> future;
@@ -80,7 +80,7 @@ class _WeeklyContributionCard extends StatelessWidget {
           : null,
       onTap: () {
         Navigator.of(context).push<void>(
-          CupertinoPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) => _WeeklyContributionDetailsScreen(
               report: report,
               onOpenEmployee: onOpenEmployee,
