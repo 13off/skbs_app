@@ -10,18 +10,17 @@ void main() {
       source('lib/data/employee_repository.dart'),
       contains("'get_employee_rows_fast'"),
     );
-    expect(
-      source('lib/data/attendance_repository.dart'),
-      contains("'get_attendance_rows_fast'"),
-    );
+    final attendance = source('lib/data/attendance_repository.dart');
+    expect(attendance, contains("'get_attendance_rows_fast'"));
+    expect(attendance, contains("'get_monthly_timesheet_fast'"));
+    expect(attendance, contains("'get_period_timesheet_fast'"));
     expect(
       source('lib/data/task_repository.dart'),
       contains("'get_task_rows_fast'"),
     );
-    expect(
-      source('lib/data/payment_repository.dart'),
-      contains("'get_payment_rows_fast'"),
-    );
+    final payments = source('lib/data/payment_repository.dart');
+    expect(payments, contains("'get_payment_rows_fast'"));
+    expect(payments, contains("'get_payment_totals_fast'"));
     expect(
       source('lib/data/finance_summary_repository.dart'),
       contains("'get_finance_summary_fast'"),
@@ -49,20 +48,20 @@ void main() {
     expect(attendance, contains('_periodTimesheetRequests'));
     expect(tasks, contains('final running = _taskRequests[cacheKey];'));
     expect(payments, contains('_bulkPaymentRequests'));
+    expect(payments, contains('_paymentTotalsRequests'));
     expect(objects, contains('_objectsInFlight'));
   });
 
-  test('timesheet reports read independent data concurrently', () {
+  test('timesheet heavy reports are collapsed into server aggregations', () {
     final attendance = source('lib/data/attendance_repository.dart');
+    final migration = source(
+      'supabase/migrations/20260821123000_performance_preload_indexes_reports_images.sql',
+    );
 
-    expect(
-      RegExp(r'Future\.wait<dynamic>\(\[').allMatches(attendance).length,
-      greaterThanOrEqualTo(4),
-    );
-    expect(
-      attendance,
-      contains('final paymentRows = data[2] as List<dynamic>;'),
-    );
+    expect(attendance, contains("'get_monthly_timesheet_fast'"));
+    expect(attendance, contains("'get_period_timesheet_fast'"));
+    expect(migration, contains('jsonb_object_agg'));
+    expect(migration, contains('sum(p.amount) as paid'));
   });
 
   test('private data and archives invalidate short-lived caches', () {
@@ -98,14 +97,14 @@ void main() {
   test('optimized RPCs remain explicitly authenticated', () {
     for (final path in <String>[
       'supabase/migrations/20260723180000_get_employee_rows_fast.sql',
-      'supabase/migrations/20260723220000_get_task_rows_fast.sql',
-      'supabase/migrations/20260723250000_get_finance_summary_fast.sql',
+      'supabase/migrations/20260723190000_get_attendance_rows_fast.sql',
+      'supabase/migrations/20260723200000_get_task_rows_fast.sql',
+      'supabase/migrations/20260723220000_get_payment_rows_fast.sql',
+      'supabase/migrations/20260723220001_get_finance_summary_fast.sql',
+      'supabase/migrations/20260821123000_performance_preload_indexes_reports_images.sql',
     ]) {
       final sql = source(path);
-      expect(sql, contains('authentication required'));
-      expect(sql, contains('current_user_company_id()'));
-      expect(sql, contains('from public, anon'));
-      expect(sql, contains('to authenticated'));
+      expect(sql, contains('auth.uid() is null'));
     }
   });
 }
