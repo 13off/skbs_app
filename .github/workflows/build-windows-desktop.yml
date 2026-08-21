@@ -45,8 +45,10 @@ jobs:
     timeout-minutes: 35
 
     steps:
-      - name: Checkout source
+      - name: Checkout Windows branch head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
@@ -100,6 +102,19 @@ jobs:
           if (!(Test-Path $exe)) { throw "Windows executable not found: $exe" }
           if ((Get-Item $exe).Length -le 0) { throw "Windows executable is empty" }
 
+      - name: Native startup smoke test
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'build/windows/x64/runner/Release/AppStroy.exe').Path
+          $process = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
+          Start-Sleep -Seconds 8
+          $process.Refresh()
+          if ($process.HasExited) {
+            throw "AppStroy.exe exited during startup smoke test with code $($process.ExitCode)"
+          }
+          Stop-Process -Id $process.Id -Force
+          Write-Host 'AppStroy.exe stayed alive for startup smoke window.'
+
       - name: Prepare portable package
         shell: pwsh
         run: |
@@ -109,6 +124,7 @@ jobs:
           Compress-Archive -Path 'build/windows/x64/runner/Release/*' -DestinationPath "windows-output/AppStroy-Windows-$shortSha.zip" -CompressionLevel Optimal
           Copy-Item "windows-output/AppStroy-Windows-$shortSha.zip" 'windows-output/AppStroy-Windows-latest.zip'
           Set-Content -Path 'windows-output/source-commit.txt' -Value $sourceSha -Encoding ascii
+          Get-FileHash 'windows-output/AppStroy-Windows-latest.zip' -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  AppStroy-Windows-latest.zip" } | Set-Content 'windows-output/AppStroy-Windows-latest.sha256' -Encoding ascii
 
       - name: Install Inno Setup
         shell: pwsh
