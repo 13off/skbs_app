@@ -1,5 +1,4 @@
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../data/user_repository.dart';
@@ -15,6 +14,7 @@ import '../models/app_user_profile.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
 import 'settings_screen.dart';
+import '../navigation/app_page_route.dart';
 
 // Служебные пункты перенесены в SettingsScreen. Эти маркеры сохраняют
 // совместимость старых исходниковых acceptance-контрактов до их миграции:
@@ -131,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> open(Widget screen) async {
     await Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
     if (!mounted) return;
     _configureToolsFuture();
     setState(() {});

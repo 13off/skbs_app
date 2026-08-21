@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -7,6 +6,7 @@ import '../data/legal_operations_repository.dart';
 import '../data/legal_process_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalMatterCompleteScreen extends StatefulWidget {
   final LegalMatter matter;
@@ -66,26 +66,26 @@ class _LegalMatterCompleteScreenState extends State<LegalMatterCompleteScreen> {
   }
 
   String kindTitle(String kind) => switch (kind) {
-        'hearing' => 'Судебное заседание',
-        'deadline' => 'Процессуальный срок',
-        'filing' => 'Подача документа',
-        'incoming' => 'Входящий документ',
-        'outgoing' => 'Исходящий документ',
-        'decision' => 'Решение',
-        'enforcement' => 'Исполнение',
-        _ => 'Событие дела',
-      };
+    'hearing' => 'Судебное заседание',
+    'deadline' => 'Процессуальный срок',
+    'filing' => 'Подача документа',
+    'incoming' => 'Входящий документ',
+    'outgoing' => 'Исходящий документ',
+    'decision' => 'Решение',
+    'enforcement' => 'Исполнение',
+    _ => 'Событие дела',
+  };
 
   IconData kindIcon(String kind) => switch (kind) {
-        'hearing' => Icons.account_balance_outlined,
-        'deadline' => Icons.timer_outlined,
-        'filing' => Icons.upload_file_outlined,
-        'incoming' => Icons.mark_email_unread_outlined,
-        'outgoing' => Icons.outgoing_mail,
-        'decision' => Icons.verified_outlined,
-        'enforcement' => Icons.playlist_add_check_circle_outlined,
-        _ => Icons.event_note_outlined,
-      };
+    'hearing' => Icons.account_balance_outlined,
+    'deadline' => Icons.timer_outlined,
+    'filing' => Icons.upload_file_outlined,
+    'incoming' => Icons.mark_email_unread_outlined,
+    'outgoing' => Icons.outgoing_mail,
+    'decision' => Icons.verified_outlined,
+    'enforcement' => Icons.playlist_add_check_circle_outlined,
+    _ => Icons.event_note_outlined,
+  };
 
   Widget line(String label, String value) {
     if (value.trim().isEmpty || value == '—') return const SizedBox.shrink();
@@ -116,11 +116,9 @@ class _LegalMatterCompleteScreenState extends State<LegalMatterCompleteScreen> {
   Future<void> openFullCard() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(
-          matter: widget.matter,
-          canDecide: false,
-        ),
+      AppPageRoute<void>(
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: widget.matter, canDecide: false),
       ),
     );
     if (mounted) await refresh();
@@ -165,10 +163,7 @@ class _LegalMatterCompleteScreenState extends State<LegalMatterCompleteScreen> {
                       value: 'outgoing',
                       child: Text('Исходящий документ'),
                     ),
-                    DropdownMenuItem(
-                      value: 'decision',
-                      child: Text('Решение'),
-                    ),
+                    DropdownMenuItem(value: 'decision', child: Text('Решение')),
                     DropdownMenuItem(
                       value: 'enforcement',
                       child: Text('Исполнение'),
@@ -384,7 +379,8 @@ class _LegalMatterCompleteScreenState extends State<LegalMatterCompleteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final courtOrClaim = legalMatterIsCourt(widget.matter) ||
+    final courtOrClaim =
+        legalMatterIsCourt(widget.matter) ||
         widget.matter.matterType == LegalMatterType.claim;
     return Scaffold(
       appBar: AppBar(

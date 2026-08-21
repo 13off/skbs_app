@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -10,6 +9,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/employee_cabinet_repository.dart';
 import '../data/employee_shift_tracking_service.dart';
 import '../data/employee_work_action_repository.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeWorkHomeScreen extends StatelessWidget {
   final AppUserProfile profile;
@@ -900,7 +900,7 @@ Future<void> _openTask(
   Future<void> Function() refresh,
 ) async {
   await Navigator.of(context).push<void>(
-    CupertinoPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) =>
           EmployeeWorkTaskDetailsScreen(task: task, onChanged: refresh),
     ),

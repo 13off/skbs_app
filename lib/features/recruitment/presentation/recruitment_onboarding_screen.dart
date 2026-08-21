@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,6 +14,7 @@ import '../data/candidate_onboarding_package_service.dart';
 import '../data/candidate_onboarding_repository.dart';
 import '../models/candidate_onboarding_candidate.dart';
 import '../models/candidate_onboarding_models.dart';
+import '../../../navigation/app_page_route.dart';
 
 class RecruitmentOnboardingScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -89,7 +89,7 @@ class _RecruitmentOnboardingScreenState
                   child: PremiumPressable(
                     onTap: () async {
                       await Navigator.of(context).push<void>(
-                        CupertinoPageRoute<void>(
+                        AppPageRoute<void>(
                           builder: (_) => CandidateOnboardingDetailScreen(
                             profile: widget.profile,
                             candidate: candidate,
@@ -318,7 +318,7 @@ class _CandidateOnboardingDetailScreenState
       );
       if (!mounted) return;
       final employeeId = await Navigator.of(context).push<String>(
-        CupertinoPageRoute<String>(
+        AppPageRoute<String>(
           builder: (_) => AiEmployeeDraftScreen(action: action),
         ),
       );

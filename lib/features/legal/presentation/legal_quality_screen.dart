@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -9,6 +8,7 @@ import '../data/legal_workspace_repository.dart';
 import 'legal_document_complete_screen.dart';
 import 'legal_employee_complete_screen.dart';
 import 'legal_matter_complete_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalQualityScreen extends StatefulWidget {
   const LegalQualityScreen({super.key});
@@ -38,7 +38,7 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalDocumentCompleteScreen(document: document),
         ),
       );
@@ -47,17 +47,19 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalMatterCompleteScreen(matter: matter),
         ),
       );
     } else if (issue.entityType == 'employee') {
       final employees = await LegalWorkspaceRepository.fetchEmployees();
-      final matches = employees.where((item) => item.id == issue.entityId).toList();
+      final matches = employees
+          .where((item) => item.id == issue.entityId)
+          .toList();
       if (!mounted || matches.isEmpty) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalEmployeeCompleteScreen(employee: matches.first),
         ),
       );
@@ -71,7 +73,8 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
       appBar: AppBar(title: const Text('Контроль базы')),
       body: AppPage(
         title: 'Контроль качества',
-        subtitle: 'Битые файлы, документы без связей, пустые карточки и незакрытые проблемы',
+        subtitle:
+            'Битые файлы, документы без связей, пустые карточки и незакрытые проблемы',
         headerTrailing: IconButton.filledTonal(
           onPressed: refresh,
           icon: const Icon(Icons.refresh_rounded),
@@ -93,8 +96,12 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
               );
             }
             final items = snapshot.data!;
-            final danger = items.where((item) => item.severity == 'danger').length;
-            final warnings = items.where((item) => item.severity == 'warning').length;
+            final danger = items
+                .where((item) => item.severity == 'danger')
+                .length;
+            final warnings = items
+                .where((item) => item.severity == 'warning')
+                .length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -105,9 +112,18 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
                     spacing: 18,
                     runSpacing: 10,
                     children: [
-                      Text('Проблем: ${items.length}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                      Text('Критичных: $danger', style: const TextStyle(fontWeight: FontWeight.w900)),
-                      Text('Предупреждений: $warnings', style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Text(
+                        'Проблем: ${items.length}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        'Критичных: $danger',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        'Предупреждений: $warnings',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
                     ],
                   ),
                 ),
@@ -120,7 +136,9 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
                       children: [
                         Icon(Icons.verified_rounded, size: 44),
                         SizedBox(height: 10),
-                        Text('Технических проблем в юридической базе не найдено'),
+                        Text(
+                          'Технических проблем в юридической базе не найдено',
+                        ),
                       ],
                     ),
                   )
@@ -137,11 +155,14 @@ class _LegalQualityScreenState extends State<LegalQualityScreen> {
                               item.severity == 'danger'
                                   ? Icons.error_outline_rounded
                                   : item.severity == 'warning'
-                                      ? Icons.warning_amber_rounded
-                                      : Icons.info_outline_rounded,
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.info_outline_rounded,
                             ),
                           ),
-                          title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                          title: Text(
+                            item.title,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
                           subtitle: Text(item.details),
                           trailing: const Icon(Icons.chevron_right_rounded),
                           onTap: () => openIssue(item),

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -16,6 +15,7 @@ import '../../recruitment/presentation/recruitment_dashboard_screen.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_report_formatters.dart';
 import 'manager_report_tile.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ManagerReportSections extends StatelessWidget {
   final AppUserProfile profile;
@@ -310,7 +310,7 @@ class _ReportSection extends StatelessWidget {
 
   void openSummary(BuildContext context) {
     Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => _ManagerReportSectionScreen(
           icon: icon,
           title: title,
@@ -559,7 +559,7 @@ class _DispatcherReports extends StatelessWidget {
       meta: meta,
       onTap: () {
         Navigator.of(context).push<void>(
-          CupertinoPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) =>
                 _DispatcherReportsScreen(runs: runs, onOpen: onOpen),
           ),

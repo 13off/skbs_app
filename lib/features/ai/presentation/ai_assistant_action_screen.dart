@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -11,6 +10,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/ai_assistant_repository.dart';
 import '../models/ai_assistant_result.dart';
 import 'ai_document_draft_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -142,7 +142,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     setState(() => runningActionIds.add(action.id));
     try {
       final completed = await Navigator.of(context).push<bool>(
-        CupertinoPageRoute<bool>(
+        AppPageRoute<bool>(
           builder: (_) =>
               AiDocumentDraftScreen(profile: widget.profile, action: action),
         ),
@@ -187,7 +187,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       if (!mounted) return;
 
       final draft = await Navigator.of(context).push<TaskCreateDraft>(
-        CupertinoPageRoute<TaskCreateDraft>(
+        AppPageRoute<TaskCreateDraft>(
           builder: (_) => AddTaskScreen(
             initialDate: taskDate,
             objectName: objectName,

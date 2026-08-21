@@ -16,12 +16,12 @@ abstract final class AppColors {
 
 abstract final class AppMotion {
   static const fast = Duration(milliseconds: 110);
-  static const regular = Duration(milliseconds: 180);
-  static const hover = Duration(milliseconds: 180);
-  static const page = Duration(milliseconds: 240);
-  static const tab = Duration(milliseconds: 240);
+  static const regular = Duration(milliseconds: 150);
+  static const hover = Duration(milliseconds: 140);
+  static const page = Duration(milliseconds: 190);
+  static const tab = Duration(milliseconds: 170);
   static const pressIn = Duration(milliseconds: 65);
-  static const pressOut = Duration(milliseconds: 180);
+  static const pressOut = Duration(milliseconds: 125);
 
   static const double hoverScale = 1.018;
   static const double pressedScale = 0.974;
@@ -56,23 +56,16 @@ class _AppPageTransitionsBuilder extends PageTransitionsBuilder {
       curve: AppMotion.enterCurve,
       reverseCurve: AppMotion.exitCurve,
     );
-    final secondary = CurvedAnimation(
-      parent: secondaryAnimation,
-      curve: AppMotion.enterCurve,
-      reverseCurve: AppMotion.exitCurve,
-    );
-
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(1, 0),
-        end: Offset.zero,
-      ).animate(primary),
+    // Animate only the incoming route. Repainting/translating the entire previous
+    // heavyweight screen on every frame is visually subtle but expensive on web.
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.985, end: 1).animate(primary),
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: Offset.zero,
-          end: const Offset(-0.075, 0),
-        ).animate(secondary),
-        child: child,
+          begin: const Offset(0.035, 0),
+          end: Offset.zero,
+        ).animate(primary),
+        child: RepaintBoundary(child: child),
       ),
     );
   }

@@ -27,8 +27,8 @@ extension _TimesheetSync on _TimesheetScreenState {
       AppDataDomain.employees,
       AppDataDomain.objects,
     })) {
-      setState(() => reloadEmployees(forceRefresh: true));
-      loadTimesheetGroups(forceRefresh: true);
+      setState(() => reloadEmployees(forceRefresh: false));
+      loadTimesheetGroups(forceRefresh: false);
     }
 
     final attendanceChanged = change.affectsAny(const <AppDataDomain>{
@@ -47,7 +47,7 @@ extension _TimesheetSync on _TimesheetScreenState {
       return;
     }
 
-    loadAttendance(forceRefresh: true);
+    loadAttendance(forceRefresh: false);
   }
 
   void applyPendingRemoteAttendance() {
@@ -59,6 +59,6 @@ extension _TimesheetSync on _TimesheetScreenState {
       return;
     }
 
-    loadAttendance(forceRefresh: true);
+    loadAttendance(forceRefresh: false);
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/attendance_repository.dart';
@@ -21,6 +20,7 @@ import '../presentation/ai_operational_audit_screen.dart';
 import '../presentation/ai_operational_report_screen.dart';
 import '../presentation/ai_payment_draft_screen.dart';
 import '../presentation/ai_reminder_draft_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiActionExecutionResult {
   final bool completed;
@@ -165,7 +165,7 @@ class AiActionExecutionCoordinator {
     if (!context.mounted) return const AiActionExecutionResult.cancelled();
 
     final draft = await Navigator.of(context).push<TaskCreateDraft>(
-      CupertinoPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: taskDate,
           objectName: objectName,
@@ -200,7 +200,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final completed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) =>
             AiDocumentTemplateScreen(profile: profile, action: action),
       ),
@@ -218,7 +218,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final employeeId = await Navigator.of(context).push<String>(
-      CupertinoPageRoute<String>(
+      AppPageRoute<String>(
         builder: (_) => AiEmployeeDraftScreen(action: action),
       ),
     );
@@ -238,7 +238,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final paymentId = await Navigator.of(context).push<String>(
-      CupertinoPageRoute<String>(
+      AppPageRoute<String>(
         builder: (_) => AiPaymentDraftScreen(action: action),
       ),
     );
@@ -258,7 +258,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final completed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AiOperationalAuditScreen(action: action),
       ),
     );
@@ -277,7 +277,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final completed = await Navigator.of(context).push<bool>(
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) =>
             AiOperationalReportScreen(profile: profile, action: action),
       ),
@@ -303,7 +303,7 @@ class AiActionExecutionCoordinator {
   ) async {
     final objectName = action.text('object_name');
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PeriodTimesheetScreen(
           selectedObjectName: objectName.isEmpty ? null : objectName,
         ),
@@ -336,7 +336,7 @@ class AiActionExecutionCoordinator {
     }
     if (!context.mounted) return const AiActionExecutionResult.cancelled();
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => ActPreviewScreen(tasks: completed, date: date),
       ),
     );
@@ -425,7 +425,7 @@ class AiActionExecutionCoordinator {
       comment: employee.comment,
     );
     final updated = await Navigator.of(context).push<Employee>(
-      CupertinoPageRoute<Employee>(
+      AppPageRoute<Employee>(
         builder: (_) => EditEmployeeScreen(employee: proposedEmployee),
       ),
     );
@@ -443,7 +443,7 @@ class AiActionExecutionCoordinator {
     AiAssistantAction action,
   ) async {
     final reminderId = await Navigator.of(context).push<String>(
-      CupertinoPageRoute<String>(
+      AppPageRoute<String>(
         builder: (_) => AiReminderDraftScreen(action: action),
       ),
     );

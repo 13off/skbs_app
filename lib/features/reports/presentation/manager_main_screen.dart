@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/app_cache_coordinator.dart';
@@ -25,6 +24,7 @@ import '../../manager_todos/presentation/manager_todos.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
 import '../data/manager_reports_repository.dart';
 import 'manager_reports_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ManagerMainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -170,7 +170,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     final navigator = await selectNavigator(0);
     if (navigator == null) return;
     await navigator.push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => TasksScreen(
           profile: widget.profile,
           selectedObjectName: selectedObjectNameNotifier.value,
@@ -183,7 +183,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     final navigator = await selectNavigator(2);
     if (navigator == null) return;
     await navigator.push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => AdaptiveTimesheetScreen(
           profile: widget.profile,
           selectedObjectName: selectedObjectNameNotifier.value,
@@ -196,7 +196,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     final navigator = await selectNavigator(2);
     if (navigator == null) return;
     await navigator.push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PaymentsScreen(
           selectedObjectName: selectedObjectNameNotifier.value,
         ),
@@ -208,7 +208,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     final navigator = await selectNavigator(0);
     if (navigator == null) return;
     final result = await navigator.push<dynamic>(
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );

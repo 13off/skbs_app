@@ -19,11 +19,9 @@ extension _HomeLoading on _HomeScreenState {
 
     setState(() {
       if (refreshObjects) {
-        objectNamesFuture = EmployeeRepository.fetchObjectNames(
-          forceRefresh: true,
-        );
+        objectNamesFuture = EmployeeRepository.fetchObjectNames();
       }
-      dashboardFuture = loadDashboardData(forceRefresh: true);
+      dashboardFuture = loadDashboardData();
     });
   }
 

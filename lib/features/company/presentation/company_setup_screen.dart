@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -11,6 +10,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../../compliance/presentation/company_compliance_screen.dart';
 import '../data/company_setup_repository.dart';
 import 'company_management_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class CompanySetupScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -39,7 +39,7 @@ class _CompanySetupScreenState extends State<CompanySetupScreen> {
   Future<void> open(Widget screen) async {
     await Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
     if (mounted) refresh();
   }
 

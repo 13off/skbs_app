@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/company_repository.dart';
 import 'company_plans_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class CompanyManagementScreen extends StatefulWidget {
   final String companyId;
@@ -36,7 +36,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
   Future<void> openInvite(CompanyDashboard dashboard) async {
     final result = await Navigator.push<String>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => CompanyMemberEditorScreen(
           companyId: widget.companyId,
           objects: dashboard.objects,
@@ -57,7 +57,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
 
     final result = await Navigator.push<String>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => CompanyMemberEditorScreen(
           companyId: widget.companyId,
           objects: dashboard.objects,
@@ -73,9 +73,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
   void openPlans(CompanyDashboard dashboard) {
     Navigator.push(
       context,
-      CupertinoPageRoute(
-        builder: (_) => CompanyPlansScreen(dashboard: dashboard),
-      ),
+      AppPageRoute(builder: (_) => CompanyPlansScreen(dashboard: dashboard)),
     );
   }
 

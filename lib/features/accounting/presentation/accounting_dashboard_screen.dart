@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
@@ -11,6 +10,7 @@ import '../../../widgets/notification_bell.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AccountingDashboardScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -47,7 +47,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
           })) {
         return;
       }
-      refresh();
+      refresh(forceRefresh: false);
     });
   }
 
@@ -57,8 +57,10 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     super.dispose();
   }
 
-  Future<void> refresh() async {
-    final next = AccountingRepository.fetchDashboard(forceRefresh: true);
+  Future<void> refresh({bool forceRefresh = true}) async {
+    final next = AccountingRepository.fetchDashboard(
+      forceRefresh: forceRefresh,
+    );
     setState(() => future = next);
     await next;
   }
@@ -67,7 +69,7 @@ class _AccountingDashboardScreenState extends State<AccountingDashboardScreen> {
     final now = DateTime.now();
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AddPaymentScreen(
           periodYear: now.year,
           periodMonth: now.month,

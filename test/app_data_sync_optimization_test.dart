@@ -24,6 +24,7 @@ void main() {
           AppCacheArea.objects,
           AppCacheArea.developerPolicies,
           AppCacheArea.employees,
+          AppCacheArea.timesheetGroups,
           AppCacheArea.attendance,
           AppCacheArea.financeSummary,
           AppCacheArea.payments,

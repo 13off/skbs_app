@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +12,7 @@ import '../data/legal_process_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AdaptiveLegalMattersScreen extends StatelessWidget {
   final bool highRiskOnly;
@@ -59,10 +59,12 @@ class _DesktopLegalMattersScreen extends StatefulWidget {
   });
 
   @override
-  State<_DesktopLegalMattersScreen> createState() => _DesktopLegalMattersScreenState();
+  State<_DesktopLegalMattersScreen> createState() =>
+      _DesktopLegalMattersScreenState();
 }
 
-class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> {
+class _DesktopLegalMattersScreenState
+    extends State<_DesktopLegalMattersScreen> {
   final searchController = TextEditingController();
   late Future<List<LegalMatter>> future;
   StreamSubscription<AppDataChange>? subscription;
@@ -97,8 +99,10 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
       search: searchController.text,
       attentionOnly: attentionOnly,
     );
-    if (widget.highRiskOnly) matters = matters.where((item) => item.isHighRisk).toList();
-    if (widget.managerOnly) matters = matters.where((item) => item.needsManager).toList();
+    if (widget.highRiskOnly)
+      matters = matters.where((item) => item.isHighRisk).toList();
+    if (widget.managerOnly)
+      matters = matters.where((item) => item.needsManager).toList();
     return matters;
   }
 
@@ -111,7 +115,9 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
   Future<void> openEditor([LegalMatter? matter]) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(builder: (_) => LegalMatterEditorScreen(matter: matter)),
+      AppPageRoute<bool>(
+        builder: (_) => LegalMatterEditorScreen(matter: matter),
+      ),
     );
     if (mounted && saved == true) await refresh();
   }
@@ -119,8 +125,9 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
   Future<void> openDetails(LegalMatter matter) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
+      AppPageRoute<void>(
+        builder: (_) =>
+            LegalMatterDetailsScreen(matter: matter, canDecide: managerMode),
       ),
     );
     if (mounted) await refresh();
@@ -131,7 +138,8 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
     if (selected == null) return true;
     if (selected == legalCourtMatterType) return legalMatterIsCourt(matter);
     if (selected == LegalMatterType.dispute) {
-      return matter.matterType == LegalMatterType.dispute && !legalMatterIsCourt(matter);
+      return matter.matterType == LegalMatterType.dispute &&
+          !legalMatterIsCourt(matter);
     }
     return matter.matterType == selected;
   }
@@ -141,13 +149,16 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
         .map((item) => item.objectName.trim())
         .where((value) => value.isNotEmpty)
         .toSet();
-    final safeObject = objectName != null && objects.contains(objectName) ? objectName : null;
+    final safeObject = objectName != null && objects.contains(objectName)
+        ? objectName
+        : null;
 
     final result = matters.where((matter) {
       if (!typeMatches(matter)) return false;
       if (risk != null && matter.riskLevel != risk) return false;
       if (status != null && matter.status != status) return false;
-      if (safeObject != null && matter.objectName.trim() != safeObject) return false;
+      if (safeObject != null && matter.objectName.trim() != safeObject)
+        return false;
       return true;
     }).toList();
 
@@ -155,7 +166,8 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
       int rank(LegalMatter item) {
         if (item.riskLevel == LegalRiskLevel.critical) return 0;
         if (item.isOverdue) return 1;
-        if (item.riskLevel == LegalRiskLevel.high || item.needsManager) return 2;
+        if (item.riskLevel == LegalRiskLevel.high || item.needsManager)
+          return 2;
         return 3;
       }
 
@@ -182,8 +194,10 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
   }
 
   Color riskColor(LegalMatter matter) {
-    if (matter.riskLevel == LegalRiskLevel.critical || matter.isOverdue) return specialistDanger;
-    if (matter.riskLevel == LegalRiskLevel.high || matter.needsManager) return specialistWarning;
+    if (matter.riskLevel == LegalRiskLevel.critical || matter.isOverdue)
+      return specialistDanger;
+    if (matter.riskLevel == LegalRiskLevel.high || matter.needsManager)
+      return specialistWarning;
     if (matter.riskLevel == LegalRiskLevel.low) return specialistSuccess;
     return specialistMuted;
   }
@@ -218,7 +232,11 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
               decoration: InputDecoration(
                 hintText: 'Название, сотрудник, объект или контрагент',
                 prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(tooltip: 'Найти', onPressed: refresh, icon: const Icon(Icons.arrow_forward_rounded)),
+                suffixIcon: IconButton(
+                  tooltip: 'Найти',
+                  onPressed: refresh,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                ),
               ),
               onSubmitted: (_) => refresh(),
             ),
@@ -229,12 +247,17 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
               initialValue: type,
               decoration: const InputDecoration(labelText: 'Тип дела'),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Все дела')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Все дела'),
+                ),
                 ...typeValues.map(
                   (value) => DropdownMenuItem<String>(
                     value: value,
                     child: Text(
-                      value == legalCourtMatterType ? 'Судебные дела' : LegalMatterType.title(value),
+                      value == legalCourtMatterType
+                          ? 'Судебные дела'
+                          : LegalMatterType.title(value),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -249,9 +272,15 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
               initialValue: risk,
               decoration: const InputDecoration(labelText: 'Риск'),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Все риски')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Все риски'),
+                ),
                 ...LegalRiskLevel.values.map(
-                  (value) => DropdownMenuItem<String>(value: value, child: Text(LegalRiskLevel.title(value))),
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(LegalRiskLevel.title(value)),
+                  ),
                 ),
               ],
               onChanged: (value) => setState(() => risk = value),
@@ -263,9 +292,15 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
               initialValue: status,
               decoration: const InputDecoration(labelText: 'Статус'),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Все статусы'),
+                ),
                 ...LegalMatterStatus.values.map(
-                  (value) => DropdownMenuItem<String>(value: value, child: Text(LegalMatterStatus.title(value))),
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(LegalMatterStatus.title(value)),
+                  ),
                 ),
               ],
               onChanged: (value) => setState(() => status = value),
@@ -277,9 +312,15 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
               initialValue: objects.contains(objectName) ? objectName : null,
               decoration: const InputDecoration(labelText: 'Объект'),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Все объекты')),
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Все объекты'),
+                ),
                 ...objects.map(
-                  (value) => DropdownMenuItem<String>(value: value, child: Text(value, overflow: TextOverflow.ellipsis)),
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value, overflow: TextOverflow.ellipsis),
+                  ),
                 ),
               ],
               onChanged: (value) => setState(() => objectName = value),
@@ -303,9 +344,17 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
   }
 
   Widget summary(List<LegalMatter> matters) {
-    final open = matters.where((item) => item.status != LegalMatterStatus.closed && item.status != LegalMatterStatus.resolved).length;
+    final open = matters
+        .where(
+          (item) =>
+              item.status != LegalMatterStatus.closed &&
+              item.status != LegalMatterStatus.resolved,
+        )
+        .length;
     final courts = matters.where(legalMatterIsCourt).length;
-    final claims = matters.where((item) => item.matterType == LegalMatterType.claim).length;
+    final claims = matters
+        .where((item) => item.matterType == LegalMatterType.claim)
+        .length;
     final overdue = matters.where((item) => item.isOverdue).length;
     final manager = matters.where((item) => item.needsManager).length;
 
@@ -316,11 +365,33 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
         spacing: 10,
         runSpacing: 10,
         children: [
-          _MatterSummary(icon: Icons.gavel_outlined, label: 'Открытые', value: '$open'),
-          _MatterSummary(icon: Icons.account_balance_outlined, label: 'Суды', value: '$courts'),
-          _MatterSummary(icon: Icons.outgoing_mail, label: 'Претензии', value: '$claims'),
-          _MatterSummary(icon: Icons.event_busy_outlined, label: 'Просрочены', value: '$overdue', color: overdue > 0 ? specialistDanger : specialistMuted),
-          _MatterSummary(icon: Icons.approval_outlined, label: 'Решение руководителя', value: '$manager', color: manager > 0 ? specialistWarning : specialistMuted),
+          _MatterSummary(
+            icon: Icons.gavel_outlined,
+            label: 'Открытые',
+            value: '$open',
+          ),
+          _MatterSummary(
+            icon: Icons.account_balance_outlined,
+            label: 'Суды',
+            value: '$courts',
+          ),
+          _MatterSummary(
+            icon: Icons.outgoing_mail,
+            label: 'Претензии',
+            value: '$claims',
+          ),
+          _MatterSummary(
+            icon: Icons.event_busy_outlined,
+            label: 'Просрочены',
+            value: '$overdue',
+            color: overdue > 0 ? specialistDanger : specialistMuted,
+          ),
+          _MatterSummary(
+            icon: Icons.approval_outlined,
+            label: 'Решение руководителя',
+            value: '$manager',
+            color: manager > 0 ? specialistWarning : specialistMuted,
+          ),
         ],
       ),
     );
@@ -354,29 +425,53 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
                 specialistCellText(matter.title, weight: FontWeight.w900),
                 if (matter.description.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  specialistCellText(matter.description, color: specialistMuted, weight: FontWeight.w600, maxLines: 1),
+                  specialistCellText(
+                    matter.description,
+                    color: specialistMuted,
+                    weight: FontWeight.w600,
+                    maxLines: 1,
+                  ),
                 ],
               ],
             ),
             specialistCellText(legalMatterDisplayType(matter), maxLines: 1),
-            SpecialistStatusPill(label: matter.riskTitle, color: riskColor(matter)),
+            SpecialistStatusPill(
+              label: matter.riskTitle,
+              color: riskColor(matter),
+            ),
             SpecialistStatusPill(
               label: matter.statusTitle,
-              color: matter.status == LegalMatterStatus.closed || matter.status == LegalMatterStatus.resolved
+              color:
+                  matter.status == LegalMatterStatus.closed ||
+                      matter.status == LegalMatterStatus.resolved
                   ? specialistSuccess
                   : specialistMuted,
             ),
-            specialistCellText(links.isEmpty ? 'Не привязано' : links.join(' • '), color: specialistMuted),
-            SpecialistStatusPill(label: date(matter.dueAt), color: matter.isOverdue ? specialistDanger : specialistMuted),
-            specialistCellText(matter.responsibleName.isEmpty ? 'Не назначен' : matter.responsibleName, color: specialistMuted),
+            specialistCellText(
+              links.isEmpty ? 'Не привязано' : links.join(' • '),
+              color: specialistMuted,
+            ),
+            SpecialistStatusPill(
+              label: date(matter.dueAt),
+              color: matter.isOverdue ? specialistDanger : specialistMuted,
+            ),
+            specialistCellText(
+              matter.responsibleName.isEmpty
+                  ? 'Не назначен'
+                  : matter.responsibleName,
+              color: specialistMuted,
+            ),
             matter.needsManager
-                ? SpecialistStatusPill(label: 'Требуется решение', color: specialistWarning)
+                ? SpecialistStatusPill(
+                    label: 'Требуется решение',
+                    color: specialistWarning,
+                  )
                 : specialistCellText(
                     matter.decisionStatus == 'approved'
                         ? 'Согласовано'
                         : matter.decisionStatus == 'rejected'
-                            ? 'Отклонено'
-                            : 'Не требуется',
+                        ? 'Отклонено'
+                        : 'Не требуется',
                     color: specialistMuted,
                     maxLines: 1,
                   ),
@@ -395,8 +490,15 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
         final visible = filtered(source);
         final children = <Widget>[filters(source), const SizedBox(height: 16)];
 
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          children.add(const SpecialistMessageCard(icon: Icons.gavel_outlined, title: 'Загружаем дела', loading: true));
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          children.add(
+            const SpecialistMessageCard(
+              icon: Icons.gavel_outlined,
+              title: 'Загружаем дела',
+              loading: true,
+            ),
+          );
         } else if (snapshot.hasError) {
           children.add(
             SpecialistMessageCard(
@@ -414,12 +516,18 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
             children.add(
               SpecialistMessageCard(
                 icon: Icons.folder_open_outlined,
-                title: source.isEmpty ? 'Юридических дел пока нет' : 'По фильтрам ничего не найдено',
+                title: source.isEmpty
+                    ? 'Юридических дел пока нет'
+                    : 'По фильтрам ничего не найдено',
                 description: source.isEmpty
                     ? 'Создайте первое дело. Суд и претензия создаются здесь же — отдельные дублирующие разделы не нужны.'
                     : 'Измените поиск или фильтры.',
-                actionLabel: managerMode || source.isNotEmpty ? null : 'Создать дело',
-                onAction: managerMode || source.isNotEmpty ? null : () => openEditor(),
+                actionLabel: managerMode || source.isNotEmpty
+                    ? null
+                    : 'Создать дело',
+                onAction: managerMode || source.isNotEmpty
+                    ? null
+                    : () => openEditor(),
               ),
             );
           } else {
@@ -437,7 +545,11 @@ class _DesktopLegalMattersScreenState extends State<_DesktopLegalMattersScreen> 
           trailing: Wrap(
             spacing: 10,
             children: [
-              IconButton.filledTonal(tooltip: 'Обновить', onPressed: refresh, icon: const Icon(Icons.refresh_rounded)),
+              IconButton.filledTonal(
+                tooltip: 'Обновить',
+                onPressed: refresh,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
               if (!managerMode)
                 FilledButton.icon(
                   onPressed: () => openEditor(),
@@ -482,8 +594,20 @@ class _MatterSummary extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: effectiveColor),
           const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(color: specialistMuted, fontWeight: FontWeight.w700)),
-          Text(value, style: TextStyle(color: effectiveColor, fontWeight: FontWeight.w900)),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: specialistMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: effectiveColor,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +16,7 @@ import '../../../screens/task_details_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import 'foreman_desktop_home_screen.dart';
 import 'foreman_desktop_tasks_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class ForemanMainScreen extends StatelessWidget {
   static const double desktopBreakpoint = 1050;
@@ -115,7 +115,7 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
     if (navigator == null) return;
 
     final draft = await navigator.push<TaskCreateDraft>(
-      CupertinoPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: date,
           objectName: assignedObject,
@@ -144,7 +144,7 @@ class _ForemanDesktopMainScreenState extends State<_ForemanDesktopMainScreen> {
     final navigator = await selectNavigator(1);
     if (navigator == null) return;
     final result = await navigator.push<dynamic>(
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );

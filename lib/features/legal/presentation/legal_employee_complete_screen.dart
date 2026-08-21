@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -11,6 +10,7 @@ import '../models/legal_models.dart';
 import 'legal_document_complete_screen.dart';
 import 'legal_documents_screen.dart';
 import 'legal_matters_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalEmployeeCompleteScreen extends StatefulWidget {
   final LegalWorkspaceEmployee employee;
@@ -84,7 +84,10 @@ class _LegalEmployeeCompleteScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
             Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
@@ -164,7 +167,10 @@ class _LegalEmployeeCompleteScreenState
                   children: [
                     const Text(
                       'Комплект документов',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       required.isEmpty
@@ -178,13 +184,19 @@ class _LegalEmployeeCompleteScreenState
               if (required.isNotEmpty)
                 Text(
                   '${((done / required.length) * 100).round()}%',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
             ],
           ),
           if (required.isNotEmpty) ...[
             const SizedBox(height: 14),
-            LinearProgressIndicator(value: done / required.length, minHeight: 8),
+            LinearProgressIndicator(
+              value: done / required.length,
+              minHeight: 8,
+            ),
           ],
           const SizedBox(height: 12),
           ...applicable.map(
@@ -195,8 +207,8 @@ class _LegalEmployeeCompleteScreenState
                 item.present
                     ? Icons.check_circle_rounded
                     : item.required
-                        ? Icons.cancel_outlined
-                        : Icons.radio_button_unchecked_rounded,
+                    ? Icons.cancel_outlined
+                    : Icons.radio_button_unchecked_rounded,
               ),
               title: Text(
                 item.title,
@@ -210,8 +222,8 @@ class _LegalEmployeeCompleteScreenState
                           ? 'есть'
                           : 'есть • ${item.matchedSource}')
                     : item.required
-                        ? 'не загружено'
-                        : 'необязательно',
+                    ? 'не загружено'
+                    : 'необязательно',
               ),
             ),
           ),
@@ -223,7 +235,7 @@ class _LegalEmployeeCompleteScreenState
   Future<void> addDocument(LegalEmployeeDossier dossier) async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(
           initialEmployeeId: dossier.employeeId,
           initialObjectId: dossier.objectId,
@@ -239,7 +251,7 @@ class _LegalEmployeeCompleteScreenState
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => LegalDocumentCompleteScreen(document: doc),
         ),
       );
@@ -254,24 +266,38 @@ class _LegalEmployeeCompleteScreenState
       return;
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Файл ещё не прикреплён')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Файл ещё не прикреплён')));
     }
   }
 
   Widget documentGroups(List<LegalEmployeeDossierDocument> documents) {
-    const groups = <String, (String, String)> {
-      'contract': ('Договоры', 'Трудовые, ГПХ, оказание услуг, подряд и другие договоры'),
-      'application_consent': ('Заявления и согласия', 'Приём, выплаты, персональные данные и другие формы'),
-      'personal_document': ('Личные документы', 'Паспорт, регистрация, СНИЛС, ИНН, полис, фото'),
-      'act_explanation': ('Акты и объяснительные', 'Нарушения, невыходы, объяснительные и другие акты'),
+    const groups = <String, (String, String)>{
+      'contract': (
+        'Договоры',
+        'Трудовые, ГПХ, оказание услуг, подряд и другие договоры',
+      ),
+      'application_consent': (
+        'Заявления и согласия',
+        'Приём, выплаты, персональные данные и другие формы',
+      ),
+      'personal_document': (
+        'Личные документы',
+        'Паспорт, регистрация, СНИЛС, ИНН, полис, фото',
+      ),
+      'act_explanation': (
+        'Акты и объяснительные',
+        'Нарушения, невыходы, объяснительные и другие акты',
+      ),
       'other': ('Прочие документы', 'Остальные документы сотрудника'),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: groups.entries.map((entry) {
-        final items = documents.where((item) => item.group == entry.key).toList();
+        final items = documents
+            .where((item) => item.group == entry.key)
+            .toList();
         return Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: Column(
@@ -302,8 +328,10 @@ class _LegalEmployeeCompleteScreenState
                         subtitle: Text(
                           <String>[
                             if (item.documentType.isNotEmpty) item.documentType,
-                            if (item.documentNumber.isNotEmpty) '№ ${item.documentNumber}',
-                            if (item.documentDate != null) date(item.documentDate),
+                            if (item.documentNumber.isNotEmpty)
+                              '№ ${item.documentNumber}',
+                            if (item.documentDate != null)
+                              date(item.documentDate),
                             if (item.sourceLabel.isNotEmpty) item.sourceLabel,
                           ].join(' • '),
                         ),
@@ -324,15 +352,16 @@ class _LegalEmployeeCompleteScreenState
     final status = d.isArchived
         ? 'Архив'
         : d.isActive
-            ? 'Работает'
-            : 'Не работает';
+        ? 'Работает'
+        : 'Не работает';
     final rate = d.number('daily_rate');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         sectionTitle(
           'Личные данные',
-          subtitle: 'Просмотр персональных данных фиксируется в журнале доступа',
+          subtitle:
+              'Просмотр персональных данных фиксируется в журнале доступа',
         ),
         fieldCard('Работа и контакты', [
           ('Статус', status),
@@ -399,14 +428,18 @@ class _LegalEmployeeCompleteScreenState
                 radius: 20,
                 padding: EdgeInsets.zero,
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.payments_outlined)),
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.payments_outlined),
+                  ),
                   title: Text(
                     '${money(item.amount)} • ${date(item.absenceDate)}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
                     <String>[
-                      item.status == 'confirmed' ? 'Подтверждено' : 'Ожидает решения',
+                      item.status == 'confirmed'
+                          ? 'Подтверждено'
+                          : 'Ожидает решения',
                       item.actFilePath.isEmpty ? 'нет акта' : 'акт есть',
                       item.explanationFilePath.isEmpty
                           ? 'нет объяснительной'
@@ -437,14 +470,21 @@ class _LegalEmployeeCompleteScreenState
                 radius: 20,
                 padding: EdgeInsets.zero,
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.gavel_outlined)),
-                  title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${item.typeTitle} • ${item.statusTitle} • ${item.riskTitle} риск'),
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.gavel_outlined),
+                  ),
+                  title: Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    '${item.typeTitle} • ${item.statusTitle} • ${item.riskTitle} риск',
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () async {
                     await Navigator.push<void>(
                       context,
-                      CupertinoPageRoute<void>(
+                      AppPageRoute<void>(
                         builder: (_) => LegalMatterDetailsScreen(
                           matter: item,
                           canDecide: false,
@@ -480,7 +520,9 @@ class _LegalEmployeeCompleteScreenState
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             if (snapshot.hasError) {
-              return Center(child: Text('Не удалось загрузить досье: ${snapshot.error}'));
+              return Center(
+                child: Text('Не удалось загрузить досье: ${snapshot.error}'),
+              );
             }
             return const Center(child: CircularProgressIndicator());
           }

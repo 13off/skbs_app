@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/employee_repository.dart';
@@ -7,6 +6,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../employee/data/employee_shift_action_repository.dart';
 import '../../employee/presentation/employee_route_map_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeRoutesReportScreen extends StatefulWidget {
   final String? selectedObjectName;
@@ -97,7 +97,7 @@ class _EmployeeRoutesReportScreenState
     final employee = selectedEmployee;
     if (employee == null) return;
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => EmployeeRouteMapScreen(
           employee: employee,
           initialDate: selectedDate,

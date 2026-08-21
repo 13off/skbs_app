@@ -6,6 +6,7 @@ import '../../../models/employee.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
 import 'employee_professional_passport_viewer_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeePassportDirectoryScreen extends StatefulWidget {
   const EmployeePassportDirectoryScreen({super.key});
@@ -58,7 +59,7 @@ class _EmployeePassportDirectoryScreenState
       return;
     }
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeProfessionalPassportViewerScreen(employee: employee),
       ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
 import '../models/monthly_timesheet_row.dart';
 import 'add_payment_screen.dart';
+import '../navigation/app_page_route.dart';
 
 class MonthlyTimesheetScreen extends StatefulWidget {
   const MonthlyTimesheetScreen({super.key});
@@ -140,7 +140,7 @@ class _MonthlyTimesheetScreenState extends State<MonthlyTimesheetScreen> {
   Future<void> openAddPaymentScreen() async {
     final result = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,

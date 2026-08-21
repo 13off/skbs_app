@@ -8,7 +8,7 @@ extension _EmployeesActions on _EmployeesScreenState {
 
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),

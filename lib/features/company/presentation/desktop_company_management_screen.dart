@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -9,6 +8,7 @@ import '../data/company_invitation_repository.dart';
 import '../data/company_repository.dart';
 import 'company_plans_screen.dart';
 import 'desktop_company_user_dialogs.dart';
+import '../../../navigation/app_page_route.dart';
 
 class DesktopCompanyManagementScreen extends StatefulWidget {
   final String companyId;
@@ -101,7 +101,7 @@ class _DesktopCompanyManagementScreenState
   void openPlans(CompanyDashboard dashboard) {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => CompanyPlansScreen(dashboard: dashboard),
       ),
     );

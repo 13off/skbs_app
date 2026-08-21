@@ -15,6 +15,7 @@ import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
+import 'navigation/app_page_route.dart';
 
 const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
@@ -183,7 +184,7 @@ class _SkbsAppState extends State<SkbsApp> {
       if (request == null) return;
 
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) =>
               NotificationsScreen(focusNotificationId: request.notificationId),
         ),

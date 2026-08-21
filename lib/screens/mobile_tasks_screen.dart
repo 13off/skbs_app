@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
@@ -19,6 +18,7 @@ import '../widgets/task_tile.dart';
 import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
+import '../navigation/app_page_route.dart';
 
 Color get _tasksText => AppAdaptivePalette.textPrimary;
 Color get _tasksMuted => AppAdaptivePalette.textMuted;
@@ -81,7 +81,7 @@ class _TasksScreenState extends State<TasksScreen> {
       return;
     }
 
-    loadTasks(silent: true, forceRefresh: true);
+    loadTasks(silent: true);
   }
 
   String shortDate(DateTime date) {
@@ -234,7 +234,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => AddTaskScreen(
           initialDate: sourceDraft?.date ?? selectedDate,
           objectName: objectName,
@@ -333,7 +333,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> openTaskDetails(TaskItemData task) async {
     final result = await Navigator.push(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );
@@ -610,7 +610,7 @@ class _TasksScreenState extends State<TasksScreen> {
             : () {
                 Navigator.push(
                   context,
-                  CupertinoPageRoute(
+                  AppPageRoute(
                     builder: (_) =>
                         ActPreviewScreen(tasks: tasks, date: selectedDate),
                   ),

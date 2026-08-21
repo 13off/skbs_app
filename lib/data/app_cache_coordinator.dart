@@ -2,6 +2,7 @@ import '../features/developer/data/developer_policy_repository.dart';
 import '../features/employee/data/employee_task_cabinet_repository.dart';
 import '../features/reports/data/manager_reports_repository.dart';
 import '../features/reports/data/manager_weekly_contribution_repository.dart';
+import '../features/timesheet/data/timesheet_group_repository.dart';
 import 'app_data_sync.dart';
 import 'attendance_repository.dart';
 import 'employee_archive_repository.dart';
@@ -24,6 +25,7 @@ enum AppCacheArea {
   developerPolicies,
   managerReports,
   managerWeeklyContribution,
+  timesheetGroups,
 }
 
 class AppCacheCoordinator {
@@ -40,6 +42,7 @@ class AppCacheCoordinator {
     AppCacheArea.developerPolicies,
     AppCacheArea.managerReports,
     AppCacheArea.managerWeeklyContribution,
+    AppCacheArea.timesheetGroups,
   };
 
   static const Set<AppDataDomain> _managerReportDomains = <AppDataDomain>{
@@ -73,7 +76,10 @@ class AppCacheCoordinator {
       areas.add(AppCacheArea.objects);
       areas.add(AppCacheArea.developerPolicies);
     }
-    if (employeesChanged) areas.add(AppCacheArea.employees);
+    if (employeesChanged) {
+      areas.add(AppCacheArea.employees);
+      areas.add(AppCacheArea.timesheetGroups);
+    }
     if (attendanceChanged || paymentsChanged || employeesChanged) {
       areas.add(AppCacheArea.attendance);
       areas.add(AppCacheArea.financeSummary);
@@ -142,6 +148,9 @@ class AppCacheCoordinator {
     }
     if (selected.contains(AppCacheArea.managerWeeklyContribution)) {
       ManagerWeeklyContributionRepository.clearCache();
+    }
+    if (selected.contains(AppCacheArea.timesheetGroups)) {
+      TimesheetGroupRepository.clearCache();
     }
   }
 }

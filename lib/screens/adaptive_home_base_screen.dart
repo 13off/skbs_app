@@ -163,7 +163,7 @@ class _DesktopHomeDashboardState extends State<_DesktopHomeDashboard> {
     if (!mounted || !change.affectsAny(domains)) return;
 
     setState(() {
-      dashboardFuture = loadDashboardData(forceRefresh: true);
+      dashboardFuture = loadDashboardData();
     });
   }
 

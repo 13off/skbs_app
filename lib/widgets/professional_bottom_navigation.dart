@@ -192,7 +192,7 @@ class _ProfessionalBottomNavigationState
               ),
               child: LiquidGlassSurface(
                 key: const ValueKey('professional-bottom-navigation-panel'),
-                blur: true,
+                blur: !kIsWeb || isDesktop,
                 blurSigma: nativeMobile ? 18 : (isDesktop ? 24 : 20),
                 tint: nativeMobile
                     ? dark
@@ -349,11 +349,7 @@ class _MobileNavigationItem extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _NavigationIcon(
-                    item: item,
-                    selected: selected,
-                    size: 23,
-                  ),
+                  _NavigationIcon(item: item, selected: selected, size: 23),
                   const SizedBox(height: 3),
                   _NavigationLabel(
                     item: item,

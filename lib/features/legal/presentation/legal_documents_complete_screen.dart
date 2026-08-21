@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -8,6 +7,7 @@ import '../models/legal_models.dart';
 import 'legal_archive_import_screen.dart';
 import 'legal_document_complete_screen.dart';
 import 'legal_documents_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class LegalDocumentsCompleteScreen extends StatefulWidget {
   const LegalDocumentsCompleteScreen({super.key});
@@ -38,10 +38,10 @@ class _LegalDocumentsCompleteScreenState
   }
 
   Future<List<LegalDocument>> load() => LegalRepository.fetchDocuments(
-        search: searchController.text,
-        status: status,
-        attentionOnly: attentionOnly,
-      );
+    search: searchController.text,
+    status: status,
+    attentionOnly: attentionOnly,
+  );
 
   Future<void> refresh() async {
     final next = load();
@@ -51,14 +51,18 @@ class _LegalDocumentsCompleteScreenState
 
   String group(LegalDocument item) {
     final value = '${item.documentType} ${item.title}'.toLowerCase();
-    if (RegExp(r'(гпх|договор|контракт|подряд|оказан.*услуг)').hasMatch(value)) {
+    if (RegExp(
+      r'(гпх|договор|контракт|подряд|оказан.*услуг)',
+    ).hasMatch(value)) {
       return 'contract';
     }
     if (value.contains('акт')) return 'act';
     if (RegExp(r'(заявлен|соглас|consent|application)').hasMatch(value)) {
       return 'application';
     }
-    if (RegExp(r'(паспорт|снилс|инн|полис|фото|пропис|регистрац)').hasMatch(value)) {
+    if (RegExp(
+      r'(паспорт|снилс|инн|полис|фото|пропис|регистрац)',
+    ).hasMatch(value)) {
       return 'personal';
     }
     return 'other';
@@ -72,9 +76,7 @@ class _LegalDocumentsCompleteScreenState
   Future<void> add() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
-        builder: (_) => const LegalDocumentEditorScreen(),
-      ),
+      AppPageRoute<bool>(builder: (_) => const LegalDocumentEditorScreen()),
     );
     if (saved == true && mounted) await refresh();
   }
@@ -82,9 +84,7 @@ class _LegalDocumentsCompleteScreenState
   Future<void> importArchive() async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
-        builder: (_) => const LegalArchiveImportScreen(),
-      ),
+      AppPageRoute<void>(builder: (_) => const LegalArchiveImportScreen()),
     );
     if (mounted) await refresh();
   }
@@ -93,7 +93,8 @@ class _LegalDocumentsCompleteScreenState
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Документы',
-      subtitle: 'Один реестр: договоры, акты, заявления, личные и прочие документы',
+      subtitle:
+          'Один реестр: договоры, акты, заявления, личные и прочие документы',
       headerTrailing: Wrap(
         spacing: 8,
         children: [
@@ -120,7 +121,8 @@ class _LegalDocumentsCompleteScreenState
                 TextField(
                   controller: searchController,
                   decoration: InputDecoration(
-                    hintText: 'Название, номер, сотрудник, объект или контрагент',
+                    hintText:
+                        'Название, номер, сотрудник, объект или контрагент',
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: IconButton(
                       onPressed: refresh,
@@ -133,22 +135,24 @@ class _LegalDocumentsCompleteScreenState
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: <(String, String)>[
-                    ('all', 'Все'),
-                    ('contract', 'Договоры'),
-                    ('act', 'Акты'),
-                    ('application', 'Заявления и согласия'),
-                    ('personal', 'Личные'),
-                    ('other', 'Прочие'),
-                  ]
-                      .map(
-                        (item) => ChoiceChip(
-                          label: Text(item.$2),
-                          selected: category == item.$1,
-                          onSelected: (_) => setState(() => category = item.$1),
-                        ),
-                      )
-                      .toList(),
+                  children:
+                      <(String, String)>[
+                            ('all', 'Все'),
+                            ('contract', 'Договоры'),
+                            ('act', 'Акты'),
+                            ('application', 'Заявления и согласия'),
+                            ('personal', 'Личные'),
+                            ('other', 'Прочие'),
+                          ]
+                          .map(
+                            (item) => ChoiceChip(
+                              label: Text(item.$2),
+                              selected: category == item.$1,
+                              onSelected: (_) =>
+                                  setState(() => category = item.$1),
+                            ),
+                          )
+                          .toList(),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -158,7 +162,10 @@ class _LegalDocumentsCompleteScreenState
                     prefixIcon: Icon(Icons.flag_outlined),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('Все статусы')),
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Все статусы'),
+                    ),
                     ...legalDocumentLifecycleStatuses.map(
                       (value) => DropdownMenuItem<String>(
                         value: value,
@@ -194,7 +201,9 @@ class _LegalDocumentsCompleteScreenState
               if (!snapshot.hasData) {
                 if (snapshot.hasError) {
                   return PremiumWorkCard(
-                    child: Text('Не удалось загрузить документы: ${snapshot.error}'),
+                    child: Text(
+                      'Не удалось загрузить документы: ${snapshot.error}',
+                    ),
                   );
                 }
                 return const PremiumWorkCard(
@@ -206,7 +215,9 @@ class _LegalDocumentsCompleteScreenState
               }
               final source = snapshot.data!;
               final items = visible(source);
-              final attention = source.where((item) => item.needsAttention).length;
+              final attention = source
+                  .where((item) => item.needsAttention)
+                  .length;
               final missingFileHint = source.isEmpty
                   ? 'Документов пока нет. Добавьте новый или импортируйте существующий архив.'
                   : 'По выбранным фильтрам ничего не найдено.';
@@ -220,9 +231,18 @@ class _LegalDocumentsCompleteScreenState
                       spacing: 18,
                       runSpacing: 8,
                       children: [
-                        Text('Всего: ${source.length}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                        Text('Показано: ${items.length}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                        Text('Требуют внимания: $attention', style: const TextStyle(fontWeight: FontWeight.w900)),
+                        Text(
+                          'Всего: ${source.length}',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          'Показано: ${items.length}',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          'Требуют внимания: $attention',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
                       ],
                     ),
                   ),
@@ -238,7 +258,9 @@ class _LegalDocumentsCompleteScreenState
                             const SizedBox(height: 12),
                             FilledButton.icon(
                               onPressed: importArchive,
-                              icon: const Icon(Icons.drive_folder_upload_outlined),
+                              icon: const Icon(
+                                Icons.drive_folder_upload_outlined,
+                              ),
                               label: const Text('Импортировать архив'),
                             ),
                           ],
@@ -254,28 +276,31 @@ class _LegalDocumentsCompleteScreenState
                           padding: EdgeInsets.zero,
                           child: ListTile(
                             leading: CircleAvatar(
-                              child: Icon(
-                                switch (group(item)) {
-                                  'contract' => Icons.handshake_outlined,
-                                  'act' => Icons.fact_check_outlined,
-                                  'application' => Icons.edit_document,
-                                  'personal' => Icons.badge_outlined,
-                                  _ => Icons.description_outlined,
-                                },
-                              ),
+                              child: Icon(switch (group(item)) {
+                                'contract' => Icons.handshake_outlined,
+                                'act' => Icons.fact_check_outlined,
+                                'application' => Icons.edit_document,
+                                'personal' => Icons.badge_outlined,
+                                _ => Icons.description_outlined,
+                              }),
                             ),
                             title: Text(
                               item.title,
-                              style: const TextStyle(fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                             subtitle: Text(
                               <String>[
                                 legalDocumentLifecycleTitle(item.status),
                                 item.expiryTitle,
-                                if (item.documentNumber.isNotEmpty) '№ ${item.documentNumber}',
-                                if (item.employeeName.isNotEmpty) item.employeeName,
+                                if (item.documentNumber.isNotEmpty)
+                                  '№ ${item.documentNumber}',
+                                if (item.employeeName.isNotEmpty)
+                                  item.employeeName,
                                 if (item.objectName.isNotEmpty) item.objectName,
-                                if (item.counterpartyName.isNotEmpty) item.counterpartyName,
+                                if (item.counterpartyName.isNotEmpty)
+                                  item.counterpartyName,
                               ].join(' • '),
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
@@ -284,8 +309,10 @@ class _LegalDocumentsCompleteScreenState
                             onTap: () async {
                               await Navigator.push<void>(
                                 context,
-                                CupertinoPageRoute<void>(
-                                  builder: (_) => LegalDocumentCompleteScreen(document: item),
+                                AppPageRoute<void>(
+                                  builder: (_) => LegalDocumentCompleteScreen(
+                                    document: item,
+                                  ),
                                 ),
                               );
                               if (mounted) await refresh();

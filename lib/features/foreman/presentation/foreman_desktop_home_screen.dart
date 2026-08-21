@@ -60,7 +60,7 @@ class _ForemanDesktopHomeScreenState extends State<ForemanDesktopHomeScreen> {
           })) {
         return;
       }
-      refresh();
+      refresh(forceRefresh: false);
     });
   }
 
@@ -129,8 +129,8 @@ class _ForemanDesktopHomeScreenState extends State<ForemanDesktopHomeScreen> {
     );
   }
 
-  Future<void> refresh() async {
-    final next = load(forceRefresh: true);
+  Future<void> refresh({bool forceRefresh = true}) async {
+    final next = load(forceRefresh: forceRefresh);
     setState(() => future = next);
     await next;
   }

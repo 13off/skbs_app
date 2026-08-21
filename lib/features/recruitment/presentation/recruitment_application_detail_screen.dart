@@ -17,6 +17,7 @@ import '../../../widgets/premium_ui_v2.dart';
 import '../data/recruitment_repository.dart';
 import '../models/recruitment_models.dart';
 import 'recruitment_candidate_crm_section.dart';
+import '../../../navigation/app_page_route.dart';
 
 Color get _detailText => AppAdaptivePalette.textPrimary;
 Color get _detailMuted => AppAdaptivePalette.textMuted;
@@ -158,7 +159,7 @@ class _RecruitmentApplicationDetailScreenState
         );
         if (!mounted) return;
         await Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) => _RecruitmentImageViewer(title: title, bytes: bytes),
           ),
         );

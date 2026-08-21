@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
+import '../navigation/app_page_route.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../data/attendance_repository.dart';

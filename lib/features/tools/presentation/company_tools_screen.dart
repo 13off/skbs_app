@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -11,6 +10,7 @@ import '../../documents/presentation/document_package_management_screen.dart';
 import '../../documents/presentation/document_tool_templates_screen.dart';
 import '../../documents/presentation/document_workflow_screen.dart';
 import 'document_tool_feature_gate.dart';
+import '../../../navigation/app_page_route.dart';
 
 class CompanyToolsScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -103,7 +103,7 @@ class _CompanyToolsScreenState extends State<CompanyToolsScreen> {
   void _openWorkspace(_ToolsData data) {
     if (!data.installation.isEnabled || !data.access.canView) return;
     Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => DocumentToolWorkspaceScreen(
           profile: widget.profile,
           access: data.access,
@@ -185,7 +185,7 @@ class DocumentToolWorkspaceScreen extends StatelessWidget {
   void _open(BuildContext context, Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   @override

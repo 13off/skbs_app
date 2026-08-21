@@ -22,7 +22,7 @@ void main() {
     );
     expect(navigation, contains('MaterialType.transparency'));
     expect(page, contains('class AppPageHeader'));
-    expect(page, contains('blur: true'));
+    expect(page, contains('blur: !kIsWeb || isDesktop'));
     expect(cards, contains('blur: false'));
     expect(
       cards,

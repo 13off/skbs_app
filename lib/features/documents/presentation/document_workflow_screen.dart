@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -9,6 +8,7 @@ import '../data/document_workflow_repository.dart';
 import '../models/document_onboarding.dart';
 import 'document_onboarding_screen.dart';
 import 'document_package_management_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class DocumentWorkflowScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -43,7 +43,7 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
   void open(Widget screen) {
     Navigator.of(
       context,
-    ).push<void>(CupertinoPageRoute<void>(builder: (_) => screen));
+    ).push<void>(AppPageRoute<void>(builder: (_) => screen));
   }
 
   Future<void> seedPackages() async {
@@ -97,7 +97,7 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
       );
       if (!mounted) return;
       await Navigator.of(context).push<void>(
-        CupertinoPageRoute<void>(
+        AppPageRoute<void>(
           builder: (_) => DocumentOnboardingScreen(
             profile: widget.profile,
             onboardingId: onboarding.id,
@@ -198,7 +198,7 @@ class _DocumentWorkflowScreenState extends State<DocumentWorkflowScreen> {
                         onboarding: onboarding,
                         onTap: () async {
                           await Navigator.of(context).push<void>(
-                            CupertinoPageRoute<void>(
+                            AppPageRoute<void>(
                               builder: (_) => DocumentOnboardingScreen(
                                 profile: widget.profile,
                                 onboardingId: onboarding.id,

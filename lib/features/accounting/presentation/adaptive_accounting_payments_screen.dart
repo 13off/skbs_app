@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +12,7 @@ import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AdaptiveAccountingPaymentsScreen extends StatelessWidget {
   const AdaptiveAccountingPaymentsScreen({super.key});
@@ -116,7 +116,7 @@ class _DesktopAccountingPaymentsScreenState
   Future<void> addPayment() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,
@@ -131,7 +131,7 @@ class _DesktopAccountingPaymentsScreenState
   void openDetailedMode() {
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PaymentsScreen(selectedObjectName: objectName),
       ),
     );

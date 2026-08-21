@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
@@ -253,7 +254,7 @@ class AppPageHeader extends StatelessWidget {
         MediaQuery.sizeOf(context).width >= AppUi.desktopBreakpoint;
 
     return LiquidGlassSurface(
-      blur: true,
+      blur: !kIsWeb || isDesktop,
       blurSigma: isDesktop ? 18 : 14,
       radius: isDesktop ? 32 : 28,
       padding: EdgeInsets.fromLTRB(

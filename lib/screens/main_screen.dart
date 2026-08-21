@@ -84,13 +84,15 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> restoreNavigation() async {
     try {
-      await NavigationSession.configure(
-        userId: widget.profile.id,
-        companyId: widget.profile.activeCompanyId,
-      );
-      await RolePreviewController.restore(
-        canPreviewRoles: widget.profile.canPreviewRoles,
-      );
+      await Future.wait<void>([
+        NavigationSession.configure(
+          userId: widget.profile.id,
+          companyId: widget.profile.activeCompanyId,
+        ),
+        RolePreviewController.restore(
+          canPreviewRoles: widget.profile.canPreviewRoles,
+        ),
+      ]);
     } catch (_) {
       RolePreviewController.reset(clearPersisted: false);
     }

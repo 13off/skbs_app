@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -9,6 +8,7 @@ import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
 import 'milestone_detail_screen.dart';
 import 'milestones_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class MilestoneHomeSection extends StatefulWidget {
   final AppUserProfile profile;
@@ -65,7 +65,7 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
 
   Future<void> openMilestones() async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => MilestonesScreen(
           profile: widget.profile,
           selectedObjectName: effectiveObject,
@@ -77,7 +77,7 @@ class _MilestoneHomeSectionState extends State<MilestoneHomeSection> {
 
   Future<void> openMilestone(ProjectMilestone milestone) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => MilestoneDetailScreen(
           profile: widget.profile,
           milestoneId: milestone.id,

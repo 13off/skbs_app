@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +16,7 @@ import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_reports_screen.dart';
 import 'accounting_widgets.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AdaptiveAccountingReportsScreen extends StatelessWidget {
   const AdaptiveAccountingReportsScreen({super.key});
@@ -202,7 +202,7 @@ class _DesktopAccountingReportsScreenState
     if (selectedObjectScope == null) return;
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             PeriodTimesheetScreen(selectedObjectName: selectedObjectName),
       ),

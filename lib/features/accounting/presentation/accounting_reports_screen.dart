@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../data/employee_repository.dart';
@@ -12,6 +11,7 @@ import '../../ai/presentation/operational_audit_launcher_screen.dart';
 import '../../payments/data/payment_report_exporter.dart';
 import '../data/accounting_repository.dart';
 import 'accounting_widgets.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AccountingReportsScreen extends StatefulWidget {
   const AccountingReportsScreen({super.key});
@@ -159,7 +159,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
     if (selectedObjectScope == null) return;
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PeriodTimesheetScreen(
           selectedObjectName: selectedObjectName,
           initialMonth: selectedMonth,
@@ -172,7 +172,7 @@ class _AccountingReportsScreenState extends State<AccountingReportsScreen> {
     if (selectedObjectScope == null) return;
     Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => OperationalAuditLauncherScreen(
           initialMonth: selectedMonth,
           initialObjectName: selectedObjectName,

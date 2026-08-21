@@ -51,7 +51,7 @@ class EmployeeDirectoryController extends ChangeNotifier {
     })) {
       return;
     }
-    load(forceRefresh: true);
+    load();
   }
 
   Future<void> load({

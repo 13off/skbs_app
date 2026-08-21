@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:skbs_app/app/app_ui_tokens.dart';
@@ -9,6 +8,7 @@ import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
 import 'milestone_detail_screen.dart';
 import 'milestone_editor_dialog.dart';
+import '../../../navigation/app_page_route.dart';
 
 class MilestonesScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -79,7 +79,7 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
   Future<void> openMilestone(ProjectMilestone milestone) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => MilestoneDetailScreen(
           profile: widget.profile,
           milestoneId: milestone.id,

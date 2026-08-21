@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../../../screens/payments_screen.dart';
 import '../../../screens/period_timesheet_screen.dart';
 import '../models/ai_assistant_result.dart';
+import '../../../navigation/app_page_route.dart';
 
 class AiOperationalAuditScreen extends StatelessWidget {
   final AiAssistantAction action;
@@ -55,7 +55,7 @@ class AiOperationalAuditScreen extends StatelessWidget {
 
   Future<void> openTimesheet(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PeriodTimesheetScreen(
           selectedObjectName: objectName.isEmpty ? null : objectName,
           initialMonth: month,
@@ -66,7 +66,7 @@ class AiOperationalAuditScreen extends StatelessWidget {
 
   Future<void> openPayments(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PaymentsScreen(
           selectedObjectName: objectName.isEmpty ? null : objectName,
         ),

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_page.dart';
@@ -7,6 +6,7 @@ import '../data/legal_document_operations_repository.dart';
 import '../data/legal_repository.dart';
 import '../models/legal_models.dart';
 import 'legal_documents_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 const legalDocumentLifecycleStatuses = <String>[
   'draft',
@@ -22,17 +22,17 @@ const legalDocumentLifecycleStatuses = <String>[
 ];
 
 String legalDocumentLifecycleTitle(String value) => switch (value) {
-      'prepared' => 'Подготовлен',
-      'review' => 'На согласовании',
-      'awaiting_signature' => 'На подписи',
-      'signed' => 'Подписан',
-      'active' => 'Действует',
-      'expired' => 'Истёк',
-      'needs_correction' => 'Требует исправления',
-      'terminated' => 'Расторгнут',
-      'archive' => 'Архив',
-      _ => 'Черновик',
-    };
+  'prepared' => 'Подготовлен',
+  'review' => 'На согласовании',
+  'awaiting_signature' => 'На подписи',
+  'signed' => 'Подписан',
+  'active' => 'Действует',
+  'expired' => 'Истёк',
+  'needs_correction' => 'Требует исправления',
+  'terminated' => 'Расторгнут',
+  'archive' => 'Архив',
+  _ => 'Черновик',
+};
 
 class LegalDocumentCompleteScreen extends StatefulWidget {
   final LegalDocument document;
@@ -80,7 +80,8 @@ class _LegalDocumentCompleteScreenState
   String date(DateTime? value, {bool time = false}) {
     if (value == null) return '—';
     final v = value.toLocal();
-    final day = '${v.day.toString().padLeft(2, '0')}.${v.month.toString().padLeft(2, '0')}.${v.year}';
+    final day =
+        '${v.day.toString().padLeft(2, '0')}.${v.month.toString().padLeft(2, '0')}.${v.year}';
     if (!time) return day;
     return '$day • ${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
   }
@@ -94,7 +95,10 @@ class _LegalDocumentCompleteScreenState
         children: [
           SizedBox(
             width: 132,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -111,7 +115,7 @@ class _LegalDocumentCompleteScreenState
   Future<void> edit() async {
     final saved = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute<bool>(
+      AppPageRoute<bool>(
         builder: (_) => LegalDocumentEditorScreen(document: document),
       ),
     );
@@ -210,7 +214,8 @@ class _LegalDocumentCompleteScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DropdownButtonFormField<String>(
-            initialValue: legalDocumentLifecycleStatuses.contains(document.status)
+            initialValue:
+                legalDocumentLifecycleStatuses.contains(document.status)
                 ? document.status
                 : 'draft',
             decoration: const InputDecoration(
@@ -288,11 +293,13 @@ class _LegalDocumentCompleteScreenState
                   <String>[
                     if (item.versionLabel.isNotEmpty) item.versionLabel,
                     if (item.isPrimary) 'текущая версия',
-                    if (item.createdAt != null) date(item.createdAt, time: true),
+                    if (item.createdAt != null)
+                      date(item.createdAt, time: true),
                   ].join(' • '),
                 ),
                 trailing: const Icon(Icons.open_in_new_rounded),
-                onTap: () => LegalDocumentOperationsRepository.openVersion(item),
+                onTap: () =>
+                    LegalDocumentOperationsRepository.openVersion(item),
               ),
             ),
         ],
@@ -326,7 +333,8 @@ class _LegalDocumentCompleteScreenState
                 subtitle: Text(
                   <String>[
                     if (item.body.isNotEmpty) item.body,
-                    if (item.createdAt != null) date(item.createdAt, time: true),
+                    if (item.createdAt != null)
+                      date(item.createdAt, time: true),
                   ].join(' • '),
                 ),
               ),
@@ -343,7 +351,10 @@ class _LegalDocumentCompleteScreenState
         title: const Text('Документ'),
         actions: [
           IconButton(onPressed: edit, icon: const Icon(Icons.edit_outlined)),
-          IconButton(onPressed: refresh, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(
+            onPressed: refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
         ],
       ),
       body: FutureBuilder<_DocumentData>(

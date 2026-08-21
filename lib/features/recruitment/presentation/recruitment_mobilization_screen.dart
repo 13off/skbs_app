@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
@@ -7,6 +6,7 @@ import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui_v2.dart';
 import '../data/employee_mobilization_repository.dart';
 import '../models/employee_mobilization_models.dart';
+import '../../../navigation/app_page_route.dart';
 
 class RecruitmentMobilizationScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -82,7 +82,7 @@ class _RecruitmentMobilizationScreenState
                   child: PremiumPressable(
                     onTap: () async {
                       await Navigator.of(context).push<void>(
-                        CupertinoPageRoute<void>(
+                        AppPageRoute<void>(
                           builder: (_) =>
                               EmployeeMobilizationDetailScreen(entry: entry),
                         ),

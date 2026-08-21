@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -104,7 +103,7 @@ class _DesktopEmployeesScreenState extends State<_DesktopEmployeesScreen> {
 
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeDetailsScreen(profile: widget.profile, employee: employee),
       ),

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/services.dart';
 
 import '../../../data/app_cache_coordinator.dart';
@@ -22,6 +21,7 @@ import '../../../screens/task_details_screen.dart';
 import '../../../screens/tasks_screen.dart';
 import '../../../widgets/app_page.dart';
 import '../../../widgets/premium_ui.dart';
+import '../../../navigation/app_page_route.dart';
 
 class MainScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -195,7 +195,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (navigator == null) return;
 
     await navigator.push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => PaymentsScreen(
           selectedObjectName: selectedObjectNameNotifier.value,
         ),
@@ -208,7 +208,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (navigator == null) return;
 
     final result = await navigator.push<dynamic>(
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );
@@ -294,7 +294,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       child: Navigator(
         key: navigatorKeys[index],
         onGenerateRoute: (settings) {
-          return CupertinoPageRoute<void>(
+          return AppPageRoute<void>(
             settings: settings,
             builder: (_) {
               return ValueListenableBuilder<String?>(

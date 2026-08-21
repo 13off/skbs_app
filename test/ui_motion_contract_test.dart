@@ -39,7 +39,7 @@ void main() {
     );
     final stableShell = source.substring(0, barStart);
 
-    expect(stableShell, contains('CupertinoPageRoute<void>'));
+    expect(stableShell, contains('AppPageRoute<void>'));
     expect(stableShell, contains('PageView.builder'));
     expect(
       stableShell,

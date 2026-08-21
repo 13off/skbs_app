@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 
 import '../../../../app/app_adaptive_palette.dart';
 import '../../../../app/app_ui_tokens.dart';
@@ -17,6 +16,7 @@ import '../../../../widgets/object_employee_scope.dart';
 import '../../../../widgets/premium_ui.dart';
 import '../../data/payment_report_exporter.dart';
 import '../widgets/payment_report_sheet.dart';
+import '../../../../navigation/app_page_route.dart';
 
 class PaymentsScreen extends StatefulWidget {
   final String? selectedObjectName;
@@ -72,7 +72,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       return;
     }
 
-    loadPaymentsData(forceRefresh: true);
+    loadPaymentsData();
   }
 
   String monthName(int month) {
@@ -210,18 +210,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           employee.position.toLowerCase().contains(query) ||
           row.objectTitle.toLowerCase().contains(query);
     }).toList();
-  }
-
-  double get totalAccrued {
-    return filteredRows.fold<double>(0, (sum, row) => sum + row.accrued);
-  }
-
-  double get totalPaid {
-    return filteredRows.fold<double>(0, (sum, row) => sum + row.paid);
-  }
-
-  double get totalBalance {
-    return filteredRows.fold<double>(0, (sum, row) => sum + row.balance);
   }
 
   Future<void> loadPaymentsData({
@@ -380,7 +368,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> openAddPayment({String? employeeId}) async {
     final result = await Navigator.push<bool>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => AddPaymentScreen(
           periodYear: selectedMonth.year,
           periodMonth: selectedMonth.month,
@@ -398,7 +386,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> openPaymentHistory(_PaymentDisplayRow row) async {
     await Navigator.push<void>(
       context,
-      CupertinoPageRoute(
+      AppPageRoute(
         builder: (_) => PaymentHistoryScreen(
           employee: row.employee,
           employeeIds: row.employeeIds,
@@ -545,7 +533,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  Widget buildSummaryPanel() {
+  Widget buildSummaryPanel(List<_PaymentDisplayRow> visibleRows) {
+    var totalAccrued = 0.0;
+    var totalPaid = 0.0;
+    var totalBalance = 0.0;
+    for (final row in visibleRows) {
+      totalAccrued += row.accrued;
+      totalPaid += row.paid;
+      totalBalance += row.balance;
+    }
+
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(15),
@@ -891,7 +888,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  Widget buildDesktopSummaryPanel() {
+  Widget buildDesktopSummaryPanel(List<_PaymentDisplayRow> visibleRows) {
+    var totalAccrued = 0.0;
+    var totalPaid = 0.0;
+    var totalBalance = 0.0;
+    for (final row in visibleRows) {
+      totalAccrued += row.accrued;
+      totalPaid += row.paid;
+      totalBalance += row.balance;
+    }
+
     return PremiumWorkCard(
       radius: 24,
       padding: const EdgeInsets.all(18),
@@ -979,7 +985,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final leading = <Widget>[
       buildMonthPanel(),
       const SizedBox(height: 14),
-      buildSummaryPanel(),
+      buildSummaryPanel(visibleRows),
       const SizedBox(height: 14),
       buildSearch(),
       const SizedBox(height: 12),
@@ -1017,7 +1023,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final leading = <Widget>[
       buildMonthPanel(),
       const SizedBox(height: 18),
-      buildDesktopSummaryPanel(),
+      buildDesktopSummaryPanel(visibleRows),
       const SizedBox(height: 18),
       buildSearch(),
       const SizedBox(height: 14),

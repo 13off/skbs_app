@@ -4,6 +4,7 @@ import '../../../app/app_adaptive_palette.dart';
 import '../../../widgets/premium_ui.dart';
 import 'employee_max_login_screen.dart';
 import 'premium_login_screen_v2.dart' as management;
+import '../../../navigation/app_page_route.dart';
 
 class LoginScreen extends StatelessWidget {
   final Future<void> Function()? onSignedIn;
@@ -18,7 +19,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> openEmployeeLogin(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (routeContext) => EmployeeMaxLoginScreen(
           onSignedIn: () => finishSignIn(routeContext),
         ),
@@ -28,7 +29,7 @@ class LoginScreen extends StatelessWidget {
 
   Future<void> openManagementLogin(BuildContext context) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (routeContext) => management.LoginScreen(
           onSignedIn: () => finishSignIn(routeContext),
         ),

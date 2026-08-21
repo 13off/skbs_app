@@ -26,7 +26,7 @@ void main() {
     expect(sections, contains("openLabel: 'Открыть табель'"));
     expect(sections, contains("secondaryLabel: 'Отчёт за период'"));
     expect(sections, contains("openLabel: 'Открыть бухгалтерию'"));
-    expect(sections, contains('CupertinoPageRoute<void>'));
+    expect(sections, contains('AppPageRoute<void>'));
     expect(tile, contains('onTap: loading ? null : onTap'));
 
     expect(weekly, contains('class _WeeklyContributionDetailsScreen'));

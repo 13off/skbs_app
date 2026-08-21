@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/app_user_profile.dart';
@@ -7,6 +6,7 @@ import '../../../widgets/premium_ui.dart';
 import '../data/employee_team_repository.dart';
 import '../data/employee_work_action_repository.dart';
 import 'employee_team_screen.dart';
+import '../../../navigation/app_page_route.dart';
 
 class EmployeeTeamTabScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -61,7 +61,7 @@ class _EmployeeTeamTabScreenState extends State<EmployeeTeamTabScreen> {
 
   Future<void> _openMember(EmployeeTeamMember member, String objectName) async {
     await Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) =>
             EmployeeTeamMemberScreen(member: member, objectName: objectName),
       ),

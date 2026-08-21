@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -18,6 +17,7 @@ import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
 import 'period_timesheet_screen.dart';
 import 'timesheet_group_manager_sheet.dart';
+import '../navigation/app_page_route.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
@@ -52,6 +52,9 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   DateTime selectedDate = AppState.today;
   List<Employee> employees = const <Employee>[];
   List<TimesheetGroup> timesheetGroups = const <TimesheetGroup>[];
+  Map<String, TimesheetGroup> groupByEmployeeId =
+      const <String, TimesheetGroup>{};
+  Map<String, int> groupIndexById = const <String, int>{};
   Map<String, double> shiftValuesByEmployeeId = <String, double>{};
   Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
 
@@ -179,7 +182,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
     });
 
     if (employeesChanged) {
-      loadData(forceRefresh: true, attendanceOnly: false);
+      loadData(attendanceOnly: false);
       return;
     }
 
@@ -194,7 +197,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       return;
     }
 
-    loadData(forceRefresh: true, attendanceOnly: true);
+    loadData(attendanceOnly: true);
   }
 
   Future<void> loadData({
@@ -236,6 +239,15 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       final loadedEmployees = results[0] as List<Employee>;
       final loadedValues = results[1] as Map<String, double>;
       final loadedGroups = results[2] as List<TimesheetGroup>;
+      final nextGroupByEmployeeId = <String, TimesheetGroup>{};
+      final nextGroupIndexById = <String, int>{};
+      for (var index = 0; index < loadedGroups.length; index++) {
+        final group = loadedGroups[index];
+        nextGroupIndexById[group.id] = index;
+        for (final employeeId in group.employeeIds) {
+          nextGroupByEmployeeId.putIfAbsent(employeeId, () => group);
+        }
+      }
       final availableObjects = loadedEmployees
           .map((employee) => employee.objectName.trim())
           .where((name) => name.isNotEmpty)
@@ -244,6 +256,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       setState(() {
         employees = loadedEmployees;
         timesheetGroups = loadedGroups;
+        groupByEmployeeId = Map<String, TimesheetGroup>.unmodifiable(
+          nextGroupByEmployeeId,
+        );
+        groupIndexById = Map<String, int>.unmodifiable(nextGroupIndexById);
         shiftValuesByEmployeeId = Map<String, double>.from(loadedValues);
         originalShiftValuesByEmployeeId = Map<String, double>.from(
           loadedValues,
@@ -259,7 +275,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           objectFilter = null;
         }
 
-        final filterExists = groupFilter == allGroupsFilter ||
+        final filterExists =
+            groupFilter == allGroupsFilter ||
             loadedGroups.any((group) => group.id == groupFilter);
         if (!filterExists) groupFilter = allGroupsFilter;
       });
@@ -280,7 +297,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         isLoading) {
       return;
     }
-    loadData(forceRefresh: true, attendanceOnly: true);
+    loadData(attendanceOnly: true);
   }
 
   void setShiftValue(Employee employee, double value) {
@@ -456,12 +473,13 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   List<String> get objectOptions {
-    final values = employees
-        .map((employee) => employee.objectName.trim())
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        employees
+            .map((employee) => employee.objectName.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return values;
   }
 
@@ -481,10 +499,9 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   }
 
   TimesheetGroup? groupForEmployee(Employee employee) {
-    for (final group in timesheetGroups) {
-      if (group.containsEmployee(employee.id)) return group;
-    }
-    return null;
+    final employeeId = employee.id?.trim();
+    if (employeeId == null || employeeId.isEmpty) return null;
+    return groupByEmployeeId[employeeId];
   }
 
   String groupOptionTitle(TimesheetGroup group) {
@@ -501,8 +518,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   int groupSortIndex(Employee employee) {
     final group = groupForEmployee(employee);
     if (group == null) return 1 << 30;
-    final index = timesheetGroups.indexWhere((value) => value.id == group.id);
-    return index < 0 ? 1 << 29 : index;
+    return groupIndexById[group.id] ?? (1 << 29);
   }
 
   List<Employee> visibleEmployees() {
@@ -551,7 +567,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
 
   void openReport() {
     Navigator.of(context).push<void>(
-      CupertinoPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => Scaffold(
           appBar: AppBar(
             leading: const BackButton(),
@@ -780,7 +796,10 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                       ...objectOptions.map(
                         (objectName) => DropdownMenuItem<String?>(
                           value: objectName,
-                          child: Text(objectName, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            objectName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],
@@ -830,16 +849,19 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                   child: DropdownButton<String>(
                     value: attendanceFilter,
                     isExpanded: true,
-                    items: const <String>[
-                      'Все сотрудники',
-                      'Только вышедшие',
-                      'Не вышли',
-                    ].map(
-                      (value) => DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      ),
-                    ).toList(growable: false),
+                    items:
+                        const <String>[
+                              'Все сотрудники',
+                              'Только вышедшие',
+                              'Не вышли',
+                            ]
+                            .map(
+                              (value) => DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(growable: false),
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => attendanceFilter = value);
@@ -981,7 +1003,9 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
                 children: [
                   Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: double.infinity),
+                      constraints: const BoxConstraints(
+                        maxWidth: double.infinity,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 import 'package:skbs_app/app/app_ui_tokens.dart';
@@ -12,6 +11,7 @@ import '../../../screens/task_details_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../data/milestone_repository.dart';
 import '../models/milestone_models.dart';
+import '../../../navigation/app_page_route.dart';
 
 class MilestoneDetailScreen extends StatefulWidget {
   final AppUserProfile profile;
@@ -235,7 +235,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
         : milestone.targetDate;
     final draft = await Navigator.push<TaskCreateDraft>(
       context,
-      CupertinoPageRoute<TaskCreateDraft>(
+      AppPageRoute<TaskCreateDraft>(
         builder: (_) => AddTaskScreen(
           initialDate: initialDate,
           objectName: milestone.objectName,
@@ -277,7 +277,7 @@ class _MilestoneDetailScreenState extends State<MilestoneDetailScreen> {
     );
     final result = await Navigator.push<dynamic>(
       context,
-      CupertinoPageRoute<dynamic>(
+      AppPageRoute<dynamic>(
         builder: (_) => TaskDetailsScreen(task: task, profile: widget.profile),
       ),
     );
