@@ -1,6 +1,6 @@
 AppСтрой PWA release
-release date: 2026-08-20
-reason: remove the ungrouped state from the timesheet; every active employee always belongs to a visible group, with automatic fallback to the protected «Общая» group; keep custom group filters and admin management
-accepted application commit: 8306ffd9317360ca3a59161d985e1cd5cb191833
-backend migration: timesheet_groups_always_assigned applied to production
-release target: PWA only; no Android APK or iOS IPA release
+release date: 2026-08-21
+reason: app-wide performance pass without changing business logic; faster screen transitions and interaction motion, idle prewarm of persistent tabs without pending timers, cached and coalesced timesheet groups, indexed timesheet lookups, debounced recruitment search, fewer redundant refreshes and lighter mobile PWA glass blur
+accepted application commit: 25e6a871450f260a90de762a521de0d62a211247
+verification: PR Check, Acceptance Backend Follow-up and Full Acceptance Test passed; analyzer, all Flutter tests, Web release and browser smoke, Android debug/release, Edge and SQL checks are green
+release target: PWA only; no Android APK or iOS IPA publication
