@@ -224,13 +224,13 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
   }
 
   Widget buildPhotoPreview(TaskPhotoData photo) {
-    final cachedUrl = TaskPhotoSignedUrlCache.cachedUrl(photo);
+    final cachedUrl = TaskPhotoSignedUrlCache.cachedPreviewUrl(photo);
     if (cachedUrl != null) {
       return buildNetworkPhoto(cachedUrl);
     }
 
     return FutureBuilder<String>(
-      future: signedUrlFuture(photo),
+      future: previewSignedUrlFuture(photo),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Container(
@@ -261,7 +261,9 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
         url,
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        filterQuality: FilterQuality.medium,
+        cacheWidth: 512,
+        cacheHeight: 512,
+        filterQuality: FilterQuality.low,
         errorBuilder: (context, error, stackTrace) {
           return const Center(child: Icon(Icons.broken_image_outlined));
         },
@@ -287,7 +289,9 @@ extension _TaskDetailsSections on _TaskDetailsScreenState {
     final axes = axesController.text.trim();
     final visibleWork = workController.text.trim();
     final goalWork = selectedChecklistTitle?.trim() ?? '';
-    final savedWork = isGoalTask && goalWork.isNotEmpty ? goalWork : visibleWork;
+    final savedWork = isGoalTask && goalWork.isNotEmpty
+        ? goalWork
+        : visibleWork;
     final draftTask = TaskItemData(
       axes,
       savedWork,

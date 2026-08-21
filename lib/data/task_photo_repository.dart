@@ -31,11 +31,22 @@ class TaskPhotoRepository {
     return '$taskId/$photoStage/${timestamp}_$index.$extension';
   }
 
+  static String safeThumbnailStoragePath({
+    required String taskId,
+    required String photoStage,
+    required int index,
+    required int timestamp,
+    String extension = 'jpg',
+  }) {
+    final cleanExtension = extension.trim().isEmpty ? 'jpg' : extension.trim();
+    return '$taskId/$photoStage/thumbs/${timestamp}_$index.$cleanExtension';
+  }
+
   static Future<List<TaskPhotoData>> fetchPhotos(String taskId) async {
     final rows = await _client
         .from('task_photos')
         .select(
-          'id, task_id, storage_path, original_name, photo_stage, created_at',
+          'id, task_id, storage_path, thumbnail_path, original_name, photo_stage, created_at',
         )
         .eq('task_id', taskId)
         .order('created_at', ascending: false);
@@ -58,23 +69,35 @@ class TaskPhotoRepository {
 
     final uploadItems = List.generate(photos.length, (index) {
       final photo = photos[index];
-      return (
+      final timestamp = DateTime.now().millisecondsSinceEpoch + index;
+      final path = safeStoragePath(
+        taskId: taskId,
+        photoStage: photoStage,
         photo: photo,
-        path: safeStoragePath(
-          taskId: taskId,
-          photoStage: photoStage,
-          photo: photo,
-          index: index + 1,
-        ),
+        index: index + 1,
+        now: DateTime.fromMillisecondsSinceEpoch(timestamp),
       );
+      final thumbnailPath = photo.hasThumbnail
+          ? safeThumbnailStoragePath(
+              taskId: taskId,
+              photoStage: photoStage,
+              index: index + 1,
+              timestamp: timestamp,
+              extension: photo.thumbnailExtension,
+            )
+          : null;
+      return (photo: photo, path: path, thumbnailPath: thumbnailPath);
     });
     final uploadedPaths = <String>[];
     final loadedBytesByPath = <String, int>{
       for (final item in uploadItems) item.path: 0,
+      for (final item in uploadItems)
+        if (item.thumbnailPath != null) item.thumbnailPath!: 0,
     };
     final totalBytes = photos.fold<int>(
       0,
-      (sum, photo) => sum + photo.bytes.length,
+      (sum, photo) =>
+          sum + photo.bytes.length + (photo.thumbnailBytes?.length ?? 0),
     );
     var completedFiles = 0;
 
@@ -120,6 +143,32 @@ class TaskPhotoRepository {
           );
           loadedBytesByPath[item.path] = item.photo.bytes.length;
           uploadedPaths.add(item.path);
+
+          final thumbnailPath = item.thumbnailPath;
+          final thumbnailBytes = item.photo.thumbnailBytes;
+          if (thumbnailPath != null &&
+              thumbnailBytes != null &&
+              thumbnailBytes.isNotEmpty) {
+            final thumbnailPhoto = TaskPhotoFile(
+              originalName: item.photo.originalName,
+              contentType: item.photo.thumbnailContentType,
+              extension: item.photo.thumbnailExtension,
+              bytes: thumbnailBytes,
+            );
+            await _uploadPhotoBytes(
+              path: thumbnailPath,
+              photo: thumbnailPhoto,
+              onProgress: (loadedBytes) {
+                loadedBytesByPath[thumbnailPath] = loadedBytes
+                    .clamp(0, thumbnailBytes.length)
+                    .toInt();
+                emitProgress();
+              },
+            );
+            loadedBytesByPath[thumbnailPath] = thumbnailBytes.length;
+            uploadedPaths.add(thumbnailPath);
+          }
+
           completedFiles += 1;
           emitProgress();
         }
@@ -131,9 +180,10 @@ class TaskPhotoRepository {
 
       final rowsToInsert = uploadItems
           .map(
-            (item) => <String, String>{
+            (item) => <String, dynamic>{
               'task_id': taskId,
               'storage_path': item.path,
+              'thumbnail_path': item.thumbnailPath,
               'original_name': item.photo.originalName,
               'photo_stage': photoStage,
             },
@@ -144,7 +194,7 @@ class TaskPhotoRepository {
           .from('task_photos')
           .insert(rowsToInsert)
           .select(
-            'id, task_id, storage_path, original_name, photo_stage, created_at',
+            'id, task_id, storage_path, thumbnail_path, original_name, photo_stage, created_at',
           );
 
       return rows
@@ -295,10 +345,7 @@ class TaskPhotoRepository {
     );
     request.timeout = uploadTimeoutMs;
     request.setRequestHeader('apikey', apiKey);
-    request.setRequestHeader(
-      'Authorization',
-      'Bearer ${session.accessToken}',
-    );
+    request.setRequestHeader('Authorization', 'Bearer ${session.accessToken}');
     request.setRequestHeader('Content-Type', photo.contentType);
     request.setRequestHeader('Cache-Control', 'max-age=3600');
 
@@ -388,7 +435,10 @@ class TaskPhotoRepository {
       throw Exception('Фото уже удалено или редактирование закрыто');
     }
 
-    await removeStoragePaths(<String>[photo.storagePath]);
+    await removeStoragePaths(<String>[
+      photo.storagePath,
+      if (photo.thumbnailPath.trim().isNotEmpty) photo.thumbnailPath,
+    ]);
 
     AppDataSync.notifyLocal(
       const <AppDataDomain>{AppDataDomain.tasks},
@@ -400,9 +450,13 @@ class TaskPhotoRepository {
   }
 
   static Future<String> createSignedUrl(TaskPhotoData photo) {
+    return createSignedUrlForPath(photo.storagePath);
+  }
+
+  static Future<String> createSignedUrlForPath(String storagePath) {
     return _client.storage
         .from(bucketName)
-        .createSignedUrl(photo.storagePath, signedUrlLifetimeSeconds);
+        .createSignedUrl(storagePath, signedUrlLifetimeSeconds);
   }
 }
 

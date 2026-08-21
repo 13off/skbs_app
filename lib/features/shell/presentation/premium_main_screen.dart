@@ -4,10 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../data/app_cache_coordinator.dart';
 import '../../../data/app_data_sync.dart';
-import '../../../data/app_state.dart';
-import '../../../data/attendance_repository.dart';
-import '../../../data/employee_repository.dart';
-import '../../../data/object_repository.dart';
+import '../../../data/app_preload_coordinator.dart';
 import '../../../data/task_repository.dart';
 import '../../../models/app_user_profile.dart';
 import '../../../models/task_item_data.dart';
@@ -75,6 +72,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     setActiveAppBackHandler(handleBackRequest);
     startDataSync();
+    AppPreloadCoordinator.schedule(
+      profile: widget.profile,
+      objectName: selectedObjectNameNotifier.value,
+    );
   }
 
   @override
@@ -83,7 +84,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     if (oldWidget.profile.activeCompanyId != widget.profile.activeCompanyId) {
       AppDataSync.stop(companyId: oldWidget.profile.activeCompanyId);
+      AppPreloadCoordinator.clear();
       startDataSync();
+      AppPreloadCoordinator.schedule(
+        profile: widget.profile,
+        objectName: selectedObjectNameNotifier.value,
+        forceRefresh: true,
+      );
     }
   }
 
@@ -122,30 +129,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   Future<void> warmUpVisibleData() async {
     final token = ++warmUpToken;
-
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-
+    await AppPreloadCoordinator.preload(
+      profile: widget.profile,
+      objectName: selectedObjectNameNotifier.value,
+    );
     if (!mounted || token != warmUpToken) return;
-
-    final objectName = selectedObjectNameNotifier.value;
-    final today = AppState.today;
-
-    try {
-      await Future.wait<dynamic>([
-        EmployeeRepository.fetchEmployees(
-          objectName: objectName,
-          includeFired: true,
-        ),
-        AttendanceRepository.fetchShiftValuesForDate(
-          today,
-          objectName: objectName,
-        ),
-        TaskRepository.fetchTasksForDate(today, objectName: objectName),
-        ObjectRepository.fetchObjects(),
-      ]).timeout(const Duration(seconds: 7));
-    } catch (_) {
-      // Фоновый прогрев не должен мешать работе приложения.
-    }
   }
 
   void changeSelectedObject(String? objectName) {
