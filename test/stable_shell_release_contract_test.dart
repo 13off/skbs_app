@@ -9,9 +9,9 @@ void main() {
       'lib/features/shell/presentation/premium_main_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains("show CupertinoPageRoute"));
+    expect(source, contains("import '../../../navigation/app_page_route.dart';"));
     expect(source, contains('PageView.builder'));
-    expect(source, contains('return CupertinoPageRoute<void>('));
+    expect(source, contains('AppPageRoute<void>('));
     expect(
       source,
       contains('return buildRootPage(index, selectedObjectName);'),
