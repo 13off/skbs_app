@@ -11,12 +11,21 @@ on:
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - '.github/workflows/build-windows-desktop.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'lib/**'
+      - 'windows/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/build-windows-desktop.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: appstroy-windows-desktop
+  group: appstroy-windows-desktop-${{ github.ref }}
   cancel-in-progress: true
 
 env:
