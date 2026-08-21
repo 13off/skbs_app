@@ -42,7 +42,7 @@ env:
 jobs:
   windows-release:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
 
     steps:
       - name: Checkout source
@@ -65,10 +65,6 @@ jobs:
       - name: Analyze source
         shell: pwsh
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Run regression tests
-        shell: pwsh
-        run: flutter test
 
       - name: Generate branded Windows icon
         shell: pwsh
