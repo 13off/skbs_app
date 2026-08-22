@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../app/app_adaptive_palette.dart';
 import '../models/responsibility_actor.dart';
-import '../services/profile_avatar_service.dart';
 
 class ResponsibilityActorLine extends StatelessWidget {
   final String label;
@@ -42,33 +41,17 @@ class ResponsibilityActorLine extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ActorAvatar(
-          avatarPath: actor.avatarPath,
-          initials: _initials,
-          size: avatarSize,
-        ),
+        _InitialsAvatar(initials: _initials, size: avatarSize),
         SizedBox(width: compact ? 6 : 8),
         Flexible(
-          child: RichText(
+          child: Text(
+            timeText == null ? label : '$label · $timeText',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                color: AppAdaptivePalette.textMuted,
-                fontSize: compact ? 11.5 : 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-              children: [
-                TextSpan(text: '$label: '),
-                TextSpan(
-                  text: actor.fullName.isEmpty ? 'Неизвестно' : actor.fullName,
-                  style: TextStyle(
-                    color: AppAdaptivePalette.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (timeText != null) TextSpan(text: ' · $timeText'),
-              ],
+            style: TextStyle(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: compact ? 11.5 : 12.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -77,18 +60,14 @@ class ResponsibilityActorLine extends StatelessWidget {
   }
 }
 
-class _ActorAvatar extends StatelessWidget {
-  final String? avatarPath;
+class _InitialsAvatar extends StatelessWidget {
   final String initials;
   final double size;
 
-  const _ActorAvatar({
-    required this.avatarPath,
-    required this.initials,
-    required this.size,
-  });
+  const _InitialsAvatar({required this.initials, required this.size});
 
-  Widget _fallback() {
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: size,
       height: size,
@@ -106,30 +85,6 @@ class _ActorAvatar extends StatelessWidget {
           fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final path = avatarPath?.trim() ?? '';
-    if (path.isEmpty) return _fallback();
-
-    return FutureBuilder<String?>(
-      future: ProfileAvatarService.signedUrl(path),
-      builder: (context, snapshot) {
-        final url = snapshot.data;
-        if (url == null || url.isEmpty) return _fallback();
-        return ClipOval(
-          child: Image.network(
-            url,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
-            errorBuilder: (_, _, _) => _fallback(),
-          ),
-        );
-      },
     );
   }
 }
