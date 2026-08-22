@@ -1,0 +1,52 @@
+name: Apply task and timesheet responsibility feature
+
+on:
+  push:
+    branches:
+      - feature/task-timesheet-responsibility-20260822
+    paths:
+      - .github/workflows/apply-responsibility-feature.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/task-timesheet-responsibility-20260822
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+      - name: Apply feature patch
+        run: python3 tooling/apply_responsibility_feature.py
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/models/responsibility_actor.dart \
+            lib/models/task_item_data.dart \
+            lib/services/profile_avatar_service.dart \
+            lib/widgets/responsibility_actor_line.dart \
+            lib/data/task_repository.dart \
+            lib/data/attendance_repository.dart \
+            lib/widgets/task_tile.dart \
+            lib/screens/timesheet_screen.dart \
+            lib/screens/timesheet/timesheet_loading.dart \
+            lib/screens/timesheet/timesheet_sections.dart \
+            lib/screens/timesheet/timesheet_actions.dart \
+            lib/screens/desktop_timesheet_screen.dart \
+            test/responsibility_attribution_test.dart
+      - name: Remove one-shot tooling and commit
+        run: |
+          rm -f tooling/apply_responsibility_feature.py .github/workflows/apply-responsibility-feature.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'Показывать ответственных за задачи и табель'
+          git push origin HEAD:feature/task-timesheet-responsibility-20260822
