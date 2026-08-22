@@ -13,6 +13,7 @@ import '../models/app_user_profile.dart';
 import '../models/task_item_data.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/responsibility_actor_line.dart';
 import 'act_preview_screen.dart';
 import 'add_task_screen.dart';
 import 'task_details_screen.dart';
@@ -911,27 +912,37 @@ class _TasksTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumWorkCard(
-      radius: 26,
-      padding: const EdgeInsets.all(0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: 1320,
-            child: Column(
-              children: [
-                const _TaskTableHeader(),
-                ...tasks.map(
-                  (task) =>
-                      _TaskTableRow(task: task, onTap: () => onOpenTask(task)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableWidth = constraints.maxWidth < 1320
+            ? 1320.0
+            : constraints.maxWidth;
+
+        return PremiumWorkCard(
+          radius: 26,
+          padding: const EdgeInsets.all(0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  children: [
+                    const _TaskTableHeader(),
+                    ...tasks.map(
+                      (task) => _TaskTableRow(
+                        task: task,
+                        onTap: () => onOpenTask(task),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -1013,8 +1024,8 @@ class _TaskTableRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.zero,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 72),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 82),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
         decoration: BoxDecoration(
           color: _surface,
           border: Border(bottom: BorderSide(color: _line)),
@@ -1061,15 +1072,22 @@ class _TaskTableRow extends StatelessWidget {
             ),
             SizedBox(
               width: 410,
-              child: Text(
-                task.work.trim().isEmpty ? 'Работа без названия' : task.work,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _text,
-                  fontWeight: FontWeight.w900,
-                  height: 1.25,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.work.trim().isEmpty ? 'Работа без названия' : task.work,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _text,
+                      fontWeight: FontWeight.w900,
+                      height: 1.25,
+                    ),
+                  ),
+                  _TaskResponsibilityMeta(task: task),
+                ],
               ),
             ),
             SizedBox(
@@ -1108,6 +1126,66 @@ class _TaskTableRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TaskResponsibilityMeta extends StatelessWidget {
+  final TaskItemData task;
+
+  const _TaskResponsibilityMeta({required this.task});
+
+  bool get sameResponsibleActor {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    if (creator == null || editor == null) return false;
+
+    final creatorId = creator.userId?.trim() ?? '';
+    final editorId = editor.userId?.trim() ?? '';
+    if (creatorId.isNotEmpty && editorId.isNotEmpty) {
+      return creatorId == editorId;
+    }
+
+    final creatorName = creator.fullName.trim().toLowerCase();
+    final editorName = editor.fullName.trim().toLowerCase();
+    return creatorName.isNotEmpty && creatorName == editorName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    if (creator == null && editor == null) return const SizedBox.shrink();
+
+    final sameActor = sameResponsibleActor;
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 5,
+        children: [
+          if (sameActor && editor != null)
+            ResponsibilityActorLine(
+              label: 'Создал и изменил',
+              actor: editor,
+              compact: true,
+            )
+          else ...[
+            if (creator != null)
+              ResponsibilityActorLine(
+                label: 'Создал',
+                actor: creator,
+                compact: true,
+              ),
+            if (editor != null)
+              ResponsibilityActorLine(
+                label: 'Изменил',
+                actor: editor,
+                compact: true,
+              ),
+          ],
+        ],
       ),
     );
   }
