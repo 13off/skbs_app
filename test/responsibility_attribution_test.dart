@@ -12,13 +12,15 @@ void main() {
     expect(source, contains('lastEditor: lastEditor'));
   });
 
-  test('responsibility UI shows initials without full name or profile photo', () {
+  test('responsibility UI shows initials and reveals short name on tap', () {
     final source = File(
       'lib/widgets/responsibility_actor_line.dart',
     ).readAsStringSync();
     expect(source, contains(".take(2)"));
     expect(source, contains('part.characters.first.toUpperCase()'));
     expect(source, contains('_InitialsAvatar'));
+    expect(source, contains('TooltipTriggerMode.tap'));
+    expect(source, contains("return '\${parts[1]} \${parts[0]}'"));
     expect(source, isNot(contains('ProfileAvatarService')));
     expect(source, isNot(contains('Image.network')));
     expect(source, isNot(contains("text: actor.fullName")));
