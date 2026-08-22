@@ -35,11 +35,17 @@ void main() {
     final screen = source(
       'lib/features/payments/presentation/screens/payments_screen.dart',
     );
+    final repository = source('lib/data/payment_repository.dart');
+
     expect(screen, contains('_PaymentAccountingMode.settlementPeriod'));
     expect(screen, contains('_PaymentAccountingMode.paymentDate'));
-    expect(screen, contains('payment.periodYear == targetMonth.year'));
-    expect(screen, contains('payment.periodMonth == targetMonth.month'));
-    expect(screen, contains('payment.paymentDate.year'));
+    expect(screen, contains('fetchPaymentTotalsForEmployees'));
+    expect(screen, contains('periodYear: targetMonth.year'));
+    expect(screen, contains('periodMonth: targetMonth.month'));
+    expect(screen, contains('byPaymentDate: mode == _PaymentAccountingMode.paymentDate'));
+    expect(repository, contains("'p_period_year': periodYear"));
+    expect(repository, contains("'p_period_month': periodMonth"));
+    expect(repository, contains("'p_by_payment_date': byPaymentDate"));
     expect(screen, contains("label: const Text('За расчётный период')"));
     expect(screen, contains("label: const Text('По дате выплаты')"));
     expect(screen, contains("title: 'Фактически выплачено'"));

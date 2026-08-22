@@ -13,6 +13,8 @@ class TaskPhotoBrowserService {
   static const acceptedFileTypes = 'image/*,.heic,.heif';
   static const Duration fileReadTimeout = Duration(seconds: 25);
   static const int prepareConcurrency = 2;
+  static const int fullImageMaxDimension = 1440;
+  static const int thumbnailMaxDimension = 420;
 
   const TaskPhotoBrowserService._();
 
@@ -107,7 +109,7 @@ class TaskPhotoBrowserService {
       file: file,
       originalBytes: originalBytes,
       originalName: file.name,
-      maxDimension: 1440,
+      maxDimension: fullImageMaxDimension,
       jpegQuality: 0.78,
       forceJpeg: forceJpeg,
     );
@@ -119,6 +121,19 @@ class TaskPhotoBrowserService {
       );
     }
 
+    // Grid tiles never need the full 1440px original. Prepare a tiny JPEG once
+    // at selection time so every later task opening downloads ~420px instead.
+    final thumbnail = await ImageCompressionService.compressHtmlImageFile(
+      file: file,
+      originalBytes: originalBytes,
+      originalName: file.name,
+      maxDimension: thumbnailMaxDimension,
+      jpegQuality: 0.66,
+      minInputBytes: 0,
+      minSavingPercent: 0,
+      forceJpeg: true,
+    );
+
     return TaskPhotoFile(
       originalName: file.name,
       contentType: compressedPhoto.contentType,
@@ -126,6 +141,11 @@ class TaskPhotoBrowserService {
           ? extension
           : compressedPhoto.extension,
       bytes: compressedPhoto.bytes,
+      thumbnailBytes: thumbnail.bytes,
+      thumbnailContentType: thumbnail.contentType,
+      thumbnailExtension: thumbnail.extension.isEmpty
+          ? 'jpg'
+          : thumbnail.extension,
     );
   }
 
@@ -155,7 +175,11 @@ class TaskPhotoBrowserService {
     var completed = 0;
     onPrepareProgress?.call(0, selectedFiles.length);
 
-    for (var start = 0; start < selectedFiles.length; start += prepareConcurrency) {
+    for (
+      var start = 0;
+      start < selectedFiles.length;
+      start += prepareConcurrency
+    ) {
       final end = (start + prepareConcurrency) < selectedFiles.length
           ? start + prepareConcurrency
           : selectedFiles.length;

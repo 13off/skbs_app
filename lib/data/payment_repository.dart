@@ -9,6 +9,7 @@ class PaymentRepository {
 
   static const Duration _employeePaymentsCacheTtl = Duration(seconds: 30);
   static const Duration _bulkPaymentsCacheTtl = Duration(seconds: 20);
+  static const Duration _paymentTotalsCacheTtl = Duration(seconds: 20);
 
   static final Map<String, _EmployeePaymentsCacheEntry> _employeePaymentsCache =
       {};
@@ -16,6 +17,9 @@ class PaymentRepository {
   static final Map<String, Future<List<PaymentRecord>>>
   _employeePaymentRequests = {};
   static final Map<String, Future<List<PaymentRecord>>> _bulkPaymentRequests =
+      {};
+  static final Map<String, _PaymentTotalsCacheEntry> _paymentTotalsCache = {};
+  static final Map<String, Future<Map<String, double>>> _paymentTotalsRequests =
       {};
   static int _cacheGeneration = 0;
 
@@ -33,6 +37,8 @@ class PaymentRepository {
     _bulkPaymentsCache.clear();
     _employeePaymentRequests.clear();
     _bulkPaymentRequests.clear();
+    _paymentTotalsCache.clear();
+    _paymentTotalsRequests.clear();
   }
 
   static void clearEmployeePaymentsCache(String employeeId) {
@@ -45,6 +51,8 @@ class PaymentRepository {
     _bulkPaymentsCache.clear();
     _employeePaymentRequests.remove(cleanEmployeeId);
     _bulkPaymentRequests.clear();
+    _paymentTotalsCache.clear();
+    _paymentTotalsRequests.clear();
   }
 
   static bool _isEmployeePaymentsCacheFresh(_EmployeePaymentsCacheEntry entry) {
@@ -321,6 +329,113 @@ class PaymentRepository {
         .toList(growable: false);
   }
 
+  static String _paymentTotalsKey({
+    required List<String> employeeIds,
+    required int periodYear,
+    required int periodMonth,
+    required DateTime startDate,
+    required DateTime endDate,
+    required bool byPaymentDate,
+  }) {
+    return '${employeeIds.join('|')}::$periodYear::$periodMonth::'
+        '${dateKey(startDate)}::${dateKey(endDate)}::$byPaymentDate';
+  }
+
+  static Future<Map<String, double>> fetchPaymentTotalsForEmployees(
+    List<String> employeeIds, {
+    required int periodYear,
+    required int periodMonth,
+    required DateTime startDate,
+    required DateTime endDate,
+    required bool byPaymentDate,
+    bool forceRefresh = false,
+  }) async {
+    final cleanIds =
+        employeeIds
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    if (cleanIds.isEmpty) return <String, double>{};
+
+    final key = _paymentTotalsKey(
+      employeeIds: cleanIds,
+      periodYear: periodYear,
+      periodMonth: periodMonth,
+      startDate: startDate,
+      endDate: endDate,
+      byPaymentDate: byPaymentDate,
+    );
+    final cached = _paymentTotalsCache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.createdAt) < _paymentTotalsCacheTtl) {
+      return Map<String, double>.from(cached.totals);
+    }
+
+    final running = _paymentTotalsRequests[key];
+    if (running != null) return Map<String, double>.from(await running);
+
+    final generation = _cacheGeneration;
+    late final Future<Map<String, double>> request;
+    request =
+        _loadPaymentTotals(
+              employeeIds: cleanIds,
+              periodYear: periodYear,
+              periodMonth: periodMonth,
+              startDate: startDate,
+              endDate: endDate,
+              byPaymentDate: byPaymentDate,
+            )
+            .then((totals) {
+              if (generation == _cacheGeneration) {
+                _paymentTotalsCache[key] = _PaymentTotalsCacheEntry(
+                  totals: Map<String, double>.from(totals),
+                  createdAt: DateTime.now(),
+                );
+              }
+              return totals;
+            })
+            .whenComplete(() {
+              if (identical(_paymentTotalsRequests[key], request)) {
+                _paymentTotalsRequests.remove(key);
+              }
+            });
+    _paymentTotalsRequests[key] = request;
+    return Map<String, double>.from(await request);
+  }
+
+  static Future<Map<String, double>> _loadPaymentTotals({
+    required List<String> employeeIds,
+    required int periodYear,
+    required int periodMonth,
+    required DateTime startDate,
+    required DateTime endDate,
+    required bool byPaymentDate,
+  }) async {
+    final response = await _client.rpc<dynamic>(
+      'get_payment_totals_fast',
+      params: <String, dynamic>{
+        'p_employee_ids': employeeIds,
+        'p_period_year': periodYear,
+        'p_period_month': periodMonth,
+        'p_start_date': dateKey(startDate),
+        'p_end_date': dateKey(endDate),
+        'p_by_payment_date': byPaymentDate,
+      },
+    );
+    if (response is! List) return <String, double>{};
+    final totals = <String, double>{};
+    for (final raw in response.whereType<Map>()) {
+      final row = Map<String, dynamic>.from(raw);
+      final employeeId = row['employee_id']?.toString().trim() ?? '';
+      if (employeeId.isEmpty) continue;
+      totals[employeeId] = _toDouble(row['paid']);
+    }
+    return totals;
+  }
+
   static Future<List<PaymentReceipt>> addReceiptsToPayment({
     required String paymentId,
     required String employeeId,
@@ -446,6 +561,16 @@ class _BulkPaymentsCacheEntry {
 
   const _BulkPaymentsCacheEntry({
     required this.payments,
+    required this.createdAt,
+  });
+}
+
+class _PaymentTotalsCacheEntry {
+  final Map<String, double> totals;
+  final DateTime createdAt;
+
+  const _PaymentTotalsCacheEntry({
+    required this.totals,
     required this.createdAt,
   });
 }

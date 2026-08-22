@@ -270,33 +270,22 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             .map((employee) => employee.id?.trim() ?? '')
             .where((id) => id.isNotEmpty),
       }.toList(growable: false);
-      final paymentRows = await PaymentRepository.fetchPaymentsForEmployees(
-        employeeIds,
-        forceRefresh: forceRefresh,
-      );
-      final paidByEmployeeId = <String, double>{};
       final cleanStart = DateTime(
         startDate.year,
         startDate.month,
         startDate.day,
       );
       final cleanEnd = DateTime(endDate.year, endDate.month, endDate.day);
-      for (final payment in paymentRows) {
-        final matches = mode == _PaymentAccountingMode.settlementPeriod
-            ? payment.periodYear == targetMonth.year &&
-                  payment.periodMonth == targetMonth.month
-            : () {
-                final date = DateTime(
-                  payment.paymentDate.year,
-                  payment.paymentDate.month,
-                  payment.paymentDate.day,
-                );
-                return !date.isBefore(cleanStart) && !date.isAfter(cleanEnd);
-              }();
-        if (!matches) continue;
-        paidByEmployeeId[payment.employeeId] =
-            (paidByEmployeeId[payment.employeeId] ?? 0) + payment.amount;
-      }
+      final paidByEmployeeId =
+          await PaymentRepository.fetchPaymentTotalsForEmployees(
+            employeeIds,
+            periodYear: targetMonth.year,
+            periodMonth: targetMonth.month,
+            startDate: cleanStart,
+            endDate: cleanEnd,
+            byPaymentDate: mode == _PaymentAccountingMode.paymentDate,
+            forceRefresh: forceRefresh,
+          );
 
       if (!mounted || generation != _loadGeneration) return;
 

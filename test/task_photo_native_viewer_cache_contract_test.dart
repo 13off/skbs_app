@@ -17,7 +17,7 @@ void main() {
     );
   });
 
-  test('экран задачи открывает фото внутри приложения с zoom', () {
+  test('экран задачи открывает оригинал фото внутри приложения с zoom', () {
     final viewer = File(
       'lib/screens/task_details/task_details_photo_viewer.dart',
     ).readAsStringSync();
@@ -30,11 +30,12 @@ void main() {
     expect(viewer, contains('InteractiveViewer('));
     expect(viewer, contains('maxScale: 5'));
     expect(viewer, contains('Image.network('));
+    expect(viewer, contains('TaskPhotoSignedUrlCache.getSignedUrl(photo)'));
     expect(sections, contains('onTap: () => openPhotoInApp(photo)'));
     expect(viewer, isNot(contains('html.window.open')));
   });
 
-  test('signed URL кешируется между повторными входами в задачу', () {
+  test('original and preview signed URLs are cached independently', () {
     final cache = File(
       'lib/data/task_photo_signed_url_cache.dart',
     ).readAsStringSync();
@@ -49,10 +50,12 @@ void main() {
     expect(cache, contains('_entries'));
     expect(cache, contains('_requests'));
     expect(cache, contains('static String? cachedUrl('));
+    expect(cache, contains('static String? cachedPreviewUrl('));
     expect(cache, contains('static Future<String> getSignedUrl('));
+    expect(cache, contains('static Future<String> getPreviewSignedUrl('));
     expect(cache, contains('static void evict('));
-    expect(loading, contains('TaskPhotoSignedUrlCache.getSignedUrl(photo)'));
-    expect(sections, contains('TaskPhotoSignedUrlCache.cachedUrl(photo)'));
+    expect(loading, contains('TaskPhotoSignedUrlCache.getPreviewSignedUrl(photo)'));
+    expect(sections, contains('TaskPhotoSignedUrlCache.cachedPreviewUrl(photo)'));
     expect(sections, contains('if (cachedUrl != null)'));
     expect(sections, contains('gaplessPlayback: true'));
   });

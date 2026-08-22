@@ -97,10 +97,15 @@ class FinanceSummaryRepository {
   ///
   /// Постоянный кэш здесь намеренно не хранится, чтобы после изменения табеля
   /// или выплаты главная всегда показывала свежую сумму.
+  static const Duration _cacheTtl = Duration(seconds: 20);
   static final Map<String, Future<FinanceSummaryData>> _inFlight = {};
+  static final Map<String, _FinanceSummaryCacheEntry> _cache = {};
+  static int _cacheGeneration = 0;
 
   static void clearCache() {
+    _cacheGeneration++;
     _inFlight.clear();
+    _cache.clear();
   }
 
   static double _toDouble(dynamic value) {
@@ -138,20 +143,32 @@ class FinanceSummaryRepository {
     bool forceRefresh = false,
   }) {
     final key = _requestKey(period: period, objectName: objectName);
+    final cached = _cache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.createdAt) < _cacheTtl) {
+      return Future<FinanceSummaryData>.value(cached.data);
+    }
 
     final running = _inFlight[key];
-
     if (running != null) return running;
 
-    final future = _loadSummary(period: period, objectName: objectName);
+    final generation = _cacheGeneration;
+    late final Future<FinanceSummaryData> future;
+    future = _loadSummary(period: period, objectName: objectName)
+        .then((data) {
+          if (generation == _cacheGeneration) {
+            _cache[key] = _FinanceSummaryCacheEntry(
+              data: data,
+              createdAt: DateTime.now(),
+            );
+          }
+          return data;
+        })
+        .whenComplete(() {
+          if (identical(_inFlight[key], future)) _inFlight.remove(key);
+        });
     _inFlight[key] = future;
-
-    future.whenComplete(() {
-      if (identical(_inFlight[key], future)) {
-        _inFlight.remove(key);
-      }
-    });
-
     return future;
   }
 
@@ -177,4 +194,14 @@ class FinanceSummaryRepository {
       paid: _toDouble(row['paid']),
     );
   }
+}
+
+class _FinanceSummaryCacheEntry {
+  final FinanceSummaryData data;
+  final DateTime createdAt;
+
+  const _FinanceSummaryCacheEntry({
+    required this.data,
+    required this.createdAt,
+  });
 }
