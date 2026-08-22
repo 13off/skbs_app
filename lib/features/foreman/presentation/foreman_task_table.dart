@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/task_item_data.dart';
+import '../../../widgets/responsibility_actor_line.dart';
 import '../../shared/presentation/specialist_desktop_table.dart';
 import '../../shared/presentation/specialist_desktop_ui.dart';
 import '../data/foreman_workspace_repository.dart';
@@ -145,10 +146,7 @@ class ForemanTaskTable extends StatelessWidget {
           onTap: () => onOpenTask(task),
           cells: [
             SpecialistStatusPill(label: task.status, color: statusColor(task)),
-            specialistCellText(
-              task.work.trim().isEmpty ? 'Работа без названия' : task.work,
-              weight: FontWeight.w900,
-            ),
+            _TaskWorkWithResponsibility(task: task),
             specialistCellText(
               task.axes.trim().isEmpty ? 'Не указаны' : task.axes,
               color: specialistMuted,
@@ -159,6 +157,75 @@ class ForemanTaskTable extends StatelessWidget {
           ],
         );
       }).toList(),
+    );
+  }
+}
+
+class _TaskWorkWithResponsibility extends StatelessWidget {
+  final TaskItemData task;
+
+  const _TaskWorkWithResponsibility({required this.task});
+
+  bool get sameResponsibleActor {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    if (creator == null || editor == null) return false;
+
+    final creatorId = creator.userId?.trim() ?? '';
+    final editorId = editor.userId?.trim() ?? '';
+    if (creatorId.isNotEmpty && editorId.isNotEmpty) {
+      return creatorId == editorId;
+    }
+
+    final creatorName = creator.fullName.trim().toLowerCase();
+    final editorName = editor.fullName.trim().toLowerCase();
+    return creatorName.isNotEmpty && creatorName == editorName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    final sameActor = sameResponsibleActor;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        specialistCellText(
+          task.work.trim().isEmpty ? 'Работа без названия' : task.work,
+          weight: FontWeight.w900,
+        ),
+        if (creator != null || editor != null) ...[
+          const SizedBox(height: 7),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              if (sameActor && editor != null)
+                ResponsibilityActorLine(
+                  label: 'Создал и изменил',
+                  actor: editor,
+                  compact: true,
+                )
+              else ...[
+                if (creator != null)
+                  ResponsibilityActorLine(
+                    label: 'Создал',
+                    actor: creator,
+                    compact: true,
+                  ),
+                if (editor != null)
+                  ResponsibilityActorLine(
+                    label: 'Изменил',
+                    actor: editor,
+                    compact: true,
+                  ),
+              ],
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
