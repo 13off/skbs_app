@@ -12,6 +12,18 @@ void main() {
     expect(source, contains('lastEditor: lastEditor'));
   });
 
+  test('responsibility UI shows initials without full name or profile photo', () {
+    final source = File(
+      'lib/widgets/responsibility_actor_line.dart',
+    ).readAsStringSync();
+    expect(source, contains(".take(2)"));
+    expect(source, contains('part.characters.first.toUpperCase()'));
+    expect(source, contains('_InitialsAvatar'));
+    expect(source, isNot(contains('ProfileAvatarService')));
+    expect(source, isNot(contains('Image.network')));
+    expect(source, isNot(contains("text: actor.fullName")));
+  });
+
   test('timesheet exposes latest editor on mobile and desktop', () {
     final mobile = File(
       'lib/screens/timesheet/timesheet_sections.dart',
@@ -37,6 +49,7 @@ void main() {
       expect(sql, contains('from public.get_attendance_rows_fast'));
       expect(sql, contains('grant execute'));
       expect(sql, contains('to authenticated'));
+      expect(sql, isNot(contains('profile avatars select company peers')));
     },
   );
 }
