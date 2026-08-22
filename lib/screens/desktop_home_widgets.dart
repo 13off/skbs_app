@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app/app_adaptive_palette.dart';
 import '../models/task_item_data.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/responsibility_actor_line.dart';
 
 Color get _text => AppAdaptivePalette.textPrimary;
 Color get _muted => AppAdaptivePalette.textMuted;
@@ -463,6 +464,55 @@ class DesktopTasksCard extends StatelessWidget {
     required this.onOpenTask,
   });
 
+  bool _sameResponsibleActor(TaskItemData task) {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    if (creator == null || editor == null) return false;
+
+    final creatorId = creator.userId?.trim() ?? '';
+    final editorId = editor.userId?.trim() ?? '';
+    if (creatorId.isNotEmpty && editorId.isNotEmpty) {
+      return creatorId == editorId;
+    }
+
+    final creatorName = creator.fullName.trim().toLowerCase();
+    final editorName = editor.fullName.trim().toLowerCase();
+    return creatorName.isNotEmpty && creatorName == editorName;
+  }
+
+  Widget _responsibility(TaskItemData task) {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    final sameResponsibleActor = _sameResponsibleActor(task);
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 7,
+      children: [
+        if (sameResponsibleActor && editor != null)
+          ResponsibilityActorLine(
+            label: 'Создал и изменил',
+            actor: editor,
+            compact: true,
+          )
+        else ...[
+          if (creator != null)
+            ResponsibilityActorLine(
+              label: 'Создал',
+              actor: creator,
+              compact: true,
+            ),
+          if (editor != null)
+            ResponsibilityActorLine(
+              label: 'Изменил',
+              actor: editor,
+              compact: true,
+            ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final visibleTasks = tasks.take(6).toList(growable: false);
@@ -564,6 +614,10 @@ class DesktopTasksCard extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              if (task.creator != null || task.lastEditor != null) ...[
+                                const SizedBox(height: 7),
+                                _responsibility(task),
+                              ],
                             ],
                           ),
                         ),
