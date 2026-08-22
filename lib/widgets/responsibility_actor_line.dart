@@ -35,7 +35,7 @@ class ResponsibilityActorLine extends StatelessWidget {
     if (parts.isEmpty) return 'Неизвестно';
     if (parts.length == 1) return parts.first;
     // В профилях AppСтрой ФИО хранится как «Фамилия Имя Отчество».
-    // По касанию показываем только «Имя Фамилия».
+    // В подсказке оставляем только «Имя Фамилия».
     return '${parts[1]} ${parts[0]}';
   }
 
@@ -48,6 +48,7 @@ class ResponsibilityActorLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final avatarSize = compact ? 22.0 : 26.0;
     final timeText = _timeText;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -56,6 +57,18 @@ class ResponsibilityActorLine extends StatelessWidget {
           triggerMode: TooltipTriggerMode.tap,
           waitDuration: Duration.zero,
           showDuration: const Duration(seconds: 3),
+          preferBelow: false,
+          verticalOffset: 14,
+          decoration: BoxDecoration(
+            color: AppAdaptivePalette.surfaceElevated,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppAdaptivePalette.border),
+          ),
+          textStyle: TextStyle(
+            color: AppAdaptivePalette.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
           child: _InitialsAvatar(initials: _initials, size: avatarSize),
         ),
         SizedBox(width: compact ? 6 : 8),
