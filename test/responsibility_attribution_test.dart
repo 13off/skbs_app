@@ -12,7 +12,7 @@ void main() {
     expect(source, contains('lastEditor: lastEditor'));
   });
 
-  test('responsibility UI shows initials and reveals short name on tap', () {
+  test('responsibility UI shows initials and reveals short name', () {
     final source = File(
       'lib/widgets/responsibility_actor_line.dart',
     ).readAsStringSync();
@@ -21,9 +21,38 @@ void main() {
     expect(source, contains('_InitialsAvatar'));
     expect(source, contains('TooltipTriggerMode.tap'));
     expect(source, contains("return '\${parts[1]} \${parts[0]}'"));
+    expect(source, contains('preferBelow: false'));
     expect(source, isNot(contains('ProfileAvatarService')));
     expect(source, isNot(contains('Image.network')));
     expect(source, isNot(contains("text: actor.fullName")));
+  });
+
+  test('task responsibility is visible in mobile and both desktop tables', () {
+    final mobile = File('lib/widgets/task_tile.dart').readAsStringSync();
+    final desktop = File(
+      'lib/screens/desktop_tasks_screen.dart',
+    ).readAsStringSync();
+    final foremanDesktop = File(
+      'lib/features/foreman/presentation/foreman_task_table.dart',
+    ).readAsStringSync();
+
+    expect(mobile, contains('ResponsibilityActorLine'));
+    expect(desktop, contains('_TaskResponsibilityMeta'));
+    expect(desktop, contains('ResponsibilityActorLine'));
+    expect(foremanDesktop, contains('_TaskWorkWithResponsibility'));
+    expect(foremanDesktop, contains('ResponsibilityActorLine'));
+    expect(mobile, contains("label: 'Создал и изменил'"));
+    expect(desktop, contains("label: 'Создал и изменил'"));
+  });
+
+  test('desktop task table fills wide screens and keeps small-screen scroll', () {
+    final desktop = File(
+      'lib/screens/desktop_tasks_screen.dart',
+    ).readAsStringSync();
+    expect(desktop, contains('LayoutBuilder'));
+    expect(desktop, contains('constraints.maxWidth < 1320'));
+    expect(desktop, contains('width: tableWidth'));
+    expect(desktop, contains('BoxConstraints(minHeight: 82)'));
   });
 
   test('timesheet exposes latest editor on mobile and desktop', () {
