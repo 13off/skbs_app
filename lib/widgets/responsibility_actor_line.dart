@@ -18,15 +18,25 @@ class ResponsibilityActorLine extends StatelessWidget {
     this.compact = false,
   });
 
+  List<String> get _nameParts => actor.fullName
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+
   String get _initials {
-    final parts = actor.fullName
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .toList(growable: false);
+    final parts = _nameParts.take(2).toList(growable: false);
     if (parts.isEmpty) return '?';
     return parts.map((part) => part.characters.first.toUpperCase()).join();
+  }
+
+  String get _shortName {
+    final parts = _nameParts;
+    if (parts.isEmpty) return 'Неизвестно';
+    if (parts.length == 1) return parts.first;
+    // В профилях AppСтрой ФИО хранится как «Фамилия Имя Отчество».
+    // По касанию показываем только «Имя Фамилия».
+    return '${parts[1]} ${parts[0]}';
   }
 
   String? get _timeText {
@@ -41,7 +51,13 @@ class ResponsibilityActorLine extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _InitialsAvatar(initials: _initials, size: avatarSize),
+        Tooltip(
+          message: _shortName,
+          triggerMode: TooltipTriggerMode.tap,
+          waitDuration: Duration.zero,
+          showDuration: const Duration(seconds: 3),
+          child: _InitialsAvatar(initials: _initials, size: avatarSize),
+        ),
         SizedBox(width: compact ? 6 : 8),
         Flexible(
           child: Text(
