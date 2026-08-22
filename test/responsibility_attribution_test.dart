@@ -45,6 +45,17 @@ void main() {
     expect(desktop, contains("label: 'Создал и изменил'"));
   });
 
+  test('manager desktop home task preview exposes responsibility', () {
+    final managerHome = File(
+      'lib/screens/desktop_home_widgets.dart',
+    ).readAsStringSync();
+    expect(managerHome, contains('ResponsibilityActorLine'));
+    expect(managerHome, contains("label: 'Создал'"));
+    expect(managerHome, contains("label: 'Изменил'"));
+    expect(managerHome, contains("label: 'Создал и изменил'"));
+    expect(managerHome, contains('_sameResponsibleActor'));
+  });
+
   test('desktop task table fills wide screens and keeps small-screen scroll', () {
     final desktop = File(
       'lib/screens/desktop_tasks_screen.dart',
