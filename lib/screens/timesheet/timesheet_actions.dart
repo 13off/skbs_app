@@ -267,6 +267,14 @@ extension _TimesheetActions on _TimesheetScreenState {
 
       if (!mounted) return;
       setState(() => timesheetDraft = timesheetDraft.markSaved());
+      final responsibility =
+          await AttendanceRepository.fetchResponsibilityForDate(
+            selectedDate,
+            objectName: widget.selectedObjectName,
+            forceRefresh: true,
+          );
+      if (!mounted) return;
+      setState(() => attendanceResponsibility = responsibility);
 
       final workedCount = workedCountFor(allEmployees);
       final totalShifts = totalShiftsFor(allEmployees);

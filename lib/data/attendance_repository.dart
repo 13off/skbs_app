@@ -5,6 +5,7 @@ import '../models/employee.dart';
 import '../models/employee_timesheet_period_row.dart';
 import '../models/monthly_timesheet_row.dart';
 import '../models/period_timesheet_row.dart';
+import '../models/responsibility_actor.dart';
 import 'app_data_sync.dart';
 import 'employee_repository.dart';
 import 'notification_repository.dart';
@@ -26,6 +27,9 @@ class AttendanceRepository {
       {};
   static final Map<String, Future<Map<String, double>>> _shiftValueRequests =
       {};
+  static final Map<String, _ResponsibilityCacheEntry> _responsibilityCache = {};
+  static final Map<String, Future<Map<String, ResponsibilityActor>>>
+  _responsibilityRequests = {};
   static final Map<String, Future<List<AttendanceReportRow>>>
   _attendanceReportRequests = {};
   static final Map<String, Future<List<MonthlyTimesheetRow>>>
@@ -63,11 +67,13 @@ class AttendanceRepository {
   static void clearCache() {
     _cacheGeneration++;
     _shiftValuesCache.clear();
+    _responsibilityCache.clear();
     _monthlyTimesheetCache.clear();
     _employeeMonthlyTimesheetCache.clear();
     _periodTimesheetCache.clear();
     _attendanceReportCache.clear();
     _shiftValueRequests.clear();
+    _responsibilityRequests.clear();
     _attendanceReportRequests.clear();
     _monthlyTimesheetRequests.clear();
     _employeeMonthlyTimesheetRequests.clear();
@@ -243,6 +249,67 @@ class AttendanceRepository {
     }
 
     return _copyShiftValues(values);
+  }
+
+  static Future<Map<String, ResponsibilityActor>> fetchResponsibilityForDate(
+    DateTime date, {
+    String? objectName,
+    bool forceRefresh = false,
+  }) async {
+    final key = _dayCacheKey(date: date, objectName: objectName);
+    final running = _responsibilityRequests[key];
+    if (running != null)
+      return Map<String, ResponsibilityActor>.from(await running);
+
+    final cached = _responsibilityCache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        _isFresh(cached.createdAt, _shortCacheTtl)) {
+      return Map<String, ResponsibilityActor>.from(cached.values);
+    }
+
+    final request = _fetchResponsibilityForDate(date, objectName: objectName);
+    _responsibilityRequests[key] = request;
+    try {
+      final result = await request;
+      _responsibilityCache[key] = _ResponsibilityCacheEntry(
+        values: Map<String, ResponsibilityActor>.from(result),
+        createdAt: DateTime.now(),
+      );
+      return Map<String, ResponsibilityActor>.from(result);
+    } finally {
+      if (identical(_responsibilityRequests[key], request)) {
+        _responsibilityRequests.remove(key);
+      }
+    }
+  }
+
+  static Future<Map<String, ResponsibilityActor>> _fetchResponsibilityForDate(
+    DateTime date, {
+    String? objectName,
+  }) async {
+    final response = await _client.rpc<dynamic>(
+      'get_attendance_responsibility_fast',
+      params: <String, dynamic>{
+        'p_work_date': dateKey(date),
+        'p_object_name': cleanObjectName(objectName),
+      },
+    );
+    final result = <String, ResponsibilityActor>{};
+    if (response is! List) return result;
+    for (final raw in response.whereType<Map>()) {
+      final row = Map<String, dynamic>.from(raw);
+      final employeeId = row['employee_id']?.toString();
+      if (employeeId == null || employeeId.isEmpty) continue;
+      result[employeeId] = ResponsibilityActor.fromMap(
+        row,
+        userIdKey: 'actor_user_id',
+        fullNameKey: 'actor_full_name',
+        avatarPathKey: 'actor_avatar_path',
+        actedAtKey: 'acted_at',
+      );
+    }
+    return result;
   }
 
   static Future<Set<String>> fetchWorkedEmployeeIds(
@@ -922,6 +989,16 @@ class _AttendanceReportCacheEntry {
 
   const _AttendanceReportCacheEntry({
     required this.rows,
+    required this.createdAt,
+  });
+}
+
+class _ResponsibilityCacheEntry {
+  final Map<String, ResponsibilityActor> values;
+  final DateTime createdAt;
+
+  const _ResponsibilityCacheEntry({
+    required this.values,
     required this.createdAt,
   });
 }

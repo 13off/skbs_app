@@ -25,7 +25,7 @@ as $$
     creator.avatar_path as creator_avatar_path,
     t.created_at,
     latest.actor_user_id as last_editor_user_id,
-    coalesce(nullif(btrim(editor.full_name), ''), 'Неизвестно') as last_editor_full_name,
+    case when latest.actor_user_id is null then null else coalesce(nullif(btrim(editor.full_name), ''), 'Неизвестно') end as last_editor_full_name,
     editor.avatar_path as last_editor_avatar_path,
     latest.created_at as last_edited_at
   from public.get_task_rows_fast(p_task_date, p_object_name) visible

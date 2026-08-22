@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/auth/data/user_repository.dart';
 import '../features/developer/data/developer_policy_repository.dart';
+import '../models/responsibility_actor.dart';
 import '../models/task_item_data.dart';
 import 'app_data_sync.dart';
 import 'task_assignee_repository.dart';
@@ -144,20 +145,58 @@ class TaskRepository {
       return _copyTasks(cached.tasks);
     }
 
-    final response = await _client.rpc<dynamic>(
-      'get_task_rows_fast',
-      params: <String, dynamic>{
-        'p_task_date': _dateKey(date),
-        'p_object_name': cleanObject,
-      },
-    );
+    final params = <String, dynamic>{
+      'p_task_date': _dateKey(date),
+      'p_object_name': cleanObject,
+    };
+    final responses = await Future.wait<dynamic>([
+      _client.rpc<dynamic>('get_task_rows_fast', params: params),
+      _client.rpc<dynamic>('get_task_responsibility_fast', params: params),
+    ]);
+    final response = responses[0];
     if (response is! List) return <TaskItemData>[];
+
+    final responsibilityByTaskId = <String, Map<String, dynamic>>{};
+    final responsibilityResponse = responses[1];
+    if (responsibilityResponse is List) {
+      for (final raw in responsibilityResponse.whereType<Map>()) {
+        final row = Map<String, dynamic>.from(raw);
+        final taskId = row['task_id']?.toString();
+        if (taskId != null && taskId.isNotEmpty) {
+          responsibilityByTaskId[taskId] = row;
+        }
+      }
+    }
 
     final tasks = response
         .whereType<Map>()
-        .map<TaskItemData>(
-          (row) => TaskItemData.fromSupabase(Map<String, dynamic>.from(row)),
-        )
+        .map<TaskItemData>((raw) {
+          final row = Map<String, dynamic>.from(raw);
+          final task = TaskItemData.fromSupabase(row);
+          final responsibility = responsibilityByTaskId[task.id];
+          if (responsibility == null) return task;
+
+          final creator = ResponsibilityActor.fromMap(
+            responsibility,
+            userIdKey: 'creator_user_id',
+            fullNameKey: 'creator_full_name',
+            avatarPathKey: 'creator_avatar_path',
+            actedAtKey: 'created_at',
+          );
+          final lastEditorUserId = ResponsibilityActor.cleanText(
+            responsibility['last_editor_user_id'],
+          );
+          final lastEditor = lastEditorUserId == null
+              ? null
+              : ResponsibilityActor.fromMap(
+                  responsibility,
+                  userIdKey: 'last_editor_user_id',
+                  fullNameKey: 'last_editor_full_name',
+                  avatarPathKey: 'last_editor_avatar_path',
+                  actedAtKey: 'last_edited_at',
+                );
+          return task.copyWith(creator: creator, lastEditor: lastEditor);
+        })
         .toList(growable: false);
 
     if (generation == _cacheGeneration) {

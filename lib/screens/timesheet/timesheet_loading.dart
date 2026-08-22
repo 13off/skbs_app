@@ -56,15 +56,25 @@ extension _TimesheetLoading on _TimesheetScreenState {
     });
 
     try {
-      final values = await AttendanceRepository.fetchShiftValuesForDate(
-        requestedDate,
-        objectName: requestedObject,
-        forceRefresh: forceRefresh,
-      );
+      final results = await Future.wait<dynamic>([
+        AttendanceRepository.fetchShiftValuesForDate(
+          requestedDate,
+          objectName: requestedObject,
+          forceRefresh: forceRefresh,
+        ),
+        AttendanceRepository.fetchResponsibilityForDate(
+          requestedDate,
+          objectName: requestedObject,
+          forceRefresh: forceRefresh,
+        ),
+      ]);
+      final values = results[0] as Map<String, double>;
+      final responsibility = results[1] as Map<String, ResponsibilityActor>;
 
       if (!mounted || generation != attendanceLoadGeneration) return;
       setState(() {
         timesheetDraft = TimesheetDraft.fromValues(values);
+        attendanceResponsibility = responsibility;
       });
     } catch (error) {
       if (!mounted || generation != attendanceLoadGeneration) return;

@@ -39,7 +39,10 @@ class ProfileAvatarService {
           .createSignedUrl(path, 3600);
       final clean = url.trim();
       if (clean.isEmpty) return null;
-      _cache[path] = _AvatarUrlCacheEntry(url: clean, createdAt: DateTime.now());
+      _cache[path] = _AvatarUrlCacheEntry(
+        url: clean,
+        createdAt: DateTime.now(),
+      );
       return clean;
     } catch (_) {
       return null;

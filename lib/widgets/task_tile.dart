@@ -4,6 +4,7 @@ import '../app/app_adaptive_palette.dart';
 
 import '../models/task_item_data.dart';
 import 'premium_ui_v2.dart';
+import 'responsibility_actor_line.dart';
 
 Color get _taskText => AppAdaptivePalette.textPrimary;
 Color get _taskMuted => AppAdaptivePalette.textMuted;
@@ -92,6 +93,22 @@ class TaskTile extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 11),
+                    if (task.creator != null) ...[
+                      ResponsibilityActorLine(
+                        label: 'Создал',
+                        actor: task.creator!,
+                        compact: true,
+                      ),
+                      const SizedBox(height: 7),
+                    ],
+                    if (task.lastEditor != null) ...[
+                      ResponsibilityActorLine(
+                        label: 'Изменил',
+                        actor: task.lastEditor!,
+                        compact: true,
+                      ),
+                      const SizedBox(height: 9),
+                    ],
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,

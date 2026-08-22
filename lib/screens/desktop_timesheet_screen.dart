@@ -13,8 +13,10 @@ import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
+import '../models/responsibility_actor.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/responsibility_actor_line.dart';
 import 'period_timesheet_screen.dart';
 import 'timesheet_group_manager_sheet.dart';
 import '../navigation/app_page_route.dart';
@@ -57,6 +59,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
   Map<String, int> groupIndexById = const <String, int>{};
   Map<String, double> shiftValuesByEmployeeId = <String, double>{};
   Map<String, double> originalShiftValuesByEmployeeId = <String, double>{};
+  Map<String, ResponsibilityActor> attendanceResponsibility =
+      const <String, ResponsibilityActor>{};
 
   String? objectFilter;
   String groupFilter = allGroupsFilter;
@@ -232,6 +236,11 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
           forceRefresh: forceRefresh,
         ),
         groupFuture,
+        AttendanceRepository.fetchResponsibilityForDate(
+          requestedDate,
+          objectName: requestedObject,
+          forceRefresh: forceRefresh,
+        ),
       ]);
 
       if (!mounted || generation != loadGeneration) return;
@@ -239,6 +248,8 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
       final loadedEmployees = results[0] as List<Employee>;
       final loadedValues = results[1] as Map<String, double>;
       final loadedGroups = results[2] as List<TimesheetGroup>;
+      final loadedResponsibility =
+          results[3] as Map<String, ResponsibilityActor>;
       final nextGroupByEmployeeId = <String, TimesheetGroup>{};
       final nextGroupIndexById = <String, int>{};
       for (var index = 0; index < loadedGroups.length; index++) {
@@ -264,6 +275,7 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         originalShiftValuesByEmployeeId = Map<String, double>.from(
           loadedValues,
         );
+        attendanceResponsibility = loadedResponsibility;
         hasUnsavedChanges = false;
         isLoading = false;
 
@@ -448,6 +460,14 @@ class _DesktopTimesheetScreenState extends State<DesktopTimesheetScreen> {
         );
         hasUnsavedChanges = false;
       });
+      final responsibility =
+          await AttendanceRepository.fetchResponsibilityForDate(
+            selectedDate,
+            objectName: widget.selectedObjectName,
+            forceRefresh: true,
+          );
+      if (!mounted) return;
+      setState(() => attendanceResponsibility = responsibility);
 
       final worked = employees.where((employee) => shiftValueFor(employee) > 0);
       final total = worked.fold<double>(
@@ -1364,11 +1384,28 @@ class _TimesheetRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 11),
                 Expanded(
-                  child: Text(
-                    employee.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: _text, fontWeight: FontWeight.w900),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        employee.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _text,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (employee.id != null &&
+                          attendanceResponsibility[employee.id!] != null) ...[
+                        const SizedBox(height: 5),
+                        ResponsibilityActorLine(
+                          label: 'Изменил',
+                          actor: attendanceResponsibility[employee.id!]!,
+                          compact: true,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
