@@ -1,3 +1,5 @@
+import 'responsibility_actor.dart';
+
 class TaskItemData {
   final String? id;
   final String axes;
@@ -6,6 +8,8 @@ class TaskItemData {
   final DateTime date;
   final String objectName;
   final String notDoneComment;
+  final ResponsibilityActor? creator;
+  final ResponsibilityActor? lastEditor;
 
   /// null — связь не загружалась и при обновлении её нельзя менять;
   /// пустая строка — пользователь явно выбрал «Не привязано».
@@ -22,6 +26,8 @@ class TaskItemData {
     this.notDoneComment = '',
     this.milestoneId,
     this.checklistItemId,
+    this.creator,
+    this.lastEditor,
   });
 
   factory TaskItemData.fromJson(Map<String, dynamic> json) {
@@ -76,6 +82,8 @@ class TaskItemData {
     String? notDoneComment,
     String? milestoneId,
     String? checklistItemId,
+    ResponsibilityActor? creator,
+    ResponsibilityActor? lastEditor,
   }) {
     return TaskItemData(
       axes ?? this.axes,
@@ -87,6 +95,8 @@ class TaskItemData {
       notDoneComment: notDoneComment ?? this.notDoneComment,
       milestoneId: milestoneId ?? this.milestoneId,
       checklistItemId: checklistItemId ?? this.checklistItemId,
+      creator: creator ?? this.creator,
+      lastEditor: lastEditor ?? this.lastEditor,
     );
   }
 }
