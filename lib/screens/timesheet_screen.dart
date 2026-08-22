@@ -16,8 +16,10 @@ import '../features/timesheet/models/timesheet_draft.dart';
 import '../features/timesheet/models/timesheet_group.dart';
 import '../models/app_user_profile.dart';
 import '../models/employee.dart';
+import '../models/responsibility_actor.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui.dart';
+import '../widgets/responsibility_actor_line.dart';
 import 'period_timesheet_screen.dart';
 import 'timesheet_group_manager_sheet.dart';
 
@@ -57,6 +59,8 @@ class _TimesheetScreenState extends State<TimesheetScreen> {
   DateTime selectedDate = AppState.today;
   Future<List<Employee>>? employeesFuture;
   TimesheetDraft timesheetDraft = TimesheetDraft.empty();
+  Map<String, ResponsibilityActor> attendanceResponsibility =
+      const <String, ResponsibilityActor>{};
   List<TimesheetGroup> timesheetGroups = const <TimesheetGroup>[];
   String selectedGroupFilter = _allTimesheetGroupsFilter;
 

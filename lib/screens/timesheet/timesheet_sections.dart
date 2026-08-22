@@ -399,6 +399,15 @@ extension _TimesheetSections on _TimesheetScreenState {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    if (employee.id != null &&
+                        attendanceResponsibility[employee.id!] != null) ...[
+                      const SizedBox(height: 7),
+                      ResponsibilityActorLine(
+                        label: 'Последнее изменение',
+                        actor: attendanceResponsibility[employee.id!]!,
+                        compact: true,
+                      ),
+                    ],
                   ],
                 ),
               ),

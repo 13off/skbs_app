@@ -4,6 +4,7 @@ import '../app/app_adaptive_palette.dart';
 
 import '../models/task_item_data.dart';
 import 'premium_ui_v2.dart';
+import 'responsibility_actor_line.dart';
 
 Color get _taskText => AppAdaptivePalette.textPrimary;
 Color get _taskMuted => AppAdaptivePalette.textMuted;
@@ -38,9 +39,28 @@ class TaskTile extends StatelessWidget {
     }
   }
 
+  bool get _sameResponsibleActor {
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    if (creator == null || editor == null) return false;
+
+    final creatorId = creator.userId?.trim() ?? '';
+    final editorId = editor.userId?.trim() ?? '';
+    if (creatorId.isNotEmpty && editorId.isNotEmpty) {
+      return creatorId == editorId;
+    }
+
+    final creatorName = creator.fullName.trim().toLowerCase();
+    final editorName = editor.fullName.trim().toLowerCase();
+    return creatorName.isNotEmpty && creatorName == editorName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = statusColor;
+    final creator = task.creator;
+    final editor = task.lastEditor;
+    final sameResponsibleActor = _sameResponsibleActor;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -91,6 +111,35 @@ class TaskTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    if (creator != null || editor != null) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 7,
+                        children: [
+                          if (sameResponsibleActor && editor != null)
+                            ResponsibilityActorLine(
+                              label: 'Создал и изменил',
+                              actor: editor,
+                              compact: true,
+                            )
+                          else ...[
+                            if (creator != null)
+                              ResponsibilityActorLine(
+                                label: 'Создал',
+                                actor: creator,
+                                compact: true,
+                              ),
+                            if (editor != null)
+                              ResponsibilityActorLine(
+                                label: 'Изменил',
+                                actor: editor,
+                                compact: true,
+                              ),
+                          ],
+                        ],
+                      ),
+                    ],
                     SizedBox(height: 11),
                     Container(
                       padding: const EdgeInsets.symmetric(
