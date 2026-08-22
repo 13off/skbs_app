@@ -87,3 +87,40 @@ $$;
 revoke all on function public.get_attendance_responsibility_fast(date, text) from public;
 revoke all on function public.get_attendance_responsibility_fast(date, text) from anon;
 grant execute on function public.get_attendance_responsibility_fast(date, text) to authenticated;
+
+-- Private profile avatars remain protected from anonymous/cross-company reads,
+-- but authenticated colleagues in the same active company may render the avatar
+-- of the person whose action is being attributed in a task or timesheet.
+create or replace function public.can_read_profile_avatar(p_owner_user_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null
+    and (
+      auth.uid()::text = p_owner_user_id
+      or exists (
+        select 1
+        from public.company_memberships membership
+        where membership.user_id::text = p_owner_user_id
+          and membership.company_id = public.current_user_company_id()
+          and membership.is_active = true
+      )
+    );
+$$;
+
+revoke all on function public.can_read_profile_avatar(text) from public;
+revoke all on function public.can_read_profile_avatar(text) from anon;
+grant execute on function public.can_read_profile_avatar(text) to authenticated;
+
+drop policy if exists "profile avatars select company peers" on storage.objects;
+create policy "profile avatars select company peers"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'profile-avatars'
+  and public.can_read_profile_avatar((storage.foldername(name))[1])
+);
