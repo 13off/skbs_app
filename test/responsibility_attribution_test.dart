@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+// Contract for visible authorship in tasks and timesheets.
 void main() {
   test('task list loads responsibility in parallel', () {
     final source = File('lib/data/task_repository.dart').readAsStringSync();
