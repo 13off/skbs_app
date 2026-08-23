@@ -108,7 +108,7 @@ jobs:
           print('Prepared ru.appstroy.mobile for iOS 15 with Runner.entitlements')
           PY
 
-      - name: Build unsigned app
+      - name: Build unsigned app directly on Supabase
         if: always() && steps.ios_prepare.outcome == 'success'
         id: ios_build
         continue-on-error: true
@@ -117,7 +117,7 @@ jobs:
           set -o pipefail
           set +e
           flutter build ios --release --no-codesign \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=SUPABASE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
             --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
             --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \

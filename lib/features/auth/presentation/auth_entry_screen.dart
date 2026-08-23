@@ -87,9 +87,10 @@ class LoginScreen extends StatelessWidget {
                       _LoginChoice(
                         icon: Icons.engineering_rounded,
                         title: 'Я сотрудник',
-                        subtitle: 'Подтвердить вход одной кнопкой в MAX',
+                        subtitle: 'Временно недоступно',
                         onTap: () => openEmployeeLogin(context),
                         primary: true,
+                        enabled: false,
                       ),
                       const SizedBox(height: 12),
                       _LoginChoice(
@@ -116,6 +117,7 @@ class _LoginChoice extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool primary;
+  final bool enabled;
 
   const _LoginChoice({
     required this.icon,
@@ -123,62 +125,68 @@ class _LoginChoice extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.primary = false,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: primary
-          ? AppAdaptivePalette.accentSoft
-          : AppAdaptivePalette.inputSurface,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
+    return Opacity(
+      opacity: enabled ? 1 : 0.56,
+      child: Material(
+        color: primary
+            ? AppAdaptivePalette.accentSoft
+            : AppAdaptivePalette.inputSurface,
         borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(17),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppAdaptivePalette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(17),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppAdaptivePalette.surfaceElevated,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: AppAdaptivePalette.textPrimary),
                 ),
-                child: Icon(icon, color: AppAdaptivePalette.textPrimary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: AppAdaptivePalette.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: AppAdaptivePalette.textMuted,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: AppAdaptivePalette.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 18,
-                color: AppAdaptivePalette.textMuted,
-              ),
-            ],
+                const SizedBox(width: 8),
+                Icon(
+                  enabled
+                      ? Icons.arrow_forward_ios_rounded
+                      : Icons.lock_outline_rounded,
+                  size: 18,
+                  color: AppAdaptivePalette.textMuted,
+                ),
+              ],
+            ),
           ),
         ),
       ),
