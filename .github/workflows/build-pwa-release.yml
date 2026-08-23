@@ -106,14 +106,14 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Build PWA
+      - name: Build PWA directly on Supabase
         working-directory: skbs_app
         shell: bash
         run: |
           set -o pipefail
           flutter build web --release \
             --base-href /appstroy-web/ \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=SUPABASE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
             --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
             --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
@@ -155,7 +155,7 @@ jobs:
               echo "Published PWA is already current"
               break
             fi
-            git commit -m "обновлена PWA после исправления нижних действий"
+            git commit -m "обновлена PWA с прямым Supabase"
             if git push origin HEAD:main; then
               break
             fi
