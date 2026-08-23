@@ -1,7 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+21
-release date: 2026-08-20
-accepted application commit: e5e371f5016eb19b4c8934e32330cee46df6e1e6
-release version commit: ff1e7d4bbb876b4a9f7a420c041938a8fafbc864
-reason: publish the current iOS source with personal flight reminders by exact date/time, restored Departure/Arrival choice and custom reminder title; include individual timesheet multi-month/date-range selection with balance for the selected period and all previous native navigation, receipt and task-photo fixes
+release date: 2026-08-23
+accepted application commit: ca77e332db17d900c44639cf64fef0abdf65d79e
+reason: emergency infrastructure recovery; publish the current iOS source directly against production Supabase and remove api.appstroy-web.ru/Selectel as a required dependency; keep application workflows, data, roles and UI unchanged; employee login remains temporarily disabled and specialist login remains available
 expected output: unsigned verification IPA
