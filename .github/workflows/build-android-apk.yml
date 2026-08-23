@@ -62,7 +62,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/apk-build-status.txt downloads/source-commit.txt
           if ! git diff --cached --quiet; then
-            git commit -m "запущена сборка APK через российский прокси"
+            git commit -m "запущена сборка APK с прямым Supabase"
             git push origin HEAD:downloads
           fi
 
@@ -90,13 +90,13 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build release APK through proxy
+      - name: Build release APK directly on Supabase
         id: apk_build
         shell: bash
         run: |
           set +e
           flutter build apk --release \
-            --dart-define=SUPABASE_URL=https://api.appstroy-web.ru \
+            --dart-define=SUPABASE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co \
             --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
             --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
             --dart-define=FIREBASE_MESSAGING_SENDER_ID="$FIREBASE_MESSAGING_SENDER_ID" \
@@ -174,7 +174,7 @@ jobs:
           git add downloads
           if ! git diff --cached --quiet; then
             if [ "${{ steps.apk_build.outputs.exit_code }}" = "0" ]; then
-              git commit -m "опубликован APK через российский прокси"
+              git commit -m "опубликован APK с прямым Supabase"
             else
               git commit -m "сохранена ошибка сборки APK"
             fi
