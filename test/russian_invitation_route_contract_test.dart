@@ -5,13 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File(path).readAsStringSync();
 
 void main() {
-  test('invitation uses GitHub Pages and direct Supabase verification', () {
+  test('invitation uses static landing and Russian API verification', () {
     final edge = source('supabase/functions/invite-company-member/index.ts');
     final core = source(
       'supabase/functions/invite-company-member-core/index.ts',
     );
     final landing = source('web/invite.html');
-    final repository = source('lib/features/auth/data/user_repository.dart');
 
     expect(edge, contains('invite-company-member-core'));
     expect(edge, contains('https://13off.github.io/appstroy-web/'));
@@ -25,9 +24,7 @@ void main() {
 
     expect(
       landing,
-      contains(
-        "const supabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co'",
-      ),
+      contains("const supabaseUrl = 'https://api.appstroy-web.ru'"),
     );
     expect(landing, contains(r"fetch(`${supabaseUrl}/auth/v1/verify`"));
     expect(
@@ -35,25 +32,22 @@ void main() {
       contains("accept.addEventListener('click', acceptInvitation)"),
     );
     expect(landing, isNot(contains('acceptInvitation();')));
-    expect(landing, isNot(contains('https://api.appstroy-web.ru')));
-
-    expect(repository, contains('https://13off.github.io/appstroy-web/'));
-    expect(repository, isNot(contains('https://api.appstroy-web.ru/app/')));
   });
 
-  test('release builds use Supabase directly and do not require a VPS', () {
-    final web = source('.github/workflows/deploy-web.yml');
-    final pwa = source('.github/workflows/build-pwa-release.yml');
-    final android = source('.github/workflows/build-android-apk.yml');
-    final ios = source('.github/workflows/build-ios-ipa.yml');
+  test('Russian proxy remains dedicated to Auth and REST requests', () {
+    final caddy = source('infra/supabase-proxy/Caddyfile');
+    final compose = source('infra/supabase-proxy/docker-compose.yml');
+    final landing = source('web/invite.html');
 
-    const direct =
-        '--dart-define=SUPABASE_URL=https://dxbrhsefgxcaxzmrbfrb.supabase.co';
-    const proxy = '--dart-define=SUPABASE_URL=https://api.appstroy-web.ru';
+    expect(caddy, contains('reverse_proxy https://'));
+    expect(caddy, contains(r'{$SUPABASE_UPSTREAM}'));
+    expect(compose, contains('SUPABASE_UPSTREAM:'));
+    expect(landing, contains('/auth/v1/verify'));
 
-    for (final workflow in [web, pwa, android, ios]) {
-      expect(workflow, contains(direct));
-      expect(workflow, isNot(contains(proxy)));
-    }
+    // Public invitation delivery must not depend on the optional /app mirror.
+    expect(edgeSource(), isNot(contains('https://api.appstroy-web.ru/app/')));
   });
 }
+
+String edgeSource() =>
+    source('supabase/functions/invite-company-member/index.ts');

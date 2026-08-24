@@ -35,14 +35,9 @@ void main() {
       expect(landing, contains('token_hash: tokenHash'));
       expect(
         landing,
-        contains(
-          "const supabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co'",
-        ),
+        contains("const supabaseUrl = 'https://api.appstroy-web.ru'"),
       );
-      expect(landing, isNot(contains('https://api.appstroy-web.ru')));
 
-      expect(repository, contains('https://13off.github.io/appstroy-web/'));
-      expect(repository, isNot(contains('https://api.appstroy-web.ru/app/')));
       expect(repository, contains('verifyPendingInvitationLink'));
       expect(repository, contains('verifyOTP('));
       expect(repository, contains('tokenHash: tokenHash'));

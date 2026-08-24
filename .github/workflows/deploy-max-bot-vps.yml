@@ -1,4 +1,4 @@
-name: MAX recruiting bot temporarily disabled
+name: Deploy MAX recruiting bot to VPS
 
 on:
   workflow_dispatch:
@@ -6,11 +6,56 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-max-recruiting-bot-vps
+  cancel-in-progress: false
+
 jobs:
-  disabled:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Keep MAX bot disabled
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate MAX bot
+        working-directory: services/max-recruiting-bot
+        run: npm run check
+
+      - name: Validate required VPS secrets
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          echo "MAX recruiting bot is temporarily disabled."
-          echo "VPS deployment is intentionally blocked until the bot is re-enabled."
+          set -euo pipefail
+          test -n "$VPS_HOST" || { echo "VPS_HOST is missing"; exit 1; }
+          test -n "$VPS_USER" || { echo "VPS_USER is missing"; exit 1; }
+          test -n "$VPS_SSH_KEY" || { echo "VPS_SSH_KEY is missing"; exit 1; }
+
+      - name: Copy service files
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: services/max-recruiting-bot/*,services/max-recruiting-bot/.dockerignore,services/max-recruiting-bot/.env.example
+          target: /opt/appstroy-max-bot
+          strip_components: 2
+          overwrite: true
+
+      - name: Build and restart service
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/appstroy-max-bot
+            test -f .env || { echo "Missing /opt/appstroy-max-bot/.env"; exit 1; }
+            mkdir -p data
+            docker compose -f compose.yml build --pull
+            docker compose -f compose.yml up -d --force-recreate --remove-orphans
+            docker compose -f compose.yml ps
+            docker compose -f compose.yml logs --tail=80 max-recruiting-bot

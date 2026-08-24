@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 // The legacy manual-code MAX button must stay removed from employee login.
-// The secure one-tap implementation is retained for a later re-enable, while
-// the public employee entry is intentionally disabled.
 void main() {
-  test('employee MAX one-tap implementation remains behind disabled entry', () {
+  test('employee signs in by confirming one secure button in MAX', () {
     final entry = File(
       'lib/features/auth/presentation/auth_entry_screen.dart',
     ).readAsStringSync();
@@ -31,10 +29,7 @@ void main() {
 
     expect(entry, contains("import 'employee_max_login_screen.dart';"));
     expect(entry, contains('EmployeeMaxLoginScreen('));
-    expect(entry, contains("title: 'Я сотрудник'"));
-    expect(entry, contains("subtitle: 'Временно недоступно'"));
-    expect(entry, contains('enabled: false'));
-    expect(entry, contains('onTap: enabled ? onTap : null'));
+    expect(entry, contains('Подтвердить вход одной кнопкой в MAX'));
 
     expect(
       screen,
