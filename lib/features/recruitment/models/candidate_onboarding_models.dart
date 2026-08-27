@@ -89,7 +89,6 @@ class CandidateOnboardingForm {
 const List<String> candidateOnboardingFormCodes = <String>[
   'employment_application',
   'salary_transfer_application',
-  'personal_data_consent',
   'employment_contract',
 ];
 
