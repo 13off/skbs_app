@@ -233,6 +233,14 @@ class _CandidateOnboardingDetailScreenState
     await next;
   }
 
+  List<CandidateOnboardingForm> activeForms(
+    List<CandidateOnboardingForm> forms,
+  ) {
+    return forms
+        .where((form) => candidateOnboardingFormCodes.contains(form.formCode))
+        .toList(growable: false);
+  }
+
   CandidateOnboardingCandidate linkedCandidate(String employeeId) {
     return CandidateOnboardingCandidate(
       id: candidate.id,
@@ -295,10 +303,6 @@ class _CandidateOnboardingDetailScreenState
 
   Future<void> createEmployee() async {
     if (creatingEmployee || candidate.isLinkedToEmployee) return;
-    if (!candidate.consentPersonalData) {
-      showError('Сначала нужно подтвердить согласие на обработку данных');
-      return;
-    }
     setState(() => creatingEmployee = true);
     try {
       final action = AiAssistantAction(
@@ -411,26 +415,28 @@ class _CandidateOnboardingDetailScreenState
   }
 
   String nextStep(List<CandidateOnboardingForm> forms) {
-    if (!candidate.consentPersonalData) {
-      return 'Подтвердить согласие кандидата на обработку данных';
-    }
+    final currentForms = activeForms(forms);
     if (!candidate.isLinkedToEmployee) {
       return 'Создать сотрудника и вручную проверить объект и ставку';
     }
-    if (forms.length < candidateOnboardingFormCodes.length) {
+    if (currentForms.length < candidateOnboardingFormCodes.length) {
       return 'Сформировать полный комплект ZIP';
     }
-    final missing = forms.fold<int>(
+    final missing = currentForms.fold<int>(
       0,
       (sum, form) => sum + form.missingFields.length,
     );
-    if (missing > 0)
+    if (missing > 0) {
       return 'Заполнить $missing обязательных полей перед подписью';
-    final notPrinted = forms.where((form) => !form.isPrinted && !form.isSigned);
+    }
+    final notPrinted = currentForms.where(
+      (form) => !form.isPrinted && !form.isSigned,
+    );
     if (notPrinted.isNotEmpty) return 'Распечатать оставшиеся формы';
-    final notSigned = forms.where((form) => !form.isSigned).length;
-    if (notSigned > 0)
+    final notSigned = currentForms.where((form) => !form.isSigned).length;
+    if (notSigned > 0) {
       return 'Загрузить подписанные экземпляры: осталось $notSigned';
+    }
     return 'Кадровый комплект завершён — перейти к выходу на объект';
   }
 
@@ -463,12 +469,6 @@ class _CandidateOnboardingDetailScreenState
           Text('${candidate.positionTitle} · ${candidate.objectName}'),
           const SizedBox(height: 7),
           _InlineStatus(
-            ok: candidate.consentPersonalData,
-            okText: 'Согласие подтверждено',
-            pendingText: 'Нет подтверждённого согласия',
-          ),
-          const SizedBox(height: 6),
-          _InlineStatus(
             ok: candidate.isLinkedToEmployee,
             okText: 'Карточка сотрудника связана',
             pendingText: 'Карточка сотрудника ещё не создана',
@@ -492,23 +492,23 @@ class _CandidateOnboardingDetailScreenState
   }
 
   Widget progressCard(List<CandidateOnboardingForm> forms) {
-    final generated = forms.length;
-    final printed = forms
+    final currentForms = activeForms(forms);
+    final generated = currentForms.length;
+    final printed = currentForms
         .where((form) => form.isPrinted || form.isSigned)
         .length;
-    final signed = forms.where((form) => form.isSigned).length;
-    final missing = forms.fold<int>(
+    final signed = currentForms.where((form) => form.isSigned).length;
+    final missing = currentForms.fold<int>(
       0,
       (sum, form) => sum + form.missingFields.length,
     );
     final completeSteps = <bool>[
-      candidate.consentPersonalData,
       candidate.isLinkedToEmployee,
       generated == candidateOnboardingFormCodes.length,
       generated > 0 && printed == generated,
       generated > 0 && signed == generated,
     ].where((value) => value).length;
-    final progress = completeSteps / 5;
+    final progress = completeSteps / 4;
 
     return PremiumWorkCard(
       radius: 24,
@@ -527,7 +527,7 @@ class _CandidateOnboardingDetailScreenState
                 ),
               ),
               Text(
-                '$completeSteps/5',
+                '$completeSteps/4',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
             ],
@@ -540,16 +540,13 @@ class _CandidateOnboardingDetailScreenState
             runSpacing: 8,
             children: [
               _ProgressBadge(
-                label: 'Согласие',
-                complete: candidate.consentPersonalData,
-              ),
-              _ProgressBadge(
                 label: 'Сотрудник',
                 complete: candidate.isLinkedToEmployee,
               ),
               _ProgressBadge(
-                label: 'Формы $generated/4',
-                complete: generated == 4,
+                label:
+                    'Формы $generated/${candidateOnboardingFormCodes.length}',
+                complete: generated == candidateOnboardingFormCodes.length,
               ),
               _ProgressBadge(
                 label: 'Печать $printed/$generated',
@@ -579,7 +576,7 @@ class _CandidateOnboardingDetailScreenState
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              'Следующий шаг: ${nextStep(forms)}',
+              'Следующий шаг: ${nextStep(currentForms)}',
               style: const TextStyle(height: 1.35, fontWeight: FontWeight.w900),
             ),
           ),
@@ -686,7 +683,7 @@ class _CandidateOnboardingDetailScreenState
     return AppPage(
       title: 'Кадровый комплект',
       showBackButton: true,
-      subtitle: 'Один ввод данных, четыре формы и контроль подписей',
+      subtitle: 'Один ввод данных, три формы и контроль подписей',
       headerTrailing: IconButton.filledTonal(
         tooltip: 'Обновить',
         onPressed: refreshForms,
@@ -745,7 +742,9 @@ class _CandidateOnboardingDetailScreenState
                   text: 'Не удалось загрузить формы: ${snapshot.error}',
                 );
               }
-              final forms = snapshot.data ?? const <CandidateOnboardingForm>[];
+              final forms = activeForms(
+                snapshot.data ?? const <CandidateOnboardingForm>[],
+              );
               if (forms.isEmpty) {
                 return const _MessageCard(
                   icon: Icons.description_outlined,
@@ -876,7 +875,7 @@ class _SafetyNotice extends StatelessWidget {
       icon: Icons.privacy_tip_outlined,
       text:
           'До открытия production gate используй только обезличенные или тестовые копии. '
-          'Согласие и трудовой договор перед реальным подписанием должны пройти юридическое утверждение.',
+          'Кадровые формы и трудовой договор перед реальным подписанием должны пройти юридическое утверждение.',
     );
   }
 }
