@@ -41,12 +41,6 @@ abstract final class CandidateOnboardingPackageService {
   static Future<CandidateOnboardingPackageResult> build(
     CandidateOnboardingCandidate candidate,
   ) async {
-    if (!candidate.consentPersonalData) {
-      throw StateError(
-        'Нельзя сформировать комплект без подтверждённого согласия кандидата',
-      );
-    }
-
     final compliance = await CompanyComplianceRepository.fetchSnapshot(
       candidate.companyId,
     );
@@ -237,7 +231,7 @@ abstract final class CandidateOnboardingPackageService {
     }
     if (!employer.legalDocumentsApproved) {
       warnings.add(
-        'Согласие и трудовой договор не утверждены юристом. Реальное подписание запрещено.',
+        'Кадровые документы не утверждены юристом. Реальное подписание запрещено.',
       );
     }
     if (!employer.hasRequiredEmployerDetails) {
@@ -332,7 +326,6 @@ Production gate: ${gateEnabled ? 'ОТКРЫТ' : 'ЗАКРЫТ'}
 Объект: ${candidate.objectName}
 Телефон: ${candidate.phone}
 Сотрудник связан: ${candidate.employeeId.isEmpty ? 'нет' : 'да'}
-Согласие на обработку данных: ${candidate.consentPersonalData ? 'получено' : 'нет'}
 Сформировано: ${DateFormat('dd.MM.yyyy HH:mm').format(generatedAt)}
 
 ФОРМЫ
