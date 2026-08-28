@@ -110,11 +110,19 @@ class _RecruitmentFlightCalendarScreenState
     RecruitmentFlightCalendarData data, {
     RecruitmentFlightEntry? entry,
   }) async {
+    final editorCandidates =
+        entry == null ||
+            data.candidates.any(
+              (candidate) =>
+                  candidate.applicationId == entry.candidate.applicationId,
+            )
+        ? data.candidates
+        : <RecruitmentFlightCandidate>[entry.candidate, ...data.candidates];
     final saved = await Navigator.of(context).push<bool>(
       AppPageRoute<bool>(
         builder: (_) => RecruitmentFlightEditorScreen(
           profile: widget.profile,
-          candidates: data.candidates,
+          candidates: editorCandidates,
           entry: entry,
         ),
       ),
@@ -615,7 +623,7 @@ class _RecruitmentFlightCalendarScreenState
               const _FlightMessage(
                 icon: Icons.info_outline_rounded,
                 text:
-                    'После сохранения билетов вылет появляется в календаре. При необходимости добавьте точную дату и время личного уведомления для себя.',
+                    'Для нового вылета доступны только карточки из колонки «Куплен билет». После сохранения вылет появляется в календаре.',
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
@@ -692,7 +700,9 @@ class _RecruitmentFlightEditorScreenState
   void initState() {
     super.initState();
     final entry = widget.entry;
-    candidate = entry?.candidate;
+    candidate =
+        entry?.candidate ??
+        (widget.candidates.length == 1 ? widget.candidates.first : null);
     departureAt =
         entry?.flight.departureAt ??
         DateTime.now().add(const Duration(days: 1, hours: 3));
