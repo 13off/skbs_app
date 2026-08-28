@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/app_data_sync.dart';
 import '../../../services/push_notification_service.dart';
 import '../models/recruitment_flight_models.dart';
+import '../models/recruitment_models.dart';
 import 'recruitment_repository.dart';
 
 class RecruitmentFlightTicketUpload {
@@ -71,7 +72,24 @@ abstract final class RecruitmentFlightRepository {
     );
   }
 
-  static Future<List<RecruitmentFlightCandidate>> fetchCandidates({
+  static bool isTicketPurchasedStage(RecruitmentPipelineStage stage) {
+    final systemKey = stage.systemKey.trim().toLowerCase();
+    if (const <String>{
+      'ticket_purchased',
+      'ticket_bought',
+      'purchased_ticket',
+    }.contains(systemKey)) {
+      return true;
+    }
+    final title = stage.title
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    return title == 'куплен билет' || title == 'билет куплен';
+  }
+
+  static Future<List<RecruitmentFlightCandidate>> _fetchAllCandidates({
     required String companyId,
   }) async {
     final cleanCompanyId = companyId.trim();
@@ -83,6 +101,45 @@ abstract final class RecruitmentFlightRepository {
           'object_id, source, external_user_id, external_chat_id, objects(name)',
         )
         .eq('company_id', cleanCompanyId)
+        .isFilter('archived_at', null)
+        .neq('status', 'rejected')
+        .order('full_name');
+    return rows
+        .map<RecruitmentFlightCandidate>(
+          (row) => RecruitmentFlightCandidate.fromMap(_map(row)),
+        )
+        .where(
+          (candidate) =>
+              candidate.applicationId.isNotEmpty &&
+              candidate.fullName.trim().isNotEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  static Future<List<RecruitmentFlightCandidate>> fetchCandidates({
+    required String companyId,
+    RecruitmentCrmConfiguration? configuration,
+  }) async {
+    final cleanCompanyId = companyId.trim();
+    if (cleanCompanyId.isEmpty) return const <RecruitmentFlightCandidate>[];
+    final resolvedConfiguration =
+        configuration ??
+        await RecruitmentRepository.fetchConfiguration(companyId: cleanCompanyId);
+    final stageIds = resolvedConfiguration.stages
+        .where(isTicketPurchasedStage)
+        .map((stage) => stage.id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    if (stageIds.isEmpty) return const <RecruitmentFlightCandidate>[];
+
+    final rows = await _client
+        .from('recruitment_applications')
+        .select(
+          'id, company_id, employee_id, full_name, phone, position_title, '
+          'object_id, source, external_user_id, external_chat_id, objects(name)',
+        )
+        .eq('company_id', cleanCompanyId)
+        .inFilter('stage_id', stageIds)
         .isFilter('archived_at', null)
         .neq('status', 'rejected')
         .order('full_name');
@@ -160,18 +217,23 @@ abstract final class RecruitmentFlightRepository {
     required String companyId,
     bool dispatchReminders = true,
   }) async {
+    final configuration = await RecruitmentRepository.fetchConfiguration(
+      companyId: companyId,
+    );
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      fetchCandidates(companyId: companyId),
+      _fetchAllCandidates(companyId: companyId),
+      fetchCandidates(companyId: companyId, configuration: configuration),
       fetchFlights(companyId: companyId),
       fetchFlightTickets(companyId: companyId),
       fetchFlightReminders(companyId: companyId),
     ]);
-    final candidates = results[0] as List<RecruitmentFlightCandidate>;
-    final flights = results[1] as List<RecruitmentFlight>;
-    final tickets = results[2] as List<RecruitmentFlightTicket>;
-    final reminders = results[3] as List<RecruitmentFlightReminder>;
+    final allCandidates = results[0] as List<RecruitmentFlightCandidate>;
+    final candidates = results[1] as List<RecruitmentFlightCandidate>;
+    final flights = results[2] as List<RecruitmentFlight>;
+    final tickets = results[3] as List<RecruitmentFlightTicket>;
+    final reminders = results[4] as List<RecruitmentFlightReminder>;
     final candidatesById = <String, RecruitmentFlightCandidate>{
-      for (final candidate in candidates) candidate.applicationId: candidate,
+      for (final candidate in allCandidates) candidate.applicationId: candidate,
     };
     final ticketsByFlight = <String, List<RecruitmentFlightTicket>>{};
     for (final ticket in tickets) {
