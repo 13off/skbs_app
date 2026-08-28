@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,8 +6,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/app_data_sync.dart';
 import '../models/recruitment_models.dart';
 
+class RecruitmentApplicationStageMove {
+  final String applicationId;
+  final String stageId;
+
+  const RecruitmentApplicationStageMove({
+    required this.applicationId,
+    required this.stageId,
+  });
+}
+
 abstract final class RecruitmentRepository {
   static final SupabaseClient _client = Supabase.instance.client;
+  static final StreamController<RecruitmentApplicationStageMove>
+  _stageMoveController =
+      StreamController<RecruitmentApplicationStageMove>.broadcast();
+
+  static Stream<RecruitmentApplicationStageMove> get stageMoves =>
+      _stageMoveController.stream;
 
   static Map<String, dynamic> _map(dynamic value) {
     if (value is Map<String, dynamic>) return value;
@@ -661,14 +678,22 @@ abstract final class RecruitmentRepository {
     required String applicationId,
     required String stageId,
   }) async {
+    final cleanApplicationId = applicationId.trim();
+    final cleanStageId = stageId.trim();
     await _client.rpc(
       'move_recruitment_application_stage',
       params: <String, dynamic>{
-        'p_application_id': applicationId.trim(),
-        'p_stage_id': stageId.trim(),
+        'p_application_id': cleanApplicationId,
+        'p_stage_id': cleanStageId,
       },
     );
-    _notify(applicationId.trim());
+    _stageMoveController.add(
+      RecruitmentApplicationStageMove(
+        applicationId: cleanApplicationId,
+        stageId: cleanStageId,
+      ),
+    );
+    _notify(cleanApplicationId);
   }
 
   static Future<void> updateStatus({
