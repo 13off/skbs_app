@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../data/app_data_sync.dart';
 import '../../../models/app_user_profile.dart';
+import '../../../navigation/app_page_route.dart';
 import '../../../screens/profile_screen.dart';
 import '../../../widgets/premium_ui.dart';
 import '../../shell/presentation/persistent_tab_shell.dart';
+import '../data/recruitment_flight_repository.dart';
+import '../data/recruitment_repository.dart';
 import 'recruitment_applications_screen.dart';
 import 'recruitment_dashboard_screen.dart';
 import 'recruitment_flight_calendar_screen.dart';
@@ -22,6 +27,9 @@ class RecruitmentMainScreen extends StatefulWidget {
 class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
   static const int pageCount = 5;
   late final PersistentTabController tabs;
+  late final StreamSubscription<RecruitmentApplicationStageMove>
+  stageMoveSubscription;
+  bool flightPromptBusy = false;
 
   @override
   void initState() {
@@ -31,16 +39,72 @@ class _RecruitmentMainScreenState extends State<RecruitmentMainScreen> {
       companyId: widget.profile.activeCompanyId,
       invalidateCaches: (_) {},
     );
+    stageMoveSubscription = RecruitmentRepository.stageMoves.listen(
+      handleStageMove,
+    );
   }
 
   @override
   void dispose() {
+    stageMoveSubscription.cancel();
     AppDataSync.stop(companyId: widget.profile.activeCompanyId);
     tabs.dispose();
     super.dispose();
   }
 
   Future<void> select(int index) => tabs.select(index);
+
+  void handleStageMove(RecruitmentApplicationStageMove move) {
+    if (!mounted || flightPromptBusy) return;
+    unawaited(openFlightAfterTicketPurchase(move));
+  }
+
+  Future<void> openFlightAfterTicketPurchase(
+    RecruitmentApplicationStageMove move,
+  ) async {
+    flightPromptBusy = true;
+    try {
+      final configuration = await RecruitmentRepository.fetchConfiguration(
+        companyId: widget.profile.activeCompanyId,
+      );
+      final stage = configuration.stageById(move.stageId);
+      if (stage == null ||
+          !RecruitmentFlightRepository.isTicketPurchasedStage(stage)) {
+        return;
+      }
+
+      final candidates = await RecruitmentFlightRepository.fetchCandidates(
+        companyId: widget.profile.activeCompanyId,
+        configuration: configuration,
+      );
+      final matching = candidates
+          .where((candidate) => candidate.applicationId == move.applicationId)
+          .toList(growable: false);
+      if (matching.isEmpty || !mounted) return;
+      final selected = matching.first;
+
+      await Navigator.of(context).push<bool>(
+        AppPageRoute<bool>(
+          builder: (_) => RecruitmentFlightEditorScreen(
+            profile: widget.profile,
+            candidates: [selected],
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Карточка перенесена в «Куплен билет», но окно вылета не открылось: '
+            '${error.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    } finally {
+      flightPromptBusy = false;
+    }
+  }
 
   Widget rootPage(int index) {
     return switch (index) {
