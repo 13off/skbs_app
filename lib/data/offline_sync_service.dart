@@ -208,6 +208,55 @@ class OfflineSyncService {
     return ids;
   }
 
+  static Map<String, dynamic> _mergeDedupePayload(
+    String kind,
+    Map<String, dynamic> previous,
+    Map<String, dynamic> next,
+  ) {
+    if (kind == 'attendance.upsert') {
+      final rows = <String, Map<String, dynamic>>{};
+      void addRows(dynamic rawRows) {
+        if (rawRows is! List) return;
+        for (final raw in rawRows.whereType<Map>()) {
+          final row = Map<String, dynamic>.from(raw);
+          final key =
+              '${row['work_date'] ?? ''}::${row['employee_id'] ?? ''}';
+          rows[key] = row;
+        }
+      }
+
+      addRows(previous['rows']);
+      addRows(next['rows']);
+      return <String, dynamic>{
+        ...previous,
+        ...next,
+        'rows': rows.values.toList(growable: false),
+      };
+    }
+
+    if (kind == 'task.photos.add') {
+      final photos = <String, Map<String, dynamic>>{};
+      void addPhotos(dynamic rawPhotos) {
+        if (rawPhotos is! List) return;
+        for (final raw in rawPhotos.whereType<Map>()) {
+          final photo = Map<String, dynamic>.from(raw);
+          final id = photo['offline_id']?.toString().trim() ?? '';
+          if (id.isNotEmpty) photos[id] = photo;
+        }
+      }
+
+      addPhotos(previous['photos']);
+      addPhotos(next['photos']);
+      return <String, dynamic>{
+        ...previous,
+        ...next,
+        'photos': photos.values.toList(growable: false),
+      };
+    }
+
+    return next;
+  }
+
   static Future<void> enqueue({
     required String kind,
     required Map<String, dynamic> payload,
@@ -217,11 +266,28 @@ class OfflineSyncService {
 
     final cleanDedupe = dedupeKey?.trim() ?? '';
     if (cleanDedupe.isNotEmpty) {
-      _queue.removeWhere(
+      final existingIndex = _queue.indexWhere(
         (item) =>
             item['kind']?.toString() == kind &&
             item['dedupe_key']?.toString() == cleanDedupe,
       );
+      if (existingIndex >= 0) {
+        final existing = _queue[existingIndex];
+        final mergedPayload = _mergeDedupePayload(
+          kind,
+          _map(existing['payload']),
+          payload,
+        );
+        _queue[existingIndex] = <String, dynamic>{
+          ...existing,
+          'payload': mergedPayload,
+          'created_at': DateTime.now().toUtc().toIso8601String(),
+          'attempts': 0,
+        };
+        await _persistQueue();
+        _publishState();
+        return;
+      }
     }
 
     _queue.add(<String, dynamic>{
@@ -313,13 +379,40 @@ class OfflineSyncService {
         final id = payload['id']?.toString().trim() ?? '';
         if (id.isEmpty) return;
         final values = _map(payload['values']);
-        await client.from('tasks').update(values).eq('id', id);
+        if (values.isNotEmpty) {
+          await client.from('tasks').update(values).eq('id', id);
+        }
         await _saveTaskLink(id, payload);
         return;
       case 'task.delete':
         final id = payload['id']?.toString().trim() ?? '';
         if (id.isEmpty) return;
         await client.from('tasks').delete().eq('id', id);
+        return;
+      case 'task.assignees':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _saveTaskAssignees(id, payload['assignee_ids']);
+        return;
+      case 'task.link':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _saveTaskLink(id, payload);
+        return;
+      case 'task.photos.add':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _uploadQueuedPhotos(id, payload['photos']);
+        return;
+      case 'task.photo.delete':
+        final id = payload['id']?.toString().trim() ?? '';
+        final storagePath = payload['storage_path']?.toString().trim() ?? '';
+        if (storagePath.isNotEmpty) {
+          await client.storage.from('task-photos').remove(<String>[storagePath]);
+        }
+        if (id.isNotEmpty) {
+          await client.from('task_photos').delete().eq('id', id);
+        }
         return;
       default:
         throw StateError('Неизвестная offline-операция: $kind');
@@ -334,63 +427,9 @@ class OfflineSyncService {
     final row = _map(payload['row']);
     row['id'] = id;
     await client.from('tasks').upsert(row, onConflict: 'id');
-
-    await client.from('task_assignees').delete().eq('task_id', id);
-    final assigneeIds = (payload['assignee_ids'] as List<dynamic>? ?? const [])
-        .map((value) => value.toString().trim())
-        .where((value) => value.isNotEmpty)
-        .toSet();
-    if (assigneeIds.isNotEmpty) {
-      await client.from('task_assignees').insert(
-        assigneeIds
-            .map(
-              (employeeId) => <String, dynamic>{
-                'task_id': id,
-                'employee_id': employeeId,
-              },
-            )
-            .toList(growable: false),
-      );
-    }
-
+    await _saveTaskAssignees(id, payload['assignee_ids']);
     await _saveTaskLink(id, payload);
-
-    final photos = payload['photos'];
-    if (photos is List && photos.isNotEmpty) {
-      for (var index = 0; index < photos.length; index += 1) {
-        final raw = photos[index];
-        if (raw is! Map) continue;
-        final photo = Map<String, dynamic>.from(raw);
-        final bytesText = photo['bytes']?.toString() ?? '';
-        if (bytesText.isEmpty) continue;
-        final bytes = Uint8List.fromList(base64Decode(bytesText));
-        final extension = photo['extension']?.toString().trim().isNotEmpty == true
-            ? photo['extension'].toString().trim()
-            : 'jpg';
-        final stage = photo['photo_stage']?.toString() == 'after'
-            ? 'after'
-            : 'before';
-        final photoId = photo['offline_id']?.toString().trim().isNotEmpty == true
-            ? photo['offline_id'].toString().trim()
-            : createLocalId();
-        final path = '$id/$stage/offline_$photoId.$extension';
-        await client.storage.from('task-photos').uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: photo['content_type']?.toString(),
-            upsert: true,
-          ),
-        );
-        await client.from('task_photos').upsert(<String, dynamic>{
-          'id': photoId,
-          'task_id': id,
-          'storage_path': path,
-          'original_name': photo['original_name']?.toString() ?? 'Фото',
-          'photo_stage': stage,
-        }, onConflict: 'id');
-      }
-    }
+    await _uploadQueuedPhotos(id, payload['photos']);
 
     if (row['is_draft'] == true) return;
     await client
@@ -400,6 +439,68 @@ class OfflineSyncService {
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', id);
+  }
+
+  static Future<void> _saveTaskAssignees(
+    String taskId,
+    dynamic rawAssigneeIds,
+  ) async {
+    final client = Supabase.instance.client;
+    await client.from('task_assignees').delete().eq('task_id', taskId);
+    final assigneeIds = (rawAssigneeIds as List<dynamic>? ?? const [])
+        .map((value) => value.toString().trim())
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    if (assigneeIds.isEmpty) return;
+    await client.from('task_assignees').insert(
+      assigneeIds
+          .map(
+            (employeeId) => <String, dynamic>{
+              'task_id': taskId,
+              'employee_id': employeeId,
+            },
+          )
+          .toList(growable: false),
+    );
+  }
+
+  static Future<void> _uploadQueuedPhotos(
+    String taskId,
+    dynamic rawPhotos,
+  ) async {
+    if (rawPhotos is! List || rawPhotos.isEmpty) return;
+    final client = Supabase.instance.client;
+    for (final raw in rawPhotos.whereType<Map>()) {
+      final photo = Map<String, dynamic>.from(raw);
+      final bytesText = photo['bytes']?.toString() ?? '';
+      if (bytesText.isEmpty) continue;
+      final bytes = Uint8List.fromList(base64Decode(bytesText));
+      final extension = photo['extension']?.toString().trim().isNotEmpty == true
+          ? photo['extension'].toString().trim()
+          : 'jpg';
+      final stage = photo['photo_stage']?.toString() == 'after'
+          ? 'after'
+          : 'before';
+      final photoId = photo['offline_id']?.toString().trim().isNotEmpty == true
+          ? photo['offline_id'].toString().trim()
+          : createLocalId();
+      final path = '$taskId/$stage/offline_$photoId.$extension';
+      await client.storage.from('task-photos').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(
+          contentType: photo['content_type']?.toString(),
+          upsert: true,
+        ),
+      );
+      await client.from('task_photos').upsert(<String, dynamic>{
+        'id': photoId,
+        'task_id': taskId,
+        'storage_path': path,
+        'original_name': photo['original_name']?.toString() ?? 'Фото',
+        'photo_stage': stage,
+      }, onConflict: 'id');
+    }
   }
 
   static Future<void> _saveTaskLink(
@@ -414,7 +515,7 @@ class OfflineSyncService {
     final checklistItemId =
         payload['checklist_item_id']?.toString().trim() ?? '';
     final client = Supabase.instance.client;
-    if (milestoneId.isEmpty || cleanChecklistItemId(checklistItemId).isEmpty) {
+    if (milestoneId.isEmpty || checklistItemId.isEmpty) {
       await client.from('task_milestone_links').delete().eq('task_id', taskId);
       return;
     }
@@ -424,8 +525,6 @@ class OfflineSyncService {
       'checklist_item_id': checklistItemId,
     }, onConflict: 'task_id');
   }
-
-  static String cleanChecklistItemId(String value) => value.trim();
 
   static List<Map<String, dynamic>> _decodeQueue(String? raw) {
     if (raw == null || raw.isEmpty) return <Map<String, dynamic>>[];
