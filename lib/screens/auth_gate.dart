@@ -1,1 +1,4 @@
-export '../features/auth/presentation/employee_aware_auth_gate.dart';
+export '../features/auth/presentation/offline_first_auth_gate.dart'
+    show OfflineFirstAuthGate;
+
+typedef AuthGate = OfflineFirstAuthGate;
