@@ -23,6 +23,7 @@ import '../features/shell/presentation/premium_main_screen.dart' as premium;
 import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';
 import '../models/app_user_profile.dart';
 import '../navigation/navigation_session.dart';
+import '../widgets/offline_sync_banner.dart';
 import '../widgets/premium_ui.dart';
 
 class MainScreen extends StatefulWidget {
@@ -247,7 +248,14 @@ class _MainScreenState extends State<MainScreen> {
             ),
           );
         }
-        return WhatsNewGate(profile: widget.profile, child: buildPlatform());
+        return WhatsNewGate(
+          profile: widget.profile,
+          child: OfflineSyncHost(
+            userId: widget.profile.id,
+            companyId: widget.profile.activeCompanyId,
+            child: buildPlatform(),
+          ),
+        );
       },
     );
   }

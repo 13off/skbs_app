@@ -10,7 +10,7 @@ import '../app/app_ui_tokens.dart';
 import '../data/app_data_sync.dart';
 import '../data/app_state.dart';
 import '../data/attendance_repository.dart';
-import '../data/employee_repository.dart';
+import '../data/offline_master_repository.dart';
 import '../features/timesheet/data/timesheet_group_repository.dart';
 import '../features/timesheet/models/timesheet_draft.dart';
 import '../features/timesheet/models/timesheet_group.dart';

@@ -6,7 +6,7 @@ part of '../timesheet_screen.dart';
 
 extension _TimesheetLoading on _TimesheetScreenState {
   void reloadEmployees({bool forceRefresh = false}) {
-    employeesFuture = EmployeeRepository.fetchEmployees(
+    employeesFuture = OfflineEmployeeRepository.fetchEmployees(
       objectName: widget.selectedObjectName,
       forceRefresh: forceRefresh,
     );
@@ -38,7 +38,12 @@ extension _TimesheetLoading on _TimesheetScreenState {
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() => errorText = 'Ошибка загрузки групп табеля: $error');
+      // Группы — вспомогательная функция. При плохой связи табель остаётся
+      // доступным по локальному списку сотрудников без блокирующей ошибки.
+      setState(() {
+        timesheetGroups = const <TimesheetGroup>[];
+        selectedGroupFilter = _allTimesheetGroupsFilter;
+      });
     } finally {
       if (mounted) setState(() => isGroupsLoading = false);
     }
@@ -57,12 +62,12 @@ extension _TimesheetLoading on _TimesheetScreenState {
 
     try {
       final results = await Future.wait<dynamic>([
-        AttendanceRepository.fetchShiftValuesForDate(
+        OfflineAttendanceRepository.fetchShiftValuesForDate(
           requestedDate,
           objectName: requestedObject,
           forceRefresh: forceRefresh,
         ),
-        AttendanceRepository.fetchResponsibilityForDate(
+        OfflineAttendanceRepository.fetchResponsibilityForDate(
           requestedDate,
           objectName: requestedObject,
           forceRefresh: forceRefresh,
@@ -78,7 +83,7 @@ extension _TimesheetLoading on _TimesheetScreenState {
       });
     } catch (error) {
       if (!mounted || generation != attendanceLoadGeneration) return;
-      setState(() => errorText = 'Ошибка загрузки табеля: $error');
+      setState(() => errorText = 'Не удалось открыть сохранённый табель: $error');
     } finally {
       if (mounted && generation == attendanceLoadGeneration) {
         setState(() => isAttendanceLoading = false);

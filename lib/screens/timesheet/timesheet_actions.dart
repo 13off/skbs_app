@@ -258,7 +258,7 @@ extension _TimesheetActions on _TimesheetScreenState {
     });
 
     try {
-      await AttendanceRepository.saveTimesheet(
+      await OfflineAttendanceRepository.saveTimesheet(
         date: selectedDate,
         employees: allEmployees,
         shiftValuesByEmployeeId: timesheetDraft.values,
@@ -268,7 +268,7 @@ extension _TimesheetActions on _TimesheetScreenState {
       if (!mounted) return;
       setState(() => timesheetDraft = timesheetDraft.markSaved());
       final responsibility =
-          await AttendanceRepository.fetchResponsibilityForDate(
+          await OfflineAttendanceRepository.fetchResponsibilityForDate(
             selectedDate,
             objectName: widget.selectedObjectName,
             forceRefresh: true,

@@ -1,0 +1,602 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'app_session_scope.dart';
+
+class OfflineSyncState {
+  final int pendingCount;
+  final DateTime? lastSyncAt;
+  final bool isSyncing;
+
+  const OfflineSyncState({
+    this.pendingCount = 0,
+    this.lastSyncAt,
+    this.isSyncing = false,
+  });
+
+  OfflineSyncState copyWith({
+    int? pendingCount,
+    DateTime? lastSyncAt,
+    bool? isSyncing,
+    bool clearLastSyncAt = false,
+  }) {
+    return OfflineSyncState(
+      pendingCount: pendingCount ?? this.pendingCount,
+      lastSyncAt: clearLastSyncAt ? null : lastSyncAt ?? this.lastSyncAt,
+      isSyncing: isSyncing ?? this.isSyncing,
+    );
+  }
+}
+
+class OfflineSyncService {
+  OfflineSyncService._();
+
+  static final ValueNotifier<OfflineSyncState> state =
+      ValueNotifier<OfflineSyncState>(const OfflineSyncState());
+
+  static const String _prefix = 'appstroy_offline_v1';
+  static const int _maxMutationAttempts = 50;
+  static SharedPreferences? _preferences;
+  static String _userId = '';
+  static String _companyId = '';
+  static bool _configured = false;
+  static bool _flushRunning = false;
+  static List<Map<String, dynamic>> _queue = <Map<String, dynamic>>[];
+
+  static bool get isConfigured => _configured;
+  static int get pendingCount => _queue.length;
+
+  static String get _scope {
+    final user = _userId.isEmpty ? '__guest__' : _userId;
+    final company = _companyId.isEmpty ? '__no_company__' : _companyId;
+    return '$user::$company';
+  }
+
+  static String get _queueKey => '$_prefix::queue::$_scope';
+  static String get _lastSyncKey => '$_prefix::last_sync::$_scope';
+  static String _snapshotKey(String key) => '$_prefix::snapshot::$_scope::$key';
+  static String _profileKey(String userId) =>
+      '$_prefix::profile::${userId.trim()}';
+
+  static Future<SharedPreferences> _prefs() async {
+    return _preferences ??= await SharedPreferences.getInstance();
+  }
+
+  static Future<void> _ensureConfigured() async {
+    if (_configured) return;
+    await configure(
+      userId: AppSessionScope.userId,
+      companyId: AppSessionScope.companyId,
+    );
+  }
+
+  static Future<void> configure({
+    required String userId,
+    required String companyId,
+  }) async {
+    final cleanUserId = userId.trim();
+    final cleanCompanyId = companyId.trim();
+    final unchanged =
+        _configured && _userId == cleanUserId && _companyId == cleanCompanyId;
+    if (unchanged) return;
+
+    _userId = cleanUserId;
+    _companyId = cleanCompanyId;
+    _configured = true;
+
+    final prefs = await _prefs();
+    _queue = _decodeQueue(prefs.getString(_queueKey));
+    final lastSync = DateTime.tryParse(prefs.getString(_lastSyncKey) ?? '');
+    state.value = OfflineSyncState(
+      pendingCount: _queue.length,
+      lastSyncAt: lastSync?.toLocal(),
+      isSyncing: false,
+    );
+  }
+
+  static void resetRuntime() {
+    _configured = false;
+    _userId = '';
+    _companyId = '';
+    _queue = <Map<String, dynamic>>[];
+    _flushRunning = false;
+    state.value = const OfflineSyncState();
+  }
+
+  static Future<void> saveUserProfileSnapshot(
+    String userId,
+    Map<String, dynamic> profile,
+  ) async {
+    final cleanUserId = userId.trim();
+    if (cleanUserId.isEmpty) return;
+    final prefs = await _prefs();
+    await prefs.setString(_profileKey(cleanUserId), jsonEncode(profile));
+  }
+
+  static Future<Map<String, dynamic>?> readUserProfileSnapshot(
+    String userId,
+  ) async {
+    final cleanUserId = userId.trim();
+    if (cleanUserId.isEmpty) return null;
+    final prefs = await _prefs();
+    final raw = prefs.getString(_profileKey(cleanUserId));
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  static Future<void> clearUserProfileSnapshot(String userId) async {
+    final cleanUserId = userId.trim();
+    if (cleanUserId.isEmpty) return;
+    final prefs = await _prefs();
+    await prefs.remove(_profileKey(cleanUserId));
+  }
+
+  static Future<void> saveSnapshot(String key, Object? value) async {
+    if (key.trim().isEmpty) return;
+    await _ensureConfigured();
+    final prefs = await _prefs();
+    await prefs.setString(
+      _snapshotKey(key.trim()),
+      jsonEncode(<String, dynamic>{
+        'saved_at': DateTime.now().toUtc().toIso8601String(),
+        'value': value,
+      }),
+    );
+  }
+
+  static Future<dynamic> readSnapshot(String key) async {
+    if (key.trim().isEmpty) return null;
+    await _ensureConfigured();
+    final prefs = await _prefs();
+    final raw = prefs.getString(_snapshotKey(key.trim()));
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return decoded['value'];
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  static Future<bool> hasPending({
+    required String kind,
+    String? dedupeKey,
+  }) async {
+    await _ensureConfigured();
+    final cleanDedupe = dedupeKey?.trim();
+    return _queue.any((item) {
+      if (item['kind']?.toString() != kind) return false;
+      if (cleanDedupe == null || cleanDedupe.isEmpty) return true;
+      return item['dedupe_key']?.toString() == cleanDedupe;
+    });
+  }
+
+  static Future<Set<String>> pendingTaskMutationIds() async {
+    await _ensureConfigured();
+    final ids = <String>{};
+    for (final item in _queue) {
+      final kind = item['kind']?.toString() ?? '';
+      if (kind != 'task.create' && kind != 'task.update') continue;
+      final payload = _map(item['payload']);
+      final id = payload['id']?.toString().trim() ?? '';
+      if (id.isNotEmpty) ids.add(id);
+    }
+    return ids;
+  }
+
+  static Future<Set<String>> pendingTaskDeleteIds() async {
+    await _ensureConfigured();
+    final ids = <String>{};
+    for (final item in _queue) {
+      if (item['kind']?.toString() != 'task.delete') continue;
+      final payload = _map(item['payload']);
+      final id = payload['id']?.toString().trim() ?? '';
+      if (id.isNotEmpty) ids.add(id);
+    }
+    return ids;
+  }
+
+  static Map<String, dynamic> _mergeDedupePayload(
+    String kind,
+    Map<String, dynamic> previous,
+    Map<String, dynamic> next,
+  ) {
+    if (kind == 'attendance.upsert') {
+      final rows = <String, Map<String, dynamic>>{};
+      void addRows(dynamic rawRows) {
+        if (rawRows is! List) return;
+        for (final raw in rawRows.whereType<Map>()) {
+          final row = Map<String, dynamic>.from(raw);
+          final key =
+              '${row['work_date'] ?? ''}::${row['employee_id'] ?? ''}';
+          rows[key] = row;
+        }
+      }
+
+      addRows(previous['rows']);
+      addRows(next['rows']);
+      return <String, dynamic>{
+        ...previous,
+        ...next,
+        'rows': rows.values.toList(growable: false),
+      };
+    }
+
+    if (kind == 'task.photos.add') {
+      final photos = <String, Map<String, dynamic>>{};
+      void addPhotos(dynamic rawPhotos) {
+        if (rawPhotos is! List) return;
+        for (final raw in rawPhotos.whereType<Map>()) {
+          final photo = Map<String, dynamic>.from(raw);
+          final id = photo['offline_id']?.toString().trim() ?? '';
+          if (id.isNotEmpty) photos[id] = photo;
+        }
+      }
+
+      addPhotos(previous['photos']);
+      addPhotos(next['photos']);
+      return <String, dynamic>{
+        ...previous,
+        ...next,
+        'photos': photos.values.toList(growable: false),
+      };
+    }
+
+    return next;
+  }
+
+  static Future<void> enqueue({
+    required String kind,
+    required Map<String, dynamic> payload,
+    String? dedupeKey,
+  }) async {
+    await _ensureConfigured();
+
+    final cleanDedupe = dedupeKey?.trim() ?? '';
+    if (cleanDedupe.isNotEmpty) {
+      final existingIndex = _queue.indexWhere(
+        (item) =>
+            item['kind']?.toString() == kind &&
+            item['dedupe_key']?.toString() == cleanDedupe,
+      );
+      if (existingIndex >= 0) {
+        final existing = _queue[existingIndex];
+        final mergedPayload = _mergeDedupePayload(
+          kind,
+          _map(existing['payload']),
+          payload,
+        );
+        _queue[existingIndex] = <String, dynamic>{
+          ...existing,
+          'payload': mergedPayload,
+          'created_at': DateTime.now().toUtc().toIso8601String(),
+          'attempts': 0,
+        };
+        await _persistQueue();
+        _publishState();
+        return;
+      }
+    }
+
+    _queue.add(<String, dynamic>{
+      'id': createLocalId(),
+      'kind': kind,
+      'dedupe_key': cleanDedupe,
+      'payload': payload,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'attempts': 0,
+    });
+    await _persistQueue();
+    _publishState();
+  }
+
+  static Future<void> flush() async {
+    await _ensureConfigured();
+    if (_flushRunning || _queue.isEmpty) return;
+    if (Supabase.instance.client.auth.currentSession == null) return;
+
+    _flushRunning = true;
+    _publishState(isSyncing: true);
+    try {
+      var index = 0;
+      while (index < _queue.length) {
+        final item = _queue[index];
+        try {
+          await _execute(item);
+          _queue.removeAt(index);
+          await _persistQueue();
+        } catch (error) {
+          final attempts = (item['attempts'] as num?)?.toInt() ?? 0;
+          item['attempts'] = attempts + 1;
+          await _persistQueue();
+
+          if (isNetworkFailure(error)) break;
+          if ((item['attempts'] as int) >= _maxMutationAttempts) {
+            // Пользовательские данные не удаляются даже при постоянной
+            // серверной ошибке: запись остаётся в очереди для разбора.
+            break;
+          }
+          index += 1;
+        }
+      }
+
+      if (_queue.isEmpty) {
+        await markSynced();
+      }
+    } finally {
+      _flushRunning = false;
+      _publishState(isSyncing: false);
+    }
+  }
+
+  static Future<void> markSynced() async {
+    await _ensureConfigured();
+    final now = DateTime.now();
+    final prefs = await _prefs();
+    await prefs.setString(_lastSyncKey, now.toUtc().toIso8601String());
+    state.value = state.value.copyWith(
+      lastSyncAt: now,
+      pendingCount: _queue.length,
+    );
+  }
+
+  static Future<void> _execute(Map<String, dynamic> item) async {
+    final kind = item['kind']?.toString() ?? '';
+    final payload = _map(item['payload']);
+    final client = Supabase.instance.client;
+
+    switch (kind) {
+      case 'attendance.upsert':
+        final rawRows = payload['rows'];
+        final rows = rawRows is List
+            ? rawRows
+                  .whereType<Map>()
+                  .map((row) => Map<String, dynamic>.from(row))
+                  .toList(growable: false)
+            : <Map<String, dynamic>>[];
+        if (rows.isNotEmpty) {
+          await client
+              .from('attendance')
+              .upsert(rows, onConflict: 'work_date,employee_id');
+        }
+        return;
+      case 'task.create':
+        await _executeTaskCreate(payload);
+        return;
+      case 'task.update':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        final values = _map(payload['values']);
+        if (values.isNotEmpty) {
+          await client.from('tasks').update(values).eq('id', id);
+        }
+        await _saveTaskLink(id, payload);
+        return;
+      case 'task.delete':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await client.from('tasks').delete().eq('id', id);
+        return;
+      case 'task.assignees':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _saveTaskAssignees(id, payload['assignee_ids']);
+        return;
+      case 'task.link':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _saveTaskLink(id, payload);
+        return;
+      case 'task.photos.add':
+        final id = payload['id']?.toString().trim() ?? '';
+        if (id.isEmpty) return;
+        await _uploadQueuedPhotos(id, payload['photos']);
+        return;
+      case 'task.photo.delete':
+        final id = payload['id']?.toString().trim() ?? '';
+        final storagePath = payload['storage_path']?.toString().trim() ?? '';
+        if (storagePath.isNotEmpty) {
+          await client.storage.from('task-photos').remove(<String>[storagePath]);
+        }
+        if (id.isNotEmpty) {
+          await client.from('task_photos').delete().eq('id', id);
+        }
+        return;
+      default:
+        throw StateError('Неизвестная offline-операция: $kind');
+    }
+  }
+
+  static Future<void> _executeTaskCreate(Map<String, dynamic> payload) async {
+    final client = Supabase.instance.client;
+    final id = payload['id']?.toString().trim() ?? '';
+    if (id.isEmpty) throw StateError('У offline-задачи отсутствует ID');
+
+    final row = _map(payload['row']);
+    row['id'] = id;
+    await client.from('tasks').upsert(row, onConflict: 'id');
+    await _saveTaskAssignees(id, payload['assignee_ids']);
+    await _saveTaskLink(id, payload);
+    await _uploadQueuedPhotos(id, payload['photos']);
+
+    if (row['is_draft'] == true) return;
+    await client
+        .from('tasks')
+        .update(<String, dynamic>{
+          'is_draft': false,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', id);
+  }
+
+  static Future<void> _saveTaskAssignees(
+    String taskId,
+    dynamic rawAssigneeIds,
+  ) async {
+    final client = Supabase.instance.client;
+    await client.from('task_assignees').delete().eq('task_id', taskId);
+    final assigneeIds = (rawAssigneeIds as List<dynamic>? ?? const [])
+        .map((value) => value.toString().trim())
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    if (assigneeIds.isEmpty) return;
+    await client.from('task_assignees').insert(
+      assigneeIds
+          .map(
+            (employeeId) => <String, dynamic>{
+              'task_id': taskId,
+              'employee_id': employeeId,
+            },
+          )
+          .toList(growable: false),
+    );
+  }
+
+  static Future<void> _uploadQueuedPhotos(
+    String taskId,
+    dynamic rawPhotos,
+  ) async {
+    if (rawPhotos is! List || rawPhotos.isEmpty) return;
+    final client = Supabase.instance.client;
+    for (final raw in rawPhotos.whereType<Map>()) {
+      final photo = Map<String, dynamic>.from(raw);
+      final bytesText = photo['bytes']?.toString() ?? '';
+      if (bytesText.isEmpty) continue;
+      final bytes = Uint8List.fromList(base64Decode(bytesText));
+      final extension = photo['extension']?.toString().trim().isNotEmpty == true
+          ? photo['extension'].toString().trim()
+          : 'jpg';
+      final stage = photo['photo_stage']?.toString() == 'after'
+          ? 'after'
+          : 'before';
+      final photoId = photo['offline_id']?.toString().trim().isNotEmpty == true
+          ? photo['offline_id'].toString().trim()
+          : createLocalId();
+      final path = '$taskId/$stage/offline_$photoId.$extension';
+      await client.storage.from('task-photos').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(
+          contentType: photo['content_type']?.toString(),
+          upsert: true,
+        ),
+      );
+      await client.from('task_photos').upsert(<String, dynamic>{
+        'id': photoId,
+        'task_id': taskId,
+        'storage_path': path,
+        'original_name': photo['original_name']?.toString() ?? 'Фото',
+        'photo_stage': stage,
+      }, onConflict: 'id');
+    }
+  }
+
+  static Future<void> _saveTaskLink(
+    String taskId,
+    Map<String, dynamic> payload,
+  ) async {
+    if (!payload.containsKey('milestone_id') &&
+        !payload.containsKey('checklist_item_id')) {
+      return;
+    }
+    final milestoneId = payload['milestone_id']?.toString().trim() ?? '';
+    final checklistItemId =
+        payload['checklist_item_id']?.toString().trim() ?? '';
+    final client = Supabase.instance.client;
+    if (milestoneId.isEmpty || checklistItemId.isEmpty) {
+      await client.from('task_milestone_links').delete().eq('task_id', taskId);
+      return;
+    }
+    await client.from('task_milestone_links').upsert(<String, dynamic>{
+      'task_id': taskId,
+      'milestone_id': milestoneId,
+      'checklist_item_id': checklistItemId,
+    }, onConflict: 'task_id');
+  }
+
+  static List<Map<String, dynamic>> _decodeQueue(String? raw) {
+    if (raw == null || raw.isEmpty) return <Map<String, dynamic>>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return <Map<String, dynamic>>[];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
+  static Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return Map<String, dynamic>.from(value);
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return <String, dynamic>{};
+  }
+
+  static Future<void> _persistQueue() async {
+    if (!_configured) return;
+    final prefs = await _prefs();
+    await prefs.setString(_queueKey, jsonEncode(_queue));
+  }
+
+  static void _publishState({bool? isSyncing}) {
+    state.value = state.value.copyWith(
+      pendingCount: _queue.length,
+      isSyncing: isSyncing,
+    );
+  }
+
+  static bool isNetworkFailure(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('socket') ||
+        text.contains('network') ||
+        text.contains('failed host lookup') ||
+        text.contains('connection') ||
+        text.contains('timeout') ||
+        text.contains('timed out') ||
+        text.contains('clientexception') ||
+        text.contains('xmlhttprequest') ||
+        text.contains('fetch') && text.contains('failed');
+  }
+
+  static String createLocalId() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    String hex(int value) => value.toRadixString(16).padLeft(2, '0');
+    final text = bytes.map(hex).join();
+    return '${text.substring(0, 8)}-${text.substring(8, 12)}-'
+        '${text.substring(12, 16)}-${text.substring(16, 20)}-'
+        '${text.substring(20)}';
+  }
+
+  static Map<String, dynamic> serializePhoto({
+    required String originalName,
+    required String contentType,
+    required String extension,
+    required Uint8List bytes,
+    String photoStage = 'before',
+  }) {
+    return <String, dynamic>{
+      'offline_id': createLocalId(),
+      'original_name': originalName,
+      'content_type': contentType,
+      'extension': extension,
+      'photo_stage': photoStage,
+      'bytes': base64Encode(bytes),
+    };
+  }
+}

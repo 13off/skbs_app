@@ -61,7 +61,8 @@ void main() {
       ).readAsStringSync();
 
       expect(taskRepository, contains('TaskAssigneeRepository.fetchAssignees'));
-      expect(taskRepository, contains('TaskAssigneeRepository.saveIfChanged'));
+      expect(taskRepository, contains('TaskAssigneeRepository.saveAssignees'));
+      expect(taskRepository, contains('TaskAssigneeRepository.sameIds'));
       expect(taskRepository, contains('TaskMilestoneLinkRepository.fetchLink'));
       expect(taskRepository, contains('TaskMilestoneLinkRepository.saveLink'));
       expect(taskRepository, contains('fetchTaskAssigneeIds'));
