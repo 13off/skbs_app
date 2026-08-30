@@ -1,4 +1,5 @@
-export '../features/auth/presentation/offline_first_auth_gate.dart'
-    show OfflineFirstAuthGate;
+import '../features/auth/presentation/offline_first_auth_gate.dart';
 
-typedef AuthGate = OfflineFirstAuthGate;
+class AuthGate extends OfflineFirstAuthGate {
+  const AuthGate({super.key});
+}
