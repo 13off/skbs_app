@@ -15,11 +15,10 @@ class DeveloperPolicyRepository {
 
   static TaskPolicy policyForObjectSync(String objectName) {
     final entry = _cache[_key(objectName)];
-    if (entry == null ||
-        DateTime.now().difference(entry.loadedAt) > _cacheTtl) {
-      return TaskPolicy.defaults;
-    }
-    return entry.policy;
+    // Для обычного online-refresh TTL по-прежнему применяется в ensurePolicy.
+    // Синхронный fallback намеренно держит последнюю известную политику дольше,
+    // чтобы при пропавшей связи не ослаблять уже загруженные правила объекта.
+    return entry?.policy ?? TaskPolicy.defaults;
   }
 
   static Future<TaskPolicy> ensurePolicy(
