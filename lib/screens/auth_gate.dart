@@ -1,1 +1,5 @@
-export '../features/auth/presentation/employee_aware_auth_gate.dart';
+import '../features/auth/presentation/offline_first_auth_gate.dart';
+
+class AuthGate extends OfflineFirstAuthGate {
+  const AuthGate({super.key});
+}
