@@ -43,12 +43,10 @@ void main() {
           "import '../features/whats_new/presentation/role_aware_whats_new_gate.dart';",
         ),
       );
-      expect(
-        mainScreen,
-        contains(
-          'WhatsNewGate(profile: widget.profile, child: buildPlatform())',
-        ),
-      );
+      expect(mainScreen, contains('return WhatsNewGate('));
+      expect(mainScreen, contains('profile: widget.profile'));
+      expect(mainScreen, contains('child: OfflineSyncHost('));
+      expect(mainScreen, contains('child: buildPlatform()'));
       expect(
         employeeGate,
         contains("../../whats_new/presentation/role_aware_whats_new_gate.dart"),
