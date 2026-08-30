@@ -1,16 +1,10 @@
-import 'dart:async';
-
-import '../features/developer/data/developer_policy_repository.dart';
 import '../models/construction_object.dart';
 import '../models/employee.dart';
 import '../models/responsibility_actor.dart';
-import '../models/task_item_data.dart';
 import 'attendance_repository.dart';
 import 'employee_repository.dart';
 import 'object_repository.dart';
 import 'offline_sync_service.dart';
-import 'task_photo_models.dart';
-import 'task_repository.dart';
 
 class OfflineEmployeeRepository {
   OfflineEmployeeRepository._();
@@ -38,6 +32,7 @@ class OfflineEmployeeRepository {
         key,
         rows.map(_serializeEmployee).toList(growable: false),
       );
+      await OfflineSyncService.markSynced();
       return rows;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
@@ -45,7 +40,7 @@ class OfflineEmployeeRepository {
       if (cached is! List) rethrow;
       return cached
           .whereType<Map>()
-          .map((row) => _deserializeEmployee(Map<String, dynamic>.from(row)))
+          .map((row) => Employee.fromSupabase(Map<String, dynamic>.from(row)))
           .toList(growable: false)
         ..sort((a, b) => a.name.compareTo(b.name));
     }
@@ -64,10 +59,6 @@ class OfflineEmployeeRepository {
       'is_active': employee.isActive,
       'comment': employee.comment,
     };
-  }
-
-  static Employee _deserializeEmployee(Map<String, dynamic> row) {
-    return Employee.fromSupabase(row);
   }
 }
 
@@ -97,6 +88,7 @@ class OfflineObjectRepository {
             )
             .toList(growable: false),
       );
+      await OfflineSyncService.markSynced();
       return objects;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
@@ -124,6 +116,23 @@ class OfflineAttendanceRepository {
     return 'attendance::${AttendanceRepository.dateKey(date)}::$object';
   }
 
+  static String _queueKey(DateTime date, String? objectName) {
+    final object = objectName?.trim().isNotEmpty == true
+        ? objectName!.trim()
+        : '__all__';
+    return '${AttendanceRepository.dateKey(date)}::$object';
+  }
+
+  static Map<String, double> _valuesFromSnapshot(dynamic cached) {
+    if (cached is! Map) return <String, double>{};
+    return cached.map<String, double>((key, value) {
+      final number = value is num
+          ? value.toDouble()
+          : double.tryParse(value.toString()) ?? 0;
+      return MapEntry(key.toString(), number);
+    });
+  }
+
   static Future<Map<String, double>> fetchShiftValuesForDate(
     DateTime date, {
     String? objectName,
@@ -131,23 +140,31 @@ class OfflineAttendanceRepository {
   }) async {
     final key = _key(date, objectName);
     try {
-      final values = await AttendanceRepository.fetchShiftValuesForDate(
+      final serverValues = await AttendanceRepository.fetchShiftValuesForDate(
         date,
         objectName: objectName,
         forceRefresh: forceRefresh,
       );
+      var values = serverValues;
+      if (await OfflineSyncService.hasPending(
+        kind: 'attendance.upsert',
+        dedupeKey: _queueKey(date, objectName),
+      )) {
+        final localValues = _valuesFromSnapshot(
+          await OfflineSyncService.readSnapshot(key),
+        );
+        values = <String, double>{...serverValues, ...localValues};
+      }
       await OfflineSyncService.saveSnapshot(key, values);
+      await OfflineSyncService.markSynced();
       return values;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      final cached = await OfflineSyncService.readSnapshot(key);
-      if (cached is! Map) rethrow;
-      return cached.map<String, double>((key, value) {
-        final number = value is num
-            ? value.toDouble()
-            : double.tryParse(value.toString()) ?? 0;
-        return MapEntry(key.toString(), number);
-      });
+      final values = _valuesFromSnapshot(
+        await OfflineSyncService.readSnapshot(key),
+      );
+      if (values.isEmpty) rethrow;
+      return values;
     }
   }
 
@@ -157,11 +174,13 @@ class OfflineAttendanceRepository {
     bool forceRefresh = false,
   }) async {
     try {
-      return await AttendanceRepository.fetchResponsibilityForDate(
+      final result = await AttendanceRepository.fetchResponsibilityForDate(
         date,
         objectName: objectName,
         forceRefresh: forceRefresh,
       );
+      await OfflineSyncService.markSynced();
+      return result;
     } catch (error) {
       if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
       return const <String, ResponsibilityActor>{};
@@ -174,6 +193,7 @@ class OfflineAttendanceRepository {
     required Map<String, double> shiftValuesByEmployeeId,
     Map<String, double>? originalShiftValuesByEmployeeId,
   }) async {
+    final objectName = _singleObject(employees);
     try {
       await AttendanceRepository.saveTimesheet(
         date: date,
@@ -182,7 +202,7 @@ class OfflineAttendanceRepository {
         originalShiftValuesByEmployeeId: originalShiftValuesByEmployeeId,
       );
       await OfflineSyncService.saveSnapshot(
-        _key(date, _singleObject(employees)),
+        _key(date, objectName),
         shiftValuesByEmployeeId,
       );
       await OfflineSyncService.markSynced();
@@ -213,14 +233,13 @@ class OfflineAttendanceRepository {
     }
     if (rows.isEmpty) return;
 
-    final objectName = _singleObject(employees);
     await OfflineSyncService.saveSnapshot(
       _key(date, objectName),
       shiftValuesByEmployeeId,
     );
     await OfflineSyncService.enqueue(
       kind: 'attendance.upsert',
-      dedupeKey: '$workDate::${objectName ?? '__all__'}',
+      dedupeKey: _queueKey(date, objectName),
       payload: <String, dynamic>{'rows': rows},
     );
   }
@@ -231,311 +250,5 @@ class OfflineAttendanceRepository {
         .where((name) => name.isNotEmpty)
         .toSet();
     return names.length == 1 ? names.first : null;
-  }
-}
-
-class OfflineTaskRepository {
-  OfflineTaskRepository._();
-
-  static String _key(DateTime date, String? objectName) {
-    final object = objectName?.trim().isNotEmpty == true
-        ? objectName!.trim()
-        : '__all__';
-    final clean = DateTime(date.year, date.month, date.day);
-    final month = clean.month.toString().padLeft(2, '0');
-    final day = clean.day.toString().padLeft(2, '0');
-    return 'tasks::${clean.year}-$month-$day::$object';
-  }
-
-  static Future<List<TaskItemData>> fetchTasksForDate(
-    DateTime date, {
-    String? objectName,
-    bool forceRefresh = false,
-  }) async {
-    final key = _key(date, objectName);
-    try {
-      final tasks = await TaskRepository.fetchTasksForDate(
-        date,
-        objectName: objectName,
-        forceRefresh: forceRefresh,
-      );
-      await _saveTasks(key, tasks);
-      return tasks;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-      return _readTasks(key);
-    }
-  }
-
-  static Future<TaskItemData> addTaskWithDetails(
-    TaskItemData task, {
-    required String objectName,
-    required List<String> assigneeIds,
-    required List<TaskPhotoFile> photos,
-  }) async {
-    try {
-      final created = await TaskRepository.addTaskWithDetails(
-        task,
-        objectName: objectName,
-        assigneeIds: assigneeIds,
-        photos: photos,
-      );
-      await _upsertLocal(created);
-      await OfflineSyncService.markSynced();
-      return created;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-    }
-
-    final localId = OfflineSyncService.createLocalId();
-    final localTask = task.copyWith(id: localId, objectName: objectName);
-    final actorName = await _safeActorName();
-    final row = <String, dynamic>{
-      'id': localId,
-      'task_date': _dateKey(localTask.date),
-      'object_name': objectName,
-      'axes': localTask.axes,
-      'work': localTask.work,
-      'status': localTask.status,
-      'not_done_comment': localTask.notDoneComment,
-      'created_by': actorName,
-      'created_by_user_id': null,
-      'is_draft': false,
-      'photo_requirements_enforced':
-          DeveloperPolicyRepository.policyForObjectSync(objectName)
-              .requireBeforePhoto,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    };
-    await OfflineSyncService.enqueue(
-      kind: 'task.create',
-      dedupeKey: localId,
-      payload: <String, dynamic>{
-        'id': localId,
-        'row': row,
-        'assignee_ids': assigneeIds,
-        'milestone_id': localTask.milestoneId,
-        'checklist_item_id': localTask.checklistItemId,
-        'photos': photos
-            .map(
-              (photo) => OfflineSyncService.serializePhoto(
-                originalName: photo.originalName,
-                contentType: photo.contentType,
-                extension: photo.extension,
-                bytes: photo.bytes,
-              ),
-            )
-            .toList(growable: false),
-      },
-    );
-    await _upsertLocal(localTask);
-    return localTask;
-  }
-
-  static Future<TaskItemData> saveTaskDraftWithDetails(
-    TaskItemData task, {
-    required String objectName,
-    required List<String> assigneeIds,
-    String? sourceDraftId,
-  }) async {
-    try {
-      final created = await TaskRepository.saveTaskDraftWithDetails(
-        task,
-        objectName: objectName,
-        assigneeIds: assigneeIds,
-        sourceDraftId: sourceDraftId,
-      );
-      await OfflineSyncService.markSynced();
-      return created;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-    }
-
-    final localId = sourceDraftId?.trim().isNotEmpty == true
-        ? sourceDraftId!.trim()
-        : OfflineSyncService.createLocalId();
-    final localTask = task.copyWith(
-      id: localId,
-      objectName: objectName,
-      status: 'Запланировано',
-    );
-    await OfflineSyncService.enqueue(
-      kind: 'task.create',
-      dedupeKey: localId,
-      payload: <String, dynamic>{
-        'id': localId,
-        'row': <String, dynamic>{
-          'id': localId,
-          'task_date': _dateKey(localTask.date),
-          'object_name': objectName,
-          'axes': localTask.axes,
-          'work': localTask.work,
-          'status': localTask.status,
-          'not_done_comment': localTask.notDoneComment,
-          'created_by': await _safeActorName(),
-          'is_draft': true,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        'assignee_ids': assigneeIds,
-        'milestone_id': localTask.milestoneId,
-        'checklist_item_id': localTask.checklistItemId,
-        'photos': const <Map<String, dynamic>>[],
-      },
-    );
-    return localTask;
-  }
-
-  static Future<List<TaskItemData>> addTaskBatch({
-    required String objectName,
-    required List<TaskBatchCreateInput> tasks,
-  }) async {
-    try {
-      final result = await TaskRepository.addTaskBatch(
-        objectName: objectName,
-        tasks: tasks,
-      );
-      for (final task in result) {
-        await _upsertLocal(task);
-      }
-      await OfflineSyncService.markSynced();
-      return result;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-    }
-
-    final result = <TaskItemData>[];
-    for (final input in tasks) {
-      result.add(
-        await addTaskWithDetails(
-          input.task,
-          objectName: objectName,
-          assigneeIds: input.assigneeIds,
-          photos: const <TaskPhotoFile>[],
-        ),
-      );
-    }
-    return result;
-  }
-
-  static Future<void> updateTask(TaskItemData task) async {
-    if (task.id == null || task.id!.trim().isEmpty) return;
-    try {
-      await TaskRepository.updateTask(task);
-      await _upsertLocal(task);
-      await OfflineSyncService.markSynced();
-      return;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-    }
-
-    await OfflineSyncService.enqueue(
-      kind: 'task.update',
-      dedupeKey: task.id!,
-      payload: <String, dynamic>{
-        'id': task.id,
-        'values': <String, dynamic>{
-          'task_date': _dateKey(task.date),
-          'object_name': task.objectName,
-          'axes': task.axes,
-          'work': task.work,
-          'status': task.status,
-          'not_done_comment': task.notDoneComment,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        'milestone_id': task.milestoneId,
-        'checklist_item_id': task.checklistItemId,
-      },
-    );
-    await _upsertLocal(task);
-  }
-
-  static Future<void> deleteTask(TaskItemData task) async {
-    final id = task.id?.trim() ?? '';
-    if (id.isEmpty) return;
-    try {
-      await TaskRepository.deleteTask(task);
-      await _removeLocal(task);
-      await OfflineSyncService.markSynced();
-      return;
-    } catch (error) {
-      if (!OfflineSyncService.isNetworkFailure(error)) rethrow;
-    }
-
-    await OfflineSyncService.enqueue(
-      kind: 'task.delete',
-      dedupeKey: id,
-      payload: <String, dynamic>{'id': id},
-    );
-    await _removeLocal(task);
-  }
-
-  static Future<void> _upsertLocal(TaskItemData task) async {
-    final key = _key(task.date, task.objectName);
-    final tasks = await _readTasks(key);
-    final id = task.id?.trim();
-    final next = <TaskItemData>[
-      for (final current in tasks)
-        if (id == null || current.id != id) current,
-      task,
-    ];
-    await _saveTasks(key, next);
-  }
-
-  static Future<void> _removeLocal(TaskItemData task) async {
-    final key = _key(task.date, task.objectName);
-    final tasks = await _readTasks(key);
-    final id = task.id?.trim();
-    if (id == null || id.isEmpty) return;
-    await _saveTasks(
-      key,
-      tasks.where((current) => current.id != id).toList(growable: false),
-    );
-  }
-
-  static Future<void> _saveTasks(
-    String key,
-    List<TaskItemData> tasks,
-  ) async {
-    await OfflineSyncService.saveSnapshot(
-      key,
-      tasks.map((task) => task.toJson()).toList(growable: false),
-    );
-  }
-
-  static Future<List<TaskItemData>> _readTasks(String key) async {
-    final cached = await OfflineSyncService.readSnapshot(key);
-    if (cached is! List) return <TaskItemData>[];
-    return cached
-        .whereType<Map>()
-        .map((row) => TaskItemData.fromJson(Map<String, dynamic>.from(row)))
-        .toList(growable: false);
-  }
-
-  static String _dateKey(DateTime date) {
-    final clean = DateTime(date.year, date.month, date.day);
-    final month = clean.month.toString().padLeft(2, '0');
-    final day = clean.day.toString().padLeft(2, '0');
-    return '${clean.year}-$month-$day';
-  }
-
-  static Future<String> _safeActorName() async {
-    try {
-      return await TaskRepositoryActorName.current();
-    } catch (_) {
-      return 'Пользователь';
-    }
-  }
-}
-
-// Изолируем получение имени автора, чтобы offline-фасад не тянул auth-логику
-// в UI. Реализация делегирует существующему UserRepository через TaskRepository
-// только там, где сеть доступна.
-class TaskRepositoryActorName {
-  TaskRepositoryActorName._();
-
-  static Future<String> current() async {
-    // Для offline-сценария имя автора не критично для синхронизации. Серверная
-    // атрибуция created_by_user_id остаётся источником истины после обычной
-    // online-записи.
-    return 'Пользователь';
   }
 }
