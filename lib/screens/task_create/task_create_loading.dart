@@ -37,11 +37,13 @@ extension _TaskCreateLoading on _AddTaskScreenState {
         policy = loaded;
         isLoadingPolicy = false;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
+        policy = DeveloperPolicyRepository.policyForObjectSync(
+          widget.objectName,
+        );
         isLoadingPolicy = false;
-        errorText = 'Ошибка загрузки ограничений: $error';
       });
     }
   }
@@ -54,7 +56,7 @@ extension _TaskCreateLoading on _AddTaskScreenState {
     });
 
     try {
-      final result = await EmployeeRepository.fetchEmployees(
+      final result = await OfflineEmployeeRepository.fetchEmployees(
         objectName: widget.objectName,
       );
       if (!mounted) return;
@@ -68,7 +70,7 @@ extension _TaskCreateLoading on _AddTaskScreenState {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        errorText = 'Ошибка загрузки сотрудников: $error';
+        errorText = 'Не удалось открыть сохранённый список сотрудников: $error';
       });
     } finally {
       if (mounted) {
