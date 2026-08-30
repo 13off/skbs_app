@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -68,6 +67,14 @@ class OfflineSyncService {
     return _preferences ??= await SharedPreferences.getInstance();
   }
 
+  static Future<void> _ensureConfigured() async {
+    if (_configured) return;
+    await configure(
+      userId: AppSessionScope.userId,
+      companyId: AppSessionScope.companyId,
+    );
+  }
+
   static Future<void> configure({
     required String userId,
     required String companyId,
@@ -87,7 +94,7 @@ class OfflineSyncService {
     final lastSync = DateTime.tryParse(prefs.getString(_lastSyncKey) ?? '');
     state.value = OfflineSyncState(
       pendingCount: _queue.length,
-      lastSyncAt: lastSync,
+      lastSyncAt: lastSync?.toLocal(),
       isSyncing: false,
     );
   }
@@ -136,7 +143,8 @@ class OfflineSyncService {
   }
 
   static Future<void> saveSnapshot(String key, Object? value) async {
-    if (!_configured || key.trim().isEmpty) return;
+    if (key.trim().isEmpty) return;
+    await _ensureConfigured();
     final prefs = await _prefs();
     await prefs.setString(
       _snapshotKey(key.trim()),
@@ -148,7 +156,8 @@ class OfflineSyncService {
   }
 
   static Future<dynamic> readSnapshot(String key) async {
-    if (!_configured || key.trim().isEmpty) return null;
+    if (key.trim().isEmpty) return null;
+    await _ensureConfigured();
     final prefs = await _prefs();
     final raw = prefs.getString(_snapshotKey(key.trim()));
     if (raw == null || raw.isEmpty) return null;
@@ -161,17 +170,50 @@ class OfflineSyncService {
     return null;
   }
 
+  static Future<bool> hasPending({
+    required String kind,
+    String? dedupeKey,
+  }) async {
+    await _ensureConfigured();
+    final cleanDedupe = dedupeKey?.trim();
+    return _queue.any((item) {
+      if (item['kind']?.toString() != kind) return false;
+      if (cleanDedupe == null || cleanDedupe.isEmpty) return true;
+      return item['dedupe_key']?.toString() == cleanDedupe;
+    });
+  }
+
+  static Future<Set<String>> pendingTaskMutationIds() async {
+    await _ensureConfigured();
+    final ids = <String>{};
+    for (final item in _queue) {
+      final kind = item['kind']?.toString() ?? '';
+      if (kind != 'task.create' && kind != 'task.update') continue;
+      final payload = _map(item['payload']);
+      final id = payload['id']?.toString().trim() ?? '';
+      if (id.isNotEmpty) ids.add(id);
+    }
+    return ids;
+  }
+
+  static Future<Set<String>> pendingTaskDeleteIds() async {
+    await _ensureConfigured();
+    final ids = <String>{};
+    for (final item in _queue) {
+      if (item['kind']?.toString() != 'task.delete') continue;
+      final payload = _map(item['payload']);
+      final id = payload['id']?.toString().trim() ?? '';
+      if (id.isNotEmpty) ids.add(id);
+    }
+    return ids;
+  }
+
   static Future<void> enqueue({
     required String kind,
     required Map<String, dynamic> payload,
     String? dedupeKey,
   }) async {
-    if (!_configured) {
-      await configure(
-        userId: AppSessionScope.userId,
-        companyId: AppSessionScope.companyId,
-      );
-    }
+    await _ensureConfigured();
 
     final cleanDedupe = dedupeKey?.trim() ?? '';
     if (cleanDedupe.isNotEmpty) {
@@ -195,7 +237,8 @@ class OfflineSyncService {
   }
 
   static Future<void> flush() async {
-    if (!_configured || _flushRunning || _queue.isEmpty) return;
+    await _ensureConfigured();
+    if (_flushRunning || _queue.isEmpty) return;
     if (Supabase.instance.client.auth.currentSession == null) return;
 
     _flushRunning = true;
@@ -215,8 +258,8 @@ class OfflineSyncService {
 
           if (isNetworkFailure(error)) break;
           if ((item['attempts'] as int) >= _maxMutationAttempts) {
-            // Не теряем пользовательские данные даже при постоянной серверной
-            // ошибке: запись остаётся в очереди для ручного разбора.
+            // Пользовательские данные не удаляются даже при постоянной
+            // серверной ошибке: запись остаётся в очереди для разбора.
             break;
           }
           index += 1;
@@ -233,19 +276,19 @@ class OfflineSyncService {
   }
 
   static Future<void> markSynced() async {
-    if (!_configured) return;
+    await _ensureConfigured();
     final now = DateTime.now();
     final prefs = await _prefs();
     await prefs.setString(_lastSyncKey, now.toUtc().toIso8601String());
-    state.value = state.value.copyWith(lastSyncAt: now, pendingCount: _queue.length);
+    state.value = state.value.copyWith(
+      lastSyncAt: now,
+      pendingCount: _queue.length,
+    );
   }
 
   static Future<void> _execute(Map<String, dynamic> item) async {
     final kind = item['kind']?.toString() ?? '';
-    final rawPayload = item['payload'];
-    final payload = rawPayload is Map
-        ? Map<String, dynamic>.from(rawPayload)
-        : <String, dynamic>{};
+    final payload = _map(item['payload']);
     final client = Supabase.instance.client;
 
     switch (kind) {
@@ -327,22 +370,25 @@ class OfflineSyncService {
         final stage = photo['photo_stage']?.toString() == 'after'
             ? 'after'
             : 'before';
-        final path =
-            '$id/$stage/${DateTime.now().millisecondsSinceEpoch}_${index + 1}.$extension';
+        final photoId = photo['offline_id']?.toString().trim().isNotEmpty == true
+            ? photo['offline_id'].toString().trim()
+            : createLocalId();
+        final path = '$id/$stage/offline_$photoId.$extension';
         await client.storage.from('task-photos').uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
             contentType: photo['content_type']?.toString(),
-            upsert: false,
+            upsert: true,
           ),
         );
-        await client.from('task_photos').insert(<String, dynamic>{
+        await client.from('task_photos').upsert(<String, dynamic>{
+          'id': photoId,
           'task_id': id,
           'storage_path': path,
           'original_name': photo['original_name']?.toString() ?? 'Фото',
           'photo_stage': stage,
-        });
+        }, onConflict: 'id');
       }
     }
 
@@ -368,7 +414,7 @@ class OfflineSyncService {
     final checklistItemId =
         payload['checklist_item_id']?.toString().trim() ?? '';
     final client = Supabase.instance.client;
-    if (milestoneId.isEmpty || checklistItemId.isEmpty) {
+    if (milestoneId.isEmpty || cleanChecklistItemId(checklistItemId).isEmpty) {
       await client.from('task_milestone_links').delete().eq('task_id', taskId);
       return;
     }
@@ -378,6 +424,8 @@ class OfflineSyncService {
       'checklist_item_id': checklistItemId,
     }, onConflict: 'task_id');
   }
+
+  static String cleanChecklistItemId(String value) => value.trim();
 
   static List<Map<String, dynamic>> _decodeQueue(String? raw) {
     if (raw == null || raw.isEmpty) return <Map<String, dynamic>>[];
@@ -445,6 +493,7 @@ class OfflineSyncService {
     String photoStage = 'before',
   }) {
     return <String, dynamic>{
+      'offline_id': createLocalId(),
       'original_name': originalName,
       'content_type': contentType,
       'extension': extension,
