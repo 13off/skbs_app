@@ -84,7 +84,13 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
         return Column(
           children: [
             _OfflinePendingBanner(state: state),
-            Expanded(child: widget.child),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: widget.child,
+              ),
+            ),
           ],
         );
       },
