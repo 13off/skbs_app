@@ -27,10 +27,11 @@ class _SmoothCompanyBrandSplashGateState
     with SingleTickerProviderStateMixin {
   static final Set<String> _shownForCompany = <String>{};
   static const Duration _remoteTimeout = Duration(seconds: 2);
-  static const Duration _animationDuration = Duration(milliseconds: 4000);
-  static const Duration _fallbackDuration = Duration(milliseconds: 5200);
+  static const Duration _animationDuration = Duration(milliseconds: 2400);
+  static const Duration _fallbackDuration = Duration(milliseconds: 3800);
 
   late final AnimationController _controller;
+  late final Animation<double> _companyAnimation;
   CompanyBranding? _branding;
   Timer? _fallbackTimer;
   bool _complete = false;
@@ -47,6 +48,13 @@ class _SmoothCompanyBrandSplashGateState
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) _finish();
       });
+
+    // Вторая половина старой шкалы теперь растянута на весь контроллер.
+    // Полноразмерный AppСтрой больше здесь не рисуется: его уже показывает
+    // нативная/web-заставка до первого готового Flutter-кадра.
+    _companyAnimation = Tween<double>(begin: 0.50, end: 1.00).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
 
     if (_shownForCompany.contains(widget.companyId)) {
       _complete = true;
@@ -167,10 +175,8 @@ class _SmoothCompanyBrandSplashGateState
   Widget build(BuildContext context) {
     final branding = _branding;
 
-    // Приложение остаётся смонтированным под splash и успевает поднять
-    // авторизацию, профиль, домашний экран и начальные данные, пока идёт
-    // брендовая анимация. Offstage не рисует скрытый интерфейс и не отнимает
-    // кадры у splash, а TickerMode не запускает его анимации до показа.
+    // Основной интерфейс живёт и прогружается под заставкой. Визуальная
+    // последовательность теперь одна: системный AppСтрой -> компания.
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -190,12 +196,11 @@ class _SmoothCompanyBrandSplashGateState
                   fit: StackFit.expand,
                   children: [
                     const _SplashBackground(),
-                    if (branding == null)
-                      const Center(child: _AppStroyIdentity(size: 82))
-                    else ...[
-                      _AppStroyPhase(animation: _controller),
-                      _CompanyPhase(animation: _controller, branding: branding),
-                    ],
+                    if (branding != null)
+                      _CompanyPhase(
+                        animation: _companyAnimation,
+                        branding: branding,
+                      ),
                   ],
                 ),
               ),
@@ -221,46 +226,6 @@ class _SplashBackground extends StatelessWidget {
             AppAdaptivePalette.background,
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AppStroyPhase extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _AppStroyPhase({required this.animation});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: animation,
-        child: const RepaintBoundary(child: _AppStroyIdentity(size: 86)),
-        builder: (context, child) {
-          final t = animation.value;
-          if (t >= 0.50) return const SizedBox.shrink();
-          final phase = _clamp01(t / 0.50);
-          final intro = _interval(phase, 0.00, 0.30);
-          final exit = _interval(phase, 0.70, 1.00);
-          final drop = Curves.easeInCubic.transform(exit);
-          final scale = 0.86 + (0.14 * intro) - (0.10 * drop);
-          final opacity = 1 - _interval(exit, 0.55, 1.00);
-
-          return Center(
-            child: Opacity(
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(0, 170 * drop),
-                child: Transform.scale(
-                  scaleX: scale,
-                  scaleY: scale * (1 - (0.12 * drop)),
-                  child: child,
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -418,40 +383,6 @@ class _AppStroyFooter extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _AppStroyIdentity extends StatelessWidget {
-  final double size;
-
-  const _AppStroyIdentity({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(size * 0.25),
-          child: Image.asset(
-            'web/icons/AppStroy-512-v2.png',
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'AppСтрой',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppAdaptivePalette.textPrimary,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.35,
-              ),
-        ),
-      ],
     );
   }
 }
