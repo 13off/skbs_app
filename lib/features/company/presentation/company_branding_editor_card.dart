@@ -1,6 +1,4 @@
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_adaptive_palette.dart';
@@ -43,8 +41,8 @@ class _CompanyBrandingEditorCardState extends State<CompanyBrandingEditorCard> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  String _mimeFor(String? extension) {
-    switch ((extension ?? '').toLowerCase()) {
+  String _mimeFor(String extension) {
+    switch (extension.toLowerCase()) {
       case 'jpg':
       case 'jpeg':
         return 'image/jpeg';
@@ -59,23 +57,24 @@ class _CompanyBrandingEditorCardState extends State<CompanyBrandingEditorCard> {
 
   Future<void> _uploadLogo() async {
     if (_busy) return;
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'webp'],
-      allowMultiple: false,
-      withData: true,
+    const images = XTypeGroup(
+      label: 'Логотип',
+      extensions: <String>['jpg', 'jpeg', 'png', 'webp'],
     );
-    if (result == null || result.files.isEmpty) return;
+    final file = await openFile(acceptedTypeGroups: const <XTypeGroup>[images]);
+    if (file == null) return;
 
-    final file = result.files.single;
-    final Uint8List? bytes = file.bytes;
-    if (bytes == null) {
-      _message('Не удалось прочитать выбранный логотип');
-      return;
-    }
-    final contentType = _mimeFor(file.extension);
+    final parts = file.name.split('.');
+    final extension = parts.length > 1 ? parts.last : '';
+    final contentType = _mimeFor(extension);
     if (contentType.isEmpty) {
       _message('Выберите JPG, PNG или WEBP');
+      return;
+    }
+
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      _message('Не удалось прочитать выбранный логотип');
       return;
     }
 
@@ -249,8 +248,13 @@ class _CompanyBrandingEditorCardState extends State<CompanyBrandingEditorCard> {
                             height: 17,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                    label: Text(branding.hasLogo ? 'Заменить логотип' : 'Загрузить логотип'),
+                        : const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 18,
+                          ),
+                    label: Text(
+                      branding.hasLogo ? 'Заменить логотип' : 'Загрузить логотип',
+                    ),
                   ),
                   if (branding.hasLogo)
                     IconButton(
