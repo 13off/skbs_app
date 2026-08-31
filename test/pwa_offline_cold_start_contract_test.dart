@@ -12,7 +12,9 @@ void main() {
       'lib/features/auth/data/offline_profile_store.dart',
     ).readAsStringSync();
 
-    expect(rootGate, contains('class AuthGate extends OfflineFirstAuthGate'));
+    expect(rootGate, contains('OfflineFirstAuthGate()'));
+    expect(rootGate, contains('CompanyBrandSplashHost'));
+    expect(rootGate, contains('PushPermissionPromptHost'));
     expect(offlineGate, contains('OfflineProfileStore.read(user.id)'));
     expect(offlineGate, contains('return MainScreen(profile: profile)'));
     expect(offlineGate, contains('fetchCurrentProfile('));
