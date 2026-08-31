@@ -27,8 +27,8 @@ class _SmoothCompanyBrandSplashGateState
     with SingleTickerProviderStateMixin {
   static final Set<String> _shownForCompany = <String>{};
   static const Duration _remoteTimeout = Duration(seconds: 2);
-  static const Duration _animationDuration = Duration(milliseconds: 2400);
-  static const Duration _fallbackDuration = Duration(milliseconds: 3800);
+  static const Duration _animationDuration = Duration(milliseconds: 4600);
+  static const Duration _fallbackDuration = Duration(milliseconds: 6200);
 
   late final AnimationController _controller;
   late final Animation<double> _companyAnimation;
@@ -49,9 +49,9 @@ class _SmoothCompanyBrandSplashGateState
         if (status == AnimationStatus.completed) _finish();
       });
 
-    // Вторая половина старой шкалы теперь растянута на весь контроллер.
-    // Полноразмерный AppСтрой больше здесь не рисуется: его уже показывает
-    // нативная/web-заставка до первого готового Flutter-кадра.
+    // Сама компания занимает весь второй этап запуска. Полноразмерный
+    // AppСтрой здесь не дублируется: он уже коротко показан платформенной
+    // заставкой до первого Flutter-кадра.
     _companyAnimation = Tween<double>(begin: 0.50, end: 1.00).animate(
       CurvedAnimation(parent: _controller, curve: Curves.linear),
     );
@@ -175,8 +175,8 @@ class _SmoothCompanyBrandSplashGateState
   Widget build(BuildContext context) {
     final branding = _branding;
 
-    // Основной интерфейс живёт и прогружается под заставкой. Визуальная
-    // последовательность теперь одна: системный AppСтрой -> компания.
+    // Основной интерфейс живёт и прогружается под заставкой компании: пока
+    // логотип строится, авторизация, профиль и стартовый экран уже монтируются.
     return Stack(
       fit: StackFit.expand,
       children: [

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('startup uses the existing AppСтрой loader and company splash only', () {
+  test('startup shows AppСтрой briefly, then gives company the long phase', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -15,9 +15,10 @@ void main() {
 
     expect(web, contains('id="app-loader"'));
     expect(web, contains("window.addEventListener('flutter-first-frame'"));
-    expect(main, contains('binding.deferFirstFrame();'));
-    expect(main, contains('WidgetsBinding.instance.allowFirstFrame();'));
-    expect(gate, contains('Duration(milliseconds: 2400)'));
+    expect(main, isNot(contains('binding.deferFirstFrame();')));
+    expect(main, isNot(contains('WidgetsBinding.instance.allowFirstFrame();')));
+    expect(main, isNot(contains('CircularProgressIndicator')));
+    expect(gate, contains('Duration(milliseconds: 4600)'));
     expect(gate, contains('Tween<double>(begin: 0.50, end: 1.00)'));
     expect(gate, contains('SmoothStroyNaVekaLogoScene'));
     expect(gate, isNot(contains('class _AppStroyPhase')));
