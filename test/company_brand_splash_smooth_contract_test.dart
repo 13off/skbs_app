@@ -26,6 +26,12 @@ void main() {
     expect(host, contains('SmoothCompanyBrandSplashGate'));
   });
 
+  test('published AppСтрой splash has no progress line', () {
+    final deploy = File('.github/workflows/deploy-web.yml').readAsStringSync();
+
+    expect(deploy, contains("sed -i '/class=\"loader-progress\"/d'"));
+  });
+
   test('splash keeps app mounted underneath while company animation runs', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
@@ -37,13 +43,16 @@ void main() {
     expect(gate, contains('child: widget.child'));
   });
 
-  test('smooth company scene avoids expensive per-frame path metrics', () {
+  test('company scene caches vector layers instead of rebuilding bricks per frame', () {
     final scene = File(
       'lib/features/company/presentation/stroy_na_veka_logo_scene_smooth.dart',
     ).readAsStringSync();
 
     expect(scene, contains('super(repaint: animation)'));
     expect(scene, contains('RepaintBoundary'));
+    expect(scene, contains('static final _ScenePictures _scene'));
+    expect(scene, contains('ui.Picture'));
+    expect(scene, contains('canvas.drawPicture'));
     expect(scene, isNot(contains('computeMetrics')));
     expect(scene, isNot(contains('Image.asset')));
   });
