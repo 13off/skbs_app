@@ -189,11 +189,44 @@ class WebPushBridge {
     return fallback == _canonicalPublicKey ? fallback : _canonicalPublicKey;
   }
 
+  static Future<JSObject> _createSubscription(
+    JSObject registration,
+    String publicKey,
+  ) async {
+    final resolvedPublicKey = await _resolvePublicKey(publicKey);
+    final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
+    final options = JSObject()
+      ..setProperty('userVisibleOnly'.toJS, true.toJS)
+      ..setProperty(
+        'applicationServerKey'.toJS,
+        _applicationServerKey(resolvedPublicKey),
+      );
+    final promise = pushManager.callMethod<JSPromise<JSObject>>(
+      'subscribe'.toJS,
+      options,
+    );
+    return _bounded(
+      promise.toDart,
+      _subscriptionTimeout,
+      'создание подписки',
+    );
+  }
+
   static Future<Map<String, dynamic>> existing() async {
     if (!isSupported) return status;
     if (_isAppleMobile && !isStandalone) return status;
     final registration = await _registration();
-    final subscription = await _currentSubscription(registration);
+    var subscription = await _currentSubscription(registration);
+
+    // Разрешение уже было выдано, но подписка пропала/не сохранилась —
+    // восстанавливаем её автоматически без нового системного запроса.
+    if (subscription == null && permission == 'granted') {
+      subscription = await _createSubscription(
+        registration,
+        _canonicalPublicKey,
+      );
+    }
+
     return <String, dynamic>{
       ...status,
       'registered': subscription != null,
@@ -233,9 +266,8 @@ class WebPushBridge {
     final registration = await _registration();
     var subscription = await _currentSubscription(registration);
 
-    // Ручное «Разрешить и подключить / Обновить регистрацию» всегда пересоздаёт
-    // браузерную подписку. Это автоматически лечит устройства, которые успели
-    // подписаться на старый VAPID-ключ.
+    // Ручное подключение всегда пересоздаёт подписку. Так старые устройства
+    // автоматически переходят со старого VAPID-ключа на действующий.
     if (subscription != null) {
       final unsubscribePromise = subscription.callMethod<JSPromise<JSBoolean>>(
         'unsubscribe'.toJS,
@@ -245,26 +277,9 @@ class WebPushBridge {
         _workerTimeout,
         'обновление старой подписки',
       );
-      subscription = null;
     }
 
-    final resolvedPublicKey = await _resolvePublicKey(publicKey);
-    final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
-    final options = JSObject()
-      ..setProperty('userVisibleOnly'.toJS, true.toJS)
-      ..setProperty(
-        'applicationServerKey'.toJS,
-        _applicationServerKey(resolvedPublicKey),
-      );
-    final promise = pushManager.callMethod<JSPromise<JSObject>>(
-      'subscribe'.toJS,
-      options,
-    );
-    subscription = await _bounded(
-      promise.toDart,
-      _subscriptionTimeout,
-      'создание подписки',
-    );
+    subscription = await _createSubscription(registration, publicKey);
 
     return <String, dynamic>{
       ...status,
