@@ -140,6 +140,7 @@ jobs:
         shell: bash
         run: |
           BUILD_ID="$(git -C skbs_app rev-parse --short=12 HEAD)"
+          sed -i '/class="loader-progress"/d' skbs_app/build/web/index.html
           sed -i "s/manifest\.json/manifest.json?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=${BUILD_ID}/g" skbs_app/build/web/index.html
           sed -i "s/main\.dart\.js/main.dart.js?v=${BUILD_ID}/g" skbs_app/build/web/flutter_bootstrap.js
@@ -256,5 +257,5 @@ jobs:
             sleep $((attempt * 2))
           done
 
-          echo "::error::Не удалось сохранить статус веб-сборки"
+          echo "::error::Не удалось сохранить статус веб-сборки после 5 попыток"
           exit 1
