@@ -27,8 +27,8 @@ class _SmoothCompanyBrandSplashGateState
     with SingleTickerProviderStateMixin {
   static final Set<String> _shownForCompany = <String>{};
   static const Duration _remoteTimeout = Duration(seconds: 2);
-  static const Duration _animationDuration = Duration(milliseconds: 2800);
-  static const Duration _fallbackDuration = Duration(milliseconds: 3400);
+  static const Duration _animationDuration = Duration(milliseconds: 4000);
+  static const Duration _fallbackDuration = Duration(milliseconds: 5200);
 
   late final AnimationController _controller;
   CompanyBranding? _branding;
@@ -165,25 +165,43 @@ class _SmoothCompanyBrandSplashGateState
 
   @override
   Widget build(BuildContext context) {
-    if (_complete) return widget.child;
-
     final branding = _branding;
-    return Scaffold(
-      backgroundColor: AppAdaptivePalette.background,
-      body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const _SplashBackground(),
-            if (branding == null)
-              const Center(child: _AppStroyIdentity(size: 82))
-            else ...[
-              _AppStroyPhase(animation: _controller),
-              _CompanyPhase(animation: _controller, branding: branding),
-            ],
-          ],
+
+    // Приложение остаётся смонтированным под splash и успевает поднять
+    // авторизацию, профиль, домашний экран и начальные данные, пока идёт
+    // брендовая анимация. Offstage не рисует скрытый интерфейс и не отнимает
+    // кадры у splash, а TickerMode не запускает его анимации до показа.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Offstage(
+          offstage: !_complete,
+          child: TickerMode(
+            enabled: _complete,
+            child: widget.child,
+          ),
         ),
-      ),
+        if (!_complete)
+          Positioned.fill(
+            child: Scaffold(
+              backgroundColor: AppAdaptivePalette.background,
+              body: SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const _SplashBackground(),
+                    if (branding == null)
+                      const Center(child: _AppStroyIdentity(size: 82))
+                    else ...[
+                      _AppStroyPhase(animation: _controller),
+                      _CompanyPhase(animation: _controller, branding: branding),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
