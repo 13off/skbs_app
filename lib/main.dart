@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -107,6 +108,13 @@ class _SkbsAppState extends State<SkbsApp> {
       await PushNotificationService.initialize().timeout(
         const Duration(milliseconds: 4500),
       );
+      if (!kIsWeb && Supabase.instance.client.auth.currentUser != null) {
+        unawaited(
+          PushNotificationService.syncForCurrentSession(
+            requestPermission: true,
+          ),
+        );
+      }
     } catch (_) {
       // Push работает поверх приложения и не блокирует его запуск.
     }
@@ -130,6 +138,11 @@ class _SkbsAppState extends State<SkbsApp> {
               authState.event == AuthChangeEvent.userUpdated ||
               authState.event == AuthChangeEvent.tokenRefreshed) {
             _handlePushNavigation();
+            unawaited(
+              PushNotificationService.syncForCurrentSession(
+                requestPermission: !kIsWeb,
+              ),
+            );
           }
         });
   }
