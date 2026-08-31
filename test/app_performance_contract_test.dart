@@ -5,14 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 // Performance contract: keep navigation/cache optimizations from regressing.
 // Validated after removing formatting-only diff noise and route import fixes.
 void main() {
-  test('persistent tabs are warmed in scheduler idle time', () {
+  test('persistent tabs mount lazily and preserve visited workspaces', () {
     final source = File(
       'lib/features/shell/presentation/persistent_tab_shell.dart',
     ).readAsStringSync();
-    expect(source, contains('Priority.idle'));
-    expect(source, contains('_prewarmNextTab'));
+    expect(source, contains('_ensureTabBuilt(widget.controller.currentIndex);'));
+    expect(source, contains('_tabNavigators.putIfAbsent'));
     expect(source, contains('IndexedStack'));
     expect(source, contains('TickerMode'));
+    expect(source, isNot(contains('Priority.idle')));
+    expect(source, isNot(contains('_prewarmNextTab')));
+    expect(source, isNot(contains('scheduleTask')));
   });
 
   test('explicit pushes use the lightweight app route', () {
