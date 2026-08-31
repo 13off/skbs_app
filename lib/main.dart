@@ -31,8 +31,12 @@ const String supabasePublishableKey = String.fromEnvironment(
   defaultValue: _defaultSupabasePublishableKey,
 );
 
+bool _appFirstFrameDeferred = false;
+
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  binding.deferFirstFrame();
+  _appFirstFrameDeferred = true;
   runApp(const SkbsApp());
 }
 
@@ -68,22 +72,36 @@ class _SkbsAppState extends State<SkbsApp> {
       _attachAuthStateSubscription();
       unawaited(_initializePush());
 
-      if (!mounted) return;
+      if (!mounted) {
+        _releaseDeferredFirstFrame();
+        return;
+      }
       setState(() {
         _startupError = null;
         _isStarting = false;
       });
+      _releaseDeferredFirstFrame();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handlePushNavigation();
       });
     } catch (error) {
       await _disposePartialSupabaseInitialization();
-      if (!mounted) return;
+      if (!mounted) {
+        _releaseDeferredFirstFrame();
+        return;
+      }
       setState(() {
         _startupError = error;
         _isStarting = false;
       });
+      _releaseDeferredFirstFrame();
     }
+  }
+
+  void _releaseDeferredFirstFrame() {
+    if (!_appFirstFrameDeferred) return;
+    _appFirstFrameDeferred = false;
+    WidgetsBinding.instance.allowFirstFrame();
   }
 
   Future<void> _initializeTheme() async {
