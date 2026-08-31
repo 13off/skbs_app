@@ -20,6 +20,8 @@ class EmployeeDirectoryController extends ChangeNotifier {
   StreamSubscription<AppDataChange>? _dataChangeSubscription;
   int _requestId = 0;
   bool _disposed = false;
+  bool _active = true;
+  bool _refreshPending = false;
 
   List<Employee> employees = const <Employee>[];
   Map<String, EmployeePrivateData> privateDataByEmployeeId =
@@ -37,9 +39,21 @@ class EmployeeDirectoryController extends ChangeNotifier {
     load(showLoading: true);
   }
 
+  void setActive(bool active) {
+    if (_disposed || _active == active) return;
+    _active = active;
+    if (!_active || !_refreshPending) return;
+    _refreshPending = false;
+    unawaited(load());
+  }
+
   Future<void> updateObjectName(String? selectedObjectName) async {
     if (_selectedObjectName == selectedObjectName) return;
     _selectedObjectName = selectedObjectName;
+    if (!_active) {
+      _refreshPending = true;
+      return;
+    }
     await load(showLoading: true, forceRefresh: true);
   }
 
@@ -51,7 +65,11 @@ class EmployeeDirectoryController extends ChangeNotifier {
     })) {
       return;
     }
-    load();
+    if (!_active) {
+      _refreshPending = true;
+      return;
+    }
+    unawaited(load());
   }
 
   Future<void> load({
