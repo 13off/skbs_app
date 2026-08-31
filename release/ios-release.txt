@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
-version: 1.3.9+21
+version: 1.3.9+22
 release date: 2026-08-31
-accepted application commit: 9078f4895ad1f4f2ac90d882f71342fc56a82308
-reason: rebuild current iOS source with automatic push permission/token registration after sign-in and restored notification recipient preferences
+accepted application commit: 31651706ad37352c32053931703bac5e15f7a92b
+reason: rebuild current iOS source with the latest AppСтрой -> Строй На Века startup flow, smoother company animation, and no AppСтрой progress bar
 expected output: unsigned verification IPA
