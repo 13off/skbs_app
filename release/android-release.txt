@@ -1,6 +1,6 @@
 AppСтрой Android release
-version: 1.3.9+20
-release date: 2026-08-19
-accepted application commit: 1519fce80ab357f009cf20912c17a46460c51b79
+version: 1.3.9+21
+release date: 2026-08-31
+accepted application commit: 9078f4895ad1f4f2ac90d882f71342fc56a82308
 release workflow: .github/workflows/build-android-apk.yml
-reason: align Android release with current iOS/PWA source; include native bottom navigation safe-area geometry and lighter glass from PR #517, keep Web/PWA formulas unchanged, retain current receipt upload fixes and mobile task photo picker
+reason: rebuild current Android source with automatic notification permission/token registration after sign-in and restored notification recipient preferences
