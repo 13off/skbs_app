@@ -68,6 +68,11 @@ class AppPage extends StatelessWidget {
     final effectiveMaxContentWidth = isDesktop
         ? double.infinity
         : maxContentWidth;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontSize: 14,
+      height: 1.35,
+      decoration: TextDecoration.none,
+    );
 
     final list = ListView(
       key: scrollKey,
@@ -94,7 +99,10 @@ class AppPage extends StatelessWidget {
                   onBack: onBack,
                 ),
                 SizedBox(height: pageHeaderGap),
-                child,
+                DefaultTextStyle.merge(
+                  style: bodyStyle,
+                  child: child,
+                ),
               ],
             ),
           ),
