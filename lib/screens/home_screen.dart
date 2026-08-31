@@ -60,6 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<String>>? objectNamesFuture;
   FinancePeriod financePeriod = FinancePeriod.current(AppState.today);
   StreamSubscription<AppDataChange>? dataChangeSubscription;
+  bool _tabActive = true;
+  bool _refreshPending = false;
+  bool _objectsRefreshPending = false;
 
   @override
   void initState() {
@@ -67,6 +70,15 @@ class _HomeScreenState extends State<HomeScreen> {
     dashboardFuture = loadDashboardData();
     objectNamesFuture = EmployeeRepository.fetchObjectNames();
     dataChangeSubscription = AppDataSync.changes.listen(handleDataChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final active = TickerMode.of(context);
+    if (_tabActive == active) return;
+    _tabActive = active;
+    if (_tabActive) flushDeferredDataChanges();
   }
 
   @override
