@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+21
 release date: 2026-08-31
-accepted application commit: 2dafe7acd41a6b953ba67af334b40efc3913f3bd
-reason: build and publish the current iOS version from main, including the latest offline-first changes and PWA/AppPage fixes now present in the shared Flutter codebase
+accepted application commit: 9078f4895ad1f4f2ac90d882f71342fc56a82308
+reason: rebuild current iOS source with automatic push permission/token registration after sign-in and restored notification recipient preferences
 expected output: unsigned verification IPA
