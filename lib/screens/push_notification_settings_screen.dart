@@ -1,12 +1,27 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:skbs_app/app/app_adaptive_palette.dart';
 
 import '../services/push_notification_service.dart';
+import '../services/web_push_bridge.dart';
 import '../widgets/app_page.dart';
 import '../widgets/premium_ui_v2.dart';
 
-class PushNotificationSettingsScreen extends StatelessWidget {
+class PushNotificationSettingsScreen extends StatefulWidget {
   const PushNotificationSettingsScreen({super.key});
+
+  @override
+  State<PushNotificationSettingsScreen> createState() =>
+      _PushNotificationSettingsScreenState();
+}
+
+class _PushNotificationSettingsScreenState
+    extends State<PushNotificationSettingsScreen> {
+  static const String _webPushPublicKey =
+      'BEDeIMiSvfz3KavkGnr8UKRZkfE0Ix3PmG8HGNWcm20b70Zh_cWBmNR3crMxi5nYHk4KHbf_frABXuQDontdYn8';
+
+  bool _connecting = false;
+  String? _localError;
 
   String permissionLabel(PushPermissionState permission) {
     switch (permission) {
@@ -20,6 +35,38 @@ class PushNotificationSettingsScreen extends StatelessWidget {
         return 'Разрешение ещё не запрошено';
       case PushPermissionState.unknown:
         return 'Статус пока неизвестен';
+    }
+  }
+
+  Future<void> _connect() async {
+    if (_connecting) return;
+    setState(() {
+      _connecting = true;
+      _localError = null;
+    });
+
+    try {
+      if (kIsWeb) {
+        // На iPhone Notification.requestPermission должен стартовать прямо из
+        // пользовательского нажатия. Поэтому сначала вызываем browser API, а
+        // уже после создания подписки синхронизируем её с Supabase.
+        await WebPushBridge.subscribe(_webPushPublicKey);
+        await PushNotificationService.syncForCurrentSession();
+      } else {
+        await PushNotificationService.syncForCurrentSession(
+          requestPermission: true,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _localError =
+            'Не удалось подключить уведомления. Проверьте интернет и повторите.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _connecting = false);
+      }
     }
   }
 
@@ -40,6 +87,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
         child: ValueListenableBuilder<PushNotificationSnapshot>(
           valueListenable: PushNotificationService.state,
           builder: (context, snapshot, _) {
+            final busy = snapshot.busy || _connecting;
             return Column(
               children: [
                 PremiumWorkCard(
@@ -51,7 +99,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         value: snapshot.enabled,
-                        onChanged: snapshot.busy
+                        onChanged: busy
                             ? null
                             : PushNotificationService.setEnabled,
                         title: const Text(
@@ -92,7 +140,7 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        snapshot.message,
+                        _localError ?? snapshot.message,
                         style: TextStyle(
                           color: AppAdaptivePalette.textMuted,
                           height: 1.4,
@@ -101,14 +149,8 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       FilledButton.icon(
-                        onPressed: snapshot.busy || !snapshot.enabled
-                            ? null
-                            : () {
-                                PushNotificationService.syncForCurrentSession(
-                                  requestPermission: true,
-                                );
-                              },
-                        icon: snapshot.busy
+                        onPressed: busy || !snapshot.enabled ? null : _connect,
+                        icon: busy
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -129,12 +171,12 @@ class PushNotificationSettingsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 PremiumWorkCard(
                   radius: 26,
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.shield_outlined),
-                      SizedBox(width: 12),
+                      const Icon(Icons.shield_outlined),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'На iPhone AppСтрой должен быть добавлен на экран «Домой» и открыт с иконки. Подписка привязывается к вашему пользователю и активной компании. При выходе устройство отключается.',
