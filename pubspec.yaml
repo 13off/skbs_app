@@ -40,3 +40,4 @@ flutter:
   assets:
     - assets/
     - assets/templates/
+    - web/icons/AppStroy-512-v2.png
