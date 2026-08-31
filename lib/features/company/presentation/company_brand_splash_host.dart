@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/offline_profile_store.dart';
 import '../../auth/data/user_repository.dart';
-import 'company_brand_splash_gate.dart';
+import 'company_brand_splash_gate_smooth.dart';
 
 class CompanyBrandSplashHost extends StatefulWidget {
   final Widget child;
@@ -81,7 +81,7 @@ class _CompanyBrandSplashHostState extends State<CompanyBrandSplashHost> {
   @override
   Widget build(BuildContext context) {
     if (_companyId.isEmpty) return widget.child;
-    return CompanyBrandSplashGate(
+    return SmoothCompanyBrandSplashGate(
       key: ValueKey<String>('company-brand-splash:$_companyId'),
       companyId: _companyId,
       child: widget.child,
