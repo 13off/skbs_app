@@ -17,6 +17,24 @@ extension _HomeLoading on _HomeScreenState {
     if (!mounted || !change.affectsAny(dashboardDomains)) return;
     final refreshObjects = change.affects(AppDataDomain.objects);
 
+    if (!_tabActive) {
+      _refreshPending = true;
+      _objectsRefreshPending = _objectsRefreshPending || refreshObjects;
+      return;
+    }
+
+    refreshDashboardForDataChange(refreshObjects: refreshObjects);
+  }
+
+  void flushDeferredDataChanges() {
+    if (!mounted || !_refreshPending) return;
+    final refreshObjects = _objectsRefreshPending;
+    _refreshPending = false;
+    _objectsRefreshPending = false;
+    refreshDashboardForDataChange(refreshObjects: refreshObjects);
+  }
+
+  void refreshDashboardForDataChange({required bool refreshObjects}) {
     setState(() {
       if (refreshObjects) {
         objectNamesFuture = EmployeeRepository.fetchObjectNames();
