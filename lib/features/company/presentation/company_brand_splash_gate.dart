@@ -28,8 +28,8 @@ class _CompanyBrandSplashGateState extends State<CompanyBrandSplashGate>
 
   late final AnimationController _controller;
   CompanyBranding? _branding;
-  bool _complete = false;
   Timer? _fallbackTimer;
+  bool _complete = false;
 
   String get _cachePrefix => 'appstroy_company_brand_v1_${widget.companyId}';
 
@@ -38,11 +38,10 @@ class _CompanyBrandSplashGateState extends State<CompanyBrandSplashGate>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3300),
-    );
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) _finish();
-    });
+      duration: const Duration(milliseconds: 3250),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _finish();
+      });
 
     if (_shownForCompany.contains(widget.companyId)) {
       _complete = true;
@@ -142,7 +141,7 @@ class _CompanyBrandSplashGateState extends State<CompanyBrandSplashGate>
         );
       }
     } catch (_) {
-      // Кэш брендинга не должен влиять на запуск приложения.
+      // Кэш оформления компании не должен ломать запуск приложения.
     }
   }
 
@@ -180,22 +179,20 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
     required this.branding,
   });
 
-  static const String _stroyNaVekaAsset = 'assets/stroi_na_veka.webp';
-
   @override
   Widget build(BuildContext context) {
-    final isStroyNaVeka = branding.name.trim().toLowerCase() ==
-        'строй на века'.toLowerCase();
+    final isStroyNaVeka =
+        branding.name.trim().toLowerCase() == 'строй на века';
 
     return AnimatedBuilder(
       animation: animation,
       builder: (context, _) {
         final t = animation.value;
-        final appIntro = _interval(t, 0.00, 0.24);
-        final companyIntro = _interval(t, 0.16, 0.40);
-        final wallBuild = _interval(t, 0.28, 0.58);
-        final towersBuild = _interval(t, 0.42, 0.74);
-        final markReveal = _interval(t, 0.65, 0.84);
+        final appIntro = _interval(t, 0.00, 0.20);
+        final companyIntro = _interval(t, 0.16, 0.38);
+        final wallBuild = _interval(t, 0.28, 0.60);
+        final towerBuild = _interval(t, 0.42, 0.74);
+        final fullLogo = _interval(t, 0.66, 0.84);
         final settle = _interval(t, 0.78, 1.00);
 
         return Stack(
@@ -208,7 +205,7 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
                     center: const Alignment(0, -0.24),
                     radius: 1.18,
                     colors: [
-                      AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.92),
+                      AppAdaptivePalette.surfaceSoft.withValues(alpha: 0.94),
                       AppAdaptivePalette.background,
                     ],
                   ),
@@ -218,7 +215,7 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
             Positioned.fill(
               child: IgnorePointer(
                 child: Opacity(
-                  opacity: 0.14 * companyIntro,
+                  opacity: 0.12 * companyIntro,
                   child: CustomPaint(
                     painter: _BlueprintGridPainter(
                       progress: companyIntro,
@@ -234,17 +231,17 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Transform.translate(
-                      offset: Offset(0, -18 * companyIntro),
-                      child: Opacity(
-                        opacity: (1 - companyIntro * 0.82).clamp(0.0, 1.0),
+                    Opacity(
+                      opacity: _clamp01(1 - (companyIntro * 0.78)),
+                      child: Transform.translate(
+                        offset: Offset(0, -16 * companyIntro),
                         child: Transform.scale(
                           scale: 0.92 + (0.08 * appIntro),
-                          child: const _AppStroyIdentity(size: 78),
+                          child: const _AppStroyIdentity(size: 80),
                         ),
                       ),
                     ),
-                    SizedBox(height: 12 + (8 * companyIntro)),
+                    SizedBox(height: 12 + (6 * companyIntro)),
                     Opacity(
                       opacity: companyIntro,
                       child: Transform.scale(
@@ -252,21 +249,21 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
                         child: isStroyNaVeka
                             ? _CastleBuildLogo(
                                 wallProgress: wallBuild,
-                                towerProgress: towersBuild,
-                                finalReveal: markReveal,
+                                towerProgress: towerBuild,
+                                finalReveal: fullLogo,
                                 settle: settle,
                               )
                             : _GenericCompanyLogo(
                                 branding: branding,
-                                reveal: markReveal,
+                                reveal: fullLogo,
                               ),
                       ),
                     ),
                     const SizedBox(height: 18),
                     Opacity(
-                      opacity: markReveal,
+                      opacity: fullLogo,
                       child: Transform.translate(
-                        offset: Offset(0, 10 * (1 - markReveal)),
+                        offset: Offset(0, 9 * (1 - fullLogo)),
                         child: Text(
                           branding.name,
                           textAlign: TextAlign.center,
@@ -278,7 +275,7 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     Opacity(
                       opacity: settle,
                       child: const _PoweredByAppStroy(),
@@ -295,6 +292,8 @@ class _AnimatedCompanyLaunch extends StatelessWidget {
 }
 
 class _CastleBuildLogo extends StatelessWidget {
+  static const String asset = 'assets/stroi_na_veka.webp';
+
   final double wallProgress;
   final double towerProgress;
   final double finalReveal;
@@ -307,43 +306,33 @@ class _CastleBuildLogo extends StatelessWidget {
     required this.settle,
   });
 
-  static const String asset = 'assets/stroi_na_veka.webp';
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 224,
-      height: 234,
+      width: 222,
+      height: 232,
       child: Stack(
         fit: StackFit.expand,
         children: [
           Opacity(
-            opacity: 0.11 + (0.12 * settle),
-            child: Transform.scale(
-              scale: 0.96 + (0.04 * settle),
-              child: const Image(
-                image: AssetImage(asset),
-                fit: BoxFit.contain,
-              ),
+            opacity: 0.09 + (0.09 * settle),
+            child: const Image(
+              image: AssetImage(asset),
+              fit: BoxFit.contain,
             ),
           ),
-          _LogoSliceReveal(
+          _BrickWallReveal(progress: wallProgress),
+          _LogoRegionReveal(
             asset: asset,
-            rect: const Rect.fromLTWH(0.26, 0.31, 0.48, 0.45),
-            progress: wallProgress,
-            rise: 28,
-          ),
-          _LogoSliceReveal(
-            asset: asset,
-            rect: const Rect.fromLTWH(0.05, 0.12, 0.28, 0.60),
+            region: const Rect.fromLTWH(0.05, 0.10, 0.30, 0.62),
             progress: towerProgress,
-            rise: 46,
+            rise: 34,
           ),
-          _LogoSliceReveal(
+          _LogoRegionReveal(
             asset: asset,
-            rect: const Rect.fromLTWH(0.68, 0.12, 0.27, 0.60),
+            region: const Rect.fromLTWH(0.66, 0.10, 0.29, 0.62),
             progress: towerProgress,
-            rise: 46,
+            rise: 34,
           ),
           Opacity(
             opacity: finalReveal,
@@ -357,13 +346,10 @@ class _CastleBuildLogo extends StatelessWidget {
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: Opacity(
-                opacity: (1 - settle) * 0.32,
-                child: CustomPaint(
-                  painter: _ConstructionSparkPainter(
-                    progress: towerProgress,
-                    color: const Color(0xFF4D79C7),
-                  ),
+              child: CustomPaint(
+                painter: _ConstructionSparkPainter(
+                  progress: towerProgress,
+                  opacity: (1 - settle) * 0.28,
                 ),
               ),
             ),
@@ -374,15 +360,49 @@ class _CastleBuildLogo extends StatelessWidget {
   }
 }
 
-class _LogoSliceReveal extends StatelessWidget {
+class _BrickWallReveal extends StatelessWidget {
+  final double progress;
+
+  const _BrickWallReveal({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    const wall = Rect.fromLTWH(0.27, 0.31, 0.46, 0.40);
+    const rows = 7;
+    final rowHeight = wall.height / rows;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: List<Widget>.generate(rows, (index) {
+        final bottomUpIndex = rows - 1 - index;
+        final begin = bottomUpIndex * 0.075;
+        final rowProgress = _interval(progress, begin, begin + 0.50);
+        final row = Rect.fromLTWH(
+          wall.left,
+          wall.top + (index * rowHeight),
+          wall.width,
+          rowHeight + 0.008,
+        );
+        return _LogoRegionReveal(
+          asset: _CastleBuildLogo.asset,
+          region: row,
+          progress: rowProgress,
+          rise: 8,
+        );
+      }),
+    );
+  }
+}
+
+class _LogoRegionReveal extends StatelessWidget {
   final String asset;
-  final Rect rect;
+  final Rect region;
   final double progress;
   final double rise;
 
-  const _LogoSliceReveal({
+  const _LogoRegionReveal({
     required this.asset,
-    required this.rect,
+    required this.region,
     required this.progress,
     required this.rise,
   });
@@ -391,40 +411,40 @@ class _LogoSliceReveal extends StatelessWidget {
   Widget build(BuildContext context) {
     if (progress <= 0) return const SizedBox.shrink();
     return ClipPath(
-      clipper: _FractionalRectClipper(rect),
-      child: ClipRect(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          heightFactor: progress.clamp(0.01, 1.0),
-          child: Transform.translate(
-            offset: Offset(0, rise * (1 - progress)),
-            child: Image.asset(asset, fit: BoxFit.contain),
-          ),
-        ),
+      clipper: _AnimatedFractionalRectClipper(region, progress),
+      child: Transform.translate(
+        offset: Offset(0, rise * (1 - progress)),
+        child: Image.asset(asset, fit: BoxFit.contain),
       ),
     );
   }
 }
 
-class _FractionalRectClipper extends CustomClipper<Path> {
-  final Rect fractionalRect;
+class _AnimatedFractionalRectClipper extends CustomClipper<Path> {
+  final Rect region;
+  final double progress;
 
-  const _FractionalRectClipper(this.fractionalRect);
+  const _AnimatedFractionalRectClipper(this.region, this.progress);
 
   @override
   Path getClip(Size size) {
+    final left = region.left * size.width;
+    final width = region.width * size.width;
+    final bottom = region.bottom * size.height;
+    final fullHeight = region.height * size.height;
+    final visibleHeight = fullHeight * _clamp01(progress);
     final rect = Rect.fromLTWH(
-      fractionalRect.left * size.width,
-      fractionalRect.top * size.height,
-      fractionalRect.width * size.width,
-      fractionalRect.height * size.height,
+      left,
+      bottom - visibleHeight,
+      width,
+      visibleHeight,
     );
     return Path()..addRect(rect);
   }
 
   @override
-  bool shouldReclip(covariant _FractionalRectClipper oldClipper) {
-    return oldClipper.fractionalRect != fractionalRect;
+  bool shouldReclip(covariant _AnimatedFractionalRectClipper oldClipper) {
+    return oldClipper.region != region || oldClipper.progress != progress;
   }
 }
 
@@ -452,45 +472,31 @@ class _GenericCompanyLogo extends StatelessWidget {
       ),
     );
 
-    if (logoUrl == null) return fallback;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: SizedBox(
-        width: 146,
-        height: 146,
-        child: Image.network(
-          logoUrl,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => fallback,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame != null) return child;
-            return fallback;
-          },
-        ),
+    final logo = logoUrl == null
+        ? fallback
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: SizedBox(
+              width: 146,
+              height: 146,
+              child: Image.network(
+                logoUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => fallback,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) return child;
+                  return fallback;
+                },
+              ),
+            ),
+          );
+
+    return Opacity(
+      opacity: reveal,
+      child: Transform.scale(
+        scale: 0.94 + (0.06 * reveal),
+        child: logo,
       ),
-    );
-  }
-}
-
-class _PoweredByAppStroy extends StatelessWidget {
-  const _PoweredByAppStroy();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const _AppStroyMark(size: 22),
-        const SizedBox(width: 8),
-        Text(
-          'AppСтрой',
-          style: TextStyle(
-            color: AppAdaptivePalette.textMuted,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.1,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -505,7 +511,15 @@ class _AppStroyIdentity extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _AppStroyMark(size: size),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(size * 0.25),
+          child: Image.asset(
+            'web/icons/AppStroy-512-v2.png',
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+          ),
+        ),
         const SizedBox(height: 10),
         Text(
           'AppСтрой',
@@ -520,95 +534,34 @@ class _AppStroyIdentity extends StatelessWidget {
   }
 }
 
-class _AppStroyMark extends StatelessWidget {
-  final double size;
-
-  const _AppStroyMark({required this.size});
+class _PoweredByAppStroy extends StatelessWidget {
+  const _PoweredByAppStroy();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _AppStroyMarkPainter(
-          foreground: AppAdaptivePalette.textMuted,
-          background: AppAdaptivePalette.surfaceSoft,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.asset(
+            'web/icons/AppStroy-512-v2.png',
+            width: 22,
+            height: 22,
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
+        const SizedBox(width: 8),
+        Text(
+          'AppСтрой',
+          style: TextStyle(
+            color: AppAdaptivePalette.textMuted,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ],
     );
-  }
-}
-
-class _AppStroyMarkPainter extends CustomPainter {
-  final Color foreground;
-  final Color background;
-
-  const _AppStroyMarkPainter({
-    required this.foreground,
-    required this.background,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width / 512;
-    final outer = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(126 * s),
-    );
-    canvas.drawRRect(outer, Paint()..color = background);
-
-    final border = RRect.fromRectAndRadius(
-      Rect.fromLTWH(9 * s, 9 * s, size.width - (18 * s), size.height - (18 * s)),
-      Radius.circular(118 * s),
-    );
-    canvas.drawRRect(
-      border,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3 * s
-        ..color = Colors.white.withValues(alpha: 0.44),
-    );
-
-    final paint = Paint()..color = foreground;
-    final path = Path();
-
-    path
-      ..moveTo(122 * s, 385 * s)
-      ..lineTo(122 * s, 288 * s)
-      ..cubicTo(122 * s, 261 * s, 139 * s, 242 * s, 161 * s, 234 * s)
-      ..lineTo(179 * s, 227 * s)
-      ..cubicTo(191 * s, 222 * s, 202 * s, 230 * s, 202 * s, 244 * s)
-      ..lineTo(202 * s, 385 * s)
-      ..close();
-    canvas.drawPath(path, paint);
-
-    path.reset();
-    path
-      ..moveTo(219 * s, 385 * s)
-      ..lineTo(219 * s, 180 * s)
-      ..cubicTo(219 * s, 145 * s, 241 * s, 118 * s, 273 * s, 108 * s)
-      ..lineTo(291 * s, 103 * s)
-      ..cubicTo(303 * s, 100 * s, 314 * s, 108 * s, 314 * s, 121 * s)
-      ..lineTo(314 * s, 385 * s)
-      ..close();
-    canvas.drawPath(path, paint);
-
-    path.reset();
-    path
-      ..moveTo(331 * s, 385 * s)
-      ..lineTo(331 * s, 227 * s)
-      ..cubicTo(331 * s, 205 * s, 349 * s, 190 * s, 371 * s, 195 * s)
-      ..cubicTo(411 * s, 203 * s, 435 * s, 225 * s, 435 * s, 259 * s)
-      ..lineTo(435 * s, 385 * s)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AppStroyMarkPainter oldDelegate) {
-    return oldDelegate.foreground != foreground ||
-        oldDelegate.background != background;
   }
 }
 
@@ -621,7 +574,7 @@ class _BlueprintGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withValues(alpha: 0.22 * progress)
+      ..color = color.withValues(alpha: 0.20 * progress)
       ..strokeWidth = 0.6;
     const spacing = 28.0;
     for (double x = 0; x <= size.width; x += spacing) {
@@ -640,26 +593,31 @@ class _BlueprintGridPainter extends CustomPainter {
 
 class _ConstructionSparkPainter extends CustomPainter {
   final double progress;
-  final Color color;
+  final double opacity;
 
-  const _ConstructionSparkPainter({required this.progress, required this.color});
+  const _ConstructionSparkPainter({
+    required this.progress,
+    required this.opacity,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final opacity = (progress * (1 - progress) * 3.2).clamp(0.0, 0.7);
-    if (opacity <= 0) return;
+    final pulse = _clamp01(progress * (1 - progress) * 3.2);
+    final alpha = _clamp01(opacity * pulse);
+    if (alpha <= 0) return;
+
     final paint = Paint()
-      ..color = color.withValues(alpha: opacity)
+      ..color = const Color(0xFF4D79C7).withValues(alpha: alpha)
       ..strokeWidth = 1.4
       ..strokeCap = StrokeCap.round;
-
     final y = size.height * (0.76 - (0.46 * progress));
+
     for (var i = 0; i < 6; i++) {
-      final x = size.width * (0.26 + (0.095 * i));
-      final spread = 7 + (i.isEven ? 3 : 0);
+      final x = size.width * (0.25 + (0.10 * i));
+      final spread = 7.0 + (i.isEven ? 3.0 : 0.0);
       canvas.drawLine(
         Offset(x, y),
-        Offset(x + spread, y - 7 - (i % 3) * 2),
+        Offset(x + spread, y - 7 - ((i % 3) * 2)),
         paint,
       );
     }
@@ -667,13 +625,18 @@ class _ConstructionSparkPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ConstructionSparkPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    return oldDelegate.progress != progress || oldDelegate.opacity != opacity;
   }
 }
 
 double _interval(double value, double begin, double end) {
   if (value <= begin) return 0;
   if (value >= end) return 1;
-  final normalized = (value - begin) / (end - begin);
-  return Curves.easeOutCubic.transform(normalized);
+  return Curves.easeOutCubic.transform((value - begin) / (end - begin));
+}
+
+double _clamp01(double value) {
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
+  return value;
 }
