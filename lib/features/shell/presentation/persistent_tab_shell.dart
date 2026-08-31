@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import '../../../app/theme_controller.dart';
 import '../../../navigation/app_page_route.dart';
@@ -100,7 +99,6 @@ class PersistentTabShell extends StatefulWidget {
 
 class _PersistentTabShellState extends State<PersistentTabShell> {
   final Map<int, Widget> _tabNavigators = <int, Widget>{};
-  int _prewarmGeneration = 0;
 
   Widget workVisualScope({
     required Widget child,
@@ -119,8 +117,10 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
   void initState() {
     super.initState();
     widget.controller.addListener(_handleControllerChanged);
+    // Build only the workspace the user can see. Heavy tabs keep their own
+    // realtime subscriptions and screen state once visited, so eagerly mounting
+    // every hidden tab at startup wastes CPU/memory and can cause mobile jank.
     _ensureTabBuilt(widget.controller.currentIndex);
-    _scheduleTabPrewarm();
   }
 
   @override
@@ -128,63 +128,20 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_handleControllerChanged);
-      _prewarmGeneration++;
       _tabNavigators.clear();
       widget.controller.addListener(_handleControllerChanged);
       _ensureTabBuilt(widget.controller.currentIndex);
-      _scheduleTabPrewarm();
     }
   }
 
   @override
   void dispose() {
-    _prewarmGeneration++;
     widget.controller.removeListener(_handleControllerChanged);
     super.dispose();
   }
 
   void _ensureTabBuilt(int index) {
     _tabNavigators.putIfAbsent(index, () => _buildTabNavigator(index));
-  }
-
-  void _scheduleTabPrewarm() {
-    final generation = ++_prewarmGeneration;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || generation != _prewarmGeneration) return;
-      _prewarmNextTab(generation);
-    });
-  }
-
-  void _prewarmNextTab(int generation) {
-    if (!mounted || generation != _prewarmGeneration) return;
-
-    int? nextIndex;
-    for (var index = 0; index < widget.controller.pageCount; index++) {
-      if (!_tabNavigators.containsKey(index)) {
-        nextIndex = index;
-        break;
-      }
-    }
-    if (nextIndex == null) return;
-    final indexToBuild = nextIndex;
-
-    SchedulerBinding.instance.scheduleTask<void>(
-      () {
-        if (!mounted || generation != _prewarmGeneration) return;
-        setState(() => _ensureTabBuilt(indexToBuild));
-
-        // Wait for this hidden tab to finish a real frame before scheduling the
-        // next idle build. A post-frame handoff avoids Timer/Future.delayed
-        // wakeups and keeps both production and widget tests free of pending
-        // timers while still spreading prewarm work across frames.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || generation != _prewarmGeneration) return;
-          _prewarmNextTab(generation);
-        });
-      },
-      Priority.idle,
-      debugLabel: 'AppStroy.prewarmTab.$indexToBuild',
-    );
   }
 
   Widget _buildTabNavigator(int index) {
@@ -224,6 +181,8 @@ class _PersistentTabShellState extends State<PersistentTabShell> {
   void _handleControllerChanged() {
     if (!mounted) return;
     final index = widget.controller.currentIndex;
+    // A tab is mounted on first deliberate selection and then remains mounted,
+    // preserving its nested navigator and local screen state between switches.
     setState(() => _ensureTabBuilt(index));
     widget.onPageChanged?.call(index);
   }
