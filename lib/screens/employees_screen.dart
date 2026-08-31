@@ -59,6 +59,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    directoryController.setActive(TickerMode.of(context));
+  }
+
+  @override
   void didUpdateWidget(covariant EmployeesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedObjectName != widget.selectedObjectName) {
