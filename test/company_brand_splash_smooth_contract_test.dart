@@ -7,9 +7,6 @@ void main() {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
-    final scene = File(
-      'lib/features/company/presentation/stroy_na_veka_logo_scene_smooth.dart',
-    ).readAsStringSync();
     final host = File(
       'lib/features/company/presentation/company_brand_splash_host.dart',
     ).readAsStringSync();
