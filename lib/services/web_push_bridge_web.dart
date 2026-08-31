@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
@@ -20,6 +21,13 @@ class WebPushBridge {
   static const String _workerPath = 'appstroy-push-sw.js';
   static const String _workerScope = 'push-scope/';
   static const String _publicKeyEndpoint = 'appstroy-push-config.json';
+  static const String _canonicalPublicKey =
+      'BEDeIMiSvfz3KavkGnr8UKRZkfE0Ix3PmG8HGNWcm20b70Zh_cWBmNR3crMxi5nYHk4KHbf_frABXuQDontdYn8';
+
+  static const Duration _workerTimeout = Duration(seconds: 12);
+  static const Duration _subscriptionTimeout = Duration(seconds: 20);
+  static const Duration _permissionTimeout = Duration(seconds: 45);
+  static const Duration _configurationTimeout = Duration(seconds: 8);
 
   static bool get _hasServiceWorker => _navigator.has('serviceWorker');
   static bool get _hasPushManager => _window.has('PushManager');
@@ -64,6 +72,20 @@ class WebPushBridge {
     'requires_home_screen': _isAppleMobile && !isStandalone,
   };
 
+  static Future<T> _bounded<T>(
+    Future<T> operation,
+    Duration timeout,
+    String stage,
+  ) {
+    return operation.timeout(
+      timeout,
+      onTimeout: () => throw TimeoutException(
+        'Web Push не ответил на этапе «$stage»',
+        timeout,
+      ),
+    );
+  }
+
   static Future<JSObject> _registration() async {
     if (!isSupported) {
       throw UnsupportedError('Стандартный Web Push не поддерживается');
@@ -75,7 +97,26 @@ class WebPushBridge {
       _workerPath.toJS,
       options,
     );
-    return promise.toDart;
+    final registration = await _bounded(
+      promise.toDart,
+      _workerTimeout,
+      'запуск службы уведомлений',
+    );
+    await _waitUntilActive(registration);
+    return registration;
+  }
+
+  static Future<void> _waitUntilActive(JSObject registration) async {
+    final deadline = DateTime.now().add(_workerTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final active = registration.getProperty<JSAny?>('active'.toJS);
+      if (active != null) return;
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    throw TimeoutException(
+      'Служба уведомлений не успела запуститься',
+      _workerTimeout,
+    );
   }
 
   static Future<JSObject?> _currentSubscription(JSObject registration) async {
@@ -83,7 +124,11 @@ class WebPushBridge {
     final promise = pushManager.callMethod<JSPromise<JSAny?>>(
       'getSubscription'.toJS,
     );
-    final value = await promise.toDart;
+    final value = await _bounded(
+      promise.toDart,
+      _workerTimeout,
+      'проверка подписки',
+    );
     return value == null ? null : value as JSObject;
   }
 
@@ -117,9 +162,17 @@ class WebPushBridge {
         _publicKeyEndpoint.toJS,
         (JSObject()..setProperty('cache'.toJS, 'no-store'.toJS)),
       );
-      final response = await fetchPromise.toDart;
+      final response = await _bounded(
+        fetchPromise.toDart,
+        _configurationTimeout,
+        'получение ключа',
+      );
       final jsonPromise = response.callMethod<JSPromise<JSObject>>('json'.toJS);
-      final payload = await jsonPromise.toDart;
+      final payload = await _bounded(
+        jsonPromise.toDart,
+        _configurationTimeout,
+        'чтение ключа',
+      );
       if (payload.has('public_key')) {
         final value = payload
             .getProperty<JSString>('public_key'.toJS)
@@ -128,9 +181,12 @@ class WebPushBridge {
         if (value.isNotEmpty) return value;
       }
     } catch (_) {
-      // На случай краткой недоступности конфигурации используем ключ сборки.
+      // Ключ в PWA может быть временно недоступен при обновлении/плохой сети.
     }
-    return fallback;
+
+    // Старые сборки содержали другой fallback. Никогда не создаём новую
+    // подписку с ним: сервер подписывает Web Push только этим VAPID-ключом.
+    return fallback == _canonicalPublicKey ? fallback : _canonicalPublicKey;
   }
 
   static Future<Map<String, dynamic>> existing() async {
@@ -159,7 +215,12 @@ class WebPushBridge {
       final promise = _notification.callMethod<JSPromise<JSString>>(
         'requestPermission'.toJS,
       );
-      currentPermission = (await promise.toDart).toDart;
+      currentPermission = (await _bounded(
+        promise.toDart,
+        _permissionTimeout,
+        'разрешение уведомлений',
+      ))
+          .toDart;
     }
     if (currentPermission != 'granted') {
       return <String, dynamic>{
@@ -171,23 +232,39 @@ class WebPushBridge {
 
     final registration = await _registration();
     var subscription = await _currentSubscription(registration);
-    if (subscription == null) {
-      final resolvedPublicKey = await _resolvePublicKey(publicKey);
-      final pushManager = registration.getProperty<JSObject>(
-        'pushManager'.toJS,
+
+    // Ручное «Разрешить и подключить / Обновить регистрацию» всегда пересоздаёт
+    // браузерную подписку. Это автоматически лечит устройства, которые успели
+    // подписаться на старый VAPID-ключ.
+    if (subscription != null) {
+      final unsubscribePromise = subscription.callMethod<JSPromise<JSBoolean>>(
+        'unsubscribe'.toJS,
       );
-      final options = JSObject()
-        ..setProperty('userVisibleOnly'.toJS, true.toJS)
-        ..setProperty(
-          'applicationServerKey'.toJS,
-          _applicationServerKey(resolvedPublicKey),
-        );
-      final promise = pushManager.callMethod<JSPromise<JSObject>>(
-        'subscribe'.toJS,
-        options,
+      await _bounded(
+        unsubscribePromise.toDart,
+        _workerTimeout,
+        'обновление старой подписки',
       );
-      subscription = await promise.toDart;
+      subscription = null;
     }
+
+    final resolvedPublicKey = await _resolvePublicKey(publicKey);
+    final pushManager = registration.getProperty<JSObject>('pushManager'.toJS);
+    final options = JSObject()
+      ..setProperty('userVisibleOnly'.toJS, true.toJS)
+      ..setProperty(
+        'applicationServerKey'.toJS,
+        _applicationServerKey(resolvedPublicKey),
+      );
+    final promise = pushManager.callMethod<JSPromise<JSObject>>(
+      'subscribe'.toJS,
+      options,
+    );
+    subscription = await _bounded(
+      promise.toDart,
+      _subscriptionTimeout,
+      'создание подписки',
+    );
 
     return <String, dynamic>{
       ...status,
@@ -207,7 +284,11 @@ class WebPushBridge {
       final promise = subscription.callMethod<JSPromise<JSBoolean>>(
         'unsubscribe'.toJS,
       );
-      await promise.toDart;
+      await _bounded(
+        promise.toDart,
+        _workerTimeout,
+        'отключение подписки',
+      );
     }
     return <String, dynamic>{...status, 'registered': false};
   }
