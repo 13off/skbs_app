@@ -31,12 +31,8 @@ const String supabasePublishableKey = String.fromEnvironment(
   defaultValue: _defaultSupabasePublishableKey,
 );
 
-bool _appFirstFrameDeferred = false;
-
 void main() {
-  final binding = WidgetsFlutterBinding.ensureInitialized();
-  binding.deferFirstFrame();
-  _appFirstFrameDeferred = true;
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const SkbsApp());
 }
 
@@ -72,36 +68,22 @@ class _SkbsAppState extends State<SkbsApp> {
       _attachAuthStateSubscription();
       unawaited(_initializePush());
 
-      if (!mounted) {
-        _releaseDeferredFirstFrame();
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _startupError = null;
         _isStarting = false;
       });
-      _releaseDeferredFirstFrame();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handlePushNavigation();
       });
     } catch (error) {
       await _disposePartialSupabaseInitialization();
-      if (!mounted) {
-        _releaseDeferredFirstFrame();
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _startupError = error;
         _isStarting = false;
       });
-      _releaseDeferredFirstFrame();
     }
-  }
-
-  void _releaseDeferredFirstFrame() {
-    if (!_appFirstFrameDeferred) return;
-    _appFirstFrameDeferred = false;
-    WidgetsBinding.instance.allowFirstFrame();
   }
 
   Future<void> _initializeTheme() async {
@@ -261,7 +243,10 @@ class _StartupLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // Первый Flutter-кадр нужен только для быстрого снятия стартовой заставки
+    // AppСтрой. Никакой второй индикатор здесь не показываем: сразу после
+    // базовой инициализации экран передаётся длинной заставке компании.
+    return const Scaffold(body: SizedBox.shrink());
   }
 }
 
