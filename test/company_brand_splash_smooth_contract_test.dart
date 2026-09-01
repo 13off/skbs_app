@@ -22,7 +22,10 @@ void main() {
     expect(web, isNot(contains('switchToCompanyFallback')));
     expect(web, isNot(contains('companyFallbackShown')));
     expect(web, isNot(contains('Загрузка Строй На Века')));
-    expect(web, contains('window.setTimeout(completeAppStroyPhase, appStroyVisibleMs);'));
+    expect(
+      web,
+      contains('window.setTimeout(completeAppStroyPhase, appStroyVisibleMs);'),
+    );
 
     expect(main, isNot(contains('binding.deferFirstFrame();')));
     expect(main, isNot(contains('WidgetsBinding.instance.allowFirstFrame();')));
@@ -51,6 +54,22 @@ void main() {
     expect(host, isNot(contains("'web/icons/AppStroy-512-v2.png'")));
     expect(host, contains('if (_resolvingCompany)'));
     expect(host, contains('SmoothCompanyBrandSplashGate'));
+  });
+
+  test('Flutter AppСтрой handoff cancels the global viewport scale', () {
+    final startupPhase = File(
+      'lib/widgets/app_stroy_startup_phase.dart',
+    ).readAsStringSync();
+    final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
+
+    // At the default 100% UI setting AppScaleViewport still paints Flutter at
+    // 80%. The platform/HTML splash is outside that transform, so the startup
+    // branding must compensate it or the same logo visibly shrinks on handoff.
+    expect(viewport, contains('static const double _designCalibration = 0.80;'));
+    expect(startupPhase, contains('View.of(context)'));
+    expect(startupPhase, contains('logicalViewportWidth / mediaQuery.size.width'));
+    expect(startupPhase, contains('return 1 / inheritedViewportScale;'));
+    expect(startupPhase, contains('scale: contentScale'));
   });
 
   test('published AppСтрой splash has no progress line', () {
