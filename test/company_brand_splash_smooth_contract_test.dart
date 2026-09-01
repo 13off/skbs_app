@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('PWA uses HTML AppStroy then enabled company splash', () {
+  test('PWA stays unique while native uses the same AppStroy first phase', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -28,16 +28,19 @@ void main() {
       isNot(contains('id="app-loader" style="display:none!important"')),
     );
 
-    // Flutter root не показывает ещё одну первую заставку.
-    expect(main, isNot(contains('return const AppStroyStartupPhase();')));
-    expect(main, contains('return const Scaffold(body: SizedBox.shrink());'));
-
-    // AppStroyStartupPhase используется нативно, но на Web оставляет только фон.
+    // Web не получает вторую копию AppСтрой, а native запускает её сразу.
+    expect(main, contains('if (kIsWeb) return const Scaffold'));
+    expect(
+      main,
+      contains('return const AppStroyStartupPhase(animateEntrance: true);'),
+    );
     expect(startupPhase, contains('if (kIsWeb)'));
     expect(
       startupPhase,
       contains('return Scaffold(backgroundColor: AppAdaptivePalette.background);'),
     );
+    expect(startupPhase, contains('TweenAnimationBuilder<double>('));
+    expect(startupPhase, contains('Duration(milliseconds: 820)'));
     expect(startupPhase, contains("'AppСтрой'"));
     expect(startupPhase, contains("'планируй. строй. управляй.'"));
 
