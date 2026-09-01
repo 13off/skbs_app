@@ -45,6 +45,9 @@ class SkbsApp extends StatefulWidget {
 }
 
 class _SkbsAppState extends State<SkbsApp> {
+  static const Duration _minimumNativeStartupPhase =
+      Duration(milliseconds: 900);
+
   StreamSubscription<AuthState>? _authStateSubscription;
   bool _pushNavigationScheduled = false;
   bool _isStarting = true;
@@ -60,6 +63,7 @@ class _SkbsAppState extends State<SkbsApp> {
   }
 
   Future<void> _initializeApplication() async {
+    final startedAt = DateTime.now();
     try {
       await Future.wait<void>([
         initializeDateFormatting('ru_RU'),
@@ -68,6 +72,14 @@ class _SkbsAppState extends State<SkbsApp> {
       ]);
       _attachAuthStateSubscription();
       unawaited(_initializePush());
+
+      if (!kIsWeb) {
+        final elapsed = DateTime.now().difference(startedAt);
+        final remaining = _minimumNativeStartupPhase - elapsed;
+        if (remaining > Duration.zero) {
+          await Future<void>.delayed(remaining);
+        }
+      }
 
       if (!mounted) return;
       setState(() {
