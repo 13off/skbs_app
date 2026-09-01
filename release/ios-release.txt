@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+23
 release date: 2026-09-01
-accepted application commit: e9b9d8c458cc26cecebff6b9f7bcccfa8c636d38
-reason: rebuild current iOS source with guaranteed visible AppСтрой startup phase before the existing Строй На Века animation; no progress bar
+accepted application commit: 5fc84f713fa866e89458548afcf17becb778245e
+reason: verify native smooth AppСтрой fade-in, crossfade to Строй На Века, and smooth exit to the application with no separate OS launch logo
 expected output: unsigned verification IPA
