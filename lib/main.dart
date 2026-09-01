@@ -12,11 +12,12 @@ import 'app/app_typography.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'app/theme_controller.dart';
+import 'navigation/app_page_route.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
-import 'navigation/app_page_route.dart';
+import 'widgets/app_stroy_startup_phase.dart';
 
 const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
@@ -44,6 +45,9 @@ class SkbsApp extends StatefulWidget {
 }
 
 class _SkbsAppState extends State<SkbsApp> {
+  static const Duration _minimumNativeStartupPhase =
+      Duration(milliseconds: 900);
+
   StreamSubscription<AuthState>? _authStateSubscription;
   bool _pushNavigationScheduled = false;
   bool _isStarting = true;
@@ -59,6 +63,7 @@ class _SkbsAppState extends State<SkbsApp> {
   }
 
   Future<void> _initializeApplication() async {
+    final startedAt = DateTime.now();
     try {
       await Future.wait<void>([
         initializeDateFormatting('ru_RU'),
@@ -67,6 +72,14 @@ class _SkbsAppState extends State<SkbsApp> {
       ]);
       _attachAuthStateSubscription();
       unawaited(_initializePush());
+
+      if (!kIsWeb) {
+        final elapsed = DateTime.now().difference(startedAt);
+        final remaining = _minimumNativeStartupPhase - elapsed;
+        if (remaining > Duration.zero) {
+          await Future<void>.delayed(remaining);
+        }
+      }
 
       if (!mounted) return;
       setState(() {
@@ -243,9 +256,10 @@ class _StartupLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Временная диагностика: первую Flutter-заставку AppСтрой не рисуем.
-    // Сам AppStroyStartupPhase остаётся в проекте и будет возвращён после теста.
-    return const Scaffold(body: SizedBox.shrink());
+    // На Web первую фазу уже рисует HTML/PWA. На iOS и Android запускаем
+    // полноценную Flutter-заставку сразу с мягкого появления контента.
+    if (kIsWeb) return const Scaffold(body: SizedBox.shrink());
+    return const AppStroyStartupPhase(animateEntrance: true);
   }
 }
 

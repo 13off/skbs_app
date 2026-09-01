@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('startup shows PWA AppStroy then company splash without Flutter duplicate', () {
+  test('startup keeps PWA unique and enables the same two native phases', () {
     final webIndex = File('web/index.html').readAsStringSync();
     final deploySource = File(
       '.github/workflows/deploy-web.yml',
@@ -22,40 +22,64 @@ void main() {
       'lib/widgets/app_stroy_startup_phase.dart',
     ).readAsStringSync();
 
-    // Первая заставка снова публикуется из HTML/PWA.
+    // Web по-прежнему использует только HTML/PWA AppСтрой как первую фазу.
     expect(webIndex, contains('id="app-loader"'));
     expect(webIndex, contains("var appStroyVisibleMs = 2000;"));
     expect(
       deploySource,
       isNot(contains('id="app-loader" style="display:none!important"')),
     );
+    expect(mainSource, contains('if (kIsWeb) return const Scaffold'));
 
-    // Первый Flutter-кадр не рисует вторую копию AppСтрой.
-    expect(mainSource, isNot(contains('return const AppStroyStartupPhase();')));
+    // На iOS/Android первая Flutter-фаза начинается сразу и мягко проявляется.
     expect(
       mainSource,
-      contains('return const Scaffold(body: SizedBox.shrink());'),
+      contains('return const AppStroyStartupPhase(animateEntrance: true);'),
     );
-    expect(appStroySource, contains('if (kIsWeb)'));
-    expect(
-      appStroySource,
-      contains('return Scaffold(backgroundColor: AppAdaptivePalette.background);'),
-    );
+    expect(appStroySource, contains('this.animateEntrance = false'));
+    expect(appStroySource, contains('TweenAnimationBuilder<double>('));
+    expect(appStroySource, contains('Duration(milliseconds: 820)'));
+    expect(appStroySource, contains('Curves.easeInOutCubic'));
+    expect(appStroySource, contains("'AppСтрой'"));
+    expect(appStroySource, contains("'планируй. строй. управляй.'"));
 
-    // Второй этап компании снова включён.
-    expect(hostSource, isNot(contains('_companySplashTemporarilyDisabled')));
+    // После неё общий company gate делает тот же crossfade во вторую фазу.
     expect(hostSource, contains('SmoothCompanyBrandSplashGate('));
-    expect(gateSource, contains('CurvedAnimation('));
-    expect(gateSource, contains('curve: Curves.linear'));
+    expect(gateSource, contains('Duration(milliseconds: 720)'));
+    expect(gateSource, contains('AnimatedOpacity('));
+    expect(gateSource, contains('opacity: firstPhaseVisible ? 1 : 0'));
+    expect(gateSource, contains('opacity: companyPhaseVisible ? 1 : 0'));
     expect(gateSource, contains('SmoothStroyNaVekaLogoScene'));
 
     expect(sceneSource, contains('final roofs = _interval(phase, 0.16, 0.78);'));
     expect(sceneSource, contains('Curves.easeInOutCubic'));
     expect(sceneSource, contains('Curves.easeInOutSine'));
     expect(sceneSource, contains('void _roofReveal('));
+  });
 
-    // Нативная версия первой заставки остаётся в коде Android/iOS.
-    expect(appStroySource, contains("'AppСтрой'"));
-    expect(appStroySource, contains("'планируй. строй. управляй.'"));
+  test('native OS launch screens do not add a third logo frame', () {
+    final ios = File(
+      'ios/Runner/Base.lproj/LaunchScreen.storyboard',
+    ).readAsStringSync();
+    final android = File(
+      'android/app/src/main/res/drawable/launch_background.xml',
+    ).readAsStringSync();
+    final androidDark = File(
+      'android/app/src/main/res/drawable/launch_background_dark.xml',
+    ).readAsStringSync();
+    final android31 = File(
+      'android/app/src/main/res/values-v31/styles.xml',
+    ).readAsStringSync();
+
+    expect(ios, isNot(contains('image="LaunchImage"')));
+    expect(ios, contains('systemColor="systemBackgroundColor"'));
+    expect(android, isNot(contains('@drawable/app_icon_foreground')));
+    expect(androidDark, isNot(contains('@drawable/app_icon_foreground_dark')));
+    expect(
+      android31,
+      contains(
+        '<item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>',
+      ),
+    );
   });
 }
