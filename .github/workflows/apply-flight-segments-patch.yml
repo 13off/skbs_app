@@ -1,0 +1,640 @@
+name: Apply flight segments patch
+
+on:
+  push:
+    branches:
+      - feature/recruitment-flight-segments-20260901
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'chore: применить поддержку пересадок в вылетах'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/recruitment-flight-segments-20260901
+          fetch-depth: 0
+      - name: Patch flight segments
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'missing anchor: {label}')
+              return text.replace(old, new, 1)
+
+          # ---- Model -------------------------------------------------------
+          path = Path('lib/features/recruitment/models/recruitment_flight_models.dart')
+          text = path.read_text()
+          segment_class = r'''class RecruitmentFlightSegment {
+            final String origin;
+            final String destination;
+            final String flightNumber;
+            final DateTime departureAt;
+            final DateTime? arrivalAt;
+
+            const RecruitmentFlightSegment({
+              required this.origin,
+              required this.destination,
+              required this.flightNumber,
+              required this.departureAt,
+              required this.arrivalAt,
+            });
+
+            Map<String, dynamic> toPayload() => <String, dynamic>{
+              'origin': origin.trim(),
+              'destination': destination.trim(),
+              'flight_number': flightNumber.trim().toUpperCase(),
+              'departure_at': departureAt.toUtc().toIso8601String(),
+              'arrival_at': arrivalAt?.toUtc().toIso8601String(),
+            };
+
+            factory RecruitmentFlightSegment.fromMap(Map<String, dynamic> map) {
+              DateTime parseDate(dynamic value) =>
+                  DateTime.tryParse(value?.toString() ?? '')?.toLocal() ?? DateTime.now();
+              DateTime? optionalDate(dynamic value) {
+                final valueText = value?.toString().trim() ?? '';
+                return valueText.isEmpty ? null : DateTime.tryParse(valueText)?.toLocal();
+              }
+
+              return RecruitmentFlightSegment(
+                origin: map['origin']?.toString() ?? '',
+                destination: map['destination']?.toString() ?? '',
+                flightNumber: map['flight_number']?.toString() ?? '',
+                departureAt: parseDate(map['departure_at']),
+                arrivalAt: optionalDate(map['arrival_at']),
+              );
+            }
+          }
+
+          '''
+          text = replace_once(text, 'class RecruitmentFlight {\n', segment_class + 'class RecruitmentFlight {\n', 'segment class')
+          text = replace_once(
+              text,
+              '  final String flightNumber;\n  final String status;',
+              '  final String flightNumber;\n  final List<RecruitmentFlightSegment> segments;\n  final String status;',
+              'segment field',
+          )
+          text = replace_once(
+              text,
+              '    required this.flightNumber,\n    required this.status,',
+              '    required this.flightNumber,\n    this.segments = const <RecruitmentFlightSegment>[],\n    required this.status,',
+              'segment constructor',
+          )
+          old_route = r'''  String get routeTitle {
+            final cleanOrigin = origin.trim();
+            final cleanDestination = destination.trim();
+            if (cleanOrigin.isEmpty && cleanDestination.isEmpty) return 'Маршрут не указан';
+            if (cleanOrigin.isEmpty) return cleanDestination;
+            if (cleanDestination.isEmpty) return cleanOrigin;
+            return '$cleanOrigin → $cleanDestination';
+          }
+          '''
+          new_route = r'''  String get routeTitle {
+            final routeSegments = segments.where((segment) =>
+                segment.origin.trim().isNotEmpty || segment.destination.trim().isNotEmpty);
+            if (routeSegments.isNotEmpty) {
+              final ordered = routeSegments.toList(growable: false);
+              final stops = <String>[];
+              void addStop(String value) {
+                final clean = value.trim();
+                if (clean.isNotEmpty && (stops.isEmpty || stops.last != clean)) stops.add(clean);
+              }
+              addStop(ordered.first.origin);
+              for (final segment in ordered) {
+                addStop(segment.destination);
+              }
+              if (stops.isNotEmpty) return stops.join(' → ');
+            }
+            final cleanOrigin = origin.trim();
+            final cleanDestination = destination.trim();
+            if (cleanOrigin.isEmpty && cleanDestination.isEmpty) return 'Маршрут не указан';
+            if (cleanOrigin.isEmpty) return cleanDestination;
+            if (cleanDestination.isEmpty) return cleanOrigin;
+            return '$cleanOrigin → $cleanDestination';
+          }
+          '''
+          text = replace_once(text, old_route, new_route, 'route title')
+          parse_anchor = "    final createdAt = parseDate(map['created_at']);\n    return RecruitmentFlight("
+          parse_block = r'''    final createdAt = parseDate(map['created_at']);
+            final legacyDepartureAt = parseDate(map['departure_at']);
+            final legacyArrivalAt = optionalDate(map['arrival_at']);
+            final rawSegments = map['segments'];
+            final parsedSegments = rawSegments is List
+                ? rawSegments
+                    .whereType<Map>()
+                    .map((item) => RecruitmentFlightSegment.fromMap(
+                          Map<String, dynamic>.from(item),
+                        ))
+                    .toList(growable: false)
+                : const <RecruitmentFlightSegment>[];
+            final segments = parsedSegments.isNotEmpty
+                ? parsedSegments
+                : <RecruitmentFlightSegment>[
+                    RecruitmentFlightSegment(
+                      origin: map['origin']?.toString() ?? '',
+                      destination: map['destination']?.toString() ?? '',
+                      flightNumber: map['flight_number']?.toString() ?? '',
+                      departureAt: legacyDepartureAt,
+                      arrivalAt: legacyArrivalAt,
+                    ),
+                  ];
+            return RecruitmentFlight('''
+          text = replace_once(text, parse_anchor, parse_block, 'segment parsing')
+          text = replace_once(text, "      departureAt: parseDate(map['departure_at']),\n      arrivalAt: optionalDate(map['arrival_at']),\n      origin: map['origin']?.toString() ?? '',\n      destination: map['destination']?.toString() ?? '',\n      flightNumber: map['flight_number']?.toString() ?? '',", "      departureAt: segments.first.departureAt,\n      arrivalAt: segments.last.arrivalAt,\n      origin: segments.first.origin,\n      destination: segments.last.destination,\n      flightNumber: segments.first.flightNumber,\n      segments: List<RecruitmentFlightSegment>.unmodifiable(segments),", 'flight mapped fields')
+          path.write_text(text)
+
+          # ---- Repository --------------------------------------------------
+          path = Path('lib/features/recruitment/data/recruitment_flight_repository.dart')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "    String flightNumber = '',\n    List<RecruitmentFlightReminder> reminders =",
+              "    String flightNumber = '',\n    List<RecruitmentFlightSegment> segments = const <RecruitmentFlightSegment>[],\n    List<RecruitmentFlightReminder> reminders =",
+              'repository segments parameter',
+          )
+          old_validation = r'''    if (origin.trim().isEmpty || destination.trim().isEmpty) {
+              throw Exception('Укажите город вылета и назначения');
+            }
+            if (departureAt.isBefore(DateTime.now().subtract(const Duration(days: 1)))) {
+              throw Exception('Дата вылета уже прошла');
+            }
+            if (arrivalAt != null && !arrivalAt.isAfter(departureAt)) {
+              throw Exception('Прибытие должно быть позже вылета');
+            }
+          '''
+          new_validation = r'''    final normalizedSegments = segments.isEmpty
+                ? <RecruitmentFlightSegment>[
+                    RecruitmentFlightSegment(
+                      origin: origin.trim(),
+                      destination: destination.trim(),
+                      flightNumber: flightNumber.trim(),
+                      departureAt: departureAt,
+                      arrivalAt: arrivalAt,
+                    ),
+                  ]
+                : List<RecruitmentFlightSegment>.from(segments);
+            for (var index = 0; index < normalizedSegments.length; index++) {
+              final segment = normalizedSegments[index];
+              if (segment.origin.trim().isEmpty || segment.destination.trim().isEmpty) {
+                throw Exception('Укажите откуда и куда для рейса ${index + 1}');
+              }
+              if (segment.departureAt.isBefore(
+                DateTime.now().subtract(const Duration(days: 1)),
+              )) {
+                throw Exception('Дата вылета рейса ${index + 1} уже прошла');
+              }
+              if (segment.arrivalAt != null &&
+                  !segment.arrivalAt!.isAfter(segment.departureAt)) {
+                throw Exception('Прибытие рейса ${index + 1} должно быть позже вылета');
+              }
+              if (index > 0) {
+                final previous = normalizedSegments[index - 1];
+                final previousEnd = previous.arrivalAt ?? previous.departureAt;
+                if (!segment.departureAt.isAfter(previousEnd)) {
+                  throw Exception('Следующий рейс должен вылетать позже предыдущего');
+                }
+              }
+            }
+            final firstSegment = normalizedSegments.first;
+            final lastSegment = normalizedSegments.last;
+          '''
+          text = replace_once(text, old_validation, new_validation, 'repository validation')
+          text = text.replace("reminder.eventKind == 'arrival' && arrivalAt == null", "reminder.eventKind == 'arrival' && lastSegment.arrivalAt == null", 1)
+          old_payload = r'''      'departure_at': departureAt.toUtc().toIso8601String(),
+              'arrival_at': arrivalAt?.toUtc().toIso8601String(),
+              'origin': origin.trim(),
+              'destination': destination.trim(),
+              'flight_number': flightNumber.trim().toUpperCase(),
+          '''
+          new_payload = r'''      'departure_at': firstSegment.departureAt.toUtc().toIso8601String(),
+              'arrival_at': lastSegment.arrivalAt?.toUtc().toIso8601String(),
+              'origin': firstSegment.origin.trim(),
+              'destination': lastSegment.destination.trim(),
+              'flight_number': firstSegment.flightNumber.trim().toUpperCase(),
+              'segments': normalizedSegments.map((segment) => segment.toPayload()).toList(),
+          '''
+          text = replace_once(text, old_payload, new_payload, 'repository payload')
+          path.write_text(text)
+
+          # ---- Editor ------------------------------------------------------
+          path = Path('lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart')
+          text = path.read_text()
+          draft_class = r'''class _FlightSegmentDraft {
+            final TextEditingController originController;
+            final TextEditingController destinationController;
+            final TextEditingController flightNumberController;
+            DateTime departureAt;
+            DateTime? arrivalAt;
+
+            _FlightSegmentDraft({
+              required String origin,
+              required String destination,
+              required String flightNumber,
+              required this.departureAt,
+              required this.arrivalAt,
+            })  : originController = TextEditingController(text: origin),
+                  destinationController = TextEditingController(text: destination),
+                  flightNumberController = TextEditingController(text: flightNumber);
+
+            factory _FlightSegmentDraft.fromSegment(RecruitmentFlightSegment segment) =>
+                _FlightSegmentDraft(
+                  origin: segment.origin,
+                  destination: segment.destination,
+                  flightNumber: segment.flightNumber,
+                  departureAt: segment.departureAt,
+                  arrivalAt: segment.arrivalAt,
+                );
+
+            RecruitmentFlightSegment toSegment() => RecruitmentFlightSegment(
+                  origin: originController.text.trim(),
+                  destination: destinationController.text.trim(),
+                  flightNumber: flightNumberController.text.trim(),
+                  departureAt: departureAt,
+                  arrivalAt: arrivalAt,
+                );
+
+            void dispose() {
+              originController.dispose();
+              destinationController.dispose();
+              flightNumberController.dispose();
+            }
+          }
+
+          '''
+          text = replace_once(text, 'class RecruitmentFlightEditorScreen extends StatefulWidget {\n', draft_class + 'class RecruitmentFlightEditorScreen extends StatefulWidget {\n', 'draft class')
+          old_fields = r'''  RecruitmentFlightCandidate? candidate;
+            late DateTime departureAt;
+            DateTime? arrivalAt;
+            late final TextEditingController originController;
+            late final TextEditingController destinationController;
+            late final TextEditingController flightNumberController;
+            late final TextEditingController notesController;
+          '''
+          new_fields = r'''  RecruitmentFlightCandidate? candidate;
+            late final List<_FlightSegmentDraft> flightSegments;
+            late final TextEditingController notesController;
+          '''
+          text = replace_once(text, old_fields, new_fields, 'editor fields')
+          init_start = text.index('    departureAt =\n', text.index('class _RecruitmentFlightEditorScreenState'))
+          init_end_marker = "    notesController = TextEditingController(text: entry?.flight.notes ?? '');"
+          init_end = text.index(init_end_marker, init_start)
+          new_init = r'''    final storedSegments = entry?.flight.segments ?? const <RecruitmentFlightSegment>[];
+            if (storedSegments.isNotEmpty) {
+              flightSegments = storedSegments
+                  .map(_FlightSegmentDraft.fromSegment)
+                  .toList(growable: true);
+            } else if (entry != null) {
+              flightSegments = <_FlightSegmentDraft>[
+                _FlightSegmentDraft(
+                  origin: entry.flight.origin,
+                  destination: entry.flight.destination,
+                  flightNumber: entry.flight.flightNumber,
+                  departureAt: entry.flight.departureAt,
+                  arrivalAt: entry.flight.arrivalAt,
+                ),
+              ];
+            } else {
+              flightSegments = <_FlightSegmentDraft>[
+                _FlightSegmentDraft(
+                  origin: '',
+                  destination: '',
+                  flightNumber: '',
+                  departureAt: DateTime.now().add(const Duration(days: 1, hours: 3)),
+                  arrivalAt: null,
+                ),
+              ];
+            }
+            notesController = TextEditingController(text: entry?.flight.notes ?? '');'''
+          text = text[:init_start] + new_init + text[init_end + len(init_end_marker):]
+          old_dispose = r'''    originController.dispose();
+            destinationController.dispose();
+            flightNumberController.dispose();
+            notesController.dispose();
+          '''
+          new_dispose = r'''    for (final segment in flightSegments) {
+              segment.dispose();
+            }
+            notesController.dispose();
+          '''
+          text = replace_once(text, old_dispose, new_dispose, 'editor dispose')
+          old_choose = r'''  Future<void> chooseDeparture() async {
+            final value = await chooseDateTime(departureAt);
+            if (value != null && mounted) setState(() => departureAt = value);
+          }
+
+          Future<void> chooseArrival() async {
+            final value = await chooseDateTime(
+              arrivalAt ?? departureAt.add(const Duration(hours: 3)),
+            );
+            if (value != null && mounted) setState(() => arrivalAt = value);
+          }
+          '''
+          new_choose = r'''  Future<void> chooseDeparture(int index) async {
+            final segment = flightSegments[index];
+            final value = await chooseDateTime(segment.departureAt);
+            if (value != null && mounted) setState(() => segment.departureAt = value);
+          }
+
+          Future<void> chooseArrival(int index) async {
+            final segment = flightSegments[index];
+            final value = await chooseDateTime(
+              segment.arrivalAt ?? segment.departureAt.add(const Duration(hours: 3)),
+            );
+            if (value != null && mounted) setState(() => segment.arrivalAt = value);
+          }
+
+          void addFlightSegment() {
+            final previous = flightSegments.last;
+            final suggestedDeparture = (previous.arrivalAt ?? previous.departureAt)
+                .add(const Duration(hours: 2));
+            setState(() {
+              flightSegments.add(
+                _FlightSegmentDraft(
+                  origin: previous.destinationController.text.trim(),
+                  destination: '',
+                  flightNumber: '',
+                  departureAt: suggestedDeparture,
+                  arrivalAt: null,
+                ),
+              );
+            });
+          }
+
+          void removeFlightSegment(int index) {
+            if (index <= 0 || index >= flightSegments.length) return;
+            final removed = flightSegments.removeAt(index);
+            removed.dispose();
+            setState(() {});
+          }
+
+          Widget buildFlightSegmentCard(int index) {
+            final segment = flightSegments[index];
+            return PremiumWorkCard(
+              radius: 22,
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          index == 0 ? 'Рейс 1' : 'Рейс ${index + 1} · пересадка',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      if (index > 0)
+                        IconButton(
+                          tooltip: 'Удалить рейс',
+                          onPressed: saving ? null : () => removeFlightSegment(index),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final originField = TextField(
+                        controller: segment.originController,
+                        enabled: !saving,
+                        decoration: const InputDecoration(
+                          labelText: 'Откуда',
+                          hintText: 'Москва',
+                          prefixIcon: Icon(Icons.flight_takeoff_outlined),
+                        ),
+                      );
+                      final destinationField = TextField(
+                        controller: segment.destinationController,
+                        enabled: !saving,
+                        decoration: const InputDecoration(
+                          labelText: 'Куда',
+                          hintText: 'Мурманск',
+                          prefixIcon: Icon(Icons.flight_land_outlined),
+                        ),
+                        onChanged: (value) {
+                          if (index + 1 < flightSegments.length &&
+                              flightSegments[index + 1].originController.text.trim().isEmpty) {
+                            flightSegments[index + 1].originController.text = value.trim();
+                          }
+                        },
+                      );
+                      if (constraints.maxWidth < 560) {
+                        return Column(
+                          children: [
+                            originField,
+                            const SizedBox(height: 10),
+                            destinationField,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: originField),
+                          const SizedBox(width: 10),
+                          Expanded(child: destinationField),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: segment.flightNumberController,
+                    enabled: !saving,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: 'Номер рейса',
+                      hintText: 'SU 1320',
+                      prefixIcon: Icon(Icons.airplane_ticket_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: saving ? null : () => chooseDeparture(index),
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text('Вылет: ${dateTimeText(segment.departureAt)}'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: saving ? null : () => chooseArrival(index),
+                    icon: const Icon(Icons.schedule_outlined),
+                    label: Text(
+                      segment.arrivalAt == null
+                          ? 'Указать время прибытия'
+                          : 'Прибытие: ${dateTimeText(segment.arrivalAt!)}',
+                    ),
+                  ),
+                  if (segment.arrivalAt != null)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: saving
+                            ? null
+                            : () => setState(() => segment.arrivalAt = null),
+                        child: const Text('Убрать время прибытия'),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }
+          '''
+          text = replace_once(text, old_choose, new_choose, 'editor segment methods')
+          old_reminder = r'''    if (eventKind == 'arrival' && arrivalAt == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Сначала укажите время прибытия рейса')),
+              );
+              return;
+            }
+
+            final now = DateTime.now();
+            final eventAt = eventKind == 'arrival' ? arrivalAt : departureAt;
+          '''
+          new_reminder = r'''    final tripArrivalAt = flightSegments.last.arrivalAt;
+            if (eventKind == 'arrival' && tripArrivalAt == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Сначала укажите время прибытия последнего рейса')),
+              );
+              return;
+            }
+
+            final now = DateTime.now();
+            final eventAt = eventKind == 'arrival'
+                ? tripArrivalAt
+                : flightSegments.first.departureAt;
+          '''
+          text = replace_once(text, old_reminder, new_reminder, 'reminder route endpoints')
+          save_anchor = '    setState(() => saving = true);\n    try {\n      await RecruitmentFlightRepository.saveFlight('
+          save_replacement = r'''    final segmentValues = flightSegments
+                .map((segment) => segment.toSegment())
+                .toList(growable: false);
+            final firstSegment = segmentValues.first;
+            final lastSegment = segmentValues.last;
+            setState(() => saving = true);
+            try {
+              await RecruitmentFlightRepository.saveFlight('''
+          text = replace_once(text, save_anchor, save_replacement, 'save segment preparation')
+          old_save_args = r'''        departureAt: departureAt,
+                arrivalAt: arrivalAt,
+                origin: originController.text,
+                destination: destinationController.text,
+                flightNumber: flightNumberController.text,
+          '''
+          new_save_args = r'''        departureAt: firstSegment.departureAt,
+                arrivalAt: lastSegment.arrivalAt,
+                origin: firstSegment.origin,
+                destination: lastSegment.destination,
+                flightNumber: firstSegment.flightNumber,
+                segments: segmentValues,
+          '''
+          text = replace_once(text, old_save_args, new_save_args, 'save segment args')
+
+          editor_pos = text.index('class _RecruitmentFlightEditorScreenState')
+          route_start = text.index('          Row(\n            children: [\n              Expanded(\n                child: TextField(\n                  controller: originController,', editor_pos)
+          route_end = text.index('          PremiumWorkCard(\n            radius: 22,', route_start)
+          route_ui = r'''          for (var index = 0; index < flightSegments.length; index++) ...[
+                    buildFlightSegmentCard(index),
+                    const SizedBox(height: 10),
+                  ],
+                  OutlinedButton.icon(
+                    onPressed: saving ? null : addFlightSegment,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Добавить рейс'),
+                  ),
+                  const SizedBox(height: 12),
+          '''
+          text = text[:route_start] + route_ui + text[route_end:]
+          path.write_text(text)
+
+          # ---- Contract test ----------------------------------------------
+          Path('test/recruitment_flight_segments_contract_test.dart').write_text(r'''import 'dart:io';
+
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:skbs_app/features/recruitment/models/recruitment_flight_models.dart';
+
+          void main() {
+            test('legacy flight becomes one route segment', () {
+              final flight = RecruitmentFlight.fromMap(<String, dynamic>{
+                'id': 'flight-1',
+                'company_id': 'company-1',
+                'departure_at': '2026-09-10T07:00:00Z',
+                'arrival_at': '2026-09-10T09:00:00Z',
+                'origin': 'Тюмень',
+                'destination': 'Москва',
+                'flight_number': 'SU 100',
+                'created_at': '2026-09-01T00:00:00Z',
+              });
+
+              expect(flight.segments, hasLength(1));
+              expect(flight.segments.single.origin, 'Тюмень');
+              expect(flight.routeTitle, 'Тюмень → Москва');
+            });
+
+            test('multi-leg route uses ordered segment chain', () {
+              final flight = RecruitmentFlight.fromMap(<String, dynamic>{
+                'id': 'flight-2',
+                'company_id': 'company-1',
+                'departure_at': '2026-09-10T07:00:00Z',
+                'origin': 'Тюмень',
+                'destination': 'Талакан',
+                'flight_number': 'SU 100',
+                'segments': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'origin': 'Тюмень',
+                    'destination': 'Москва',
+                    'flight_number': 'SU 100',
+                    'departure_at': '2026-09-10T07:00:00Z',
+                    'arrival_at': '2026-09-10T09:00:00Z',
+                  },
+                  <String, dynamic>{
+                    'origin': 'Москва',
+                    'destination': 'Талакан',
+                    'flight_number': 'IO 200',
+                    'departure_at': '2026-09-10T12:00:00Z',
+                    'arrival_at': '2026-09-10T18:00:00Z',
+                  },
+                ],
+                'created_at': '2026-09-01T00:00:00Z',
+              });
+
+              expect(flight.segments, hasLength(2));
+              expect(flight.destination, 'Талакан');
+              expect(flight.routeTitle, 'Тюмень → Москва → Талакан');
+            });
+
+            test('flight editor exposes add segment without role-specific gate', () {
+              final source = File(
+                'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
+              ).readAsStringSync();
+              expect(source, contains("label: const Text('Добавить рейс')"));
+              expect(source, contains('addFlightSegment'));
+              expect(source, contains('segments: segmentValues'));
+            });
+
+            test('migration persists segments as jsonb', () {
+              final source = File(
+                'supabase/migrations/20260901143000_recruitment_flight_segments.sql',
+              ).readAsStringSync();
+              expect(source, contains('segments jsonb'));
+            });
+          }
+          ''')
+          PY
+          dart format lib/features/recruitment/models/recruitment_flight_models.dart \
+            lib/features/recruitment/data/recruitment_flight_repository.dart \
+            lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart \
+            test/recruitment_flight_segments_contract_test.dart
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/recruitment/models/recruitment_flight_models.dart \
+            lib/features/recruitment/data/recruitment_flight_repository.dart \
+            lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart \
+            test/recruitment_flight_segments_contract_test.dart
+          git commit -m "Recruitment: поддержать поездки с пересадками"
+          git push origin HEAD:feature/recruitment-flight-segments-20260901
