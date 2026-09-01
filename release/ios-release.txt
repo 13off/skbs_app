@@ -1,6 +1,6 @@
 AppСтрой iOS verification release
 version: 1.3.9+23
 release date: 2026-09-01
-accepted application commit: 5fc84f713fa866e89458548afcf17becb778245e
-reason: verify native smooth AppСтрой fade-in, crossfade to Строй На Века, and smooth exit to the application with no separate OS launch logo
-expected output: unsigned verification IPA
+accepted application commit: 9d309ee648f9bc32a0c55b5cf3b68703c936eba1
+reason: verify native smooth AppСтрой fade-in, crossfade to Строй На Века, and smooth exit to the application with no separate OS launch logo; publish iOS verification build only
+expected output: unsigned verification IPA; Android release stays unpublished
