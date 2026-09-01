@@ -38,7 +38,7 @@ void main() {
     expect(source, isNot(contains("'За 24 часа'")));
     expect(source, isNot(contains("'Свой вариант'")));
     expect(source, isNot(contains("'Напомнить сотруднику'")));
-    expect(source, contains('Future<void> chooseSegmentArrival(int index) async'));
+    expect(source, contains('Future<void> chooseArrival(int index) async'));
     expect(source, contains("'Убрать время прибытия'"));
     expect(source, contains("label: const Text('Добавить рейс')"));
   });
