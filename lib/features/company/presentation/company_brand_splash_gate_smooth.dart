@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/app_adaptive_palette.dart';
+import '../../../widgets/app_stroy_startup_phase.dart';
 import '../data/company_branding_repository.dart';
 import 'stroy_na_veka_logo_scene_smooth.dart';
 
@@ -49,12 +50,10 @@ class _SmoothCompanyBrandSplashGateState
         if (status == AnimationStatus.completed) _finish();
       });
 
-    // Сама компания занимает весь второй этап запуска. Полноразмерный
-    // AppСтрой здесь не дублируется: он уже коротко показан платформенной
-    // заставкой до первого Flutter-кадра.
-    _companyAnimation = Tween<double>(begin: 0.50, end: 1.00).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    // Визуально второй этап всегда сразу находится в готовом состоянии.
+    // Контроллер оставляем только как таймер длительности заставки компании:
+    // никаких промежуточных «строящихся» вариантов логотипа больше нет.
+    _companyAnimation = const AlwaysStoppedAnimation<double>(1.0);
 
     if (_shownForCompany.contains(widget.companyId)) {
       _complete = true;
@@ -176,7 +175,7 @@ class _SmoothCompanyBrandSplashGateState
     final branding = _branding;
 
     // Основной интерфейс живёт и прогружается под заставкой компании: пока
-    // логотип строится, авторизация, профиль и стартовый экран уже монтируются.
+    // заставка видна, авторизация, профиль и стартовый экран уже монтируются.
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -189,22 +188,23 @@ class _SmoothCompanyBrandSplashGateState
         ),
         if (!_complete)
           Positioned.fill(
-            child: Scaffold(
-              backgroundColor: AppAdaptivePalette.background,
-              body: SafeArea(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const _SplashBackground(),
-                    if (branding != null)
-                      _CompanyPhase(
-                        animation: _companyAnimation,
-                        branding: branding,
+            child: branding == null
+                ? const AppStroyStartupPhase()
+                : Scaffold(
+                    backgroundColor: AppAdaptivePalette.background,
+                    body: SafeArea(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const _SplashBackground(),
+                          _CompanyPhase(
+                            animation: _companyAnimation,
+                            branding: branding,
+                          ),
+                        ],
                       ),
-                  ],
-                ),
-              ),
-            ),
+                    ),
+                  ),
           ),
       ],
     );
