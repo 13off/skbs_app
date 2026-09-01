@@ -7,7 +7,7 @@ void main() {
     final screen = File('lib/screens/home_screen.dart').readAsStringSync();
     final loading = File('lib/screens/home/home_loading.dart').readAsStringSync();
 
-    expect(screen, contains('TickerMode.of(context)'));
+    expect(screen, contains('TickerMode.valuesOf(context).enabled'));
     expect(screen, contains('if (_tabActive) flushDeferredDataChanges();'));
     expect(loading, contains('if (!_tabActive)'));
     expect(loading, contains('_refreshPending = true;'));
@@ -20,7 +20,12 @@ void main() {
       'lib/screens/employees/employee_directory_controller.dart',
     ).readAsStringSync();
 
-    expect(screen, contains('directoryController.setActive(TickerMode.of(context));'));
+    expect(
+      screen,
+      contains(
+        'directoryController.setActive(TickerMode.valuesOf(context).enabled);',
+      ),
+    );
     expect(controller, contains('void setActive(bool active)'));
     expect(controller, contains('if (!_active)'));
     expect(controller, contains('_refreshPending = true;'));
