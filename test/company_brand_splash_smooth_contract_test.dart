@@ -20,6 +20,9 @@ void main() {
     expect(web, contains('id="app-loader"'));
     expect(web, contains("window.addEventListener('flutter-first-frame'"));
     expect(web, contains('var appStroyVisibleMs = 2000;'));
+    expect(web, contains('transition:'));
+    expect(web, contains('opacity 520ms cubic-bezier(.22,1,.36,1)'));
+    expect(web, contains('animation: stageIn 900ms cubic-bezier(.22,1,.36,1) both'));
     expect(
       deploy,
       isNot(contains('id="app-loader" style="display:none!important"')),
@@ -63,7 +66,7 @@ void main() {
     expect(deploy, contains("sed -i '/class=\"loader-progress\"/d'"));
   });
 
-  test('splash keeps app mounted underneath while company phase runs', () {
+  test('company splash crossfades in and out over the ready app', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -71,9 +74,17 @@ void main() {
       'lib/features/company/presentation/company_brand_splash_host.dart',
     ).readAsStringSync();
 
-    expect(gate, contains('Offstage('));
-    expect(gate, contains('offstage: !_complete'));
-    expect(gate, contains('TickerMode('));
+    expect(gate, contains('Duration(milliseconds: 720)'));
+    expect(gate, contains('bool _exiting = false'));
+    expect(gate, contains('void _beginExit()'));
+    expect(gate, contains('appVisible = _complete || _exiting'));
+    expect(gate, contains('AnimatedOpacity('));
+    expect(gate, contains('opacity: firstPhaseVisible ? 1 : 0'));
+    expect(gate, contains('opacity: companyPhaseVisible ? 1 : 0'));
+    expect(gate, contains('curve: Curves.easeInOutCubic'));
+    expect(gate, contains('_exitTimer = Timer(_transitionDuration, _finish)'));
+    expect(gate, contains('offstage: !appVisible'));
+    expect(gate, contains('enabled: appVisible'));
     expect(gate, contains('child: widget.child'));
     expect(host, contains('Offstage('));
     expect(host, contains('offstage: true'));

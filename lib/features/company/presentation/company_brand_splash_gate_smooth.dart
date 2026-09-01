@@ -29,13 +29,16 @@ class _SmoothCompanyBrandSplashGateState
   static final Set<String> _shownForCompany = <String>{};
   static const Duration _remoteTimeout = Duration(seconds: 2);
   static const Duration _animationDuration = Duration(milliseconds: 4600);
+  static const Duration _transitionDuration = Duration(milliseconds: 720);
   static const Duration _fallbackDuration = Duration(milliseconds: 6200);
 
   late final AnimationController _controller;
   late final Animation<double> _companyAnimation;
   CompanyBranding? _branding;
   Timer? _fallbackTimer;
+  Timer? _exitTimer;
   bool _complete = false;
+  bool _exiting = false;
   bool _didPrecache = false;
 
   String get _cachePrefix => 'appstroy_company_brand_v1_${widget.companyId}';
@@ -47,7 +50,7 @@ class _SmoothCompanyBrandSplashGateState
       vsync: this,
       duration: _animationDuration,
     )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) _finish();
+        if (status == AnimationStatus.completed) _beginExit();
       });
 
     // Второй этап остаётся одним логотипом компании, но его детали теперь
@@ -82,8 +85,10 @@ class _SmoothCompanyBrandSplashGateState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.companyId == widget.companyId) return;
     _fallbackTimer?.cancel();
+    _exitTimer?.cancel();
     _branding = null;
     _controller.reset();
+    _exiting = false;
     _complete = _shownForCompany.contains(widget.companyId);
     if (!_complete) unawaited(_load());
   }
@@ -91,6 +96,7 @@ class _SmoothCompanyBrandSplashGateState
   @override
   void dispose() {
     _fallbackTimer?.cancel();
+    _exitTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -103,7 +109,7 @@ class _SmoothCompanyBrandSplashGateState
       _startAnimation();
     }
 
-    _fallbackTimer = Timer(_fallbackDuration, _finish);
+    _fallbackTimer = Timer(_fallbackDuration, _beginExit);
 
     try {
       final remote = await CompanyBrandingRepository.fetch(
@@ -114,7 +120,7 @@ class _SmoothCompanyBrandSplashGateState
       if (_branding != remote) setState(() => _branding = remote);
       _startAnimation();
     } catch (_) {
-      if (cached == null) _finish();
+      if (cached == null) _beginExit();
     }
   }
 
@@ -123,11 +129,23 @@ class _SmoothCompanyBrandSplashGateState
     unawaited(_controller.forward());
   }
 
+  void _beginExit() {
+    if (!mounted || _complete || _exiting) return;
+    _fallbackTimer?.cancel();
+    setState(() => _exiting = true);
+    _exitTimer?.cancel();
+    _exitTimer = Timer(_transitionDuration, _finish);
+  }
+
   void _finish() {
     if (!mounted || _complete) return;
     _fallbackTimer?.cancel();
+    _exitTimer?.cancel();
     _shownForCompany.add(widget.companyId);
-    setState(() => _complete = true);
+    setState(() {
+      _exiting = false;
+      _complete = true;
+    });
   }
 
   Future<CompanyBranding?> _readCache() async {
@@ -175,39 +193,60 @@ class _SmoothCompanyBrandSplashGateState
   @override
   Widget build(BuildContext context) {
     final branding = _branding;
+    final appVisible = _complete || _exiting;
+    final firstPhaseVisible = branding == null && !_exiting;
+    final companyPhaseVisible = branding != null && !_exiting;
 
-    // Основной интерфейс живёт и прогружается под заставкой компании: пока
-    // заставка видна, авторизация, профиль и стартовый экран уже монтируются.
+    // Основной интерфейс прогружается под заставкой. На выходе показываем его
+    // заранее и растворяем второй этап поверх него, чтобы не было резкого кадра.
     return Stack(
       fit: StackFit.expand,
       children: [
         Offstage(
-          offstage: !_complete,
+          offstage: !appVisible,
           child: TickerMode(
-            enabled: _complete,
+            enabled: appVisible,
             child: widget.child,
           ),
         ),
-        if (!_complete)
+        if (!_complete) ...[
           Positioned.fill(
-            child: branding == null
-                ? const AppStroyStartupPhase()
-                : Scaffold(
-                    backgroundColor: AppAdaptivePalette.background,
-                    body: SafeArea(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          const _SplashBackground(),
-                          _CompanyPhase(
-                            animation: _companyAnimation,
-                            branding: branding,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: firstPhaseVisible ? 1 : 0,
+                duration: _transitionDuration,
+                curve: Curves.easeInOutCubic,
+                child: const AppStroyStartupPhase(),
+              ),
+            ),
           ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: companyPhaseVisible ? 1 : 0,
+                duration: _transitionDuration,
+                curve: Curves.easeInOutCubic,
+                child: branding == null
+                    ? const SizedBox.expand()
+                    : Scaffold(
+                        backgroundColor: AppAdaptivePalette.background,
+                        body: SafeArea(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              const _SplashBackground(),
+                              _CompanyPhase(
+                                animation: _companyAnimation,
+                                branding: branding,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
