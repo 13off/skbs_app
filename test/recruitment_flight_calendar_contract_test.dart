@@ -44,8 +44,8 @@ void main() {
     expect(screen, contains('Прикрепить билет'));
     expect(screen, contains('Добавить уведомление'));
     expect(screen, isNot(contains('Напомнить сотруднику')));
-    expect(screen, contains('Future<void> chooseSegmentDeparture(int index) async'));
-    expect(screen, contains('Future<void> chooseSegmentArrival(int index) async'));
+    expect(screen, contains('Future<void> chooseDeparture(int index) async'));
+    expect(screen, contains('Future<void> chooseArrival(int index) async'));
     expect(screen, contains("label: const Text('Добавить рейс')"));
     expect(screen, contains('segments: segmentValues'));
     expect(screen, contains('RecruitmentMobilizationScreen'));
