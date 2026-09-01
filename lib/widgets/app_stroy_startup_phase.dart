@@ -1,12 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_adaptive_palette.dart';
 
 /// Flutter-продолжение первой заставки AppСтрой.
 ///
-/// Повторяет визуальный смысл HTML/PWA loader: металлический знак,
-/// название и подпись. Нужна, чтобы при передаче управления от браузерной
-/// заставки к Flutter не появлялся третий промежуточный логотип.
+/// На Web/PWA первую заставку рисует `web/index.html`, поэтому Flutter здесь
+/// оставляет только фон до готовности второго этапа и не создаёт её копию.
+/// На Android/iOS этот экран остаётся полноценной первой Flutter-заставкой.
 class AppStroyStartupPhase extends StatelessWidget {
   const AppStroyStartupPhase({super.key});
 
@@ -19,10 +20,6 @@ class AppStroyStartupPhase extends StatelessWidget {
     final logicalViewportWidth = view.physicalSize.width / devicePixelRatio;
     if (logicalViewportWidth <= 0) return 1;
 
-    // AppScaleViewport уменьшает весь Flutter-интерфейс (при 100% фактический
-    // коэффициент равен 0.80), а HTML/native splash живёт вне этого масштаба.
-    // Компенсируем только содержимое первой заставки, чтобы при handoff логотип
-    // не становился на 20% меньше и визуально не выглядел третьей заставкой.
     final inheritedViewportScale =
         logicalViewportWidth / mediaQuery.size.width;
     if (!inheritedViewportScale.isFinite || inheritedViewportScale <= 0) {
@@ -33,6 +30,10 @@ class AppStroyStartupPhase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return Scaffold(backgroundColor: AppAdaptivePalette.background);
+    }
+
     final dark = AppAdaptivePalette.isDark;
     final contentScale = _contentScaleCompensation(context);
 
