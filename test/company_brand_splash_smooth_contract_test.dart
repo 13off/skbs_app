@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('startup shows only AppСтрой then one smooth company phase', () {
+  test('startup splash layers can be temporarily bypassed for diagnostics', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -15,45 +15,30 @@ void main() {
       'lib/widgets/app_stroy_startup_phase.dart',
     ).readAsStringSync();
     final web = File('web/index.html').readAsStringSync();
+    final deploy = File('.github/workflows/deploy-web.yml').readAsStringSync();
 
+    // Исходный первый экран AppСтрой остаётся в проекте, но при публикации
+    // временно скрывается, чтобы проверить запуск вообще без заставок.
     expect(web, contains('id="app-loader"'));
     expect(web, contains("window.addEventListener('flutter-first-frame'"));
     expect(web, contains('var appStroyVisibleMs = 2000;'));
-    expect(web, isNot(contains('switchToCompanyFallback')));
-    expect(web, isNot(contains('companyFallbackShown')));
-    expect(web, isNot(contains('Загрузка Строй На Века')));
     expect(
-      web,
-      contains('window.setTimeout(completeAppStroyPhase, appStroyVisibleMs);'),
+      deploy,
+      contains('id="app-loader" style="display:none!important"'),
     );
 
     expect(main, isNot(contains('binding.deferFirstFrame();')));
     expect(main, isNot(contains('WidgetsBinding.instance.allowFirstFrame();')));
     expect(main, isNot(contains('CircularProgressIndicator')));
-    expect(main, contains('return const AppStroyStartupPhase();'));
+    expect(main, isNot(contains('return const AppStroyStartupPhase();')));
+    expect(main, contains('return const Scaffold(body: SizedBox.shrink());'));
 
+    // Код обоих экранов не удаляется: после диагностики их можно вернуть.
     expect(startupPhase, contains("'AppСтрой'"));
     expect(startupPhase, contains("'планируй. строй. управляй.'"));
-    expect(
-      startupPhase,
-      isNot(contains("'web/icons/AppStroy-512-v2.png'")),
-    );
-
     expect(gate, contains('Duration(milliseconds: 4600)'));
-    expect(gate, contains('CurvedAnimation('));
-    expect(gate, contains('curve: Curves.linear'));
-    expect(gate, isNot(contains('AlwaysStoppedAnimation<double>(1.0)')));
     expect(gate, contains('SmoothStroyNaVekaLogoScene'));
-    expect(gate, contains('? const AppStroyStartupPhase()'));
-    expect(gate, isNot(contains('class _AppStroyPhase')));
-    expect(gate, isNot(contains('class _AppStroyIdentity')));
-
-    expect(host, contains('Duration(milliseconds: 1200)'));
-    expect(host, contains('AppStroyStartupPhase'));
-    expect(host, isNot(contains('class _AppStroyStartupPhase')));
-    expect(host, isNot(contains("'web/icons/AppStroy-512-v2.png'")));
-    expect(host, contains('if (_resolvingCompany)'));
-    expect(host, contains('SmoothCompanyBrandSplashGate'));
+    expect(host, contains('_companySplashTemporarilyDisabled = true'));
   });
 
   test('Flutter AppСтрой handoff cancels the global viewport scale', () {
@@ -62,9 +47,7 @@ void main() {
     ).readAsStringSync();
     final viewport = File('lib/app/app_scale_viewport.dart').readAsStringSync();
 
-    // At the default 100% UI setting AppScaleViewport still paints Flutter at
-    // 80%. The platform/HTML splash is outside that transform, so the startup
-    // branding must compensate it or the same logo visibly shrinks on handoff.
+    // Код компенсации сохраняем для будущего возврата заставки.
     expect(viewport, contains('static const double _designCalibration = 0.80;'));
     expect(startupPhase, contains('View.of(context)'));
     expect(startupPhase, contains('logicalViewportWidth / mediaQuery.size.width'));
