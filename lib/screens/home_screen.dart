@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final active = TickerMode.of(context);
+    final active = TickerMode.valuesOf(context).enabled;
     if (_tabActive == active) return;
     _tabActive = active;
     if (_tabActive) flushDeferredDataChanges();
