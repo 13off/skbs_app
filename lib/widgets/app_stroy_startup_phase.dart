@@ -9,7 +9,12 @@ import '../app/app_adaptive_palette.dart';
 /// оставляет только фон до готовности второго этапа и не создаёт её копию.
 /// На Android/iOS этот экран остаётся полноценной первой Flutter-заставкой.
 class AppStroyStartupPhase extends StatelessWidget {
-  const AppStroyStartupPhase({super.key});
+  const AppStroyStartupPhase({
+    super.key,
+    this.animateEntrance = false,
+  });
+
+  final bool animateEntrance;
 
   double _contentScaleCompensation(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -36,6 +41,90 @@ class AppStroyStartupPhase extends StatelessWidget {
 
     final dark = AppAdaptivePalette.isDark;
     final contentScale = _contentScaleCompensation(context);
+    final logoContent = Transform.scale(
+      scale: contentScale,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 164,
+            height: 164,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: dark
+                    ? const [Color(0xFF1F2C3A), Color(0xFF17212B)]
+                    : const [Color(0xFFFFFFFF), Color(0xFFE9E7E2)],
+              ),
+              borderRadius: BorderRadius.circular(48),
+              border: Border.all(
+                color: dark
+                    ? AppAdaptivePalette.border
+                    : Colors.white.withValues(alpha: 0.96),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: dark ? 0.36 : 0.14,
+                  ),
+                  blurRadius: 42,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: const SizedBox.square(
+              dimension: 132,
+              child: CustomPaint(painter: _AppStroyMetalMarkPainter()),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'AppСтрой',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: AppAdaptivePalette.textPrimary,
+              fontSize: 37,
+              height: 1,
+              fontWeight: FontWeight.w300,
+              letterSpacing: -2.0,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'планируй. строй. управляй.',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppAdaptivePalette.textMuted,
+              fontSize: 11,
+              height: 1.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.75,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final visibleContent = animateEntrance
+        ? TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 820),
+            curve: Curves.easeInOutCubic,
+            child: logoContent,
+            builder: (context, progress, child) {
+              return Opacity(
+                opacity: progress,
+                child: Transform.translate(
+                  offset: Offset(0, 10 * (1 - progress)),
+                  child: Transform.scale(
+                    scale: 0.985 + (0.015 * progress),
+                    child: child,
+                  ),
+                ),
+              );
+            },
+          )
+        : logoContent;
 
     return Scaffold(
       backgroundColor: AppAdaptivePalette.background,
@@ -53,71 +142,7 @@ class AppStroyStartupPhase extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Transform.scale(
-              scale: contentScale,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 164,
-                    height: 164,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: dark
-                            ? const [Color(0xFF1F2C3A), Color(0xFF17212B)]
-                            : const [Color(0xFFFFFFFF), Color(0xFFE9E7E2)],
-                      ),
-                      borderRadius: BorderRadius.circular(48),
-                      border: Border.all(
-                        color: dark
-                            ? AppAdaptivePalette.border
-                            : Colors.white.withValues(alpha: 0.96),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: dark ? 0.36 : 0.14,
-                          ),
-                          blurRadius: 42,
-                          offset: const Offset(0, 18),
-                        ),
-                      ],
-                    ),
-                    child: const SizedBox.square(
-                      dimension: 132,
-                      child: CustomPaint(painter: _AppStroyMetalMarkPainter()),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'AppСтрой',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: AppAdaptivePalette.textPrimary,
-                      fontSize: 37,
-                      height: 1,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -2.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'планируй. строй. управляй.',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppAdaptivePalette.textMuted,
-                      fontSize: 11,
-                      height: 1.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.75,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          child: Center(child: visibleContent),
         ),
       ),
     );
