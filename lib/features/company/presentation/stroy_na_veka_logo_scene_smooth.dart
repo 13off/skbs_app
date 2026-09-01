@@ -46,11 +46,14 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
     canvas.save();
     canvas.scale(sx, sy);
 
-    final shield = _interval(phase, 0.00, 0.23);
-    final wall = _interval(phase, 0.08, 0.53);
-    final towers = _interval(phase, 0.20, 0.70);
-    final roofs = _interval(phase, 0.52, 0.80);
-    final title = _interval(phase, 0.68, 0.92);
+    // Все детали перекрываются по времени, чтобы логотип собирался одним
+    // непрерывным движением. Крыши начинают движение ещё во время подъёма
+    // башен и получают самую длинную мягкую фазу вместо позднего «вылета».
+    final shield = _interval(phase, 0.00, 0.34);
+    final wall = _interval(phase, 0.05, 0.56);
+    final towers = _interval(phase, 0.10, 0.64);
+    final roofs = _interval(phase, 0.16, 0.78);
+    final title = _interval(phase, 0.48, 0.88);
 
     _revealFromCenter(
       canvas,
@@ -63,48 +66,48 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
       _scene.wall,
       wall,
       const Rect.fromLTRB(67, 72, 169, 154),
-      lift: 7,
+      lift: 5,
     );
     _riseReveal(
       canvas,
       _scene.leftTower,
       towers,
       const Rect.fromLTRB(38, 63, 80, 154),
-      lift: 10,
+      lift: 7,
     );
     _riseReveal(
       canvas,
       _scene.rightTower,
-      _interval(towers, 0.06, 1),
+      _interval(towers, 0.025, 1),
       const Rect.fromLTRB(156, 63, 198, 154),
-      lift: 10,
+      lift: 7,
     );
-    _settlePicture(
+    _roofReveal(
       canvas,
       _scene.leftRoof,
       roofs,
+      const Rect.fromLTRB(36, 22, 82, 68),
       const Offset(59, 68),
-      lift: 18,
     );
-    _settlePicture(
+    _roofReveal(
       canvas,
       _scene.rightRoof,
-      _interval(roofs, 0.08, 1),
+      _interval(roofs, 0.025, 1),
+      const Rect.fromLTRB(154, 22, 200, 68),
       const Offset(177, 68),
-      lift: 18,
     );
     _riseReveal(
       canvas,
       _scene.title,
       title,
       const Rect.fromLTRB(35, 148, 201, 218),
-      lift: 8,
+      lift: 5,
     );
 
     canvas.restore();
   }
 
-  double _phase(double value) => _clamp01((value - 0.50) / 0.50);
+  double _phase(double value) => _clamp01(value);
 
   void _revealFromCenter(
     Canvas canvas,
@@ -113,7 +116,7 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
     Rect bounds,
   ) {
     if (progress <= 0) return;
-    final eased = Curves.easeOutCubic.transform(progress);
+    final eased = Curves.easeInOutCubic.transform(progress);
     final halfHeight = (bounds.height / 2) * eased;
     final centerY = bounds.center.dy;
 
@@ -126,7 +129,7 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
         centerY + halfHeight,
       ),
     );
-    final scale = 0.965 + (0.035 * eased);
+    final scale = 0.975 + (0.025 * eased);
     canvas.translate(bounds.center.dx, bounds.center.dy);
     canvas.scale(scale, scale);
     canvas.translate(-bounds.center.dx, -bounds.center.dy);
@@ -142,7 +145,7 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
     required double lift,
   }) {
     if (progress <= 0) return;
-    final eased = Curves.easeOutCubic.transform(progress);
+    final eased = Curves.easeInOutCubic.transform(progress);
     final revealTop = bounds.bottom - (bounds.height * eased);
 
     canvas.save();
@@ -151,7 +154,7 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
         bounds.left - 4,
         revealTop - 2,
         bounds.right + 4,
-        bounds.bottom + 4,
+        bounds.bottom + 6,
       ),
     );
     canvas.translate(0, lift * (1 - eased));
@@ -159,19 +162,31 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _settlePicture(
+  void _roofReveal(
     Canvas canvas,
     ui.Picture picture,
     double progress,
-    Offset anchor, {
-    required double lift,
-  }) {
+    Rect bounds,
+    Offset anchor,
+  ) {
     if (progress <= 0) return;
-    final eased = Curves.easeOutCubic.transform(progress);
-    final scale = 0.90 + (0.10 * eased);
+
+    final eased = Curves.easeInOutCubic.transform(progress);
+    final reveal = Curves.easeInOutSine.transform(progress);
+    final revealTop = bounds.bottom - (bounds.height * reveal);
+    final scale = 0.985 + (0.015 * eased);
 
     canvas.save();
-    canvas.translate(anchor.dx, anchor.dy - (lift * (1 - eased)));
+    canvas.clipRect(
+      Rect.fromLTRB(
+        bounds.left - 4,
+        revealTop - 2,
+        bounds.right + 4,
+        bounds.bottom + 8,
+      ),
+    );
+    canvas.translate(0, 4 * (1 - eased));
+    canvas.translate(anchor.dx, anchor.dy);
     canvas.scale(scale, scale);
     canvas.translate(-anchor.dx, -anchor.dy);
     canvas.drawPicture(picture);
@@ -181,7 +196,7 @@ class _SmoothStroyNaVekaPainter extends CustomPainter {
   double _interval(double value, double begin, double end) {
     if (value <= begin) return 0;
     if (value >= end) return 1;
-    return Curves.easeOutCubic.transform((value - begin) / (end - begin));
+    return Curves.easeInOutCubic.transform((value - begin) / (end - begin));
   }
 
   double _clamp01(double value) {
