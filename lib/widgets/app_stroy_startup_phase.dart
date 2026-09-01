@@ -10,9 +10,31 @@ import '../app/app_adaptive_palette.dart';
 class AppStroyStartupPhase extends StatelessWidget {
   const AppStroyStartupPhase({super.key});
 
+  double _contentScaleCompensation(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final view = View.of(context);
+    final devicePixelRatio = view.devicePixelRatio;
+    if (devicePixelRatio <= 0 || mediaQuery.size.width <= 0) return 1;
+
+    final logicalViewportWidth = view.physicalSize.width / devicePixelRatio;
+    if (logicalViewportWidth <= 0) return 1;
+
+    // AppScaleViewport уменьшает весь Flutter-интерфейс (при 100% фактический
+    // коэффициент равен 0.80), а HTML/native splash живёт вне этого масштаба.
+    // Компенсируем только содержимое первой заставки, чтобы при handoff логотип
+    // не становился на 20% меньше и визуально не выглядел третьей заставкой.
+    final inheritedViewportScale =
+        logicalViewportWidth / mediaQuery.size.width;
+    if (!inheritedViewportScale.isFinite || inheritedViewportScale <= 0) {
+      return 1;
+    }
+    return 1 / inheritedViewportScale;
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = AppAdaptivePalette.isDark;
+    final contentScale = _contentScaleCompensation(context);
 
     return Scaffold(
       backgroundColor: AppAdaptivePalette.background,
@@ -22,70 +44,77 @@ class AppStroyStartupPhase extends StatelessWidget {
             center: const Alignment(0, -0.18),
             radius: 1.12,
             colors: [
-              AppAdaptivePalette.surfaceSoft.withValues(alpha: dark ? 0.78 : 0.54),
+              AppAdaptivePalette.surfaceSoft.withValues(
+                alpha: dark ? 0.78 : 0.54,
+              ),
               AppAdaptivePalette.background,
             ],
           ),
         ),
         child: SafeArea(
           child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 164,
-                  height: 164,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: dark
-                          ? const [Color(0xFF1F2C3A), Color(0xFF17212B)]
-                          : const [Color(0xFFFFFFFF), Color(0xFFE9E7E2)],
-                    ),
-                    borderRadius: BorderRadius.circular(48),
-                    border: Border.all(
-                      color: dark
-                          ? AppAdaptivePalette.border
-                          : Colors.white.withValues(alpha: 0.96),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: dark ? 0.36 : 0.14),
-                        blurRadius: 42,
-                        offset: const Offset(0, 18),
+            child: Transform.scale(
+              scale: contentScale,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 164,
+                    height: 164,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: dark
+                            ? const [Color(0xFF1F2C3A), Color(0xFF17212B)]
+                            : const [Color(0xFFFFFFFF), Color(0xFFE9E7E2)],
                       ),
-                    ],
+                      borderRadius: BorderRadius.circular(48),
+                      border: Border.all(
+                        color: dark
+                            ? AppAdaptivePalette.border
+                            : Colors.white.withValues(alpha: 0.96),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: dark ? 0.36 : 0.14,
+                          ),
+                          blurRadius: 42,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: const SizedBox.square(
+                      dimension: 132,
+                      child: CustomPaint(painter: _AppStroyMetalMarkPainter()),
+                    ),
                   ),
-                  child: const SizedBox.square(
-                    dimension: 132,
-                    child: CustomPaint(painter: _AppStroyMetalMarkPainter()),
+                  const SizedBox(height: 24),
+                  Text(
+                    'AppСтрой',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: AppAdaptivePalette.textPrimary,
+                      fontSize: 37,
+                      height: 1,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -2.0,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'AppСтрой',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: AppAdaptivePalette.textPrimary,
-                    fontSize: 37,
-                    height: 1,
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: -2.0,
+                  const SizedBox(height: 12),
+                  Text(
+                    'планируй. строй. управляй.',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppAdaptivePalette.textMuted,
+                      fontSize: 11,
+                      height: 1.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.75,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'планируй. строй. управляй.',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppAdaptivePalette.textMuted,
-                    fontSize: 11,
-                    height: 1.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.75,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
