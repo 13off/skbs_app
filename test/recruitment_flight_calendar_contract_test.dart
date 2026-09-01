@@ -30,7 +30,7 @@ void main() {
     expect(models, contains('class RecruitmentFlightCalendarData'));
   });
 
-  test('calendar exposes month view, ticket editor and personal reminder', () {
+  test('calendar exposes month view, multi-leg ticket editor and personal reminder', () {
     final screen = source(
       'lib/features/recruitment/presentation/recruitment_flight_calendar_screen.dart',
     );
@@ -44,7 +44,10 @@ void main() {
     expect(screen, contains('Прикрепить билет'));
     expect(screen, contains('Добавить уведомление'));
     expect(screen, isNot(contains('Напомнить сотруднику')));
-    expect(screen, contains('Future<void> chooseArrival() async'));
+    expect(screen, contains('Future<void> chooseSegmentDeparture(int index) async'));
+    expect(screen, contains('Future<void> chooseSegmentArrival(int index) async'));
+    expect(screen, contains("label: const Text('Добавить рейс')"));
+    expect(screen, contains('segments: segmentValues'));
     expect(screen, contains('RecruitmentMobilizationScreen'));
     expect(main, contains('RecruitmentFlightCalendarScreen'));
     expect(main, contains("label: 'Вылеты'"));
