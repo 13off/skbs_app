@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('startup shows AppСтрой briefly, then gives company the long phase', () {
+  test('startup shows only AppСтрой then the ready company phase', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -11,25 +11,43 @@ void main() {
       'lib/features/company/presentation/company_brand_splash_host.dart',
     ).readAsStringSync();
     final main = File('lib/main.dart').readAsStringSync();
+    final startupPhase = File(
+      'lib/widgets/app_stroy_startup_phase.dart',
+    ).readAsStringSync();
     final web = File('web/index.html').readAsStringSync();
 
     expect(web, contains('id="app-loader"'));
     expect(web, contains("window.addEventListener('flutter-first-frame'"));
     expect(web, contains('var appStroyVisibleMs = 2000;'));
-    expect(web, contains('switchToCompanyFallback'));
-    expect(web, contains('Загрузка Строй На Века'));
+    expect(web, isNot(contains('switchToCompanyFallback')));
+    expect(web, isNot(contains('companyFallbackShown')));
+    expect(web, isNot(contains('Загрузка Строй На Века')));
     expect(web, contains('window.setTimeout(completeAppStroyPhase, appStroyVisibleMs);'));
+
     expect(main, isNot(contains('binding.deferFirstFrame();')));
     expect(main, isNot(contains('WidgetsBinding.instance.allowFirstFrame();')));
     expect(main, isNot(contains('CircularProgressIndicator')));
+    expect(main, contains('return const AppStroyStartupPhase();'));
+
+    expect(startupPhase, contains("'AppСтрой'"));
+    expect(startupPhase, contains("'планируй. строй. управляй.'"));
+    expect(
+      startupPhase,
+      isNot(contains("'web/icons/AppStroy-512-v2.png'")),
+    );
+
     expect(gate, contains('Duration(milliseconds: 4600)'));
-    expect(gate, contains('Tween<double>(begin: 0.50, end: 1.00)'));
+    expect(gate, contains('const AlwaysStoppedAnimation<double>(1.0)'));
     expect(gate, contains('SmoothStroyNaVekaLogoScene'));
+    expect(gate, contains('? const AppStroyStartupPhase()'));
+    expect(gate, isNot(contains('Tween<double>(begin: 0.50, end: 1.00)')));
     expect(gate, isNot(contains('class _AppStroyPhase')));
     expect(gate, isNot(contains('class _AppStroyIdentity')));
+
     expect(host, contains('Duration(milliseconds: 1200)'));
-    expect(host, contains('_AppStroyStartupPhase'));
-    expect(host, contains("'web/icons/AppStroy-512-v2.png'"));
+    expect(host, contains('AppStroyStartupPhase'));
+    expect(host, isNot(contains('class _AppStroyStartupPhase')));
+    expect(host, isNot(contains("'web/icons/AppStroy-512-v2.png'")));
     expect(host, contains('if (_resolvingCompany)'));
     expect(host, contains('SmoothCompanyBrandSplashGate'));
   });
@@ -40,7 +58,7 @@ void main() {
     expect(deploy, contains("sed -i '/class=\"loader-progress\"/d'"));
   });
 
-  test('splash keeps app mounted underneath while company animation runs', () {
+  test('splash keeps app mounted underneath while company phase runs', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();

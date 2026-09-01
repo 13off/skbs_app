@@ -17,6 +17,7 @@ import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
 import 'navigation/app_page_route.dart';
+import 'widgets/app_stroy_startup_phase.dart';
 
 const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
@@ -243,10 +244,9 @@ class _StartupLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Первый Flutter-кадр нужен только для быстрого снятия стартовой заставки
-    // AppСтрой. Никакой второй индикатор здесь не показываем: сразу после
-    // базовой инициализации экран передаётся длинной заставке компании.
-    return const Scaffold(body: SizedBox.shrink());
+    // Первый Flutter-кадр визуально продолжает заставку AppСтрой, чтобы между
+    // HTML/native loader и заставкой компании не появлялся пустой экран.
+    return const AppStroyStartupPhase();
   }
 }
 
