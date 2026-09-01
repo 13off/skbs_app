@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('startup shows only AppСтрой then the ready company phase', () {
+  test('startup shows only AppСтрой then one smooth company phase', () {
     final gate = File(
       'lib/features/company/presentation/company_brand_splash_gate_smooth.dart',
     ).readAsStringSync();
@@ -37,10 +37,11 @@ void main() {
     );
 
     expect(gate, contains('Duration(milliseconds: 4600)'));
-    expect(gate, contains('const AlwaysStoppedAnimation<double>(1.0)'));
+    expect(gate, contains('CurvedAnimation('));
+    expect(gate, contains('curve: Curves.linear'));
+    expect(gate, isNot(contains('AlwaysStoppedAnimation<double>(1.0)')));
     expect(gate, contains('SmoothStroyNaVekaLogoScene'));
     expect(gate, contains('? const AppStroyStartupPhase()'));
-    expect(gate, isNot(contains('Tween<double>(begin: 0.50, end: 1.00)')));
     expect(gate, isNot(contains('class _AppStroyPhase')));
     expect(gate, isNot(contains('class _AppStroyIdentity')));
 
@@ -87,5 +88,19 @@ void main() {
     expect(scene, contains('canvas.drawPicture'));
     expect(scene, isNot(contains('computeMetrics')));
     expect(scene, isNot(contains('Image.asset')));
+  });
+
+  test('Stroy Na Veka roofs overlap towers and never pop with back easing', () {
+    final scene = File(
+      'lib/features/company/presentation/stroy_na_veka_logo_scene_smooth.dart',
+    ).readAsStringSync();
+
+    expect(scene, contains('final towers = _interval(phase, 0.10, 0.64);'));
+    expect(scene, contains('final roofs = _interval(phase, 0.16, 0.78);'));
+    expect(scene, contains('void _roofReveal('));
+    expect(scene, contains('Curves.easeInOutCubic.transform(progress)'));
+    expect(scene, contains('Curves.easeInOutSine.transform(progress)'));
+    expect(scene, isNot(contains('Curves.easeOutBack')));
+    expect(scene, isNot(contains('lift: 18')));
   });
 }

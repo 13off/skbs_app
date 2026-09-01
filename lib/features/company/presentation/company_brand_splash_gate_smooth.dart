@@ -50,10 +50,12 @@ class _SmoothCompanyBrandSplashGateState
         if (status == AnimationStatus.completed) _finish();
       });
 
-    // Визуально второй этап всегда сразу находится в готовом состоянии.
-    // Контроллер оставляем только как таймер длительности заставки компании:
-    // никаких промежуточных «строящихся» вариантов логотипа больше нет.
-    _companyAnimation = const AlwaysStoppedAnimation<double>(1.0);
+    // Второй этап остаётся одним логотипом компании, но его детали теперь
+    // собираются непрерывно и мягко в течение всей фазы без резких скачков.
+    _companyAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.linear,
+    );
 
     if (_shownForCompany.contains(widget.companyId)) {
       _complete = true;
