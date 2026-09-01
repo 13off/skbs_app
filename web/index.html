@@ -511,7 +511,6 @@
       var appStroyVisibleMs = 2000;
       var hidden = false;
       var firstFrameReady = false;
-      var companyFallbackShown = false;
 
       var hideLoader = function () {
         if (!loader || hidden) return;
@@ -522,39 +521,9 @@
         }, 560);
       };
 
-      var switchToCompanyFallback = function () {
-        if (!loader || hidden || companyFallbackShown) return;
-        companyFallbackShown = true;
-        loader.setAttribute('aria-label', 'Загрузка Строй На Века');
-        var stage = loader.querySelector('.loader-stage');
-        if (!stage) return;
-        stage.innerHTML = [
-          '<div style="width:236px;height:258px;margin:0 auto 8px;filter:drop-shadow(0 18px 34px rgba(27,55,96,.18))">',
-          '<svg viewBox="0 0 236 258" width="236" height="258" role="presentation" aria-hidden="true">',
-          '<path d="M118 8L212 60V172L118 244L24 172V60Z" fill="#315B9D" stroke="#23477F" stroke-width="5.5" stroke-linejoin="round"/>',
-          '<path d="M118 23L198 67V164L118 226L38 164V67Z" fill="none" stroke="#F7F9FC" stroke-opacity=".92" stroke-width="3.5" stroke-linejoin="round"/>',
-          '<rect x="76" y="87" width="84" height="64" rx="5" fill="#6686BA" stroke="#23477F" stroke-width="2"/>',
-          '<rect x="41" y="67" width="36" height="84" rx="6" fill="#6686BA" stroke="#23477F" stroke-width="2"/>',
-          '<rect x="159" y="67" width="36" height="84" rx="6" fill="#6686BA" stroke="#23477F" stroke-width="2"/>',
-          '<path d="M59 22L36 68H82Z" fill="#F7F9FC" stroke="#23477F" stroke-width="2.1" stroke-linejoin="round"/>',
-          '<path d="M177 22L154 68H200Z" fill="#F7F9FC" stroke="#23477F" stroke-width="2.1" stroke-linejoin="round"/>',
-          '<path d="M39 151H197L181 204H55Z" fill="#23477F"/>',
-          '<text x="118" y="176" text-anchor="middle" fill="#F7F9FC" font-size="18" font-weight="800" font-family="Arial, sans-serif">СТРОЙ</text>',
-          '<text x="118" y="196" text-anchor="middle" fill="#F7F9FC" font-size="14" font-weight="700" font-family="Arial, sans-serif">НА ВЕКА</text>',
-          '</svg></div>',
-          '<div class="loader-subtitle" style="opacity:1;transform:none;animation:none;margin-top:4px">строим. надёжно. надолго.</div>',
-          '<div class="loader-progress" style="opacity:1;animation:none" aria-hidden="true"></div>',
-          '<button class="loader-retry" type="button" onclick="window.location.reload()">Повторить запуск</button>'
-        ].join('');
-      };
-
       var completeAppStroyPhase = function () {
-        if (!loader || hidden) return;
-        if (firstFrameReady) {
-          hideLoader();
-        } else {
-          switchToCompanyFallback();
-        }
+        if (!loader || hidden || !firstFrameReady) return;
+        hideLoader();
       };
 
       var onFirstFrame = function () {
