@@ -20,10 +20,6 @@ class CompanyBrandSplashHost extends StatefulWidget {
 class _CompanyBrandSplashHostState extends State<CompanyBrandSplashHost> {
   static const Duration _minimumAppStroyPhase = Duration(milliseconds: 1200);
 
-  // Временная диагностика запуска: полностью пропускаем второй этап брендинга
-  // компании, не удаляя его код. Вернуть заставку можно одной сменой флага.
-  static final bool _companySplashTemporarilyDisabled = true;
-
   StreamSubscription<AuthState>? _authSubscription;
   String _companyId = '';
   String _resolvedUserId = '';
@@ -124,8 +120,6 @@ class _CompanyBrandSplashHostState extends State<CompanyBrandSplashHost> {
 
   @override
   Widget build(BuildContext context) {
-    if (_companySplashTemporarilyDisabled) return widget.child;
-
     if (_resolvingCompany) {
       return Stack(
         fit: StackFit.expand,
