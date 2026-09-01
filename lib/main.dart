@@ -12,11 +12,12 @@ import 'app/app_typography.dart';
 import 'app/premium_depth_theme.dart';
 import 'app/premium_scroll_behavior.dart';
 import 'app/theme_controller.dart';
+import 'navigation/app_page_route.dart';
 import 'navigation/web_back_navigation.dart';
 import 'screens/auth_gate.dart';
 import 'screens/notifications_screen.dart';
 import 'services/push_notification_service.dart';
-import 'navigation/app_page_route.dart';
+import 'widgets/app_stroy_startup_phase.dart';
 
 const String _defaultSupabaseUrl = 'https://dxbrhsefgxcaxzmrbfrb.supabase.co';
 const String _defaultSupabasePublishableKey =
@@ -243,9 +244,10 @@ class _StartupLoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Временная диагностика: первую Flutter-заставку AppСтрой не рисуем.
-    // Сам AppStroyStartupPhase остаётся в проекте и будет возвращён после теста.
-    return const Scaffold(body: SizedBox.shrink());
+    // На Web первую фазу уже рисует HTML/PWA. На iOS и Android запускаем
+    // полноценную Flutter-заставку сразу с мягкого появления контента.
+    if (kIsWeb) return const Scaffold(body: SizedBox.shrink());
+    return const AppStroyStartupPhase(animateEntrance: true);
   }
 }
 
